@@ -7,19 +7,23 @@ passed: full MVP checks, Windows/Linux exports, and independent process startup.
 It includes B's published arena/camera/HUD/settings at `40aa6b1`, A's simulation,
 networking, simple app menus and primitive weapon placeholders. Main has not been
 updated. That checkpoint uses `mvp-ab-2`/protocol 3. The A follow-up described below
-uses `mvp-ab-3`/protocol 4; both PCs must use the same branch/build.
+uses `mvp-ab-4`/protocol 4; both PCs must use the same branch/build. The preceding
+transport branch remains `mvp-ab-3`/protocol 4 and has passed CI.
 
-Host chooses 2 players (1v1, app default) or 4 players (2v2). One window per person;
+Host chooses 2 players (1v1, app default), 4 players (2v2), or 10 players (5v5
+on the current branch). One window per person;
 all players must Ready. Session actions are conditional on connection/match phase.
 Escape toggles the app menu; explicit Main menu safely leaves. Independent tests
 cover round-end Escape, full matches/rematches, reconnect and malformed input.
 
 ## Active A work
 
-A is on `codex/a-transport-acceptance`, based on contact fix `7235e50`
-(which builds on `bdb42ef`). Reserved paths:
+A is on `codex/a-five-v-five`, based on transport fix `df509a0`
+(which builds on contact `7235e50` and integration `bdb42ef`). Reserved paths:
 `scripts/networking/`, relevant `scripts/simulation/` prediction code,
 `tests/network/`, A check scripts, and these shared coordination docs.
+Current 5v5 work also includes match rules, spawn selection, independent simulation
+tests and A's app host selector. See [5v5 coordination](coordination/A_FIVE_V_FIVE.md).
 
 Independent network scenes now measure a launch/flip, actual lifter and spinner
 hits, head-on ramming, recovery and round resets at 0/80/150 ms. At 80 ms, these
@@ -73,7 +77,7 @@ The real-time 120-render/60-physics check delivered it once at 60–62 commands/
 passed. Do not retry away that failure or interpret accelerated transport loss as
 the configured impairment profile. Pure physics checks may still run accelerated.
 
-### Current transport follow-up
+### Completed transport follow-up
 
 See [the current acceptance record](coordination/A_TRANSPORT_ACCEPTANCE.md).
 New independent scenes cover opaque whole-UDP impairment, a four-client full
@@ -92,6 +96,26 @@ settling was 183.3 ms at 80 ms and 216.7 ms at 150 ms; 80 ms non-contact correct
 p95 was 0.137 m. Whole-UDP measured RTT samples were 119–151 ms with an 80 ms
 injection and 185–219 ms with 150 ms, with clock error at most 0.5 physics ticks.
 These are local automated results; two-computer LAN and human feel remain open.
+CI run 35460811964 passed the complete transport increment, both exports and
+independent-process checks.
+
+### Current 5v5 follow-up
+
+Ten-slot custom lobbies use five existing Foundry markers per side, 240-second
+rounds and the same judging, first-to-two, overtime and five-round cap. The host
+menu and `--players=10` select the mode; every slot must connect and Ready. The
+new build ID rejects older clients. Result payloads now accommodate all ten
+players and five rounds, while frequent timer messages contain compact summaries.
+Detailed stats remain in the results event and are restored on reconnect.
+Reordered entity snapshots also no longer discard each other's valid updates:
+the transport is unordered, with stale/duplicate rejection by per-entity tick.
+An actual-ENet adversarial scene failed with the old annotation and passes after
+the fix, including stale and duplicate packet rejection.
+The final full MVP suite passed, including independent rule/spawn, full-results
+delivery, adversarial snapshot ordering and ten-client sessions at 0/80/150 ms
+injection. Separate server-plus-ten-client and server-plus-four-client process
+checks passed. Evidence: `%TEMP%/battlebots-five-mvp-final.log` and the linked
+coordination record. This is not yet a ten-player combat performance certification.
 
 ## Other developer / modelling boundary
 
@@ -104,13 +128,14 @@ B's input-menu branch has published X/Y sensitivity at `6e42594` and controls/
 rebinding at `d533032`; diagnostics intent is published at `ca07c21`.
 A has not imported these follow-ups. A preserves the
 existing preview API and SessionBotSource gate. No app/input/presentation changes
-here. A future integration must preserve both owners' contract/TODO additions.
+are made to B's code; A's own app host selector gains 5v5. A future integration
+must preserve both owners' contract/TODO additions.
 
 ## Remaining delivery scope
 
 See [A MVP acceptance](A_MVP_TASKS.md) and the phase assignments in
 [TEAM_WORKFLOW.md](TEAM_WORKFLOW.md). A still owns network/contact acceptance,
-full-mode authority (5v5/FFA), remaining weapon mechanics, server performance,
+FFA authority, remaining weapon mechanics, ten-player combat/server performance,
 public services and verified persistence. These are not complete just because
 MVP automated tests pass. B owns the final garage/presentation/user experience.
 

@@ -35,10 +35,15 @@ The check imports resources, loads both sandboxes, checks contracts/input bindin
 and verifies the physical body settles on the floor. It needs no export templates.
 Run `./tools/check-drive.ps1 -GodotPath "C:/path/to/Godot_v4.7.2-stable_win64_console.exe"`
 for the baseline checks plus headless Jolt driving, braking, contact, and input-failure checks.
-For manual inspection, use F5 and both launcher buttons; Escape returns to the launcher.
+For manual inspection, use F5 and both launcher buttons; Escape opens the session
+menu. Use the explicit Main menu action to leave the session and return to the launcher.
 Public hosting is a later release task; MVP export presets are described below.
 
-## Developer A MVP (codex/a-mvp)
+## Playable team modes
+
+Current A branch: `codex/a-five-v-five`, build `mvp-ab-4`, protocol 4.
+Use the same branch/build on all peers. The older `codex/a-b-integration`
+checkpoint remains available; it does not include the current 5v5 follow-up.
 
 The main menu offers **Practice** and **Multiplayer**. Multiplayer opens session
 controls without starting practice. WASD/Space drive/brake, LMB powers the spinner or raises
@@ -56,22 +61,27 @@ Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executa
 & $GodotPath --path battlebots -- --practice --controller
 ./tools/check-mvp.ps1 -GodotPath $GodotPath
 ./tools/check-processes.ps1 -GodotPath $GodotPath
+./tools/check-processes.ps1 -GodotPath $GodotPath -PlayerCount 10
 ```
 
-Choose 2 players (1v1, the default) or 4 players (2v2) before hosting. CLI hosts
-accept `--players=2` or `--players=4`. The host counts as a player unless started
+Choose 2 players (1v1, the default), 4 players (2v2), or 10 players (5v5) before
+hosting. CLI hosts accept `--players=2`, `--players=4` or `--players=10`.
+The host counts as a player unless started
 as a dedicated server. Everyone in the selected player count must press Ready.
+5v5 rounds last 240 seconds; duel and 2v2 rounds last 180 seconds. All team modes
+use first-to-two wins, with a five-round draw cap. Empty slots are not filled by AI.
 Ready/Not ready is available only in the lobby, Forfeit round only during play,
 and Vote rematch only at results. Reconnect is available through the session API.
 
 ### Try multiplayer on two computers
 
-Use the same current `codex/a-b-integration` build on both PCs and the same LAN.
+Use the same current game build on both PCs and the same LAN.
 Open one game window on each computer. On PC A choose Multiplayer, keep
 **2 players / 1v1**, then click **Host game**. On PC B enter PC A's Ethernet/Wi-Fi
 IPv4 address shown in the lobby (for example `192.168.1.20`) and click **Join game**.
 Choose builds and press **Ready** on both PCs to start the countdown.
-Choose **4 players / 2v2** instead when four people are available.
+Choose **4 players / 2v2** when four people are available, or **10 players / 5v5**
+when ten people are available. Each person needs only one game window.
 Loopback `127.0.0.1` always means the computer where that client is running.
 
 The default port is UDP 24567. If joining fails, check that the host is running,
@@ -89,5 +99,11 @@ server startup. The GitHub workflow pins engine/templates, checks official hashe
 runs the suite and exports both artifacts. Generated binaries stay ignored.
 
 Read [CONTRACTS.md](docs/CONTRACTS.md) for B's API and [A_MVP_TASKS.md](docs/A_MVP_TASKS.md)
-for implemented scope and remaining joint acceptance. Full 5v5/FFA, the other
-weapon families, public identity/allocation and release polish are post-MVP phases.
+for implemented scope and remaining joint acceptance. Independent F6 scenes
+`tests/simulation/five_v_five_rules.tscn`, `tests/network/five_v_five_session.tscn`
+and `tests/network/results_delivery.tscn` exercise 5v5 rules/spawns, ten real
+clients and complete five-round result delivery. Network tests must run in real
+time, without `--fixed-fps` acceleration.
+FFA, the other weapon families, public identity/allocation, full performance/soak
+acceptance and release polish remain future work. Local automated tests do not
+replace the two-computer LAN and human control-feel playtest.

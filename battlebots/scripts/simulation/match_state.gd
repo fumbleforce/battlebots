@@ -10,8 +10,18 @@ var match_id := ""
 var event_id := 0
 var winner := -1
 var forfeits: Dictionary = {}
+var capacity := 4
+var mode := "2v2"
+var round_seconds := 180.0
 
-func begin() -> void:
+func configure(player_count: int) -> void:
+	assert(player_count in [2, 4, 10], "Team matches require 2, 4 or 10 players")
+	capacity = player_count
+	mode = "5v5" if capacity == 10 else ("1v1" if capacity == 2 else "2v2")
+	round_seconds = 240.0 if capacity == 10 else 180.0
+
+func begin(player_count: int = 4) -> void:
+	configure(player_count)
 	match_id = Crypto.new().generate_random_bytes(12).hex_encode()
 	scores = [0, 0]
 	rounds.clear()
@@ -32,7 +42,7 @@ func advance(delta: float, combatants: Dictionary, teams: Dictionary) -> void:
 	if phase == "loading" and remaining <= 0:
 		transition("lobby", 0)
 	elif phase == "countdown" and remaining <= 0:
-		transition("active", 180)
+		transition("active", round_seconds)
 	elif phase in ["active", "overtime"]:
 		var survivors := [0, 0]
 		for id: int in combatants:
@@ -79,4 +89,5 @@ func resolve(round_winner: int) -> void:
 
 func snapshot() -> Dictionary:
 	return {"match_id":match_id, "event_id":event_id, "phase":phase, "remaining":remaining,
-		"round":round_index, "scores":scores.duplicate(), "rounds":rounds.duplicate(true), "winner":winner}
+		"round":round_index, "scores":scores.duplicate(), "rounds":rounds.duplicate(true), "winner":winner,
+		"mode":mode, "capacity":capacity}

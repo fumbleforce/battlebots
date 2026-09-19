@@ -73,7 +73,10 @@ Arena floor surface is Y=0, X/Z bounds +/-25.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
 For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
 B's integrated arena includes perimeter walls and FFA spawn markers; A's current
-session rules support 1v1 and 2v2. FFA authority remains future work.
+session rules support 1v1, 2v2 and 5v5. FFA authority remains future work.
+Five-player teams use all five existing team markers; duel/2v2 retain markers
+2 and 4. `AuthorityWorld.spawn(..., team_size=2)` takes the team size as an
+optional fifth argument; pass 5 for 5v5.
 Spawn a future bot root with care: the bot fixture already offsets its body
 upward by 0.5, so do not apply that clearance twice when integrating spawn logic.
 
@@ -91,11 +94,13 @@ A change to an existing field's meaning is a breaking change; coordinate it befo
 editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
 for networking that does not yet exist.
 
-## MVP session API — protocol 4, build mvp-ab-3 (A transport branch)
+## Team session API — protocol 4, build mvp-ab-4 (A 5v5 branch)
 
 The playable a-b-integration checkpoint is still mvp-ab-2/protocol 3. Both peers
 must use the same build. Private clock/baseline and snapshot epoch semantics
-changed on a-contact-reconciliation; the public session/BotSource API is unchanged.
+changed on a-contact-reconciliation. The current 5v5 branch adds ten-player
+capacity and compact match summaries/detailed results delivery as described below.
+BotSource and camera/input APIs remain unchanged.
 
 `MvpSession` must have the same relative NodePath on every peer. Instantiate it
 under the application/session root, then call `host(port=24567, listen=true, player_count=4)` or
@@ -106,7 +111,7 @@ logs or lobby UI. A reconnect rotates the token and preserves the original bot.
 Requests: `set_loadout(draft)`, `set_team(0|1)`, `set_ready(bool)`,
 `vote_forfeit()`, `vote_rematch()`, `submit_local(BotCommand)`. The session assigns
 transport sequence numbers; B's existing per-tick command sequence may continue.
-The host selects 2 (1v1) or 4 (2v2) connected/ready slots. Other counts return
+The host selects 2 (1v1), 4 (2v2) or 10 (5v5) connected/ready slots. Other counts return
 ERR_INVALID_PARAMETER before opening a server. The API's omitted count remains 4
 for existing consumers; the app defaults to 2. Server alone advances the lifecycle.
 
@@ -115,9 +120,14 @@ Signals:
   details contain a message and optionally operation/code. Results carry match,
   participant state, build and content hash.
 - `lobby_changed(view)`: slots (entity_id, peer, team, ready, connected, loadout),
-  capacity=2|4, mode=1v1|2v2, phase. Tokens never appear in this view.
+  capacity=2|4|10, mode=1v1|2v2|5v5, phase. Tokens never appear in this view.
 - `match_changed(view)`: authoritative MatchState view. Timer updates at 1 Hz;
   phase changes arrive reliably. UI may interpolate a countdown for display only.
+  Mode/capacity are included. `rounds` contains round/winner summaries. Detailed
+  per-round participant records arrive with `session_event("results", details)`
+  as `details.match.rounds[].participants`, alongside aggregate `details.participants`.
+  Reliable result delivery occurs once per match; a results-phase reconnect
+  baseline includes the full record and restores it without duplicate events.
 - `bot_updated(entity_id, BotView)`: resources and health from 20 Hz snapshots.
   `local_source()` returns the player's BotSource after loading. B's input must
   call `submit_local`, not mutate a client body or call a server bot directly.
@@ -136,6 +146,14 @@ and rejects loadout changes after lock. Input channel 1 is unreliable ordered at
 30 packets/s with recent redundancy; channel 2 carries independently decodable
 entity snapshots at 20 Hz; control uses reliable channel 0. Node/RID/Object handles
 are never serialized. `WireCodec.PROTOCOL` is the actual wire version.
+Snapshot delivery is unordered at the transport layer; per-entity round/epoch
+and tick checks reject stale/duplicate state without dropping another bot's
+valid update when packets arrive in a different order.
+Reliable baseline/match payloads are capped at 128 KiB to accommodate ten players
+and the five-round cap; ordinary timer messages omit detailed participant history.
+`MatchState.begin(player_count=4)` uses 240-second rounds for ten players and
+180 seconds for duel/2v2, preserving five-second countdown, first-to-two and
+five-round draw cap. The host CLI accepts `--players=10`; app default remains 2.
 
 Local drive prediction uses the same DriveModel tire response as the server and
 advances snapshots to the estimated current simulation tick, bounded to 250 ms,

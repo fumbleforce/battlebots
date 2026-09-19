@@ -6,6 +6,7 @@ signal lobby_changed(view: Dictionary)
 signal match_changed(view: Dictionary)
 signal bot_updated(entity_id: int, view: BotView)
 signal combat_event(event: Dictionary)
+const MAX_CONTROL_STATE_BYTES := 131072 # Ten players, up to five detailed round results.
 
 var registry := ContentRegistry.new()
 var match_state := MatchState.new()
@@ -59,16 +60,19 @@ func _ready() -> void:
 func host(port := 24567, listen := true, player_count := 4) -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
-	if player_count not in [2, 4]:
-		session_event.emit("error", {"message":"Choose 2 or 4 players"})
+	if player_count not in [2, 4, 10]:
+		session_event.emit("error", {"message":"Choose 2, 4 or 10 players"})
 		return ERR_INVALID_PARAMETER
 	var peer := ENetMultiplayerPeer.new()
-	var error := peer.create_server(port, 8, 3)
+	# Keep a few handshake slots beyond the match capacity for version rejection
+	# and reconnects; admitted players are still bounded by player_capacity.
+	var error := peer.create_server(port, player_count + 4, 3)
 	if error != OK:
 		session_event.emit("error", {"message":"Cannot bind UDP port", "code":error})
 		return error
 	multiplayer.multiplayer_peer = peer
 	player_capacity = player_count
+	match_state.configure(player_capacity)
 	_server = true
 	connection_state = "hosting"
 	_make_world()
@@ -137,6 +141,7 @@ func leave() -> void:
 	_loaded.clear()
 	_rematch.clear()
 	_forfeit.clear()
+	_results.clear()
 	_local_commands.clear()
 	_remote_buffers.clear()
 	_last_snapshot_tick.clear()
@@ -335,7 +340,15 @@ func _public_lobby() -> Dictionary:
 		var p: Dictionary = players[id]
 		slots.append({"entity_id":id, "peer":p.peer, "team":p.team, "ready":p.ready,
 			"connected":p.peer != 0, "loadout":p.loadout.duplicate(true)})
-	return {"slots":slots, "capacity":player_capacity, "mode":"1v1" if player_capacity == 2 else "2v2", "phase":match_state.phase}
+	return {"slots":slots, "capacity":player_capacity, "mode":"%dv%d" % [player_capacity / 2, player_capacity / 2], "phase":match_state.phase}
+
+func _public_match() -> Dictionary:
+	# Frequent timer/phase updates carry round summaries. Detailed participant
+	# history is delivered once with the reliable final result, or on reconnect.
+	var view := match_state.snapshot()
+	for round_result: Dictionary in view.rounds:
+		round_result.erase("participants")
+	return view
 
 func _publish_lobby() -> void:
 	lobby_view = _public_lobby()
@@ -352,7 +365,7 @@ func _lobby(packet: PackedByteArray) -> void:
 
 func _start() -> void:
 	world.clear_bots()
-	match_state.begin()
+	match_state.begin(player_capacity)
 	_loaded.clear()
 	_rematch.clear()
 	_forfeit.clear()
@@ -360,7 +373,7 @@ func _start() -> void:
 	var slots := [0, 0]
 	for id: int in players:
 		var p: Dictionary = players[id]
-		var bot := world.spawn(id, p.team, slots[p.team], p.loadout)
+		var bot := world.spawn(id, p.team, slots[p.team], p.loadout, player_capacity / 2)
 		slots[p.team] += 1
 		bot.owner_id = p.peer
 		_input_queue[id] = []
@@ -375,14 +388,16 @@ func _send_baseline(peer: int) -> void:
 	var states := {}
 	for id: int in world.bots:
 		states[id] = WireCodec.encode_bot(world.bots[id], WireCodec.snapshot_epoch(match_state.match_id, match_state.round_index))
-	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":match_state.snapshot(), "bots":states, "server_tick":world.tick}))
+	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":_public_match(), "bots":states,
+		"server_tick":world.tick, "results":_results}))
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _baseline(packet: PackedByteArray) -> void:
-	if packet.size() > 32768:
+	if packet.size() > MAX_CONTROL_STATE_BYTES:
 		return
 	var data: Dictionary = bytes_to_var(packet)
 	lobby_view = data.lobby
+	player_capacity = int(lobby_view.capacity)
 	match_view = data.match
 	_server_tick_offset = float(data.server_tick) - _client_tick
 	_clock_ready = false
@@ -393,7 +408,7 @@ func _baseline(packet: PackedByteArray) -> void:
 	for slot: Dictionary in lobby_view.slots:
 		if not data.bots.has(slot.entity_id):
 			continue
-		var bot := world.spawn(slot.entity_id, slot.team, 0, slot.loadout)
+		var bot := world.spawn(slot.entity_id, slot.team, 0, slot.loadout, player_capacity / 2)
 		bot.simulated = false
 		bot.body.freeze = true
 		bot.body.reset_pose = null
@@ -401,6 +416,7 @@ func _baseline(packet: PackedByteArray) -> void:
 		_snapshot(data.bots[slot.entity_id])
 	match_changed.emit(match_view.duplicate(true))
 	lobby_changed.emit(lobby_view.duplicate(true))
+	_accept_results(data.get("results", {}))
 	if match_view.phase == "loading":
 		_request_local({"kind":"loaded", "match_id":match_view.match_id})
 
@@ -529,7 +545,8 @@ func _physics_process(delta: float) -> void:
 	if old_phase == "intermission" and match_state.phase == "countdown":
 		world.reset_round()
 		_forfeit.clear()
-	if match_state.phase == "results" and _results.is_empty():
+	var publish_results := match_state.phase == "results" and _results.is_empty()
+	if publish_results:
 		_results = {"match":match_state.snapshot(), "content_hash":registry.content_hash, "build":WireCodec.BUILD, "participants":{}}
 		for id: int in world.bots:
 			_results.participants[id] = world.bots[id].combat.snapshot()
@@ -553,11 +570,11 @@ func _physics_process(delta: float) -> void:
 		_publish_lobby()
 	if match_state.event_id != _last_event or world.tick % 60 == 0:
 		_last_event = match_state.event_id
-		match_view = match_state.snapshot()
+		match_view = _public_match()
 		match_changed.emit(match_view.duplicate(true))
 		for peer: int in peer_entities:
 			if peer != 1:
-				_match.rpc_id(peer, var_to_bytes({"view":match_view, "results":_results}))
+				_match.rpc_id(peer, var_to_bytes({"view":match_view, "results":_results if publish_results else {}}))
 	if world.tick % 3 == 0:
 		for id: int in world.bots:
 			# A reset is applied by Jolt on the next physics step; never label the old
@@ -574,7 +591,7 @@ func _physics_process(delta: float) -> void:
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _match(packet: PackedByteArray) -> void:
-	if packet.size() > 32768:
+	if packet.size() > MAX_CONTROL_STATE_BYTES:
 		return
 	var data: Dictionary = bytes_to_var(packet)
 	var changed_round: bool = data.view.get("round") != match_view.get("round") or data.view.get("match_id") != match_view.get("match_id")
@@ -590,11 +607,16 @@ func _match(packet: PackedByteArray) -> void:
 		world.clear_bots()
 		_remote_buffers.clear()
 	match_changed.emit(match_view.duplicate(true))
-	if not data.results.is_empty() and _results.get("match", {}).get("match_id", "") != data.results.match.match_id:
-		_results = data.results
+	_accept_results(data.results)
+
+func _accept_results(results: Dictionary) -> void:
+	if not results.is_empty() and _results.get("match", {}).get("match_id", "") != results.match.match_id:
+		_results = results
 		session_event.emit("results", _results.duplicate(true))
 
-@rpc("authority", "call_remote", "unreliable_ordered", 2)
+# Each entity has its own tick guard below. ENet's channel-wide ordered stream
+# would let a newer packet for one bot discard valid packets for other bots.
+@rpc("authority", "call_remote", "unreliable", 2)
 func _snapshot(packet: PackedByteArray) -> void:
 	if packet.size() > 1200:
 		return

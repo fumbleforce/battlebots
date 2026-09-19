@@ -1,7 +1,7 @@
 class_name WireCodec
 extends RefCounted
 const PROTOCOL := 4
-const BUILD := "mvp-ab-3"
+const BUILD := "mvp-ab-4"
 const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
 
 static func snapshot_epoch(match_id: String, round_index: int) -> String:

@@ -173,7 +173,8 @@ func _build_console() -> void:
 	player_count_choice = OptionButton.new()
 	player_count_choice.add_item("2 players / 1v1", 2)
 	player_count_choice.add_item("4 players / 2v2", 4)
-	player_count_choice.select(1 if player_count == 4 else 0)
+	player_count_choice.add_item("10 players / 5v5", 10)
+	player_count_choice.select(maxi(0, player_count_choice.get_item_index(player_count)))
 	player_count_choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	player_count_choice.item_selected.connect(func(index: int) -> void: player_count = player_count_choice.get_item_id(index))
 	host_row.add_child(player_count_choice)
@@ -323,7 +324,7 @@ func _refresh_menu(source: BotSource) -> void:
 	var lobby := online and phase == "lobby"
 	var practice := state == "practice"
 	var capacity := int(session.lobby_view.get("capacity", player_count))
-	var mode := str(session.lobby_view.get("mode", "1v1" if capacity == 2 else "2v2"))
+	var mode := str(session.lobby_view.get("mode", "%dv%d" % [capacity / 2, capacity / 2]))
 	var slots: Array = session.lobby_view.get("slots", [])
 	menu_backdrop.visible = state in ["offline", "connecting"]
 	if phase != _ui_phase:

@@ -1,7 +1,7 @@
 # Developer A MVP work
 
 Owner: A. Playable branch: `codex/a-b-integration` at `bdb42ef`.
-Active follow-up: `codex/a-transport-acceptance`. B-owned files remain outside A work.
+Active follow-up: `codex/a-five-v-five`. B-owned files remain outside A work.
 
 Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,
@@ -27,3 +27,14 @@ families are phase 4, not MVP; public account/allocation services are phase 5.
 The final LAN and human-feel gate cannot be replaced by localhost tests. Record
 actual measured outcomes and remaining gates in HANDOFF.md; do not mark them passed
 without running them.
+
+## Full-spec A work after the MVP
+
+- [x] Ten-player 5v5 authority/session and 240-second rounds; impaired-session and independent-process checks pass.
+- [ ] Four-to-eight-player FFA, elimination-tick placements and shared wins.
+- [ ] Horizontal spinner, hammer and saw mechanics with server-owned stats/hits.
+- [ ] Ten-player combat/performance/bandwidth and sustained soak acceptance.
+- [ ] Public allocation/identity/result services, deployment and verified persistence.
+
+These remain part of A's goal. The MVP checklist does not redefine the complete
+requested game. Final art, menu/garage UX, accessibility and camera work belong to B.

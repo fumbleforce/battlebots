@@ -104,12 +104,12 @@ not merge it to main; A and B should review integration changes before merging.
 - **Playable checkpoint:** codex/a-b-integration at bdb42ef; CI passed. Includes
   2-player 1v1 / 4-player 2v2, session-specific menu actions and the Escape fix.
   Build mvp-ab-2, protocol 3. Both peers must run matching builds.
-- **Active branch:** codex/a-transport-acceptance, based on contact fix 7235e50
-  (which builds on bdb42ef). A reserves
-  networking, simulation prediction, independent tests/network scenes and check
+- **Active branch:** codex/a-five-v-five, based on transport fix df509a0
+  (which builds on contact 7235e50 and bdb42ef). A reserves
+  networking, match/spawn simulation, A app hosting, independent test scenes and check
   scripts. Scripted contact/airborne/reset checks now exist at 0/80/150 ms;
   broadened transport/collision coverage and manual LAN remain next.
-- **Modelling separation:** sawblade-tank at daa0c8c is visible remotely; A has not
+- **Modelling separation:** sawblade-tank at observed 5ec8dbb is visible remotely; A has not
   imported it. The separate flame modelling worktree is untouched. A will not edit
   assets, B presentation/UI/arena files, or weapon geometry during this increment.
 - **B dependencies available:** ContentRegistry/LoadoutStore; session lobby/match
@@ -143,7 +143,7 @@ not merge it to main; A and B should review integration changes before merging.
   packets independently of the configured simulated loss. A subagent independently
   validated clocks/baselines and the real 120-render/60-physics case.
 
-- **A next branch:** codex/a-transport-acceptance from 7235e50. Reserved paths are
+- **A completed transport branch:** codex/a-transport-acceptance from 7235e50. Reserved paths were
   A tests/network relay/contact/session scenes, check scripts, and proven fixes
   in A networking/simulation if tests expose them. Whole-UDP impairment will cover
   reliable control as well as snapshots. B diagnostics intent ca07c21 is acknowledged;
@@ -162,3 +162,24 @@ not merge it to main; A and B should review integration changes before merging.
   including the new whole-UDP four-client cases. Independent server plus four
   client processes also passed. Worst contact settling was 183.3 ms at 80 ms and
   216.7 ms at 150 ms; local automated evidence does not close human LAN acceptance.
+
+- **A current mode increment:** codex/a-five-v-five from df509a0. Implement ten-player
+  custom team lobbies, existing five-per-side spawn markers and 240-second rounds;
+  wire the option through A's app host menu/CLI. Existing duel/2v2 and team view
+  semantics remain intact. A reserves session/match/world and A app/test paths;
+  B/modelling paths remain untouched. Intent and API details are in
+  coordination/A_FIVE_V_FIVE.md. FFA remains a separate follow-up.
+
+- **5v5 contract note for B:** build mvp-ab-4/protocol 4 accepts capacity 10 with
+  mode 5v5. First-to-two and team IDs remain unchanged. Match-view round entries
+  are now compact round/winner summaries; consume the reliable results event for
+  aggregate participant data and `details.match.rounds[].participants`. Complete
+  results also arrive on results-phase reconnect, deduplicated by match ID.
+  The prior 32 KiB receive limit could drop ten-player results; the bounded limit
+  is now 128 KiB, with detailed history sent once rather than on every heartbeat.
+  Existing B-owned files are unchanged. Full regression passed, including ten-client
+  profiles 0/80/150 and separate eleven-process and five-process startup checks.
+  The final regression exposed cross-entity starvation in ordered snapshot
+  transport; plain unreliable snapshots now use the existing per-entity tick
+  guard. An adversarial raw-UDP test proves both the old failure and new behavior.
+  No input-command ordering or B diagnostic-field semantics change.
