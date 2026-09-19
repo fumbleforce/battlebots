@@ -11,6 +11,11 @@ Read docs/GAME_SPEC.md, docs/TEAM_WORKFLOW.md, docs/CONTRACTS.md and docs/HANDOF
 - Shared contracts require a documented handoff. Do not change another owner's paths incidentally.
 - Use a separate local clone per computer and a separate codex/a-* or codex/b-* branch per task.
 - Never assume another ChatGPT session shares memory or that its unmerged work is present.
+- After each completed incremental iteration, commit only the task's changes,
+  fetch origin, rebase the task branch onto origin/main, and push the task branch.
+  Preserve unrelated working edits. Resolve and validate any rebase conflicts
+  before pushing. If rebasing a previously pushed task branch rewrites its history,
+  use --force-with-lease, never a blind force push or a force push to main.
 
 ## Baseline and validation
 - Pin Godot to 4.7.2 stable. Preserve Jolt, 60 Hz physics, meter scale, Y up, and -Z forward.
