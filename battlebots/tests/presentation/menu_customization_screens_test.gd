@@ -30,7 +30,16 @@ func run() -> void:
 				await RenderingServer.frame_post_draw
 				root.get_texture().get_image().save_png("user://b-kit-build-rules.png")
 			screen._set_tab("parts")
-			check(screen.get_node("%ItemsView").get_child_count() == 14,"Full canonical part catalogue")
+			var registry := ContentRegistry.new()
+			var displayed_parts: Array[String] = []
+			for card: Node in screen.get_node("%ItemsView").get_children():
+				displayed_parts.append(card.get_node("%Name").text)
+			check(displayed_parts.size() == registry.parts.size(),"Full canonical part catalogue")
+			for part_id: String in registry.parts:
+				check(displayed_parts.count(part_id.capitalize()) == 1,
+					"Canonical part appears exactly once: " + part_id)
+			for weapon_id: String in ["vertical_spinner", "horizontal_spinner", "hammer", "saw", "lifter"]:
+				check(displayed_parts.has(weapon_id.capitalize()),"Implemented weapon is available: " + weapon_id)
 			check(screen.get_node("%ItemsView").get_parent() is ScrollContainer,"Catalogue scrolls")
 		for _frame in 4: await process_frame
 		var footer: Control = screen.get_node("Layout/Footer")

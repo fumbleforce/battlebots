@@ -44,6 +44,7 @@ Invoke-MvpTest 'res://tests/network/clock_delivery.tscn' 'CLOCK DELIVERY PASS' -
 Invoke-MvpTest 'res://tests/network/results_delivery.tscn' 'RESULTS DELIVERY PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/ffa_disconnect.tscn' 'FFA DISCONNECT PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/snapshot_reordering.tscn' 'SNAPSHOT REORDERING PASS' -Scene -RealTime
+Invoke-MvpTest 'res://tests/network/snapshot_recovery.tscn' 'SNAPSHOT RECOVERY PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/raw_datagram_relay.tscn' 'RAW DATAGRAM RELAY PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/remote_extrapolation.tscn' 'REMOTE EXTRAPOLATION PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/wall_contact.tscn' 'WALL CONTACT PASS' -Scene -RealTime

@@ -25,6 +25,8 @@ func run() -> void:
 	var before := b.combat.core
 	world.step(1.0 / 60, true, 1)
 	check(b.combat.core < before and not world.weapons.events.is_empty(), "Authoritative spinner overlaps and damages enemy")
+	check(world.weapons.events.all(func(event: Dictionary) -> bool: return event.kind == "vertical_spinner"),
+		"Weapon events identify authored impacts separately from ramming")
 	check(a.combat.charge < 0.6, "Hit drains spinner")
 	var damage_after := b.combat.core
 	a.combat.charge = 1

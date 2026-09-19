@@ -93,6 +93,19 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Performance/reliability (in progress):** `codex/a-performance` from saw
+  `5d3fd30`. A reserves independent process/performance fixtures and demonstrated
+  network fixes. Ten real command-driving clients will exercise all five weapons,
+  normal matches/rematches and measured budgets. No B assets/UI or modelling edits.
+  [Scope and acceptance](coordination/A_PERFORMANCE.md); prior intermittent CI
+  observer failures remain strict gates, with diagnostics now available.
+  Build mvp-ab-9/protocol 4 adds reliable transition/one-second bot checkpoints;
+  `combat_event.kind` is a canonical weapon ID or `ram`. Both peers must update.
+  Saw CI passed all A checks, then exposed B's stale fourteen-part catalogue
+  assertion. A repaired only `menu_customization_screens_test.gd` to check every
+  registry part and all five weapons; its targeted check passes. No production
+  B UI/assets or modelling checkout edits. Baseline and contact 80/150 ms pass.
+
 - **Saw (implemented):** `codex/a-saw`, based on hammer `9610946`. A changed
   combat state/world, catalogue/save migration, primitive assembly and independent
   test/check paths. B's assets, menus/input and modelling worktree stay untouched.

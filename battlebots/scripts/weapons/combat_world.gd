@@ -122,8 +122,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 			var closing := (a.previous_velocity - b.previous_velocity).dot(direction)
 			if closing > 4:
 				var raw := minf(12, 2 * (closing - 4))
-				_hit(a, b, a.body.global_position, raw, Vector3.ZERO, tick, round_index)
-				_hit(b, a, b.body.global_position, raw, Vector3.ZERO, tick, round_index)
+				_hit(a, b, a.body.global_position, raw, Vector3.ZERO, tick, round_index, 0.2, "ram")
+				_hit(b, a, b.body.global_position, raw, Vector3.ZERO, tick, round_index, 0.2, "ram")
 				cooldowns[key] = time + 0.5
 	# Collect every eligible attack before damage: mutual lethal hits share a tick.
 	for hit: Array in pending_hits:
@@ -238,10 +238,11 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 				_sweep_origins[hit.collider_id] = query.transform.origin
 	return found
 
-func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2) -> void:
-	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil])
+func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "") -> void:
+	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
+		attacker.combat.stats.weapon if kind.is_empty() else kind])
 
-func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2) -> void:
+func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "") -> void:
 	if victim.combat.eliminated:
 		return
 	var zone := victim.zone_at(point)
@@ -257,7 +258,7 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	event_id += 1
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:
 		attacker.combat.attack_id += 1
-	events.append({"event_id":event_id, "round":round_index, "tick":tick,
+	events.append({"event_id":event_id, "round":round_index, "tick":tick, "kind":kind,
 		"attack_id":attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,
 		"normal":(point - victim.body.global_position).normalized()})

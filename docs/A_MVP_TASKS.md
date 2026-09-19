@@ -23,6 +23,7 @@ families are phase 4, not MVP; public account/allocation services are phase 5.
 - [x] Measure scripted contact/flip/recovery prediction settling at 0/80/150 ms in independent scenes.
 - [x] Four-client lifecycle/reconnect/rematch under whole-UDP impairment, including reliable control and lost initial connect packet.
 - [x] Sustained wall/chamfer collision bounds and settling; inactive/eliminated remote extrapolation regression.
+- [x] Reliable match transitions and one-second state recovery under total unreliable-snapshot loss; independent actual-ENet regression.
 - [ ] Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
 - [ ] Diagnose intermittent CI observer convergence failures (FFA damage in 35466215676; 5v5 rematch spawn in 35466883297). Strict gates remain; local reproductions pass.
 - [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
@@ -39,6 +40,8 @@ without running them.
 - [x] Hammer with committed overhead sweep, press edges, resource/recovery timing and Duelist starter; independent state/physics/ENet checks.
 - [x] Saw maintained-contact cadence, resources, swept blade and independent state/physics/ENet checks.
 - [ ] Ten-player combat/performance/bandwidth and sustained soak acceptance.
+  Independent eleven-process harness implemented on `codex/a-performance`;
+  short smoke runs are not the required sixty-minute or rendered acceptance.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.
 
 These remain part of A's goal. The MVP checklist does not redefine the complete

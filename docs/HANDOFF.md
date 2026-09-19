@@ -2,13 +2,13 @@
 
 ## Current Developer A increment
 
-`codex/a-saw` follows hammer `9610946`, horizontal spinner `b46084e` and menu/music
+`codex/a-performance` follows saw `5d3fd30`, hammer `9610946`, horizontal spinner `b46084e` and menu/music
 export `db87257`. All five weapon families now have authoritative mechanics and
 primitive visuals. The saw cuts for 6 raw per third-second of maintained contact;
 breaking contact or power clears the partial interval. See
 [saw coordination](coordination/A_SAW.md), [hammer](coordination/A_HAMMER.md) and
 [horizontal spinner](coordination/A_HORIZONTAL_SPINNER.md) for independent evidence.
-This branch uses build `mvp-ab-8`/protocol 4 with catalogue revision four; both peers
+This branch uses build `mvp-ab-9`/protocol 4 with catalogue revision four; both peers
 must update together. Known revision-one/two/three saves migrate without changing
 parts. The `db87257` playtest ZIP is preserved separately.
 
@@ -18,6 +18,28 @@ a ten-player rematch. Both bounded local reproductions passed. Failure-only
 diagnostics were added without weakening either gate; the causes remain unproven.
 Neither run is described as full acceptance. Performance/soak, public services
 and manual LAN/internet/contact-feel remain open A work.
+
+Saw CI 35467391486 subsequently passed every A MVP check, including FFA and 5v5
+profiles. It stopped in B's catalogue fixture, which still expected fourteen
+parts after the catalogue grew to seventeen. This increment updates only that
+assertion to verify the registry and each part, including all five weapons;
+the targeted presentation test passes. Production B UI and assets are untouched.
+
+The current increment adds reliable bot-state checkpoints on match transitions
+and during the existing one-second active/countdown heartbeat. A new actual-ENet
+regression reproduces and repairs stale health/epoch after a round reset when
+unreliable snapshots are entirely lost. Delayed checkpoints cannot rewind newer
+snapshots. This is a proven defect, not a confirmed cause of the earlier CI
+failures. Baseline, combat physics, detailed-results bounds, profile-zero 5v5 and
+the recovery scene pass. Contact regressions at 80/150 ms both pass with worst
+settling 183.3 ms against the unchanged 250 ms gate.
+
+The eleven-process performance harness uses normal five-weapon 5v5 matches,
+measures UDP bytes with overhead and OS process memory, and distinguishes smoke
+evidence from the required sixty-minute soak. Combat events now expose canonical
+weapon IDs or `ram` in `kind`. See [performance coordination](coordination/A_PERFORMANCE.md)
+for measurements and limits: callback timing excludes the engine's Jolt step,
+and headless runs cannot certify rendered frame-time budgets.
 
 ## Current playtest checkpoint
 
@@ -199,7 +221,7 @@ work on `codex/b-match-results` remains an intent document, not completed UI.
 
 See [A MVP acceptance](A_MVP_TASKS.md) and the phase assignments in
 [TEAM_WORKFLOW.md](TEAM_WORKFLOW.md). A still owns network/contact acceptance,
-remaining weapon mechanics, ten-player combat/server performance,
+ten-player combat/server performance,
 public services and verified persistence. These are not complete just because
 MVP automated tests pass. B owns the final garage/presentation/user experience.
 

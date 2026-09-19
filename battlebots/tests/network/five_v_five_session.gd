@@ -163,7 +163,8 @@ func run() -> void:
 			check(round_result.get("participants", {}).size() == 10, "Detailed round result retains all participant statistics")
 		for round_summary: Dictionary in clients[index].match_view.rounds:
 			check(not round_summary.has("participants"), "Ordinary match view contains compact round summaries")
-	var control_bytes := var_to_bytes({"view":server.match_view, "results":server._results}).size()
+	var control_bytes := var_to_bytes({"view":server.match_view, "results":server._results,
+		"bots":server._bot_snapshots()}).size()
 	print("5v5 three-round detailed result control payload: %d bytes" % control_bytes)
 	check(control_bytes <= 131072, "Detailed ten-player results fit the bounded 128 KiB control packet")
 	var old_match := server.match_state.match_id

@@ -400,11 +400,14 @@ func _start() -> void:
 	_publish_lobby()
 
 func _send_baseline(peer: int) -> void:
+	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":_public_match(), "bots":_bot_snapshots(),
+		"server_tick":world.tick, "results":_results}))
+
+func _bot_snapshots() -> Dictionary:
 	var states := {}
 	for id: int in world.bots:
 		states[id] = WireCodec.encode_bot(world.bots[id], WireCodec.snapshot_epoch(match_state.match_id, match_state.round_index))
-	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":_public_match(), "bots":states,
-		"server_tick":world.tick, "results":_results}))
+	return states
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _baseline(packet: PackedByteArray) -> void:
@@ -600,12 +603,19 @@ func _physics_process(delta: float) -> void:
 		world.clear_bots()
 		_publish_lobby()
 	if match_state.event_id != _last_event or world.tick % 60 == 0:
+		var changed_event := match_state.event_id != _last_event
 		_last_event = match_state.event_id
 		match_view = _public_match()
 		match_changed.emit(match_view.duplicate(true))
+		# Round transitions must carry the repaired/spawned state they announce.
+		# The existing 1 Hz heartbeat also repairs state when ENet throttles the
+		# 20 Hz unreliable stream. Per-entity tick guards reject older checkpoints.
+		var include_bots := changed_event or match_state.phase in ["countdown", "active", "overtime"]
+		var checkpoint := var_to_bytes({"view":match_view, "results":_results if publish_results else {},
+			"bots":_bot_snapshots() if include_bots else {}})
 		for peer: int in peer_entities:
 			if peer != 1:
-				_match.rpc_id(peer, var_to_bytes({"view":match_view, "results":_results if publish_results else {}}))
+				_match.rpc_id(peer, checkpoint)
 	if world.tick % 3 == 0:
 		for id: int in world.bots:
 			# A reset is applied by Jolt on the next physics step; never label the old
@@ -637,6 +647,8 @@ func _match(packet: PackedByteArray) -> void:
 	if match_view.phase == "lobby":
 		world.clear_bots()
 		_remote_buffers.clear()
+	for state: PackedByteArray in data.get("bots", {}).values():
+		_snapshot(state)
 	match_changed.emit(match_view.duplicate(true))
 	_accept_results(data.results)
 

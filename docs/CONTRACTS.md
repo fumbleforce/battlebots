@@ -58,7 +58,13 @@ using 9 battery/14 heat per second. Every full 1/3 second of maintained target
 contact deals 6 raw damage to one contacted zone. Separation or loss of power
 discards partial contact time. Secondary stops it; zero battery or heat 100 ends
 damage eligibility that tick. No authored saw impulse or pin is applied.
-Build `mvp-ab-8` adds catalogue revision four; protocol remains 4. All peers need
+Build `mvp-ab-9` keeps catalogue revision four/protocol 4 and adds reliable state
+checkpoints to match transitions and active/countdown heartbeats. Checkpoints use
+the existing snapshot format and per-entity tick guard, so newer fast snapshots
+cannot be rewound by delayed reliable delivery. Finished-match heartbeats remain
+compact. Combat events add `kind`: a canonical weapon ID or `ram`, allowing VFX
+and telemetry to distinguish weapon contact from ordinary chassis damage.
+All peers need
 matching build/content. Known revision-one/two/three saves migrate after validation while
 preserving every selected part and cosmetic; unknown/incompatible saves stay invalid.
 Catalogue hashes normalize CRLF to LF for matching Windows/Linux content.

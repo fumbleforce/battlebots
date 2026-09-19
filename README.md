@@ -55,8 +55,8 @@ Public hosting is a later release task; MVP export presets are described below.
 ## Playable modes
 
 Current menu correction: `codex/a-menu-flow`, based on `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
-Developer A's `codex/a-saw` includes all five weapon families with build
-`mvp-ab-8`, protocol 4. Select Duelist for the hammer, or use Garage → Customize →
+Developer A's `codex/a-performance` includes all five weapon families and reliable
+round-state recovery with build `mvp-ab-9`, protocol 4. Select Duelist for the hammer, or use Garage → Customize →
 Weapon for the saw and other weapons. Both peers must update together; the saved
 menu playtest ZIP remains build 5.
 Use the same branch/build on all peers. The older `codex/a-b-integration`
@@ -84,6 +84,9 @@ Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executa
 ./tools/check-processes.ps1 -GodotPath $GodotPath
 ./tools/check-processes.ps1 -GodotPath $GodotPath -PlayerCount 10
 ./tools/check-processes.ps1 -GodotPath $GodotPath -Mode ffa
+./tools/check-performance.ps1 -GodotPath $GodotPath -DurationSeconds 300 -WarmupSeconds 30
+# Full memory/traffic soak; headless runs do not certify rendered performance:
+./tools/check-performance.ps1 -GodotPath $GodotPath -DurationSeconds 3600 -WarmupSeconds 600 -RequireSoak
 ```
 
 To check a Windows export, pass its `battlebots.exe` as `-GodotPath` and add
@@ -138,7 +141,7 @@ clients and complete five-round result delivery. Network tests must run in real
 time, without `--fixed-fps` acceleration.
 Independent `tests/simulation/ffa_rules.tscn`, `tests/network/ffa_session.tscn`
 and the FFA menu integration test cover rules, impaired sessions and app flow.
-The other weapon families, public identity/allocation, full performance/soak
+Public identity/allocation, full performance/soak
 acceptance and release polish remain future work. Local automated tests do not
 replace the two-computer LAN and human control-feel playtest.
 
