@@ -69,11 +69,11 @@ func _run() -> void:
 	var corner_hit := space.intersect_ray(corner_ray)
 	check(not corner_hit.is_empty(), "Corner chamfer missing")
 	if not corner_hit.is_empty():
-		check(absf(corner_hit.position.x - 24.0) < 0.01,
-			"Diagonal corner must meet at (24, 24)")
+		check(absf(corner_hit.position.x - 25.0 / sqrt(2.0)) < 0.01,
+			"Octagon diagonal must be 25 meters from center")
 	shape.radius = 0.2
 	for location: Vector3 in [Vector3(0, 0.3, 0), Vector3(0, 0.3, 22.8),
-			Vector3(22.8, 0.3, 22.8), Vector3(-22.8, 0.3, -22.8)]:
+			Vector3(16.2, 0.3, 16.2), Vector3(-16.2, 0.3, -16.2)]:
 		source.position = location
 		await sync_physics()
 		for heading: float in [0.0, PI / 4.0, PI / 2.0, PI, -PI / 2.0]:
@@ -83,7 +83,8 @@ func _run() -> void:
 				rig.desired_distance = 9.0
 				rig.update_camera(1.0)
 				var at := rig.camera.global_position
-				check(absf(at.x) < 25.0 and absf(at.z) < 25.0 and at.y > 0.2,
+				check(absf(at.x) < 25.0 and absf(at.z) < 25.0
+					and absf(at.x)+absf(at.z) < 25.0*sqrt(2.0) and at.y > 0.2,
 					"Camera escaped the arena or floor")
 				var probe := PhysicsShapeQueryParameters3D.new()
 				probe.shape = shape

@@ -230,7 +230,7 @@ Elimination credit goes to the most recent enemy to deal effective damage within
 
 ## 7. Arena specification
 
-**Arena 01: The Foundry.** A flat 50 × 50-meter square with continuous 3-meter-high collision walls, chamfered interior corners, neutral industrial flooring, and spectator dressing outside the combat volume. The floor is one uninterrupted driving surface. Painted seams and decals cannot snag wheels.
+**Arena 01: The Foundry.** Per the user's 20 September arena revision, a regular octagon measuring 50 meters across opposing faces, with continuous 3-meter-high collision walls, worn industrial flooring, and spectator dressing outside the combat volume. Its inradius is 25 m; diagonal faces satisfy |X|+|Z| = 25*sqrt(2). Eight spectator bays, radial roof trusses and an octagonal overhead lighting rig follow the bowl. The floor is one uninterrupted driving surface. Painted seams and decals cannot snag wheels.
 
 Use X/Z ground axes; playable boundaries are −25 to +25 meters. Team spawns sit near Z = −19 and Z = +19, facing center. For 5v5 use X = −12, −6, 0, 6, 12. 2v2 uses X = −6 and +6. FFA uses eight evenly spaced points on a 20-meter-radius circle, assigned randomly by the server. Verify every spawn envelope clears walls and every other bot.
 

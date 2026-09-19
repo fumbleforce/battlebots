@@ -95,7 +95,9 @@ using 9 battery/14 heat per second. Every full 1/3 second of maintained target
 contact deals 6 raw damage to one contacted zone. Separation or loss of power
 discards partial contact time. Secondary stops it; zero battery or heat 100 ends
 damage eligibility that tick. No authored saw impulse or pin is applied.
-Build `mvp-ab-10` keeps catalogue revision four/protocol 4. Build 9 added reliable state
+Build `mvp-ab-11` requires the octagonal Foundry on both peers; older square-map
+clients are rejected by the existing build check. Catalogue revision four and
+protocol 4 remain unchanged. Build 9 added reliable state
 checkpoints to match transitions and active/countdown heartbeats. Checkpoints use
 the existing snapshot format and per-entity tick guard, so newer fast snapshots
 cannot be rewound by delayed reliable delivery. Finished-match heartbeats remain
@@ -151,7 +153,11 @@ CameraAnchor exists on both sources. Networking must not serialize Node/RID hand
 Meters, kilograms, Y-up, -Z-forward, radians in logic, degrees in editor/UI.
 Physics: 60 Hz. World layer index 1 (mask 1), Bots index 2 (mask 2),
 HitZones index 3 (mask 4). Cosmetic visuals have no collision.
-Arena floor surface is Y=0, X/Z bounds +/-25.
+Arena floor surface is Y=0, X/Z bounds +/-25. The Foundry is a regular octagon:
+diagonal faces satisfy abs(X)+abs(Z) <= 25*sqrt(2), with 3 m wall collision.
+The floor collider extends beneath the full 50 m square; diagonal walls exclude
+the corner wedges from play. Existing orbit-camera scene `corner_chamfer` is
+14.644661 so its above-wall boundary also matches the octagon.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
 For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
 B's integrated arena includes perimeter walls and FFA spawn markers; A's current
@@ -160,7 +166,7 @@ Five-player teams use all five existing team markers; duel/2v2 retain markers
 2 and 4. `AuthorityWorld.spawn(..., team_size=2)` takes the team size as an
 optional fifth argument; pass 5 for 5v5. Optional sixth argument `mode="teams"`
 accepts `"ffa"` to use the existing `FFA_1` through `FFA_8` markers by slot+1.
-The published arena includes perimeter walls, two-meter corner chamfers and
+The published arena includes eight equal perimeter faces (25 m inradius) and
 FFA_1..8 markers on a 20-meter ring facing inward.
 Spawn a future bot root with care: the bot fixture already offsets its body
 upward by 0.5, so do not apply that clearance twice when integrating spawn logic.

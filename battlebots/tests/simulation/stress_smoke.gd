@@ -15,7 +15,7 @@ func run() -> void:
 	for x: int in [-1, 1]:
 		for z: int in [-1, 1]:
 			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 0), Vector3(x * 30, 1, z * 30), 1))
-			if hit.is_empty() or absf(absf(hit.position.x) - 24.0) > 0.01:
+			if hit.is_empty() or absf(absf(hit.position.x) - 25.0 / sqrt(2.0)) > 0.01:
 				failures += 1
 	for frame: int in range(900):
 		var started := Time.get_ticks_usec()

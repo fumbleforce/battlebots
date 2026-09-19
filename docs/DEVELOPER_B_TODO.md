@@ -1,5 +1,12 @@
 # Worker B — shared task list
 
+- **A arena art in progress:** isolated `codex/a-foundry-arena` from `ad1607d`;
+  reserves `scenes/arenas/`, new arena visual/material/test files only. Exact
+  spawn transforms retained; user-requested regular octagon replaces shallow
+  chamfers. Camera scene's existing corner_chamfer setting becomes 14.644661;
+  no camera algorithm, bot, input, audio or menu edits. See
+  [Foundry coordination](coordination/A_FOUNDRY_ARENA.md).
+
 B maintains the sections above A's coordination log. Completed task branches
 must now merge into main, which is the shared latest game. Historical branch
 entries retain their original validation and do not claim every release gate passed.

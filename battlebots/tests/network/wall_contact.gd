@@ -1,5 +1,5 @@
 extends "res://tests/network/contact_reconciliation.gd"
-## F6 / standalone real-time ENet acceptance against B's existing Foundry walls.
+## F6 / standalone real-time ENet acceptance against the Foundry octagon walls.
 ## The settle clock starts once, at the local brake command after sustained push.
 ## It is never restarted by resting contacts. Presentation must remain within
 ## 0.25 m / 10 degrees of the simultaneous authority pose after 250 ms for 1 s.
@@ -41,7 +41,7 @@ func run() -> void:
 		session.network_simulation.loss = 0.01
 		session.network_simulation.duplicate = 0.02
 	await wall_case("North", Vector3(0, 0.5, -15), 0)
-	await wall_case("CornerEN", Vector3(17, 0.5, -17), -PI / 4)
+	await wall_case("CornerEN", Vector3(12, 0.5, -12), -PI / 4)
 	await finish()
 
 func wall_case(wall_name: String, start: Vector3, yaw: float) -> void:
@@ -111,6 +111,7 @@ func valid_pose(body: DriveBody) -> bool:
 	var at := body.global_position
 	var valid := at.is_finite() and body.global_basis.is_finite() and body.linear_velocity.is_finite() \
 		and body.angular_velocity.is_finite() and absf(at.x) < 25 and absf(at.z) < 25 \
+		and absf(at.x)+absf(at.z) < 25.0*sqrt(2.0) \
 		and at.y > -0.1 and at.y < 4
 	if not valid and not reported_invalid.has(body.get_instance_id()):
 		reported_invalid[body.get_instance_id()] = true

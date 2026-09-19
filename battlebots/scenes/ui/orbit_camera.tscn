@@ -4,6 +4,7 @@
 
 [node name="OrbitCamera" type="Node3D"]
 script = ExtResource("1")
+corner_chamfer = 14.644661
 
 [node name="Camera" type="Camera3D" parent="."]
 current = true
