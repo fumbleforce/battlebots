@@ -12,51 +12,16 @@ bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 for m in list(bpy.data.materials): bpy.data.materials.remove(m)
 
-def material(name, color, metal=0, rough=.5, weather=False):
-    m=bpy.data.materials.new(name); m.diffuse_color=(*color,1); m.use_nodes=True
-    p=m.node_tree.nodes.get('Principled BSDF'); p.inputs['Base Color'].default_value=(*color,1)
-    p.inputs['Metallic'].default_value=metal; p.inputs['Roughness'].default_value=rough
-    if weather:
-        rng=np.random.default_rng(17); n=1024
-        fine=rng.random((n,n)); seed=rng.random((64,64))
-        samples=np.linspace(0,63,n)
-        # Bilinear interpolation avoids square patches in reflected highlights.
-        coarse=np.array([np.interp(samples,np.arange(64),row) for row in seed])
-        coarse=np.array([np.interp(samples,np.arange(64),row) for row in coarse.T]).T
-        a=np.ones((n,n,4),dtype=np.float32)
-        a[:,:,:3]=np.array(color)[None,None,:]*(.88+.14*fine[:,:,None]+.12*coarse[:,:,None])
-        chips=(coarse>1.0)&(fine>.28)
-        a[chips,:3]=np.array([.23,.24,.22])*(.55+fine[chips,None]*.65)
-        rust=(coarse>.94)&(fine>.75)
-        a[rust,:3]=[.19,.065,.025]
-        # Sparse directional abrasions, avoiding uniform camouflage-like speckle.
-        for _ in range(45):
-            x,y=rng.integers(10,n-40,2); length=int(rng.integers(3,27)); width=int(rng.integers(1,3))
-            a[y:y+width,x:x+length,:3]=np.array([.19,.20,.19])*rng.uniform(.6,1.1)
-        im=bpy.data.images.new(name+'_albedo',width=n,height=n)
-        im.pixels.foreach_set(a.ravel()); im.pack()
-        t=m.node_tree.nodes.new('ShaderNodeTexImage'); t.image=im
-        m.node_tree.links.new(t.outputs['Color'],p.inputs['Base Color'])
-        orm=np.ones((n,n,4),dtype=np.float32)
-        orm[:,:,1]=np.clip(rough+(coarse-.5)*.12+(fine-.5)*.024,.15,.95)
-        orm[:,:,2]=metal
-        rm=bpy.data.images.new(name+'_roughness_metallic',width=n,height=n)
-        rm.colorspace_settings.name='Non-Color';rm.pixels.foreach_set(orm.ravel());rm.pack()
-        rt=m.node_tree.nodes.new('ShaderNodeTexImage');rt.image=rm
-        sep=m.node_tree.nodes.new('ShaderNodeSeparateColor')
-        m.node_tree.links.new(rt.outputs['Color'],sep.inputs['Color'])
-        m.node_tree.links.new(sep.outputs['Green'],p.inputs['Roughness'])
-        m.node_tree.links.new(sep.outputs['Blue'],p.inputs['Metallic'])
-    return m
+exec(compile((HERE / 'surface_materials.py').read_text(encoding='utf-8'), 'surface_materials.py', 'exec'))
 
-red=material('Oxide red • chipped paint',(.30,.039,.022),.45,.55,True)
-dark=material('Blackened steel',(.035,.039,.042),.78,.42,True)
-steel=material('Exposed brushed edges',(.19,.21,.22),.82,.4,True)
-rubber=material('Charcoal tire rubber',(.007,.008,.009),0,.87)
-yellow=material('Ochre safety paint',(.56,.29,.035),.38,.57,True)
+red=material('Oxide red • chipped paint',(.255,.040,.025),.025,.91,True)
+dark=material('Blackened steel',(.06,.066,.069),.90,.85,True)
+steel=material('Exposed brushed edges',(.20,.215,.21),.93,.79,True)
+rubber=material('Charcoal tire rubber',(.006,.007,.007),0,.97)
+yellow=material('Ochre safety paint',(.47,.28,.045),.025,.92,True)
 ivory=material('Warm stencil paint',(.8,.76,.61),.05,.74)
 black=material('Recess shadow',(.006,.009,.011),.15,.8)
-brass=material('Heat stained bronze',(.35,.18,.044),.8,.4)
+brass=material('Heat stained bronze',(.23,.13,.038),.85,.79)
 
 def empty(name,loc=(0,0,0),parent=None):
     o=bpy.data.objects.new(name,None); bpy.context.collection.objects.link(o); o.location=loc
@@ -161,11 +126,11 @@ studio=bpy.data.collections.new('Studio • excluded from game export'); bpy.con
 def move_studio(o):
     for c in list(o.users_collection): c.objects.unlink(o)
     studio.objects.link(o)
-floor=material('Studio floor',(.105,.125,.145),.05,.72)
+floor=material('Studio floor',(.30,.32,.34),0,.94)
 o=box('Studio floor',(0,0,-.015),(200,200,.025),floor,None,0); move_studio(o)
 def aim(o,p): o.rotation_euler=(Vector(p)-o.location).to_track_quat('-Z','Y').to_euler()
 bpy.ops.object.camera_add(location=(3.5,5.2,2.85)); cam=bpy.context.object; cam.name='Hero camera'; aim(cam,(0,.15,.82)); cam.data.type='ORTHO'; cam.data.ortho_scale=3.8; move_studio(cam); bpy.context.scene.camera=cam
-for name,loc,power,size,col in [('Large warm key',(1,3,5),950,4,(1,.87,.73)),('Cool fill',(-3,1,2.7),750,3,(.72,.85,1)),('Rim strip',(1,-3,4),1300,3,(1,.91,.8))]:
+for name,loc,power,size,col in [('Large warm key',(1,3,5),1000,3,(1,.92,.84)),('Cool fill',(-3,1,2.7),650,3,(.85,.91,1)),('Rim strip',(1,-3,4),1000,3,(1,.94,.87))]:
     bpy.ops.object.light_add(type='AREA',location=loc); l=bpy.context.object; l.name=name; l.data.energy=power; l.data.shape='DISK'; l.data.size=size; l.data.color=col; aim(l,(0,0,.7)); move_studio(l)
 scene=bpy.context.scene; scene.unit_settings.system='METRIC'; scene.unit_settings.scale_length=1
 scene.render.engine='CYCLES'; scene.cycles.samples=64; scene.cycles.use_denoising=True
@@ -179,7 +144,9 @@ for screen in bpy.data.screens:
             a.spaces.active.shading.type='MATERIAL'
 bpy.ops.wm.save_as_mainfile(filepath=str(HERE/'flamebot_07.blend'),compress=True)
 scene.render.filepath=str(HERE/'flamebot_07_hero.png'); bpy.ops.render.render(write_still=True)
-cam.location=(-3.5,-4.4,2.8); aim(cam,(0,-.05,.85))
+cam.location=(0,.2,6);cam.rotation_euler=(0,0,math.pi);cam.data.ortho_scale=3.9
+scene.render.filepath=str(HERE/'flamebot_07_top.png');bpy.ops.render.render(write_still=True)
+cam.location=(-3.5,-4.4,2.8);cam.data.ortho_scale=3.8; aim(cam,(0,-.05,.85))
 scene.render.filepath=str(HERE/'flamebot_07_rear.png'); bpy.ops.render.render(write_still=True)
 cam.location=(4,0,1.1);aim(cam,(0,.16,.88));cam.data.ortho_scale=3.45
 scene.render.filepath=str(HERE/'flamebot_07_side.png');bpy.ops.render.render(write_still=True)

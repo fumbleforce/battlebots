@@ -1,18 +1,19 @@
 {
-  "triangles": 104254,
+  "triangles": 104840,
   "mesh_objects": 7,
   "blender_dimensions_m": [
-    2.344,
-    2.657,
+    2.519,
+    2.733,
     1.884
   ],
   "forward": "Blender +Y exports to Godot -Z",
   "up": "Blender +Z exports to Godot +Y",
-  "editable_components": 1232,
+  "editable_components": 1019,
   "clearance_checks_m": {
     "wheel_to_hull_m": 0.07500000000000007,
     "fender_to_tread_m": 0.03999999999999998,
-    "blade_flare_to_tire_m": 0.036931034482758696,
+    "plow_overhang_beyond_tire_m": 0.1499999999999999,
+    "plow_wing_backward_sweep_m": 0.2550000000000001,
     "flamer_boss_to_tower_m": 0.05999999999999997
   }
 }

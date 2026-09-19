@@ -17,7 +17,7 @@ def tree(o):
 
 wheels=[o for o in scene.objects if o.type=='EMPTY' and o.name.startswith('Wheel')]
 assert len(wheels)==4
-obstacles=[o for o in scene.objects if o.type=='MESH' and o.name.startswith(('Angled upper','Thick lower','Flared angular','Segmented wheel arch','Recessed side armor','Shouldered hull','Faceted lower'))]
+obstacles=[o for o in scene.objects if o.type=='MESH' and o.name.startswith(('Angled upper','Thick lower','Solid plow','Folded solid wheel shield','Plow rear reinforcement','Segmented wheel arch','Recessed side armor','Shouldered hull','Faceted lower'))]
 obstacle_trees=[(o.name,tree(o)) for o in obstacles]
 intersections=[];wheel_bounds={}
 for wheel in wheels:
@@ -32,10 +32,40 @@ for wheel in wheels:
         for name,obstacle_tree in obstacle_trees:
             if tire_tree.overlap(obstacle_tree):intersections.append([o.name,name])
 assert not intersections, 'Visible wheel/armor surface intersections: '+str(intersections)
+shields=[o for o in obstacles if o.name.startswith('Folded solid wheel shield')]
+assert len(shields)==2
+for shield in shields:
+    edge_counts={}
+    for face in shield.data.polygons:
+        vertices=list(face.vertices)
+        for a,b in zip(vertices,vertices[1:]+vertices[:1]):
+            key=tuple(sorted((a,b)));edge_counts[key]=edge_counts.get(key,0)+1
+    assert all(count==2 for count in edge_counts.values()), 'Wheel shields must be closed solid shells, not open plates'
+shield_trees=[tree(o) for o in shields]
+shield_hits=[]
+for side in [-1,1]:
+    for x in [.80,.93,1.07]:
+        for z in [.12,.30,.48,.60]:
+            origin=Vector((side*x,2.5,z));direction=Vector((0,-1,0))
+            hits=[t.ray_cast(origin,direction) for t in shield_trees]
+            hits=[h for h in hits if h[0] is not None]
+            assert hits, 'Plow must intercept frontal approach to tire at '+str((side*x,z))
+            closest=min(hits,key=lambda h:h[3]);assert closest[0].y>1.045
+            shield_hits.append(list(closest[0]))
+    o=next(o for o in shields if any(v.x*side>1.2 for v in world_vertices(o)))
+    vs=world_vertices(o)
+    outer=[v for v in vs if abs(v.x)>1.20 and v.z<.12]
+    inner=[v for v in vs if abs(v.x)<.72 and v.z<.12]
+    assert max(v.y for v in inner)-max(v.y for v in outer)>.20, 'Outer shield edge must fold backward in plan view'
+for name in ['Oxide red • chipped paint','Ochre safety paint']:
+    mat=bpy.data.materials[name];p=mat.node_tree.nodes.get('Principled BSDF')
+    assert p.inputs['Roughness'].default_value>.88
+    assert p.inputs['Metallic'].default_value<.05
+    assert any(n.type=='NORMAL_MAP' for n in mat.node_tree.nodes)
 boss=next(o for o in scene.objects if o.name=='Flamer stand-off boss')
 tower=next(o for o in scene.objects if o.name=='Tapered armored tower')
 gap=min(v.y for v in world_vertices(boss))-max(v.y for v in world_vertices(tower))
 assert gap>.045, 'External flamer boss must clear tower face'
-report={'wheel_bounds_blender_m':wheel_bounds,'tire_armor_surface_intersections':intersections,'flamer_boss_tower_gap_m':gap}
+report={'wheel_bounds_blender_m':wheel_bounds,'tire_armor_surface_intersections':intersections,'closed_solid_wheel_shields':True,'frontal_tire_shield_ray_hits':shield_hits,'flamer_boss_tower_gap_m':gap,'matte_paint_and_normal_maps':True}
 Path(__file__).with_name('geometry_validation.json').write_text(json.dumps(report,indent=2))
-print('GEOMETRY CHECK PASSED: actual tire/armor meshes do not intersect; sidewalls centered; external flamer mount clears tower.')
+print('GEOMETRY CHECK PASSED: tires clear solid plow; 24 frontal tire rays intercepted; shield wings fold backward; matte PBR maps present; flamer mount clears tower.')

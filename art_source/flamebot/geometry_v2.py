@@ -38,14 +38,8 @@ def slash_marks(points,parent=chassis):
     for a,b in points: rod('Scored exposed edge',a,b,.0018,steel,parent,6)
 
 def paint_chip(center,u,v,sx,sy,parent=chassis):
-    # Uneven planar chips and an inset bare-metal core; all coordinates are visual.
-    c=Vector(center);u=Vector(u).normalized();v=Vector(v).normalized();n=u.cross(v).normalized()
-    if n.z<0:n=-n
-    outline=[(-.5,-.15),(-.35,-.4),(-.12,-.32),(.04,-.51),(.32,-.21),(.5,.05),(.25,.18),(.32,.39),(-.1,.31),(-.36,.48)]
-    pts=[tuple(c+u*a*sx+v*b*sy) for a,b in outline]
-    meshpart('Paint chip dark perimeter',pts,[tuple(range(len(pts)))],dark,parent,0)
-    pts=[tuple(c+n*.0006+u*a*sx*.63+v*b*sy*.56) for a,b in outline]
-    meshpart('Paint chip exposed steel',pts,[tuple(range(len(pts)))],steel,parent,0)
+    # Legacy calls preserve deterministic random placement; wear is now in maps.
+    return
 
 # A broad, low body with a continuous multi-angle front glacis.
 hull('Faceted lower chassis',[(-1.05,.49,.23,.6,.62),(-.84,.62,.21,.66,.77),(.29,.62,.21,.64,.77),(.81,.58,.18,.62,.49),(1.32,.54,.105,.57,.18)],dark)
@@ -70,7 +64,7 @@ for side in [-1,1]:
 
 # The upper red sloping hood and lower steel blade form a visible kink.
 upper_a=Vector((0,.31,.802)); upper_b=Vector((0,.88,.49))
-lower_a=Vector((0,.89,.492)); lower_b=Vector((0,1.49,.062))
+lower_a=Vector((0,.89,.492)); lower_b=Vector((0,1.57,.062))
 def armor_strip(name,x0,x1,a,b,mat=red):
     pts=[(x0,a.y,a.z),(x1,a.y,a.z),(x1,b.y,b.z),(x0,b.y,b.z)]
     o=panel(name,pts,.047,mat)
@@ -92,29 +86,49 @@ armor_strip('Hood grille well',-.212,.042,upper_a,upper_b,black)
 for t in np.linspace(.12,.88,9):
     p=upper_a.lerp(upper_b,float(t)); p.x=-.085; p+=Vector((0,.018,.03))
     box('Recessed hood cooling louver',p,(.215,.038,.023),dark,rot=(-.501,0,0),bevel=.003)
-for x0,x1,mat in [(-.65,-.335,red),(-.319,.319,dark),(.335,.65,red)]: armor_strip('Thick lower ram plate',x0,x1,lower_a,lower_b,mat)
+# Continuous closed backing joins the armored face and both wheel shields.
+meshpart('Solid plow central body',[
+    (-.67,.89,.492),(.67,.89,.492),(.67,1.57,.062),(-.67,1.57,.062),
+    (-.67,.79,.475),(.67,.79,.475),(.67,1.435,.057),(-.67,1.435,.057)],
+    [(0,1,2,3),(7,6,5,4),(0,4,5,1),(1,5,6,2),(2,6,7,3),(3,7,4,0)],dark,chassis,.005)
+for x0,x1,mat in [(-.65,-.335,red),(-.331,.331,steel),(.335,.65,red)]: armor_strip('Thick lower ram plate',x0,x1,lower_a,lower_b,mat)
 for side in [-1,1]:
-    pts=[(side*.67,.91,.48),(side*.67,1.50,.06),(side*.96,1.50,.06)]
-    panel('Flared angular blade cheek',pts,.045,yellow)
-    # Clip diagonal paint bands to the triangular face, with no raised geometry.
-    def clip(poly,threshold,keep_above):
-        result=[]
-        for a,b in zip(poly,poly[1:]+poly[:1]):
-            fa=a[1]-1.2*a[0]-threshold;fb=b[1]-1.2*b[0]-threshold
-            ina=fa>=0 if keep_above else fa<=0;inb=fb>=0 if keep_above else fb<=0
-            if ina:result.append(a)
-            if ina!=inb:
-                t=fa/(fa-fb);result.append((a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t))
-        return result
-    for start in np.arange(.09,.72,.14):
-        poly=clip([(.67,.91),(.67,1.5),(.96,1.5)],float(start),True)
-        poly=clip(poly,float(start)+.065,False)
-        if len(poly)>2:
-            pts=[(side*x,y,.063+(1.5-y)*(.42/.59)) for x,y in poly]
-            meshpart('Painted diagonal hazard stripe',pts,[tuple(range(len(pts)))],dark,chassis,0)
+    # Folded, solid wheel shield. The outer leading corner sweeps BACK in top
+    # view; the raised outer shoulder protects the front of the tire.
+    a=Vector((side*.66,.89,.493));b=Vector((side*1.155,1.125,.64))
+    c=Vector((side*1.255,1.315,.062));d=Vector((side*.66,1.57,.062))
+    e=Vector((side*.735,1.16,.74))
+    front=[a,e,b,c,d]
+    back=[p-Vector((0,.09,.008)) for p in front]
+    meshpart('Folded solid wheel shield',[tuple(p) for p in front+back],
+        [(0,1,4),(1,3,4),(1,2,3),(5,9,6),(6,9,8),(6,8,7),(0,5,6,1),(1,6,7,2),(2,7,8,3),(3,8,9,4),(4,9,5,0)],yellow,chassis,.005)
+    # Painted stripes conform to both facets of the folded shield.
+    # Parameterize each triangular face so paint follows the angled surface.
+    for tri in [[a,e,d],[e,c,d],[e,b,c]]:
+        aa,bb,cc=tri;n=(bb-aa).cross(cc-aa).normalized()
+        if n.y<0:n=-n
+        for start in np.arange(-1.1,1.2,.17):
+            # Clip in barycentric coordinates using a diagonal world X/Z band.
+            poly=[aa,bb,cc]
+            for limit,above in [(float(start),True),(float(start)+.072,False)]:
+                result=[]
+                for p,q in zip(poly,poly[1:]+poly[:1]):
+                    fp=side*p.x-1.35*p.z-limit;fq=side*q.x-1.35*q.z-limit
+                    ip=fp>=0 if above else fp<=0;iq=fq>=0 if above else fq<=0
+                    if ip:result.append(p)
+                    if ip!=iq:result.append(p+(q-p)*(fp/(fp-fq)))
+                poly=result
+                if not poly:break
+            if len(poly)>2:meshpart('Shield hazard paint',[tuple(p+n*.001) for p in poly],[tuple(range(len(poly)))],dark,chassis,0)
+    for p in [e.lerp(b,.18),e.lerp(b,.78),d.lerp(c,.25),d.lerp(c,.82)]:
+        surface_bolt(p+Vector((0,.004,.004)),(0,.8,.6),r=.02)
+    # Deep rear return and welded braces make this a volume, not a thin fin.
+    rod('Plow rear reinforcement',(.64*side,.86,.41),(.70*side,1.18,.41),.034,dark)
+    rod('Plow rear reinforcement',(.70*side,1.18,.41),(1.12*side,1.18,.47),.034,dark)
+    rod('Plow lower cutting edge',d,c,.014,steel)
     # Cut-looking black tow slots at the bottom of each red blade panel.
-    box('Blade tow recess',(side*.49,1.426,.119),(.145,.071,.011),black,rot=(-.621,0,0),bevel=.009)
-    rod('Blade lower wear edge',(side*.34,1.492,.065),(side*.65,1.492,.065),.009,steel)
+    box('Blade tow recess',(side*.49,1.503,.110),(.145,.071,.011),black,rot=(-.564,0,0),bevel=.009)
+    rod('Blade lower wear edge',(side*.34,1.572,.065),(side*.65,1.572,.065),.009,steel)
 hood_rot=(Euler((-.501,0,0)).to_matrix() @ Euler((0,0,math.pi)).to_matrix()).to_euler()
 text('Large hood number','07',(.37,.688,.611),.235,hood_rot)
 text('Hull small warning','KEEP CLEAR',(-.435,.723,.593),.037,hood_rot)
@@ -289,7 +303,6 @@ cyl('Antenna whip',(-.28,-.405,1.679),.006,.418,dark,turret,verts=10,bevel=0)
 # Geometric checks before mesh consolidation: tires and armor have distinct spaces.
 assert .93-.175 > .68, 'Wheel sidewalls must clear central hull plates'
 assert .473-.017 > .416, 'Fender inner radius must clear tread envelope'
-flare_at_tire_x=.91+((.93-.175)-.67)/(.96-.67)*.59
-assert flare_at_tire_x > .63+.416, 'Flared wedge cheeks must clear front tire envelope'
+assert 1.255 > .93+.175, 'Solid wheel shields must extend beyond the tire width'
 assert .288-.038 > .19, 'Flamer stand-off must begin ahead of tower face'
-clearance_report={'wheel_to_hull_m':.93-.175-.68,'fender_to_tread_m':.473-.017-.416,'blade_flare_to_tire_m':flare_at_tire_x-(.63+.416),'flamer_boss_to_tower_m':.288-.038-.19}
+clearance_report={'wheel_to_hull_m':.93-.175-.68,'fender_to_tread_m':.473-.017-.416,'plow_overhang_beyond_tire_m':1.255-(.93+.175),'plow_wing_backward_sweep_m':1.57-1.315,'flamer_boss_to_tower_m':.288-.038-.19}

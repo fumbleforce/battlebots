@@ -17,6 +17,10 @@ func _initialize() -> void:
 		for surface in mesh.mesh.get_surface_count():
 			var mat := mesh.mesh.surface_get_material(surface)
 			assert(mat != null, "Every surface requires an imported material")
+			if mat.resource_name.begins_with("Oxide red") or mat.resource_name.begins_with("Ochre safety"):
+				assert(mat is StandardMaterial3D, "Paint must use Godot PBR material")
+				assert(mat.normal_enabled and mat.normal_texture != null, "Grit normal maps must survive GLB import")
+				assert(mat.roughness_texture != null, "Matte roughness map must survive GLB import")
 	assert(mesh_count == 7, "Expected seven independently movable meshes")
 	assert(bounds.size.y > 1.8 and bounds.size.y < 2.2, "Godot must be Y up at meter scale")
 	assert(bounds.position.z < -1.2, "Wedge must point toward Godot -Z")
