@@ -22,6 +22,10 @@ world collision. Bot collision/assembly and driving belong to B. Audio belongs
 to A, including menu music and combat sounds driven by B's published events.
 Player controls include input, driving and camera behavior; their control-specific
 settings belong to B, while A owns the surrounding general settings navigation.
+The user's reiterated boundary also excludes control-training exercises from A:
+driving, camera, braking, weapon-control and self-righting lessons belong with B.
+A can integrate a supplied tutorial's menu entry, but must not implement those
+exercises under general menu or world ownership.
 
 ## Existing path map
 

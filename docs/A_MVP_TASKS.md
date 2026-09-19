@@ -42,7 +42,9 @@ without running them.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; historical implemented mode.
 - [ ] General menu/HUD/tutorial polish and arena readability for playable small matches.
 - [x] Practice target damage/knockout readout and direct restart with both bots repaired.
-- [ ] Guided, skippable and replayable practice tutorial with saved progress.
+- [ ] Integrate B's supplied tutorial into general menus when ready. Control
+  exercises and their progression belong to B; A's unfinished tutorial was removed
+  following the user's ownership correction.
 - [x] First-pass impact/round/warning/recovery audio from authoritative events,
   with captions and saved master/music/effects/announcement volume and mute.
 - [ ] Drive/skid/spin/arena sound layers, spatial mix and human listening polish.
