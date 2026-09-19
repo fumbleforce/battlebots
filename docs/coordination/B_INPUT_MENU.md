@@ -80,3 +80,20 @@ The existing b_presentation scene and camera_settings_test exercise migration,
 orbit/inversion, persistence, keyboard focus and modal suppression. Rendered
 1280x720 panel fits without clipping. No A-owned runtime files changed.
 Validation: baseline PASS; all three presentation suites PASS; A duel/menu smoke PASS; rendered settings test PASS. Independent read-only subagent review completed; its precision finding is fixed and regression-tested.
+
+## B-04b rebinding and weapon mode — implementation intent
+
+B now implements a separate local input-preferences file and a Controls page within
+the existing settings modal. Keyboard/mouse mappings replace only those runtime
+InputMap events while the preview is alive; controller events and UI actions remain
+intact, and the prior map is restored on exit. No project.godot or wire changes.
+Capture rejects duplicate/reserved controls and wheel bindings for held actions.
+Save activates validated bindings; Cancel discards the draft. Escape cancels capture
+first. Settings remain visible throughout, preserving A's existing modal/input gate.
+
+Toggle primary is opt-in: first press activates, second press deliberately releases
+(and fires a charged lifter); secondary/menu/focus suppression cancels and clears
+its latch. Keep SessionBotSource.input_allowed for lifecycle suppression. Independent
+model, real-CombatState toggle, and GUI binding tests will cover this increment.
+Parallel subagents own the preference model and toggle gate/tests; B owns modal
+integration, rendered inspection, combined checks and handoff. Same focused branch.
