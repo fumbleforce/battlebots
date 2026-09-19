@@ -2,8 +2,9 @@
 
 ## Shared integration baseline
 
-Per the user's instruction, completed task branches merge into main after
-validation. Main is the shared latest combined game; future tasks begin from
+Per the user's instruction, completed task branches merge locally into main
+after validation and main is pushed directly. No PRs. Main is the shared latest
+combined game; future tasks begin from
 updated origin/main. Historical feature-branch names below identify provenance,
 not separate places the other developer must collect to obtain finished work.
 Any genuinely unfinished remote branch is called out rather than merged blindly.

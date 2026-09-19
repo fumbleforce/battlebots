@@ -60,12 +60,13 @@ project.godot input actions and shared scene wiring require a documented handoff
 4. Do not edit the same scene/resource/binary or mixed-responsibility script
    concurrently. Integrate published commits and preserve unrelated local edits.
 5. Commit each completed increment, fetch origin, rebase the task branch onto
-   origin/main with --rebase-merges when preserving A/B integration history, then
-   push the task branch. Verify conflicts and any changed tree before pushing.
+   origin/main with --rebase-merges when preserving A/B integration history.
+   Verify conflicts and any changed tree before integrating and pushing main.
    Use --force-with-lease only if an already-published task history was rewritten;
    never blind-force or force-push main.
-6. When a branch is complete, merge it into shared main, preferably through a PR,
-   after required checks and conflict validation. A pushed feature branch alone
+6. When a branch is complete, merge it locally into shared main and push main
+   directly after required checks and conflict validation. Do not create PRs.
+   A pushed feature branch alone
    is not finished work. Keep main as the latest combined game rather than making
    the other developer locate a chain of unmerged task branches. Fetch the merged
    main and base the next task on it. Leave genuinely unfinished work separate;

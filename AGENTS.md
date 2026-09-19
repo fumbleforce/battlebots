@@ -13,13 +13,14 @@ Read docs/GAME_SPEC.md, docs/TEAM_WORKFLOW.md, docs/CONTRACTS.md and docs/HANDOF
 - Use a separate local clone per computer and a separate codex/a-* or codex/b-* branch per task.
 - Never assume another ChatGPT session shares memory or that its unmerged work is present.
 - After each completed incremental iteration, commit only the task's changes,
-  fetch origin, rebase the task branch onto origin/main, and push the task branch.
+  fetch origin and rebase the task branch onto origin/main. When finished,
+  merge it locally into main and push main directly. Do not create pull requests.
   Use --rebase-merges when the task depends on the published A/B integration
   merge; do not flatten and replay both teams' already-resolved historical edits.
   Preserve unrelated working edits. Resolve and validate any rebase conflicts
   before pushing. If rebasing a previously pushed task branch rewrites its history,
   use --force-with-lease, never a blind force push or a force push to main.
-- When a task branch is complete, merge it into the shared main branch (prefer a pull request), after its required checks and conflict validation. Pushing a finished feature branch alone is not completion: do not leave the latest game scattered across unmerged branches.
+- When a task branch is complete, merge it locally into the shared main branch after its required checks and conflict validation, then push main directly. No PRs. Pushing a finished feature branch alone is not completion: do not leave the latest game scattered across unmerged branches.
 - After merging, fetch and base the next task on updated origin/main. Integrate completed dependency branches as part of the merge; leave genuinely in-progress work separate and identify it in the handoff. Never force-push main. If a required check or branch protection blocks a merge, state the concrete blocker rather than claim the branch is finished.
 
 ## Baseline and validation

@@ -103,7 +103,8 @@ integration base, not the still-old main branch.
 ## Developer A — current coordination
 
 - **Merge-down rule:** Completed branches must merge into shared main after
-  validation; a feature-branch push alone no longer completes an increment.
+  validation, then push main directly. No PRs. A feature-branch push alone no
+  longer completes an increment.
   A is consolidating the completed A/B history and the current ownership/duel
   check. Future tasks start from updated origin/main. In-progress work stays
   separate and must be identified explicitly.
