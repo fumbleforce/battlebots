@@ -33,6 +33,16 @@ acceptance targets below do not create current work or block this gameplay scope
 
 ## Current Developer A increment
 
+`codex/a-practice-loop` adds practice-only Restart, a read-only target damage and
+knockout panel, and automatic pause/focus on player knockout. Both bots are
+repaired/repositioned in the same world with their loadouts retained; queued
+actions are cleared. Network sessions reject the reset API unchanged. Baseline,
+independent HUD/session/menu tests and real two-peer round/results/rematch passed.
+A real post-reset hammer hit confirms the repaired target remains playable.
+The network test reported four ObjectDB instances at shutdown; the known cleanup
+issue remains open. See [practice evidence](coordination/A_PRACTICE_LOOP.md).
+The separate arena task is in progress in its own worktree and is not included.
+
 `codex/a-gameplay-audio` adds A-owned first-pass impact, round, warning and recovery
 cues with captions, plus saved volume/mute settings. The menu composes Audio
 alongside existing control settings and routes the supplied melody through its

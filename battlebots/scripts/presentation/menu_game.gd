@@ -24,6 +24,9 @@ var audio_settings: AudioSettingsPanel
 var audio_settings_button: Button
 var _audio_overlay: Control
 var _audio_caption: Label
+var practice_hud: PracticeHud
+var _restart_practice: Button
+var _practice_knockout_handled := false
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -44,6 +47,7 @@ func _ready() -> void:
 	source.input_allowed = gameplay_input_allowed
 	preview.return_button.pressed.disconnect(preview.return_to_launcher)
 	preview.return_button.pressed.connect(return_to_main)
+	preview.settings_button.text = "Settings"
 	preview.settings_panel.closed.connect(_settings_closed)
 	_add_match_actions()
 	var results_layer := CanvasLayer.new()
@@ -54,6 +58,7 @@ func _ready() -> void:
 	results_panel.rematch_requested.connect(_request_rematch)
 	results_panel.leave_requested.connect(return_to_main)
 	_add_gameplay_audio()
+	_add_practice_hud()
 	_add_menu_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
@@ -149,6 +154,42 @@ func _audio_combat_event(event: Dictionary) -> void:
 	gameplay_audio.observe_match(session.match_view, session.connection_state == "practice")
 	gameplay_audio.combat_event(event, session.local_entity)
 
+func _add_practice_hud() -> void:
+	practice_hud = PracticeHud.new()
+	$MatchLayer.add_child(practice_hud)
+	practice_hud.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	practice_hud.offset_left = -334
+	practice_hud.offset_right = -24
+	practice_hud.offset_top = 174
+	practice_hud.offset_bottom = 394
+	practice_hud.hide()
+
+func _update_practice(bot: BotSource) -> void:
+	var practice := session.connection_state == "practice"
+	_restart_practice.visible = practice
+	var view: BotView = bot.read_view() if bot != null else null
+	var knocked_out := practice and view != null and view.eliminated
+	var modal: bool = preview.settings_panel.visible or _audio_overlay.visible or menu_host.visible
+	if knocked_out and (not _practice_knockout_handled or preview.controls_enabled) and not modal:
+		preview.release_controls(false)
+		_restart_practice.grab_focus()
+		_practice_knockout_handled = true
+	preview.resume_button.disabled = knocked_out or bot == null
+	practice_hud.visible = practice and not modal and not preview.network_diagnostics.expanded
+	if practice_hud.visible:
+		var target := session.practice_target()
+		practice_hud.render(view, target.read_view() if target != null else null)
+
+func restart_practice() -> void:
+	if session.connection_state != "practice" or preview.settings_panel.visible or _audio_overlay.visible:
+		return
+	preview.release_controls(false)
+	var error := session.restart_practice()
+	if error != OK:
+		show_notice("Cannot restart practice: %s" % error_string(error))
+		return
+	resume_gameplay()
+
 func open_audio_settings() -> void:
 	preview.release_controls(false)
 	preview.settings_panel.hide()
@@ -211,6 +252,7 @@ func _process(_delta: float) -> void:
 	preview.hud.visible = bot != null
 	match_hud.visible = bot != null and not menu_open and not preview.settings_panel.visible
 	match_hud.render(session.match_view, session.connection_state == "practice")
+	_update_practice(bot)
 	if menu_open:
 		preview.pause_menu.hide()
 	_forfeit.visible = session.connection_state in ["hosting", "connected"] and phase in ["active", "overtime"]
@@ -218,7 +260,22 @@ func _process(_delta: float) -> void:
 	_rematch.visible = session.connection_state in ["hosting", "connected"] and phase == "results"
 	_rematch.disabled = _vote_match == str(session.match_view.get("match_id", ""))
 	_rematch.text = "Rematch requested" if _rematch.disabled else "Request rematch"
+	_sync_pause_focus()
 	_sync_menu_music()
+
+func _sync_pause_focus() -> void:
+	var buttons: Array[Button] = []
+	for child: Node in preview.return_button.get_parent().get_children():
+		if child is Button and child.visible and not child.disabled:
+			buttons.append(child)
+	for index: int in range(buttons.size()):
+		var button := buttons[index]
+		var next := button.get_path_to(buttons[(index + 1) % buttons.size()])
+		var previous := button.get_path_to(buttons[posmod(index - 1, buttons.size())])
+		button.focus_next = next
+		button.focus_neighbor_bottom = next
+		button.focus_previous = previous
+		button.focus_neighbor_top = previous
 
 func start_practice() -> void:
 	if session.connection_state != "offline":
@@ -239,6 +296,8 @@ func resume_gameplay() -> void:
 	if session.match_view.get("phase") == "results":
 		return
 	if session.local_source() == null or preview.settings_panel.visible:
+		return
+	if session.connection_state == "practice" and session.local_source().read_view().eliminated:
 		return
 	if session.match_view.get("phase") not in ["countdown", "active", "overtime", "intermission", "results"]:
 		return
@@ -298,6 +357,10 @@ func _input(event: InputEvent) -> void:
 			resume_gameplay()
 
 func _session_event(kind: String, details: Dictionary) -> void:
+	if kind in ["practice", "practice_restarted", "left"]:
+		_practice_knockout_handled = false
+	if kind == "practice_restarted":
+		gameplay_audio.reset()
 	if kind == "results":
 		results_panel.accept_record(details, str(session.match_view.get("match_id", "")))
 	elif kind == "error":
@@ -337,6 +400,14 @@ func cancel_online() -> void:
 
 func _add_match_actions() -> void:
 	var actions: Node = preview.return_button.get_parent()
+	_restart_practice = Button.new()
+	_restart_practice.name = "RestartPractice"
+	_restart_practice.text = "Restart practice"
+	_restart_practice.custom_minimum_size.y = 40
+	_restart_practice.hide()
+	actions.add_child(_restart_practice)
+	actions.move_child(_restart_practice, preview.resume_button.get_index() + 1)
+	_restart_practice.pressed.connect(restart_practice)
 	_forfeit = Button.new()
 	_forfeit.text = "Vote to forfeit round"
 	actions.add_child(_forfeit)

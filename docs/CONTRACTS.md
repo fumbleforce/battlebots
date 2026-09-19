@@ -26,6 +26,22 @@ changes affect buses immediately; Cancel/Escape restores original preferences;
 Save publishes only after successful persistence. Invalid saves remain open.
 No changes to B's controls, combat or bot-customisation paths are required.
 
+## Practice lifecycle
+
+`MvpSession.practice_target() -> BotSource` exposes the current detached-view
+source for the stationary practice target; it returns null outside practice.
+`restart_practice() -> Error` is a local, non-RPC API, permitted only in the
+practice authority. It reuses `AuthorityWorld.reset_round()` to repair and
+reposition both bots, preserving world/bot identities, selected loadouts and
+monotonic world ticks/command sequence marks. It clears queued commands, submits
+neutral braking and emits `match_changed` plus `session_event("practice_restarted", {})`.
+Offline, hosted, connecting and connected network sessions reject it unchanged.
+
+The general menu adds a practice-only pause action and read-only target HUD.
+Player knockout opens pause focused on Restart; Resume cannot recapture a
+knocked-out practice bot. A restart resets local audio event history, because
+new practice hits begin again at event ID one. No wire/schema version changes.
+
 ## BotCommand
 `scripts/core/bot_command.gd`: sequence >= 0, throttle and steering in [-1, 1],
 brake, primary_held, primary_pressed, secondary_held, recovery_pressed.

@@ -140,6 +140,34 @@ func practice(draft: Dictionary = {}) -> Error:
 	session_event.emit("practice", {})
 	return OK
 
+func practice_target() -> BotSource:
+	if connection_state != "practice" or not is_instance_valid(world):
+		return null
+	for id: int in world.bots:
+		if id != local_entity:
+			return world.bots[id]
+	return null
+
+func restart_practice() -> Error:
+	# Local training is the only mode allowed to repair on demand. This is not an RPC.
+	if connection_state != "practice" or not _server or not is_instance_valid(world):
+		return ERR_UNAUTHORIZED
+	_input_queue.clear()
+	_local_commands.clear()
+	_input_budget.clear()
+	world.reset_round()
+	# Keep command sequence high-water marks: bot identities survive this reset.
+	var neutral := BotCommand.new()
+	neutral.brake = true
+	neutral.secondary_held = true
+	for bot: MvpBot in world.bots.values():
+		bot.body.accept_command(neutral)
+	match_state.transition("active", 0)
+	match_view = match_state.snapshot()
+	match_changed.emit(match_view.duplicate(true))
+	session_event.emit("practice_restarted", {})
+	return OK
+
 func leave() -> void:
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()

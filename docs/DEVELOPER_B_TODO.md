@@ -102,6 +102,13 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Practice loop:** A reserves practice restart in MvpSession, menu-shell
+  composition and a new read-only target HUD. Reuses existing reset_round and
+  BotView; no combat/control/bot/arena changes. Arena development remains in its
+  separate worktree. See [practice scope](coordination/A_PRACTICE_LOOP.md).
+  Validated: baseline, HUD/menu/state reset tests and actual two-peer match flow
+  passed. Reset fixture also landed a real hammer hit after repair. No B changes.
+
 - **Gameplay audio:** A reserves new audio controller/sound-bank/preferences,
   independent Audio settings panel and general menu-shell integration on
   `codex/a-gameplay-audio`. Reads combat events and match/bot views; no B combat,
@@ -109,7 +116,8 @@ integration base, not the still-old main branch.
   [audio scope](coordination/A_GAMEPLAY_AUDIO.md).
   Implemented and validated: focused cue/settings/menu tests, baseline and actual
   two-peer countdown/results/rematch all pass. Complete by direct merge/push to
-  main. First-pass procedural sounds; spatial mix and listening polish remain.
+  main (published as 7feb900). First-pass procedural sounds; spatial mix and
+  listening polish remain.
 
 - **Merge-down rule:** Completed branches must merge into shared main after
   validation, then push main directly. No PRs. A feature-branch push alone no
