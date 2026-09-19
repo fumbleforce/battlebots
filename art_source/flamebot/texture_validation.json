@@ -1,0 +1,150 @@
+{
+  "geometry_sha256_before": "91380c84e83ce8b1f9fc595ef9096f48fd3d3ae7bee32d8843a072bc59b5ef85",
+  "geometry_sha256_after": "91380c84e83ce8b1f9fc595ef9096f48fd3d3ae7bee32d8843a072bc59b5ef85",
+  "approved_geometry_unchanged": true,
+  "refined_armor_surfaces": [
+    "Shouldered hull armor",
+    "Recessed turret deck",
+    "Recessed side armor",
+    "Recessed side armor.001",
+    "Angled upper glacis",
+    "Angled upper glacis.001",
+    "Thick lower ram plate",
+    "Thick lower ram plate.002",
+    "Rear service surround",
+    "Tapered armored tower",
+    "Sloping tower roof",
+    "Angled tower cheek",
+    "Angled tower cheek.001"
+  ],
+  "textures": [
+    {
+      "name": "Blackened steel_albedo",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Blackened steel_normal",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Blackened steel_roughness_metallic",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Exposed brushed edges_albedo",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Exposed brushed edges_normal",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Exposed brushed edges_roughness_metallic",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Ochre safety paint_albedo",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Ochre safety paint_normal",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Ochre safety paint_roughness_metallic",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Oxide red | worn armor edges_albedo",
+      "size": [
+        4096,
+        4096
+      ],
+      "packed": true
+    },
+    {
+      "name": "Oxide red | worn armor edges_normal",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Oxide red | worn armor edges_roughness_metallic",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Oxide red • chipped paint_albedo",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Oxide red • chipped paint_normal",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Oxide red • chipped paint_roughness_metallic",
+      "size": [
+        2048,
+        2048
+      ],
+      "packed": true
+    },
+    {
+      "name": "Warm stencil paint_albedo",
+      "size": [
+        1024,
+        1024
+      ],
+      "packed": true
+    }
+  ]
+}

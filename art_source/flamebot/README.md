@@ -20,6 +20,7 @@ The reference's printed triangle/texture counts were not treated as requirements
   embedded PBR color textures; studio floor, cameras and lights are excluded.
 - `flamebot_07_hero.png`, `flamebot_07_rear.png`, `flamebot_07_side.png` and
   `flamebot_07_front.png`, `flamebot_07_top.png`: beauty renders and orthographic checks.
+- `flamebot_07_texture_detail.png`: close-up for inspecting paint wear and metal relief.
 - `build_flamebot.py`: deterministic rebuild; individual panels, tires, fasteners,
   hoses and weapons can be edited in `geometry_v2.py` or directly in the blend.
 - `asset_stats.json`: measured full-detail geometry and dimensions.
@@ -27,13 +28,24 @@ The reference's printed triangle/texture counts were not treated as requirements
 ## Integration
 
 See `asset_stats.json` for measured triangle count and editable component count.
-The GLB has seven mesh objects. Eight surface materials (four packed 1024px
-color maps, four roughness/metallic maps, four tangent-space normal maps, and four
-plain materials). Paint is a rough dielectric coating (roughness .91/.92,
+The GLB has seven mesh objects and nine surface materials. Main armor has a 4096px
+color map and 2048px roughness/metallic and tangent-space normal maps. Supporting
+red paint, ochre paint and two steel finishes each use 2048px PBR maps. The worn
+stencil color map is 1024px; lettering, rubber and bronze reuse the steel normal
+map at reduced strength. All maps are packed in the Blender source and GLB.
+Paint is a rough dielectric coating (roughness .91/.92,
 metallic .025); chipped areas reveal rough bare steel. Packed texture masks drive
 color, roughness, metal exposure, pitting and scratches together. Raised chip
 stickers were removed. Matte steel, rubber and heat-stained metal have distinct
-PBR values. `surface_materials.py` authors these maps reproducibly.
+PBR values. Jagged chips expose steel beneath darker primer borders; directional
+scuffs and scanned abrasion, corrosion and paint relief replace the previous
+blurred noise. Thirteen main armor surfaces have per-face UV projections to
+preserve texture resolution and place edge wear along panel borders. The finish
+remains matte, with roughness variation rather than a clear glossy coat.
+`surface_materials.py` authors these maps reproducibly using the bundled CC0 maps
+credited in [reference_textures/CREDITS.md](reference_textures/CREDITS.md).
+`refresh_textures.py` updates materials and UVs on an existing source file while
+asserting an identical hash of all approved vertices, faces and world transforms.
 Godot's committed import settings enable generated mesh LODs and shadow meshes.
 Hand-authored LODs and a consolidated texture atlas remain future optimization.
 This revision prioritizes the user's requested mechanical detail; its full-detail
@@ -64,7 +76,10 @@ rule or implement either weapon.
 ## Validation
 
 Blender rebuilt and saved the source and GLB successfully. Front/rear/side/top Cycles
-renders inspected. The geometry builder asserts positive wheel/hull, tread/arch,
+renders and a 2400px material close-up inspected. The texture-only iteration
+preserves the approved solid plow and all other geometry: before/after geometry
+SHA-256 values match in `texture_validation.json`, which also records packed map
+dimensions. The geometry builder asserts positive wheel/hull, tread/arch,
 plow overhang/fold and external flamer-mount/tower clearances; measurements are
 recorded in `asset_stats.json`. `check_geometry.py` additionally inspects actual
 saved world-space tire meshes against armor with BVH surface intersection tests,

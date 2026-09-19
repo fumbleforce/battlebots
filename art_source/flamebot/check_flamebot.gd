@@ -10,6 +10,7 @@ func _initialize() -> void:
 		assert(model.find_child(part, true, false) != null, "Missing moving assembly: " + part)
 	var bounds := AABB()
 	var mesh_count := 0
+	var high_resolution_armor_found := false
 	for node in model.find_children("*", "MeshInstance3D", true, false):
 		var mesh := node as MeshInstance3D
 		bounds = bounds.merge(mesh.global_transform * mesh.get_aabb())
@@ -21,6 +22,12 @@ func _initialize() -> void:
 				assert(mat is StandardMaterial3D, "Paint must use Godot PBR material")
 				assert(mat.normal_enabled and mat.normal_texture != null, "Grit normal maps must survive GLB import")
 				assert(mat.roughness_texture != null, "Matte roughness map must survive GLB import")
+				assert(mat.albedo_texture != null and mat.albedo_texture.get_width() >= 2048, "Paint color detail must survive at 2K or greater")
+				assert(mat.normal_texture.get_width() == 2048, "Paint relief must retain 2K resolution")
+				if mat.resource_name.contains("worn armor edges"):
+					assert(mat.albedo_texture.get_width() == 4096, "Main armor must retain 4K color detail")
+					high_resolution_armor_found = true
+	assert(high_resolution_armor_found, "Main armor material must survive export and import")
 	assert(mesh_count == 7, "Expected seven independently movable meshes")
 	assert(bounds.size.y > 1.8 and bounds.size.y < 2.2, "Godot must be Y up at meter scale")
 	assert(bounds.position.z < -1.2, "Wedge must point toward Godot -Z")

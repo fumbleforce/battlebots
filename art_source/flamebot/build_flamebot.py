@@ -94,6 +94,8 @@ for o in list(bpy.context.scene.objects):
     bpy.ops.uv.smart_project(angle_limit=1.15,island_margin=.015)
     bpy.ops.object.mode_set(mode='OBJECT')
 source_meshes=[o for o in bpy.context.scene.objects if o.type=='MESH']
+refined_armor=refine_armor_uvs(source_meshes)
+finish_secondary_surfaces()
 runtime_meshes=[]
 for pivot in [chassis,turret,gun]+[o for o in root.children if o.name.startswith('Wheel')]:
     children=[o for o in pivot.children if o.type=='MESH']
@@ -136,6 +138,7 @@ scene=bpy.context.scene; scene.unit_settings.system='METRIC'; scene.unit_setting
 scene.render.engine='CYCLES'; scene.cycles.samples=64; scene.cycles.use_denoising=True
 scene.world.color=(.25,.25,.25); scene.render.resolution_x=1500; scene.render.resolution_y=1300; scene.render.resolution_percentage=100
 scene.view_settings.view_transform='AgX'; scene.render.image_settings.file_format='PNG'
+configure_texture_render(scene)
 bpy.ops.object.select_all(action='DESELECT'); root.select_set(True); bpy.context.view_layer.objects.active=root
 for screen in bpy.data.screens:
     for a in screen.areas:
@@ -152,4 +155,6 @@ cam.location=(4,0,1.1);aim(cam,(0,.16,.88));cam.data.ortho_scale=3.45
 scene.render.filepath=str(HERE/'flamebot_07_side.png');bpy.ops.render.render(write_still=True)
 cam.location=(0,5,1.35);aim(cam,(0,.12,.86));cam.data.ortho_scale=3.1
 scene.render.filepath=str(HERE/'flamebot_07_front.png');bpy.ops.render.render(write_still=True)
+cam.location=(1.8,2.8,1.7);aim(cam,(.05,.82,.64));cam.data.ortho_scale=1.68
+scene.render.filepath=str(HERE/'flamebot_07_texture_detail.png');bpy.ops.render.render(write_still=True)
 print('ASSET_STATS',stats)

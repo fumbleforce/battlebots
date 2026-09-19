@@ -1,3 +1,5 @@
 *.log
 *.blend1
 *.blend2
+_texture_cache/
+texture_before.log.png
