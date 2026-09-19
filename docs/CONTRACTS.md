@@ -1,6 +1,7 @@
-# Baseline contracts — v1
+# Shared contracts — local records and current MVP session API
 
-These are local typed GDScript interfaces, not a wire protocol or complete game API.
+The first sections describe local typed GDScript interfaces; the session section
+below documents the implemented MVP wire-facing API. This is not the full game API.
 A owns implementation definitions under scripts/core; B consumes them via adapters.
 Paths below are relative to the Godot project.
 
@@ -21,8 +22,8 @@ rate-limit and network payload checks separately.
 entity ID, global pose, core/battery/heat/weapon-charge fractions in [0, 1],
 weapon state name, recovery availability, and elimination flag.
 Treat it as read-only; mutating it never writes simulation state.
-Health-zone details, match views, registry/garage validation and serialization are
-future coordinated additions, not empty APIs to implement against today.
+Health-zone details, match views and registry/garage validation are now available
+through the additive fields and APIs below. Existing baseline fields remain valid.
 
 ### Additive MVP implementation on A's branch
 
@@ -60,8 +61,8 @@ RMB lowers it. Spinner RMB brakes spin. R activates eligible physical recovery.
 
 A's baseline source wraps a driveable RigidBody3D. It validates commands, copies
 drive intent, and brakes after 250 ms without valid input. Combat flags are accepted
-by the record but have no gameplay effect yet. B's mock rotates a visual and
-provides sample HUD values; it intentionally ignores input. Both satisfy the same
+by the drive fixture's record; real combat is provided by MvpBot. B's mock accepts
+visual-only drive input and provides sample HUD values. Both satisfy the same
 interface. The preview only knows BotSource, never a concrete physics node path.
 CameraAnchor exists on both sources. Networking must not serialize Node/RID handles.
 
@@ -72,7 +73,9 @@ HitZones index 3 (mask 4). Cosmetic visuals have no collision.
 Arena floor surface is Y=0, X/Z bounds +/-25.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
 For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
-The baseline has no FFA markers or perimeter walls; B adds them in the first task.
+The published arena includes perimeter walls, two-meter corner chamfers and
+FFA_1..8 markers on a 20-meter ring facing inward. These markers do not imply
+that the MVP session already implements FFA rules.
 Spawn a future bot root with care: the bot fixture already offsets its body
 upward by 0.5, so do not apply that clearance twice when integrating spawn logic.
 
@@ -80,15 +83,16 @@ upward by 0.5, so do not apply that clearance twice when integrating spawn logic
 drive_forward=W, drive_reverse=S, steer_left=A, steer_right=D, brake=Space,
 primary=LMB, secondary=RMB, recover=R, camera_toggle=C,
 camera_recenter=MMB, camera_zoom_in/out=wheel, ping=Q, scoreboard=Tab, pause=Escape.
-Only driving/weapon intent collection and Escape navigation are wired in the preview.
-B submits neutral input when the window is unfocused. Full menu capture/rebinding
-is B's future work. New InputMap entries go through A's project.godot ownership.
+B collects drive/weapon intent and implements camera controls and menu/settings
+capture. Suppressed input brakes and lowers/cancels; held actions require release
+before rearming. Escape toggles the standalone menu; explicit Return exits.
+Input rebinding remains pending. New InputMap entries go through A's ownership.
 
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.
 A change to an existing field's meaning is a breaking change; coordinate it before
-editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
-for networking that does not yet exist.
+editing. WireCodec.PROTOCOL below is the actual transport compatibility version;
+do not infer wire support from a baseline configuration constant.
 
 ## MVP session API — protocol 3 (A branch)
 
@@ -158,8 +162,8 @@ default view. Do not retain an old camera anchor across baseline replacement.
 `MvpSession.practice(draft={})` starts local physics against a stationary enemy;
 it validates an unsaved draft before assembly and returns Error. `leave()` resets
 it before starting another mode. No practice result is awarded. Networking MVP
-uses A's canonical collision-only Foundry dimensions and primitive rendering;
-B's finished arena/camera remains a separate integration step. Do not stack both
+uses the published B arena through AuthorityWorld and primitive bot rendering;
+B's camera/HUD/settings mount through the combined app. Do not stack both
 arena collision roots in one world. Match results include per-round participant
 snapshots and aggregate damage/elimination/assist/component/recovery counters.
 

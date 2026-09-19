@@ -16,11 +16,16 @@ full garage and production match screens remain future work. Development sandbox
 are still available by opening their scenes and pressing F6.
 
 ## Work independently
-- **A:** `battlebots/scenes/dev/a_simulation.tscn` — drive controller, then networking.
-- **B:** `battlebots/scenes/dev/b_presentation.tscn` — implement arena/camera/UI using the mock.
+- **A:** `battlebots/scenes/dev/a_simulation.tscn` — real drive/contact checks.
+- **B:** `battlebots/scenes/dev/b_presentation.tscn` — arena/camera/UI with mock movement.
+- **B input/menu:** `battlebots/scenes/dev/b_input_menu.tscn` — real lifter rules,
+  cancellation and keyboard menus without a network session.
 - Read [handoff](docs/HANDOFF.md), [contracts](docs/CONTRACTS.md),
   [team workflow](docs/TEAM_WORKFLOW.md), and [full specification](docs/GAME_SPEC.md).
-- Agree who is A/B, then branch from the common baseline:
+- Use a focused feature branch from main, or explicitly declare the published
+  A/B integration as a dependency while it is ahead of main. Current B work is
+  `codex/b-input-menu`; sawblade-tank artwork stays on its separate branch.
+- Example starting names (check existing branches before creating):
   `git switch -c codex/a-drive-controller` or `git switch -c codex/b-arena-camera`.
   These are examples; branches are not created by the baseline.
 
@@ -35,7 +40,10 @@ The check imports resources, loads both sandboxes, checks contracts/input bindin
 and verifies the physical body settles on the floor. It needs no export templates.
 Run `./tools/check-drive.ps1 -GodotPath "C:/path/to/Godot_v4.7.2-stable_win64_console.exe"`
 for the baseline checks plus headless Jolt driving, braking, contact, and input-failure checks.
-For manual inspection, use F5 and both launcher buttons; Escape returns to the launcher.
+For manual inspection use F5 for Practice/Multiplayer, or F6 on a development scene.
+Escape toggles the current menu; leaving requires its explicit Main menu/Return button.
+Run B's independent scene checks with:
+`./battlebots/tests/presentation/check-presentation.ps1 -GodotPath $GodotPath`.
 Public hosting is a later release task; MVP export presets are described below.
 
 ## Developer A MVP (codex/a-mvp)

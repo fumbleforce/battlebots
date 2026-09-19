@@ -50,6 +50,18 @@ func _refresh_labels() -> void:
 	form.get_node("Strength/Value").text = "%.1f" % strength.value
 	strength.editable = automatic.button_pressed
 	form.get_node("Strength").modulate.a = 1.0 if automatic.button_pressed else 0.5
+	strength.focus_mode = Control.FOCUS_ALL if automatic.button_pressed else Control.FOCUS_NONE
+	var navigation: Array[Control] = [sensitivity, invert, automatic]
+	if automatic.button_pressed:
+		navigation.append(strength)
+	navigation.append_array([form.get_node("Buttons/Defaults"),
+		form.get_node("Buttons/Cancel"), form.get_node("Buttons/Save")])
+	for index: int in range(navigation.size()):
+		var control := navigation[index]
+		var previous := navigation[posmod(index - 1, navigation.size())]
+		var next := navigation[(index + 1) % navigation.size()]
+		control.focus_previous = control.get_path_to(previous)
+		control.focus_next = control.get_path_to(next)
 
 func _on_value_changed(_value: float) -> void:
 	_preview()

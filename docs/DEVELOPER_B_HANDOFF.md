@@ -1,9 +1,37 @@
 # Developer B — arena and third-person camera
 
-Owner: Developer B. Branch: `codex/b-arena-camera`. Base: `60feafe`.
+Owner: Developer B. Active branch: `codex/b-input-menu`.
+Dependency base: A/B integration `bdb42ef`. Earlier camera/HUD/settings work
+was published on `codex/b-arena-camera` through `40aa6b1`.
 
 Ongoing work is tracked in [Worker B's to-do list](DEVELOPER_B_TODO.md), including
 priorities, ownership boundaries and dependencies requested from A.
+
+## B-04a: cancellation and standalone navigation
+
+Read [the B-04 intention/evidence record](coordination/B_INPUT_MENU.md).
+Menus, settings and focus loss now submit brake+secondary cancellation immediately
+and on every disabled-control tick. Held drive, weapon and recovery actions must
+be released before they can reactivate. An intentional lifter release still fires.
+Keep A's SessionBotSource lifecycle gate; this change does not replace it.
+
+The standalone preview has Resume, Camera settings and Return to launcher buttons.
+Tab/arrow keys navigate; Enter activates. Escape opens/closes this menu, never
+destroys the scene. Return is explicit, idempotent and deferred. A's live menu
+continues handling its own Escape/navigation and may hide the preview CanvasLayer.
+No changes to A-owned app/core/network/simulation files are needed.
+
+Independent interactive scene: `scenes/dev/b_input_menu.tscn`. It runs A's real
+lifter rules against B's input adapter and displays a launch counter, without
+pretending to be drive or multiplayer simulation. Tests:
+
+```powershell
+./battlebots/tests/presentation/check-presentation.ps1 -GodotPath $GodotPath
+```
+
+Baseline, camera/settings, input menu and A's duel/navigation regressions passed.
+The menu was also rendered and inspected at 1280x720. Rebinding remains B-04b;
+human LAN/contact acceptance remains outstanding.
 
 ## B-03 follow-up: camera settings
 
@@ -78,7 +106,7 @@ launcher. Click inside the arena if the cursor is released.
 | 1 / 2 / 3 | Place mock at center / south wall / southeast corner |
 | 4 | Toggle upside-down mock |
 | 5 | Toggle automatic recentering |
-| Escape | Release cursor; press again to return to launcher |
+| Escape | Open menu / resume; use the explicit Return button to leave |
 
 Sensitivity, inversion, recenter speed and automatic recenter are exported on the
 OrbitCamera node and exposed through the B-03 settings panel. First-person view,

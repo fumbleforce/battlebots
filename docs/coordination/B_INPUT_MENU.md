@@ -46,5 +46,18 @@ change InputMap. It establishes the input suppression boundary first.
 
 ## Status
 
-Intention published; implementation in progress. A's coordination section in
-DEVELOPER_B_TODO.md is preserved. Human two-computer feel acceptance remains open.
+Implemented and tested. GameplayInputGate handles suspension and release-to-rearm;
+the existing preview is still the only local input producer. A's lifecycle gate
+remains intact and no authoritative files were edited.
+
+Independent scene: res://scenes/dev/b_input_menu.tscn (F6). The fixture uses
+CombatState with Controller stats: hold LMB to charge; deliberate release launches;
+Escape or focus loss cancels. No drive/network simulation is claimed by this scene.
+
+Evidence: baseline smoke; input_menu_test headless and rendered; existing camera
+and settings tests; A's duel_menu_smoke and navigation_smoke all pass. The rendered
+1280x720 menu was inspected. Tests dispatch GUI actions for Tab/Enter/Escape and
+verify that a pending settings resume cannot defeat a subsequent focus loss.
+
+Keyboard/mouse rebinding is explicitly B-04b, still open. Human two-computer feel
+acceptance remains open. A's coordination log in DEVELOPER_B_TODO.md is preserved.

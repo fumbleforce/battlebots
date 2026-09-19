@@ -13,6 +13,8 @@ Read docs/GAME_SPEC.md, docs/TEAM_WORKFLOW.md, docs/CONTRACTS.md and docs/HANDOF
 - Never assume another ChatGPT session shares memory or that its unmerged work is present.
 - After each completed incremental iteration, commit only the task's changes,
   fetch origin, rebase the task branch onto origin/main, and push the task branch.
+  Use --rebase-merges when the task depends on the published A/B integration
+  merge; do not flatten and replay both teams' already-resolved historical edits.
   Preserve unrelated working edits. Resolve and validate any rebase conflicts
   before pushing. If rebasing a previously pushed task branch rewrites its history,
   use --force-with-lease, never a blind force push or a force push to main.
@@ -20,7 +22,9 @@ Read docs/GAME_SPEC.md, docs/TEAM_WORKFLOW.md, docs/CONTRACTS.md and docs/HANDOF
 ## Baseline and validation
 - Pin Godot to 4.7.2 stable. Preserve Jolt, 60 Hz physics, meter scale, Y up, and -Z forward.
 - Keep authoritative logic free of camera/UI dependencies. Mocks are development-only.
-- This is scaffolding, not implemented combat/networking. Do not describe placeholder behavior as a finished feature.
+- This is a developing MVP with implemented combat/networking and remaining
+  placeholders. Check the current acceptance trackers; do not describe unverified
+  behavior or partial MVP scope as a finished full game.
 - Commit source .uid and required .import metadata; never commit .godot/, credentials, or export output.
 - Run tools/check-baseline.ps1 with the local Godot executable after changing shared contracts/scenes.
 - Before handoff, inspect Git diff/status, document validation and outstanding work, and avoid unrelated edits.
