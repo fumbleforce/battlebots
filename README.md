@@ -63,6 +63,23 @@ clients. Ready all four slots. For LAN use the host's LAN address in place of
 127.0.0.1. The console exposes host/join/ready/rematch/forfeit/leave; reconnect is
 available through the session API using the in-memory token.
 
+### Try multiplayer on two computers
+
+Use the same current `codex/a-b-integration` build on both PCs and the same LAN.
+Open two game windows on each computer. In Multiplayer, click Host in one window
+on PC A; its menu displays local IPv4 candidates. PC A's second window joins
+`127.0.0.1`. Both windows on PC B join PC A's Ethernet/Wi-Fi IPv4 shown by the host
+(for example `192.168.1.20`). Choose builds and press Ready in all four windows.
+The host counts as one player; four ready clients are required for the countdown.
+Loopback `127.0.0.1` always means the computer where that client is running.
+
+The default port is UDP 24567. If joining fails, check that the host is running,
+both builds match and the computers can communicate on the same LAN. Windows may
+need a Private-network firewall allowance for the game/Godot executable. Do not
+disable the firewall or configure internet port forwarding for this office test.
+If multiple host addresses are shown, choose the Ethernet/Wi-Fi address on the
+same subnet as PC B, rather than a VPN or virtual-adapter address.
+
 Exports: `Windows Client` and `Linux Server` in `battlebots/export_presets.cfg`.
 Install matching templates, create `battlebots/exports/windows` and `exports/linux`,
 then run `--headless --path battlebots --export-release "Windows Client"` (or

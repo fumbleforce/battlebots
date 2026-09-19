@@ -2,6 +2,14 @@
 
 ## A+B integration — codex/a-b-integration
 
+LAN usability increment: join starts blank with a host-IP example; Host displays
+local non-loopback IPv4 candidates and the active UDP port. The menu explains
+four ready windows/two per computer. Empty joins preserve the current session and
+show guidance; whitespace is trimmed and Host/Join honor the selected CLI port.
+The session menu scrolls when lobby/address details exceed the window height.
+Baseline plus app and four-peer presentation/network tests pass. No firewall
+configuration was changed and cross-machine connectivity remains unverified.
+
 Combines A `759041e` and B `40aa6b1`, preserving B's published files. The MVP app
 mounts B's camera, HUD and settings through SessionBotSource. AuthorityWorld loads
 the same B arena on server/client, using its spawn markers, with no duplicate

@@ -185,3 +185,7 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
 - Combined automated suite passes after these changes. Final graphical inspection
   stopped when the user pressed Escape to stop Computer Use; two-machine LAN and
   subjective feel remain pending. Updated graphical build is launched locally.
+- LAN USABILITY: A's app shows host IPv4 candidates/port, starts Join blank, gives
+  four-client/two-per-PC instructions, rejects blank joins without leaving, and
+  honors custom CLI ports. Menu scrolls when lobby details grow. Baseline/app and
+  four-peer presentation tests pass. B's owned files are still unchanged.

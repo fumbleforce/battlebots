@@ -14,6 +14,9 @@ var striker_button: Button
 var controller_button: Button
 var build_hint: Label
 var menu_status: Label
+var menu_scroll: ScrollContainer
+var port := 24567
+var lan_addresses := PackedStringArray()
 var _previous_source: BotSource
 
 func _ready() -> void:
@@ -34,7 +37,7 @@ func _ready() -> void:
 	var start_mode := str(get_tree().get_meta("start_mode", "practice"))
 	get_tree().remove_meta("start_mode")
 	var args := OS.get_cmdline_user_args()
-	var port := 24567
+	lan_addresses = local_lan_addresses()
 	var remote := ""
 	for arg: String in args:
 		if arg.begins_with("--port="):
@@ -93,10 +96,16 @@ func _build_console() -> void:
 	canvas.add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_scroll = ScrollContainer.new()
+	menu_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	menu_scroll.follow_focus = true
+	center.add_child(menu_scroll)
 	console_panel = PanelContainer.new()
 	console_panel.custom_minimum_size.x = 680
+	console_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	console_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	console_panel.theme = GameMenuTheme.create()
-	center.add_child(console_panel)
+	menu_scroll.add_child(console_panel)
 	var margin := MarginContainer.new()
 	for side: String in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 10)
@@ -134,14 +143,17 @@ func _build_console() -> void:
 	var row := HBoxContainer.new()
 	stack.add_child(row)
 	address = LineEdit.new()
-	address.text = "127.0.0.1"
-	address.placeholder_text = "Host LAN address"
+	address.placeholder_text = "Host IP, e.g. 192.168.1.20"
 	address.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	address.custom_minimum_size.x = 180
 	row.add_child(address)
-	_button(row, "Host", func() -> void: session.leave(); session.host(); session.set_loadout(session.registry.starter(controller)))
-	_button(row, "Join", func() -> void: session.leave(); session.join(address.text))
+	_button(row, "Host", host_game)
+	_button(row, "Join", join_game)
 	_button(row, "Ready", func() -> void: session.set_loadout(session.registry.starter(controller)); session.set_ready(true))
+	var lan_hint := Label.new()
+	lan_hint.add_theme_font_size_override("font_size", 14)
+	lan_hint.text = "Same Wi-Fi / Ethernet: Host, then enter that PC's address to Join.\n2v2 needs 4 ready windows: run 2 per computer. UDP %d." % port
+	stack.add_child(lan_hint)
 	var match_row := HBoxContainer.new()
 	stack.add_child(match_row)
 	_button(match_row, "Rematch", session.vote_rematch)
@@ -149,6 +161,7 @@ func _build_console() -> void:
 	_button(match_row, "Leave", session.leave)
 	menu_status = Label.new()
 	menu_status.add_theme_font_size_override("font_size", 15)
+	menu_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	menu_status.add_theme_color_override("font_color", Color(0.55, 0.75, 0.8))
 	stack.add_child(menu_status)
 	stack.add_child(HSeparator.new())
@@ -160,6 +173,33 @@ func _build_console() -> void:
 	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(controls)
 	_button(footer, "Main menu", func() -> void: session.leave(); get_tree().change_scene_to_file("res://scenes/app/main.tscn"))
+
+static func local_lan_addresses() -> PackedStringArray:
+	var candidates := PackedStringArray()
+	for candidate: String in IP.get_local_addresses():
+		if ":" in candidate or candidate.begins_with("127.") or candidate.begins_with("169.254.") or candidate == "0.0.0.0":
+			continue
+		if not candidates.has(candidate):
+			candidates.append(candidate)
+	candidates.sort()
+	return candidates
+
+func host_game() -> void:
+	session.leave()
+	if session.host(port) == OK:
+		session.set_loadout(session.registry.starter(controller))
+
+func join_game() -> void:
+	var target := address.text.strip_edges()
+	if target.is_empty():
+		notice = "Enter the address shown on the host PC. Use 127.0.0.1 only on that same PC."
+		return
+	session.leave()
+	var error := session.join(target, port)
+	if error != OK:
+		notice = "Could not join %s (error %d). Check the address and try again." % [target, error]
+	else:
+		notice = "Connecting to %s:%d..." % [target, port]
 
 func select_build(use_controller: bool) -> void:
 	controller = use_controller
@@ -195,6 +235,8 @@ func _process(_delta: float) -> void:
 	else:
 		preview.hud.show()
 	console_panel.visible = not preview.controls_enabled and not preview.settings_panel.visible
+	menu_scroll.visible = console_panel.visible
+	menu_scroll.custom_minimum_size = Vector2(720, minf(680, get_viewport().get_visible_rect().size.y - 48))
 	resume_button.disabled = source == null
 	striker_button.set_pressed_no_signal(not controller)
 	controller_button.set_pressed_no_signal(controller)
@@ -209,6 +251,9 @@ func _process(_delta: float) -> void:
 	if session.connection_state == "practice":
 		summary = "Practice | %s\nEsc opens session controls and build selection" % session.players[session.local_entity].loadout.name
 	if console_panel.visible:
+		if session.connection_state == "hosting":
+			summary += "\nJoin from the other PC: %s" % (", ".join(lan_addresses) if not lan_addresses.is_empty() else "No LAN IPv4 found")
+			summary += "\nOn this PC, extra windows join 127.0.0.1. Port %d." % port
 		for slot: Dictionary in session.lobby_view.get("slots", []):
 			summary += "\nBot %d / Team %d / %s / %s" % [slot.entity_id, slot.team + 1,
 				slot.loadout.get("name", "Build"), "READY" if slot.ready else "not ready"]

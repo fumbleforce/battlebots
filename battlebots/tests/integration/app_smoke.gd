@@ -18,6 +18,11 @@ func run() -> void:
 		app._build_console()
 	await frames(3)
 	var session: MvpSession = app.session
+	check(app.address.text.is_empty(), "Join never defaults to this computer")
+	app.address.text = "  "
+	app.join_game()
+	check(session.connection_state == "practice" and "Enter the address" in app.notice,
+		"Empty join explains the host address without leaving the current session")
 	check(session.world.get_child_count() == 3, "One arena and two practice bots, no duplicate walls")
 	check(session.world.arena.find_children("*", "StaticBody3D", true, false).size() == 9,
 		"Published arena has one floor, four walls and four chamfers")
@@ -70,4 +75,3 @@ func run() -> void:
 	await process_frame
 	print("APP INTEGRATION PASS" if failures == 0 else "APP INTEGRATION FAIL")
 	quit(0 if failures == 0 else 1)
-

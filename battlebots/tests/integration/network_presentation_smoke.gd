@@ -32,6 +32,11 @@ func make_app(label: String) -> Node:
 func run() -> void:
 	var port := 28000 + OS.get_process_id() % 10000
 	var host = make_app("Server")
+	host.port = port
+	host.host_game()
+	check(host.session.connection_state == "hosting", "Menu host binds requested UDP port")
+	# Test dedicated four-client admission after exercising the listen-host action.
+	host.session.leave()
 	check(host.session.host(port, false) == OK, "Integrated server binds")
 	var clients: Array[Node] = []
 	for index: int in range(4):
@@ -39,7 +44,10 @@ func run() -> void:
 		app._build_console()
 		app.preview.set_physics_process(false)
 		clients.append(app)
-		check(app.session.join("127.0.0.1", port) == OK, "Integrated client joins")
+		app.port = port
+		app.address.text = " 127.0.0.1 "
+		app.join_game()
+		check(app.session.connection_state == "connecting", "Menu join trims address and uses requested UDP port")
 	check(await until(func() -> bool: return clients.all(func(app: Node) -> bool: return app.session.local_entity > 0)), "Four clients admitted")
 	for app: Node in clients:
 		app.session.set_ready(true)
