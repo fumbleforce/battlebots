@@ -2,13 +2,17 @@
 
 ## Current Developer A increment
 
-`codex/a-horizontal-spinner` follows menu/music export `db87257`. The catalogue
-and combat add a horizontal spinner with swept side contact and lateral recoil;
-independent state/physics/network acceptance is recorded in
+`codex/a-hammer` follows horizontal spinner `b46084e` and menu/music export
+`db87257`. Hammer adds a committed overhead strike, per-activation target dedup,
+resource/recovery timing and the legal Duelist starter. See
+[hammer coordination](coordination/A_HAMMER.md) and the preceding
 [horizontal spinner coordination](coordination/A_HORIZONTAL_SPINNER.md).
-This branch uses build `mvp-ab-6`/protocol 4 with a new content hash; both peers
-must update together. Existing local saves with recognized revision-one content
-migrate without changing parts. The `db87257` playtest ZIP is preserved separately.
+This branch uses build `mvp-ab-7`/protocol 4 with catalogue revision three; both
+peers must update together. Known revision-one/two saves migrate without changing
+parts. The `db87257` playtest ZIP is preserved separately. The menu/music CI run
+35465682771 passed; horizontal CI 35466215676 failed an FFA observer-health check.
+A local reproduction passed; failure diagnostics were added without weakening the
+exact-health gate. The cause remains unproven pending further CI evidence.
 
 ## Current playtest checkpoint
 

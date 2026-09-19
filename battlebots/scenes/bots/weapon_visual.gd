@@ -40,6 +40,12 @@ func assemble(weapon: String, size: Vector3) -> void:
 		_box(mechanism, Vector3(disc.top_radius * 2, 0.24, 0.12), Vector3.ZERO, accent)
 		_box(mechanism, Vector3(0.12, 0.24, disc.top_radius * 2), Vector3.ZERO, accent)
 		_box(self, Vector3(0.24, 0.2, 0.55), Vector3(0, 0, -size.z * 0.5 + 0.05), metal)
+	elif kind == "hammer":
+		mechanism.position = Vector3(0, size.y * 0.5, -size.z * 0.5 + 0.15)
+		mechanism.rotation.x = PI / 6.0
+		_box(mechanism, Vector3(0.1, 0.1, 1.2), Vector3(0, 0, -0.6), metal)
+		_box(mechanism, Vector3(0.34, 0.24, 0.24), Vector3(0, 0, -1.2), accent)
+		_box(self, Vector3(0.4, 0.18, 0.22), mechanism.position, metal)
 	elif kind == "lifter":
 		mechanism.position = Vector3(0, -0.12, -size.z * 0.5 + 0.2)
 		for side: int in [-1, 1]:
@@ -69,6 +75,15 @@ func show_state(view: BotView, delta: float) -> void:
 	elif kind == "horizontal_spinner":
 		if not disabled:
 			mechanism.rotation.y = wrapf(mechanism.rotation.y + view.weapon_charge_fraction * delta * 24, -PI, PI)
+	elif kind == "hammer":
+		var angle := PI / 6.0
+		if view.weapon_state == "windup":
+			angle = lerpf(PI / 6.0, PI / 2.0, view.weapon_charge_fraction)
+		elif view.weapon_state == "strike":
+			angle = -PI / 6.0
+		elif view.weapon_cooldown > 0:
+			angle = lerpf(-PI / 6.0, PI / 6.0, clampf(1.0 - view.weapon_cooldown / 1.4, 0, 1))
+		mechanism.rotation.x = 0.0 if disabled else angle
 	elif kind == "lifter":
 		var angle := view.weapon_charge_fraction * deg_to_rad(40)
 		if view.weapon_state == "launch" or view.weapon_cooldown > 2.7:

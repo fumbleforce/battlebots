@@ -205,8 +205,19 @@ func hostile_combat_and_reconnect() -> bool:
 	victim.body.reset_pose = victim.spawn_pose
 	await frames(30)
 	var damage := victim.combat.core
-	if not await require(await until(func() -> bool: return clients.all(func(c: MvpSession) -> bool:
-		return is_equal_approx(c.world.bots[victim.entity_id].remote_state.core, damage))), "Every FFA observer sees hostile damage"):
+	var observed_damage := await until(func() -> bool: return clients.all(func(c: MvpSession) -> bool:
+		return is_equal_approx(c.world.bots[victim.entity_id].remote_state.core, damage)))
+	if not observed_damage:
+		# Preserve the exact-health gate, but distinguish stale observers from
+		# further authoritative damage when this fails on a remote CI runner.
+		print("FFA damage convergence: expected=%.6f authority=%.6f entity=%d tick=%d" %
+			[damage, victim.combat.core, victim.entity_id, server.world.tick])
+		for observer: MvpSession in clients:
+			var snapshot: Dictionary = observer.world.bots[victim.entity_id].remote_state
+			print("FFA observer=%d connection=%s phase=%s victim_core=%s snapshot_tick=%s" %
+				[observer.local_entity, observer.connection_state, observer.match_view.get("phase"),
+				snapshot.get("core"), snapshot.get("tick")])
+	if not await require(observed_damage, "Every FFA observer sees hostile damage"):
 		return false
 	var token := clients[1].reconnect_token
 	clients[1].leave()

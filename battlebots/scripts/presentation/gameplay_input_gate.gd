@@ -52,7 +52,9 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 				_blocked[&"primary"] = true
 		elif primary_edge and not _blocked.has(&"primary"):
 			_primary_latched = not _primary_latched
-			command.primary_pressed = _primary_latched
+			# Press weapons (hammer) consume the physical edge; continuous weapons
+			# consume the independent held latch. Both clicks must remain edges.
+			command.primary_pressed = true
 		command.primary_held = _primary_latched
 	else:
 		command.primary_held = _strength(strengths, &"primary") > 0.0

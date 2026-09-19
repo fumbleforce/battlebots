@@ -33,8 +33,8 @@ func _initialize() -> void:
 		check(repeated.primary_held and not repeated.primary_pressed, "Repeated held edge cannot retoggle")
 	check(gate.sample({}, {}, true).primary_held, "Physical release preserves latch")
 	var stopped := press(gate)
-	check(not stopped.primary_held and not stopped.primary_pressed and not stopped.secondary_held,
-		"Second click intentionally releases, without activation edge")
+	check(not stopped.primary_held and stopped.primary_pressed and not stopped.secondary_held,
+		"Second click releases the held latch and preserves its physical press edge")
 	gate = new_gate()
 	var combat := charged(gate)
 	combat.tick(1.0 / 60.0, press(gate), true)
@@ -81,5 +81,15 @@ func _initialize() -> void:
 		combat.tick(1.0 / 60.0, gate.sample({&"primary": 1.0}, {}, true), true)
 	combat.tick(1.0 / 60.0, gate.sample({}, {}, true), true)
 	check(combat.launch, "Default hold physical release launches")
+	for toggle: bool in [false, true]:
+		gate = new_gate(toggle)
+		combat = CombatState.new(registry.validate(registry.duelist()).stats)
+		for activation: int in range(1, 4):
+			combat.tick(1.0 / 60.0, press(gate), true)
+			check(combat.attack_id == activation, "Every fresh hammer click starts an attack in mode %s" % toggle)
+			for frame: int in range(120):
+				combat.tick(1.0 / 60.0, gate.sample({&"primary": 1.0}, {}, true), true)
+			check(combat.attack_id == activation, "Held hammer input never repeats in mode %s" % toggle)
+			combat.tick(1.0 / 60.0, gate.sample({}, {}, true), true)
 	print("WEAPON TOGGLE PASS" if failures == 0 else "WEAPON TOGGLE FAIL")
 	quit(0 if failures == 0 else 1)

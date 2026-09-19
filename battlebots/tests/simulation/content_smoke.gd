@@ -37,16 +37,22 @@ func _initialize() -> void:
 	registry = ContentRegistry.new()
 	var path := "user://test-loadouts-%d.json" % OS.get_process_id()
 	var store := LoadoutStore.new(path)
-	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES:
+	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES + LoadoutStore.REVISION_TWO_HASHES:
 		var old_build := registry.starter()
 		old_build.content_hash = old_hash
 		var upgraded: Dictionary = store.migrate({"schema_version":1, "loadouts":[old_build]}).loadouts[0]
 		check(registry.validate(upgraded).valid and upgraded.parts == old_build.parts and upgraded.name == old_build.name,
-			"Compatible revision-one saves migrate without changing selected parts")
+			"Compatible older saves migrate without changing selected parts")
 		check(old_build.content_hash == old_hash, "Migration does not mutate its source")
 		old_build.parts.weapon = "unknown_weapon"
 		check(store.migrate({"schema_version":1, "loadouts":[old_build]}).loadouts[0] == old_build,
 			"Migration preserves unknown parts as invalid for explicit repair")
+	var horizontal := registry.starter()
+	horizontal.parts.weapon = "horizontal_spinner"
+	horizontal.content_hash = LoadoutStore.REVISION_TWO_HASHES[0]
+	var migrated_horizontal: Dictionary = store.migrate({"schema_version": 1, "loadouts": [horizontal]}).loadouts[0]
+	check(registry.validate(migrated_horizontal).valid and migrated_horizontal.parts == horizontal.parts,
+		"Revision-two horizontal builds survive addition of hammer")
 	var unknown_version := registry.starter()
 	unknown_version.content_hash = "unrecognized-version"
 	check(store.migrate({"schema_version":1, "loadouts":[unknown_version]}).loadouts[0] == unknown_version,

@@ -38,13 +38,23 @@ B's existing mock inherits neutral defaults; its existing consumers need no edit
 is Striker; `starter(true)` is Controller. Draft shape: `schema_version: 1`, `name`,
 `parts` (chassis/drive/weapon/armor/utility IDs), `cosmetics: {paint: id}`,
 `content_hash: registry.content_hash`. All current parts fit their category socket;
-the implemented weapon IDs are `vertical_spinner`, `horizontal_spinner` and `lifter`.
+the implemented weapon IDs are `vertical_spinner`, `horizontal_spinner`, `lifter`
+and `hammer`. `duelist()` adds the compact/agile/hammer/standard-armor/cooling-pack
+starter (91 kg/70 power), without changing `starter(bool)`.
 Horizontal spinner is 30 kg/40 power, charges over two seconds, uses spinner
 energy/heat rates, deals up to 40 raw damage with a 25% charge threshold and
 consumes 60% charge per hit. Side-contact sweeps and lateral recoil are authoritative.
-Existing weapon state/charge fields and controls are unchanged. Build `mvp-ab-6`
-adds catalogue revision two; protocol remains 4. All peers need matching build/content.
-Known revision-one local saves migrate their content hash after validation while
+Hammer uses a primary press edge, 0.35-second committed windup, 38 raw damage,
+and 1.4-second recovery even on a miss. It spends 16 battery at acceptance and
+adds 20 heat at impact. A strike reaching heat 100 completes and locks further
+activations until 50. Release/secondary do not cancel a committed swing; inactive,
+eliminated or destroyed state does. Secondary prevents starting a new strike.
+Charge is windup progress; phases are `windup`, `strike`, `cooldown` plus the
+existing idle/disabled/overheated states. One target hit per attack ID and round.
+The existing snapshot fields suffice. Physical primary press edges are preserved
+in both hold/toggle modes; the held latch still governs continuous weapons/lifter.
+Build `mvp-ab-7` adds catalogue revision three; protocol remains 4. All peers need
+matching build/content. Known revision-one/two local saves migrate after validation while
 preserving every selected part and cosmetic; unknown/incompatible saves stay invalid.
 Catalogue hashes normalize CRLF to LF for matching Windows/Linux content.
 

@@ -93,6 +93,15 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Hammer (implemented):** `codex/a-hammer` on horizontal spinner `b46084e`;
+  [scope and evidence](coordination/A_HAMMER.md). Adds hammer/Duelist, committed
+  windup/strike/recovery and primitive arm animation, build mvp-ab-7/protocol 4.
+  PlayerProfile now includes three starters. GameplayInputGate keeps a physical
+  press edge on both toggle clicks; the held latch and lifter release stay intact.
+  B can animate `windup` with charge, `strike`, and `cooldown` with its timer.
+  Independent state/physics/input/menu/network checks pass. No modelling changes;
+  the menu/music playtest ZIP remains untouched. Saw and performance/services follow.
+
 - **Horizontal spinner (implemented):** `codex/a-horizontal-spinner`, based on menu
   export `db87257`. A owns CombatState/CombatWorld, catalogue, loadout migration,
   primitive bot weapon visual and independent state/physics/ENet scenes. Add

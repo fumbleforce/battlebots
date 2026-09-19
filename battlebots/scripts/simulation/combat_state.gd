@@ -20,6 +20,7 @@ var weapon_phase := "idle"
 var failure_reason := ""
 var attack_id := 0
 var launch := false
+var strike := false
 var effective_damage := 0
 var eliminations := 0
 var assists := 0
@@ -28,6 +29,7 @@ var recovery_count := 0
 var recent_attackers: Dictionary = {}
 var _previous_held := false
 var _inactive := 0.0
+var _hammer_windup := 0.0
 
 func _init(derived: Dictionary) -> void:
 	stats = derived.duplicate(true)
@@ -46,14 +48,18 @@ func can_recover() -> bool:
 
 func tick(delta: float, command: BotCommand, active: bool) -> void:
 	launch = false
+	strike = false
 	failure_reason = ""
 	if not active or eliminated:
 		charge = 0.0
+		_hammer_windup = 0.0
 		_previous_held = false
 		weapon_phase = "disabled" if eliminated else "idle"
 		return
-	cooldown = maxf(0, cooldown - delta)
+	if stats.weapon != "hammer":
+		cooldown = maxf(0, cooldown - delta)
 	recovery_cooldown = maxf(0, recovery_cooldown - delta)
+	var recovery_was_active := recovery_remaining > 0.000001
 	recovery_remaining = maxf(0, recovery_remaining - delta)
 	if command.recovery_pressed:
 		if can_recover():
@@ -66,6 +72,11 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 			failure_reason = "recovery_unavailable"
 	if overheated and heat <= 50:
 		overheated = false
+	if stats.weapon == "hammer":
+		if recovery_remaining < 0.000001:
+			recovery_remaining = 0.0
+		_tick_hammer(delta, command, recovery_was_active)
+		return
 	var eligible: bool = zones.weapon > 0 and not overheated and cooldown <= 0
 	var powered: bool = eligible and command.primary_held and not command.secondary_held
 	var spinner: bool = stats.weapon in ["vertical_spinner", "horizontal_spinner"]
@@ -111,6 +122,52 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 		"launch" if launch else ("cooldown" if cooldown > 0 else ("active" if powered else "idle"))))
 	_previous_held = command.primary_held
 
+func _tick_hammer(delta: float, command: BotCommand, recovery_was_active: bool) -> void:
+	# Input applies at the start of a physics tick. A press during recovery is
+	# discarded even if that recovery reaches zero at the end of this tick.
+	var recovering := cooldown > 0.0
+	cooldown = maxf(0.0, cooldown - delta)
+	if cooldown < 0.000001:
+		cooldown = 0.0
+	if zones.weapon <= 0:
+		_hammer_windup = 0.0
+		charge = 0.0
+		if command.primary_pressed:
+			failure_reason = "disabled"
+	elif _hammer_windup <= 0.0 and command.primary_pressed and not command.secondary_held:
+		if recovering or overheated:
+			failure_reason = "overheated" if overheated else "cooldown"
+		elif battery < 16.0:
+			failure_reason = "battery_empty"
+		else:
+			battery -= 16.0
+			attack_id += 1
+			_hammer_windup = 0.35
+	if _hammer_windup > 0.0:
+		_hammer_windup = maxf(0.0, _hammer_windup - delta)
+		charge = clampf(1.0 - _hammer_windup / 0.35, 0.0, 1.0)
+		_inactive = 0.0
+		if _hammer_windup < 0.000001:
+			_hammer_windup = 0.0
+			charge = 1.0
+			strike = true
+			cooldown = 1.4
+			heat = minf(100.0, heat + 20.0)
+			overheated = heat >= 100.0
+	else:
+		charge = 0.0
+		heat = maxf(0.0, heat - float(stats.cooling) * delta)
+		if recovery_was_active or recovery_remaining > 0.0:
+			_inactive = 0.0
+		else:
+			# Recharge only the portion after the full one-second inactivity wait.
+			var previous := _inactive
+			_inactive += delta
+			var recharge_seconds := maxf(0.0, _inactive - 1.0) - maxf(0.0, previous - 1.0)
+			battery = minf(stats.battery, battery + 8.0 * recharge_seconds)
+	weapon_phase = "disabled" if zones.weapon <= 0 else ("strike" if strike else (
+		"windup" if _hammer_windup > 0.0 else ("overheated" if overheated else ("cooldown" if cooldown > 0.0 else "idle"))))
+
 func mobility(delta: float, wheel_contact: bool, upside_down: bool, self_driven_distance: float) -> void:
 	if eliminated:
 		return
@@ -153,6 +210,8 @@ func damage(zone: String, raw: float) -> int:
 func eliminate(reason: String) -> void:
 	eliminated = true
 	elimination_reason = reason
+	strike = false
+	_hammer_windup = 0.0
 	charge = 0
 	weapon_phase = "disabled"
 

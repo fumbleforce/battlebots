@@ -22,6 +22,13 @@ func starter(controller := false) -> Dictionary:
 		"armor": "standard_armor", "utility": "recovery_assist"},
 		"cosmetics": {"paint": "cyan"}, "content_hash": content_hash}
 
+func duelist() -> Dictionary:
+	var draft := starter()
+	draft.name = "Duelist"
+	draft.parts = {"chassis":"compact", "drive":"agile", "weapon":"hammer",
+		"armor":"standard_armor", "utility":"cooling_pack"}
+	return draft
+
 func validate(draft: Dictionary) -> LoadoutValidation:
 	var result := LoadoutValidation.new()
 	if draft.size() != 5 or draft.get("schema_version") != SCHEMA:

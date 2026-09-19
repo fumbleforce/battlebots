@@ -26,8 +26,8 @@ func reload() -> void:
 	errors = loaded.errors
 	_read_errors = not errors.is_empty()
 	_saved = loaded.loadouts.duplicate(true)
-	loadouts = [registry.starter(),registry.starter(true)]
-	_save_indices = [-1,-1]
+	loadouts = [registry.starter(),registry.starter(true),registry.duelist()]
+	_save_indices = [-1,-1,-1]
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)

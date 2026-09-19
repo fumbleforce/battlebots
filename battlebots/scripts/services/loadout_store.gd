@@ -5,6 +5,7 @@ const REVISION_ONE_HASHES := [
 	"6b1a855425fd079e8e3356722720f5631304df87fc839f30a5dbde2fae83b56e",
 	"9749e90fa985e6bedc8259c150ff10115d5033e96894deea97c16f433110ee16",
 ]
+const REVISION_TWO_HASHES := ["db17ced752e95309a2535da0fe5d8c6aded0ff2ab70f80ffe1e2581893b69c29"]
 var registry := ContentRegistry.new()
 var path: String
 
@@ -70,9 +71,9 @@ func migrate(data: Dictionary) -> Dictionary:
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES:
 				continue
-			# Revision two only adds a weapon; every prior part keeps its stats.
+			# Revisions two and three only add weapons; prior parts keep their stats.
 			# Upgrade known compatible saves locally, never loosen network checks.
 			var upgraded: Dictionary = draft.duplicate(true)
 			upgraded.content_hash = registry.content_hash

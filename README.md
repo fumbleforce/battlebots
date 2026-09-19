@@ -55,18 +55,19 @@ Public hosting is a later release task; MVP export presets are described below.
 ## Playable modes
 
 Current menu correction: `codex/a-menu-flow`, based on `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
-Developer A's `codex/a-horizontal-spinner` adds the horizontal spinner with build
-`mvp-ab-6`, protocol 4. Select it through Garage → Customize → Weapon. It requires
-both peers to update together; the saved menu playtest ZIP remains build 5.
+Developer A's `codex/a-hammer` includes horizontal spinner and hammer with build
+`mvp-ab-7`, protocol 4. Select Duelist for the hammer, or use Garage → Customize →
+Weapon. Both peers must update together; the saved menu playtest ZIP remains build 5.
 Use the same branch/build on all peers. The older `codex/a-b-integration`
 checkpoint remains available; it does not include the 5v5/FFA follow-ups.
 
 The main menu separates hosting, joining, practice and garage. All multiplayer
 modes use the same lobby, with an optional saved-build selector. WASD/Space drive/brake,
 LMB powers the spinner or raises
-the lifter (release fully charged to flip), RMB brakes/lowers, and R self-rights
+the lifter (release fully charged to flip); press LMB for a committed hammer strike.
+RMB brakes/lowers, and R self-rights
 when eligible. Select or customize a legal build in the garage before playing.
-The spinner disc rotates with charge; lifter forks rise and flip from weapon state.
+Primitive spinner, lifter and hammer visuals follow authoritative weapon state.
 Escape releases controls and opens the menu; Resume recaptures the mouse.
 
 Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executable):

@@ -43,7 +43,7 @@ func run() -> void:
 
 func catalogue() -> void:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/mvp_parts.json"))
-	check(data.revision == 2, "Horizontal catalogue advances revision to two")
+	check(data.revision >= 2, "Catalogue includes horizontal spinner revision")
 	var part: Dictionary = registry.parts.get("horizontal_spinner", {})
 	check(part.get("category") == "weapon" and part.get("mass") == 30 and part.get("power") == 40, "Horizontal spinner uses authored category, mass and power")
 	var draft := registry.starter()

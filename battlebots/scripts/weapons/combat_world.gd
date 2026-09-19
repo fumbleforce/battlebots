@@ -9,6 +9,7 @@ var blocked: Dictionary = {}
 var events: Array = []
 var pending_hits: Array = []
 var _sweep_origins: Dictionary = {}
+var _hammer_hits: Dictionary = {}
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
@@ -25,8 +26,16 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		if attacker.combat.eliminated:
 			continue
 		var state := attacker.combat
-		if state.zones.weapon <= 0 or state.overheated:
+		# A committed strike may reach the heat limit on its impact tick. The
+		# resulting lockout prevents the next activation, not this paid strike.
+		if state.zones.weapon <= 0 or (state.overheated and not state.strike):
 			continue
+		if state.stats.weapon == "hammer":
+			if not state.strike or state.attack_id <= 0:
+				continue
+			var activation: Dictionary = _hammer_hits.get(id, {})
+			if activation.get("round") != round_index or activation.get("attack") != state.attack_id:
+				_hammer_hits[id] = {"round": round_index, "attack": state.attack_id, "targets": {}}
 		if state.stats.weapon in ["vertical_spinner", "horizontal_spinner"] and state.charge < 0.25:
 			continue
 		if state.stats.weapon == "lifter" and state.charge <= 0 and not state.launch:
@@ -43,13 +52,17 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				continue
 			var direction := (victim.body.global_position - attacker.body.global_position).normalized()
 			var contact_origin := attacker.body.global_position
-			if state.stats.weapon == "horizontal_spinner":
+			if state.stats.weapon in ["horizontal_spinner", "hammer"]:
 				contact_origin = _sweep_origins.get(victim.body.get_instance_id(), attacker.body.global_position)
 			var local_point := victim.body.global_transform.affine_inverse() * contact_origin
 			var half: Vector3 = victim.combat.stats.size * 0.5
 			local_point = local_point.clamp(-half, half)
 			var point := victim.body.global_transform * local_point
-			if state.stats.weapon == "vertical_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
+			if state.stats.weapon == "hammer":
+				if not _hammer_hits[id].targets.has(target_id):
+					_hit(attacker, victim, point, 38, -attacker.body.global_basis.y * victim.body.mass, tick, round_index)
+					_hammer_hits[id].targets[target_id] = true
+			elif state.stats.weapon == "vertical_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
 				_hit(attacker, victim, point, 45 * state.charge, (direction * 2 + Vector3.UP * 2) * victim.body.mass, tick, round_index)
 				state.charge *= 0.5
 				cooldowns[key] = time + 0.3
@@ -102,6 +115,8 @@ func _sweep(bot: MvpBot) -> Array:
 	_sweep_origins.clear()
 	if bot.combat.stats.weapon == "horizontal_spinner":
 		return _horizontal_sweep(bot)
+	if bot.combat.stats.weapon == "hammer":
+		return _hammer_sweep(bot)
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45, 0.65)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2))
@@ -138,6 +153,36 @@ func _horizontal_sweep(bot: MvpBot) -> Array:
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
 		query.transform = start.interpolate_with(finish, float(index) / (steps - 1)) * local
+		query.collision_mask = BaselineConfig.BOT_LAYER
+		query.exclude = [bot.body.get_rid()]
+		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
+			if not found.has(hit.collider_id):
+				found.append(hit.collider_id)
+				_sweep_origins[hit.collider_id] = query.transform.origin
+	return found
+
+func _hammer_sweep(bot: MvpBot) -> Array:
+	var shape := SphereShape3D.new()
+	shape.radius = 0.2
+	var pivot := Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15)
+	var arm := Vector3(0, 0, -1.2)
+	var start := bot.previous_pose
+	var finish := bot.body.global_transform
+	var body_angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
+	var swing_angle := PI * 2.0 / 3.0
+	# Follow the descending overhead arc and the chassis motion together. A
+	# straight segment between the two head endpoints misses overhead contacts.
+	var travel := start.origin.distance_to(finish.origin) + body_angle * (pivot.length() + arm.length() + shape.radius) + swing_angle * arm.length()
+	var steps := maxi(2, ceili(travel / 0.08) + 1)
+	var found: Array = []
+	for index: int in range(steps):
+		var fraction := float(index) / (steps - 1)
+		var pose := start.interpolate_with(finish, fraction)
+		var angle := lerpf(PI / 2.0, -PI / 6.0, fraction)
+		var head := pivot + Basis(Vector3.RIGHT, angle) * arm
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = shape
+		query.transform = Transform3D(Basis.IDENTITY, pose * head)
 		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [bot.body.get_rid()]
 		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
