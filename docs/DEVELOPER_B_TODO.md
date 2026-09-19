@@ -108,8 +108,10 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   `codex/a-mvp`. `ContentRegistry.starter/validate`, `LoadoutValidation` and
   `LoadoutStore.save/load_saved` are usable now. Save schema 1, max 12 builds,
   canonical JSON in `data/mvp_parts.json`. Weapon scope is spinner + lifter.
-- **A-03 IN PROGRESS:** pure combat and 2v2 rules, followed by physical assembly,
-  damage queries and recovery. Own `scripts/simulation`, `scripts/weapons`,
+- **A-03 IMPLEMENTED / TESTED:** pure combat and 2v2 rules, physical assembly,
+  damage queries and recovery torque. Headless spinner-hit/cadence/ally-immunity,
+  reset/wreck/assembly checks and drive regressions pass. Physical lifter/recovery
+  feel remains an integration gate. Own `scripts/simulation`, `scripts/weapons`,
   `scenes/bots`, and `tests/simulation`. Preserve existing BotView fields; add
   defaulted optional fields so B's mock remains a compatibility adapter.
 - **A-04 NEXT / B-06–08:** ENet session with host/join/leave/ready requests,

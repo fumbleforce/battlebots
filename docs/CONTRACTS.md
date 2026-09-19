@@ -24,6 +24,33 @@ Treat it as read-only; mutating it never writes simulation state.
 Health-zone details, match views, registry/garage validation and serialization are
 future coordinated additions, not empty APIs to implement against today.
 
+### Additive MVP implementation on A's branch
+
+Existing fields/methods retain their meanings. BotView now also defaults `owner_id`,
+`team`, `server_tick`, `zones`, `weapon_cooldown`, `recovery_cooldown`,
+`immobilized_remaining` (seconds; zero means inactive), and `failure_reason`.
+B's existing mock inherits neutral defaults; its existing consumers need no edits.
+`MvpBot` exposes real values, fresh per read. Camera anchor/exclusions are unchanged.
+
+`ContentRegistry.validate(draft) -> LoadoutValidation` returns `valid`, specific
+`reasons`, canonical `stats`, and a detached normalized `loadout`. `starter(false)`
+is Striker; `starter(true)` is Controller. Draft shape: `schema_version: 1`, `name`,
+`parts` (chassis/drive/weapon/armor/utility IDs), `cosmetics: {paint: id}`,
+`content_hash: registry.content_hash`. All current parts fit their category socket;
+the two MVP weapon IDs are `vertical_spinner` and `lifter`.
+
+`LoadoutStore.save(Array) -> Error` stores up to twelve uniquely named legal builds;
+`load_saved()` returns `loadouts`, `invalid` (index to reasons), `errors`, and
+`restored_backup`. Invalid/unknown builds remain visible for repair, never silently
+substituted. Local store defaults to `user://loadouts.json`.
+
+`CombatState.snapshot()` carries detached health zones, resources, weapon/recovery
+timers, elimination/failure details and combat counters. `MatchState.snapshot()`
+carries match/event IDs, phase, seconds remaining, round, scores, round results and
+winner (team 0/1; -1 draw). These are server-local records; the session API follows
+in the next increment. Hold LMB to raise the lifter, release fully charged to launch;
+RMB lowers it. Spinner RMB brakes spin. R activates eligible physical recovery.
+
 ## BotSource
 `scripts/core/bot_source.gd`: common Node3D adapter.
 - submit_command(command: BotCommand): accepts local intent. Real source validates it.

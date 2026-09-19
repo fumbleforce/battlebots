@@ -15,6 +15,13 @@ const PROBES: Array[Vector3] = [
 ]
 
 var grounded: bool = false
+var drive_multiplier: float = 1.0
+var steering_multiplier: float = 1.0
+var recovery_torque: Vector3 = Vector3.ZERO
+var probe_half_width: float = 0.65
+var probe_half_length: float = 0.8
+var contact_bodies: Array = []
+var reset_pose: Variant = null
 var _throttle: float = 0.0
 var _steering: float = 0.0
 var _brake: bool = true
@@ -32,6 +39,20 @@ func accept_command(command: BotCommand) -> void:
 		sleeping = false
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	if reset_pose is Transform3D:
+		state.transform = reset_pose
+		state.linear_velocity = Vector3.ZERO
+		state.angular_velocity = Vector3.ZERO
+		reset_pose = null
+		_drive_input = 0
+		_turn_input = 0
+	contact_bodies.clear()
+	for index: int in range(state.get_contact_count()):
+		contact_bodies.append(state.get_contact_collider_id(index))
+	if not recovery_torque.is_zero_approx():
+		state.apply_torque(recovery_torque)
+	state.linear_velocity.y = minf(state.linear_velocity.y, 8.0)
+	state.angular_velocity = state.angular_velocity.limit_length(12.0)
 	_command_age += state.step
 	var stale := _command_age >= INPUT_TIMEOUT
 	var braking := _brake or stale
@@ -45,7 +66,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var right := forward.cross(normal).normalized()
 	var forward_speed := state.linear_velocity.dot(forward)
 	var side_speed := state.linear_velocity.dot(right)
-	var acceleration := brake_acceleration if braking else drive_acceleration
+	var acceleration := brake_acceleration if braking else drive_acceleration * drive_multiplier
 	var desired_speed := 0.0 if braking else _drive_input * top_speed
 	var longitudinal := clampf((desired_speed - forward_speed) / state.step,
 		-acceleration, acceleration)
@@ -60,7 +81,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var inverse_yaw_inertia := normal.dot(state.inverse_inertia_tensor * normal)
 	if inverse_yaw_inertia > 0.0:
 		var torque := clampf(yaw_acceleration / inverse_yaw_inertia,
-			-mass * grip_acceleration * 0.65, mass * grip_acceleration * 0.65)
+			-mass * grip_acceleration * 0.65 * steering_multiplier, mass * grip_acceleration * 0.65 * steering_multiplier)
 		state.apply_torque(normal * torque)
 
 func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
@@ -68,7 +89,8 @@ func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 	var contacts := 0
 	var up := state.transform.basis.y
 	for probe: Vector3 in PROBES:
-		var origin := state.transform * probe
+		var local_probe := Vector3(signf(probe.x) * probe_half_width, 0, signf(probe.z) * probe_half_length)
+		var origin := state.transform * local_probe
 		var query := PhysicsRayQueryParameters3D.create(origin, origin - up * 0.32,
 			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [get_rid()])
 		var hit := state.get_space_state().intersect_ray(query)
