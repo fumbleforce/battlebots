@@ -1,0 +1,335 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/screens/upgrade_shop.gd" id="2_upgrades"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/chevron_left.svg" id="3_chevronl"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hazard_stripe.png" id="4_hazardst"]
+
+[node name="UpgradeShop" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_upgrades")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0549, 0.0706, 0.0902, 1)
+mouse_filter = 2
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_type_variation = &"HeaderBar"
+custom_minimum_size = Vector2(0, 115)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Header"]
+layout_mode = 2
+theme_override_constants/separation = 34
+
+[node name="Back" type="Button" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "BACK"
+unique_name_in_owner = true
+icon = ExtResource("3_chevronl")
+custom_minimum_size = Vector2(0, 58)
+size_flags_vertical = 4
+
+[node name="TitleBox" type="VBoxContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_override_constants/separation = 2
+size_flags_vertical = 4
+
+[node name="Title" type="Label" parent="Layout/Header/Row/TitleBox"]
+layout_mode = 2
+text = "PART CATALOGUE"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 53
+unique_name_in_owner = true
+
+[node name="SpacerL" type="Control" parent="Layout/Header/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Tabs" type="PanelContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_type_variation = &"TabStrip"
+size_flags_vertical = 4
+
+[node name="Row" type="HBoxContainer" parent="Layout/Header/Row/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="TabUpgrades" type="Button" parent="Layout/Header/Row/Tabs/Row"]
+layout_mode = 2
+theme_type_variation = &"Tab"
+text = "UPGRADES"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 58)
+toggle_mode = true
+
+[node name="TabParts" type="Button" parent="Layout/Header/Row/Tabs/Row"]
+layout_mode = 2
+theme_type_variation = &"Tab"
+text = "PARTS"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 58)
+toggle_mode = true
+
+[node name="TabCosmetics" type="Button" parent="Layout/Header/Row/Tabs/Row"]
+layout_mode = 2
+theme_type_variation = &"Tab"
+text = "COSMETICS"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 58)
+toggle_mode = true
+
+[node name="SpacerR" type="Control" parent="Layout/Header/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Sep" type="VSeparator" parent="Layout/Header/Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 53)
+size_flags_vertical = 4
+
+[node name="Scrap" type="VBoxContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ScrapAmount" type="Label" parent="Layout/Header/Row/Scrap"]
+layout_mode = 2
+text = "4,250"
+theme_type_variation = &"Amount"
+theme_override_font_sizes/font_size = 38
+horizontal_alignment = 2
+unique_name_in_owner = true
+
+[node name="ScrapLabel" type="Label" parent="Layout/Header/Row/Scrap"]
+layout_mode = 2
+text = "ALL PARTS FREE"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 2
+
+[node name="Stripe" type="TextureRect" parent="Layout"]
+layout_mode = 2
+texture = ExtResource("4_hazardst")
+expand_mode = 1
+stretch_mode = 1
+custom_minimum_size = Vector2(0, 7)
+mouse_filter = 2
+
+[node name="Body" type="MarginContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/margin_left = 58
+theme_override_constants/margin_top = 34
+theme_override_constants/margin_right = 58
+theme_override_constants/margin_bottom = 34
+size_flags_vertical = 3
+
+[node name="Row" type="HBoxContainer" parent="Layout/Body"]
+layout_mode = 2
+theme_override_constants/separation = 29
+
+[node name="Main" type="VBoxContainer" parent="Layout/Body/Row"]
+layout_mode = 2
+theme_override_constants/separation = 19
+size_flags_horizontal = 3
+
+[node name="UpgradesView" type="VBoxContainer" parent="Layout/Body/Row/Main"]
+layout_mode = 2
+theme_override_constants/separation = 19
+unique_name_in_owner = true
+size_flags_vertical = 3
+
+[node name="BotChipsRow" type="HBoxContainer" parent="Layout/Body/Row/Main/UpgradesView"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Label" type="Label" parent="Layout/Body/Row/Main/UpgradesView/BotChipsRow"]
+layout_mode = 2
+text = "BUILD OPTIONS"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+size_flags_vertical = 4
+
+[node name="BotChips" type="HBoxContainer" parent="Layout/Body/Row/Main/UpgradesView/BotChipsRow"]
+layout_mode = 2
+theme_override_constants/separation = 12
+unique_name_in_owner = true
+
+[node name="UpgradeGrid" type="GridContainer" parent="Layout/Body/Row/Main/UpgradesView"]
+layout_mode = 2
+unique_name_in_owner = true
+columns = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 19
+theme_override_constants/v_separation = 19
+
+[node name="ItemsView" type="GridContainer" parent="Layout/Body/Row/Main"]
+layout_mode = 2
+unique_name_in_owner = true
+columns = 3
+visible = false
+theme_override_constants/h_separation = 19
+theme_override_constants/v_separation = 19
+
+[node name="DealsPanel" type="PanelContainer" parent="Layout/Body/Row"]
+layout_mode = 2
+theme_type_variation = &"PanelBox"
+custom_minimum_size = Vector2(456, 0)
+
+[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/DealsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Head" type="HBoxContainer" parent="Layout/Body/Row/DealsPanel/Col"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Layout/Body/Row/DealsPanel/Col/Head"]
+layout_mode = 2
+text = "DAILY DEALS"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 34
+
+[node name="Spacer" type="Control" parent="Layout/Body/Row/DealsPanel/Col/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Reset" type="Label" parent="Layout/Body/Row/DealsPanel/Col/Head"]
+layout_mode = 2
+text = "Resets in [HH:MM]"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 17
+size_flags_vertical = 4
+
+[node name="Deals" type="VBoxContainer" parent="Layout/Body/Row/DealsPanel/Col"]
+layout_mode = 2
+theme_override_constants/separation = 14
+unique_name_in_owner = true
+
+[node name="Spacer" type="Control" parent="Layout/Body/Row/DealsPanel/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Note" type="PanelContainer" parent="Layout/Body/Row/DealsPanel/Col"]
+layout_mode = 2
+theme_type_variation = &"PanelOutline"
+
+[node name="Text" type="Label" parent="Layout/Body/Row/DealsPanel/Col/Note"]
+layout_mode = 2
+text = "Choose parts in Customize. Functional parts are available immediately."
+theme_type_variation = &"Body"
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 3
+
+[node name="Footer" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_type_variation = &"FooterBar"
+custom_minimum_size = Vector2(0, 120)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 34
+
+[node name="Hint0" type="HBoxContainer" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_override_constants/separation = 10
+size_flags_vertical = 4
+
+[node name="Key0" type="PanelContainer" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint0/Key0"]
+layout_mode = 2
+text = "Q"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Key1" type="PanelContainer" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint0/Key1"]
+layout_mode = 2
+text = "E"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Text" type="Label" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+text = "Switch tab"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 18
+
+[node name="Hint1" type="HBoxContainer" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_override_constants/separation = 10
+size_flags_vertical = 4
+
+[node name="Key0" type="PanelContainer" parent="Layout/Footer/Row/Hint1"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint1/Key0"]
+layout_mode = 2
+text = "ESC"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Text" type="Label" parent="Layout/Footer/Row/Hint1"]
+layout_mode = 2
+text = "Back"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 18
+
+[node name="Spacer" type="Control" parent="Layout/Footer/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CustomizeLink" type="Button" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_type_variation = &"TextLink"
+text = "CUSTOMIZE BOT"
+unique_name_in_owner = true
+theme_override_font_sizes/font_size = 26
+size_flags_vertical = 4
+
+[node name="Play" type="Button" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "PLAY"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 77)
+size_flags_vertical = 4

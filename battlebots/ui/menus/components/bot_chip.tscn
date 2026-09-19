@@ -1,0 +1,50 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/components/bot_row.gd" id="2_botrowgd"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/bot_chevron.jpg" id="3_botchevr"]
+
+[node name="BotChip" type="Button"]
+custom_minimum_size = Vector2(276, 74)
+theme_type_variation = &"ListRow"
+toggle_mode = true
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_botrowgd")
+
+[node name="Pad" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 19
+theme_override_constants/margin_bottom = 7
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="Pad"]
+layout_mode = 2
+theme_override_constants/separation = 14
+mouse_filter = 2
+
+[node name="Thumb" type="TextureRect" parent="Pad/Row"]
+layout_mode = 2
+texture = ExtResource("3_botchevr")
+expand_mode = 1
+stretch_mode = 6
+custom_minimum_size = Vector2(86, 58)
+unique_name_in_owner = true
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Pad/Row"]
+layout_mode = 2
+text = "CHEVRON"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 26
+size_flags_vertical = 4
+unique_name_in_owner = true

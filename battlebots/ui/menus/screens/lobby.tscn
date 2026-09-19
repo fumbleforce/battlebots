@@ -1,0 +1,475 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/screens/lobby.gd" id="2_lobbygd"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/bg_arena_blur.jpg" id="3_bgarenab"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/close.svg" id="4_closesvg"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hazard_stripe.png" id="5_hazardst"]
+
+[ext_resource type="PackedScene" path="res://ui/menus/components/player_slot.tscn" id="6_playersl"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/arena_foundry.jpg" id="7_arenafou"]
+
+[node name="Lobby" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_lobbygd")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0549, 0.0706, 0.0902, 1)
+mouse_filter = 2
+
+[node name="Art" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_bgarenab")
+expand_mode = 1
+stretch_mode = 6
+self_modulate = Color(1, 1, 1, 0.3)
+mouse_filter = 2
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_type_variation = &"HeaderBar"
+custom_minimum_size = Vector2(0, 115)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Header"]
+layout_mode = 2
+theme_override_constants/separation = 34
+
+[node name="Back" type="Button" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "LEAVE"
+unique_name_in_owner = true
+icon = ExtResource("4_closesvg")
+custom_minimum_size = Vector2(0, 58)
+size_flags_vertical = 4
+
+[node name="TitleBox" type="VBoxContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_override_constants/separation = 2
+size_flags_vertical = 4
+
+[node name="Eyebrow" type="Label" parent="Layout/Header/Row/TitleBox"]
+layout_mode = 2
+text = "STEP 4 OF 4 · TEAM BRAWL"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+unique_name_in_owner = true
+
+[node name="Title" type="Label" parent="Layout/Header/Row/TitleBox"]
+layout_mode = 2
+text = "MATCH LOBBY"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 53
+unique_name_in_owner = true
+
+[node name="SpacerL" type="Control" parent="Layout/Header/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Steps" type="HBoxContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_override_constants/separation = 7
+unique_name_in_owner = true
+size_flags_vertical = 4
+
+[node name="Step1" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepDone"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step1"]
+layout_mode = 2
+text = "1 MODE"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.9098, 0.9255, 0.9451, 1)
+
+[node name="Step2" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepDone"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step2"]
+layout_mode = 2
+text = "2 BOT"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.9098, 0.9255, 0.9451, 1)
+
+[node name="Step3" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepDone"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step3"]
+layout_mode = 2
+text = "3 ARENA"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.9098, 0.9255, 0.9451, 1)
+
+[node name="Step4" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepActive"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step4"]
+layout_mode = 2
+text = "4 LOBBY"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.0784, 0.0784, 0.0745, 1)
+
+[node name="Stripe" type="TextureRect" parent="Layout"]
+layout_mode = 2
+texture = ExtResource("5_hazardst")
+expand_mode = 1
+stretch_mode = 1
+custom_minimum_size = Vector2(0, 7)
+mouse_filter = 2
+
+[node name="Body" type="MarginContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/margin_left = 58
+theme_override_constants/margin_top = 34
+theme_override_constants/margin_right = 58
+theme_override_constants/margin_bottom = 34
+size_flags_vertical = 3
+
+[node name="Row" type="HBoxContainer" parent="Layout/Body"]
+layout_mode = 2
+theme_override_constants/separation = 29
+
+[node name="Blue" type="VBoxContainer" parent="Layout/Body/Row"]
+layout_mode = 2
+theme_override_constants/separation = 14
+custom_minimum_size = Vector2(528, 0)
+
+[node name="TeamHeader" type="PanelContainer" parent="Layout/Body/Row/Blue"]
+layout_mode = 2
+theme_type_variation = &"TeamBlue"
+custom_minimum_size = Vector2(0, 62)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/Blue/TeamHeader"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Team" type="Label" parent="Layout/Body/Row/Blue/TeamHeader/Row"]
+layout_mode = 2
+text = "BLUE TEAM"
+theme_type_variation = &"HeadingWide"
+theme_override_font_sizes/font_size = 34
+size_flags_vertical = 4
+
+[node name="Spacer" type="Control" parent="Layout/Body/Row/Blue/TeamHeader/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="BlueCount" type="Label" parent="Layout/Body/Row/Blue/TeamHeader/Row"]
+layout_mode = 2
+text = "0/2 ready"
+theme_type_variation = &"Strong"
+theme_override_font_sizes/font_size = 17
+size_flags_vertical = 4
+unique_name_in_owner = true
+
+[node name="You" parent="Layout/Body/Row/Blue" instance=ExtResource("6_playersl")]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="Mate" parent="Layout/Body/Row/Blue" instance=ExtResource("6_playersl")]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="Match" type="VBoxContainer" parent="Layout/Body/Row"]
+layout_mode = 2
+theme_override_constants/separation = 19
+size_flags_horizontal = 3
+
+[node name="ArenaCard" type="Control" parent="Layout/Body/Row/Match"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 300)
+clip_contents = true
+
+[node name="ArenaImage" type="TextureRect" parent="Layout/Body/Row/Match/ArenaCard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("7_arenafou")
+expand_mode = 1
+stretch_mode = 6
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Caption" type="PanelContainer" parent="Layout/Body/Row/Match/ArenaCard"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -79.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Caption"
+
+[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/Match/ArenaCard/Caption"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ArenaName" type="Label" parent="Layout/Body/Row/Match/ArenaCard/Caption/Row"]
+layout_mode = 2
+text = "THE FOUNDRY"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 46
+unique_name_in_owner = true
+
+[node name="Spacer" type="Control" parent="Layout/Body/Row/Match/ArenaCard/Caption/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Vote" type="Label" parent="Layout/Body/Row/Match/ArenaCard/Caption/Row"]
+layout_mode = 2
+text = "ARENA VOTE WON"
+theme_type_variation = &"EyebrowAmber"
+theme_override_font_sizes/font_size = 17
+size_flags_vertical = 4
+
+[node name="Rules" type="GridContainer" parent="Layout/Body/Row/Match"]
+layout_mode = 2
+columns = 3
+theme_override_constants/h_separation = 14
+
+[node name="Win" type="PanelContainer" parent="Layout/Body/Row/Match/Rules"]
+layout_mode = 2
+theme_type_variation = &"PanelGlass"
+size_flags_horizontal = 3
+
+[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/Match/Rules/Win"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Layout/Body/Row/Match/Rules/Win/Col"]
+layout_mode = 2
+text = "WIN CONDITION"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 14
+
+[node name="Value" type="Label" parent="Layout/Body/Row/Match/Rules/Win/Col"]
+layout_mode = 2
+text = "First to 5"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+
+[node name="Clock" type="PanelContainer" parent="Layout/Body/Row/Match/Rules"]
+layout_mode = 2
+theme_type_variation = &"PanelGlass"
+size_flags_horizontal = 3
+
+[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/Match/Rules/Clock"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Layout/Body/Row/Match/Rules/Clock/Col"]
+layout_mode = 2
+text = "ROUND CLOCK"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 14
+
+[node name="Value" type="Label" parent="Layout/Body/Row/Match/Rules/Clock/Col"]
+layout_mode = 2
+text = "3:00"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+
+[node name="Hazards" type="PanelContainer" parent="Layout/Body/Row/Match/Rules"]
+layout_mode = 2
+theme_type_variation = &"PanelGlass"
+size_flags_horizontal = 3
+
+[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/Match/Rules/Hazards"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Layout/Body/Row/Match/Rules/Hazards/Col"]
+layout_mode = 2
+text = "HAZARDS"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 14
+
+[node name="Value" type="Label" parent="Layout/Body/Row/Match/Rules/Hazards/Col"]
+layout_mode = 2
+text = "On"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+
+[node name="Status" type="PanelContainer" parent="Layout/Body/Row/Match"]
+layout_mode = 2
+theme_type_variation = &"PanelGlass"
+size_flags_vertical = 3
+
+[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/Match/Status"]
+layout_mode = 2
+theme_override_constants/separation = 7
+size_flags_vertical = 4
+
+[node name="StatusEyebrow" type="Label" parent="Layout/Body/Row/Match/Status/Col"]
+layout_mode = 2
+text = "IN QUEUE"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+unique_name_in_owner = true
+
+[node name="StatusBig" type="Label" parent="Layout/Body/Row/Match/Status/Col"]
+layout_mode = 2
+text = "0:24"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 67
+horizontal_alignment = 1
+unique_name_in_owner = true
+
+[node name="StatusSub" type="Label" parent="Layout/Body/Row/Match/Status/Col"]
+layout_mode = 2
+text = "Ready up so the match can start"
+theme_type_variation = &"Body"
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+unique_name_in_owner = true
+
+[node name="Red" type="VBoxContainer" parent="Layout/Body/Row"]
+layout_mode = 2
+theme_override_constants/separation = 14
+custom_minimum_size = Vector2(528, 0)
+
+[node name="TeamHeader" type="PanelContainer" parent="Layout/Body/Row/Red"]
+layout_mode = 2
+theme_type_variation = &"TeamRed"
+custom_minimum_size = Vector2(0, 62)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/Red/TeamHeader"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RedCount" type="Label" parent="Layout/Body/Row/Red/TeamHeader/Row"]
+layout_mode = 2
+text = "2/2 ready"
+theme_type_variation = &"Strong"
+theme_override_font_sizes/font_size = 17
+size_flags_vertical = 4
+
+[node name="Spacer" type="Control" parent="Layout/Body/Row/Red/TeamHeader/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Team" type="Label" parent="Layout/Body/Row/Red/TeamHeader/Row"]
+layout_mode = 2
+text = "RED TEAM"
+theme_type_variation = &"HeadingWide"
+theme_override_font_sizes/font_size = 34
+size_flags_vertical = 4
+
+[node name="Opp1" parent="Layout/Body/Row/Red" instance=ExtResource("6_playersl")]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="Opp2" parent="Layout/Body/Row/Red" instance=ExtResource("6_playersl")]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="Footer" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_type_variation = &"FooterBar"
+custom_minimum_size = Vector2(0, 120)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 34
+
+[node name="Hint0" type="HBoxContainer" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_override_constants/separation = 10
+size_flags_vertical = 4
+
+[node name="Key0" type="PanelContainer" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint0/Key0"]
+layout_mode = 2
+text = "T"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Text" type="Label" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+text = "Chat"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 18
+
+[node name="Hint1" type="HBoxContainer" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_override_constants/separation = 10
+size_flags_vertical = 4
+
+[node name="Key0" type="PanelContainer" parent="Layout/Footer/Row/Hint1"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint1/Key0"]
+layout_mode = 2
+text = "G"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Text" type="Label" parent="Layout/Footer/Row/Hint1"]
+layout_mode = 2
+text = "Change bot"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 18
+
+[node name="Spacer" type="Control" parent="Layout/Footer/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Ready" type="Button" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "READY UP"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 77)
+toggle_mode = true
+size_flags_vertical = 4

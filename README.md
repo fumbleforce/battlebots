@@ -5,20 +5,20 @@ Godot **4.7.2 stable** / Jolt / typed GDScript. Two developers, one repository, 
 ## Start
 1. Clone the repository locally and install Godot 4.7.2 stable.
 2. Import `battlebots/project.godot` into Godot.
-3. Press **F5** for the game menu; choose Practice or Multiplayer.
-4. Press Escape in the arena for build selection, camera settings (including Controls rebinding) and session controls.
+3. Press **F5** for the supplied amber game menu. Choose Play, then Practice, Private Duel (1v1) or Team Brawl (2v2).
+4. Select a build and arena. Practice starts directly; LAN play opens real host/join/readiness controls. Escape in the arena opens the local menu/settings.
 
-The integration branch combines A's combat/networking with B's arena, orbit camera,
-resource HUD and camera settings. Simple spinner and lifter geometry shows weapon
-charge/activation; these cosmetic meshes add no collision. The centered session
-menu offers Striker/Controller, practice reset, host/join, ready and rematch. B's
-full garage and production match screens remain future work. Development sandboxes
-are still available by opening their scenes and pressing F6.
+The user-supplied Godot menu kit is integrated at `battlebots/ui/menus`. Its eight
+screens retain the supplied art/theme and use real loadouts and LAN session state.
+Garage/Customize edit canonical free parts and save named builds locally. Settings
+uses the real camera/control preferences. Concept images remain 2D; career,
+ranked/public matchmaking, 5v5/FFA, invites and decals are not implemented.
+See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
 
 ## Work independently
 - **A:** `battlebots/scenes/dev/a_simulation.tscn` — real drive/contact checks.
 - **B:** `battlebots/scenes/dev/b_presentation.tscn` — arena/camera/UI with mock movement.
-- **B playable game:** `battlebots/scenes/dev/b_lobby_game.tscn` — Practice or real LAN host/join/ready, then drive and fight. F5 still uses A's integration menu.
+- **B playable game:** `battlebots/scenes/dev/b_lobby_game.tscn` — Practice or real LAN host/join/ready, then drive and fight. The separate earlier lobby fixture remains available; F5 uses the supplied menu kit.
 - **B match HUD:** `battlebots/scenes/dev/b_match_hud.tscn` — frozen mock snapshots for independent phase/score/result inspection; Left/Right/Space cycles cases. The playable B game reads the real session.
 - **B network diagnostics:** `battlebots/scenes/dev/b_network_diagnostics.tscn` — synthetic connection states and telemetry; live preview reads the actual session.
 - **B controls:** `battlebots/scenes/dev/b_controls.tscn` — rebinding, saved input preferences and hold/toggle primary against real lifter rules.
@@ -28,7 +28,7 @@ are still available by opening their scenes and pressing F6.
   [team workflow](docs/TEAM_WORKFLOW.md), and [full specification](docs/GAME_SPEC.md).
 - Use a focused feature branch from main, or explicitly declare the published
   A/B integration as a dependency while it is ahead of main. Current B work is
-  `codex/b-match-hud`, stacked on lobby/diagnostics/input; artwork stays on separate branches.
+  `codex/b-menu-kit`, stacked on match HUD/lobby/diagnostics/input; artwork stays on separate branches.
 - Example starting names (check existing branches before creating):
   `git switch -c codex/a-drive-controller` or `git switch -c codex/b-arena-camera`.
   These are examples; branches are not created by the baseline.

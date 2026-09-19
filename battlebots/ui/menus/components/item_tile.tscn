@@ -1,0 +1,150 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/components/item_tile.gd" id="2_itemtile"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hatch_dark.png" id="3_hatchdar"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/lock.svg" id="4_locksvg"]
+
+[node name="ItemTile" type="Button"]
+custom_minimum_size = Vector2(0, 156)
+size_flags_horizontal = 3
+theme_type_variation = &"Tile"
+toggle_mode = true
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_itemtile")
+
+[node name="Inner" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+mouse_filter = 2
+
+[node name="Col" type="VBoxContainer" parent="Inner"]
+layout_mode = 2
+theme_override_constants/separation = 0
+mouse_filter = 2
+
+[node name="ArtBox" type="Control" parent="Inner/Col"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 84)
+clip_contents = true
+mouse_filter = 2
+
+[node name="Swatch" type="ColorRect" parent="Inner/Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.8863, 0.6549, 0.1176, 1)
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+
+[node name="Art" type="TextureRect" parent="Inner/Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_hatchdar")
+expand_mode = 1
+stretch_mode = 1
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="Inner/Col/ArtBox/Art"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ArtLabel" type="Label" parent="Inner/Col/ArtBox/Art/Center"]
+layout_mode = 2
+text = "PART ART"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.4941, 0.5412, 0.6, 1)
+
+[node name="Lock" type="Control" parent="Inner/Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="Inner/Col/ArtBox/Lock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0392, 0.051, 0.0706, 0.7)
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="Inner/Col/ArtBox/Lock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LockIcon" type="TextureRect" parent="Inner/Col/ArtBox/Lock/Center"]
+layout_mode = 2
+texture = ExtResource("4_locksvg")
+expand_mode = 1
+stretch_mode = 5
+custom_minimum_size = Vector2(29, 29)
+size_flags_vertical = 4
+self_modulate = Color(0.9098, 0.9255, 0.9451, 1)
+mouse_filter = 2
+
+[node name="Text" type="MarginContainer" parent="Inner/Col"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+mouse_filter = 2
+
+[node name="Col" type="VBoxContainer" parent="Inner/Col/Text"]
+layout_mode = 2
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Inner/Col/Text/Col"]
+layout_mode = 2
+text = "Spin Blade"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 25
+unique_name_in_owner = true
+
+[node name="Status" type="Label" parent="Inner/Col/Text/Col"]
+layout_mode = 2
+text = "EQUIPPED"
+theme_type_variation = &"Strong"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.2471, 0.7961, 0.2902, 1)
+unique_name_in_owner = true

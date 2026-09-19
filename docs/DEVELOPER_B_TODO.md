@@ -3,10 +3,10 @@
 B maintains the sections above A's coordination log. Status describes published
 feature branches, not a claim that main contains them or that all release gates pass.
 
-**Active branch:** `codex/b-match-hud`, stacked on playable lobby `eea0bb2`; runtime base A/B `bdb42ef`.
-**Latest increment:** B-08a: authoritative match clock, scores and outcomes in the arena; 15 presentation checks pass.
-**Next:** Results actions/statistics and spectating; coordinate mounting B frontend in A's F5 shell.
-**Intent and evidence:** [B-08 coordination](coordination/B_MATCH_HUD.md).
+**Active branch:** `codex/b-menu-kit`, stacked on match HUD `d983612`; runtime base A/B `bdb42ef`.
+**Latest increment:** User-supplied eight-screen menu kit integrated with real loadouts and LAN; 20 presentation checks pass.
+**Next:** Detailed results and spectating; integrate A's protocol-4 networking branch with this frontend.
+**Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
 ## Completed B increments
@@ -30,6 +30,7 @@ feature branches, not a claim that main contains them or that all release gates 
   real UDP impairment/recovery, keyboard cancellation and app layout tests pass.
 - [x] **B-07a:** Practice and real UDP host/join/ready enter a playable arena; authoritative teams/builds/readiness, keyboard menus, pending feedback and phase locks. Remote JSON team IDs fixed without changing the public API.
 - [x] **B-08a:** In-arena phase, round, clock, scores and authoritative outcomes; Practice unscored. Countdown/intermission/results preserve arena view while input stays gated. Real two-player full-match and independent HUD tests pass.
+- [x] **Menu kit integration:** Supplied eight-screen design now owns default F5. Real practice/duel/2v2 lobby flow, canonical build editing/local saves, real Settings, and scaled native UI. Detailed validation is in B_MENU_KIT.md.
 - [x] **AB-01 automated compatibility:** Published A/B integration mounts the real
   session through BotSource with B arena/camera/HUD. This is not human LAN acceptance.
 
@@ -37,7 +38,7 @@ feature branches, not a claim that main contains them or that all release gates 
 
 - [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
   restrained materials and spawn inspection; decorative geometry adds no collision.
-- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. A must mount them in the F5 app, replacing its integration menu. Full 5v5/FFA/public services remain unavailable in the current backend.
+- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. The supplied menu kit now replaces the default F5 entry through a persistent B session owner; A's explicit legacy scenes/CLI remain available. Full 5v5/FFA/public services remain unavailable in the current backend.
   **Original scope:** Use existing host/join/leave/team/ready/loadout
   requests and lobby_changed. Respect authoritative phase/capacity. A's current
   app menus are integration UI; coordinate replacing their presentation so there
@@ -45,7 +46,7 @@ feature branches, not a claim that main contains them or that all release gates 
 - [ ] **B-08: Match HUD, results and spectating.** Consume match_changed,
   bot_updated, combat_event, BotView's zones/timers and spectator_sources().
   No local winner calculation or inferred ready state.
-- [ ] **B-09: Garage.** Consume ContentRegistry.validate/starter and
+- [ ] **B-09: Full garage.** Supplied kit now edits/saves canonical builds with validation and paint. Remaining: live 3D preview, undo/redo, detailed before/after comparisons and full repair UX. APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 
