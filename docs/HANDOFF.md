@@ -41,6 +41,12 @@ fixture is aligned with B's chamfers. CI for `35001eb` completed successfully.
 The shared TODO asks B to send brake+secondary on suppressed menu/focus input so
 an intentional weapon release is distinguishable from cancellation.
 
+A's drive sandbox again instances the shared `Preview` and delegates input/camera
+to B. Its fallback walls are omitted when the arena provides `Walls`. An isolated
+checkout with B-owned files from `40aa6b1` passes B's camera/arena and camera-settings
+tests, without merging or changing B's branch. The main A branch still contains
+the baseline presentation until integration. CI for `ba4b90a` also succeeded.
+
 ## Developer A — drive controller (19 September 2026)
 
 Owner / branch / base commit: A / `codex/a-drive-controller` / `60feafe`.

@@ -108,9 +108,10 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
 
 - **A-01 DONE / AB-01 available:** drive implementation is pushed at `14236d2`
   on `codex/a-drive-controller`. BotSource/view/anchor/exclusions remain stable.
-  A's sandbox temporarily uses its own overview/input harness and test walls;
-  it no longer instances B's preview. Joint integration must replace this harness
-  with B's preview and remove the temporary walls. Do not edit the drive body.
+  A's sandbox again instances the shared `Preview`; B owns its input/camera.
+  A's fallback walls are skipped when B's `Arena/Walls` exists. An isolated checkout
+  combining A with B at `40aa6b1` passes B's camera/arena and camera-settings tests.
+  This verifies scene compatibility; the joint human playtest is still pending.
 - **A-02 DONE / B-09 available:** catalogue/validation/store at `d61efc5` on
   `codex/a-mvp`. `ContentRegistry.starter/validate`, `LoadoutValidation` and
   `LoadoutStore.save/load_saved` are usable now. Save schema 1, max 12 builds,
@@ -148,7 +149,7 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   already cancels safely. B owns this adapter change; A has not edited it.
 - **B-08 available:** `session.spectator_sources()` returns surviving teammate
   BotSources. Preserve normal camera boundaries when cycling them.
-- **A validation:** 35001eb CI succeeded (checks, both exports, five processes).
+- **A validation:** ba4b90a CI succeeded (checks, both exports, five processes).
   Added hostile session/old-token tests, physical pin cancellation, and ten-body
   headless stress measurement (~0.83 ms frame p95 on Ryzen 9 9950X3D). A's
   collision fixture now matches B's published chamfer planes at (+/-24,+/-24).
