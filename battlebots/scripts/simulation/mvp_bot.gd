@@ -19,6 +19,7 @@ var remote_state: Dictionary = {}
 var simulated := true
 var presentation: Node3D
 var visual_error := Vector3.ZERO
+var weapon_visual: MvpWeaponVisual
 
 static func create(id: int, side: int, build: Dictionary, registry: ContentRegistry) -> MvpBot:
 	var validation := registry.validate(build)
@@ -59,6 +60,11 @@ func _ready() -> void:
 	for path: String in ["Visual", "ForwardStripe", "CameraAnchor"]:
 		body.get_node(path).reparent(presentation, false)
 	presentation.global_transform = body.global_transform
+	if DisplayServer.get_name() != "headless":
+		weapon_visual = MvpWeaponVisual.new()
+		weapon_visual.name = "Weapon"
+		presentation.add_child(weapon_visual)
+		weapon_visual.assemble(stats.weapon, stats.size)
 	previous_pose = body.global_transform
 	last_floor = body.global_position
 	body.freeze = not simulated
@@ -67,6 +73,8 @@ func _process(delta: float) -> void:
 	if simulated:
 		presentation.global_transform = body.global_transform
 	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * 20.0))
+	if weapon_visual != null:
+		weapon_visual.show_state(read_view(), delta)
 
 func submit_command(intent: BotCommand) -> void:
 	if intent == null or not intent.is_valid() or intent.sequence <= last_sequence:

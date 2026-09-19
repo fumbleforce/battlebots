@@ -178,3 +178,10 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   independent processes. Build mvp-ab-1; protocol remains 3. Rendered practice opens.
 - User requested simple weapon visuals and simpler menus. A reserves bot assembly
   and scenes/app for these small placeholders; B's camera/UI source stays intact.
+- SIMPLE VISUALS/MENUS IMPLEMENTED: A-owned scenes/bots/weapon_visual.gd provides
+  cosmetic spinner teeth/disc and lifter forks driven by BotView; no extra collision.
+  A's app main/session menus now offer Practice/Multiplayer, builds and session flow.
+  These are small integration placeholders; B's published files remain unchanged.
+- Combined automated suite passes after these changes. Final graphical inspection
+  stopped when the user pressed Escape to stop Computer Use; two-machine LAN and
+  subjective feel remain pending. Updated graphical build is launched locally.

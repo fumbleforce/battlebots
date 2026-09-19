@@ -5,15 +5,15 @@ Godot **4.7.2 stable** / Jolt / typed GDScript. Two developers, one repository, 
 ## Start
 1. Clone the repository locally and install Godot 4.7.2 stable.
 2. Import `battlebots/project.godot` into Godot.
-3. Press **F6** on your sandbox or **F5** for the development launcher.
-4. Choose Developer A (physical driving sandbox) or Developer B (animated mock state).
+3. Press **F5** for the game menu; choose Practice or Multiplayer.
+4. Press Escape in the arena for build selection, camera settings and session controls.
 
-The baseline contains a 50 × 50 floor, team spawn markers, registered input actions,
-and typed input/view adapters. A's sandbox now supports WASD driving and Space braking,
-with temporary test walls and an overview camera. The yellow stripe marks the front.
-B's sandbox retains its animated mock in this branch. The separate A MVP console
-adds combat, recovery and networking; see the MVP section below. B's finished
-arena, orbit camera and UI are being delivered on B's branch.
+The integration branch combines A's combat/networking with B's arena, orbit camera,
+resource HUD and camera settings. Simple spinner and lifter geometry shows weapon
+charge/activation; these cosmetic meshes add no collision. The centered session
+menu offers Striker/Controller, practice reset, host/join, ready and rematch. B's
+full garage and production match screens remain future work. Development sandboxes
+are still available by opening their scenes and pressing F6.
 
 ## Work independently
 - **A:** `battlebots/scenes/dev/a_simulation.tscn` — drive controller, then networking.
@@ -40,11 +40,12 @@ Public hosting is a later release task; MVP export presets are described below.
 
 ## Developer A MVP (codex/a-mvp)
 
-The launcher now includes **Developer A — MVP practice / network console**.
-This temporary console exercises the session API; B owns the finished menus,
-camera, HUD and garage. WASD/Space drive/brake, LMB powers the spinner or raises
+The main menu offers **Practice** and **Multiplayer**. Multiplayer opens session
+controls without starting practice. WASD/Space drive/brake, LMB powers the spinner or raises
 the lifter (release fully charged to flip), RMB brakes/lowers, and R self-rights
 when eligible. Select Striker/Controller, then Practice/reset to test either build.
+The spinner disc rotates with charge; lifter forks rise and flip from weapon state.
+Escape releases controls and opens the menu; Resume recaptures the mouse.
 
 Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executable):
 

@@ -18,6 +18,14 @@ LAN is pending the second host. B-06–09 production menus/garage are still upco
 User additionally requested simple visible weapons and a simpler game menu;
 A is implementing these in bot assembly and scenes/app, leaving B's files intact.
 
+Simple weapon/menu increment: cosmetic spinner disc/teeth and lifter forks are
+mounted under each bot's presentation root and animate from local or replicated
+BotView. They add no collider or damage logic. A's app now has a Practice/Multiplayer
+main menu, centered session menu, build selectors and shared simple styling.
+The full combined automated suite passes. The refreshed graphical game launched,
+but the user stopped Computer Use with Escape before final visual inspection;
+do not claim that layout/weapon feel was fully checked. LAN acceptance is pending.
+
 ## Developer A — MVP implementation (codex/a-mvp)
 
 The drive-only limitations below are historical. A's current branch implements

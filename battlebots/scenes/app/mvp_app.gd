@@ -10,6 +10,10 @@ var preview: Node3D
 var player_source: SessionBotSource
 var console_panel: PanelContainer
 var resume_button: Button
+var striker_button: Button
+var controller_button: Button
+var build_hint: Label
+var menu_status: Label
 var _previous_source: BotSource
 
 func _ready() -> void:
@@ -27,6 +31,8 @@ func _ready() -> void:
 		else:
 			notice = kind.capitalize()
 			print("SESSION: ", kind))
+	var start_mode := str(get_tree().get_meta("start_mode", "practice"))
+	get_tree().remove_meta("start_mode")
 	var args := OS.get_cmdline_user_args()
 	var port := 24567
 	var remote := ""
@@ -47,7 +53,7 @@ func _ready() -> void:
 		session.join(remote, port)
 	elif "--host" in args:
 		session.host(port)
-	elif "--practice" in args or args.is_empty():
+	elif "--practice" in args or (args.is_empty() and start_mode == "practice"):
 		session.practice(session.registry.starter(controller))
 	if "--ready" in args:
 		session.session_event.connect(func(kind: String, _details: Dictionary) -> void:
@@ -76,7 +82,6 @@ func _build_console() -> void:
 	preview.source_path = NodePath("../PlayerSource")
 	preview.fixture_title = "Battlebots / live session"
 	add_child(preview)
-	# B collects inputs once. The proxy gates them before they reach the session.
 	var canvas := CanvasLayer.new()
 	canvas.layer = 5
 	add_child(canvas)
@@ -84,40 +89,82 @@ func _build_console() -> void:
 	status.position = Vector2(510, 20)
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(status)
+	var center := CenterContainer.new()
+	canvas.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	console_panel = PanelContainer.new()
-	console_panel.position = Vector2(330, 280)
-	canvas.add_child(console_panel)
+	console_panel.custom_minimum_size.x = 680
+	console_panel.theme = GameMenuTheme.create()
+	center.add_child(console_panel)
+	var margin := MarginContainer.new()
+	for side: String in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 10)
+	console_panel.add_child(margin)
 	var stack := VBoxContainer.new()
-	console_panel.add_child(stack)
+	margin.add_child(stack)
+	var heading := HBoxContainer.new()
+	stack.add_child(heading)
 	var title := Label.new()
-	title.text = "Session controls"
-	stack.add_child(title)
+	title.text = "BATTLEBOTS"
+	title.add_theme_font_size_override("font_size", 28)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(title)
+	resume_button = _button(heading, "Resume", resume_gameplay)
+	var builds := HBoxContainer.new()
+	stack.add_child(builds)
+	striker_button = _button(builds, "Striker / Spinner", func() -> void: select_build(false))
+	controller_button = _button(builds, "Controller / Lifter", func() -> void: select_build(true))
+	striker_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controller_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	striker_button.toggle_mode = true
+	controller_button.toggle_mode = true
+	build_hint = Label.new()
+	build_hint.add_theme_font_size_override("font_size", 15)
+	stack.add_child(build_hint)
+	var practice_row := HBoxContainer.new()
+	stack.add_child(practice_row)
+	_button(practice_row, "Practice / reset", func() -> void: session.leave(); session.practice(session.registry.starter(controller)))
+	_button(practice_row, "Camera settings", func() -> void: preview.open_settings())
+	stack.add_child(HSeparator.new())
+	var network := Label.new()
+	network.text = "MULTIPLAYER / 4 PLAYERS"
+	network.add_theme_font_size_override("font_size", 14)
+	stack.add_child(network)
 	var row := HBoxContainer.new()
 	stack.add_child(row)
 	address = LineEdit.new()
 	address.text = "127.0.0.1"
 	address.placeholder_text = "Host LAN address"
-	address.custom_minimum_size.x = 150
+	address.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	address.custom_minimum_size.x = 180
 	row.add_child(address)
-	_button(row, "Host", func() -> void: session.leave(); session.host())
+	_button(row, "Host", func() -> void: session.leave(); session.host(); session.set_loadout(session.registry.starter(controller)))
 	_button(row, "Join", func() -> void: session.leave(); session.join(address.text))
-	_button(row, "Ready", func() -> void: session.set_ready(true))
-	_button(row, "Rematch", session.vote_rematch)
-	_button(row, "Forfeit", session.vote_forfeit)
-	_button(row, "Leave", session.leave)
-	var second := HBoxContainer.new()
-	stack.add_child(second)
-	_button(second, "Striker", func() -> void: controller = false; session.set_loadout(session.registry.starter()))
-	_button(second, "Controller", func() -> void: controller = true; session.set_loadout(session.registry.starter(true)))
-	_button(second, "Practice / reset", func() -> void: session.leave(); session.practice(session.registry.starter(controller)))
-	_button(second, "Launcher", func() -> void: session.leave(); get_tree().change_scene_to_file("res://scenes/app/main.tscn"))
-	var third := HBoxContainer.new()
-	stack.add_child(third)
-	resume_button = _button(third, "Resume", resume_gameplay)
-	_button(third, "Camera settings", func() -> void: preview.open_settings())
+	_button(row, "Ready", func() -> void: session.set_loadout(session.registry.starter(controller)); session.set_ready(true))
+	var match_row := HBoxContainer.new()
+	stack.add_child(match_row)
+	_button(match_row, "Rematch", session.vote_rematch)
+	_button(match_row, "Forfeit", session.vote_forfeit)
+	_button(match_row, "Leave", session.leave)
+	menu_status = Label.new()
+	menu_status.add_theme_font_size_override("font_size", 15)
+	menu_status.add_theme_color_override("font_color", Color(0.55, 0.75, 0.8))
+	stack.add_child(menu_status)
+	stack.add_child(HSeparator.new())
+	var footer := HBoxContainer.new()
+	stack.add_child(footer)
 	var controls := Label.new()
-	controls.text = "WASD drive | Space brake | LMB weapon | RMB lower/brake | R recover\nMouse orbit | Wheel zoom | MMB recenter | Esc session controls"
-	stack.add_child(controls)
+	controls.add_theme_font_size_override("font_size", 14)
+	controls.text = "WASD drive / Space brake / LMB weapon\nRMB lower / R recover / Mouse orbit / Esc menu"
+	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(controls)
+	_button(footer, "Main menu", func() -> void: session.leave(); get_tree().change_scene_to_file("res://scenes/app/main.tscn"))
+
+func select_build(use_controller: bool) -> void:
+	controller = use_controller
+	if session.connection_state in ["hosting", "connected"]:
+		session.set_loadout(session.registry.starter(controller))
 
 func gameplay_input_allowed() -> bool:
 	return is_instance_valid(preview) and preview.controls_enabled \
@@ -149,6 +196,10 @@ func _process(_delta: float) -> void:
 		preview.hud.show()
 	console_panel.visible = not preview.controls_enabled and not preview.settings_panel.visible
 	resume_button.disabled = source == null
+	striker_button.set_pressed_no_signal(not controller)
+	controller_button.set_pressed_no_signal(controller)
+	build_hint.text = "Hold LMB to raise; release fully charged to flip. RMB lowers." if controller else "Hold LMB to spin up. Strike with the front disc. RMB brakes."
+	preview.hud.visible = source != null and not console_panel.visible and not preview.settings_panel.visible
 	var summary := "%s | %d/4 players | %s | round %d | %.0f s" % [session.connection_state,
 		session.lobby_view.get("slots", []).size(), session.match_view.get("phase", "lobby"),
 		session.match_view.get("round", 0), session.match_view.get("remaining", 0)]
@@ -167,3 +218,5 @@ func _process(_delta: float) -> void:
 		var winner := int(session.match_view.get("winner", -1))
 		summary += "\nDRAW" if winner < 0 else "\nTeam %d wins" % (winner + 1)
 	status.text = summary
+	status.visible = not console_panel.visible and not preview.settings_panel.visible
+	menu_status.text = summary
