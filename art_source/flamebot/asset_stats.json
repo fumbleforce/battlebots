@@ -1,0 +1,11 @@
+{
+  "triangles": 31788,
+  "mesh_objects": 7,
+  "blender_dimensions_m": [
+    2.088,
+    2.373,
+    2.043
+  ],
+  "forward": "Blender +Y exports to Godot -Z",
+  "up": "Blender +Z exports to Godot +Y"
+}
