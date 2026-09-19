@@ -124,7 +124,7 @@ Signals:
   server tick, attacker/target, zone, effective damage, position and normal.
   Dropping an effect never loses health state. Deduplicate by match/round/event ID.
 
-`connection_state` is offline/connecting/connected/hosting. `diagnostics` reports
+`connection_state` is offline/connecting/connected/hosting/practice. `diagnostics` reports
 RTT in milliseconds, correction distance in meters, rejected-input count, maximum
 entity snapshot bytes, and received-snapshot count. UI must not infer request
 success solely from pressing ready/join.

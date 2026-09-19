@@ -22,7 +22,10 @@ $checks = @(
     @('input_menu_test.gd', 'INPUT MENU PASS'),
     @('input_preferences_test.gd', 'INPUT PREFERENCES PASS'),
     @('weapon_toggle_test.gd', 'WEAPON TOGGLE PASS'),
-    @('input_settings_test.gd', 'INPUT SETTINGS PASS')
+    @('input_settings_test.gd', 'INPUT SETTINGS PASS'),
+    @('network_diagnostics_test.gd', 'NETWORK DIAGNOSTICS PASS'),
+    @('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
+    @('network_diagnostics_sandbox_test.gd', 'NETWORK DIAGNOSTICS SANDBOX PASS')
 )
 foreach ($check in $checks) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,

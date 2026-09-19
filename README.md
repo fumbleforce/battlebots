@@ -18,6 +18,7 @@ are still available by opening their scenes and pressing F6.
 ## Work independently
 - **A:** `battlebots/scenes/dev/a_simulation.tscn` — real drive/contact checks.
 - **B:** `battlebots/scenes/dev/b_presentation.tscn` — arena/camera/UI with mock movement.
+- **B network diagnostics:** `battlebots/scenes/dev/b_network_diagnostics.tscn` — synthetic connection states and telemetry; live preview reads the actual session.
 - **B controls:** `battlebots/scenes/dev/b_controls.tscn` — rebinding, saved input preferences and hold/toggle primary against real lifter rules.
 - **B input/menu:** `battlebots/scenes/dev/b_input_menu.tscn` — real lifter rules,
   cancellation and keyboard menus without a network session.
@@ -25,7 +26,7 @@ are still available by opening their scenes and pressing F6.
   [team workflow](docs/TEAM_WORKFLOW.md), and [full specification](docs/GAME_SPEC.md).
 - Use a focused feature branch from main, or explicitly declare the published
   A/B integration as a dependency while it is ahead of main. Current B work is
-  `codex/b-input-menu`; sawblade-tank artwork stays on its separate branch.
+  `codex/b-network-diagnostics`, stacked on `codex/b-input-menu`; artwork stays on separate branches.
 - Example starting names (check existing branches before creating):
   `git switch -c codex/a-drive-controller` or `git switch -c codex/b-arena-camera`.
   These are examples; branches are not created by the baseline.

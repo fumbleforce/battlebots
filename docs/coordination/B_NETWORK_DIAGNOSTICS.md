@@ -24,3 +24,22 @@ Independent evidence: widget scenarios (including malformed/degraded data), a
 standalone B diagnostics scene, actual two-peer UDP session wiring, existing
 presentation regressions and a rendered 1280x720 check. Two subagents own widget
 and UDP-test work; B owns the adapter, standalone fixture, docs and combined review.
+
+## Delivered evidence
+
+Implemented the panel and preview adapter without editing A-owned runtime files.
+DiagnosticsLayer is independent from the HUD layer; settings suppress the overlay.
+Details releases input without temporarily stealing keyboard focus. At 1280x720
+its paused position fits beside A's current 720px session menu with no overlap.
+Fresh snapshots gate client values for each connection/match/phase transition.
+
+All nine B presentation suites PASS. The live test uses real ENet peers, checks
+exact session values, drops unreliable host traffic to produce real degraded
+snapshots and restores it to verify recovery. Leave/rejoin/practice clear stale
+remote values. Independent scenarios and A's actual menu were rendered/inspected.
+A duel/menu and navigation regressions PASS; baseline check recorded at handoff.
+Two subagents supplied widget validation and UDP integration coverage. The broad
+B goal remains active: production lobby/HUD/garage, readability, release features
+and two-computer acceptance are still open. This branch depends on input/menu
+and does not imply main or A's integration branch already contains the changes.
+Final baseline check: BASELINE PASS. A coordination log preserved unchanged.

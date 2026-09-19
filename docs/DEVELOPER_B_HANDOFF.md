@@ -1,11 +1,37 @@
 # Developer B — arena and third-person camera
 
-Owner: Developer B. Active branch: `codex/b-input-menu`.
-Dependency base: A/B integration `bdb42ef`. Earlier camera/HUD/settings work
+Owner: Developer B. Active branch: `codex/b-network-diagnostics`.
+Dependency base: B input/menu `d533032`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
 was published on `codex/b-arena-camera` through `40aa6b1`.
 
 Ongoing work is tracked in [Worker B's to-do list](DEVELOPER_B_TODO.md), including
 priorities, ownership boundaries and dependencies requested from A.
+
+## B-06: live connection diagnostics
+
+Read [B-06 intent and evidence](coordination/B_NETWORK_DIAGNOSTICS.md). The preview
+now reads SessionBotSource.session into a compact top-right connection panel.
+Details shows client last RTT/correction/interpolation/snapshot count or host
+rejections/largest snapshot packet, plus build, mode, phase and local engine
+physics time. The Details button is keyboard accessible and cancels gameplay
+before interaction; it preserves focus through key-up. This is a read-only view.
+
+DiagnosticsLayer is separate from CanvasLayer, so A's menu can hide the ordinary
+HUD without hiding connection state. Settings hide the panel. At 1280x720 the
+paused panel fits beside A's current 720px menu; coordinate a layout update if
+A changes that width. Expanded details are transient, not a saved player setting.
+
+A's diagnostic counters survive leave(), so counters/maxima are explicitly labeled
+session-node lifetime. Client metrics appear only in active/overtime and after a
+new snapshot count is observed for the connection/match/phase. Offline, connecting,
+practice and lobby never reuse prior remote telemetry. Missing, negative, nonfinite
+or wrongly typed fields display unavailable. No packet-loss estimate, current
+health claim, remote physics timing or automatic reconnect is inferred.
+
+Independent F6 scene: scenes/dev/b_network_diagnostics.tscn, eight synthetic
+scenarios. The runner includes widget validation, real two-peer UDP snapshots with
+packet starvation/recovery, and rendered scenario/app-layout coverage. Human LAN
+performance/feel acceptance still requires both office computers.
 
 ## B-04a: cancellation and standalone navigation
 

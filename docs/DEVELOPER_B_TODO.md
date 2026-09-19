@@ -3,10 +3,10 @@
 B maintains the sections above A's coordination log. Status describes published
 feature branches, not a claim that main contains them or that all release gates pass.
 
-**Active branch:** `codex/b-input-menu`, based on A/B integration `bdb42ef`.
-**Latest increment:** B-04b, keyboard/mouse rebinding and hold/toggle primary.
-**Next:** B-06 diagnostics, then lobby/HUD/garage presentation.
-**Intent and evidence:** [B-04 coordination](coordination/B_INPUT_MENU.md).
+**Active branch:** `codex/b-network-diagnostics`, stacked on input/menu `d533032` and A/B integration `bdb42ef`.
+**Latest increment:** B-06, read-only live network status and diagnostics.
+**Next:** B-07 production lobby presentation, then match HUD/garage; B-05 readability remains open.
+**Intent and evidence:** [B-06 coordination](coordination/B_NETWORK_DIAGNOSTICS.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
 ## Completed B increments
@@ -24,6 +24,10 @@ feature branches, not a claim that main contains them or that all release gates 
   validation, save/cancel/defaults and hold/toggle primary. Separate local
   persistence; menu/focus/lifecycle cancellation and physical release-to-rearm.
   Independent b_controls scene, model/combat/GUI tests and rendered layout.
+- [x] **B-06:** Session-wired compact network state and expanded build/mode/local
+  physics/RTT/correction/interpolation/counters. Fresh-snapshot gating and typed
+  unavailable values prevent stale or fabricated telemetry. Standalone scenario,
+  real UDP impairment/recovery, keyboard cancellation and app layout tests pass.
 - [x] **AB-01 automated compatibility:** Published A/B integration mounts the real
   session through BotSource with B arena/camera/HUD. This is not human LAN acceptance.
 
@@ -31,9 +35,6 @@ feature branches, not a claim that main contains them or that all release gates 
 
 - [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
   restrained materials and spawn inspection; decorative geometry adds no collision.
-- [ ] **B-06: Network/debug display.** Use published MvpSession.connection_state
-  and diagnostics (RTT, correction, degraded state, interpolation buffer).
-  Implement standalone mock scenarios and actual session read-only wiring.
 - [ ] **B-07: Production lobby.** Use existing host/join/leave/team/ready/loadout
   requests and lobby_changed. Respect authoritative phase/capacity. A's current
   app menus are integration UI; coordinate replacing their presentation so there
