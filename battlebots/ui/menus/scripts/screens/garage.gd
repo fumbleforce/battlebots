@@ -26,16 +26,10 @@ func _ready() -> void:
 	%Customize.pressed.connect(MenuRouter.goto.bind("customize"))
 	%Upgrade.pressed.connect(MenuRouter.goto.bind("shop"))
 	%NewBot.pressed.connect(func(): PlayerProfile.new_build(); MenuRouter.goto("customize"))
-	if MenuRouter.in_match_flow:
-		set_step(2)
-		%Eyebrow.text = "STEP 2 OF 4 · %s" % MenuData.mode_by_id(MenuRouter.match_setup.mode).title
-		%Next.text = "CHOOSE ARENA"
-		%Next.pressed.connect(MenuRouter.goto.bind("arena_select"))
-	else:
-		%Steps.hide()
-		%Eyebrow.text = "YOUR BOTS"
-		%Next.text = "PLAY"
-		%Next.pressed.connect(MenuRouter.goto.bind("mode_select"))
+	%Steps.hide()
+	%Eyebrow.text = "YOUR BOTS · SELECT OR CUSTOMIZE"
+	%Next.text = "DONE"
+	%Next.pressed.connect(MenuRouter.goto.bind("main", false))
 	_select(PlayerProfile.active_bot)
 	var list: VBoxContainer = %BotList
 	var list_parent := list.get_parent()
@@ -62,7 +56,7 @@ func _select(i: int) -> void:
 	%BotName.text = b.name
 	%BotHp.text = "%s core HP" % MenuData.fmt_int(b.hp) if b.valid else "Stats unavailable"
 	%Pips.get_parent().hide()
-	%Next.disabled = not b.valid
+	%Next.disabled = false
 	%Stats.visible = b.valid
 	%Bays.tooltip_text = "; ".join(PlayerProfile.errors)
 	%Upgrade.text = "PART CATALOGUE"

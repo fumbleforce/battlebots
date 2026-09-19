@@ -4,14 +4,16 @@ extends MenuScreen
 func _ready() -> void:
 	allow_back = false
 	super()
-	%Play.pressed.connect(MenuRouter.goto.bind("mode_select"))
+	%Play.pressed.connect(MenuRouter.open_host)
+	%JoinGame.pressed.connect(MenuRouter.open_join)
+	%Practice.pressed.connect(MenuRouter.start_practice)
 	%Garage.pressed.connect(MenuRouter.goto.bind("garage"))
-	%Shop.pressed.connect(MenuRouter.goto.bind("shop"))
-	%Career.disabled = true
-	%Career.tooltip_text = "Career progression is not available yet."
 	%Settings.pressed.connect(MenuRouter.open_settings)
 	%Quit.pressed.connect(get_tree().quit)
 	%CustomizeLink.pressed.connect(MenuRouter.goto.bind("customize"))
+	var nav := %Play.get_parent()
+	nav.move_child(%JoinGame, 1)
+	nav.move_child(%Practice, 2)
 
 	%ProfileLevel.text = "LOCAL PILOT"
 	%XpBar.hide()

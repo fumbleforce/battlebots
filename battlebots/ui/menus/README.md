@@ -9,7 +9,10 @@ F5 now opens scenes/dev/b_menu_game.tscn. The project retains Godot 4.7.2, Jolt,
 the authored 1920x1080 UI to fit; it does not rescale the gameplay camera/HUD.
 MenuRouter and PlayerProfile are the only added autoloads.
 
-- Play: Practice, LAN 1v1 or standard LAN 2v2; select build and Foundry.
+- Main: Host Game, Join Game, Practice and Garage are separate actions.
+- Host: choose duel, 2v2, 5v5 or FFA, then create the lobby. FFA maximum is 4–8.
+- Join: enter address/hostname and UDP port directly; the host supplies mode/map.
+- Practice: immediately start with the selected build. The only map is Foundry.
 - Lobby: real host/join by IP and UDP port, team, accepted build, readiness.
   Both machines need matching build/protocol. No simulated opponents or queue.
 - Loading: actual session phase and roster; server alone starts the round.
@@ -20,8 +23,9 @@ MenuRouter and PlayerProfile are the only added autoloads.
   paid power upgrades or unlock progression is persisted.
 - Settings opens real camera/input preferences. Escape pauses input locally; the
   online match continues. Explicit return leaves the session.
+- The supplied System Discovery track loops in menus and stops during gameplay.
 
-Career, public matchmaking, ranked, 5v5/FFA, invites and decals remain unavailable.
+Career, public matchmaking, ranked, invites and decals remain unavailable.
 Images are supplied concept art, not live 3D bot renders. No extra arena hazards
 or weapon types are implied by that art. Legacy A command-line server/host/join
 routes remain available through the persistent shell's early handoff.

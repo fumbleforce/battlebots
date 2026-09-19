@@ -11,12 +11,12 @@ const INK := Color("#141413")
 const STAT_KEYS := ["MASS kg", "POWER", "SPEED m/s", "ARMOR %"]
 const MODES := [
 	{"id":"training","big":"SOLO","tag":"PRACTICE","title":"PRACTICE","desc":"Test your build in the arena against a stationary target.","meta1":"Solo","meta2":"No rewards","tint":Color("#2F5A36"),"rules":"Solo practice · Stationary target · No rating or rewards","enabled":true},
-	{"id":"duel","big":"1V1","tag":"PRIVATE","title":"PRIVATE DUEL","desc":"Host or join a local network duel.","meta1":"First to 2","meta2":"2 players","tint":Color("#8A2520"),"rules":"1v1 · First to two rounds · Five-round cap","enabled":true},
+	{"id":"duel","big":"1V1","tag":"PRIVATE","title":"PRIVATE DUEL","desc":"Host a private duel for two players.","meta1":"First to 2","meta2":"2 players","tint":Color("#8A2520"),"rules":"1v1 · First to two rounds · Five-round cap","enabled":true},
 	{"id":"team","big":"2V2","tag":"STANDARD","title":"TEAM BRAWL","desc":"Coordinate with a teammate in a private match.","meta1":"First to 2","meta2":"4 players","tint":Color("#1F4A9A"),"rules":"2v2 · First to two rounds · Five-round cap · No arena hazards","enabled":true},
 	{"id":"quick","big":"GO","tag":"UNAVAILABLE","title":"QUICK MATCH","desc":"Public matchmaking is not implemented.","meta1":"Unavailable","meta2":"Planned","tint":Color("#3A4452"),"rules":"Public services unavailable","enabled":false},
 	{"id":"ranked","big":"1V1","tag":"DEFERRED","title":"RANKED DUEL","desc":"Ranked play is deferred.","meta1":"Unavailable","meta2":"Deferred","tint":Color("#3A4452"),"rules":"Ranked play unavailable","enabled":false},
-	{"id":"5v5","big":"5V5","tag":"PLAYTEST","title":"LARGE TEAMS","desc":"Open 5V5 / FFA PLAYTEST to host or join ten-player teams.","meta1":"First to 2","meta2":"10 players","tint":Color("#3A4452"),"rules":"5v5 · Four-minute rounds · First to two · Five-round cap","enabled":false},
-	{"id":"ffa","big":"FFA","tag":"PLAYTEST","title":"FREE FOR ALL","desc":"Open 5V5 / FFA PLAYTEST to host or join free-for-all.","meta1":"One round","meta2":"4–8 players","tint":Color("#3A4452"),"rules":"Free-for-all · One five-minute round · No overtime","enabled":false},
+	{"id":"5v5","big":"5V5","tag":"PLAYTEST","title":"LARGE TEAMS","desc":"Two teams of five in a private match.","meta1":"First to 2","meta2":"10 players","tint":Color("#3A4452"),"rules":"5v5 · Four-minute rounds · First to two · Five-round cap","enabled":true},
+	{"id":"ffa","big":"FFA","tag":"PLAYTEST","title":"FREE FOR ALL","desc":"Every bot for itself. Start with 4–8 players.","meta1":"One round","meta2":"4–8 players","tint":Color("#3A4452"),"rules":"Free-for-all · One five-minute round · No overtime","enabled":true},
 ]
 const ARENAS := [{"name":"THE FOUNDRY","sub":"50 × 50 metres · No hazards","size":"50 × 50 m ARENA","image":preload("res://ui/menus/art/arena_foundry.jpg"),"hazards":["Flat arena with perimeter walls","No active arena hazards","Concept art; playable arena is a graybox"],"enabled":true}]
 

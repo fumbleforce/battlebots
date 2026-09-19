@@ -13,6 +13,7 @@ var _cli_handoff := false
 var _forfeit: Button
 var _rematch: Button
 var _vote_match := ""
+var _menu_music: AudioStreamPlayer
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -22,13 +23,12 @@ func _ready() -> void:
 		return
 	MenuRouter.bind(self, session)
 	session.session_event.connect(_session_event)
-	session.lobby_changed.connect(_check_menu_mode)
-	session.match_changed.connect(_check_menu_mode)
 	source.input_allowed = gameplay_input_allowed
 	preview.return_button.pressed.disconnect(preview.return_to_launcher)
 	preview.return_button.pressed.connect(return_to_main)
 	preview.settings_panel.closed.connect(_settings_closed)
 	_add_match_actions()
+	_add_menu_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
 	show_screen("main")
@@ -54,6 +54,25 @@ func show_screen(key: String) -> void:
 	menu_host.add_child(screen)
 	menu_host.show()
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_sync_menu_music()
+
+func _add_menu_music() -> void:
+	_menu_music = AudioStreamPlayer.new()
+	_menu_music.name = "MenuMusic"
+	var melody := load("res://assets/audio/menu/system_discovery.mp3").duplicate() as AudioStreamMP3
+	melody.loop = true
+	_menu_music.stream = melody
+	_menu_music.volume_db = -16.0
+	add_child(_menu_music)
+
+func _sync_menu_music() -> void:
+	if not is_instance_valid(_menu_music):
+		return
+	var in_menu: bool = menu_host.visible or (_settings_from_menu and preview.settings_panel.visible)
+	if in_menu and not _menu_music.playing:
+		_menu_music.play()
+	elif not in_menu and _menu_music.playing:
+		_menu_music.stop()
 
 func gameplay_input_allowed() -> bool:
 	var bot := session.local_source()
@@ -88,9 +107,11 @@ func _process(_delta: float) -> void:
 	if menu_open:
 		preview.pause_menu.hide()
 	_forfeit.visible = session.connection_state in ["hosting", "connected"] and phase in ["active", "overtime"]
+	_forfeit.text = "Forfeit" if session.match_view.get("mode") == "ffa" else "Vote to forfeit round"
 	_rematch.visible = session.connection_state in ["hosting", "connected"] and phase == "results"
 	_rematch.disabled = _vote_match == str(session.match_view.get("match_id", ""))
 	_rematch.text = "Rematch requested" if _rematch.disabled else "Request rematch"
+	_sync_menu_music()
 
 func start_practice() -> void:
 	if session.connection_state != "offline":
@@ -111,6 +132,7 @@ func resume_gameplay() -> void:
 	if session.match_view.get("phase") not in ["countdown", "active", "overtime", "intermission", "results"]:
 		return
 	menu_host.hide()
+	_sync_menu_music()
 	preview.capture_controls()
 
 func return_to_main() -> void:
@@ -157,35 +179,6 @@ func _session_event(kind: String, details: Dictionary) -> void:
 		MenuRouter.session_notice = str(details.get("message", "Session error"))
 	elif kind in ["left", "hosted", "joined", "practice"]:
 		MenuRouter.session_notice = ""
-
-func _unsupported_client_mode() -> String:
-	if not is_instance_valid(session) or session.connection_state != "connected":
-		return ""
-	var mode := str(session.lobby_view.get("mode", session.match_view.get("mode", "")))
-	return mode if not mode.is_empty() and mode not in ["1v1", "2v2"] else ""
-
-func _check_menu_mode(_view: Dictionary) -> void:
-	if not _unsupported_client_mode().is_empty():
-		# Baseline publication is still inside its RPC. Let it finish before teardown.
-		_leave_unsupported_mode.call_deferred(session, session.multiplayer.multiplayer_peer)
-
-func _leave_unsupported_mode(expected_session: MvpSession, expected_peer: MultiplayerPeer) -> void:
-	if not is_instance_valid(expected_session) or session != expected_session \
-		or session.multiplayer.multiplayer_peer != expected_peer:
-		return
-	var mode := _unsupported_client_mode()
-	if mode.is_empty():
-		return
-	preview.release_controls(false)
-	session.leave()
-	_last_source = null
-	_last_phase = ""
-	_vote_match = ""
-	# leave() emits "left" and clears notices; publish this explanation afterwards.
-	var message := "This host uses %s. Open '5V5 / FFA PLAYTEST' from mode selection to join this game." % mode.to_upper()
-	MenuRouter.session_notice = message
-	MenuRouter.goto("mode_select", false)
-	show_notice(message)
 
 func _add_match_actions() -> void:
 	var actions: Node = preview.return_button.get_parent()

@@ -5,15 +5,15 @@ Godot **4.7.2 stable** / Jolt / typed GDScript. Two developers, one repository, 
 ## Start
 1. Clone the repository locally and install Godot 4.7.2 stable.
 2. Import `battlebots/project.godot` into Godot.
-3. Press **F5** for the supplied amber game menu. Choose Play, then Practice, Private Duel (1v1) or Team Brawl (2v2).
-4. Select a build and arena. Practice starts directly; LAN play opens real host/join/readiness controls. Escape in the arena opens the local menu/settings.
+3. Press **F5**. Choose **Host Game**, **Join Game**, **Practice**, or **Garage** directly.
+4. Hosts choose a mode then create a lobby. Joining goes straight to the host address and port. Practice immediately uses the selected bot. The Foundry is the only map, so no map-selection step is required.
 
 The user-supplied Godot menu kit is integrated at `battlebots/ui/menus`. Its eight
 screens retain the supplied art/theme and use real loadouts and LAN session state.
 Garage/Customize edit canonical free parts and save named builds locally. Settings
 uses the real camera/control preferences. Concept images remain 2D; career,
 ranked/public matchmaking, invites and decals are not implemented. Choose
-**5V5 / FFA PLAYTEST** on mode selection for the existing advanced-mode setup.
+**Host Game** for duel, 2v2, 5v5 or FFA; **Join Game** accepts the host's mode automatically.
 See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
 
 ## Work independently
@@ -54,12 +54,12 @@ Public hosting is a later release task; MVP export presets are described below.
 
 ## Playable modes
 
-Current combined branch: `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
+Current menu correction: `codex/a-menu-flow`, based on `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
 Use the same branch/build on all peers. The older `codex/a-b-integration`
 checkpoint remains available; it does not include the 5v5/FFA follow-ups.
 
-The Play menu offers Practice, Private Duel and Team Brawl. The **5V5 / FFA PLAYTEST**
-button opens A's alternate session setup for those modes. WASD/Space drive/brake,
+The main menu separates hosting, joining, practice and garage. All multiplayer
+modes use the same lobby, with an optional saved-build selector. WASD/Space drive/brake,
 LMB powers the spinner or raises
 the lifter (release fully charged to flip), RMB brakes/lowers, and R self-rights
 when eligible. Select or customize a legal build in the garage before playing.
@@ -100,12 +100,14 @@ and Vote rematch only at results. Reconnect is available through the session API
 ### Try multiplayer on two computers
 
 Use the same current game build on both PCs and the same LAN.
-Open one game window on each computer. Choose **Play → Private Duel**, select a
-build and Foundry, then open the lobby. On PC A host the game. On PC B enter PC A's
-Ethernet/Wi-Fi IPv4 shown in the lobby (for example `192.168.1.20`) and join.
-Press **Ready up** on both PCs to start the countdown. Choose **Team Brawl** for
-four players. For ten players or FFA, both PCs use **5V5 / FFA PLAYTEST**, then
-choose the capacity and host/join there. Each person needs one game window.
+Open one game window on each computer. On PC A choose **Host Game → Private Duel
+→ Continue → Host Game**. On PC B choose **Join Game**, enter PC A's Ethernet/Wi-Fi
+IPv4 shown in the lobby (for example `192.168.1.20`) and join. The joining player
+does not select a mode or map. Press **Ready up** on both PCs to start. Hosts can
+instead choose Team Brawl (four players), Large Teams (ten) or FFA (4–8 maximum).
+Each person needs one game window. A UDP tunnel also works with its public
+hostname and public port entered separately in Join Game; internet play still
+needs a real two-computer test.
 Loopback `127.0.0.1` always means the computer where that client is running.
 
 The default port is UDP 24567. If joining fails, check that the host is running,

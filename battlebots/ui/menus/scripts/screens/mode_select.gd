@@ -1,18 +1,20 @@
 extends MenuScreen
 
 const MODE_CARD := preload("res://ui/menus/components/mode_card.tscn")
-const PLAYABLE := ["training", "duel", "team"]
-var _opening_advanced := false
+const PLAYABLE := ["duel", "team", "5v5", "ffa"]
+var capacity_choice: OptionButton
 
 func _ready() -> void:
 	super()
-	set_step(1)
+	%Steps.hide()
+	$Layout/Header/Row/TitleBox/Eyebrow.text = "HOST GAME"
+	$Layout/Header/Row/TitleBox/Title.text = "CHOOSE GAME MODE"
 	if MenuRouter.match_setup.mode not in PLAYABLE:
-		MenuRouter.match_setup.mode = "team"
+		MenuRouter.match_setup.mode = "duel"
 	var group := ButtonGroup.new()
-	# Keep the supplied four-card layout. Future modes are grouped in the last card.
+	# Only host decisions belong here. Join and Practice have direct main routes.
 	for m: Dictionary in MenuData.MODES:
-		if m.id not in PLAYABLE and m.id != "ranked":
+		if m.id not in PLAYABLE:
 			continue
 		var card := MODE_CARD.instantiate()
 		%Cards.add_child(card)
@@ -24,30 +26,25 @@ func _ready() -> void:
 		if m.id == MenuRouter.match_setup.mode:
 			card.button_pressed = true
 			card.grab_focus.call_deferred()
+	capacity_choice = OptionButton.new()
+	capacity_choice.name = "FfaCapacity"
+	capacity_choice.custom_minimum_size = Vector2(250, 54)
+	capacity_choice.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	capacity_choice.tooltip_text = "Maximum players; FFA can start with four when everyone present is ready"
+	for count: int in range(4, 9):
+		capacity_choice.add_item("UP TO %d PLAYERS" % count, count)
+	capacity_choice.select(clampi(int(MenuRouter.match_setup.capacity), 4, 8) - 4)
+	capacity_choice.item_selected.connect(func(index: int) -> void: MenuRouter.match_setup.capacity = capacity_choice.get_item_id(index))
+	%Next.get_parent().add_child(capacity_choice)
+	%Next.get_parent().move_child(capacity_choice, %Next.get_index())
 	_select(MenuData.mode_by_id(MenuRouter.match_setup.mode))
-	%Next.pressed.connect(MenuRouter.goto.bind("garage"))
-	%Invite.disabled = false
-	%Invite.text = "5V5 / FFA PLAYTEST"
-	%Invite.pressed.connect(_open_advanced)
-	%CustomLobby.text = "LAN / DIRECT IP"
-	%CustomLobby.pressed.connect(func() -> void:
-		_select(MenuData.mode_by_id("team"))
-		MenuRouter.goto("garage"))
+	%Next.text = "CONTINUE"
+	%Next.pressed.connect(MenuRouter.goto.bind("lobby"))
+	%Invite.get_parent().get_parent().hide()
 
 func _select(m: Dictionary) -> void:
 	if m.get("id", "") not in PLAYABLE or not m.get("enabled", false):
 		return
 	MenuRouter.match_setup.mode = m.id
-	%Rules.text = str(m.rules) + "\nUse 5V5 / FFA PLAYTEST for large teams or free-for-all. Quick play and ranked are unavailable."
-
-func _open_advanced() -> void:
-	if _opening_advanced:
-		return
-	_opening_advanced = true
-	%Invite.disabled = true
-	if is_instance_valid(MenuRouter.host):
-		MenuRouter.host.preview.release_controls(false)
-	if is_instance_valid(MenuRouter.session):
-		MenuRouter.session.leave()
-	get_tree().set_meta("start_mode", "lobby")
-	get_tree().change_scene_to_file.call_deferred("res://scenes/app/mvp.tscn")
+	capacity_choice.visible = m.id == "ffa"
+	%Rules.text = str(m.rules) + "\nThe Foundry · Selected bot: " + str(PlayerProfile.bots[PlayerProfile.active_bot].name) + "\nYou can change your bot in the lobby."

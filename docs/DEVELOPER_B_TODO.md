@@ -93,6 +93,15 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Menu-flow correction (user requested):** `codex/a-menu-flow`, based on
+  `d417d7e`. A is editing the supplied router/main/mode/lobby/garage scripts and
+  main scene, with focused menu tests. Main exposes Host, Join, Practice and
+  Garage. Join goes directly to the endpoint; host chooses mode then lobby;
+  a sole map and mandatory garage are removed from play setup. All existing
+  modes use the same lobby; selected builds can change there. No modelling
+  assets or physics are being edited. Export this correction before resuming
+  A's remaining spec work on another branch.
+
 - **User-requested wind-down integration:** `codex/a-b-playtest` merges FFA
   `b71cb9b`, menu kit `595c8f9`, results intent `0f343f7`, Flamebot `909b666` and
   sawblade `5e163af`. The new menus are default F5; their four-slot frontend keeps

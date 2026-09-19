@@ -3,6 +3,7 @@ extends MenuScreen
 const SPINNER_ART := preload("res://ui/menus/art/bot_chevron.jpg")
 const LIFTER_ART := preload("res://ui/menus/art/bot_rivetrex.jpg")
 var _blue_image2: TextureRect
+var _roster: Label
 
 func _ready() -> void:
 	allow_back = false
@@ -14,6 +15,13 @@ func _ready() -> void:
 	_blue_image2.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_blue_image2.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	$BlueTeam/Row2/Frame.add_child(_blue_image2)
+	_roster = Label.new()
+	_roster.position = Vector2(150, 140)
+	_roster.size = Vector2(1620, 680)
+	_roster.add_theme_font_size_override("font_size", 32)
+	_roster.add_theme_constant_override("line_spacing", 12)
+	_roster.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_roster)
 	_refresh()
 
 func _process(_delta: float) -> void:
@@ -35,6 +43,18 @@ func _refresh() -> void:
 	%ArenaName.text = "THE FOUNDRY"
 	var phase := str(session.match_view.get("phase", "loading"))
 	%ModeLine.text = "WAITING FOR PLAYERS TO LOAD" if phase == "loading" else phase.to_upper()
+	var mode := str(session.lobby_view.get("mode", ""))
+	var expanded := mode == "ffa" or int(session.lobby_view.get("capacity", 4)) > 4
+	_roster.visible = expanded
+	for node: CanvasItem in [$BlueTeam, $RedTeam, $Vs, $VsDiamond, $TeamSplit]:
+		node.visible = not expanded
+	if expanded:
+		var lines := PackedStringArray(["FREE FOR ALL" if mode == "ffa" else "5V5 · TEAM BATTLE"])
+		for slot: Dictionary in session.lobby_view.get("slots", []):
+			var team := "" if mode == "ffa" else ("BLUE · " if int(slot.get("team", 0)) == 0 else "RED · ")
+			lines.append("%sPLAYER %d%s · %s" % [team, int(slot.get("entity_id", 0)), " (YOU)" if int(slot.get("entity_id", 0)) == session.local_entity else "", str(slot.get("loadout", {}).get("name", "Unknown build"))])
+		_roster.text = "\n".join(lines)
+		return
 	var teams: Array = [[], []]
 	for slot: Dictionary in session.lobby_view.get("slots", []):
 		var team := int(slot.get("team", -1))

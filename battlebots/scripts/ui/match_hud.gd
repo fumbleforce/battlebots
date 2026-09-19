@@ -46,6 +46,19 @@ func render(view: Dictionary, practice: bool = false) -> void:
 			"intermission": timer_label.text = "Next round in  " + time
 			"results": timer_label.text = "Lobby in  " + time
 			_: timer_label.text = time
+	if view.get("mode") == "ffa":
+		round_label.text = "FREE FOR ALL"
+		score_label.visible = false
+		if phase == "results":
+			result_label.visible = true
+			var winners: Variant = view.get("winners", [])
+			var names := PackedStringArray()
+			if winners is Array:
+				for id: Variant in winners:
+					if _integer_in(id, 1, 2147483647):
+						names.append("Player %d" % int(id))
+			result_label.text = "Result unavailable" if names.is_empty() else ", ".join(names) + (" wins" if names.size() == 1 else " share the win")
+		return
 	var scores: Variant = view.get("scores")
 	if scores is Array and scores.size() == 2 and _integer_in(scores[0], 0, 999) and _integer_in(scores[1], 0, 999):
 		score_label.text = "TEAM A  %d  :  %d  TEAM B" % [int(scores[0]), int(scores[1])]

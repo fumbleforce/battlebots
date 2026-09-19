@@ -11,7 +11,8 @@ const SCREENS := {
 	"customize":"res://ui/menus/screens/customize.tscn",
 	"shop":"res://ui/menus/screens/upgrade_shop.tscn",
 }
-var match_setup := {"mode":"team", "bot":0, "arena":0}
+var match_setup := {"mode":"duel", "bot":0, "arena":0, "capacity":8}
+var lobby_intent := "host"
 var in_match_flow := false
 var current := "main"
 var session: MvpSession
@@ -26,14 +27,30 @@ func bind(value: Node, active_session: MvpSession) -> void:
 	_history.clear()
 	current = "main"
 	in_match_flow = false
+	lobby_intent = "host"
+
+func open_host() -> void:
+	lobby_intent = "host"
+	_history.clear()
+	current = "main"
+	goto("mode_select")
+
+func open_join() -> void:
+	lobby_intent = "join"
+	_history.clear()
+	current = "main"
+	goto("lobby")
 
 func goto(screen: String, remember := true) -> void:
 	if not SCREENS.has(screen) or not is_instance_valid(host):
 		return
-	if remember and screen != current:
+	if screen in _history:
+		_history.resize(_history.find(screen))
+	elif remember and screen != current:
 		_history.append(current)
 	if screen == "mode_select":
 		in_match_flow = true
+		lobby_intent = "host"
 	elif screen == "main":
 		in_match_flow = false
 		_history.clear()
@@ -41,8 +58,11 @@ func goto(screen: String, remember := true) -> void:
 	host.show_screen.call_deferred(screen)
 
 func back() -> void:
-	if current in ["lobby", "loading"] and is_instance_valid(session) and session.connection_state != "offline":
-		session.leave()
+	if current in ["lobby", "loading"]:
+		if is_instance_valid(session) and session.connection_state != "offline":
+			session.leave()
+		goto("main", false)
+		return
 	var target := _history.pop_back() as String if not _history.is_empty() else "main"
 	goto(target, false)
 

@@ -1,5 +1,5 @@
 extends SceneTree
-## Real ENet admission must not put an unsupported match in the four-card menu.
+## Every mode joins through the same menu with authoritative rules and roster.
 var failures := 0
 var views: Array[SubViewport] = []
 var joined := 0
@@ -54,38 +54,45 @@ func run() -> void:
 	var router: Node = root.get_node("MenuRouter")
 	var port := 41000 + OS.get_process_id() % 10000
 	for spec: Dictionary in [
-		{"count":8, "mode":"ffa", "label":"ffa", "reject":true},
-		{"count":10, "mode":"teams", "label":"5v5", "reject":true},
-		{"count":2, "mode":"teams", "label":"1v1", "reject":false},
-		{"count":4, "mode":"teams", "label":"2v2", "reject":false},
+		{"count":8, "mode":"ffa", "label":"ffa"},
+		{"count":10, "mode":"teams", "label":"5v5"},
+		{"count":2, "mode":"teams", "label":"1v1"},
+		{"count":4, "mode":"teams", "label":"2v2"},
 	]:
 		check(server.host(port, false, spec.count, spec.mode) == OK, "%s host starts" % spec.label)
+		router.lobby_intent = "join"
 		router.goto("lobby", false)
 		await ticks(3)
 		var lobby: Control = game.screen
+		check(lobby.address.is_visible_in_tree() and lobby.join_button.is_visible_in_tree() and not lobby.host_button.is_visible_in_tree(), "Join shows only its connection controls")
+		check(not lobby.get_node("Layout/Body/Row/Blue").visible and not lobby.get_node("Layout/Body/Row/Match/ArenaCard").visible, "Unknown join does not invent a roster or arena")
+		check(lobby.get_node("%Back").text == "BACK" and not lobby.get_node("%Steps").visible, "Offline join has a plain Back action")
 		lobby.address.text = "127.0.0.1"
 		lobby.port.value = port
 		var previous_joined := joined
 		lobby.join_button.pressed.emit()
 		check(await until(func() -> bool: return joined > previous_joined), "%s admitted over actual ENet" % spec.label)
-		if spec.reject:
-			check(await until(func() -> bool: return client.connection_state == "offline"), "%s client leaves unsupported mode" % spec.label)
-			await ticks(3)
-			check(client.world == null and client.local_entity == 0, "%s clears local session" % spec.label)
-			check(router.current == "mode_select", "%s returns to mode selection" % spec.label)
-			check("5V5 / FFA PLAYTEST" in router.session_notice and spec.label.to_upper() in router.session_notice, "%s has explanatory route notice" % spec.label)
-			var visible_notice := false
-			for child: Node in game.get_children():
-				if child is AcceptDialog:
-					visible_notice = visible_notice or (child.visible and "5V5 / FFA PLAYTEST" in child.dialog_text)
-					child.queue_free()
-			check(visible_notice, "%s notice is visible" % spec.label)
-		else:
-			check(await until(func() -> bool: return client.lobby_view.get("mode") == spec.label), "%s authoritative baseline arrives" % spec.label)
-			await ticks(5)
-			check(client.connection_state == "connected" and router.current == "lobby", "%s remains usable in menu" % spec.label)
+		check(await until(func() -> bool: return client.lobby_view.get("mode") == spec.label), "%s authoritative baseline arrives" % spec.label)
+		await ticks(5)
+		check(client.connection_state == "connected" and router.current == "lobby", "%s remains usable in menu" % spec.label)
+		lobby.refresh()
+		check(lobby.get_node("%StatusBig").text == "1/%d PLAYERS" % spec.count, "%s displays authoritative capacity" % spec.label)
+		check(not lobby.address.is_visible_in_tree() and not lobby.host_button.is_visible_in_tree() and not lobby.join_button.is_visible_in_tree() and not lobby.port.is_visible_in_tree(), "Connected lobby hides connection controls")
+		check(lobby.team_choice.visible == (spec.mode != "ffa"), "%s team picker matches mode" % spec.label)
+		var visible_cards := 0
+		var local_cards := 0
+		for cards: Array in lobby._roster_cards:
+			for card: Control in cards:
+				visible_cards += int(card.visible)
+				local_cards += int(card.visible and "(YOU)" in card.get_node("%Name").text)
+		check(visible_cards == spec.count and local_cards == 1, "%s has every slot and exactly one local player" % spec.label)
+		check(lobby.get_node("%Back").text == "LEAVE GAME", "Connected lobby has Leave Game action")
+		if spec.mode == "ffa":
+			check(lobby.get_node("Layout/Body/Row/Blue/TeamHeader/Row/Team").text.begins_with("PLAYERS"), "FFA roster has neutral player labels")
+			check(lobby.get_node("Layout/Body/Row/Match/Rules/Clock/Col/Value").text == "5:00", "FFA shows its actual round duration")
 		check(server.connection_state == "hosting" and server.multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED, "%s guard leaves authority running" % spec.label)
-		client.leave()
+		lobby.leave_lobby()
+		check(client.connection_state == "offline" and router.current == "main", "Leave returns directly to main")
 		server.leave()
 		await ticks(3)
 		port += 1

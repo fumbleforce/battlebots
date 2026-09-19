@@ -185,14 +185,14 @@ mouse_filter = 2
 
 [node name="Label" type="Label" parent="Layout/Columns/Left/Nav/Play/Pad/Row/Text"]
 layout_mode = 2
-text = "PLAY"
+text = "HOST GAME"
 theme_type_variation = &"HeadingWide"
-theme_override_font_sizes/font_size = 62
+theme_override_font_sizes/font_size = 48
 theme_override_colors/font_color = Color(0.0784, 0.0784, 0.0745, 1)
 
 [node name="Caption" type="Label" parent="Layout/Columns/Left/Nav/Play/Pad/Row/Text"]
 layout_mode = 2
-text = "LAN duel · Team brawl · Training"
+text = "Choose mode · Invite friends"
 theme_type_variation = &"Strong"
 theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.0784, 0.0784, 0.0745, 1)
@@ -240,15 +240,15 @@ horizontal_alignment = 2
 vertical_alignment = 1
 unique_name_in_owner = true
 
-[node name="Shop" type="Button" parent="Layout/Columns/Left/Nav"]
+[node name="Practice" type="Button" parent="Layout/Columns/Left/Nav"]
 layout_mode = 2
 theme_type_variation = &"MenuItem"
-text = "UPGRADE SHOP"
+text = "PRACTICE"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 74)
 alignment = 0
 
-[node name="CaptionPad" type="MarginContainer" parent="Layout/Columns/Left/Nav/Shop"]
+[node name="CaptionPad" type="MarginContainer" parent="Layout/Columns/Left/Nav/Practice"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -261,23 +261,23 @@ theme_override_constants/margin_right = 34
 theme_override_constants/margin_bottom = 0
 mouse_filter = 2
 
-[node name="Caption" type="Label" parent="Layout/Columns/Left/Nav/Shop/CaptionPad"]
+[node name="Caption" type="Label" parent="Layout/Columns/Left/Nav/Practice/CaptionPad"]
 layout_mode = 2
-text = "Upgrades · Parts · Paint"
+text = "Solo · Use selected bot"
 theme_type_variation = &"Muted"
 theme_override_font_sizes/font_size = 18
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="Career" type="Button" parent="Layout/Columns/Left/Nav"]
+[node name="JoinGame" type="Button" parent="Layout/Columns/Left/Nav"]
 layout_mode = 2
 theme_type_variation = &"MenuItem"
-text = "CAREER"
+text = "JOIN GAME"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 74)
 alignment = 0
 
-[node name="CaptionPad" type="MarginContainer" parent="Layout/Columns/Left/Nav/Career"]
+[node name="CaptionPad" type="MarginContainer" parent="Layout/Columns/Left/Nav/JoinGame"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -290,9 +290,9 @@ theme_override_constants/margin_right = 34
 theme_override_constants/margin_bottom = 0
 mouse_filter = 2
 
-[node name="Caption" type="Label" parent="Layout/Columns/Left/Nav/Career/CaptionPad"]
+[node name="Caption" type="Label" parent="Layout/Columns/Left/Nav/JoinGame/CaptionPad"]
 layout_mode = 2
-text = "Coming later"
+text = "IP address or hostname"
 theme_type_variation = &"Muted"
 theme_override_font_sizes/font_size = 18
 horizontal_alignment = 2

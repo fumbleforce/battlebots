@@ -2,7 +2,8 @@
 
 Owner: A. Earlier playable checkpoint: `codex/a-b-integration` at `bdb42ef`.
 Current combined playtest: `codex/a-b-playtest`, with FFA `b71cb9b` and B's published
-menu/controls/art branches. Feature work is paused for testing at the user's request.
+menu/controls/art branches. `codex/a-menu-flow` updates navigation and the playtest
+export; the user requested resuming remaining spec work after that export is ready.
 
 Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,

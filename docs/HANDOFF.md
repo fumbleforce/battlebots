@@ -2,13 +2,23 @@
 
 ## Current playtest checkpoint
 
+`codex/a-menu-flow` follows `d417d7e` with the user-requested menu-flow correction.
+Main has Host Game, Join Game, Practice and Garage. Joining goes directly to an
+endpoint and accepts the host's mode; hosting chooses mode then lobby. Mandatory
+garage/map steps are removed; all four modes share the polished lobby with an
+optional saved-build selector. FFA uses individual HUD outcomes and all large-mode
+players appear in loading/roster views. See [menu correction](coordination/A_MENU_FLOW.md).
+The user requested an updated export, then resumption of A's remaining spec work.
+
+### Earlier combined checkpoint
+
 `codex/a-b-playtest` combines A FFA `b71cb9b`, B menu kit `595c8f9` (including
 controls, diagnostics, lobby and match HUD), results intent `0f343f7`, Flamebot
 `909b666` and sawblade source `5e163af`. Build is `mvp-ab-5`, protocol 4.
 F5 opens the supplied menus; advanced modes use the explicit 5v5/FFA setup route.
 See [integration record](coordination/A_PLAYTEST_INTEGRATION.md) for validation.
-Feature work is winding down at the user's request. Remaining game scope stays
-open; this checkpoint prepares testing and does not claim release acceptance.
+This was the wind-down checkpoint; remaining game scope stays open. It does not
+claim release acceptance. Current menu navigation is described above.
 Local Windows and Linux exports are under `battlebots/exports/playtest/` (ignored
 build output). The Windows ZIP contains the executable, its required adjacent
 PCK and build/testing notes. The separate modelling checkout remains untouched.

@@ -12,7 +12,8 @@ func _ready() -> void:
 	%TabUpgrades.text = "BUILD RULES"
 	%TabUpgrades.button_pressed = true
 	%CustomizeLink.pressed.connect(MenuRouter.goto.bind("customize"))
-	%Play.pressed.connect(MenuRouter.goto.bind("mode_select"))
+	%Play.text = "BACK TO GARAGE"
+	%Play.pressed.connect(MenuRouter.goto.bind("garage", false))
 	%BotChips.hide()
 	%Deals.get_parent().get_parent().hide()
 	var items: GridContainer = %ItemsView

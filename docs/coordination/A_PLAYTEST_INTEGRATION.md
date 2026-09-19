@@ -1,5 +1,10 @@
 # A/B playtest integration
 
+Historical `d417d7e` checkpoint. Current menu navigation is superseded by
+[A_MENU_FLOW.md](A_MENU_FLOW.md): direct Join, immediate Practice, unified lobby.
+Its complete CI run [35464908428](https://github.com/fumbleforce/battlebots/actions/runs/35464908428)
+passed A/B suites, art validation, both exports and packaged process checks.
+
 User requested winding down feature work, merging incoming work and preparing
 for testing. Integration branch: `codex/a-b-playtest`, based on the FFA increment.
 Keep the full game goal open; this is a testing checkpoint, not release acceptance.
