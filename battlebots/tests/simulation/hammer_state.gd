@@ -40,7 +40,7 @@ func run() -> void:
 
 func catalogue() -> void:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/mvp_parts.json"))
-	check(data.revision == 3, "Hammer catalogue is revision three")
+	check(data.revision >= 3, "Catalogue includes hammer revision")
 	var part: Dictionary = registry.parts.get("hammer", {})
 	check(part.get("mass") == 24 and part.get("power") == 35 and part.get("category") == "weapon", "Hammer uses authored mass, power and category")
 	var draft := registry.duelist()

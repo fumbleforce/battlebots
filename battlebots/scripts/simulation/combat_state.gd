@@ -77,6 +77,11 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 			recovery_remaining = 0.0
 		_tick_hammer(delta, command, recovery_was_active)
 		return
+	if stats.weapon == "saw":
+		if recovery_remaining < 0.000001:
+			recovery_remaining = 0.0
+		_tick_saw(delta, command, recovery_was_active)
+		return
 	var eligible: bool = zones.weapon > 0 and not overheated and cooldown <= 0
 	var powered: bool = eligible and command.primary_held and not command.secondary_held
 	var spinner: bool = stats.weapon in ["vertical_spinner", "horizontal_spinner"]
@@ -121,6 +126,38 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	weapon_phase = "disabled" if zones.weapon <= 0 else ("overheated" if overheated else (
 		"launch" if launch else ("cooldown" if cooldown > 0 else ("active" if powered else "idle"))))
 	_previous_held = command.primary_held
+
+func _tick_saw(delta: float, command: BotCommand, recovery_was_active: bool) -> void:
+	var eligible: bool = zones.weapon > 0.0 and not overheated and cooldown <= 0.0
+	var powered := eligible and command.primary_held and not command.secondary_held
+	if command.primary_held and not eligible:
+		failure_reason = "disabled" if zones.weapon <= 0.0 else ("overheated" if overheated else "cooldown")
+	if powered and (battery <= 0.0 or battery < 9.0 * delta):
+		powered = false
+		failure_reason = "battery_empty"
+	if powered:
+		battery = maxf(0.0, battery - 9.0 * delta)
+		heat = minf(100.0, heat + 14.0 * delta)
+		_inactive = 0.0
+		if battery < 0.000001:
+			battery = 0.0
+			powered = false
+			failure_reason = "battery_empty"
+	else:
+		heat = maxf(0.0, heat - float(stats.cooling) * delta)
+		if recovery_was_active or recovery_remaining > 0.0:
+			_inactive = 0.0
+		else:
+			var previous := _inactive
+			_inactive += delta
+			var recharge_seconds := maxf(0.0, _inactive - 1.0) - maxf(0.0, previous - 1.0)
+			battery = minf(stats.battery, battery + 8.0 * recharge_seconds)
+	if heat >= 100.0:
+		overheated = true
+		powered = false
+	charge = 1.0 if powered else 0.0
+	weapon_phase = "disabled" if zones.weapon <= 0.0 else ("overheated" if overheated else (
+		"cooldown" if cooldown > 0.0 else ("active" if powered else "idle")))
 
 func _tick_hammer(delta: float, command: BotCommand, recovery_was_active: bool) -> void:
 	# Input applies at the start of a physics tick. A press during recovery is

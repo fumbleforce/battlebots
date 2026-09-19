@@ -37,7 +37,7 @@ func _initialize() -> void:
 	registry = ContentRegistry.new()
 	var path := "user://test-loadouts-%d.json" % OS.get_process_id()
 	var store := LoadoutStore.new(path)
-	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES + LoadoutStore.REVISION_TWO_HASHES:
+	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES + LoadoutStore.REVISION_TWO_HASHES + LoadoutStore.REVISION_THREE_HASHES:
 		var old_build := registry.starter()
 		old_build.content_hash = old_hash
 		var upgraded: Dictionary = store.migrate({"schema_version":1, "loadouts":[old_build]}).loadouts[0]
@@ -53,6 +53,11 @@ func _initialize() -> void:
 	var migrated_horizontal: Dictionary = store.migrate({"schema_version": 1, "loadouts": [horizontal]}).loadouts[0]
 	check(registry.validate(migrated_horizontal).valid and migrated_horizontal.parts == horizontal.parts,
 		"Revision-two horizontal builds survive addition of hammer")
+	var hammer := registry.duelist()
+	hammer.content_hash = LoadoutStore.REVISION_THREE_HASHES[0]
+	var migrated_hammer: Dictionary = store.migrate({"schema_version": 1, "loadouts": [hammer]}).loadouts[0]
+	check(registry.validate(migrated_hammer).valid and migrated_hammer.parts == hammer.parts,
+		"Revision-three Duelist builds survive addition of saw")
 	var unknown_version := registry.starter()
 	unknown_version.content_hash = "unrecognized-version"
 	check(store.migrate({"schema_version":1, "loadouts":[unknown_version]}).loadouts[0] == unknown_version,

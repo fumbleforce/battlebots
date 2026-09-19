@@ -2,17 +2,22 @@
 
 ## Current Developer A increment
 
-`codex/a-hammer` follows horizontal spinner `b46084e` and menu/music export
-`db87257`. Hammer adds a committed overhead strike, per-activation target dedup,
-resource/recovery timing and the legal Duelist starter. See
-[hammer coordination](coordination/A_HAMMER.md) and the preceding
-[horizontal spinner coordination](coordination/A_HORIZONTAL_SPINNER.md).
-This branch uses build `mvp-ab-7`/protocol 4 with catalogue revision three; both
-peers must update together. Known revision-one/two saves migrate without changing
-parts. The `db87257` playtest ZIP is preserved separately. The menu/music CI run
-35465682771 passed; horizontal CI 35466215676 failed an FFA observer-health check.
-A local reproduction passed; failure diagnostics were added without weakening the
-exact-health gate. The cause remains unproven pending further CI evidence.
+`codex/a-saw` follows hammer `9610946`, horizontal spinner `b46084e` and menu/music
+export `db87257`. All five weapon families now have authoritative mechanics and
+primitive visuals. The saw cuts for 6 raw per third-second of maintained contact;
+breaking contact or power clears the partial interval. See
+[saw coordination](coordination/A_SAW.md), [hammer](coordination/A_HAMMER.md) and
+[horizontal spinner](coordination/A_HORIZONTAL_SPINNER.md) for independent evidence.
+This branch uses build `mvp-ab-8`/protocol 4 with catalogue revision four; both peers
+must update together. Known revision-one/two/three saves migrate without changing
+parts. The `db87257` playtest ZIP is preserved separately.
+
+Menu/music CI 35465682771 passed. Horizontal CI 35466215676 failed an FFA exact-health
+observer check; hammer CI 35466883297 failed two observer spawn comparisons after
+a ten-player rematch. Both bounded local reproductions passed. Failure-only
+diagnostics were added without weakening either gate; the causes remain unproven.
+Neither run is described as full acceptance. Performance/soak, public services
+and manual LAN/internet/contact-feel remain open A work.
 
 ## Current playtest checkpoint
 

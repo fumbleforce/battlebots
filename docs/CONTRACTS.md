@@ -38,8 +38,8 @@ B's existing mock inherits neutral defaults; its existing consumers need no edit
 is Striker; `starter(true)` is Controller. Draft shape: `schema_version: 1`, `name`,
 `parts` (chassis/drive/weapon/armor/utility IDs), `cosmetics: {paint: id}`,
 `content_hash: registry.content_hash`. All current parts fit their category socket;
-the implemented weapon IDs are `vertical_spinner`, `horizontal_spinner`, `lifter`
-and `hammer`. `duelist()` adds the compact/agile/hammer/standard-armor/cooling-pack
+the implemented weapon IDs are `vertical_spinner`, `horizontal_spinner`, `lifter`,
+`hammer` and `saw`. `duelist()` adds the compact/agile/hammer/standard-armor/cooling-pack
 starter (91 kg/70 power), without changing `starter(bool)`.
 Horizontal spinner is 30 kg/40 power, charges over two seconds, uses spinner
 energy/heat rates, deals up to 40 raw damage with a 25% charge threshold and
@@ -53,8 +53,13 @@ Charge is windup progress; phases are `windup`, `strike`, `cooldown` plus the
 existing idle/disabled/overheated states. One target hit per attack ID and round.
 The existing snapshot fields suffice. Physical primary press edges are preserved
 in both hold/toggle modes; the held latch still governs continuous weapons/lifter.
-Build `mvp-ab-7` adds catalogue revision three; protocol remains 4. All peers need
-matching build/content. Known revision-one/two local saves migrate after validation while
+Saw is 20 kg/30 power. Hold primary to power it immediately (charge 1/phase active),
+using 9 battery/14 heat per second. Every full 1/3 second of maintained target
+contact deals 6 raw damage to one contacted zone. Separation or loss of power
+discards partial contact time. Secondary stops it; zero battery or heat 100 ends
+damage eligibility that tick. No authored saw impulse or pin is applied.
+Build `mvp-ab-8` adds catalogue revision four; protocol remains 4. All peers need
+matching build/content. Known revision-one/two/three saves migrate after validation while
 preserving every selected part and cosmetic; unknown/incompatible saves stay invalid.
 Catalogue hashes normalize CRLF to LF for matching Windows/Linux content.
 

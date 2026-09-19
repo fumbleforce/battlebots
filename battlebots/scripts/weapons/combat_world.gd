@@ -10,11 +10,21 @@ var events: Array = []
 var pending_hits: Array = []
 var _sweep_origins: Dictionary = {}
 var _hammer_hits: Dictionary = {}
+var _saw_contacts: Dictionary = {}
+var _saw_last_tick := -1
+var _saw_round := -1
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
 	events.clear()
 	pending_hits.clear()
+	# AuthorityWorld skips weapon resolution while the match is inactive. A gap
+	# in its tick sequence must not preserve partial maintained-contact damage.
+	if tick != _saw_last_tick + 1 or round_index != _saw_round:
+		_saw_contacts.clear()
+	_saw_last_tick = tick
+	_saw_round = round_index
+	var saw_contacts: Dictionary = {}
 	for key: String in cooldowns.keys():
 		if cooldowns[key] <= time:
 			cooldowns.erase(key)
@@ -29,6 +39,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		# A committed strike may reach the heat limit on its impact tick. The
 		# resulting lockout prevents the next activation, not this paid strike.
 		if state.zones.weapon <= 0 or (state.overheated and not state.strike):
+			continue
+		if state.stats.weapon == "saw" and state.weapon_phase != "active":
 			continue
 		if state.stats.weapon == "hammer":
 			if not state.strike or state.attack_id <= 0:
@@ -52,13 +64,20 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				continue
 			var direction := (victim.body.global_position - attacker.body.global_position).normalized()
 			var contact_origin := attacker.body.global_position
-			if state.stats.weapon in ["horizontal_spinner", "hammer"]:
+			if state.stats.weapon in ["horizontal_spinner", "hammer", "saw"]:
 				contact_origin = _sweep_origins.get(victim.body.get_instance_id(), attacker.body.global_position)
 			var local_point := victim.body.global_transform.affine_inverse() * contact_origin
 			var half: Vector3 = victim.combat.stats.size * 0.5
 			local_point = local_point.clamp(-half, half)
 			var point := victim.body.global_transform * local_point
-			if state.stats.weapon == "hammer":
+			if state.stats.weapon == "saw":
+				var contact_seconds := float(_saw_contacts.get(key, 0.0)) + delta
+				var cadence := 1.0 / 3.0
+				while contact_seconds + 0.000001 >= cadence:
+					_hit(attacker, victim, point, 6, Vector3.ZERO, tick, round_index)
+					contact_seconds = maxf(0.0, contact_seconds - cadence)
+				saw_contacts[key] = contact_seconds
+			elif state.stats.weapon == "hammer":
 				if not _hammer_hits[id].targets.has(target_id):
 					_hit(attacker, victim, point, 38, -attacker.body.global_basis.y * victim.body.mass, tick, round_index)
 					_hammer_hits[id].targets[target_id] = true
@@ -85,6 +104,9 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 						victim.body.apply_force(Vector3.UP * victim.body.mass * 12 * state.charge, point - victim.body.global_position)
 				else:
 					pins.erase(key)
+	# Only eligible contacts this tick survive. Breaking contact or power cannot
+	# bank a nearly complete damage interval for a later touch.
+	_saw_contacts = saw_contacts
 	# One unordered ram pair per half-second; resolve both struck zones once.
 	var ids := bots.keys()
 	for i: int in range(ids.size()):
@@ -117,6 +139,8 @@ func _sweep(bot: MvpBot) -> Array:
 		return _horizontal_sweep(bot)
 	if bot.combat.stats.weapon == "hammer":
 		return _hammer_sweep(bot)
+	if bot.combat.stats.weapon == "saw":
+		return _saw_sweep(bot)
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45, 0.65)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2))
@@ -148,6 +172,29 @@ func _horizontal_sweep(bot: MvpBot) -> Array:
 	# body poses first preserves the curved path during a turn about the chassis.
 	var travel := start.origin.distance_to(finish.origin) + angle * (local.origin.length() + shape.radius)
 	var steps := clampi(ceili(travel / 0.1) + 2, 2, 128)
+	var found: Array = []
+	for index: int in range(steps):
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = shape
+		query.transform = start.interpolate_with(finish, float(index) / (steps - 1)) * local
+		query.collision_mask = BaselineConfig.BOT_LAYER
+		query.exclude = [bot.body.get_rid()]
+		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
+			if not found.has(hit.collider_id):
+				found.append(hit.collider_id)
+				_sweep_origins[hit.collider_id] = query.transform.origin
+	return found
+
+func _saw_sweep(bot: MvpBot) -> Array:
+	var shape := CylinderShape3D.new()
+	shape.radius = 0.32
+	shape.height = 0.16
+	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, 0.1, -bot.combat.stats.size.z * 0.5 - 0.4))
+	var start := bot.previous_pose
+	var finish := bot.body.global_transform
+	var angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
+	var travel := start.origin.distance_to(finish.origin) + angle * (local.origin.length() + shape.radius)
+	var steps := maxi(2, ceili(travel / 0.08) + 1)
 	var found: Array = []
 	for index: int in range(steps):
 		var query := PhysicsShapeQueryParameters3D.new()
@@ -208,7 +255,7 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	victim.body.apply_impulse(impulse, point - victim.body.global_position)
 	attacker.body.apply_central_impulse(-impulse * recoil)
 	event_id += 1
-	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner"]:
+	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:
 		attacker.combat.attack_id += 1
 	events.append({"event_id":event_id, "round":round_index, "tick":tick,
 		"attack_id":attacker.combat.attack_id, "attacker":attacker.entity_id,

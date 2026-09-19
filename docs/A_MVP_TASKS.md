@@ -24,6 +24,7 @@ families are phase 4, not MVP; public account/allocation services are phase 5.
 - [x] Four-client lifecycle/reconnect/rematch under whole-UDP impairment, including reliable control and lost initial connect packet.
 - [x] Sustained wall/chamfer collision bounds and settling; inactive/eliminated remote extrapolation regression.
 - [ ] Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
+- [ ] Diagnose intermittent CI observer convergence failures (FFA damage in 35466215676; 5v5 rematch spawn in 35466883297). Strict gates remain; local reproductions pass.
 - [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
 
 The final LAN and human-feel gate cannot be replaced by localhost tests. Record
@@ -36,7 +37,7 @@ without running them.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; independent rules/session/menu checks pass.
 - [x] Horizontal spinner with server-owned swept side contact, recoil and independent state/physics/ENet checks.
 - [x] Hammer with committed overhead sweep, press edges, resource/recovery timing and Duelist starter; independent state/physics/ENet checks.
-- [ ] Saw mechanics with server-owned stats/hits.
+- [x] Saw maintained-contact cadence, resources, swept blade and independent state/physics/ENet checks.
 - [ ] Ten-player combat/performance/bandwidth and sustained soak acceptance.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.
 

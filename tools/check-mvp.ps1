@@ -22,6 +22,9 @@ Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_physics.tscn' 'HORIZON
 Invoke-MvpTest 'res://tests/simulation/hammer_state.gd' 'HAMMER STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/hammer_visual.gd' 'HAMMER VISUAL PASS'
 Invoke-MvpTest 'res://tests/simulation/hammer_physics.tscn' 'HAMMER PHYSICS PASS' -Scene
+Invoke-MvpTest 'res://tests/simulation/saw_state.gd' 'SAW STATE PASS'
+Invoke-MvpTest 'res://tests/simulation/saw_visual.gd' 'SAW VISUAL PASS'
+Invoke-MvpTest 'res://tests/simulation/saw_physics.tscn' 'SAW PHYSICS PASS' -Scene
 Invoke-MvpTest 'res://tests/simulation/rules_smoke.gd' 'RULES PASS'
 Invoke-MvpTest 'res://tests/simulation/five_v_five_rules.tscn' 'FIVE V FIVE RULES PASS' -Scene
 Invoke-MvpTest 'res://tests/simulation/ffa_rules.tscn' 'FFA RULES PASS' -Scene
@@ -52,6 +55,7 @@ try {
         Invoke-MvpTest 'res://tests/network/contact_reconciliation.tscn' 'CONTACT NETWORK PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/horizontal_spinner_session.tscn' 'HORIZONTAL SPINNER SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/hammer_session.tscn' 'HAMMER SESSION PASS' -Scene -RealTime
+        Invoke-MvpTest 'res://tests/network/saw_session.tscn' 'SAW SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/transport_session.tscn' 'TRANSPORT SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/five_v_five_session.tscn' 'FIVE V FIVE SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/ffa_session.tscn' 'FFA SESSION PASS' -Scene -RealTime

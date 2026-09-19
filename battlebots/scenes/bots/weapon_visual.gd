@@ -40,6 +40,23 @@ func assemble(weapon: String, size: Vector3) -> void:
 		_box(mechanism, Vector3(disc.top_radius * 2, 0.24, 0.12), Vector3.ZERO, accent)
 		_box(mechanism, Vector3(0.12, 0.24, disc.top_radius * 2), Vector3.ZERO, accent)
 		_box(self, Vector3(0.24, 0.2, 0.55), Vector3(0, 0, -size.z * 0.5 + 0.05), metal)
+	elif kind == "saw":
+		mechanism.position = Vector3(0, 0.1, -size.z * 0.5 - 0.4)
+		var disc := CylinderMesh.new()
+		disc.top_radius = 0.28
+		disc.bottom_radius = 0.28
+		disc.height = 0.16
+		disc.radial_segments = 24
+		var blade := _mesh(mechanism, disc, Vector3.ZERO, metal)
+		blade.rotation.z = PI / 2.0
+		for tooth: int in range(12):
+			var angle := TAU * tooth / 12.0
+			var tooth_mesh := BoxMesh.new()
+			tooth_mesh.size = Vector3(0.16, 0.08, 0.08)
+			var tip := _mesh(mechanism, tooth_mesh, Vector3(0, cos(angle), sin(angle)) * 0.28, accent)
+			tip.rotation.x = angle
+		for side: int in [-1, 1]:
+			_box(self, Vector3(0.1, 0.14, 0.6), Vector3(side * 0.16, 0.1, -size.z * 0.5 - 0.15), metal)
 	elif kind == "hammer":
 		mechanism.position = Vector3(0, size.y * 0.5, -size.z * 0.5 + 0.15)
 		mechanism.rotation.x = PI / 6.0
@@ -75,6 +92,9 @@ func show_state(view: BotView, delta: float) -> void:
 	elif kind == "horizontal_spinner":
 		if not disabled:
 			mechanism.rotation.y = wrapf(mechanism.rotation.y + view.weapon_charge_fraction * delta * 24, -PI, PI)
+	elif kind == "saw":
+		if not disabled and view.weapon_state == "active":
+			mechanism.rotation.x = wrapf(mechanism.rotation.x + delta * 36, -PI, PI)
 	elif kind == "hammer":
 		var angle := PI / 6.0
 		if view.weapon_state == "windup":

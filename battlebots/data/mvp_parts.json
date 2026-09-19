@@ -1,5 +1,5 @@
 {
-  "revision": 3,
+  "revision": 4,
   "parts": [
     {"id":"compact","category":"chassis","mass":25,"power":0,"core":220,"size":[1.2,0.5,1.5]},
     {"id":"balanced","category":"chassis","mass":30,"power":0,"core":260,"size":[1.6,0.5,2.0]},
@@ -10,6 +10,7 @@
     {"id":"vertical_spinner","category":"weapon","mass":28,"power":40},
     {"id":"horizontal_spinner","category":"weapon","mass":30,"power":40},
     {"id":"hammer","category":"weapon","mass":24,"power":35},
+    {"id":"saw","category":"weapon","mass":20,"power":30},
     {"id":"lifter","category":"weapon","mass":22,"power":30},
     {"id":"light","category":"armor","mass":10,"power":0,"reduction":0.1,"integrity":60},
     {"id":"standard_armor","category":"armor","mass":18,"power":0,"reduction":0.25,"integrity":90},

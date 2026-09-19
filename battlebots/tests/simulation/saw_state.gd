@@ -1,0 +1,177 @@
+extends SceneTree
+## Saw power is immediate; cadence/contact geometry belongs to separate world tests.
+const STEP := 1.0 / 60.0
+var failures := 0
+var registry := ContentRegistry.new()
+
+func _initialize() -> void:
+	call_deferred("run")
+
+func check(ok: bool, message: String) -> void:
+	if not ok:
+		failures += 1
+		push_error(message)
+
+func near(actual: float, expected: float, message: String) -> void:
+	check(absf(actual - expected) < 0.000001, "%s: expected %.6f, got %.6f" % [message, expected, actual])
+
+func fresh(utility := "recovery_assist") -> CombatState:
+	var draft := registry.starter()
+	draft.parts.weapon = "saw"
+	draft.parts.utility = utility
+	var validation := registry.validate(draft)
+	check(validation.valid, "Saw test loadout validates")
+	return CombatState.new(validation.stats)
+
+func held() -> BotCommand:
+	var command := BotCommand.new()
+	command.primary_held = true
+	return command
+
+func ticks(state: CombatState, count: int, command: BotCommand) -> void:
+	for index: int in range(count):
+		state.tick(STEP, command, true)
+
+func run() -> void:
+	catalogue()
+	power_and_resources()
+	stop_conditions()
+	thermal_lock()
+	idle_and_recovery()
+	legacy()
+	print("SAW STATE PASS" if failures == 0 else "SAW STATE FAIL")
+	quit(0 if failures == 0 else 1)
+
+func catalogue() -> void:
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/mvp_parts.json"))
+	check(data.revision == 4, "Saw advances catalogue to revision four")
+	var part: Dictionary = registry.parts.get("saw", {})
+	check(part.get("mass") == 20 and part.get("power") == 30 and part.get("category") == "weapon", "Saw uses specified mass, installed power and category")
+	var state := fresh()
+	near(state.stats.mass, 95, "Balanced saw build mass")
+	near(state.stats.power, 65, "Balanced saw build installed power")
+	check(registry.validate(registry.starter()).valid and registry.validate(registry.starter(true)).valid and registry.validate(registry.duelist()).valid, "All existing canonical starters remain legal")
+
+func power_and_resources() -> void:
+	var state := fresh()
+	state.tick(STEP, held(), true)
+	check(state.charge == 1 and state.weapon_phase == "active", "Saw powers immediately without a spinup or press edge")
+	near(state.battery, 99.85, "First saw tick battery cost")
+	near(state.heat, 14.0 / 60.0, "First saw tick heat")
+	ticks(state, 59, held())
+	near(state.battery, 91, "One second of powered misses costs nine battery")
+	near(state.heat, 14, "One second of powered misses produces fourteen heat")
+	check(state.attack_id == 0 and not state.launch and not state.strike, "Saw power does not invent a contact event or committed attack")
+	check(state.snapshot().weapon == "saw" and state.snapshot().weapon_state == "active" and state.snapshot().charge == 1, "Existing snapshot fields publish saw power")
+	state = fresh()
+	state.battery = 0.15
+	state.tick(STEP, held(), true)
+	near(state.battery, 0, "Exactly one tick of fuel is consumed")
+	check(state.charge == 0 and state.weapon_phase == "idle" and state.failure_reason == "battery_empty", "Reaching zero battery prevents damage eligibility that same tick")
+	state.tick(STEP, held(), true)
+	check(state.charge == 0 and state.weapon_phase == "idle", "Zero battery cannot power another tick")
+	near(state.drive_scale(), 1, "Battery exhaustion does not stop drive pods")
+	state = fresh()
+	state.battery = 0.149
+	state.tick(STEP, held(), true)
+	near(state.battery, 0.149, "Insufficient full-tick energy is not spent")
+	check(state.charge == 0 and state.failure_reason == "battery_empty", "Insufficient full-tick energy rejects activation")
+
+func stop_conditions() -> void:
+	for reason: String in ["release", "secondary", "destroyed", "inactive", "eliminated"]:
+		var state := fresh()
+		state.tick(STEP, held(), true)
+		var command := held()
+		if reason == "release":
+			command.primary_held = false
+		elif reason == "secondary":
+			command.secondary_held = true
+		elif reason == "destroyed":
+			state.zones.weapon = 0
+		elif reason == "eliminated":
+			state.eliminate("fixture")
+		state.tick(STEP, command, reason != "inactive")
+		check(state.charge == 0 and state.weapon_phase != "active", reason + " immediately removes saw contact eligibility")
+		near(state.battery, 99.85, reason + " does not spend another powered tick")
+	var state := fresh()
+	state.tick(STEP, held(), false)
+	check(state.battery == 100 and state.heat == 0 and state.charge == 0, "Countdown blocks saw resource use")
+	state.tick(STEP, held(), true)
+	state.tick(STEP, BotCommand.new(), true)
+	state.tick(STEP, held(), true)
+	check(state.charge == 1 and state.weapon_phase == "active", "Fresh held contact can restart immediately after release")
+
+func thermal_lock() -> void:
+	var state := fresh()
+	state.heat = 99.9
+	state.tick(STEP, held(), true)
+	check(state.heat == 100 and state.overheated and state.charge == 0 and state.weapon_phase == "overheated", "Heat100 locks the saw and removes same-tick contact eligibility")
+	var battery_before := state.battery
+	state.heat = 53
+	state.tick(0.25, held(), true)
+	near(state.heat, 50, "Overheated saw cools at twelve per second despite held primary")
+	near(state.battery, battery_before, "Overheated activation does not consume energy")
+	check(state.charge == 0 and state.failure_reason == "overheated", "Tick cooling toward threshold stays blocked")
+	state.tick(STEP, held(), true)
+	check(not state.overheated and state.weapon_phase == "active" and state.charge == 1, "Saw restarts when heat begins at fifty")
+	state = fresh("cooling_pack")
+	state.heat = 30
+	state.tick(0.5, BotCommand.new(), true)
+	near(state.heat, 22.5, "Cooling utility preserves fifteen heat per second")
+
+func idle_and_recovery() -> void:
+	var state := fresh()
+	ticks(state, 60, held())
+	ticks(state, 59, BotCommand.new())
+	near(state.battery, 91, "No recharge before full inactivity wait")
+	state.tick(STEP, BotCommand.new(), true)
+	near(state.battery, 91, "Exact one-second inactivity boundary has no premature recharge")
+	ticks(state, 60, BotCommand.new())
+	near(state.battery, 99, "Following idle second restores eight battery")
+	ticks(state, 60, BotCommand.new())
+	near(state.battery, 100, "Recharge never exceeds capacity")
+	state = fresh("cooling_pack")
+	state.battery = 50
+	state._inactive = 0.9
+	state.tick(0.2, BotCommand.new(), true)
+	near(state.battery, 50.8, "A tick crossing the wait boundary only recharges its eligible portion")
+	state = fresh("cooling_pack")
+	state.inverted_seconds = 2
+	state.zones.weapon = 0
+	var command := BotCommand.new()
+	command.recovery_pressed = true
+	state.tick(STEP, command, true)
+	near(state.battery, 70, "Destroyed saw does not block recovery activation")
+	near(state.recovery_remaining, 2, "Non-assist recovery duration is unchanged")
+	ticks(state, 120, BotCommand.new())
+	near(state.battery, 70, "Recovery blocks recharge for its full duration")
+	near(state._inactive, 0, "Final recovery tick does not count as inactivity")
+	ticks(state, 60, BotCommand.new())
+	near(state.battery, 70, "Full one-second wait follows recovery")
+	ticks(state, 60, BotCommand.new())
+	near(state.battery, 78, "Battery recharges while still inverted after recovery")
+	state = fresh()
+	state.inverted_seconds = 2
+	command = held()
+	command.recovery_pressed = true
+	state.tick(STEP, command, true)
+	near(state.battery, 69.85, "Simultaneous recovery and saw power pay both costs")
+	check(state.charge == 1 and state.recovery_count == 1, "Recovery does not silently disable legal saw power")
+
+func legacy() -> void:
+	for weapon: String in ["vertical_spinner", "horizontal_spinner", "lifter", "hammer"]:
+		var draft := registry.starter()
+		draft.parts.weapon = weapon
+		var state := CombatState.new(registry.validate(draft).stats)
+		var command := held()
+		command.primary_pressed = true
+		state.tick(STEP, command, true)
+		command.primary_pressed = false
+		var duration := 120 if weapon == "horizontal_spinner" else (90 if weapon == "vertical_spinner" else (21 if weapon == "hammer" else 60))
+		ticks(state, duration - 1, command)
+		near(state.charge, 1, weapon + " preserves existing activation timing")
+		if weapon == "hammer":
+			check(state.strike and state.cooldown == 1.4, "Hammer retains committed strike and recovery")
+		elif weapon == "lifter":
+			state.tick(STEP, BotCommand.new(), true)
+			check(state.launch and state.cooldown == 3, "Lifter release remains unchanged")

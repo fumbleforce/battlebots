@@ -199,7 +199,20 @@ func check_spawns() -> void:
 			check(not observed.remote_state.is_empty(), "Every client baseline contains every bot")
 			check(observed.remote_state.entity == id and observed.remote_state.epoch == WireCodec.snapshot_epoch(server.match_state.match_id, 1),
 				"Ten-bot baseline preserves entity and match identity")
-			check(observed.presentation.global_position.distance_to(bot.body.global_position) < 0.15, "Every observer starts at the authoritative spawn")
+			var spawn_error := observed.presentation.global_position.distance_to(bot.body.global_position)
+			if spawn_error >= 0.15:
+				var server_peer_id: int = server.players[client.local_entity].peer
+				var remote: ENetPacketPeer = server.multiplayer.multiplayer_peer.get_peer(server_peer_id)
+				print("5v5 spawn fault: observer=", client.local_entity, " entity=", id,
+					" error=", spawn_error, " authority=", bot.body.global_position,
+					" observed=", observed.presentation.global_position, " body=", observed.body.global_position,
+					" snapshot=", observed.remote_state.get("pose"), " velocity=", observed.remote_state.get("velocity"),
+					" server_tick=", server.world.tick, " snapshot_tick=", observed.remote_state.get("tick"),
+					" snapshot_age=", client._time - float(observed.remote_state.get("arrival", client._time)),
+					" frozen=", observed.body.freeze, " correction=", observed.body.correction,
+					" visual_error=", observed.visual_error, " clock_ready=", client._clock_ready,
+					" server_throttle=", remote.get_statistic(ENetPacketPeer.PEER_PACKET_THROTTLE))
+			check(spawn_error < 0.15, "Every observer starts at the authoritative spawn")
 
 func reset_complete(round_index: int) -> bool:
 	var epoch := WireCodec.snapshot_epoch(server.match_state.match_id, round_index)

@@ -93,6 +93,15 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Saw (implemented):** `codex/a-saw`, based on hammer `9610946`. A changed
+  combat state/world, catalogue/save migration, primitive assembly and independent
+  test/check paths. B's assets, menus/input and modelling worktree stay untouched.
+  `saw` uses existing active/charge view fields; held primary consumes 9
+  battery/14 heat per second, with 6 raw damage per 1/3 second of maintained contact.
+  Independent state/physics/visual and ENet 0/80/150-ms checks pass. See
+  [scope and acceptance](coordination/A_SAW.md). Build mvp-ab-8/protocol 4.
+  All five weapon families are implemented; performance/soak and services remain.
+
 - **Hammer (implemented):** `codex/a-hammer` on horizontal spinner `b46084e`;
   [scope and evidence](coordination/A_HAMMER.md). Adds hammer/Duelist, committed
   windup/strike/recovery and primitive arm animation, build mvp-ab-7/protocol 4.
