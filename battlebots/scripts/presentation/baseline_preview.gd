@@ -1,37 +1,99 @@
 extends Node3D
-## B-owned starting adapter. Replace fixed camera and label with player presentation.
+## B-owned input/presentation adapter; never writes authoritative bot transforms.
 
 @export var source_path: NodePath
 @export var fixture_title: String = "Development fixture"
-@onready var source: BotSource = get_node(source_path) as BotSource
-@onready var status: Label = $CanvasLayer/Status
+@onready var source: BotSource = get_node_or_null(source_path) as BotSource
+@onready var rig: BotOrbitCamera = $OrbitCamera
+@onready var status: Label = $CanvasLayer/Panel/Margin/Content/Status
+@onready var hint: Label = $CanvasLayer/Hint
 var sequence: int = 0
+var controls_enabled: bool = false
+var _suppress_primary_until_release: bool = false
 
-func _physics_process(_delta: float) -> void:
+func _ready() -> void:
+	$CanvasLayer/Panel/Margin/Content/Title.text = fixture_title
+	rig.bind_source(source)
+	get_window().focus_exited.connect(release_controls)
+	if DisplayServer.get_name() != "headless":
+		capture_controls()
+
+func capture_controls() -> void:
+	controls_enabled = true
+	_suppress_primary_until_release = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func release_controls() -> void:
+	controls_enabled = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	rig.driving = false
+	_submit_neutral()
+
+func _exit_tree() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func _submit_neutral() -> void:
 	if not is_instance_valid(source):
 		return
 	var command := BotCommand.new()
 	command.sequence = sequence
 	sequence += 1
-	if get_window().has_focus():
+	source.submit_command(command)
+
+func _physics_process(_delta: float) -> void:
+	if not is_instance_valid(source):
+		if controls_enabled:
+			release_controls()
+		return
+	var command := BotCommand.new()
+	command.sequence = sequence
+	sequence += 1
+	if controls_enabled and get_window().has_focus():
+		if not Input.is_action_pressed("primary"):
+			_suppress_primary_until_release = false
 		command.throttle = Input.get_axis("drive_reverse", "drive_forward")
 		command.steering = Input.get_axis("steer_left", "steer_right")
 		command.brake = Input.is_action_pressed("brake")
-		command.primary_held = Input.is_action_pressed("primary")
-		command.primary_pressed = Input.is_action_just_pressed("primary")
+		command.primary_held = Input.is_action_pressed("primary") \
+			and not _suppress_primary_until_release
+		command.primary_pressed = Input.is_action_just_pressed("primary") \
+			and not _suppress_primary_until_release
 		command.secondary_held = Input.is_action_pressed("secondary")
 		command.recovery_pressed = Input.is_action_just_pressed("recover")
+	rig.driving = absf(command.throttle) > 0.05 or absf(command.steering) > 0.05
 	source.submit_command(command)
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(source):
+		status.text = "Target unavailable"
 		return
 	var view := source.read_view()
-	status.text = "%s\nCore %d%% | Battery %d%% | Heat %d%% | Weapon %d%%\nBaseline only: driving/combat not implemented. Escape: launcher" % [
-		fixture_title, roundi(view.core_fraction * 100.0),
-		roundi(view.battery_fraction * 100.0), roundi(view.heat_fraction * 100.0),
-		roundi(view.weapon_charge_fraction * 100.0)]
+	status.text = "CORE  %d%%     BATTERY  %d%%     HEAT  %d%%\nWEAPON  %d%%    /    %s" % [
+		roundi(view.core_fraction * 100.0), roundi(view.battery_fraction * 100.0),
+		roundi(view.heat_fraction * 100.0), roundi(view.weapon_charge_fraction * 100.0),
+		String(view.weapon_state).to_upper()]
+	hint.text = "Mouse  Orbit   |   Wheel  Zoom   |   MMB  Recenter   |   Esc  Release cursor" \
+		if controls_enabled else "Click the arena to resume   |   Esc  Return to launcher"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
-		get_tree().change_scene_to_file("res://scenes/app/main.tscn")
+		if controls_enabled:
+			release_controls()
+		else:
+			get_tree().change_scene_to_file("res://scenes/app/main.tscn")
+		get_viewport().set_input_as_handled()
+		return
+	if not controls_enabled:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
+				and event.pressed and get_window().has_focus():
+			capture_controls()
+			get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseMotion:
+		rig.orbit(event.relative)
+	elif event.is_action_pressed("camera_zoom_in"):
+		rig.zoom(-1.0)
+	elif event.is_action_pressed("camera_zoom_out"):
+		rig.zoom(1.0)
+	elif event.is_action_pressed("camera_recenter"):
+		rig.recenter()
