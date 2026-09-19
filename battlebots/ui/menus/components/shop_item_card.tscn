@@ -1,0 +1,105 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/components/shop_item_card.gd" id="2_shopitem"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hatch_dark.png" id="3_hatchdar"]
+
+[node name="ShopItemCard" type="PanelContainer"]
+theme_type_variation = &"PanelFlush"
+size_flags_horizontal = 3
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_shopitem")
+
+[node name="Col" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ArtBox" type="Control" parent="Col"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 132)
+clip_contents = true
+mouse_filter = 2
+
+[node name="Swatch" type="ColorRect" parent="Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1843, 0.4353, 0.8784, 1)
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+
+[node name="Art" type="TextureRect" parent="Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_hatchdar")
+expand_mode = 1
+stretch_mode = 1
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="Col/ArtBox/Art"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ArtLabel" type="Label" parent="Col/ArtBox/Art/Center"]
+layout_mode = 2
+text = "ITEM ART"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.4941, 0.5412, 0.6, 1)
+
+[node name="Text" type="MarginContainer" parent="Col"]
+layout_mode = 2
+theme_override_constants/margin_left = 19
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 19
+theme_override_constants/margin_bottom = 19
+
+[node name="Col" type="VBoxContainer" parent="Col/Text"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Kind" type="Label" parent="Col/Text/Col"]
+layout_mode = 2
+text = "WEAPON"
+theme_type_variation = &"EyebrowAmber"
+theme_override_font_sizes/font_size = 14
+unique_name_in_owner = true
+
+[node name="Name" type="Label" parent="Col/Text/Col"]
+layout_mode = 2
+text = "Flipper Arm"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 31
+unique_name_in_owner = true
+
+[node name="Info" type="Label" parent="Col/Text/Col"]
+layout_mode = 2
+text = "Launch bots over barriers · DMG −10"
+theme_type_variation = &"Body"
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 3
+unique_name_in_owner = true
+
+[node name="Buy" type="Button" parent="Col/Text/Col"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "BUY · 1,800"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 53)
+theme_override_font_sizes/font_size = 24

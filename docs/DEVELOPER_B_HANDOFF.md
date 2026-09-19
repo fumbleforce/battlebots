@@ -1,12 +1,31 @@
 # Developer B — arena and third-person camera
 
-Owner: Developer B. Active branch: `codex/b-match-hud`.
-Dependency base: B playable lobby `eea0bb2`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
+Owner: Developer B. Active branch: `codex/b-menu-kit`.
+Dependency base: B match HUD `d983612`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
 was published on `codex/b-arena-camera` through `40aa6b1`.
 
 Ongoing work is tracked in [Worker B's to-do list](DEVELOPER_B_TODO.md), including
 priorities, ownership boundaries and dependencies requested from A.
 
+## User-supplied menu kit
+
+F5 now opens scenes/dev/b_menu_game.tscn, using all eight imported menu designs at
+ui/menus. The persistent root owns one real session and one input producer;
+navigation replaces only the menu Control. MenuRouter and PlayerProfile are added
+autoloads. The original project viewport, renderer, physics and input actions stay
+unchanged. Authored 1920x1080 menus scale to the 1280x720 game viewport.
+
+Practice/duel/2v2 use canonical selected builds. LAN host/join/team/build/ready use
+public session APIs; server loading/countdown opens the actual arena. Garage and
+Customize persist through LoadoutStore; all functional parts are free. Settings
+opens existing preferences. Supplied images remain labeled concept art. Unsupported
+career, ranked/public services, 5v5/FFA, invites and decals are explicit.
+
+A: project.godot entry/autoload wiring is the only shared runtime edit, required by
+the user's request to implement this menu. Existing app scenes and command-line
+server/host/join paths are preserved. Continue merging protocol-4 independently;
+current B peers still require mvp-ab-2/protocol3. See coordination/B_MENU_KIT.md.
+Detailed results work was saved separately when the user prioritized this kit.
 ## B-08a: in-arena match status
 
 MatchHud.render(match_view, practice) displays authoritative phase, round, clock,

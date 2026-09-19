@@ -28,6 +28,9 @@ $checks = @(
     @('network_diagnostics_sandbox_test.gd', 'NETWORK DIAGNOSTICS SANDBOX PASS'),
     @('lobby_panel_test.gd', 'LOBBY PANEL PASS'),
     @('match_hud_test.gd', 'MATCH HUD PASS'),
+    @('menu_profile_test.gd', 'MENU PROFILE PASS'),
+    @('menu_customization_screens_test.gd', 'MENU CUSTOMIZATION SCREENS PASS'),
+    @('menu_kit_test.gd', 'MENU KIT PASS'),
     @('lobby_game_test.gd', 'LOBBY GAME PASS'),
     @('camera_contact_test.gd', 'CAMERA CONTACT PASS')
 )
@@ -38,7 +41,9 @@ foreach ($check in $checks) {
 }
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
 foreach ($check in @(@('lobby_session_test.gd', 'LOBBY SESSION PASS'),
-    @('lobby_game_network_test.gd', 'LOBBY GAME NETWORK PASS'))) {
+    @('lobby_game_network_test.gd', 'LOBBY GAME NETWORK PASS'),
+    @('menu_kit_lobby_test.gd', 'MENU KIT LOBBY PASS'),
+    @('menu_game_network_test.gd', 'MENU GAME NETWORK PASS'))) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
         '--max-fps', '60', '--script', "res://tests/presentation/$($check[0])",
         '--quit-after', '6000') -Marker $check[1]
