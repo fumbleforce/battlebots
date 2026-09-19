@@ -9,14 +9,15 @@ var credited: Dictionary = {}
 
 func _ready() -> void:
 	make_box(Vector3(50, 1, 50), Vector3(0, -0.5, 0))
-	make_box(Vector3(51, 3, 0.5), Vector3(0, 1.5, -25.25))
-	make_box(Vector3(51, 3, 0.5), Vector3(0, 1.5, 25.25))
-	make_box(Vector3(0.5, 3, 50), Vector3(-25.25, 1.5, 0))
-	make_box(Vector3(0.5, 3, 50), Vector3(25.25, 1.5, 0))
+	make_box(Vector3(52, 3, 1), Vector3(0, 1.5, -25.5))
+	make_box(Vector3(52, 3, 1), Vector3(0, 1.5, 25.5))
+	make_box(Vector3(1, 3, 50), Vector3(-25.5, 1.5, 0))
+	make_box(Vector3(1, 3, 50), Vector3(25.5, 1.5, 0))
 	for x: int in [-1, 1]:
 		for z: int in [-1, 1]:
-			var corner := make_box(Vector3(2.828, 3, 0.5), Vector3(x * 24.0, 1.5, z * 24.0))
-			corner.rotation.y = -x * z * PI / 4
+			# Match B's 2 m chamfer: interior plane passes through (+/-24,+/-24).
+			var corner := make_box(Vector3(4.242641, 3, 1), Vector3(x * 24.353553, 1.5, z * 24.353553))
+			corner.rotation.y = x * z * PI / 4
 
 func make_box(size: Vector3, position: Vector3) -> StaticBody3D:
 	var node := StaticBody3D.new()

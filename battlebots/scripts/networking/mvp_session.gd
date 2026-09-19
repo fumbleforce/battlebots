@@ -672,3 +672,14 @@ func _pong(stamp: int) -> void:
 
 func local_source() -> BotSource:
 	return world.bots.get(local_entity) if is_instance_valid(world) else null
+
+func spectator_sources() -> Array[BotSource]:
+	var sources: Array[BotSource] = []
+	if not is_instance_valid(world) or not world.bots.has(local_entity):
+		return sources
+	var local: MvpBot = world.bots[local_entity]
+	for id: int in world.bots:
+		var bot: MvpBot = world.bots[id]
+		if bot.team == local.team and not bot.read_view().eliminated:
+			sources.append(bot)
+	return sources

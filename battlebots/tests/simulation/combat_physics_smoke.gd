@@ -84,6 +84,27 @@ func run() -> void:
 	b.combat.core = 1
 	world.step(1.0 / 60, true, 1)
 	check(a.combat.eliminated and b.combat.eliminated, "Mutual lethal attacks resolve together before judging")
+	world.reset_round()
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
+	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15))
+	await frames(60, false)
+	a.previous_pose = a.body.global_transform
+	b.previous_pose = b.body.global_transform
+	a.combat.stats.weapon = "lifter"
+	a.combat.charge = 1
+	a.combat._previous_held = true
+	a.input_age = 1
+	var safe_core := b.combat.core
+	world.step(1.0 / 60, true, 1)
+	check(not a.combat.launch and b.combat.core == safe_core, "Stale held input lowers lifter without firing")
+	a.body.freeze = true
+	b.body.freeze = true
+	a.combat.charge = 1
+	a.combat.weapon_phase = "active"
+	b.body.linear_velocity = Vector3.ZERO
+	for frame: int in range(305):
+		world.weapons.step(1.0 / 60, world.bots, frame, 1)
+	check(world.weapons.blocked.has("1:2"), "Five-second weapon restraint enforces three-second release")
 	world.queue_free()
 	await process_frame
 	print("COMBAT PHYSICS PASS" if failures == 0 else "COMBAT PHYSICS FAIL")

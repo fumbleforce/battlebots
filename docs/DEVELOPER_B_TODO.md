@@ -5,8 +5,8 @@ handoffs or PRs. Status describes B's branch, not what has been merged to main.
 Nothing here implies A has already implemented a requested dependency.
 
 **Current branch:** `codex/b-arena-camera` (camera baseline plus dependent UI work).
-**Latest completed increment:** B-02, reusable bot-status HUD.
-**Next increment:** B-03, camera settings UI.
+**Latest completed increment:** B-03, camera settings UI.
+**Next increment:** B-04, input and menu polish.
 **Integration reference:** [B handoff](DEVELOPER_B_HANDOFF.md).
 **Working rules:** [ownership and workflow](TEAM_WORKFLOW.md).
 
@@ -23,14 +23,14 @@ Nothing here implies A has already implemented a requested dependency.
   Invalid values are labelled, out-of-range values clamped for display, and missing
   targets clear stale information. Shared A/B scene checks and rendered tests passed;
   the layout was visually inspected at 1280 × 720. No shared API changes.
+- [x] **B-03: Camera settings UI.** Live sensitivity, Y inversion, auto-recenter
+  and strength controls with defaults, Save/Cancel and isolated local persistence.
+  Opening the modal neutralizes gameplay input. Tests cover fresh-scene reload,
+  replacing a saved file, cancel, invalid settings, failed saves and focus loss;
+  the rendered 1280 × 720 panel was visually checked.
 
 ## Active and next — B can do these independently
 
-- [ ] **B-03: Camera settings UI.** Sensitivity, Y inversion, automatic recenter,
-  and recenter strength, with defaults and local persistence. Use a B-specific
-  settings file until A's profile/settings service is agreed; do not introduce a
-  competing global service. **Done when:** settings work live and survive restart,
-  and opening the panel neutralizes gameplay input.
 - [ ] **B-04: Input and menu polish.** Keyboard navigation, reliable cursor
   capture, focus-loss behavior, and clear resume/return controls. Prepare rebinding
   UI against an agreed settings adapter; ask A for required InputMap changes.
@@ -90,16 +90,19 @@ not merge it to main; A and B should review integration changes before merging.
 
 ## Latest handoff to A
 
-- B-01 and B-02 are ready on this branch; B-03 is next.
+- B-01 through B-03 are ready on this branch; B-04 is next.
 - Continue drive/network work without editing B's UI/camera scenes.
-- No engine settings or new input actions are requested for B-02.
+- No engine settings or new input actions are requested through B-03.
+- Camera preferences use user://presentation_camera.cfg and a B-owned adapter;
+  this does not replace A's future profile/settings service. Coordinate migration
+  before moving these settings into shared persistence.
 - A's drive/MVP branches are now visible remotely. Agree the integration candidate
   before joint playtesting. This checklist is a repository handoff, not a sent message.
 
 ## Developer A coordination — 19 September (codex/a-mvp)
 
 This section is maintained by A. B's sections above were copied unchanged from
-`origin/codex/b-arena-camera` at `8e8c6a6`; their status still describes B's branch.
+`origin/codex/b-arena-camera` at `40aa6b1`; their status still describes B's branch.
 Please preserve this section when integrating. A's detailed acceptance tracker is
 [A_MVP_TASKS.md](A_MVP_TASKS.md). A will fetch/check this list each increment.
 
@@ -138,4 +141,16 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   independent; no competing settings global is planned for this MVP increment.
 - **Still joint:** LAN on both computers and real control/camera feel. A's
   localhost/headless checks will be reported separately from those acceptance gates.
+- **B-04 integration request:** A's charged lifter fires on intentional LMB release.
+  When menus/focus loss suppress input, please set neutral command `brake=true`
+  and `secondary_held=true` (lower/cancel), including disabled-control physics ticks.
+  An all-false command means a normal release, not a cancellation. A's timeout path
+  already cancels safely. B owns this adapter change; A has not edited it.
+- **B-08 available:** `session.spectator_sources()` returns surviving teammate
+  BotSources. Preserve normal camera boundaries when cycling them.
+- **A validation:** 35001eb CI succeeded (checks, both exports, five processes).
+  Added hostile session/old-token tests, physical pin cancellation, and ten-body
+  headless stress measurement (~0.83 ms frame p95 on Ryzen 9 9950X3D). A's
+  collision fixture now matches B's published chamfer planes at (+/-24,+/-24).
+
 

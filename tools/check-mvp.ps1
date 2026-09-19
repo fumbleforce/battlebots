@@ -14,6 +14,7 @@ function Invoke-MvpTest {
 Invoke-MvpTest 'res://tests/simulation/content_smoke.gd' 'CONTENT PASS'
 Invoke-MvpTest 'res://tests/simulation/rules_smoke.gd' 'RULES PASS'
 Invoke-MvpTest 'res://tests/simulation/combat_physics_smoke.gd' 'COMBAT PHYSICS PASS'
+Invoke-MvpTest 'res://tests/simulation/stress_smoke.gd' 'STRESS PASS'
 $previousProfile = $env:BATTLEBOTS_NET_PROFILE
 try {
     foreach ($profile in @('0', '80', '150')) {

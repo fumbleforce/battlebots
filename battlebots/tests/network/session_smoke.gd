@@ -37,6 +37,11 @@ func frames(count: int) -> void:
 func run() -> void:
 	server = make_session("Server")
 	check(server.host(port, false) == OK, "Server binds UDP")
+	var mismatch := make_session("Mismatch")
+	mismatch.join("127.0.0.1", port)
+	mismatch._hello_data.content = "wrong-content"
+	check(await until(func() -> bool: return mismatch.connection_state == "offline", 300), "Content mismatch is rejected")
+	check(server.players.is_empty(), "Rejected handshake cannot occupy a slot")
 	for index: int in range(4):
 		var client := make_session("Client%d" % index)
 		clients.append(client)
@@ -57,6 +62,9 @@ func run() -> void:
 		client.set_ready(true)
 	check(await until(func() -> bool: return server.match_state.phase == "active"), "Ready/loading/countdown reaches active")
 	check(await until(func() -> bool: return clients.all(func(c: MvpSession) -> bool: return c.world.bots.size() == 4 and c.diagnostics.snapshots_received >= 4)), "Four clients receive full baselines/snapshots")
+	var late := make_session("LateJoin")
+	late.join("127.0.0.1", port)
+	check(await until(func() -> bool: return late.connection_state == "offline", 300), "Late join cannot occupy a live slot")
 	check(server.diagnostics.snapshot_bytes <= 1200, "Entity datagrams fit budget")
 	var profile := OS.get_environment("BATTLEBOTS_NET_PROFILE")
 	if profile == "80":
@@ -117,6 +125,8 @@ func run() -> void:
 	check(await until(func() -> bool: return clients[0].local_entity == id and server.players[id].peer != 0, 600), "Token restores original entity")
 	check(server.world.bots[id] == retained and retained.combat.core == core_before, "Reconnect preserves bot/damage")
 	check(clients[0].reconnect_token != token, "Reconnect rotates token")
+	late.join("127.0.0.1", port, token)
+	check(await until(func() -> bool: return late.connection_state == "offline", 300), "Old reconnect token cannot steal a bot")
 	# Use server-local elimination to exercise lifecycle quickly; no remote test/debug RPC exists.
 	for round_number: int in range(2):
 		for entity: int in server.world.bots:

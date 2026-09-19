@@ -160,3 +160,8 @@ uses A's canonical collision-only Foundry dimensions and primitive rendering;
 B's finished arena/camera remains a separate integration step. Do not stack both
 arena collision roots in one world. Match results include per-round participant
 snapshots and aggregate damage/elimination/assist/component/recovery counters.
+
+Neutral input for menus/focus loss must set brake and secondary_held so a held
+lifter cancels instead of launching on release. All-false is an ordinary released
+command. The server's stale/disconnect path supplies cancellation automatically.
+`spectator_sources()` returns live teammates for B's spectator camera to cycle.

@@ -33,6 +33,14 @@ correction settling, camera comfort and weapon feel. Local impairment tests do n
 prove the 250 ms post-contact correction target or real LAN performance. No merge
 to main or public release is implied by these feature-branch checkpoints.
 
+Additional acceptance: checksum-mismatch/late-join/old reconnect tokens are rejected;
+the physical pin-release and stale-lifter-cancel regressions pass. Ten-body headless
+frame wall-time p95 measured 0.83 ms on AMD Ryzen 9 9950X3D (900 ticks, 180 warm-up,
+primitive collision/visuals; not a ten-player art/network benchmark). A's collision
+fixture is aligned with B's chamfers. CI for `35001eb` completed successfully.
+The shared TODO asks B to send brake+secondary on suppressed menu/focus input so
+an intentional weapon release is distinguishable from cancellation.
+
 ## Developer A — drive controller (19 September 2026)
 
 Owner / branch / base commit: A / `codex/a-drive-controller` / `60feafe`.

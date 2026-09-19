@@ -55,6 +55,16 @@ func _initialize() -> void:
 	var match_state := MatchState.new()
 	var bots := {1:CombatState.new(stats), 2:CombatState.new(stats), 3:CombatState.new(stats), 4:CombatState.new(stats)}
 	var teams := {1:0, 2:0, 3:1, 4:1}
+	check(match_state.judge(bots, teams) == -1, "Identical teams tie")
+	bots[1].core -= 0.01
+	check(match_state.judge(bots, teams) == -1, "Judging rounds health percentages to 0.1 points")
+	bots[3].effective_damage = 1
+	check(match_state.judge(bots, teams) == 1, "Effective damage breaks rounded-health tie")
+	bots[3].core -= 10
+	check(match_state.judge(bots, teams) == 0, "Health outranks damage")
+	bots[3].core = stats.core
+	bots[3].effective_damage = 0
+	bots[1].core = stats.core
 	match_state.begin()
 	match_state.advance(30, bots, teams)
 	check(match_state.phase == "lobby", "Loading timeout returns to lobby")
