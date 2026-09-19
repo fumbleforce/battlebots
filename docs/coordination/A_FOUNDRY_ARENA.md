@@ -74,3 +74,14 @@ reported 102 draw calls. Captures are local ignored output under
 Remaining: human gameplay/lighting review and lower-end hardware performance.
 Bot model polish remains B-owned; the rendered fixture uses existing primitive
 runtime bot visuals. No claim of photorealistic reference parity.
+
+## Integration
+
+Rebased cleanly onto audio/practice `c83d266`. The presentation runner retains
+both sessions' tests. Combined import/baseline/arena/camera/render checks passed;
+the practice reset fixture also passed with a real post-reset target hit.
+The final combined render sample measured median 1.35–1.74 ms, p95 2.67–3.21 ms
+under the same limited fixture conditions. Ownership-only branch `86abe77` was
+integrated at the other A session's request. No unfinished tutorial was included.
+The integrated four-client session smoke also passed its admission, loadout,
+round/results/reconnect/rematch checks with build 11 (correction p95 0.142 m).

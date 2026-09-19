@@ -33,6 +33,25 @@ acceptance targets below do not create current work or block this gameplay scope
 
 ## Current Developer A increment
 
+`codex/a-foundry-arena` follows practice `c83d266` with the user-requested regular
+octagonal Foundry (50 m across faces), eight cage/gallery bays, radial trusses,
+worn steel materials and an octagonal lighting crown with warm/cool spots and
+volumetric haze. Spawn transforms are unchanged. The existing camera scene gets
+the matching corner boundary setting; no camera/input algorithm changes.
+Build `mvp-ab-11` prevents older square-arena peers from joining. Protocol and
+catalogue stay at 4. See [arena evidence](coordination/A_FOUNDRY_ARENA.md).
+
+Baseline, headless arena/spawn-clearance, camera containment, rendered review,
+80 ms actual-ENet straight/diagonal wall contacts, and the integrated practice
+reset check pass. Rendered screenshots are in the arena worktree's ignored
+`battlebots/exports/arena-review/`. These use primitive runtime bots; bot art
+remains B-owned. Human review and lower-end graphics performance remain open.
+Audio/practice are retained. Completed ownership clarification `86abe77` is also
+integrated; the other A session removed its unfinished tutorial rather than
+publishing control-training work.
+
+### Preceding practice increment
+
 `codex/a-practice-loop` adds practice-only Restart, a read-only target damage and
 knockout panel, and automatic pause/focus on player knockout. Both bots are
 repaired/repositioned in the same world with their loadouts retained; queued
@@ -41,7 +60,7 @@ independent HUD/session/menu tests and real two-peer round/results/rematch passe
 A real post-reset hammer hit confirms the repaired target remains playable.
 The network test reported four ObjectDB instances at shutdown; the known cleanup
 issue remains open. See [practice evidence](coordination/A_PRACTICE_LOOP.md).
-The separate arena task is in progress in its own worktree and is not included.
+The following arena increment now includes this completed practice work.
 
 `codex/a-gameplay-audio` adds A-owned first-pass impact, round, warning and recovery
 cues with captions, plus saved volume/mute settings. The menu composes Audio
