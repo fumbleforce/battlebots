@@ -48,6 +48,7 @@ var _last_arrival := 0.0
 var _effect_ids: Dictionary = {}
 var network_simulation := NetworkSimulator.new()
 var player_capacity := 4
+var match_mode := "teams"
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
@@ -57,11 +58,11 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(func() -> void: _fail("Server disconnected; match incomplete"))
 	multiplayer.allow_object_decoding = false
 
-func host(port := 24567, listen := true, player_count := 4) -> Error:
+func host(port := 24567, listen := true, player_count := 4, mode := "teams") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
-	if player_count not in [2, 4, 10]:
-		session_event.emit("error", {"message":"Choose 2, 4 or 10 players"})
+	if (mode == "teams" and player_count not in [2, 4, 10]) or (mode == "ffa" and (player_count < 4 or player_count > 8)) or mode not in ["teams", "ffa"]:
+		session_event.emit("error", {"message":"Choose 2, 4 or 10 team players, or an FFA limit of 4–8"})
 		return ERR_INVALID_PARAMETER
 	var peer := ENetMultiplayerPeer.new()
 	# Keep a few handshake slots beyond the match capacity for version rejection
@@ -72,7 +73,8 @@ func host(port := 24567, listen := true, player_count := 4) -> Error:
 		return error
 	multiplayer.multiplayer_peer = peer
 	player_capacity = player_count
-	match_state.configure(player_capacity)
+	match_mode = mode
+	match_state.configure(player_capacity, match_mode)
 	_server = true
 	connection_state = "hosting"
 	_make_world()
@@ -154,6 +156,7 @@ func leave() -> void:
 	network_simulation.pending.clear()
 	_client_sequence = 0
 	match_state = MatchState.new()
+	match_mode = "teams"
 	match_view = {}
 	lobby_view = {}
 	if is_instance_valid(world):
@@ -196,9 +199,10 @@ func _admit(peer: int, draft: Dictionary) -> int:
 	var id := _next_entity
 	_next_entity += 1
 	var counts := [0, 0]
-	for existing: int in players:
-		counts[players[existing].team] += 1
-	var team := 0 if counts[0] <= counts[1] else 1
+	if match_mode != "ffa":
+		for existing: int in players:
+			counts[players[existing].team] += 1
+	var team := id if match_mode == "ffa" else (0 if counts[0] <= counts[1] else 1)
 	players[id] = {"peer":peer, "team":team, "ready":false, "loadout":draft.duplicate(true),
 		"token":Crypto.new().generate_random_bytes(32).hex_encode(), "deadline":0.0}
 	peer_entities[peer] = id
@@ -312,6 +316,8 @@ func _handle_request(peer: int, data: Dictionary) -> void:
 				players[id].ready = false
 			else:
 				_request_error(peer, "loadout", "; ".join(validation.reasons))
+		elif kind == "team" and match_mode == "ffa":
+			_request_error(peer, kind, "FFA has no teams")
 		elif kind == "team" and data.get("value") in [0, 1]:
 			var count := 0
 			for other: int in players:
@@ -340,7 +346,8 @@ func _public_lobby() -> Dictionary:
 		var p: Dictionary = players[id]
 		slots.append({"entity_id":id, "peer":p.peer, "team":p.team, "ready":p.ready,
 			"connected":p.peer != 0, "loadout":p.loadout.duplicate(true)})
-	return {"slots":slots, "capacity":player_capacity, "mode":"%dv%d" % [player_capacity / 2, player_capacity / 2], "phase":match_state.phase}
+	return {"slots":slots, "capacity":player_capacity, "mode":match_state.mode,
+		"minimum_players":4 if match_mode == "ffa" else player_capacity, "phase":match_state.phase}
 
 func _public_match() -> Dictionary:
 	# Frequent timer/phase updates carry round summaries. Detailed participant
@@ -365,16 +372,20 @@ func _lobby(packet: PackedByteArray) -> void:
 
 func _start() -> void:
 	world.clear_bots()
-	match_state.begin(player_capacity)
+	match_state.begin(player_capacity, match_mode)
 	_loaded.clear()
 	_rematch.clear()
 	_forfeit.clear()
 	_results.clear()
 	var slots := [0, 0]
+	var ffa_slot := 0
 	for id: int in players:
 		var p: Dictionary = players[id]
-		var bot := world.spawn(id, p.team, slots[p.team], p.loadout, player_capacity / 2)
-		slots[p.team] += 1
+		var slot: int = ffa_slot if match_mode == "ffa" else slots[p.team]
+		var bot := world.spawn(id, p.team, slot, p.loadout, player_capacity / 2, match_mode)
+		ffa_slot += 1
+		if match_mode != "ffa":
+			slots[p.team] += 1
 		bot.owner_id = p.peer
 		_input_queue[id] = []
 		if p.peer == 1:
@@ -398,6 +409,7 @@ func _baseline(packet: PackedByteArray) -> void:
 	var data: Dictionary = bytes_to_var(packet)
 	lobby_view = data.lobby
 	player_capacity = int(lobby_view.capacity)
+	match_mode = "ffa" if lobby_view.mode == "ffa" else "teams"
 	match_view = data.match
 	_server_tick_offset = float(data.server_tick) - _client_tick
 	_clock_ready = false
@@ -408,7 +420,7 @@ func _baseline(packet: PackedByteArray) -> void:
 	for slot: Dictionary in lobby_view.slots:
 		if not data.bots.has(slot.entity_id):
 			continue
-		var bot := world.spawn(slot.entity_id, slot.team, 0, slot.loadout, player_capacity / 2)
+		var bot := world.spawn(slot.entity_id, slot.team, 0, slot.loadout, player_capacity / 2, match_mode)
 		bot.simulated = false
 		bot.body.freeze = true
 		bot.body.reset_pose = null
@@ -494,13 +506,14 @@ func _physics_process(delta: float) -> void:
 		if _pending_peers[peer] <= _time:
 			multiplayer.multiplayer_peer.disconnect_peer(peer)
 			_pending_peers.erase(peer)
-	if match_state.phase == "lobby" and players.size() == player_capacity:
+	var enough_players := players.size() >= 4 if match_mode == "ffa" else players.size() == player_capacity
+	if match_state.phase == "lobby" and enough_players:
 		var all_ready := true
 		for id: int in players:
 			all_ready = all_ready and players[id].ready and players[id].peer != 0
 		if all_ready:
 			_start()
-	if match_state.phase == "loading" and _loaded.size() == player_capacity:
+	if match_state.phase == "loading" and _loaded.size() == players.size():
 		match_state.transition("countdown", 5)
 	for id: int in players:
 		if players[id].peer == 0 and players[id].deadline <= _time and world.bots.has(id):
@@ -515,7 +528,8 @@ func _physics_process(delta: float) -> void:
 		bot_updated.emit(local_entity, world.bots[local_entity].read_view())
 		return
 	if active:
-		for team: int in [0, 1]:
+		var sides: Array = players.keys() if match_mode == "ffa" else [0, 1]
+		for team: int in sides:
 			var voters := 0
 			var connected := 0
 			for id: int in players:
@@ -536,7 +550,7 @@ func _physics_process(delta: float) -> void:
 	var teams := {}
 	for id: int in players:
 		teams[id] = players[id].team
-	match_state.advance(delta, world.combatants(), teams)
+	match_state.advance(delta, world.combatants(), teams, world.tick)
 	if old_phase in ["active", "overtime"] and match_state.phase in ["intermission", "results"]:
 		var round_stats := {}
 		for id: int in world.bots:
@@ -555,7 +569,19 @@ func _physics_process(delta: float) -> void:
 				for round_result: Dictionary in match_state.rounds:
 					_results.participants[id][field] += round_result.get("participants", {}).get(id, {}).get(field, 0)
 		session_event.emit("results", _results.duplicate(true))
-	if match_state.phase == "results" and _rematch.size() == player_capacity:
+	if match_state.phase == "results" and match_mode == "ffa":
+		var connected_count := 0
+		var all_voted := true
+		for id: int in players:
+			if players[id].peer != 0:
+				connected_count += 1
+				all_voted = all_voted and _rematch.has(id)
+		if connected_count >= 4 and all_voted:
+			for id: int in players.keys():
+				if players[id].peer == 0:
+					players.erase(id)
+			_start()
+	elif match_state.phase == "results" and _rematch.size() == player_capacity:
 		var connected := true
 		for id: int in players:
 			connected = connected and players[id].peer != 0
@@ -736,12 +762,14 @@ func _effect(packet: PackedByteArray) -> void:
 					_effect_ids.erase(_effect_ids.keys().front())
 				combat_event.emit(event)
 
-@rpc("any_peer", "call_remote", "unreliable", 0)
+# Clock synchronization must survive ENet's unreliable-packet throttling after
+# a large baseline. At one bounded sample per second, reliable control is small.
+@rpc("any_peer", "call_remote", "reliable", 0)
 func _ping(stamp: int) -> void:
 	if _server and _control_allowed(multiplayer.get_remote_sender_id()):
 		_pong.rpc_id(multiplayer.get_remote_sender_id(), stamp, world.tick)
 
-@rpc("authority", "call_remote", "unreliable", 0)
+@rpc("authority", "call_remote", "reliable", 0)
 func _pong(stamp: int, server_tick: int) -> void:
 	if not _ping_ticks.has(stamp):
 		return
@@ -762,6 +790,6 @@ func spectator_sources() -> Array[BotSource]:
 	var local: MvpBot = world.bots[local_entity]
 	for id: int in world.bots:
 		var bot: MvpBot = world.bots[id]
-		if bot.team == local.team and not bot.read_view().eliminated:
+		if (match_mode == "ffa" or bot.team == local.team) and not bot.read_view().eliminated:
 			sources.append(bot)
 	return sources

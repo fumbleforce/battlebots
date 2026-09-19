@@ -42,14 +42,15 @@ func make_box(size: Vector3, position: Vector3) -> StaticBody3D:
 	add_child(node)
 	return node
 
-func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 2) -> MvpBot:
+func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 2, mode: String = "teams") -> MvpBot:
 	var bot := MvpBot.create(id, team, loadout, registry)
 	if bot == null:
 		return null
 	bot.name = "Bot%d" % id
 	add_child(bot)
 	var marker_index := slot + 1 if team_size == 5 else (2 if slot == 0 else 4)
-	var marker := arena.get_node("SpawnPoints/Team%d_%d" % [team + 1, marker_index]) as Node3D
+	var marker_path := "SpawnPoints/FFA_%d" % (slot + 1) if mode == "ffa" else "SpawnPoints/Team%d_%d" % [team + 1, marker_index]
+	var marker := arena.get_node(marker_path) as Node3D
 	var pose := marker.global_transform
 	bot.spawn_pose = pose
 	bot.body.reset_pose = pose

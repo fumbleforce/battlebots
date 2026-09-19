@@ -65,6 +65,7 @@ func run() -> void:
 	var before: Vector3 = host.session.world.bots[entity].body.global_position
 	driver.player_source.input_allowed = Callable()
 	for frame: int in range(90):
+		await physics_frame
 		var command := BotCommand.new()
 		command.throttle = 1
 		driver.player_source.submit_command(command)

@@ -18,6 +18,7 @@ var menu_scroll: ScrollContainer
 var menu_backdrop: ColorRect
 var port := 24567
 var player_count := 2
+var match_mode := "teams"
 var player_count_choice: OptionButton
 var menu_title: Label
 var menu_hint: Label
@@ -60,6 +61,7 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	lan_addresses = local_lan_addresses()
 	var remote := ""
+	var explicit_count := false
 	for arg: String in args:
 		if arg.begins_with("--port="):
 			port = arg.trim_prefix("--port=").to_int()
@@ -67,10 +69,15 @@ func _ready() -> void:
 			remote = arg.trim_prefix("--join=")
 		if arg.begins_with("--players="):
 			player_count = arg.trim_prefix("--players=").to_int()
+			explicit_count = true
+		if arg.begins_with("--mode="):
+			match_mode = arg.trim_prefix("--mode=")
 		if arg == "--controller":
 			controller = true
+	if match_mode == "ffa" and not explicit_count:
+		player_count = 4
 	if "--server" in args or OS.has_feature("dedicated_server"):
-		if session.host(port, false, player_count) != OK:
+		if session.host(port, false, player_count, match_mode) != OK:
 			get_tree().quit(1)
 		return
 	if DisplayServer.get_name() != "headless":
@@ -78,7 +85,7 @@ func _ready() -> void:
 	if not remote.is_empty():
 		session.join(remote, port)
 	elif "--host" in args:
-		session.host(port, true, player_count)
+		session.host(port, true, player_count, match_mode)
 	elif "--practice" in args or (args.is_empty() and start_mode == "practice"):
 		session.practice(session.registry.starter(controller))
 	if "--ready" in args:
@@ -174,9 +181,14 @@ func _build_console() -> void:
 	player_count_choice.add_item("2 players / 1v1", 2)
 	player_count_choice.add_item("4 players / 2v2", 4)
 	player_count_choice.add_item("10 players / 5v5", 10)
-	player_count_choice.select(maxi(0, player_count_choice.get_item_index(player_count)))
+	for count: int in range(4, 9):
+		player_count_choice.add_item("FFA / up to %d players" % count, 100 + count)
+	player_count_choice.select(maxi(0, player_count_choice.get_item_index(player_count + (100 if match_mode == "ffa" else 0))))
 	player_count_choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	player_count_choice.item_selected.connect(func(index: int) -> void: player_count = player_count_choice.get_item_id(index))
+	player_count_choice.item_selected.connect(func(index: int) -> void:
+		var choice := player_count_choice.get_item_id(index)
+		match_mode = "ffa" if choice >= 100 else "teams"
+		player_count = choice - 100 if match_mode == "ffa" else choice)
 	host_row.add_child(player_count_choice)
 	_button(host_row, "Host game", host_game)
 	var or_label := Label.new()
@@ -252,7 +264,7 @@ static func local_lan_addresses() -> PackedStringArray:
 func host_game() -> void:
 	if session.connection_state != "offline":
 		return
-	if session.host(port, true, player_count) == OK:
+	if session.host(port, true, player_count, match_mode) == OK:
 		session.set_loadout(session.registry.starter(controller))
 
 func join_game() -> void:
@@ -324,7 +336,8 @@ func _refresh_menu(source: BotSource) -> void:
 	var lobby := online and phase == "lobby"
 	var practice := state == "practice"
 	var capacity := int(session.lobby_view.get("capacity", player_count))
-	var mode := str(session.lobby_view.get("mode", "%dv%d" % [capacity / 2, capacity / 2]))
+	var mode := str(session.lobby_view.get("mode", "ffa" if match_mode == "ffa" else "%dv%d" % [capacity / 2, capacity / 2]))
+	var ffa := mode == "ffa"
 	var slots: Array = session.lobby_view.get("slots", [])
 	menu_backdrop.visible = state in ["offline", "connecting"]
 	if phase != _ui_phase:
@@ -345,6 +358,7 @@ func _refresh_menu(source: BotSource) -> void:
 	leave_button.visible = online or state == "connecting"
 	leave_button.text = "Cancel connection" if state == "connecting" else ("Close lobby" if state == "hosting" and lobby else ("Leave lobby" if lobby else "Leave match"))
 	forfeit_button.visible = online and phase in ["active", "overtime"] and source != null and not source.read_view().eliminated
+	forfeit_button.text = "Forfeit" if ffa else "Vote forfeit"
 	rematch_button.visible = online and phase == "results"
 	match_actions.visible = leave_button.visible or forfeit_button.visible or rematch_button.visible
 	striker_button.set_pressed_no_signal(not controller)
@@ -363,24 +377,35 @@ func _refresh_menu(source: BotSource) -> void:
 		menu_hint.text = "Try either weapon. Apply a new build to restart practice."
 		summary = "Current bot: %s" % session.players[session.local_entity].loadout.name
 	elif lobby:
-		menu_title.text = "Lobby / %s" % mode
+		menu_title.text = "Lobby / %s" % ("FFA" if ffa else mode)
 		var ready_count := 0
 		for slot: Dictionary in slots:
 			ready_count += int(slot.ready and slot.connected)
 		menu_hint.text = "%d/%d players joined / %d ready. " % [slots.size(), capacity, ready_count]
-		var missing := capacity - slots.size()
+		var missing := (4 if ffa else capacity) - slots.size()
 		menu_hint.text += "Waiting for %d more %s." % [missing, "player" if missing == 1 else "players"] if missing > 0 else "Everyone must press Ready to start."
+		if ffa:
+			menu_hint.text += " FFA starts with at least 4; keep Not ready while waiting for more friends."
 		if state == "hosting":
 			summary = "Host address(es): %s\nUse the Ethernet / Wi-Fi address on your friend's network." % (", ".join(lan_addresses) if not lan_addresses.is_empty() else "No LAN IPv4 found")
 		for slot: Dictionary in slots:
-			summary += "\n%s / Team %d / %s / %s" % ["You" if slot.entity_id == session.local_entity else "Player %d" % slot.entity_id,
-				slot.team + 1, slot.loadout.get("name", "Build"), "Ready" if slot.ready else "Not ready"]
+			var side := "Every bot for itself" if ffa else "Team %d" % (slot.team + 1)
+			summary += "\n%s / %s / %s / %s" % ["You" if slot.entity_id == session.local_entity else "Player %d" % slot.entity_id,
+				side, slot.loadout.get("name", "Build"), "Ready" if slot.ready else "Not ready"]
 	elif online:
 		menu_title.text = "Match complete" if phase == "results" else "Match / %s" % mode
 		menu_hint.text = "Vote for another match, or leave." if phase == "results" else "The match continues while this menu is open."
 		var scores: Array = session.match_view.get("scores", [0, 0])
-		summary = "Round %d / %s / %.0f s\nTeam 1  %d : %d  Team 2" % [session.match_view.get("round", 0), phase.capitalize(), session.match_view.get("remaining", 0), scores[0], scores[1]]
-		if phase == "results":
+		if ffa:
+			summary = "Free-for-all / %s / %.0f s" % [phase.capitalize(), session.match_view.get("remaining", 0)]
+			if phase == "results":
+				var winners: Array = session.match_view.get("winners", [])
+				summary += "\nShared win" if winners.size() > 1 else "\nPlayer %d wins" % winners.front() if not winners.is_empty() else "\nNo winner"
+				for placement: Dictionary in session.match_view.get("placements", []):
+					summary += "\n%d. %s" % [placement.place, "You" if placement.entity_id == session.local_entity else "Player %d" % placement.entity_id]
+		else:
+			summary = "Round %d / %s / %.0f s\nTeam 1  %d : %d  Team 2" % [session.match_view.get("round", 0), phase.capitalize(), session.match_view.get("remaining", 0), scores[0], scores[1]]
+		if phase == "results" and not ffa:
 			var winner := int(session.match_view.get("winner", -1))
 			summary += "\nDraw" if winner < 0 else "\nTeam %d wins" % (winner + 1)
 	if not notice.is_empty() and (state in ["offline", "connecting"] or notice not in ["Hosted", "Joined", "Practice", "Left", "Results"]):

@@ -222,8 +222,13 @@ func measure_active_traffic(id: int) -> void:
 		initial.append(relay.stats.duplicate(true))
 	var started := Time.get_ticks_usec()
 	var physics_started := Engine.get_physics_frames()
+	var next_trace := 0.0
 	drive_entity = id
 	while Time.get_ticks_usec() - started < 5000000:
+		var elapsed := (Time.get_ticks_usec() - started) / 1000000.0
+		if OS.get_environment("BATTLEBOTS_CLOCK_TRACE") == "1" and elapsed >= next_trace:
+			trace_clocks(elapsed)
+			next_trace += 1.0
 		if Time.get_ticks_usec() - started > 1500000:
 			drive_entity = 0
 		await frame()
@@ -247,6 +252,20 @@ func measure_active_traffic(id: int) -> void:
 		print("5v5 injected%.0f client%d: measuredRTT=%.1fms uplink=%.1fB/s received_downlink=%.1fB/s server_downlink=%.1fB/s (IPv4+UDP included)" %
 			[injected_rtt, index, clients[index].diagnostics.rtt_ms, up, down, server_down])
 		check(clients[index]._clock_ready, "Each client synchronizes through real delayed control replies")
+
+func trace_clocks(elapsed: float) -> void:
+	for index: int in range(clients.size()):
+		var client: MvpSession = clients[index]
+		var peer: ENetPacketPeer = client.multiplayer.multiplayer_peer.get_peer(1)
+		var throttle := peer.get_statistic(ENetPacketPeer.PEER_PACKET_THROTTLE)
+		if index != 9 and client._clock_ready and throttle >= 8:
+			continue
+		var server_peer_id: int = server.players[client.local_entity].peer
+		var remote: ENetPacketPeer = server.multiplayer.multiplayer_peer.get_peer(server_peer_id)
+		print("CLOCK TRACE t=%.2f client%d ready=%s rtt=%s throttle=%s server_throttle=%s ping_pending=%d accepted_sequence=%s control_budget=%d" %
+			[elapsed, index, client._clock_ready, client.diagnostics.rtt_ms, throttle,
+			remote.get_statistic(ENetPacketPeer.PEER_PACKET_THROTTLE), client._ping_ticks.size(),
+			server._input_highwater.get(client.local_entity), server._control_budget.get(server_peer_id, []).size()])
 
 func finish() -> void:
 	for session: MvpSession in sessions:

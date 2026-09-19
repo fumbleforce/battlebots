@@ -73,10 +73,11 @@ Arena floor surface is Y=0, X/Z bounds +/-25.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
 For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
 B's integrated arena includes perimeter walls and FFA spawn markers; A's current
-session rules support 1v1, 2v2 and 5v5. FFA authority remains future work.
+session rules support 1v1, 2v2, 5v5 and FFA.
 Five-player teams use all five existing team markers; duel/2v2 retain markers
 2 and 4. `AuthorityWorld.spawn(..., team_size=2)` takes the team size as an
-optional fifth argument; pass 5 for 5v5.
+optional fifth argument; pass 5 for 5v5. Optional sixth argument `mode="teams"`
+accepts `"ffa"` to use the existing `FFA_1` through `FFA_8` markers by slot+1.
 Spawn a future bot root with care: the bot fixture already offsets its body
 upward by 0.5, so do not apply that clearance twice when integrating spawn logic.
 
@@ -94,16 +95,16 @@ A change to an existing field's meaning is a breaking change; coordinate it befo
 editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
 for networking that does not yet exist.
 
-## Team session API — protocol 4, build mvp-ab-4 (A 5v5 branch)
+## Session API — protocol 4, build mvp-ab-5 (A FFA branch)
 
 The playable a-b-integration checkpoint is still mvp-ab-2/protocol 3. Both peers
 must use the same build. Private clock/baseline and snapshot epoch semantics
-changed on a-contact-reconciliation. The current 5v5 branch adds ten-player
+changed on a-contact-reconciliation. The preceding 5v5 branch adds ten-player
 capacity and compact match summaries/detailed results delivery as described below.
 BotSource and camera/input APIs remain unchanged.
 
 `MvpSession` must have the same relative NodePath on every peer. Instantiate it
-under the application/session root, then call `host(port=24567, listen=true, player_count=4)` or
+under the application/session root, then call `host(port=24567, listen=true, player_count=4, mode="teams")` or
 `join(address, port=24567, token="")`; both return a Godot Error. `leave()` closes
 the local connection. Preserve `reconnect_token` in memory for a retry, never in
 logs or lobby UI. A reconnect rotates the token and preserves the original bot.
@@ -114,13 +115,21 @@ transport sequence numbers; B's existing per-tick command sequence may continue.
 The host selects 2 (1v1), 4 (2v2) or 10 (5v5) connected/ready slots. Other counts return
 ERR_INVALID_PARAMETER before opening a server. The API's omitted count remains 4
 for existing consumers; the app defaults to 2. Server alone advances the lifecycle.
+With `mode="ffa"`, the selected count is a maximum of 4–8. At least four admitted
+players, all connected and ready, start even below that maximum. Load acknowledgments
+and rematches use the actual roster. An FFA rematch requires every connected
+participant's vote and at least four connected players; disconnected slots are
+removed before restarting. Team formats still require their full selected count.
+FFA `team` equals the bot's unique entity ID, making all other entities hostile;
+`set_team` returns an operation error. Forfeit affects only the requesting bot.
 
 Signals:
 - `session_event(kind, details)`: hosted, joined, left, results, or error. Error
   details contain a message and optionally operation/code. Results carry match,
   participant state, build and content hash.
 - `lobby_changed(view)`: slots (entity_id, peer, team, ready, connected, loadout),
-  capacity=2|4|10, mode=1v1|2v2|5v5, phase. Tokens never appear in this view.
+  capacity=2|4|10 for teams or 4–8 for FFA, mode=1v1|2v2|5v5|ffa, phase.
+  `minimum_players` is 4 for FFA and capacity for teams. Tokens never appear here.
 - `match_changed(view)`: authoritative MatchState view. Timer updates at 1 Hz;
   phase changes arrive reliably. UI may interpolate a countdown for display only.
   Mode/capacity are included. `rounds` contains round/winner summaries. Detailed
@@ -128,6 +137,12 @@ Signals:
   as `details.match.rounds[].participants`, alongside aggregate `details.participants`.
   Reliable result delivery occurs once per match; a results-phase reconnect
   baseline includes the full record and restores it without duplicate events.
+  FFA includes ordered `placements`: `{entity_id, place, elimination_tick}`
+  (-1 tick for survivors), and `winners`: all first-place entity IDs. Equal places
+  use competition ranking (1, 1, 3); an entity-ID sort only orders tied rows.
+  FFA `winner` is the sole winner's entity ID or -1 for a shared win. Read `winners`
+  instead of labelling a shared FFA win a draw. Team winner/scores are unchanged;
+  team winners/placements arrays are empty. FFA ignores the team `scores` field.
 - `bot_updated(entity_id, BotView)`: resources and health from 20 Hz snapshots.
   `local_source()` returns the player's BotSource after loading. B's input must
   call `submit_local`, not mutate a client body or call a server bot directly.
@@ -149,11 +164,19 @@ are never serialized. `WireCodec.PROTOCOL` is the actual wire version.
 Snapshot delivery is unordered at the transport layer; per-entity round/epoch
 and tick checks reject stale/duplicate state without dropping another bot's
 valid update when packets arrive in a different order.
+The bounded 1 Hz clock request/reply uses reliable control so ENet's unreliable
+packet throttle cannot indefinitely prevent synchronization after a baseline.
 Reliable baseline/match payloads are capped at 128 KiB to accommodate ten players
 and the five-round cap; ordinary timer messages omit detailed participant history.
-`MatchState.begin(player_count=4)` uses 240-second rounds for ten players and
+`MatchState.begin(player_count=4, match_mode="teams")` uses 240-second rounds for ten players and
 180 seconds for duel/2v2, preserving five-second countdown, first-to-two and
-five-round draw cap. The host CLI accepts `--players=10`; app default remains 2.
+five-round draw cap. `match_mode="ffa"` uses one 300-second round and no overtime;
+survivors rank by rounded core percentage then effective damage, eliminated bots
+by latest elimination tick. Equal elimination ticks share placement regardless
+of damage or kills; a complete first-place tie shares the win. Session calls
+`advance(delta, combatants, teams, world.tick)` after all same-tick eliminations.
+The host CLI accepts `--players=10` or `--mode=ffa --players=4..8`; app default
+remains a two-player duel.
 
 Local drive prediction uses the same DriveModel tire response as the server and
 advances snapshots to the estimated current simulation tick, bounded to 250 ms,
@@ -211,7 +234,8 @@ snapshots and aggregate damage/elimination/assist/component/recovery counters.
 Neutral input for menus/focus loss must set brake and secondary_held so a held
 lifter cancels instead of launching on release. All-false is an ordinary released
 command. The server's stale/disconnect path supplies cancellation automatically.
-`spectator_sources()` returns live teammates for B's spectator camera to cycle.
+`spectator_sources()` returns live teammates in team modes and all live bots in
+FFA for B's spectator camera to cycle.
 
 ### Combined app checkpoint (mvp-ab-1)
 

@@ -39,11 +39,11 @@ For manual inspection, use F5 and both launcher buttons; Escape opens the sessio
 menu. Use the explicit Main menu action to leave the session and return to the launcher.
 Public hosting is a later release task; MVP export presets are described below.
 
-## Playable team modes
+## Playable modes
 
-Current A branch: `codex/a-five-v-five`, build `mvp-ab-4`, protocol 4.
+Current A branch: `codex/a-ffa`, build `mvp-ab-5`, protocol 4.
 Use the same branch/build on all peers. The older `codex/a-b-integration`
-checkpoint remains available; it does not include the current 5v5 follow-up.
+checkpoint remains available; it does not include the 5v5/FFA follow-ups.
 
 The main menu offers **Practice** and **Multiplayer**. Multiplayer opens session
 controls without starting practice. WASD/Space drive/brake, LMB powers the spinner or raises
@@ -58,10 +58,12 @@ Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executa
 & $GodotPath --headless --path battlebots -- --server --players=2 --port=24567
 & $GodotPath --path battlebots -- --join=127.0.0.1 --port=24567 --ready
 & $GodotPath --path battlebots -- --host --players=2 --port=24567
+& $GodotPath --path battlebots -- --host --mode=ffa --players=8 --port=24567
 & $GodotPath --path battlebots -- --practice --controller
 ./tools/check-mvp.ps1 -GodotPath $GodotPath
 ./tools/check-processes.ps1 -GodotPath $GodotPath
 ./tools/check-processes.ps1 -GodotPath $GodotPath -PlayerCount 10
+./tools/check-processes.ps1 -GodotPath $GodotPath -Mode ffa
 ```
 
 Choose 2 players (1v1, the default), 4 players (2v2), or 10 players (5v5) before
@@ -70,6 +72,11 @@ The host counts as a player unless started
 as a dedicated server. Everyone in the selected player count must press Ready.
 5v5 rounds last 240 seconds; duel and 2v2 rounds last 180 seconds. All team modes
 use first-to-two wins, with a five-round draw cap. Empty slots are not filled by AI.
+FFA offers a maximum of 4–8 players and starts when at least four have joined and
+everyone present is ready. Keep Not ready while waiting for more friends. FFA is
+one 300-second round, with shared placements for same-tick eliminations and shared
+wins on a complete first-place tie. Forfeit eliminates only your bot. CLI selects
+`--mode=ffa`; `--players` is the maximum (defaults to 4 in FFA).
 Ready/Not ready is available only in the lobby, Forfeit round only during play,
 and Vote rematch only at results. Reconnect is available through the session API.
 
@@ -104,6 +111,8 @@ for implemented scope and remaining joint acceptance. Independent F6 scenes
 and `tests/network/results_delivery.tscn` exercise 5v5 rules/spawns, ten real
 clients and complete five-round result delivery. Network tests must run in real
 time, without `--fixed-fps` acceleration.
-FFA, the other weapon families, public identity/allocation, full performance/soak
+Independent `tests/simulation/ffa_rules.tscn`, `tests/network/ffa_session.tscn`
+and the FFA menu integration test cover rules, impaired sessions and app flow.
+The other weapon families, public identity/allocation, full performance/soak
 acceptance and release polish remain future work. Local automated tests do not
 replace the two-computer LAN and human control-feel playtest.

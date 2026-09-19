@@ -101,10 +101,19 @@ not merge it to main; A and B should review integration changes before merging.
 
 ## Developer A — current coordination
 
+- **A next mode increment:** `codex/a-ffa` from `e118f91`; intent and planned
+  contracts are in [FFA coordination](coordination/A_FFA.md). A reserves session,
+  MatchState, spawn selection, A app and independent tests. FFA uses unique entity
+  teams and explicit placement/shared-winner results. B/model files remain untouched.
+  B's observed match HUD `d983612` and results intent `0f343f7` are acknowledged,
+  not imported. The results event remains the detailed-stat source; on FFA it now
+  also carries `match.winners` and `match.placements`. A's shell remains separate
+  until an explicit integration checkpoint preserves B's final UI and input owner.
+
 - **Playable checkpoint:** codex/a-b-integration at bdb42ef; CI passed. Includes
   2-player 1v1 / 4-player 2v2, session-specific menu actions and the Escape fix.
   Build mvp-ab-2, protocol 3. Both peers must run matching builds.
-- **Active branch:** codex/a-five-v-five, based on transport fix df509a0
+- **Active branch:** codex/a-ffa, based on 5v5 e118f91 and transport fix df509a0
   (which builds on contact 7235e50 and bdb42ef). A reserves
   networking, match/spawn simulation, A app hosting, independent test scenes and check
   scripts. Scripted contact/airborne/reset checks now exist at 0/80/150 ms;

@@ -1,7 +1,7 @@
 # Developer A MVP work
 
 Owner: A. Playable branch: `codex/a-b-integration` at `bdb42ef`.
-Active follow-up: `codex/a-five-v-five`. B-owned files remain outside A work.
+Active follow-up: `codex/a-ffa` from tested 5v5 `e118f91`. B-owned files remain outside A work.
 
 Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,
@@ -31,7 +31,7 @@ without running them.
 ## Full-spec A work after the MVP
 
 - [x] Ten-player 5v5 authority/session and 240-second rounds; impaired-session and independent-process checks pass.
-- [ ] Four-to-eight-player FFA, elimination-tick placements and shared wins.
+- [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; independent rules/session/menu checks pass.
 - [ ] Horizontal spinner, hammer and saw mechanics with server-owned stats/hits.
 - [ ] Ten-player combat/performance/bandwidth and sustained soak acceptance.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.

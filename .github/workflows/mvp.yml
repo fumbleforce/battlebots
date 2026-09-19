@@ -44,6 +44,7 @@ jobs:
         run: |
           ./tools/check-processes.ps1 -GodotPath $env:GODOT
           ./tools/check-processes.ps1 -GodotPath $env:GODOT -PlayerCount 10
+          ./tools/check-processes.ps1 -GodotPath $env:GODOT -Mode ffa
       - uses: actions/upload-artifact@v4
         with:
           name: battlebots-mvp-${{ github.sha }}

@@ -45,7 +45,7 @@ text = "BATTLEBOTS"
 [node name="Description" type="Label" parent="Center/Panel/Margin/Options"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.52, 0.7, 0.77, 1)
-text = "Robot combat / 1v1 + 2v2 + 5v5"
+text = "Robot combat / 1v1 + 2v2 + 5v5 + FFA"
 [node name="Spacer" type="Control" parent="Center/Panel/Margin/Options"]
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
