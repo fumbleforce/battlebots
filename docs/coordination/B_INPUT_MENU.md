@@ -61,3 +61,14 @@ verify that a pending settings resume cannot defeat a subsequent focus loss.
 
 Keyboard/mouse rebinding is explicitly B-04b, still open. Human two-computer feel
 acceptance remains open. A's coordination log in DEVELOPER_B_TODO.md is preserved.
+
+## B-04b next increment — independent look axes
+
+B will add separate horizontal/vertical sensitivity to the existing settings modal,
+with live preview, cancel/reset and version-2 persistence. Version-1 files migrate
+in memory by applying the old shared sensitivity to both axes; only Save rewrites
+files. The legacy sensitivity property remains as a setter for both axes so existing
+A/B consumers keep their behavior. No action map, app, wire or command changes.
+Acceptance: distinct orbit deltas, inversion, legacy migration, invalid-value fallback,
+save/reload/cancel/defaults, keyboard order and rendered 1280x720 layout.
+This is one B-04b increment; binding capture and weapon toggle remain pending.
