@@ -1,6 +1,10 @@
 class_name LoadoutStore
 extends RefCounted
 ## Local versioned JSON; backup remains usable if replacement is interrupted.
+const REVISION_ONE_HASHES := [
+	"6b1a855425fd079e8e3356722720f5631304df87fc839f30a5dbde2fae83b56e",
+	"9749e90fa985e6bedc8259c150ff10115d5033e96894deea97c16f433110ee16",
+]
 var registry := ContentRegistry.new()
 var path: String
 
@@ -63,4 +67,15 @@ func migrate(data: Dictionary) -> Dictionary:
 	var copy := data.duplicate(true)
 	if copy.get("schema_version") == 0 and copy.get("builds") is Array:
 		copy = {"schema_version": 1, "loadouts": copy.builds}
+	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
+		for index: int in range(copy.loadouts.size()):
+			var draft: Variant = copy.loadouts[index]
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES:
+				continue
+			# Revision two only adds a weapon; every prior part keeps its stats.
+			# Upgrade known compatible saves locally, never loosen network checks.
+			var upgraded: Dictionary = draft.duplicate(true)
+			upgraded.content_hash = registry.content_hash
+			if registry.validate(upgraded).valid:
+				copy.loadouts[index] = upgraded
 	return copy

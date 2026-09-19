@@ -1,5 +1,15 @@
 # Current A/B handoff
 
+## Current Developer A increment
+
+`codex/a-horizontal-spinner` follows menu/music export `db87257`. The catalogue
+and combat add a horizontal spinner with swept side contact and lateral recoil;
+independent state/physics/network acceptance is recorded in
+[horizontal spinner coordination](coordination/A_HORIZONTAL_SPINNER.md).
+This branch uses build `mvp-ab-6`/protocol 4 with a new content hash; both peers
+must update together. Existing local saves with recognized revision-one content
+migrate without changing parts. The `db87257` playtest ZIP is preserved separately.
+
 ## Current playtest checkpoint
 
 `codex/a-menu-flow` follows `d417d7e` with the user-requested menu-flow correction.

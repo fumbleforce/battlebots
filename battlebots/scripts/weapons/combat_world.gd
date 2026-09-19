@@ -8,6 +8,7 @@ var pins: Dictionary = {}
 var blocked: Dictionary = {}
 var events: Array = []
 var pending_hits: Array = []
+var _sweep_origins: Dictionary = {}
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
@@ -26,7 +27,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		var state := attacker.combat
 		if state.zones.weapon <= 0 or state.overheated:
 			continue
-		if state.stats.weapon == "vertical_spinner" and state.charge < 0.25:
+		if state.stats.weapon in ["vertical_spinner", "horizontal_spinner"] and state.charge < 0.25:
 			continue
 		if state.stats.weapon == "lifter" and state.charge <= 0 and not state.launch:
 			for pin: String in pins.keys():
@@ -41,13 +42,23 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				pins.erase(key)
 				continue
 			var direction := (victim.body.global_position - attacker.body.global_position).normalized()
-			var local_point := victim.body.global_transform.affine_inverse() * attacker.body.global_position
+			var contact_origin := attacker.body.global_position
+			if state.stats.weapon == "horizontal_spinner":
+				contact_origin = _sweep_origins.get(victim.body.get_instance_id(), attacker.body.global_position)
+			var local_point := victim.body.global_transform.affine_inverse() * contact_origin
 			var half: Vector3 = victim.combat.stats.size * 0.5
 			local_point = local_point.clamp(-half, half)
 			var point := victim.body.global_transform * local_point
 			if state.stats.weapon == "vertical_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
 				_hit(attacker, victim, point, 45 * state.charge, (direction * 2 + Vector3.UP * 2) * victim.body.mass, tick, round_index)
 				state.charge *= 0.5
+				cooldowns[key] = time + 0.3
+			elif state.stats.weapon == "horizontal_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
+				var lateral := Vector3(victim.body.global_position.x - contact_origin.x, 0, victim.body.global_position.z - contact_origin.z).normalized()
+				if lateral.is_zero_approx():
+					lateral = Vector3(direction.x, 0, direction.z).normalized()
+				_hit(attacker, victim, point, 40 * state.charge, lateral * 4 * victim.body.mass, tick, round_index, 0.6)
+				state.charge *= 0.4
 				cooldowns[key] = time + 0.3
 			elif state.stats.weapon == "lifter" and not blocked.has(key):
 				if state.launch:
@@ -88,6 +99,9 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		bot.previous_velocity = bot.body.linear_velocity
 
 func _sweep(bot: MvpBot) -> Array:
+	_sweep_origins.clear()
+	if bot.combat.stats.weapon == "horizontal_spinner":
+		return _horizontal_sweep(bot)
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45, 0.65)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2))
@@ -107,10 +121,35 @@ func _sweep(bot: MvpBot) -> Array:
 				found.append(hit.collider_id)
 	return found
 
-func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int) -> void:
-	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index])
+func _horizontal_sweep(bot: MvpBot) -> Array:
+	var shape := CylinderShape3D.new()
+	shape.radius = bot.combat.stats.size.x * 0.65
+	shape.height = 0.24
+	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2))
+	var start := bot.previous_pose
+	var finish := bot.body.global_transform
+	var angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
+	# Include the disc's orbit around the body and its own outer radius. Sweeping
+	# body poses first preserves the curved path during a turn about the chassis.
+	var travel := start.origin.distance_to(finish.origin) + angle * (local.origin.length() + shape.radius)
+	var steps := clampi(ceili(travel / 0.1) + 2, 2, 128)
+	var found: Array = []
+	for index: int in range(steps):
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = shape
+		query.transform = start.interpolate_with(finish, float(index) / (steps - 1)) * local
+		query.collision_mask = BaselineConfig.BOT_LAYER
+		query.exclude = [bot.body.get_rid()]
+		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
+			if not found.has(hit.collider_id):
+				found.append(hit.collider_id)
+				_sweep_origins[hit.collider_id] = query.transform.origin
+	return found
 
-func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int) -> void:
+func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2) -> void:
+	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil])
+
+func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2) -> void:
 	if victim.combat.eliminated:
 		return
 	var zone := victim.zone_at(point)
@@ -122,9 +161,9 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	if dealt > 0:
 		victim.combat.recent_attackers[attacker.entity_id] = time
 	victim.body.apply_impulse(impulse, point - victim.body.global_position)
-	attacker.body.apply_central_impulse(-impulse * 0.2)
+	attacker.body.apply_central_impulse(-impulse * recoil)
 	event_id += 1
-	if attacker.combat.stats.weapon == "vertical_spinner":
+	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner"]:
 		attacker.combat.attack_id += 1
 	events.append({"event_id":event_id, "round":round_index, "tick":tick,
 		"attack_id":attacker.combat.attack_id, "attacker":attacker.entity_id,

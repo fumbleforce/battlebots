@@ -8,7 +8,8 @@ var content_hash: String = ""
 
 func _init() -> void:
 	var source := FileAccess.get_file_as_string("res://data/mvp_parts.json")
-	content_hash = source.sha256_text()
+	# Exported Linux servers and Windows clients identify the same catalogue.
+	content_hash = source.replace("\r\n", "\n").sha256_text()
 	var data: Dictionary = JSON.parse_string(source)
 	for part: Dictionary in data.parts:
 		parts[part.id] = part

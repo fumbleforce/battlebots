@@ -37,6 +37,20 @@ func _initialize() -> void:
 	registry = ContentRegistry.new()
 	var path := "user://test-loadouts-%d.json" % OS.get_process_id()
 	var store := LoadoutStore.new(path)
+	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES:
+		var old_build := registry.starter()
+		old_build.content_hash = old_hash
+		var upgraded: Dictionary = store.migrate({"schema_version":1, "loadouts":[old_build]}).loadouts[0]
+		check(registry.validate(upgraded).valid and upgraded.parts == old_build.parts and upgraded.name == old_build.name,
+			"Compatible revision-one saves migrate without changing selected parts")
+		check(old_build.content_hash == old_hash, "Migration does not mutate its source")
+		old_build.parts.weapon = "unknown_weapon"
+		check(store.migrate({"schema_version":1, "loadouts":[old_build]}).loadouts[0] == old_build,
+			"Migration preserves unknown parts as invalid for explicit repair")
+	var unknown_version := registry.starter()
+	unknown_version.content_hash = "unrecognized-version"
+	check(store.migrate({"schema_version":1, "loadouts":[unknown_version]}).loadouts[0] == unknown_version,
+		"Unknown content revisions are never silently accepted")
 	var builds: Array = []
 	for i: int in range(12):
 		var draft := registry.starter(i % 2 == 1)

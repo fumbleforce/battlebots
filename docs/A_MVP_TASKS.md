@@ -34,7 +34,8 @@ without running them.
 
 - [x] Ten-player 5v5 authority/session and 240-second rounds; impaired-session and independent-process checks pass.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; independent rules/session/menu checks pass.
-- [ ] Horizontal spinner, hammer and saw mechanics with server-owned stats/hits.
+- [x] Horizontal spinner with server-owned swept side contact, recoil and independent state/physics/ENet checks.
+- [ ] Hammer and saw mechanics with server-owned stats/hits.
 - [ ] Ten-player combat/performance/bandwidth and sustained soak acceptance.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.
 

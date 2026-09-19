@@ -16,6 +16,9 @@ function Invoke-MvpTest {
     }
 }
 Invoke-MvpTest 'res://tests/simulation/content_smoke.gd' 'CONTENT PASS'
+Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_state.gd' 'HORIZONTAL SPINNER STATE PASS'
+Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_visual.gd' 'HORIZONTAL VISUAL PASS'
+Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_physics.tscn' 'HORIZONTAL SPINNER PHYSICS PASS' -Scene
 Invoke-MvpTest 'res://tests/simulation/rules_smoke.gd' 'RULES PASS'
 Invoke-MvpTest 'res://tests/simulation/five_v_five_rules.tscn' 'FIVE V FIVE RULES PASS' -Scene
 Invoke-MvpTest 'res://tests/simulation/ffa_rules.tscn' 'FFA RULES PASS' -Scene
@@ -44,6 +47,7 @@ try {
         $env:BATTLEBOTS_NET_PROFILE = $profile
         Invoke-MvpTest 'res://tests/network/session_smoke.gd' 'NETWORK PASS' -RealTime
         Invoke-MvpTest 'res://tests/network/contact_reconciliation.tscn' 'CONTACT NETWORK PASS' -Scene -RealTime
+        Invoke-MvpTest 'res://tests/network/horizontal_spinner_session.tscn' 'HORIZONTAL SPINNER SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/transport_session.tscn' 'TRANSPORT SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/five_v_five_session.tscn' 'FIVE V FIVE SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/ffa_session.tscn' 'FFA SESSION PASS' -Scene -RealTime

@@ -93,6 +93,17 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Horizontal spinner (implemented):** `codex/a-horizontal-spinner`, based on menu
+  export `db87257`. A owns CombatState/CombatWorld, catalogue, loadout migration,
+  primitive bot weapon visual and independent state/physics/ENet scenes. Add
+  horizontal_spinner (30 kg/40 power), two-second charge, 40 max raw impact,
+  60% charge consumption, 0.3-second target cooldown and lateral recoil.
+  B can keep using existing charge/state/view fields; no new input actions.
+  The published menu ZIP remains unchanged. Hammer/saw remain subsequent work;
+  modelling worktree/assets are untouched. Independent state/physics/visual/save
+  checks and real ENet at 0/80/150 ms pass; build mvp-ab-6/protocol 4. See
+  coordination/A_HORIZONTAL_SPINNER.md for measurements and remaining gates.
+
 - **Menu-flow correction (user requested):** `codex/a-menu-flow`, based on
   `d417d7e`. A is editing the supplied router/main/mode/lobby/garage scripts and
   main scene, with focused menu tests. Main exposes Host, Join, Practice and

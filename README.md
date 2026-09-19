@@ -55,6 +55,9 @@ Public hosting is a later release task; MVP export presets are described below.
 ## Playable modes
 
 Current menu correction: `codex/a-menu-flow`, based on `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
+Developer A's `codex/a-horizontal-spinner` adds the horizontal spinner with build
+`mvp-ab-6`, protocol 4. Select it through Garage → Customize → Weapon. It requires
+both peers to update together; the saved menu playtest ZIP remains build 5.
 Use the same branch/build on all peers. The older `codex/a-b-integration`
 checkpoint remains available; it does not include the 5v5/FFA follow-ups.
 

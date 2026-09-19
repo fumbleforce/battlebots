@@ -68,8 +68,10 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 		overheated = false
 	var eligible: bool = zones.weapon > 0 and not overheated and cooldown <= 0
 	var powered: bool = eligible and command.primary_held and not command.secondary_held
-	var cost := 10.0 if stats.weapon == "vertical_spinner" else 6.0
-	var heat_rate := 12.0 if stats.weapon == "vertical_spinner" else 4.0
+	var spinner: bool = stats.weapon in ["vertical_spinner", "horizontal_spinner"]
+	var cost := 10.0 if spinner else 6.0
+	var heat_rate := 12.0 if spinner else 4.0
+	var spinup := 2.0 if stats.weapon == "horizontal_spinner" else (1.5 if spinner else 1.0)
 	if powered and battery < cost * delta:
 		powered = false
 		failure_reason = "battery_empty"
@@ -78,7 +80,7 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	if powered:
 		battery = maxf(0, battery - cost * delta)
 		heat = minf(100, heat + heat_rate * delta)
-		charge = minf(1, charge + delta / (1.5 if stats.weapon == "vertical_spinner" else 1.0))
+		charge = minf(1, charge + delta / spinup)
 		_inactive = 0.0
 	else:
 		heat = maxf(0, heat - float(stats.cooling) * delta)
