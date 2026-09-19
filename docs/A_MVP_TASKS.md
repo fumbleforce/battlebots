@@ -1,7 +1,7 @@
 # Developer A MVP work
 
-Owner: A. Branch: `codex/a-mvp`, based on local drive commit `14236d2`
-(baseline `60feafe`). B-owned files remain outside this task.
+Owner: A. Playable branch: `codex/a-b-integration` at `bdb42ef`.
+Active follow-up: `codex/a-contact-reconciliation`. B-owned files remain outside A work.
 
 Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,
@@ -17,8 +17,10 @@ families are phase 4, not MVP; public account/allocation services are phase 5.
 - [x] Local prediction, remote smoothing, reconnect and disconnect timeout.
 - [x] Headless/graphical bootstrap, exports/CI checks and B API handoff.
 - [x] Automated pure/physics/four-peer integration and hostile-input tests.
+- [ ] Measure contact/flip/recovery prediction settling in independent network scenes.
 - [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
 
 The final LAN and human-feel gate cannot be replaced by localhost tests. Record
 actual measured outcomes and remaining gates in HANDOFF.md; do not mark them passed
 without running them.
+

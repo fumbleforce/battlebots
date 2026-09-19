@@ -1,204 +1,46 @@
-# Baseline handoff
+# Current A/B handoff
 
-## A+B integration — codex/a-b-integration
+## Integration checkpoint
 
-Round-end reported error: user log first shows null `set_input_as_handled` at
-baseline_preview.gd:112 after Escape. Reproduced with a real current scene and
-viewport input dispatch: the development preview changed scenes, then accessed
-its detached viewport. The MVP app now consumes Escape before that handler and
-only toggles its menu/settings. Explicit Main menu transitions are deferred and
-idempotent. The full MVP suite passes, including Escape on host/client after a
-round and at results, plus headless and D3D12 navigation/scene-cleanup regressions.
-B's standalone sandbox adapter is unchanged; its follow-up is in the shared TODO.
+`codex/a-b-integration` at `bdb42ef` is the playable combined checkpoint. Its CI
+passed: full MVP checks, Windows/Linux exports, and independent process startup.
+It includes B's published arena/camera/HUD/settings at `40aa6b1`, A's simulation,
+networking, simple app menus and primitive weapon placeholders. Main has not been
+updated. Use the same branch/build on both PCs; current wire build is `mvp-ab-2`.
 
-Current selectable-count/menu increment (supersedes the four-window LAN guidance):
-app hosting defaults to **2 players / 1v1**, with **4 players / 2v2** selectable.
-One window on each PC is enough for 1v1. `MvpSession.host(port, listen, count=4)`
-validates 2/4 and applies that capacity to admission, team limits, ready/loading
-and rematches. CLI supports `--players=2|4`, default 2. Build is `mvp-ab-2`, so
-both computers must update. Protocol remains 3.
+Host chooses 2 players (1v1, app default) or 4 players (2v2). One window per person;
+all players must Ready. Session actions are conditional on connection/match phase.
+Escape toggles the app menu; explicit Main menu safely leaves. Independent tests
+cover round-end Escape, full matches/rematches, reconnect and malformed input.
 
-The app shows setup only offline, cancel while connecting, Ready/Not ready and
-leave/close in the lobby, Forfeit round only while playing, and rematch at results.
-Builds lock during matches; practice hides networking actions. Rendered 1280x720
-setup/lobby/practice layouts were inspected. Real UDP tests cover a two-player
-match/rematch, team/capacity rejection, readiness and menu transitions; the full
-four-player/impairment suite and five-process check also pass. Real LAN still needs
-the second computer; no Windows firewall settings were modified.
+## Active A work
 
-LAN usability increment: join starts blank with a host-IP example; Host displays
-local non-loopback IPv4 candidates and the active UDP port. The menu explains
-four ready windows/two per computer. Empty joins preserve the current session and
-show guidance; whitespace is trimmed and Host/Join honor the selected CLI port.
-The session menu scrolls when lobby/address details exceed the window height.
-Baseline plus app and four-peer presentation/network tests pass. No firewall
-configuration was changed and cross-machine connectivity remains unverified.
+A is on `codex/a-contact-reconciliation`, based on `bdb42ef`. Reserved paths:
+`scripts/networking/`, relevant `scripts/simulation/` prediction code,
+`tests/network/`, A check scripts, and these shared coordination docs.
 
-Combines A `759041e` and B `40aa6b1`, preserving B's published files. The MVP app
-mounts B's camera, HUD and settings through SessionBotSource. AuthorityWorld loads
-the same B arena on server/client, using its spawn markers, with no duplicate
-colliders; headless worlds strip visual/light nodes. SessionBotSource now accepts
-an optional `input_allowed` Callable; false produces brake+secondary cancellation.
-The app gates menu/focus/countdown/eliminated input; B remains the only collector.
-Build handshake is `mvp-ab-1`, protocol 3; both computers must use this branch.
+Next acceptance: independent network scenes measure response to collisions,
+weapon impulses and round resets at 0/80/150 ms. Existing non-contact p95 is about
+0.145 m at 80 ms. Existing contact tests establish finite state only; they do not
+prove the spec's 250 ms settling target. Any failures will be recorded and fixed,
+not relabelled as passing. Human camera/contact feel and two-computer LAN remain
+unverified; headless tests cannot replace them.
 
-The combined MVP suite, B camera/settings, app reset/cancel tests, four real UDP
-clients with camera/HUD adapters, and five independent processes pass. Rendered
-practice was inspected with B's arena/camera/HUD; user input interrupted manual UI
-automation, so subjective weapon/camera feel is not signed off. Native two-machine
-LAN is pending the second host. B-06–09 production menus/garage are still upcoming.
-User additionally requested simple visible weapons and a simpler game menu;
-A is implementing these in bot assembly and scenes/app, leaving B's files intact.
+## Other developer / modelling boundary
 
-Simple weapon/menu increment: cosmetic spinner disc/teeth and lifter forks are
-mounted under each bot's presentation root and animate from local or replicated
-BotView. They add no collider or damage logic. A's app now has a Practice/Multiplayer
-main menu, centered session menu, build selectors and shared simple styling.
-The full combined automated suite passes. The refreshed graphical game launched,
-but the user stopped Computer Use with Escape before final visual inspection;
-do not claim that layout/weapon feel was fully checked. LAN acceptance is pending.
+B's `codex/b-sawblade-tank` at `daa0c8c` publishes modelling work. A has not imported
+it. A separate local modelling worktree exists at `C:/Users/jorge/battlebots-art-flame`.
+A will not edit that worktree, B assets, presentation, arena or UI files. No new
+weapon geometry or art changes are planned in this increment. The shared
+[TODO](DEVELOPER_B_TODO.md) records intentions and dependencies.
 
-## Developer A — MVP implementation (codex/a-mvp)
+## Remaining delivery scope
 
-The drive-only limitations below are historical. A's current branch implements
-the phase 1–3 simulation/service scope: canonical parts/validation/assembly and
-twelve-slot versioned saves; spinner/lifter hits and resources; physical recovery,
-damage zones, pins, elimination and judging; four-player ENet lobby/readiness,
-match/round/rematch/forfeit, token reconnect; prediction and snapshot smoothing.
-Full 5v5/FFA, other weapons and public identity/allocation are later phases.
+See [A MVP acceptance](A_MVP_TASKS.md) and the phase assignments in
+[TEAM_WORKFLOW.md](TEAM_WORKFLOW.md). A still owns network/contact acceptance,
+full-mode authority (5v5/FFA), remaining weapon mechanics, server performance,
+public services and verified persistence. These are not complete just because
+MVP automated tests pass. B owns the final garage/presentation/user experience.
 
-Run `tools/check-mvp.ps1` and `tools/check-processes.ps1` with Godot 4.7.2.
-Pure rules, Jolt physics, four UDP peers under 0/80/150 ms application impairment,
-and a dedicated server plus four separate client processes pass locally. Measured
-80 ms non-contact correction p95 is 0.145 m. Per-entity snapshots are <=420 bytes.
-Physical checks include spinner cadence/ally immunity, lifter launch, unpinned
-recovery, mutual lethal hits, wall contact, stale/invalid input and round resets.
-
-The Windows client and Linux server exports build using checksum-verified 4.7.2
-templates. Exported Windows practice and Linux server pack headless startup were
-tested on this Windows host; native Linux execution still belongs in deployment
-validation. GitHub Actions now runs checks and builds on pushes/PRs.
-
-The A-owned MVP app/console is a temporary integration fixture, not B's production
-menus/garage/camera/HUD. B-owned files remain unchanged except the explicitly
-shared TODO coordination document. `docs/CONTRACTS.md` includes the session,
-loadout, bot-view and SessionBotSource APIs. `docs/DEVELOPER_B_TODO.md` is checked
-each increment and A's section records ready dependencies and reserved paths.
-
-Remaining joint acceptance: integrate B's visual arena/camera/HUD without duplicate
-colliders; test both host directions on the two office machines; evaluate contact
-correction settling, camera comfort and weapon feel. Local impairment tests do not
-prove the 250 ms post-contact correction target or real LAN performance. No merge
-to main or public release is implied by these feature-branch checkpoints.
-
-Additional acceptance: checksum-mismatch/late-join/old reconnect tokens are rejected;
-the physical pin-release and stale-lifter-cancel regressions pass. Ten-body headless
-frame wall-time p95 measured 0.83 ms on AMD Ryzen 9 9950X3D (900 ticks, 180 warm-up,
-primitive collision/visuals; not a ten-player art/network benchmark). A's collision
-fixture is aligned with B's chamfers. CI for `35001eb` completed successfully.
-The shared TODO asks B to send brake+secondary on suppressed menu/focus input so
-an intentional weapon release is distinguishable from cancellation.
-
-A's drive sandbox again instances the shared `Preview` and delegates input/camera
-to B. Its fallback walls are omitted when the arena provides `Walls`. An isolated
-checkout with B-owned files from `40aa6b1` passes B's camera/arena and camera-settings
-tests, without merging or changing B's branch. The main A branch still contains
-the baseline presentation until integration. CI for `ba4b90a` also succeeded.
-
-## Developer A — drive controller (19 September 2026)
-
-Owner / branch / base commit: A / `codex/a-drive-controller` / `60feafe`.
-
-Completed: force-based forward/reverse driving, ramped steering with turning in
-place, speed-dependent yaw, grip-limited braking/lateral traction, ground probes,
-continuous collision detection, and a 250 ms stale-input brake. Chassis collision
-supports weight; the probes gate tire forces (spring suspension is not implemented).
-No drive or steering forces apply in the air or upside down. The bot remains a
-103 kg primitive body with a yellow front stripe. A's sandbox has an overview
-camera, WASD/Space input, focus-loss braking, and temporary wall fixtures.
-
-Changed shared contracts: no field or method signature changes. `BotSource`,
-`BotView`, camera anchor and exclusions are unchanged. Valid input is copied
-instead of retaining the caller's command. Weapon/recovery flags remain inactive.
-B can continue using the mock or mount the real bot behind the same adapter.
-
-Validation performed: Godot 4.7.2 / Jolt baseline import and smoke check passed.
-`tools/check-drive.ps1` also passes headless tests without presentation: settling,
-waking from sleep, forward/reverse, turning in place, steering sign in reverse,
-brake priority, input timeout, invalid/mutated commands, airborne/inverted behavior,
-wall impact/retreat, BotView pose and camera handles. At 60 Hz, speed at 2 seconds
-was 10.0 m/s, braking distance 5.64 m, and wall retreat 4.02 m after 1.5 seconds.
-The graphics-enabled A sandbox also launched with Forward+ / D3D12 on an RTX 3080;
-the arena, body, front stripe and instructions were visually inspected with no
-runtime errors logged. This does not replace a human driving-feel playtest.
-
-Known limitations: no suspension springs, wheel animation, recovery, combat or
-networking. Human control feel and B's camera integration still need a joint
-playtest. B's floor/preview/mock/presentation files were not changed. A's temporary
-walls are isolated in the sandbox script; remove them when integrating B's arena.
-
-Files to avoid until merge: `scripts/simulation/`, `scenes/bots/baseline_bot.tscn`,
-`scenes/dev/a_simulation.tscn`, and A's launcher copy in `scenes/app/main.tscn`.
-
-Next integration action: run A's body with B's camera, then start a separate
-headless server / two-client authority and snapshot task. Network-facing behavior
-has not been implemented or validated by the drive tests.
-
-## Original baseline handoff (60feafe)
-
-The sections below record the starting scaffold before A's drive task.
-
-## Available now
-- Runnable F5 development launcher.
-- A-owned passive rigid-body bot and simulation sandbox.
-- B-owned mock bot and presentation sandbox; works without drive/network code.
-- Shared BotCommand, BotView, BotSource and BaselineConfig.
-- InputMap, 60 Hz physics, collision layer names, project directories and smoke check.
-- B-owned basic floor, team spawn markers, static camera and diagnostic label.
-
-No driving, combat, online connection, game-mode logic, loadout builder, or finished
-camera is implemented. The current scene composition is for development, not a
-production session architecture. Both fixtures intentionally share the baseline
-arena/preview; preserve their public node/API boundary while evolving those scenes.
-
-## Developer A starts here
-Branch example: codex/a-drive-controller.
-Open scenes/dev/a_simulation.tscn (F6).
-Implement drive forces in scripts/simulation and consume the existing BotCommand.
-Keep BotSource/read_view/camera_anchor stable for B.
-Next implement a headless authoritative session and two-client input/snapshot test.
-Own app wiring, data, bot assembly and engine configuration. Request arena or visual
-changes from B instead of editing B's evolving scene.
-
-Acceptance for first task: W/S and A/D drive the physical bot; braking works;
-the body settles, turns and survives wall contacts; state is available through
-BotView; no UI dependencies enter simulation code.
-
-## Developer B starts here
-Branch example: codex/b-arena-camera.
-Open scenes/dev/b_presentation.tscn (F6).
-Use tests/fixtures/mock_bot.tscn until A's drive is merged.
-Build collision-aware mouse camera against BotSource.camera_anchor/exclusions.
-Complete the arena perimeter and FFA markers; retain the 50-meter interior.
-Replace the diagnostic label with reusable UI as needed. Keep mock state explicit.
-
-Acceptance for first task: mouse orbit, recenter, zoom and horizon stabilization
-work against the mock; camera respects walls; team/FFA markers follow the spec.
-Do not change simulation or project.godot; send missing action/settings requests to A.
-
-## First joint integration
-Merge small PRs into the shared baseline, then run A's real body with B's camera.
-Verify on both office computers. Continue to networking before expanding content.
-Use docs/TEAM_WORKFLOW.md for LAN checks, ownership and session handoff format.
-
-## Next ChatGPT session
-
-Baseline validation: Godot 4.7.2.stable.official.ed1daf0bf imported the project
-successfully; the headless smoke check loaded the launcher and both sandboxes,
-verified input bindings and snapshot isolation, and confirmed the rigid body
-settles on the floor. Visual interaction and LAN multiplayer are not validated
-by this check; multiplayer is not implemented yet.
-
-State your role explicitly: "I am Developer A" or "I am Developer B", then identify
-one task and its acceptance criteria. Ask the session to read AGENTS.md and these
-docs first. Each developer has a separate local clone and task branch.
+Earlier measurements and incremental handoffs are retained in
+[the dated archive](archive/A_HANDOFF_2026-09-19.md); that archive is historical.
