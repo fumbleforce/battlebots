@@ -22,6 +22,7 @@ var probe_half_width: float = 0.65
 var probe_half_length: float = 0.8
 var contact_bodies: Array = []
 var reset_pose: Variant = null
+var correction: Dictionary = {}
 var _throttle: float = 0.0
 var _steering: float = 0.0
 var _brake: bool = true
@@ -39,6 +40,11 @@ func accept_command(command: BotCommand) -> void:
 		sleeping = false
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	if not correction.is_empty():
+		state.transform = correction.pose
+		state.linear_velocity = correction.velocity
+		state.angular_velocity = correction.angular
+		correction.clear()
 	if reset_pose is Transform3D:
 		state.transform = reset_pose
 		state.linear_velocity = Vector3.ZERO
@@ -62,27 +68,20 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	grounded = not normal.is_zero_approx()
 	if not grounded:
 		return
-	var forward := (-state.transform.basis.z).slide(normal).normalized()
-	var right := forward.cross(normal).normalized()
-	var forward_speed := state.linear_velocity.dot(forward)
-	var side_speed := state.linear_velocity.dot(right)
-	var acceleration := brake_acceleration if braking else drive_acceleration * drive_multiplier
-	var desired_speed := 0.0 if braking else _drive_input * top_speed
-	var longitudinal := clampf((desired_speed - forward_speed) / state.step,
-		-acceleration, acceleration)
-	var lateral := -side_speed / maxf(0.12, state.step)
-	var tire_acceleration := (forward * longitudinal + right * lateral).limit_length(grip_acceleration)
-	state.apply_central_force(tire_acceleration * mass)
-
-	# Steering has the same sign in reverse; yaw response softens at speed.
-	var speed_ratio := clampf(absf(forward_speed) / top_speed, 0.0, 1.0)
-	var desired_yaw := 0.0 if braking else -_turn_input * turn_speed * lerpf(1.0, 0.4, speed_ratio)
-	var yaw_acceleration := clampf((desired_yaw - state.angular_velocity.dot(normal)) / 0.15, -5.0, 5.0)
+	var response := DriveModel.forces(state.transform.basis, state.linear_velocity, state.angular_velocity,
+		normal, _drive_input, _turn_input, braking, state.step, model_config())
+	state.apply_central_force(response.acceleration * mass)
+	var yaw_acceleration: float = response.yaw_acceleration
 	var inverse_yaw_inertia := normal.dot(state.inverse_inertia_tensor * normal)
 	if inverse_yaw_inertia > 0.0:
 		var torque := clampf(yaw_acceleration / inverse_yaw_inertia,
 			-mass * grip_acceleration * 0.65 * steering_multiplier, mass * grip_acceleration * 0.65 * steering_multiplier)
 		state.apply_torque(normal * torque)
+
+func model_config() -> Dictionary:
+	return {"speed":top_speed, "acceleration":drive_acceleration, "grip":grip_acceleration,
+		"brake":brake_acceleration, "turn":turn_speed, "drive_scale":drive_multiplier,
+		"steering_scale":steering_multiplier}
 
 func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 	var normal_sum := Vector3.ZERO

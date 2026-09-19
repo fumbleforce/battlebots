@@ -90,7 +90,7 @@ A change to an existing field's meaning is a breaking change; coordinate it befo
 editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
 for networking that does not yet exist.
 
-## MVP session API — protocol 2 (A branch)
+## MVP session API — protocol 3 (A branch)
 
 `MvpSession` must have the same relative NodePath on every peer. Instantiate it
 under the application/session root, then call `host(port=24567, listen=true)` or
@@ -129,3 +129,17 @@ and rejects loadout changes after lock. Input channel 1 is unreliable ordered at
 30 packets/s with recent redundancy; channel 2 carries independently decodable
 entity snapshots at 20 Hz; control uses reliable channel 0. Node/RID/Object handles
 are never serialized. `WireCodec.PROTOCOL` is the actual wire version.
+
+Local drive prediction uses the same DriveModel tire response as the server and
+replays up to 250 ms of unacknowledged commands. Authoritative pose/velocity/contact
+outcomes replace prediction; small positional visual errors decay, errors >=2 m
+snap. This is approximate contact reconciliation, not deterministic Jolt rollback.
+Remote visuals interpolate in a 75–150 ms adaptive buffer; extrapolation stops
+after 100 ms. `diagnostics.degraded` marks snapshots older than 250 ms and
+`interpolation_ms` reports the buffer. MvpBot's stable camera anchor is now under
+its separate Presentation node; use camera_anchor(), never hard-code a node path.
+
+NetworkSimulator is opt-in for tests. It delays/drops/duplicates unreliable input
+and snapshot sends; reliable control remains real ENet without emulated impairment.
+The test profile `BATTLEBOTS_NET_PROFILE=80` uses 40 ms each direction, +/-10 ms
+jitter, 1% loss and 2% duplication; profile 150 uses 75 ms, +/-20 ms, 3%/3%.

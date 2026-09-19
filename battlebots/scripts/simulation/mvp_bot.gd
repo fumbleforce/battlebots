@@ -17,6 +17,8 @@ var spawn_pose := Transform3D.IDENTITY
 var body: DriveBody
 var remote_state: Dictionary = {}
 var simulated := true
+var presentation: Node3D
+var visual_error := Vector3.ZERO
 
 static func create(id: int, side: int, build: Dictionary, registry: ContentRegistry) -> MvpBot:
 	var validation := registry.validate(build)
@@ -51,9 +53,20 @@ func _ready() -> void:
 	mesh.material = material
 	$Body/Visual.mesh = mesh
 	$Body/ForwardStripe.position.z = -stats.size.z * 0.38
+	presentation = Node3D.new()
+	presentation.name = "Presentation"
+	add_child(presentation)
+	for path: String in ["Visual", "ForwardStripe", "CameraAnchor"]:
+		body.get_node(path).reparent(presentation, false)
+	presentation.global_transform = body.global_transform
 	previous_pose = body.global_transform
 	last_floor = body.global_position
 	body.freeze = not simulated
+
+func _process(delta: float) -> void:
+	if simulated:
+		presentation.global_transform = body.global_transform
+	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * 20.0))
 
 func submit_command(intent: BotCommand) -> void:
 	if intent == null or not intent.is_valid() or intent.sequence <= last_sequence:
@@ -135,7 +148,7 @@ func read_view() -> BotView:
 	view.owner_id = owner_id
 	view.team = team
 	view.server_tick = server_tick
-	view.pose = body.global_transform
+	view.pose = presentation.global_transform
 	view.core_fraction = data.core / data.core_max
 	view.battery_fraction = data.battery / data.battery_max
 	view.heat_fraction = data.heat / 100.0
@@ -151,7 +164,7 @@ func read_view() -> BotView:
 	return view
 
 func camera_anchor() -> Node3D:
-	return $Body/CameraAnchor
+	return $Presentation/CameraAnchor
 
 func camera_exclusions() -> Array[RID]:
 	return [body.get_rid()]

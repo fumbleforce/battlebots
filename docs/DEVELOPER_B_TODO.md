@@ -123,8 +123,11 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   prediction. Own `scripts/networking`, `scripts/services`, `scripts/core` and
   isolated network tests. Exact API is in CONTRACTS. Four real UDP peers complete
   ready/loading/rounds/results/rematch; token reconnect preserves damage. Maximum
-  observed per-entity snapshot is 376 bytes. Prediction/smoothing is next;
-  latency feel is not yet accepted.
+  observed per-entity snapshot is now 420 bytes (protocol 3). Shared-model local
+  prediction/reconciliation and remote interpolation are implemented. Application
+  impairment profiles at 80/150 ms pass; 80 ms non-contact correction p95 is
+  0.145 m. Joint LAN/contact/camera feel is not yet accepted. B should consume
+  camera_anchor() rather than its internal path, now on a separate visual root.
 - **A-05 NEXT:** app wiring, export presets and CI/check tools. A will not edit
   B's camera/UI/input/settings/arena/fixtures. B's B-03 settings file can remain
   independent; no competing settings global is planned for this MVP increment.

@@ -1,6 +1,6 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 2
+const PROTOCOL := 3
 const BUILD := "mvp-1"
 const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
 
@@ -35,13 +35,14 @@ static func encode_bot(bot: MvpBot, epoch: String) -> PackedByteArray:
 		c.can_recover(), c.recovery_remaining, c.recovery_cooldown,
 		maxf(0, 10 - c.immobilized_seconds) if c.immobilized_seconds > 0 else 0.0,
 		c.eliminated, c.elimination_reason, c.failure_reason, c.effective_damage,
-		c.eliminations, c.assists, c.component_disables, c.recovery_count])
+		c.eliminations, c.assists, c.component_disables, c.recovery_count,
+		bot.body._drive_input, bot.body._turn_input, bot.body.grounded])
 
 static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary:
 	if packet.size() > 1200:
 		return {}
 	var values: Variant = bytes_to_var(packet)
-	if not values is Array or values.size() != 26 or not values[4] is Transform3D or not values[5] is Vector3 or not values[6] is Vector3:
+	if not values is Array or values.size() != 29 or not values[4] is Transform3D or not values[5] is Vector3 or not values[6] is Vector3:
 		return {}
 	if not values[4].is_finite() or not values[5].is_finite() or not values[6].is_finite():
 		return {}
@@ -56,7 +57,8 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		"battery":values[9], "heat":values[10], "charge":values[11], "weapon_state":values[12], "cooldown":values[13],
 		"recovery_available":values[14], "recovery_remaining":values[15], "recovery_cooldown":values[16],
 		"immobilized_remaining":values[17], "eliminated":values[18], "elimination_reason":values[19], "failure":values[20],
-		"damage":values[21], "eliminations":values[22], "assists":values[23], "component_disables":values[24], "recoveries":values[25]}
+		"damage":values[21], "eliminations":values[22], "assists":values[23], "component_disables":values[24], "recoveries":values[25],
+		"drive_input":values[26], "turn_input":values[27], "grounded":values[28]}
 
 static func read_json(packet: PackedByteArray, limit: int) -> Dictionary:
 	if packet.size() > limit:

@@ -58,19 +58,55 @@ func run() -> void:
 	check(await until(func() -> bool: return server.match_state.phase == "active"), "Ready/loading/countdown reaches active")
 	check(await until(func() -> bool: return clients.all(func(c: MvpSession) -> bool: return c.world.bots.size() == 4 and c.diagnostics.snapshots_received >= 4)), "Four clients receive full baselines/snapshots")
 	check(server.diagnostics.snapshot_bytes <= 1200, "Entity datagrams fit budget")
+	var profile := OS.get_environment("BATTLEBOTS_NET_PROFILE")
+	if profile == "80":
+		for session: MvpSession in sessions:
+			session.network_simulation.delay_ms = 40
+			session.network_simulation.jitter_ms = 10
+			session.network_simulation.loss = 0.01
+			session.network_simulation.duplicate = 0.02
+	elif profile == "150":
+		for session: MvpSession in sessions:
+			session.network_simulation.delay_ms = 75
+			session.network_simulation.jitter_ms = 20
+			session.network_simulation.loss = 0.03
+			session.network_simulation.duplicate = 0.03
 	var id := clients[0].local_entity
 	var start: Vector3 = server.world.bots[id].body.global_position
+	var corrections: Array[float] = []
 	for frame: int in range(90):
 		var command := BotCommand.new()
 		command.throttle = 1
 		clients[0].submit_local(command)
 		await physics_frame
+		if frame > 30:
+			corrections.append(clients[0].diagnostics.correction_m)
+	corrections.sort()
+	print("Profile ", profile, " correction p95 m: ", corrections[int(corrections.size() * 0.95)])
+	if profile == "80":
+		check(corrections[int(corrections.size() * 0.95)] < 0.25, "80 ms non-contact correction p95 target")
+	check(clients[0].world.bots[id].body.global_position.distance_to(start) > 2, "Client predicts local drive")
 	check(server.world.bots[id].body.global_position.distance_to(start) > 2, "Remote intent moves only owned physical bot")
 	var rejected: int = server.diagnostics.rejected_inputs
 	clients[0]._inputs.rpc_id(1, var_to_bytes([[999999, 1.0, 0.0, 0], [91, NAN, 0.0, 0]]))
 	await frames(10)
 	check(server.diagnostics.rejected_inputs > rejected, "Malformed/non-finite/sequence-jump commands rejected")
 	check(server.world.bots[id].body.global_position.is_finite(), "Hostile input leaves finite server state")
+	for frame: int in range(300):
+		for client: MvpSession in clients:
+			var command := BotCommand.new()
+			command.throttle = 1
+			command.primary_held = true
+			client.submit_local(command)
+		await physics_frame
+	for frame: int in range(60):
+		for client: MvpSession in clients:
+			var command := BotCommand.new()
+			command.brake = true
+			client.submit_local(command)
+		await physics_frame
+	for entity: int in server.world.bots:
+		check(server.world.bots[entity].body.global_position.is_finite(), "Remote contacts remain finite")
 	var token := clients[0].reconnect_token
 	var retained: MvpBot = server.world.bots[id]
 	retained.combat.damage("top", 30)

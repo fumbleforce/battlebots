@@ -28,6 +28,7 @@ var _control_budget: Dictionary = {}
 var _input_queue: Dictionary = {}
 var _input_highwater: Dictionary = {}
 var _input_budget: Dictionary = {}
+var _last_input_time: Dictionary = {}
 var _loaded: Dictionary = {}
 var _rematch: Dictionary = {}
 var _forfeit: Dictionary = {}
@@ -38,6 +39,10 @@ var _remote_buffers: Dictionary = {}
 var _last_snapshot_tick: Dictionary = {}
 var _last_ping := 0.0
 var _results: Dictionary = {}
+var interpolation_delay := 0.1
+var _last_arrival := 0.0
+var _effect_ids: Dictionary = {}
+var network_simulation := NetworkSimulator.new()
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
@@ -94,12 +99,15 @@ func leave() -> void:
 	_input_queue.clear()
 	_input_highwater.clear()
 	_input_budget.clear()
+	_last_input_time.clear()
 	_loaded.clear()
 	_rematch.clear()
 	_forfeit.clear()
 	_local_commands.clear()
 	_remote_buffers.clear()
 	_last_snapshot_tick.clear()
+	_effect_ids.clear()
+	network_simulation.pending.clear()
 	_client_sequence = 0
 	match_state = MatchState.new()
 	match_view = {}
@@ -367,6 +375,10 @@ func submit_local(command: BotCommand) -> void:
 		_local_commands.append(data)
 		if _local_commands.size() > 120:
 			_local_commands.pop_front()
+		if world.bots.has(local_entity) and match_view.get("phase") in ["active", "overtime"]:
+			var bot: MvpBot = world.bots[local_entity]
+			if not bot.remote_state.get("eliminated", true):
+				bot.body.accept_command(WireCodec.command_from_array(data))
 
 @rpc("any_peer", "call_remote", "unreliable_ordered", 1)
 func _inputs(packet: PackedByteArray) -> void:
@@ -386,7 +398,8 @@ func _accept_inputs(peer: int, data: Array) -> void:
 	for item: Variant in data:
 		var command := WireCodec.command_from_array(item)
 		var high: int = _input_highwater.get(id, -1)
-		if command == null or command.sequence > high + 128 or budget.size() >= 90:
+		var allowed_gap := maxi(128, ceili((_time - float(_last_input_time.get(id, _time))) * 120))
+		if command == null or command.sequence > high + allowed_gap or budget.size() >= 90:
 			diagnostics.rejected_inputs += 1
 			continue
 		if command.sequence <= high:
@@ -398,6 +411,7 @@ func _accept_inputs(peer: int, data: Array) -> void:
 		queue.append(command)
 		_input_queue[id] = queue
 		_input_highwater[id] = command.sequence
+		_last_input_time[id] = _time
 		budget.append(_time)
 	_input_budget[id] = budget
 
@@ -405,10 +419,12 @@ func _physics_process(delta: float) -> void:
 	if connection_state == "offline" or not is_instance_valid(world):
 		return
 	_time += delta
+	network_simulation.tick(delta)
 	if not _server:
 		_client_tick += 1
 		if connection_state == "connected" and _client_tick % 2 == 0 and not _local_commands.is_empty():
-			_inputs.rpc_id(1, var_to_bytes(_local_commands.slice(maxi(0, _local_commands.size() - 4))))
+			var packet := var_to_bytes(_local_commands.slice(maxi(0, _local_commands.size() - 4)))
+			network_simulation.send(func() -> void: _inputs.rpc_id(1, packet))
 		if connection_state == "connected" and _time - _last_ping >= 1:
 			_last_ping = _time
 			_ping.rpc_id(1, Time.get_ticks_msec())
@@ -489,7 +505,9 @@ func _physics_process(delta: float) -> void:
 			diagnostics.snapshot_bytes = maxi(diagnostics.snapshot_bytes, packet.size())
 			for peer: int in peer_entities:
 				if peer != 1:
-					_snapshot.rpc_id(peer, packet)
+					network_simulation.send(func() -> void:
+						if peer_entities.has(peer):
+							_snapshot.rpc_id(peer, packet))
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _match(packet: PackedByteArray) -> void:
@@ -510,7 +528,7 @@ func _snapshot(packet: PackedByteArray) -> void:
 	if packet.size() > 1200:
 		return
 	var values: Variant = bytes_to_var(packet)
-	if not values is Array or values.size() != 26 or not world.bots.has(values[2]):
+	if not values is Array or values.size() != 29 or not world.bots.has(values[2]):
 		return
 	var bot: MvpBot = world.bots[values[2]]
 	var state := WireCodec.decode_bot(packet, bot.combat.stats)
@@ -520,17 +538,88 @@ func _snapshot(packet: PackedByteArray) -> void:
 	diagnostics.snapshots_received += 1
 	bot.remote_state = state
 	bot.server_tick = state.tick
-	bot.body.global_transform = state.pose
+	var first := not _remote_buffers.has(bot.entity_id)
+	state["arrival"] = _time
+	var buffer: Array = _remote_buffers.get(bot.entity_id, [])
+	buffer.append(state)
+	if buffer.size() > 12:
+		buffer.pop_front()
+	_remote_buffers[bot.entity_id] = buffer
+	if bot.entity_id == local_entity:
+		while not _local_commands.is_empty() and _local_commands.front()[0] <= state.ack:
+			_local_commands.pop_front()
+		var pods := int(state.zones.drive_left > 0) + int(state.zones.drive_right > 0)
+		bot.body.drive_multiplier = pods * 0.5
+		bot.body.steering_multiplier = 0.0 if pods == 0 else (0.6 if pods == 1 else 1.0)
+		var active: bool = match_view.get("phase") in ["active", "overtime"] and not state.eliminated
+		var corrected := DriveModel.replay(state, _local_commands if active else [], bot.body.model_config())
+		var error: Vector3 = bot.body.global_position - corrected.pose.origin
+		diagnostics.correction_m = error.length()
+		bot.visual_error = error if error.length() < 2 and not first else Vector3.ZERO
+		bot.body.freeze = not active
+		if bot.body.freeze or first:
+			bot.body.global_transform = corrected.pose
+		else:
+			bot.body.correction = corrected
+			bot.body.sleeping = false
+		if _last_arrival > 0:
+			interpolation_delay = lerpf(interpolation_delay, clampf(0.075 + absf(_time - _last_arrival - 0.05) * 2, 0.075, 0.15), 0.1)
+		_last_arrival = _time
+	else:
+		bot.body.global_transform = state.pose
+	if first:
+		bot.presentation.global_transform = state.pose
 	bot.body.collision_layer = 0 if state.eliminated else BaselineConfig.BOT_LAYER
 	bot.body.collision_mask = 0 if state.eliminated else 3
 	bot_updated.emit(bot.entity_id, bot.read_view())
+
+func _process(_delta: float) -> void:
+	if _server or not is_instance_valid(world):
+		return
+	var degraded := false
+	for id: int in _remote_buffers:
+		if not world.bots.has(id):
+			continue
+		var bot: MvpBot = world.bots[id]
+		var buffer: Array = _remote_buffers[id]
+		if buffer.is_empty():
+			continue
+		var latest: Dictionary = buffer.back()
+		degraded = degraded or _time - float(latest.arrival) > 0.25
+		if id == local_entity:
+			bot.presentation.global_transform = bot.body.global_transform
+			bot.presentation.global_position += bot.visual_error
+			continue
+		var target_tick: float = latest.tick + (_time - float(latest.arrival) - interpolation_delay) * 60
+		var pose: Transform3D = latest.pose
+		if target_tick < float(buffer.front().tick):
+			pose = buffer.front().pose
+		else:
+			var interpolated := false
+			for index: int in range(1, buffer.size()):
+				var older: Dictionary = buffer[index - 1]
+				var newer: Dictionary = buffer[index]
+				if target_tick >= older.tick and target_tick <= newer.tick:
+					pose = older.pose.interpolate_with(newer.pose, (target_tick - older.tick) / float(newer.tick - older.tick))
+					interpolated = true
+					break
+			if not interpolated and target_tick > latest.tick:
+				pose.origin += latest.velocity * minf(0.1, (target_tick - latest.tick) / 60.0)
+		bot.presentation.global_transform = pose
+	diagnostics["degraded"] = degraded
+	diagnostics["interpolation_ms"] = interpolation_delay * 1000
 
 @rpc("authority", "call_remote", "unreliable", 2)
 func _effect(packet: PackedByteArray) -> void:
 	if packet.size() <= 1200:
 		var event: Dictionary = bytes_to_var(packet)
 		if event.get("match_id") == match_view.get("match_id") and event.get("round") == match_view.get("round"):
-			combat_event.emit(event)
+			var key := "%s:%s:%s" % [event.match_id, event.round, event.event_id]
+			if not _effect_ids.has(key):
+				_effect_ids[key] = true
+				if _effect_ids.size() > 256:
+					_effect_ids.erase(_effect_ids.keys().front())
+				combat_event.emit(event)
 
 @rpc("any_peer", "call_remote", "unreliable", 0)
 func _ping(stamp: int) -> void:
