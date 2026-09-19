@@ -6,6 +6,10 @@ Developer A and Developer B are role labels. Either person can take either role.
 
 ## 1. Ownership
 
+The shared baseline is now implemented. Start with [HANDOFF.md](HANDOFF.md) and
+[CONTRACTS.md](CONTRACTS.md); use the existing typed adapters and sandbox scenes
+instead of recreating the foundation described in the original starter prompts below.
+
 **Developer A owns simulation and multiplayer.** Physics and networking stay together because contact response, prediction, weapon hits, and authoritative state are tightly coupled.
 
 **Developer B owns the player experience and content.** Camera, input collection, arena presentation, garage, HUD, and assets can progress using agreed contracts and mock data while simulation is being built.
