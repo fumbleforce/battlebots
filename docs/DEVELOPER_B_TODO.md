@@ -106,8 +106,8 @@ not merge it to main; A and B should review integration changes before merging.
   Build mvp-ab-2, protocol 3. Both peers must run matching builds.
 - **Active branch:** codex/a-contact-reconciliation, based on bdb42ef. A reserves
   networking, simulation prediction, independent tests/network scenes and check
-  scripts. Next: quantify post-contact/airborne correction and round-reset behavior
-  under 0/80/150 ms, then fix demonstrated gaps.
+  scripts. Scripted contact/airborne/reset checks now exist at 0/80/150 ms;
+  broadened transport/collision coverage and manual LAN remain next.
 - **Modelling separation:** sawblade-tank at daa0c8c is visible remotely; A has not
   imported it. The separate flame modelling worktree is untouched. A will not edit
   assets, B presentation/UI/arena files, or weapon geometry during this increment.
@@ -119,11 +119,25 @@ not merge it to main; A and B should review integration changes before merging.
   Standalone B preview Escape should consume input before a deferred scene exit;
   the MVP app now intercepts Escape and does not leave the live match.
 - **Outstanding acceptance:** real two-computer LAN, human contact/camera/weapon
-  feel, and measured 250 ms post-contact settling. No localhost test is reported
+  feel, and broader contact/transport coverage beyond scripted cases. No localhost test is reported
   as a completed LAN playtest.
 - **A progress:** isolated Jolt/replay comparison reproduced missing gravity and
   roll/pitch during airborne prediction. Fixed in simulation only; 250 ms replay
   error fell from 0.327 m / 75.99 degrees to <0.001 m / 0.04 degrees. New independent
   scene: tests/network/airborne_replay.tscn. No art, B files, or wire/API changes.
-  Landing/contact settling and delayed-network impulse measurements remain next.
+  Follow-up contact measurements are recorded below.
 - Prior A coordination entries are preserved in archive/A_COORDINATION_2026-09-19.md.
+
+- **A contact increment:** fixed over-replay of external motion, early visual
+  offsets, missing reconnect velocities, pending reset baselines, and acceptance of old-round snapshots.
+  Private ping/baseline/epoch messages now require mvp-ab-3/protocol 4 on both peers.
+  Public session/BotSource APIs are unchanged. Independent contact and clock scenes
+  cover launch/flip, lifter, spinner, ram, recovery, reset, clock origins/reconnect.
+  Scripted settling is <=250 ms at 80 ms (0.25 m/10 degree
+  tolerance). Broader collision cases and real LAN remain open. B input-menu work
+  through 6e42594 and controls intent at d53967e are acknowledged, not yet imported.
+  A retains SessionBotSource.input_allowed and live-session navigation ownership.
+  No presentation/app/input or modelling changes here.
+  Network checks run at real-time speed: accelerated ENet was observed throttling
+  packets independently of the configured simulated loss. A subagent independently
+  validated clocks/baselines and the real 120-render/60-physics case.

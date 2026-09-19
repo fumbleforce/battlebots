@@ -96,8 +96,13 @@ func run() -> void:
 	check(clients[0].world.bots[id].body.global_position.distance_to(start) > 2, "Client predicts local drive")
 	check(server.world.bots[id].body.global_position.distance_to(start) > 2, "Remote intent moves only owned physical bot")
 	var rejected: int = server.diagnostics.rejected_inputs
-	clients[0]._inputs.rpc_id(1, var_to_bytes([[999999, 1.0, 0.0, 0], [91, NAN, 0.0, 0]]))
-	await frames(10)
+	# The input channel is unreliable. Establish delivery of this diagnostic
+	# probe before asserting the server rejected it; packet loss alone is not
+	# evidence that malformed commands bypassed validation.
+	for attempt: int in range(10):
+		clients[0]._inputs.rpc_id(1, var_to_bytes([[999999, 1.0, 0.0, 0], [91, NAN, 0.0, 0]]))
+		if await until(func() -> bool: return server.diagnostics.rejected_inputs > rejected, 6):
+			break
 	check(server.diagnostics.rejected_inputs > rejected, "Malformed/non-finite/sequence-jump commands rejected")
 	check(server.world.bots[id].body.global_position.is_finite(), "Hostile input leaves finite server state")
 	for frame: int in range(300):

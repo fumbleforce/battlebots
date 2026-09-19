@@ -1,5 +1,6 @@
 class_name DriveBody
 extends RigidBody3D
+signal reconciled(displacement: Vector3)
 ## Ground probes gate authored tire forces; chassis collision supports the weight.
 ## No camera, Input singleton, or UI dependency. Units are meters, seconds and kg.
 
@@ -41,10 +42,12 @@ func accept_command(command: BotCommand) -> void:
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if not correction.is_empty():
+		var displacement: Vector3 = state.transform.origin - correction.pose.origin
 		state.transform = correction.pose
 		state.linear_velocity = correction.velocity
 		state.angular_velocity = correction.angular
 		correction.clear()
+		reconciled.emit(displacement)
 	if reset_pose is Transform3D:
 		state.transform = reset_pose
 		state.linear_velocity = Vector3.ZERO

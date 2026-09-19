@@ -1,8 +1,11 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 3
-const BUILD := "mvp-ab-2"
+const PROTOCOL := 4
+const BUILD := "mvp-ab-3"
 const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
+
+static func snapshot_epoch(match_id: String, round_index: int) -> String:
+	return "%s:%d" % [match_id, round_index]
 
 static func command_to_array(command: BotCommand) -> Array:
 	var flags := int(command.brake) | (int(command.primary_held) << 1) | (int(command.primary_pressed) << 2) | (int(command.secondary_held) << 3) | (int(command.recovery_pressed) << 4)
@@ -26,17 +29,23 @@ static func command_from_array(data: Variant) -> BotCommand:
 
 static func encode_bot(bot: MvpBot, epoch: String) -> PackedByteArray:
 	var c := bot.combat
+	# Baselines can be requested between reset_round() and the next Jolt step.
+	# The new round owns its spawn pose, never the preceding round's motion.
+	var resetting := bot.body.reset_pose is Transform3D
+	var pose: Transform3D = bot.body.reset_pose if resetting else bot.body.global_transform
 	var zones: Array = []
 	for key: String in ZONES:
 		zones.append(c.zones[key])
 	return var_to_bytes([epoch, bot.server_tick, bot.entity_id, bot.last_sequence,
-		bot.body.global_transform, bot.body.linear_velocity, bot.body.angular_velocity,
+		pose, Vector3.ZERO if resetting else bot.body.linear_velocity,
+		Vector3.ZERO if resetting else bot.body.angular_velocity,
 		c.core, zones, c.battery, c.heat, c.charge, c.weapon_phase, c.cooldown,
 		c.can_recover(), c.recovery_remaining, c.recovery_cooldown,
 		maxf(0, 10 - c.immobilized_seconds) if c.immobilized_seconds > 0 else 0.0,
 		c.eliminated, c.elimination_reason, c.failure_reason, c.effective_damage,
 		c.eliminations, c.assists, c.component_disables, c.recovery_count,
-		bot.body._drive_input, bot.body._turn_input, bot.body.grounded])
+		0.0 if resetting else bot.body._drive_input, 0.0 if resetting else bot.body._turn_input,
+		false if resetting else bot.body.grounded])
 
 static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary:
 	if packet.size() > 1200:

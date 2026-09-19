@@ -35,6 +35,7 @@ static func create(id: int, side: int, build: Dictionary, registry: ContentRegis
 
 func _ready() -> void:
 	body = $Body
+	body.reconciled.connect(_on_reconciled)
 	var stats := combat.stats
 	body.mass = stats.mass
 	body.top_speed = stats.speed
@@ -69,10 +70,18 @@ func _ready() -> void:
 	last_floor = body.global_position
 	body.freeze = not simulated
 
+func _on_reconciled(displacement: Vector3) -> void:
+	visual_error += displacement
+	if visual_error.length() >= 2:
+		visual_error = Vector3.ZERO
+
 func _process(delta: float) -> void:
 	if simulated:
 		presentation.global_transform = body.global_transform
-	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * 20.0))
+	# Catch up sizeable contact offsets within the settling budget while keeping
+	# small driving corrections gentle. Large divergences still snap on receipt.
+	var decay := 30.0 if visual_error.length_squared() > 0.25 * 0.25 else 20.0
+	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * decay))
 	if weapon_visual != null:
 		weapon_visual.show_state(read_view(), delta)
 

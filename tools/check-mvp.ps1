@@ -3,9 +3,12 @@ $ErrorActionPreference = 'Stop'
 & (Join-Path $PSScriptRoot 'check-drive.ps1') -GodotPath $GodotPath
 $projectRoot = Join-Path $PSScriptRoot '../battlebots'
 function Invoke-MvpTest {
-    param([string]$Script, [string]$Marker, [switch]$Scene)
+    param([string]$Script, [string]$Marker, [switch]$Scene, [switch]$RealTime)
     [string[]]$targetArgs = if ($Scene) { @($Script) } else { @('--script', $Script) }
-    $lines = & $GodotPath --headless --path $projectRoot --fixed-fps 60 @targetArgs --quit-after 10000 2>&1
+    # ENet uses wall-clock transport timers. Accelerated physics can starve/drop
+    # packets artificially; network acceptance runs at its intended real rate.
+    [string[]]$timingArgs = if ($RealTime) { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
+    $lines = & $GodotPath --headless --path $projectRoot @timingArgs @targetArgs --quit-after 10000 2>&1
     $exitCode = $LASTEXITCODE
     $lines | ForEach-Object { Write-Host $_ }
     if ($exitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:') -or -not ($lines -match "^$Marker`$")) {
@@ -23,11 +26,13 @@ Invoke-MvpTest 'res://tests/integration/network_presentation_smoke.gd' 'PRESENTA
 Invoke-MvpTest 'res://tests/integration/duel_menu_smoke.gd' 'DUEL MENU PASS'
 Invoke-MvpTest 'res://tests/integration/navigation_smoke.gd' 'NAVIGATION PASS'
 Invoke-MvpTest 'res://tests/network/airborne_replay.tscn' 'AIRBORNE REPLAY PASS' -Scene
+Invoke-MvpTest 'res://tests/network/clock_sync.tscn' 'CLOCK SYNC PASS' -Scene -RealTime
 $previousProfile = $env:BATTLEBOTS_NET_PROFILE
 try {
     foreach ($profile in @('0', '80', '150')) {
         $env:BATTLEBOTS_NET_PROFILE = $profile
-        Invoke-MvpTest 'res://tests/network/session_smoke.gd' 'NETWORK PASS'
+        Invoke-MvpTest 'res://tests/network/session_smoke.gd' 'NETWORK PASS' -RealTime
+        Invoke-MvpTest 'res://tests/network/contact_reconciliation.tscn' 'CONTACT NETWORK PASS' -Scene -RealTime
     }
 } finally {
     $env:BATTLEBOTS_NET_PROFILE = $previousProfile

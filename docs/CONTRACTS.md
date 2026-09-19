@@ -1,4 +1,4 @@
-# Baseline contracts — v1
+# Shared contracts — baseline v1 and MVP protocol 4
 
 These are local typed GDScript interfaces, not a wire protocol or complete game API.
 A owns implementation definitions under scripts/core; B consumes them via adapters.
@@ -21,8 +21,8 @@ rate-limit and network payload checks separately.
 entity ID, global pose, core/battery/heat/weapon-charge fractions in [0, 1],
 weapon state name, recovery availability, and elimination flag.
 Treat it as read-only; mutating it never writes simulation state.
-Health-zone details, match views, registry/garage validation and serialization are
-future coordinated additions, not empty APIs to implement against today.
+The MVP additions below define health zones, match views, registry/garage
+validation and serialization used by the current integrated app.
 
 ### Additive MVP implementation on A's branch
 
@@ -72,7 +72,8 @@ HitZones index 3 (mask 4). Cosmetic visuals have no collision.
 Arena floor surface is Y=0, X/Z bounds +/-25.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
 For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
-The baseline has no FFA markers or perimeter walls; B adds them in the first task.
+B's integrated arena includes perimeter walls and FFA spawn markers; A's current
+session rules support 1v1 and 2v2. FFA authority remains future work.
 Spawn a future bot root with care: the bot fixture already offsets its body
 upward by 0.5, so do not apply that clearance twice when integrating spawn logic.
 
@@ -90,7 +91,11 @@ A change to an existing field's meaning is a breaking change; coordinate it befo
 editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
 for networking that does not yet exist.
 
-## MVP session API — protocol 3 (A branch)
+## MVP session API — protocol 4, build mvp-ab-3 (A contact branch)
+
+The playable a-b-integration checkpoint is still mvp-ab-2/protocol 3. Both peers
+must use the same build. Private clock/baseline and snapshot epoch semantics
+changed on a-contact-reconciliation; the public session/BotSource API is unchanged.
 
 `MvpSession` must have the same relative NodePath on every peer. Instantiate it
 under the application/session root, then call `host(port=24567, listen=true, player_count=4)` or
@@ -133,9 +138,19 @@ entity snapshots at 20 Hz; control uses reliable channel 0. Node/RID/Object hand
 are never serialized. `WireCodec.PROTOCOL` is the actual wire version.
 
 Local drive prediction uses the same DriveModel tire response as the server and
-replays up to 250 ms of unacknowledged commands. Authoritative pose/velocity/contact
+advances snapshots to the estimated current simulation tick, bounded to 250 ms,
+using recent unacknowledged input. A server tick/echo clock exchange estimates
+snapshot age separately from the input backlog. Free-flight replay includes
+gravity and full angular rotation; landing/contact outcomes are not replayed.
+Authoritative pose/velocity/contact
 outcomes replace prediction; small positional visual errors decay, errors >=2 m
-snap. This is approximate contact reconciliation, not deterministic Jolt rollback.
+snap. Visual offsets accumulate when Jolt applies the correction, avoiding an
+offset on the old physical pose; offsets above 0.25 m blend faster than smaller
+driving corrections. This is approximate reconciliation, not
+deterministic Jolt rollback. Snapshot epochs include match ID and round number;
+round changes discard interpolation/replay history and reject old-round packets.
+Baselines taken while an authoritative reset is pending carry the planned spawn
+and zero prior motion/input, so reconnect cannot restore a previous round's pose.
 Remote visuals interpolate in a 75–150 ms adaptive buffer; extrapolation stops
 after 100 ms. `diagnostics.degraded` marks snapshots older than 250 ms and
 `interpolation_ms` reports the buffer. MvpBot's stable camera anchor is now under
@@ -158,9 +173,8 @@ default view. Do not retain an old camera anchor across baseline replacement.
 `MvpSession.practice(draft={})` starts local physics against a stationary enemy;
 it validates an unsaved draft before assembly and returns Error. `leave()` resets
 it before starting another mode. No practice result is awarded. Networking MVP
-uses A's canonical collision-only Foundry dimensions and primitive rendering;
-B's finished arena/camera remains a separate integration step. Do not stack both
-arena collision roots in one world. Match results include per-round participant
+uses B's published Foundry and camera with A's primitive bot rendering. Do not
+stack arena collision roots in one world. Match results include per-round participant
 snapshots and aggregate damage/elimination/assist/component/recovery counters.
 
 Neutral input for menus/focus loss must set brake and secondary_held so a held

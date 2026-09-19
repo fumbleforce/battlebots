@@ -38,6 +38,9 @@ var _client_tick := 0
 var _remote_buffers: Dictionary = {}
 var _last_snapshot_tick: Dictionary = {}
 var _last_ping := 0.0
+var _ping_ticks: Dictionary = {}
+var _server_tick_offset := 0.0
+var _clock_ready := false
 var _results: Dictionary = {}
 var interpolation_delay := 0.1
 var _last_arrival := 0.0
@@ -138,6 +141,11 @@ func leave() -> void:
 	_remote_buffers.clear()
 	_last_snapshot_tick.clear()
 	_effect_ids.clear()
+	_ping_ticks.clear()
+	_server_tick_offset = 0.0
+	_clock_ready = false
+	_client_tick = 0
+	_last_ping = 0.0
 	network_simulation.pending.clear()
 	_client_sequence = 0
 	match_state = MatchState.new()
@@ -366,8 +374,8 @@ func _start() -> void:
 func _send_baseline(peer: int) -> void:
 	var states := {}
 	for id: int in world.bots:
-		states[id] = WireCodec.encode_bot(world.bots[id], match_state.match_id)
-	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":match_state.snapshot(), "bots":states}))
+		states[id] = WireCodec.encode_bot(world.bots[id], WireCodec.snapshot_epoch(match_state.match_id, match_state.round_index))
+	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":match_state.snapshot(), "bots":states, "server_tick":world.tick}))
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _baseline(packet: PackedByteArray) -> void:
@@ -376,6 +384,8 @@ func _baseline(packet: PackedByteArray) -> void:
 	var data: Dictionary = bytes_to_var(packet)
 	lobby_view = data.lobby
 	match_view = data.match
+	_server_tick_offset = float(data.server_tick) - _client_tick
+	_clock_ready = false
 	world.clear_bots()
 	_remote_buffers.clear()
 	_last_snapshot_tick.clear()
@@ -458,7 +468,11 @@ func _physics_process(delta: float) -> void:
 			network_simulation.send(func() -> void: _inputs.rpc_id(1, packet))
 		if connection_state == "connected" and _time - _last_ping >= 1:
 			_last_ping = _time
-			_ping.rpc_id(1, Time.get_ticks_msec())
+			var stamp := Time.get_ticks_msec()
+			_ping_ticks[stamp] = _client_tick
+			if _ping_ticks.size() > 8:
+				_ping_ticks.erase(_ping_ticks.keys().front())
+			_ping.rpc_id(1, stamp)
 		return
 	for peer: int in _pending_peers.keys():
 		if _pending_peers[peer] <= _time:
@@ -546,7 +560,11 @@ func _physics_process(delta: float) -> void:
 				_match.rpc_id(peer, var_to_bytes({"view":match_view, "results":_results}))
 	if world.tick % 3 == 0:
 		for id: int in world.bots:
-			var packet := WireCodec.encode_bot(world.bots[id], match_state.match_id)
+			# A reset is applied by Jolt on the next physics step; never label the old
+			# physical pose as a state from the new round.
+			if world.bots[id].body.reset_pose is Transform3D:
+				continue
+			var packet := WireCodec.encode_bot(world.bots[id], WireCodec.snapshot_epoch(match_state.match_id, match_state.round_index))
 			diagnostics.snapshot_bytes = maxi(diagnostics.snapshot_bytes, packet.size())
 			for peer: int in peer_entities:
 				if peer != 1:
@@ -559,7 +577,15 @@ func _match(packet: PackedByteArray) -> void:
 	if packet.size() > 32768:
 		return
 	var data: Dictionary = bytes_to_var(packet)
+	var changed_round: bool = data.view.get("round") != match_view.get("round") or data.view.get("match_id") != match_view.get("match_id")
 	match_view = data.view
+	if changed_round:
+		_remote_buffers.clear()
+		_last_snapshot_tick.clear()
+		_local_commands.clear()
+		for bot: MvpBot in world.bots.values():
+			bot.body.correction.clear()
+			bot.visual_error = Vector3.ZERO
 	if match_view.phase == "lobby":
 		world.clear_bots()
 		_remote_buffers.clear()
@@ -577,7 +603,8 @@ func _snapshot(packet: PackedByteArray) -> void:
 		return
 	var bot: MvpBot = world.bots[values[2]]
 	var state := WireCodec.decode_bot(packet, bot.combat.stats)
-	if state.is_empty() or state.epoch != match_view.get("match_id", "") or state.tick <= int(_last_snapshot_tick.get(bot.entity_id, -1)):
+	var epoch := WireCodec.snapshot_epoch(match_view.get("match_id", ""), match_view.get("round", 0))
+	if state.is_empty() or state.epoch != epoch or state.tick <= int(_last_snapshot_tick.get(bot.entity_id, -1)):
 		return
 	_last_snapshot_tick[bot.entity_id] = state.tick
 	diagnostics.snapshots_received += 1
@@ -597,13 +624,26 @@ func _snapshot(packet: PackedByteArray) -> void:
 		bot.body.drive_multiplier = pods * 0.5
 		bot.body.steering_multiplier = 0.0 if pods == 0 else (0.6 if pods == 1 else 1.0)
 		var active: bool = match_view.get("phase") in ["active", "overtime"] and not state.eliminated
-		var corrected := DriveModel.replay(state, _local_commands if active else [], bot.body.model_config())
+		# Inputs awaiting acknowledgement also include the uplink/queue delay.
+		# External motion must advance only by snapshot age, not that whole backlog.
+		# Snapshot pose precedes its labelled server step; correction applies on the
+		# next Jolt step after receipt. Account for both physics callback boundaries.
+		var steps := clampi(roundi(_client_tick + _server_tick_offset - state.tick) + 2, 0, 15) if active else 0
+		var replay: Array = _local_commands.slice(maxi(0, _local_commands.size() - steps)) if steps > 0 else []
+		while replay.size() < steps:
+			var held := BotCommand.new()
+			held.brake = true
+			replay.append(replay.back() if not replay.is_empty() else WireCodec.command_to_array(held))
+		var corrected := DriveModel.replay(state, replay, bot.body.model_config())
 		var error: Vector3 = bot.body.global_position - corrected.pose.origin
 		diagnostics.correction_m = error.length()
-		bot.visual_error = error if error.length() < 2 and not first else Vector3.ZERO
 		bot.body.freeze = not active
 		if bot.body.freeze or first:
+			bot.visual_error = Vector3.ZERO
+			bot.body.correction.clear()
 			bot.body.global_transform = corrected.pose
+			bot.body.linear_velocity = corrected.velocity
+			bot.body.angular_velocity = corrected.angular
 		else:
 			bot.body.correction = corrected
 			bot.body.sleeping = false
@@ -669,11 +709,18 @@ func _effect(packet: PackedByteArray) -> void:
 @rpc("any_peer", "call_remote", "unreliable", 0)
 func _ping(stamp: int) -> void:
 	if _server and _control_allowed(multiplayer.get_remote_sender_id()):
-		_pong.rpc_id(multiplayer.get_remote_sender_id(), stamp)
+		_pong.rpc_id(multiplayer.get_remote_sender_id(), stamp, world.tick)
 
 @rpc("authority", "call_remote", "unreliable", 0)
-func _pong(stamp: int) -> void:
+func _pong(stamp: int, server_tick: int) -> void:
+	if not _ping_ticks.has(stamp):
+		return
 	diagnostics.rtt_ms = maxf(0, Time.get_ticks_msec() - stamp)
+	var elapsed := _client_tick - int(_ping_ticks[stamp])
+	var offset := server_tick + elapsed * 0.5 - _client_tick
+	_server_tick_offset = lerpf(_server_tick_offset, offset, 0.25) if _clock_ready else offset
+	_clock_ready = true
+	_ping_ticks.erase(stamp)
 
 func local_source() -> BotSource:
 	return world.bots.get(local_entity) if is_instance_valid(world) else null

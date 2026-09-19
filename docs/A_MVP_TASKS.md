@@ -18,7 +18,8 @@ families are phase 4, not MVP; public account/allocation services are phase 5.
 - [x] Headless/graphical bootstrap, exports/CI checks and B API handoff.
 - [x] Automated pure/physics/four-peer integration and hostile-input tests.
 - [x] Airborne replay tracks real Jolt gravity/rotation over the 250 ms replay window.
-- [ ] Measure contact/flip/recovery prediction settling in independent network scenes.
+- [x] Measure scripted contact/flip/recovery prediction settling at 0/80/150 ms in independent scenes.
+- [ ] Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
 - [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
 
 The final LAN and human-feel gate cannot be replaced by localhost tests. Record
