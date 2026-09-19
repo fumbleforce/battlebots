@@ -31,6 +31,18 @@ func _run() -> void:
 	var preview: Node3D = sandbox.get_node("Preview")
 	preview.set_physics_process(false)
 	preview.release_controls()
+	# The HUD must never retain a removed bot's values or propagate invalid fractions.
+	var hud: BotStatusHud = preview.hud
+	var sample := BotView.new()
+	sample.core_fraction = 1.5
+	sample.heat_fraction = NAN
+	hud.show_view(sample)
+	check(hud.rows.get_node("Core/Value").text == "100%", "HUD must clamp over-range data")
+	check(hud.rows.get_node("Heat/Value").text == "--", "HUD must label invalid data")
+	hud.show_view(null)
+	check(hud.state_label.text == "TARGET UNAVAILABLE", "HUD must identify missing target")
+	check(hud.rows.get_node("Core/Bar").value == 0.0, "HUD must clear stale core value")
+	hud.show_view(source.read_view())
 	var rig: BotOrbitCamera = preview.rig
 	rig.set_physics_process(false)
 	var space := sandbox.get_world_3d().direct_space_state

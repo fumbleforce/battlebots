@@ -2,6 +2,22 @@
 
 Owner: Developer B. Branch: `codex/b-arena-camera`. Base: `60feafe`.
 
+Ongoing work is tracked in [Worker B's to-do list](DEVELOPER_B_TODO.md), including
+priorities, ownership boundaries and dependencies requested from A.
+
+## B-02 follow-up: reusable status HUD
+
+The preview now instances `scenes/ui/bot_status_hud.tscn`, backed by
+`scripts/ui/bot_status_hud.gd`. Use `set_context(label)` and `show_view(BotView)`
+after the node is ready; `show_view(null)` clears a missing target. It displays
+existing core/battery/heat/weapon-charge fractions and weapon/elimination state,
+without calculating gameplay outcomes. Both existing sandbox scenes use it.
+
+The baseline smoke check and rendered presentation checks passed, including
+invalid fractions and target removal. The 1280 × 720 layout was visually checked.
+No A-owned files or shared contracts were changed for this increment. Next is
+B-03 (camera settings), not new authoritative state or lobby behavior.
+
 This implements B's first foundation task. It supersedes the baseline notes about
 missing walls and a static camera; shared core contracts remain unchanged.
 

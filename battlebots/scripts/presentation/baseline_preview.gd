@@ -5,14 +5,14 @@ extends Node3D
 @export var fixture_title: String = "Development fixture"
 @onready var source: BotSource = get_node_or_null(source_path) as BotSource
 @onready var rig: BotOrbitCamera = $OrbitCamera
-@onready var status: Label = $CanvasLayer/Panel/Margin/Content/Status
+@onready var hud: BotStatusHud = $CanvasLayer/BotStatusHud
 @onready var hint: Label = $CanvasLayer/Hint
 var sequence: int = 0
 var controls_enabled: bool = false
 var _suppress_primary_until_release: bool = false
 
 func _ready() -> void:
-	$CanvasLayer/Panel/Margin/Content/Title.text = fixture_title
+	hud.set_context(fixture_title)
 	rig.bind_source(source)
 	get_window().focus_exited.connect(release_controls)
 	if DisplayServer.get_name() != "headless":
@@ -65,13 +65,9 @@ func _physics_process(_delta: float) -> void:
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(source):
-		status.text = "Target unavailable"
+		hud.show_view(null)
 		return
-	var view := source.read_view()
-	status.text = "CORE  %d%%     BATTERY  %d%%     HEAT  %d%%\nWEAPON  %d%%    /    %s" % [
-		roundi(view.core_fraction * 100.0), roundi(view.battery_fraction * 100.0),
-		roundi(view.heat_fraction * 100.0), roundi(view.weapon_charge_fraction * 100.0),
-		String(view.weapon_state).to_upper()]
+	hud.show_view(source.read_view())
 	hint.text = "Mouse  Orbit   |   Wheel  Zoom   |   MMB  Recenter   |   Esc  Release cursor" \
 		if controls_enabled else "Click the arena to resume   |   Esc  Return to launcher"
 

@@ -5,7 +5,8 @@ handoffs or PRs. Status describes B's branch, not what has been merged to main.
 Nothing here implies A has already implemented a requested dependency.
 
 **Current branch:** `codex/b-arena-camera` (camera baseline plus dependent UI work).
-**Current increment:** B-02, reusable bot-status HUD.
+**Latest completed increment:** B-02, reusable bot-status HUD.
+**Next increment:** B-03, camera settings UI.
 **Integration reference:** [B handoff](DEVELOPER_B_HANDOFF.md).
 **Working rules:** [ownership and workflow](TEAM_WORKFLOW.md).
 
@@ -17,15 +18,14 @@ Nothing here implies A has already implemented a requested dependency.
   review wall collisions and camera feel with the real drive implementation.
 - [x] **B-00: Visible cooperation plan.** This checklist records sequence, file
   ownership, completion criteria and dependency requests for A.
+- [x] **B-02: Reusable status HUD.** Labelled core/battery/heat/charge bars and
+  textual weapon/low-core/high-heat/elimination status using existing BotView.
+  Invalid values are labelled, out-of-range values clamped for display, and missing
+  targets clear stale information. Shared A/B scene checks and rendered tests passed;
+  the layout was visually inspected at 1280 × 720. No shared API changes.
 
 ## Active and next — B can do these independently
 
-- [ ] **B-02 — IN PROGRESS: Reusable status HUD.** Replace the diagnostic text
-  with labelled core/battery/heat/weapon-charge bars and textual state. Consume
-  existing BotView only. Handle missing targets and invalid/out-of-range display
-  values without showing stale bot information. Keep the mock label obvious.
-  **Done when:** the same UI works in A and B sandboxes, scene checks pass, and
-  the rendered HUD is readable at 1280 × 720. B-owned UI/presentation files only.
 - [ ] **B-03: Camera settings UI.** Sensitivity, Y inversion, automatic recenter,
   and recenter strength, with defaults and local persistence. Use a B-specific
   settings file until A's profile/settings service is agreed; do not introduce a
@@ -50,6 +50,10 @@ Nothing here implies A has already implemented a requested dependency.
   **Needs from A:** a branch/commit ready to test; stable camera anchor; complete
   camera_exclusions RIDs; coherent BotView snapshots. No new contract is required
   for the initial core/resource bars.
+  **Observed candidates:** origin/codex/a-drive-controller at `14236d2`, and
+  origin/codex/a-mvp at `d61efc5`. Read-only inspection confirmed the current
+  BotSource/BotView boundary remains compatible; combined-branch playtesting has
+  not yet been performed. These are observed commits, not claims of A's approval.
 
 ## Waiting for A's interfaces — do not guess authoritative state
 
@@ -86,8 +90,8 @@ not merge it to main; A and B should review integration changes before merging.
 
 ## Latest handoff to A
 
-- B-01 is ready on this branch; B-02 is next and uses existing BotView fields.
+- B-01 and B-02 are ready on this branch; B-03 is next.
 - Continue drive/network work without editing B's UI/camera scenes.
 - No engine settings or new input actions are requested for B-02.
-- Please identify the real-drive integration commit when ready; joint playtesting
-  remains outstanding. This checklist is a repository handoff, not a sent message.
+- A's drive/MVP branches are now visible remotely. Agree the integration candidate
+  before joint playtesting. This checklist is a repository handoff, not a sent message.
