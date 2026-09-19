@@ -1,7 +1,7 @@
 class_name WireCodec
 extends RefCounted
 const PROTOCOL := 3
-const BUILD := "mvp-1"
+const BUILD := "mvp-ab-1"
 const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
 
 static func command_to_array(command: BotCommand) -> Array:

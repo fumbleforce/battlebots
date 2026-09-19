@@ -6,18 +6,21 @@ var registry := ContentRegistry.new()
 var weapons := CombatWorld.new()
 var tick := 0
 var credited: Dictionary = {}
+var arena: Node3D
 
 func _ready() -> void:
-	make_box(Vector3(50, 1, 50), Vector3(0, -0.5, 0))
-	make_box(Vector3(52, 3, 1), Vector3(0, 1.5, -25.5))
-	make_box(Vector3(52, 3, 1), Vector3(0, 1.5, 25.5))
-	make_box(Vector3(1, 3, 50), Vector3(-25.5, 1.5, 0))
-	make_box(Vector3(1, 3, 50), Vector3(25.5, 1.5, 0))
-	for x: int in [-1, 1]:
-		for z: int in [-1, 1]:
-			# Match B's 2 m chamfer: interior plane passes through (+/-24,+/-24).
-			var corner := make_box(Vector3(4.242641, 3, 1), Vector3(x * 24.353553, 1.5, z * 24.353553))
-			corner.rotation.y = x * z * PI / 4
+	arena = preload("res://scenes/arenas/baseline_arena.tscn").instantiate()
+	arena.name = "Arena"
+	if DisplayServer.get_name() == "headless":
+		_strip_presentation(arena)
+	add_child(arena)
+
+func _strip_presentation(node: Node) -> void:
+	for child: Node in node.get_children():
+		if child is VisualInstance3D or child is WorldEnvironment:
+			child.free()
+		else:
+			_strip_presentation(child)
 
 func make_box(size: Vector3, position: Vector3) -> StaticBody3D:
 	var node := StaticBody3D.new()
@@ -45,7 +48,8 @@ func spawn(id: int, team: int, slot: int, loadout: Dictionary) -> MvpBot:
 		return null
 	bot.name = "Bot%d" % id
 	add_child(bot)
-	var pose := Transform3D(Basis(Vector3.UP, 0.0 if team == 0 else PI), Vector3(-6 if slot == 0 else 6, 0.5, 19 if team == 0 else -19))
+	var marker := arena.get_node("SpawnPoints/Team%d_%d" % [team + 1, 2 if slot == 0 else 4]) as Node3D
+	var pose := marker.global_transform
 	bot.spawn_pose = pose
 	bot.body.reset_pose = pose
 	bot.previous_pose = pose

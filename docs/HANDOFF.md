@@ -1,5 +1,23 @@
 # Baseline handoff
 
+## A+B integration — codex/a-b-integration
+
+Combines A `759041e` and B `40aa6b1`, preserving B's published files. The MVP app
+mounts B's camera, HUD and settings through SessionBotSource. AuthorityWorld loads
+the same B arena on server/client, using its spawn markers, with no duplicate
+colliders; headless worlds strip visual/light nodes. SessionBotSource now accepts
+an optional `input_allowed` Callable; false produces brake+secondary cancellation.
+The app gates menu/focus/countdown/eliminated input; B remains the only collector.
+Build handshake is `mvp-ab-1`, protocol 3; both computers must use this branch.
+
+The combined MVP suite, B camera/settings, app reset/cancel tests, four real UDP
+clients with camera/HUD adapters, and five independent processes pass. Rendered
+practice was inspected with B's arena/camera/HUD; user input interrupted manual UI
+automation, so subjective weapon/camera feel is not signed off. Native two-machine
+LAN is pending the second host. B-06–09 production menus/garage are still upcoming.
+User additionally requested simple visible weapons and a simpler game menu;
+A is implementing these in bot assembly and scenes/app, leaving B's files intact.
+
 ## Developer A — MVP implementation (codex/a-mvp)
 
 The drive-only limitations below are historical. A's current branch implements

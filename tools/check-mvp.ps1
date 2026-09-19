@@ -15,6 +15,10 @@ Invoke-MvpTest 'res://tests/simulation/content_smoke.gd' 'CONTENT PASS'
 Invoke-MvpTest 'res://tests/simulation/rules_smoke.gd' 'RULES PASS'
 Invoke-MvpTest 'res://tests/simulation/combat_physics_smoke.gd' 'COMBAT PHYSICS PASS'
 Invoke-MvpTest 'res://tests/simulation/stress_smoke.gd' 'STRESS PASS'
+Invoke-MvpTest 'res://tests/presentation/camera_arena_test.gd' 'PRESENTATION PASS'
+Invoke-MvpTest 'res://tests/presentation/camera_settings_test.gd' 'CAMERA SETTINGS PASS'
+Invoke-MvpTest 'res://tests/integration/app_smoke.gd' 'APP INTEGRATION PASS'
+Invoke-MvpTest 'res://tests/integration/network_presentation_smoke.gd' 'PRESENTATION NETWORK PASS'
 $previousProfile = $env:BATTLEBOTS_NET_PROFILE
 try {
     foreach ($profile in @('0', '80', '150')) {

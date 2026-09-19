@@ -165,3 +165,12 @@ Neutral input for menus/focus loss must set brake and secondary_held so a held
 lifter cancels instead of launching on release. All-false is an ordinary released
 command. The server's stale/disconnect path supplies cancellation automatically.
 `spectator_sources()` returns live teammates for B's spectator camera to cycle.
+
+### Combined app checkpoint (mvp-ab-1)
+
+AuthorityWorld now instantiates B's published arena and its spawn markers on every
+peer; headless worlds remove presentation nodes. Do not add another arena to the
+MVP app. SessionBotSource has an optional `input_allowed: Callable`; returning false
+submits brake+secondary cancellation. No gate retains the previous forwarding API.
+The app uses this to keep B's unmodified input collector safe during modal/focus
+suppression, countdown and elimination. B can later own this gate in its final UI.

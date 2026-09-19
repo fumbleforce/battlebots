@@ -1,11 +1,16 @@
 extends Node3D
-## A's integration console, not B's production menus/camera/garage.
+## A-owned integration shell mounting B's published presentation components.
 var session: MvpSession
 var status: Label
 var address: LineEdit
 var controller := false
-var camera: Camera3D
 var last_phase := ""
+var notice := ""
+var preview: Node3D
+var player_source: SessionBotSource
+var console_panel: PanelContainer
+var resume_button: Button
+var _previous_source: BotSource
 
 func _ready() -> void:
 	session = MvpSession.new()
@@ -17,8 +22,10 @@ func _ready() -> void:
 			print("SESSION PHASE: ", last_phase))
 	session.session_event.connect(func(kind: String, details: Dictionary) -> void:
 		if kind == "error":
-			print("SESSION ERROR: ", details.get("message", "Unknown error"))
+			notice = str(details.get("message", "Unknown error"))
+			print("SESSION ERROR: ", notice)
 		else:
+			notice = kind.capitalize()
 			print("SESSION: ", kind))
 	var args := OS.get_cmdline_user_args()
 	var port := 24567
@@ -50,45 +57,46 @@ func _ready() -> void:
 		if session.connection_state == "hosting":
 			session.set_ready(true)
 
-func _button(row: HBoxContainer, title: String, action: Callable) -> void:
+func _button(row: HBoxContainer, title: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = title
 	button.pressed.connect(action)
 	row.add_child(button)
+	return button
 
 func _build_console() -> void:
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, -30, 0)
-	sun.shadow_enabled = true
-	add_child(sun)
-	var environment := WorldEnvironment.new()
-	var settings := Environment.new()
-	settings.background_mode = Environment.BG_COLOR
-	settings.background_color = Color(0.05, 0.07, 0.1)
-	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	settings.ambient_light_color = Color.WHITE
-	settings.ambient_light_energy = 0.5
-	environment.environment = settings
-	add_child(environment)
-	camera = Camera3D.new()
-	add_child(camera)
-	camera.position = Vector3(0, 8, 12)
-	camera.rotation_degrees.x = -35
-	camera.current = true
+	get_window().title = "Battlebots - A+B playtest"
+	player_source = SessionBotSource.new()
+	player_source.name = "PlayerSource"
+	player_source.session_path = NodePath("../Session")
+	player_source.input_allowed = gameplay_input_allowed
+	add_child(player_source)
+	preview = preload("res://scenes/ui/baseline_preview.tscn").instantiate()
+	preview.name = "Preview"
+	preview.source_path = NodePath("../PlayerSource")
+	preview.fixture_title = "Battlebots / live session"
+	add_child(preview)
+	# B collects inputs once. The proxy gates them before they reach the session.
 	var canvas := CanvasLayer.new()
+	canvas.layer = 5
 	add_child(canvas)
-	var panel := PanelContainer.new()
-	panel.position = Vector2(12, 12)
-	canvas.add_child(panel)
+	status = Label.new()
+	status.position = Vector2(510, 20)
+	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(status)
+	console_panel = PanelContainer.new()
+	console_panel.position = Vector2(330, 280)
+	canvas.add_child(console_panel)
 	var stack := VBoxContainer.new()
-	panel.add_child(stack)
+	console_panel.add_child(stack)
 	var title := Label.new()
-	title.text = "A — MVP integration console (temporary presentation)"
+	title.text = "Session controls"
 	stack.add_child(title)
 	var row := HBoxContainer.new()
 	stack.add_child(row)
 	address = LineEdit.new()
 	address.text = "127.0.0.1"
+	address.placeholder_text = "Host LAN address"
 	address.custom_minimum_size.x = 150
 	row.add_child(address)
 	_button(row, "Host", func() -> void: session.leave(); session.host())
@@ -103,44 +111,59 @@ func _build_console() -> void:
 	_button(second, "Controller", func() -> void: controller = true; session.set_loadout(session.registry.starter(true)))
 	_button(second, "Practice / reset", func() -> void: session.leave(); session.practice(session.registry.starter(controller)))
 	_button(second, "Launcher", func() -> void: session.leave(); get_tree().change_scene_to_file("res://scenes/app/main.tscn"))
-	status = Label.new()
-	stack.add_child(status)
+	var third := HBoxContainer.new()
+	stack.add_child(third)
+	resume_button = _button(third, "Resume", resume_gameplay)
+	_button(third, "Camera settings", func() -> void: preview.open_settings())
 	var controls := Label.new()
-	controls.text = "WASD drive · Space brake · LMB weapon (lifter: hold/release) · RMB lower/brake · R recover"
+	controls.text = "WASD drive | Space brake | LMB weapon | RMB lower/brake | R recover\nMouse orbit | Wheel zoom | MMB recenter | Esc session controls"
 	stack.add_child(controls)
 
-func _physics_process(_delta: float) -> void:
-	if DisplayServer.get_name() == "headless" or session.local_source() == null:
-		return
-	var command := BotCommand.new()
-	var focus := get_viewport().gui_get_focus_owner()
-	var enabled := get_window().has_focus() and not focus is LineEdit
-	command.brake = not enabled or Input.is_action_pressed("brake")
-	if enabled:
-		command.throttle = Input.get_axis("drive_reverse", "drive_forward")
-		command.steering = Input.get_axis("steer_left", "steer_right")
-		# GUI-consumed clicks do not drive weapon intent.
-		var over_ui := get_viewport().gui_get_hovered_control() != null
-		command.primary_held = Input.is_action_pressed("primary") and not over_ui
-		command.primary_pressed = Input.is_action_just_pressed("primary") and not over_ui
-		command.secondary_held = Input.is_action_pressed("secondary") or over_ui
-		command.recovery_pressed = Input.is_action_just_pressed("recover")
-	session.submit_local(command)
+func gameplay_input_allowed() -> bool:
+	return is_instance_valid(preview) and preview.controls_enabled \
+		and not preview.settings_panel.visible and get_window().has_focus() \
+		and session.local_source() != null \
+		and not session.local_source().read_view().eliminated \
+		and str(session.match_view.get("phase", "")) in ["active", "overtime"]
 
-func _process(delta: float) -> void:
+func resume_gameplay() -> void:
+	if session.local_source() == null:
+		return
+	get_viewport().gui_release_focus()
+	preview.capture_controls()
+
+func _process(_delta: float) -> void:
 	if status == null:
 		return
 	var source := session.local_source()
-	var summary := "%s | slots %d/4 | %s | round %d | %.0f s" % [session.connection_state,
+	if source != _previous_source:
+		_previous_source = source
+		preview.rig.bind_source(player_source)
+		if source != null and get_window().has_focus() and not preview.settings_panel.visible:
+			resume_gameplay()
+	if source == null:
+		if preview.controls_enabled:
+			preview.release_controls()
+		preview.hud.hide()
+	else:
+		preview.hud.show()
+	console_panel.visible = not preview.controls_enabled and not preview.settings_panel.visible
+	resume_button.disabled = source == null
+	var summary := "%s | %d/4 players | %s | round %d | %.0f s" % [session.connection_state,
 		session.lobby_view.get("slots", []).size(), session.match_view.get("phase", "lobby"),
 		session.match_view.get("round", 0), session.match_view.get("remaining", 0)]
-	if source != null:
-		var view := source.read_view()
-		summary += "\nCore %.0f%% · Battery %.0f%% · Heat %.0f%% · Weapon %.0f%% (%s)" % [view.core_fraction * 100,
-			view.battery_fraction * 100, view.heat_fraction * 100, view.weapon_charge_fraction * 100, view.weapon_state]
-		if view.eliminated:
-			summary += " — ELIMINATED"
-		var target := view.pose.origin
-		camera.global_position = camera.global_position.lerp(target + Vector3(0, 8, 12), 1 - exp(-delta * 6))
-		camera.look_at(target)
+	var scores: Array = session.match_view.get("scores", [0, 0])
+	summary += "\nScore %d : %d | RTT %.0f ms | correction %.2f m" % [scores[0], scores[1],
+		session.diagnostics.rtt_ms, session.diagnostics.correction_m]
+	if session.connection_state == "practice":
+		summary = "Practice | %s\nEsc opens session controls and build selection" % session.players[session.local_entity].loadout.name
+	if console_panel.visible:
+		for slot: Dictionary in session.lobby_view.get("slots", []):
+			summary += "\nBot %d / Team %d / %s / %s" % [slot.entity_id, slot.team + 1,
+				slot.loadout.get("name", "Build"), "READY" if slot.ready else "not ready"]
+		if not notice.is_empty():
+			summary += "\n" + notice
+	if str(session.match_view.get("phase", "")) == "results":
+		var winner := int(session.match_view.get("winner", -1))
+		summary += "\nDRAW" if winner < 0 else "\nTeam %d wins" % (winner + 1)
 	status.text = summary

@@ -168,4 +168,13 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   session requests while exposing B's existing components; no replacement garage
   or production lobby is being authored in B's paths.
 - Two-computer LAN and subjective feel remain pending access to the second host.
-`n- Combined baseline, drive, content, rules, combat, stress and 0/80/150 ms network checks pass; B camera/arena and settings checks also pass.
+
+- Combined baseline, drive, content, rules, combat, stress and 0/80/150 ms network checks pass; B camera/arena and settings checks also pass.
+
+- INTEGRATED: B arena/spawns, orbit camera, live resource HUD and settings now mount
+  through A's app; one collision arena, one input producer. SessionBotSource's
+  optional gate cancels suppressed lifter input without modifying B's adapter.
+- PASS: app reset/camera/HUD/cancel checks, four UDP presentation clients and five
+  independent processes. Build mvp-ab-1; protocol remains 3. Rendered practice opens.
+- User requested simple weapon visuals and simpler menus. A reserves bot assembly
+  and scenes/app for these small placeholders; B's camera/UI source stays intact.

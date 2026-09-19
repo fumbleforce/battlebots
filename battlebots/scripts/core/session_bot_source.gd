@@ -3,7 +3,15 @@ extends BotSource
 ## B can point the existing input/camera adapter at this node across loads/reconnects.
 @export var session_path: NodePath
 @onready var session: MvpSession = get_node(session_path) as MvpSession
+## Optional app-level gate. Suppression is a cancellation, not a weapon release.
+var input_allowed: Callable
 func submit_command(command: BotCommand) -> void:
+	if input_allowed.is_valid() and not input_allowed.call():
+		var neutral := BotCommand.new()
+		neutral.brake = true
+		neutral.secondary_held = true
+		session.submit_local(neutral)
+		return
 	session.submit_local(command)
 func read_view() -> BotView:
 	var source := session.local_source()
