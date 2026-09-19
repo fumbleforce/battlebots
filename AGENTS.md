@@ -7,6 +7,7 @@ Read docs/GAME_SPEC.md, docs/TEAM_WORKFLOW.md, docs/CONTRACTS.md and docs/HANDOF
 - Current user-defined split: A owns menus, networking, game rules, game world and audio. B owns combat, bot assets (models/weapons), bot-customisation menus and player controls. This supersedes historical ownership in older handoffs.
 - A owns general menu/lobby/loading/results flows, sessions/services, match lifecycle/scoring, arena/world/environment, audio and app/export integration.
 - B owns combat/damage/resources/recovery mechanics, weapon behavior/presentation, bot assembly/catalogue, garage/customisation, driving/input/camera controls and their settings.
+- The user explicitly reiterated that A is not responsible for controls. A must not take on driving, camera, braking, weapon-control or self-righting exercises as tutorial work. Hand those to B; A may integrate the menu entry and consume published interfaces.
 - Existing folders mix responsibilities: simulation/match_state.gd and authority_world.gd are A; combat_state.gd, drive_body.gd, drive_model.gd, mvp_bot.gd and weapons/ are B. Menu shell/router are A; bot garage/customisation screens and their profile/loadout persistence are B.
 - Shared command/view/loadout contracts, prediction-to-drive boundaries, project.godot/input actions, and mixed dev scenes require a documented handoff. Follow feature ownership rather than historical folder or author names; see docs/TEAM_WORKFLOW.md.
 - Shared contracts require a documented handoff. Do not change another owner's paths incidentally.
