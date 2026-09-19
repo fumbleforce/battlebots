@@ -32,12 +32,18 @@ for record in manifest['modules']:
             assert all(fc.driver.is_valid for fc in obj.animation_data.drivers)
 atlas=bpy.data.images['SawbladeTank | 4096 surface atlas']
 assert tuple(atlas.size)==(4096,4096) and atlas.packed_file
-root['paint_primary']=[.025,.29,.36,1]; refresh()
 palette=bpy.data.node_groups['BOT_PALETTE | four player colors']
-actual=palette.nodes['Primary paint'].outputs[0].default_value
-assert max(abs(actual[i]-root['paint_primary'][i]) for i in range(4))<1e-5
+for key,info in manifest['palette'].items():
+    root[key]=[.025,.29,.36,1]; refresh()
+    actual=palette.nodes[info['label']].outputs[0].default_value
+    assert max(abs(actual[i]-root[key][i]) for i in range(4))<1e-5
+    defaults()
+for obj in objects:
+    if obj.name.startswith(('Saw lower','Saw upper','Saw central','Hammer pressure',
+                            'Hammer telescoping','Hammer yellow hydraulic','Ramp capped')):
+        assert obj.get('module_slot')=='weapon',(obj.name,'orphaned weapon mechanism')
 defaults()
-result={'modules':len(manifest['modules']),'selector_states_verified':checks,'shared_socket_hierarchy_verified':True,'visibility_drivers_verified':True,'palette_driver_verified':True,'packed_grayscale_atlas':[4096,4096]}
+result={'modules':len(manifest['modules']),'selector_states_verified':checks,'shared_socket_hierarchy_verified':True,'visibility_drivers_verified':True,'palette_driver_verified':True,'palette_channels_verified':4,'weapon_mechanism_ownership_verified':True,'packed_grayscale_atlas':[4096,4096]}
 json.dump(result,open(os.path.join(ROOT,'module_validation.json'),'w'),indent=2)
 print('MODULAR_ASSET_VERIFIED',result,flush=True)
 scene.render.engine='BLENDER_EEVEE'; scene.eevee.taa_render_samples=64

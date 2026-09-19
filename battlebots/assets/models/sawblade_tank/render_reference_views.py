@@ -10,7 +10,7 @@ scene.render.image_settings.file_format='PNG'
 camera=scene.camera; camera.data.ortho_scale=3.85
 for name,location,target in [
     ('rear',(-3.8,-4.7,2.7),(0,-.10,.82)),
-    ('side',(-6,.10,1.0),(0,.10,.84)),
+    ('side',(-6,.10,1.60),(0,.10,.84)),
 ]:
     camera.location=location
     camera.rotation_euler=(Vector(target)-camera.location).to_track_quat('-Z','Y').to_euler()

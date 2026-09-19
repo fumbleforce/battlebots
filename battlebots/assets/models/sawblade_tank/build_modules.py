@@ -25,29 +25,16 @@ def module(name,slot,choice,objects):
     module_records.append({'id':name,'slot':slot,'choice':choice,'root':holder.name,'collection':collection.name})
     return holder
 
+exec(compile(open(os.path.join(ROOT,'build_mechanics.py')).read(),'build_mechanics.py','exec'))
+
 side_prefixes=('Tapered side service','Service cover','Recessed rectangular','Service plate bolt')
 stock_side={obj for obj in drive_objects if obj.name.startswith(side_prefixes)}
 module('weapon_saw','weapon',0,weapon_objects)
 module('drive_tracks','drive',0,drive_objects-stock_side)
 module('armor_side_reference','armor_side',1,stock_side)
 
-# Hammer attachment uses the same front mounting socket as the complete saw arm.
-before=set(bot.all_objects)
-for x in [-.27,.27]:
-    box('Hammer mounting clevis',(x,.29,.74),(.14,.27,.29),yellow,.025)
-cyl('Hammer pivot shaft',(0,.29,.86),.083,.77,dark,verts=24)
-pivot=empty('Hammer_SWING_X',(0,.29,.86)); moving_start=set(bot.all_objects)
-for x in [-.13,.13]:
-    bar('Hammer forged arm',(x,.29,.86),(x,1.19,1.47),.09,.14,dark)
-    bar('Hammer arm reinforcement',(x,.33,.90),(x,.93,1.32),.095,.055,yellow)
-box('Hammer impact head',(0,1.22,1.49),(.80,.36,.35),dark,.045)
-box('Hammer hardened striking face',(0,1.22,1.30),(.82,.38,.055),steel,.008)
-for x in [-.27,.27]:
-    box('Hammer yellow head strap',(x,1.22,1.50),(.10,.38,.36),yellow,.010)
-    cyl('Hammer strap fastener',(x,1.416,1.50),.029,.014,steel,'Y',6)
-bpy.context.view_layer.update()
-for obj in set(bot.all_objects)-moving_start: parent_keep(obj,pivot)
-module('weapon_hammer','weapon',1,set(bot.all_objects)-before)
+# Complete hammer module includes its own baked actuator motion.
+module('weapon_hammer','weapon',1,build_hammer())
 
 before=set(bot.all_objects)
 plate('Full width ramp shell',0,[(.30,.22),(1.60,.055),(1.60,.105),(.37,.75),(.26,.64)],1.46,yellow,bevel=.014)
@@ -57,6 +44,9 @@ cyl('Ramp hinge axle',(0,.30,.36),.085,1.55,dark,verts=24)
 for x in [-.52,.52]:
     bar('Ramp top reinforcement',(x,.42,.745),(x,1.49,.178),.06,.042,yellow)
     cyl('Ramp hinge lock',(x,.30,.36),.11,.06,steel,verts=12)
+for x in [-.35,.35]:
+    bar('Ramp rigid chassis brace',(x,-.32,.58),(x,.32,.39),.075,.085,dark)
+    cyl('Ramp capped hydraulic port',(x,-.39,.79),.031,.035,steel,'Y',6)
 module('weapon_ramp','weapon',2,set(bot.all_objects)-before)
 
 # Complete four-wheel drive package: no belts or track-specific frame survives.
@@ -90,9 +80,10 @@ for x in [-.89,.89]:
 module('armor_side_heavy','armor_side',2,set(bot.all_objects)-before)
 
 before=set(bot.all_objects)
-box('Top machinery guard',(0,.0,1.06),(.95,.57,.06),yellow,.035)
+box('Top machinery guard rear',(0,-.07,1.06),(.95,.43,.06),yellow,.012)
+for x in [-.3625,.3625]: box('Top guard notch wing',(x,.215,1.06),(.225,.14,.06),yellow,.012)
 for x in [-.41,.41]: box('Top guard stand off',(x,-.03,.93),(.065,.42,.23),dark,.014)
-for x in [-.27,0,.27]: box('Top armor cooling slot',(x,0,1.095),(.09,.31,.005),black,.005)
+for x in [-.27,0,.27]: box('Top armor cooling slot',(x,-.04,1.095),(.09,.26,.005),black,.005)
 module('armor_top_guard','armor_top',1,set(bot.all_objects)-before)
 
 before=set(bot.all_objects)
@@ -107,11 +98,11 @@ for x in [-.44,.44]:
     for z in [.70,1.42]: cyl('Rear armor bolt',(x,-1.388,z),.024,.014,dark,'Y',6)
 module('armor_rear_guard','armor_rear',1,set(bot.all_objects)-before)
 
-def pipe(name,x,y,bottom,top,radius):
+def pipe(name,x,y,z,length,radius):
     vv=[]; ff=[]; steps=24
-    for rr,z in [(radius,bottom),(radius,top),(radius*.72,top),(radius*.72,bottom)]:
+    for rr,yy in [(radius,y),(radius,y-length),(radius*.72,y-length),(radius*.72,y)]:
         for j in range(steps):
-            q=j*2*pi/steps; vv.append((x+rr*cos(q),y+rr*sin(q),z))
+            q=j*2*pi/steps; vv.append((x+rr*cos(q),yy,z+rr*sin(q)))
     for k in range(4):
         for j in range(steps): ff.append((k*steps+j,k*steps+(j+1)%steps,((k+1)%4)*steps+(j+1)%steps,((k+1)%4)*steps+j))
     mm=bpy.data.meshes.new(name); mm.from_pydata(vv,[],ff); mm.update()
@@ -120,13 +111,16 @@ def pipe(name,x,y,bottom,top,radius):
     for face in ob.data.polygons:
         if face.index//steps==2: face.material_index=1
 
-for choice,label,xs,height,radius in [(1,'small',[0],1.15,.05),(2,'medium',[-.23,.23],1.49,.068),(3,'large',[-.34,.34],1.88,.095)]:
+for choice,label,xs,length,radius in [(1,'small',[0],.25,.05),(2,'medium',[-.23,.23],.40,.068),(3,'large',[-.34,.34],.60,.095)]:
     before=set(bot.all_objects)
-    box('Exhaust manifold '+label,(0,-1.40,.57),(.76,.14,.15),dark,.025)
+    box('Exhaust manifold '+label,(0,-1.47,.68),(.88,.14,.22),dark,.018)
+    for x in [-.30,.30]:
+        bar('Exhaust supported chassis bracket '+label,(x,-1.20,.47),(x,-1.47,.47),.055,.06,dark)
+        bar('Exhaust manifold support '+label,(x,-1.47,.47),(x,-1.47,.66),.055,.06,dark)
     for x in xs:
-        pipe('Hollow exhaust stack '+label,x,-1.45,.60,height,radius)
-        cyl('Exhaust sleeve '+label,(x,-1.45,.78),radius*1.25,.30,dark,'Z',16)
-        for z in [.65,.91]: cyl('Exhaust clamp '+label,(x,-1.45,z),radius*1.32,.025,yellow,'Z',16)
+        pipe('Horizontal hollow exhaust '+label,x,-1.50,.68,length,radius)
+        cyl('Exhaust sleeve '+label,(x,-1.565,.68),radius*1.25,.13,dark,'Y',16)
+        for yy in [-1.52,-1.615]: cyl('Exhaust clamp '+label,(x,yy,.68),radius*1.32,.025,yellow,'Y',16)
     module('exhaust_'+label,'exhaust',choice,set(bot.all_objects)-before)
 
 # Socket roots stay in the chassis; every interchangeable object has a stable ID.

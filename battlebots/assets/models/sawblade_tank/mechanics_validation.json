@@ -1,0 +1,46 @@
+{
+  "impact_face_center_m": [
+    0.0,
+    1.2114086151123047,
+    1.1920928955078125e-07
+  ],
+  "impact_face_normal": [
+    0.0,
+    0.0,
+    -1.0
+  ],
+  "minimum_face_height_m": 3.5390257835388184e-08,
+  "maximum_actuator_pin_error_m": 0.0001484274889329247,
+  "minimum_rod_engagement_m": 0.13998423420078399,
+  "minimum_hinge_moment_arm_m": 0.11885838210582733,
+  "minimum_rod_tail_clearance_m": 0.055608479467228376,
+  "pin_lengths_ready_impact_m": [
+    0.790015765799216,
+    0.5706084794672284
+  ],
+  "kinematic_subframe_samples": 257,
+  "clearance_samples": 65,
+  "all_drive_and_armor_surface_clearance": true,
+  "single_shot_returns_and_holds": true,
+  "exhausts": {
+    "small": {
+      "pipes": 1,
+      "length_m": 0.25,
+      "radius_m": 0.05,
+      "rear_armor_clear": true
+    },
+    "medium": {
+      "pipes": 2,
+      "length_m": 0.4,
+      "radius_m": 0.068,
+      "rear_armor_clear": true
+    },
+    "large": {
+      "pipes": 2,
+      "length_m": 0.6,
+      "radius_m": 0.095,
+      "rear_armor_clear": true
+    }
+  },
+  "scope": "Authored visual mesh/kinematic checks; no game physics or damage validation"
+}

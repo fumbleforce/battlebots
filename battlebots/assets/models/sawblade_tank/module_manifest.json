@@ -1,5 +1,72 @@
 {
-  "version": 1,
+  "version": 2,
+  "animations": {
+    "hammer_attack": {
+      "clip": "hammer_attack",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 33,
+      "duration_seconds": 1.0666666666666667,
+      "impact_frame": 9,
+      "impact_time_seconds": 0.26666666666666666,
+      "hold_end_frame": 12,
+      "loop": false,
+      "pivot": "Hammer_SWING_X",
+      "pivot_position": [
+        0.0,
+        0.28999999165534973,
+        0.8600000143051147
+      ],
+      "contact_marker": "Hammer_Impact",
+      "swing_degrees": -69.00260926405781,
+      "baked_objects": [
+        "Hammer_SWING_X",
+        "Hammer_Cylinder_L",
+        "Hammer_Rod_L",
+        "Hammer_Cylinder_R",
+        "Hammer_Rod_R"
+      ],
+      "bake_step_frames": 0.25,
+      "nla_track": "hammer_attack",
+      "metadata_only": "Impact marker does not apply gameplay damage",
+      "cylinder_barrel_length": 0.44,
+      "cylinder_rod_length": 0.49,
+      "chassis_anchors": [
+        [
+          -0.35,
+          -0.32,
+          0.745
+        ],
+        [
+          0.35,
+          -0.32,
+          0.745
+        ]
+      ],
+      "moving_anchor_offset": [
+        0,
+        0.18,
+        -0.12
+      ]
+    }
+  },
+  "exhaust_geometry": {
+    "axis": [
+      0,
+      -1,
+      0
+    ],
+    "lengths_m": {
+      "small": 0.25,
+      "medium": 0.4,
+      "large": 0.6
+    },
+    "radii_m": {
+      "small": 0.05,
+      "medium": 0.068,
+      "large": 0.095
+    }
+  },
   "coordinates": "Blender meters, Z up, +Y forward; glTF converts to Godot Y up / -Z forward",
   "sockets": {
     "weapon": {
@@ -239,7 +306,7 @@
     "06 | hydraulic polished rods": "Bare metal",
     "09 | freshly ground cutting steel": "Bare metal"
   },
-  "default_assembly_triangles": 21300,
-  "all_module_triangles": 32496,
+  "default_assembly_triangles": 24208,
+  "all_module_triangles": 39172,
   "integration_status": "Blender art modules and mounting data only; no game assembly, collision or combat implementation"
 }

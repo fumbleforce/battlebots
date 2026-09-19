@@ -3,7 +3,7 @@
   "loop_frames": 120,
   "fps": 30,
   "saw_revolutions_per_loop": 6,
-  "evaluated_mesh_triangles": 32496,
+  "evaluated_mesh_triangles": 39172,
   "moving_links_verified": true,
   "loop_seam_verified": true
 }

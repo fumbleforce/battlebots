@@ -66,9 +66,10 @@ for obj in bot.all_objects:
     if obj.type=='MESH' and not obj.hide_render:
         obj.data.calc_loop_triangles(); default_triangles+=len(obj.data.loop_triangles)
 scene['default_assembly_triangles']=default_triangles
-scene['README']='Select SawbladeTank_ROOT > Object Properties > Custom Properties. Change weapon, drive, armor_* and exhaust integers; hover for choices. Four paint_* color swatches tint every module. Space plays the default saw/tracks. Modules share named sockets; this is art authoring, not gameplay code.'
+scene['README']='Select SawbladeTank_ROOT > Object Properties > Custom Properties. Change weapon, drive, armor_* and exhaust integers; hover for choices. Four paint_* color swatches tint every module. Space plays the default saw/tracks. Select weapon=1 for hammer_attack: frames 1-33, impact at 9, hold through 12, then return. Reset to frame 1 to replay. Modules share named sockets; this is art authoring, not gameplay code.'
 manifest={
-    'version':1, 'coordinates':'Blender meters, Z up, +Y forward; glTF converts to Godot Y up / -Z forward',
+    'version':2, 'animations':{'hammer_attack':hammer_metadata},
+    'exhaust_geometry':{'axis':[0,-1,0],'lengths_m':{'small':.25,'medium':.40,'large':.60},'radii_m':{'small':.05,'medium':.068,'large':.095}}, 'coordinates':'Blender meters, Z up, +Y forward; glTF converts to Godot Y up / -Z forward',
     'sockets':{name:{'object':'Socket_'+name,'position':list(position)} for name,position in socket_positions.items()},
     'selectors':{name:{'default':value[0],'max':value[1],'choices':value[2]} for name,value in selectors.items()},
     'modules':module_records, 'palette':{key:{'label':label,'default':list(color)} for key,label,color in palette_info},
