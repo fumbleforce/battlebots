@@ -16,6 +16,7 @@ var _vote_match := ""
 var _menu_music: AudioStreamPlayer
 var public_service: PublicServiceClient
 var _online_joining := false
+var results_panel: MatchResults
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -38,6 +39,13 @@ func _ready() -> void:
 	preview.return_button.pressed.connect(return_to_main)
 	preview.settings_panel.closed.connect(_settings_closed)
 	_add_match_actions()
+	var results_layer := CanvasLayer.new()
+	results_layer.layer = 6
+	add_child(results_layer)
+	results_panel = MatchResults.new()
+	results_layer.add_child(results_panel)
+	results_panel.rematch_requested.connect(_request_rematch)
+	results_panel.leave_requested.connect(return_to_main)
 	_add_menu_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
@@ -108,6 +116,14 @@ func _process(_delta: float) -> void:
 			resume_gameplay()
 		elif phase == "lobby" and prior in ["results", "loading", "countdown", "active", "intermission", "overtime"]:
 			MenuRouter.goto("online" if MenuRouter.lobby_intent == "online" and public_service.state == "failed" else "lobby", false)
+		if phase == "results":
+			preview.release_controls(false)
+			results_panel.show()
+			results_panel.rematch.grab_focus()
+		elif prior == "results":
+			results_panel.hide()
+			results_panel.clear_record()
+	results_panel.render(session.match_view, session.local_entity)
 	var menu_open := menu_host.visible
 	preview.get_node("CanvasLayer").visible = not menu_open and not preview.settings_panel.visible
 	preview.get_node("DiagnosticsLayer").visible = not menu_open and not preview.settings_panel.visible
@@ -137,6 +153,8 @@ func start_practice() -> void:
 		show_notice("Cannot start practice: %s" % error_string(error))
 
 func resume_gameplay() -> void:
+	if session.match_view.get("phase") == "results":
+		return
 	if session.local_source() == null or preview.settings_panel.visible:
 		return
 	if session.match_view.get("phase") not in ["countdown", "active", "overtime", "intermission", "results"]:
@@ -152,6 +170,8 @@ func return_to_main() -> void:
 	session.leave()
 	_last_phase = ""
 	_vote_match = ""
+	results_panel.hide()
+	results_panel.clear_record()
 	MenuRouter.goto("main", false)
 
 func open_settings() -> void:
@@ -173,6 +193,9 @@ func _settings_closed(_saved: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if _cli_handoff or not event.is_action_pressed("pause"):
 		return
+	if results_panel.visible:
+		get_viewport().set_input_as_handled()
+		return
 	if preview.settings_panel.visible:
 		get_viewport().set_input_as_handled()
 		preview.settings_panel.cancel()
@@ -187,7 +210,9 @@ func _input(event: InputEvent) -> void:
 			resume_gameplay()
 
 func _session_event(kind: String, details: Dictionary) -> void:
-	if kind == "error":
+	if kind == "results":
+		results_panel.accept_record(details, str(session.match_view.get("match_id", "")))
+	elif kind == "error":
 		MenuRouter.session_notice = str(details.get("message", "Session error"))
 		if _online_joining or (MenuRouter.lobby_intent == "online" and session.connection_state == "offline" and public_service.state in ["ready", "connected"]):
 			_online_joining = false
@@ -232,10 +257,17 @@ func _add_match_actions() -> void:
 			session.vote_forfeit())
 	_rematch = Button.new()
 	actions.add_child(_rematch)
-	_rematch.pressed.connect(func() -> void:
-		if session.match_view.get("phase") == "results" and _vote_match != str(session.match_view.get("match_id", "")):
-			_vote_match = str(session.match_view.get("match_id", ""))
-			session.vote_rematch())
+	_rematch.pressed.connect(_request_rematch)
+
+func _request_rematch() -> void:
+	if session.connection_state not in ["hosting", "connected"] or session.match_view.get("phase") != "results":
+		return
+	var match_id := str(session.match_view.get("match_id", ""))
+	if match_id.is_empty() or _vote_match == match_id:
+		return
+	_vote_match = match_id
+	results_panel.mark_requested()
+	session.vote_rematch()
 
 func show_notice(message: String) -> void:
 	var dialog := AcceptDialog.new()

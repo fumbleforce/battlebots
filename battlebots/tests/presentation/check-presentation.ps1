@@ -18,6 +18,7 @@ function Invoke-PresentationCheck {
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--editor', '--import', '--quit')
 $checks = @(
+    @('match_results_test.gd', 'MATCH RESULTS PASS'),
     @('camera_arena_test.gd', 'PRESENTATION PASS'),
     @('camera_settings_test.gd', 'CAMERA SETTINGS PASS'),
     @('input_menu_test.gd', 'INPUT MENU PASS'),

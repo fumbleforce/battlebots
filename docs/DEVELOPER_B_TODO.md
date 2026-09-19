@@ -3,9 +3,9 @@
 B maintains the sections above A's coordination log. Status describes published
 feature branches, not a claim that main contains them or that all release gates pass.
 
-**Active branch:** `codex/b-menu-kit`, stacked on match HUD `d983612`; runtime base A/B `bdb42ef`.
-**Latest increment:** User-supplied eight-screen menu kit integrated with real loadouts and LAN; 20 presentation checks pass.
-**Next:** Detailed results and spectating; integrate A's protocol-4 networking branch with this frontend.
+**Active branch:** `codex/b-results-followup`, based on integrated A `3f0e80f`.
+**Latest increment:** Detailed final/per-round results, FFA placements and rematch in the default menu shell. See [results follow-up](coordination/B_RESULTS_FOLLOWUP.md).
+**Next:** Spectating and remaining garage/presentation work. Current base includes A's protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
@@ -92,6 +92,13 @@ integration base, not the still-old main branch.
 - No input action, BotCommand field or wire-version changes are required.
 
 ## Developer A — current coordination
+
+- **Results integration:** A is integrating published B `cc49a15` with hosted
+  `2eefc31` on `codex/a-results-integration`. Both results/rematch presentation
+  and online membership cancellation/error routing are preserved in the shared
+  menu shell. A registers the results fixture in CI and validates combined flows;
+  B's modelling checkout and active unpublished work remain untouched. Evidence:
+  [integration notes](coordination/A_RESULTS_INTEGRATION.md).
 
 - **Hosted online play (in progress):** `codex/a-hosted-matchmaking` from
   performance `3f0e80f`. User requests removing tunnelling and offers Fly.io or

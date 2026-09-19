@@ -1,5 +1,18 @@
 # Developer B — arena and third-person camera
 
+## Results follow-up — 19 September 2026
+
+Current branch: `codex/b-results-followup`, based on integrated A `3f0e80f`.
+The default menu game now opens detailed final/per-round server statistics with
+FFA placements, rematch and explicit leave. See
+[scope and validation](coordination/B_RESULTS_FOLLOWUP.md). Shared contracts are
+unchanged; spectating and remaining garage/presentation work are still open.
+Baseline, results checks and the real two-peer full-match/rematch check passed.
+The network fixture exited successfully but reported two ObjectDB instances
+leaked during shutdown; teardown cleanup remains to investigate. Rendered results
+were inspected at 1280x720. No human LAN acceptance is claimed.
+The earlier branch/build descriptions below are historical.
+
 Owner: Developer B. Active branch: `codex/b-menu-kit`.
 Dependency base: B match HUD `d983612`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
 was published on `codex/b-arena-camera` through `40aa6b1`.

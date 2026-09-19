@@ -2,6 +2,19 @@
 
 ## Current Developer A increment
 
+`codex/a-results-integration` combines hosted `2eefc31` with B results `cc49a15`.
+The shared menu retains online cancellation/error routing and now presents B's
+authoritative final/per-round results, FFA placements and rematch controls.
+Baseline, detached results, actual online lobby and full two-peer match/rematch
+checks passed. The results fixture is registered in the presentation runner.
+See [integration evidence](coordination/A_RESULTS_INTEGRATION.md). B's existing
+two-object test shutdown warning did not reproduce in one verbose diagnostic
+run and remains unresolved; the native engine
+shutdown limitation below remains open. Fly deployment is awaiting the user's
+confirmation of the concrete billable resources, not a technical deployment claim.
+
+### Preceding hosted increment
+
 `codex/a-hosted-matchmaking` follows performance `3f0e80f`. The user's new priority
 is externally hosted matchmaking/gameplay without tunnelling, using Fly.io or
 Cloudflare. Fly.io supports the existing native Godot/UDP server; the chosen
