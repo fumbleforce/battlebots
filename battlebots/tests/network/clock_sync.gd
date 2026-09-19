@@ -152,16 +152,15 @@ func check_airborne_baseline(client: MvpSession, id: int) -> void:
 	client._baseline(var_to_bytes({"lobby":server._public_lobby(), "match":server.match_state.snapshot(),
 		"bots":states, "server_tick":server.world.tick}))
 	var restored: MvpBot = client.world.bots[id]
-	# Two replay steps preserve horizontal impulse, reduce upward speed under
-	# gravity, and retain almost all roll momentum. Checking the corrected range
-	# catches both zero-initialized velocities and copying the raw snapshot instead.
+	# Baselines seed exact authority state; unchecked replay here could tunnel
+	# through a nearby wall before the physics callback can sweep its motion.
+	# Later snapshots schedule bounded replay, already checked above.
 	var velocity := restored.body.linear_velocity
 	var angular := restored.body.angular_velocity
 	check(not restored.body.freeze, "Active baseline enables local prediction")
-	check(absf(velocity.x - 3) < 0.001 and velocity.y > 5.6 and velocity.y < 5.8 and absf(velocity.z) < 0.001,
-		"Active baseline restores replay-corrected linear velocity")
-	check(angular.x > 3.98 and angular.x < 3.995 and absf(angular.y) < 0.001 and absf(angular.z) < 0.001,
-		"Active baseline restores replay-corrected angular velocity")
+	check(restored.body.global_transform.is_equal_approx(values[4]), "Active baseline seeds authoritative pose")
+	check(velocity.is_equal_approx(Vector3(3, 6, 0)), "Active baseline restores authoritative linear velocity")
+	check(angular.is_equal_approx(Vector3(4, 0, 0)), "Active baseline restores authoritative angular velocity")
 	check(restored.body.correction.is_empty(), "Baseline clears stale deferred correction")
 	print("Clock active baseline: velocity=%s angular=%s" % [velocity, angular])
 

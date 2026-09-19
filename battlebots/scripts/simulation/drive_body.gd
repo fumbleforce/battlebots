@@ -42,6 +42,8 @@ func accept_command(command: BotCommand) -> void:
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if not correction.is_empty():
+		if correction.has("replay_from"):
+			_constrain_replay(state.get_space_state())
 		var displacement: Vector3 = state.transform.origin - correction.pose.origin
 		state.transform = correction.pose
 		state.linear_velocity = correction.velocity
@@ -80,6 +82,49 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var torque := clampf(yaw_acceleration / inverse_yaw_inertia,
 			-mass * grip_acceleration * 0.65 * steering_multiplier, mass * grip_acceleration * 0.65 * steering_multiplier)
 		state.apply_torque(normal * torque)
+
+func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
+	# Snapshots remain authoritative: only their forward extrapolation is swept,
+	# never the displacement from the client's old (possibly wrong) body pose.
+	# Other bots have delayed poses on this peer, so this query uses static world
+	# collision only. Jolt/server snapshots still resolve dynamic bot contacts.
+	var origin: Transform3D = correction.replay_from
+	var motion: Vector3 = correction.pose.origin - origin.origin
+	if motion.is_zero_approx():
+		return
+	var collider := get_node("Collision") as CollisionShape3D
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = collider.shape
+	query.transform = origin * collider.transform
+	query.collision_mask = BaselineConfig.WORLD_LAYER
+	query.exclude = [get_rid()]
+	# cast_motion ignores initial overlaps. Keep extrapolation from pushing deeper
+	# into contacts already present in an authoritative resting snapshot.
+	var contacts := space.collide_shape(query)
+	for index: int in range(0, contacts.size(), 2):
+		var normal := (contacts[index + 1] - contacts[index]).normalized()
+		motion -= normal * minf(motion.dot(normal), 0.0)
+		correction.velocity -= normal * minf(Vector3(correction.velocity).dot(normal), 0.0)
+	query.motion = motion
+	var fractions := space.cast_motion(query)
+	if fractions[0] < 1.0:
+		# Ignore the existing floor/rest contacts when finding the newly hit normal.
+		var excluded: Array[RID] = [get_rid()]
+		for hit: Dictionary in space.intersect_shape(query):
+			excluded.append(hit.rid)
+		query.exclude = excluded
+		query.transform.origin += motion * fractions[1]
+		query.margin = 0.002
+		var hit := space.get_rest_info(query)
+		if not hit.is_empty():
+			var normal: Vector3 = hit.normal
+			correction.velocity -= normal * minf(Vector3(correction.velocity).dot(normal), 0.0)
+		else:
+			# A conservative stop is safer than carrying velocity through an
+			# obstruction whose contact normal lies on a numerical boundary.
+			correction.velocity = Vector3.ZERO
+		motion *= fractions[0]
+	correction.pose.origin = origin.origin + motion
 
 func model_config() -> Dictionary:
 	return {"speed":top_speed, "acceleration":drive_acceleration, "grip":grip_acceleration,

@@ -27,12 +27,16 @@ Invoke-MvpTest 'res://tests/integration/duel_menu_smoke.gd' 'DUEL MENU PASS'
 Invoke-MvpTest 'res://tests/integration/navigation_smoke.gd' 'NAVIGATION PASS'
 Invoke-MvpTest 'res://tests/network/airborne_replay.tscn' 'AIRBORNE REPLAY PASS' -Scene
 Invoke-MvpTest 'res://tests/network/clock_sync.tscn' 'CLOCK SYNC PASS' -Scene -RealTime
+Invoke-MvpTest 'res://tests/network/raw_datagram_relay.tscn' 'RAW DATAGRAM RELAY PASS' -Scene -RealTime
+Invoke-MvpTest 'res://tests/network/remote_extrapolation.tscn' 'REMOTE EXTRAPOLATION PASS' -Scene -RealTime
+Invoke-MvpTest 'res://tests/network/wall_contact.tscn' 'WALL CONTACT PASS' -Scene -RealTime
 $previousProfile = $env:BATTLEBOTS_NET_PROFILE
 try {
     foreach ($profile in @('0', '80', '150')) {
         $env:BATTLEBOTS_NET_PROFILE = $profile
         Invoke-MvpTest 'res://tests/network/session_smoke.gd' 'NETWORK PASS' -RealTime
         Invoke-MvpTest 'res://tests/network/contact_reconciliation.tscn' 'CONTACT NETWORK PASS' -Scene -RealTime
+        Invoke-MvpTest 'res://tests/network/transport_session.tscn' 'TRANSPORT SESSION PASS' -Scene -RealTime
     }
 } finally {
     $env:BATTLEBOTS_NET_PROFILE = $previousProfile

@@ -91,7 +91,7 @@ A change to an existing field's meaning is a breaking change; coordinate it befo
 editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
 for networking that does not yet exist.
 
-## MVP session API — protocol 4, build mvp-ab-3 (A contact branch)
+## MVP session API — protocol 4, build mvp-ab-3 (A transport branch)
 
 The playable a-b-integration checkpoint is still mvp-ab-2/protocol 3. Both peers
 must use the same build. Private clock/baseline and snapshot epoch semantics
@@ -141,7 +141,12 @@ Local drive prediction uses the same DriveModel tire response as the server and
 advances snapshots to the estimated current simulation tick, bounded to 250 ms,
 using recent unacknowledged input. A server tick/echo clock exchange estimates
 snapshot age separately from the input backlog. Free-flight replay includes
-gravity and full angular rotation; landing/contact outcomes are not replayed.
+gravity and full angular rotation. Forward replay translation is swept against
+the actual static-world collision shape in the physics callback, starting from
+the authoritative snapshot pose. Existing contact normals prevent deeper
+penetration. Dynamic contacts and rotational collision outcomes are not replayed.
+First/reset snapshots seed exact authoritative pose and velocities before later
+snapshots use swept replay.
 Authoritative pose/velocity/contact
 outcomes replace prediction; small positional visual errors decay, errors >=2 m
 snap. Visual offsets accumulate when Jolt applies the correction, avoiding an
@@ -151,8 +156,10 @@ deterministic Jolt rollback. Snapshot epochs include match ID and round number;
 round changes discard interpolation/replay history and reject old-round packets.
 Baselines taken while an authoritative reset is pending carry the planned spawn
 and zero prior motion/input, so reconnect cannot restore a previous round's pose.
-Remote visuals interpolate in a 75–150 ms adaptive buffer; extrapolation stops
-after 100 ms. `diagnostics.degraded` marks snapshots older than 250 ms and
+Remote visuals interpolate in a 75–150 ms adaptive buffer; only surviving bots
+in active/overtime extrapolate, stopping after 100 ms. Other phases and eliminated
+bots hold the latest pose once interpolation history is exhausted.
+`diagnostics.degraded` marks snapshots older than 250 ms and
 `interpolation_ms` reports the buffer. MvpBot's stable camera anchor is now under
 its separate Presentation node; use camera_anchor(), never hard-code a node path.
 
@@ -160,6 +167,12 @@ NetworkSimulator is opt-in for tests. It delays/drops/duplicates unreliable inpu
 and snapshot sends; reliable control remains real ENet without emulated impairment.
 The test profile `BATTLEBOTS_NET_PROFILE=80` uses 40 ms each direction, +/-10 ms
 jitter, 1% loss and 2% duplication; profile 150 uses 75 ms, +/-20 ms, 3%/3%.
+The independent `tests/network/transport_session.tscn` instead disables this
+simulator and routes all four clients through loopback raw UDP relays. Both
+reliable control and unreliable traffic receive the same configured impairment,
+including a forced initial connection-packet loss. Relay instrumentation is
+test-only; printed measured RTT includes scheduling/retransmission overhead and
+must not be equated with the injected delay. No public diagnostics fields change.
 
 ## B integration example
 

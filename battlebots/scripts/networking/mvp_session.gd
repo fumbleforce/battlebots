@@ -641,10 +641,15 @@ func _snapshot(packet: PackedByteArray) -> void:
 		if bot.body.freeze or first:
 			bot.visual_error = Vector3.ZERO
 			bot.body.correction.clear()
-			bot.body.global_transform = corrected.pose
-			bot.body.linear_velocity = corrected.velocity
-			bot.body.angular_velocity = corrected.angular
+			# First/reset snapshots establish a trusted pose without extrapolating
+			# through static geometry outside the physics callback.
+			bot.body.global_transform = state.pose
+			bot.body.linear_velocity = state.velocity
+			bot.body.angular_velocity = state.angular
 		else:
+			# Replay has no collision world. Sweep its extrapolation from the
+			# authoritative pose when the body consumes it in the physics callback.
+			corrected["replay_from"] = state.pose
 			bot.body.correction = corrected
 			bot.body.sleeping = false
 		if _last_arrival > 0:
@@ -688,7 +693,10 @@ func _process(_delta: float) -> void:
 					pose = older.pose.interpolate_with(newer.pose, (target_tick - older.tick) / float(newer.tick - older.tick))
 					interpolated = true
 					break
-			if not interpolated and target_tick > latest.tick:
+			# Countdown/reset and finished-round poses may retain an old falling
+			# velocity. Only a live combatant in an active round may extrapolate.
+			var can_extrapolate: bool = match_view.get("phase") in ["active", "overtime"] and not latest.get("eliminated", true)
+			if not interpolated and target_tick > latest.tick and can_extrapolate:
 				pose.origin += latest.velocity * minf(0.1, (target_tick - latest.tick) / 60.0)
 		bot.presentation.global_transform = pose
 	diagnostics["degraded"] = degraded

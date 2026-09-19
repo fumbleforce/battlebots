@@ -104,7 +104,8 @@ not merge it to main; A and B should review integration changes before merging.
 - **Playable checkpoint:** codex/a-b-integration at bdb42ef; CI passed. Includes
   2-player 1v1 / 4-player 2v2, session-specific menu actions and the Escape fix.
   Build mvp-ab-2, protocol 3. Both peers must run matching builds.
-- **Active branch:** codex/a-contact-reconciliation, based on bdb42ef. A reserves
+- **Active branch:** codex/a-transport-acceptance, based on contact fix 7235e50
+  (which builds on bdb42ef). A reserves
   networking, simulation prediction, independent tests/network scenes and check
   scripts. Scripted contact/airborne/reset checks now exist at 0/80/150 ms;
   broadened transport/collision coverage and manual LAN remain next.
@@ -141,3 +142,23 @@ not merge it to main; A and B should review integration changes before merging.
   Network checks run at real-time speed: accelerated ENet was observed throttling
   packets independently of the configured simulated loss. A subagent independently
   validated clocks/baselines and the real 120-render/60-physics case.
+
+- **A next branch:** codex/a-transport-acceptance from 7235e50. Reserved paths are
+  A tests/network relay/contact/session scenes, check scripts, and proven fixes
+  in A networking/simulation if tests expose them. Whole-UDP impairment will cover
+  reliable control as well as snapshots. B diagnostics intent ca07c21 is acknowledged;
+  diagnostic/public API semantics and B/model paths stay unchanged. Detailed intent:
+  docs/coordination/A_TRANSPORT_ACCEPTANCE.md.
+
+- **A transport progress:** whole-UDP relay and four-player lifecycle scenes now
+  cover handshake retransmission, lobby/loadout, round reset, damage, reconnect
+  and rematch through actual delayed/lossy ENet control traffic. Two demonstrated
+  defects were fixed: local replay could cross walls, and remote countdown poses
+  extrapolated stale falling velocity below the floor. Wall shape sweeps and
+  phase-aware extrapolation stay in A simulation/networking; no arena/art edits.
+  B's published rebinding d533032 and diagnostics intent ca07c21 are acknowledged.
+  Protocol/build and public diagnostics remain mvp-ab-3/protocol 4 with cumulative
+  node-lifetime counters. Full MVP regression passed at 0/80/150 ms injection,
+  including the new whole-UDP four-client cases. Independent server plus four
+  client processes also passed. Worst contact settling was 183.3 ms at 80 ms and
+  216.7 ms at 150 ms; local automated evidence does not close human LAN acceptance.

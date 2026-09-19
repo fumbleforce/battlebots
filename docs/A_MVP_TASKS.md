@@ -1,7 +1,7 @@
 # Developer A MVP work
 
 Owner: A. Playable branch: `codex/a-b-integration` at `bdb42ef`.
-Active follow-up: `codex/a-contact-reconciliation`. B-owned files remain outside A work.
+Active follow-up: `codex/a-transport-acceptance`. B-owned files remain outside A work.
 
 Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,
@@ -19,6 +19,8 @@ families are phase 4, not MVP; public account/allocation services are phase 5.
 - [x] Automated pure/physics/four-peer integration and hostile-input tests.
 - [x] Airborne replay tracks real Jolt gravity/rotation over the 250 ms replay window.
 - [x] Measure scripted contact/flip/recovery prediction settling at 0/80/150 ms in independent scenes.
+- [x] Four-client lifecycle/reconnect/rematch under whole-UDP impairment, including reliable control and lost initial connect packet.
+- [x] Sustained wall/chamfer collision bounds and settling; inactive/eliminated remote extrapolation regression.
 - [ ] Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
 - [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
 

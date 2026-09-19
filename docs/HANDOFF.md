@@ -16,7 +16,8 @@ cover round-end Escape, full matches/rematches, reconnect and malformed input.
 
 ## Active A work
 
-A is on `codex/a-contact-reconciliation`, based on `bdb42ef`. Reserved paths:
+A is on `codex/a-transport-acceptance`, based on contact fix `7235e50`
+(which builds on `bdb42ef`). Reserved paths:
 `scripts/networking/`, relevant `scripts/simulation/` prediction code,
 `tests/network/`, A check scripts, and these shared coordination docs.
 
@@ -54,14 +55,16 @@ origins, synthetic symmetric RTT samples, bounded replay and airborne baselines.
 Synthetic RTT samples do not emulate the reliable control transport. The existing
 profiles impair unreliable input/snapshot traffic only. Full MVP suite also covers
 round navigation/rematch and four-client sessions; non-contact correction p95 at
-80 ms was 0.125 m in the final real-time run. Manual LAN, full control-channel impairment and a broad collision
-matrix still remain acceptance work.
+80 ms was 0.125 m in the final real-time run. Whole-control-transport and wall
+coverage are added by the current follow-up below; manual LAN and a broader
+collision matrix remain acceptance work.
 
 Validation: final `tools/check-mvp.ps1` passed with Godot 4.7.2/Jolt, including all
 three real-time network profiles and the independent clock/reset scenes.
 Worst scripted settling was 183.3 ms at 80 ms and 250 ms at 150 ms. The independent
 dedicated-server/four-client process check also passed. This follow-up is ready
-for integration; its new CI run is separate from the older checkpoint above.
+for integration; its CI run 35459583307 passed validation, exports and process
+checks, separately from the older checkpoint above.
 
 Network checks now cap execution to real-time 60 FPS while preserving 60 Hz fixed
 physics. Accelerated fixed-120 testing produced an ENet packet throttle drop from
@@ -70,15 +73,36 @@ The real-time 120-render/60-physics check delivered it once at 60–62 commands/
 passed. Do not retry away that failure or interpret accelerated transport loss as
 the configured impairment profile. Pure physics checks may still run accelerated.
 
+### Current transport follow-up
+
+See [the current acceptance record](coordination/A_TRANSPORT_ACCEPTANCE.md).
+New independent scenes cover opaque whole-UDP impairment, a four-client full
+match/reconnect/rematch through that relay, sustained north-wall/chamfer contacts,
+and phase-aware remote extrapolation. The relay drops the initial connect packet
+deliberately to exercise ENet retransmission; actual RTT is measured separately
+from configured delay. Wall replay previously crossed the north wall; static
+geometry sweeps reduced the targeted peak error from 1.060 m to 0.014 m. A second
+reproduced defect extrapolated stale falling remote poses below the floor during
+countdown; extrapolation is now limited to active/overtime surviving bots.
+These fixes preserve public APIs, protocol 4 and build mvp-ab-3. No B/model files
+are changed. Final `tools/check-mvp.ps1` passed, including all three whole-UDP
+profiles and existing contact/session checks. The separate dedicated server plus
+four client processes also reached active without errors. Current contact worst
+settling was 183.3 ms at 80 ms and 216.7 ms at 150 ms; 80 ms non-contact correction
+p95 was 0.137 m. Whole-UDP measured RTT samples were 119–151 ms with an 80 ms
+injection and 185–219 ms with 150 ms, with clock error at most 0.5 physics ticks.
+These are local automated results; two-computer LAN and human feel remain open.
+
 ## Other developer / modelling boundary
 
-B's `codex/b-sawblade-tank` at observed `52e8e99` publishes modelling work. A has not imported
+B's `codex/b-sawblade-tank` at observed `5ec8dbb` publishes modelling work. A has not imported
 it. A separate local modelling worktree exists at `C:/Users/jorge/battlebots-art-flame`.
 A will not edit that worktree, B assets, presentation, arena or UI files. No new
 weapon geometry or art changes are planned in this increment. The shared
 [TODO](DEVELOPER_B_TODO.md) records intentions and dependencies.
 B's input-menu branch has published X/Y sensitivity at `6e42594` and controls/
-rebinding intent at `d53967e`; A has not imported these follow-ups. A preserves the
+rebinding at `d533032`; diagnostics intent is published at `ca07c21`.
+A has not imported these follow-ups. A preserves the
 existing preview API and SessionBotSource gate. No app/input/presentation changes
 here. A future integration must preserve both owners' contract/TODO additions.
 
