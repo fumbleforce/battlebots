@@ -1,0 +1,19 @@
+{
+  "revision": 1,
+  "parts": [
+    {"id":"compact","category":"chassis","mass":25,"power":0,"core":220,"size":[1.2,0.5,1.5]},
+    {"id":"balanced","category":"chassis","mass":30,"power":0,"core":260,"size":[1.6,0.5,2.0]},
+    {"id":"wide","category":"chassis","mass":35,"power":0,"core":300,"size":[1.8,0.5,2.2]},
+    {"id":"agile","category":"drive","mass":18,"power":25,"speed":12,"grip":7.5},
+    {"id":"standard_wheels","category":"drive","mass":22,"power":25,"speed":10,"grip":9},
+    {"id":"traction","category":"drive","mass":28,"power":30,"speed":8,"grip":11},
+    {"id":"vertical_spinner","category":"weapon","mass":28,"power":40},
+    {"id":"lifter","category":"weapon","mass":22,"power":30},
+    {"id":"light","category":"armor","mass":10,"power":0,"reduction":0.1,"integrity":60},
+    {"id":"standard_armor","category":"armor","mass":18,"power":0,"reduction":0.25,"integrity":90},
+    {"id":"heavy","category":"armor","mass":25,"power":0,"reduction":0.4,"integrity":120},
+    {"id":"recovery_assist","category":"utility","mass":5,"power":10},
+    {"id":"cooling_pack","category":"utility","mass":6,"power":10},
+    {"id":"battery_pack","category":"utility","mass":8,"power":5}
+  ]
+}
