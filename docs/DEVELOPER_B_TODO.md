@@ -94,6 +94,12 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Small-match playtest packaged:** Windows `battlebots-gameplay-8433dc0.zip`
+  includes the merged B results/rematch screen and menu music. Exported menu
+  startup and dedicated server plus two independent clients reached active.
+  Practice/LAN instructions are included; public service deployment is pending.
+  Exact artifact hash and known shutdown warning are in HANDOFF.md.
+
 - **User priority correction:** Stop ten-player expansion, bandwidth optimization
   and soak work; remove them from active todos. Focus on playable 1v1/2v2 combat
   and the complete player flow. Existing larger modes and historical evidence

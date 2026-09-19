@@ -11,6 +11,17 @@ acceptance targets below do not create current work or block this gameplay scope
 
 ## Current Developer A increment
 
+Fresh Windows gameplay package from source `8433dc0`:
+`battlebots/exports/playtest/battlebots-gameplay-8433dc0.zip` (129,573,157 bytes),
+SHA256 `CECFF8AAD19C33D5BFAAE9330434943A18408E1598F8D82B5EA7214820F9865C`.
+Contains executable, matching PCK and short Practice/LAN/control instructions.
+Includes B results/rematch and the supplied menu melody. The old menu/music ZIP
+is preserved. Exported menu startup/exit and dedicated server plus two independent
+clients reaching active passed. Menu shutdown reported the known two-object
+warning; no native crash occurred in that run. Human combat feel and internet
+play are not certified. The endpoint remains empty pending deployment, so this
+package offers Practice and LAN, not a working public service.
+
 `codex/a-results-integration` combines hosted `2eefc31` with B results `cc49a15`.
 The shared menu retains online cancellation/error routing and now presents B's
 authoritative final/per-round results, FFA placements and rematch controls.
