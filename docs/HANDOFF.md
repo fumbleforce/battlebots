@@ -1,5 +1,38 @@
 # Baseline handoff
 
+## Developer A — MVP implementation (codex/a-mvp)
+
+The drive-only limitations below are historical. A's current branch implements
+the phase 1–3 simulation/service scope: canonical parts/validation/assembly and
+twelve-slot versioned saves; spinner/lifter hits and resources; physical recovery,
+damage zones, pins, elimination and judging; four-player ENet lobby/readiness,
+match/round/rematch/forfeit, token reconnect; prediction and snapshot smoothing.
+Full 5v5/FFA, other weapons and public identity/allocation are later phases.
+
+Run `tools/check-mvp.ps1` and `tools/check-processes.ps1` with Godot 4.7.2.
+Pure rules, Jolt physics, four UDP peers under 0/80/150 ms application impairment,
+and a dedicated server plus four separate client processes pass locally. Measured
+80 ms non-contact correction p95 is 0.145 m. Per-entity snapshots are <=420 bytes.
+Physical checks include spinner cadence/ally immunity, lifter launch, unpinned
+recovery, mutual lethal hits, wall contact, stale/invalid input and round resets.
+
+The Windows client and Linux server exports build using checksum-verified 4.7.2
+templates. Exported Windows practice and Linux server pack headless startup were
+tested on this Windows host; native Linux execution still belongs in deployment
+validation. GitHub Actions now runs checks and builds on pushes/PRs.
+
+The A-owned MVP app/console is a temporary integration fixture, not B's production
+menus/garage/camera/HUD. B-owned files remain unchanged except the explicitly
+shared TODO coordination document. `docs/CONTRACTS.md` includes the session,
+loadout, bot-view and SessionBotSource APIs. `docs/DEVELOPER_B_TODO.md` is checked
+each increment and A's section records ready dependencies and reserved paths.
+
+Remaining joint acceptance: integrate B's visual arena/camera/HUD without duplicate
+colliders; test both host directions on the two office machines; evaluate contact
+correction settling, camera comfort and weapon feel. Local impairment tests do not
+prove the 250 ms post-contact correction target or real LAN performance. No merge
+to main or public release is implied by these feature-branch checkpoints.
+
 ## Developer A — drive controller (19 September 2026)
 
 Owner / branch / base commit: A / `codex/a-drive-controller` / `60feafe`.

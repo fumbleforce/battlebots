@@ -10,13 +10,13 @@ isolated A test fixtures are intentional. Full 5v5/FFA and remaining three weapo
 families are phase 4, not MVP; public account/allocation services are phase 5.
 
 - [x] Drive foundation and ground contact; regression tests.
-- [ ] Canonical MVP catalogue, typed validation, assembly, versioned saves/migration.
-- [ ] Damage zones, spinner/lifter, battery/heat, recovery, elimination and pins.
-- [ ] 2v2 lifecycle, readiness, judging, simultaneous wipes, rematch and results.
-- [ ] ENet host/join/leave, ownership/input validation, baseline and snapshots.
-- [ ] Local prediction, remote smoothing, reconnect and disconnect timeout.
-- [ ] Headless/graphical bootstrap, exports/CI checks and B API handoff.
-- [ ] Automated pure/physics/four-peer integration and hostile-input tests.
+- [x] Canonical MVP catalogue, typed validation, assembly, versioned saves/migration.
+- [x] Damage zones, spinner/lifter, battery/heat, recovery, elimination and pins.
+- [x] 2v2 lifecycle, readiness, judging, simultaneous wipes, rematch and results.
+- [x] ENet host/join/leave, ownership/input validation, baseline and snapshots.
+- [x] Local prediction, remote smoothing, reconnect and disconnect timeout.
+- [x] Headless/graphical bootstrap, exports/CI checks and B API handoff.
+- [x] Automated pure/physics/four-peer integration and hostile-input tests.
 - [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
 
 The final LAN and human-feel gate cannot be replaced by localhost tests. Record

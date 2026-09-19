@@ -143,3 +143,20 @@ NetworkSimulator is opt-in for tests. It delays/drops/duplicates unreliable inpu
 and snapshot sends; reliable control remains real ENet without emulated impairment.
 The test profile `BATTLEBOTS_NET_PROFILE=80` uses 40 ms each direction, +/-10 ms
 jitter, 1% loss and 2% duplication; profile 150 uses 75 ms, +/-20 ms, 3%/3%.
+
+## B integration example
+
+Add a `SessionBotSource` Node3D near B's preview and set `session_path` to the
+MvpSession node. Point the preview's `source_path` at this proxy. It forwards input
+to submit_local(), reads the current local bot view, and resolves camera handles
+through local_source(). Until a bot exists, it provides an inert default view and
+itself as the anchor. B should show loading/lobby from session state, not this
+default view. Do not retain an old camera anchor across baseline replacement.
+
+`MvpSession.practice(draft={})` starts local physics against a stationary enemy;
+it validates an unsaved draft before assembly and returns Error. `leave()` resets
+it before starting another mode. No practice result is awarded. Networking MVP
+uses A's canonical collision-only Foundry dimensions and primitive rendering;
+B's finished arena/camera remains a separate integration step. Do not stack both
+arena collision roots in one world. Match results include per-round participant
+snapshots and aggregate damage/elimination/assist/component/recovery counters.

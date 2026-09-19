@@ -82,6 +82,7 @@ func step(delta: float, active: bool) -> void:
 	if input_age >= 0.25 or not active or combat.eliminated:
 		command = BotCommand.new()
 		command.brake = true
+		command.secondary_held = true # Timeout/disconnect lowers lifter; never synthesize a release attack.
 	combat.tick(delta, command, active)
 	command.primary_pressed = false
 	command.recovery_pressed = false

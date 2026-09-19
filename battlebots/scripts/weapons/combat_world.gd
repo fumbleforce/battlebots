@@ -7,10 +7,12 @@ var cooldowns: Dictionary = {}
 var pins: Dictionary = {}
 var blocked: Dictionary = {}
 var events: Array = []
+var pending_hits: Array = []
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
 	events.clear()
+	pending_hits.clear()
 	for key: String in cooldowns.keys():
 		if cooldowns[key] <= time:
 			cooldowns.erase(key)
@@ -22,9 +24,14 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		if attacker.combat.eliminated:
 			continue
 		var state := attacker.combat
+		if state.zones.weapon <= 0 or state.overheated:
+			continue
 		if state.stats.weapon == "vertical_spinner" and state.charge < 0.25:
 			continue
 		if state.stats.weapon == "lifter" and state.charge <= 0 and not state.launch:
+			for pin: String in pins.keys():
+				if pin.begins_with("%d:" % id):
+					pins.erase(pin)
 			continue
 		var targets := _sweep(attacker)
 		for target_id: int in bots:
@@ -38,7 +45,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 			var half: Vector3 = victim.combat.stats.size * 0.5
 			local_point = local_point.clamp(-half, half)
 			var point := victim.body.global_transform * local_point
-			if state.stats.weapon == "vertical_spinner" and not cooldowns.has(key):
+			if state.stats.weapon == "vertical_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
 				_hit(attacker, victim, point, 45 * state.charge, (direction * 2 + Vector3.UP * 2) * victim.body.mass, tick, round_index)
 				state.charge *= 0.5
 				cooldowns[key] = time + 0.3
@@ -52,6 +59,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 						pins.erase(key)
 					else:
 						victim.body.apply_force(Vector3.UP * victim.body.mass * 12 * state.charge, point - victim.body.global_position)
+				else:
+					pins.erase(key)
 	# One unordered ram pair per half-second; resolve both struck zones once.
 	var ids := bots.keys()
 	for i: int in range(ids.size()):
@@ -70,6 +79,9 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				_hit(a, b, a.body.global_position, raw, Vector3.ZERO, tick, round_index)
 				_hit(b, a, b.body.global_position, raw, Vector3.ZERO, tick, round_index)
 				cooldowns[key] = time + 0.5
+	# Collect every eligible attack before damage: mutual lethal hits share a tick.
+	for hit: Array in pending_hits:
+		_apply_hit.callv(hit)
 	for id: int in bots:
 		var bot: MvpBot = bots[id]
 		bot.previous_pose = bot.body.global_transform
@@ -96,6 +108,11 @@ func _sweep(bot: MvpBot) -> Array:
 	return found
 
 func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int) -> void:
+	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index])
+
+func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int) -> void:
+	if victim.combat.eliminated:
+		return
 	var zone := victim.zone_at(point)
 	var before: float = victim.combat.zones.get(zone, 0.0)
 	var dealt := victim.combat.damage(zone, raw)
@@ -107,7 +124,8 @@ func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse:
 	victim.body.apply_impulse(impulse, point - victim.body.global_position)
 	attacker.body.apply_central_impulse(-impulse * 0.2)
 	event_id += 1
-	attacker.combat.attack_id += 1
+	if attacker.combat.stats.weapon == "vertical_spinner":
+		attacker.combat.attack_id += 1
 	events.append({"event_id":event_id, "round":round_index, "tick":tick,
 		"attack_id":attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,

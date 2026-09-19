@@ -85,6 +85,32 @@ func join(address: String, port := 24567, token := "") -> Error:
 	_make_world()
 	return OK
 
+func practice(draft: Dictionary = {}) -> Error:
+	if connection_state != "offline":
+		return ERR_ALREADY_IN_USE
+	var build := registry.starter() if draft.is_empty() else draft
+	if not registry.validate(build).valid:
+		return ERR_INVALID_DATA
+	_server = true
+	connection_state = "practice"
+	_make_world()
+	local_entity = _admit(1, build)
+	var bot := world.spawn(local_entity, 0, 0, build)
+	bot.owner_id = 1
+	bot.spawn_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 4))
+	bot.body.reset_pose = bot.spawn_pose
+	bot.previous_pose = bot.spawn_pose
+	var target := world.spawn(_next_entity, 1, 0, registry.starter(true))
+	target.spawn_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, 0))
+	target.body.reset_pose = target.spawn_pose
+	target.previous_pose = target.spawn_pose
+	match_state.match_id = "practice"
+	match_state.round_index = 1
+	match_state.transition("active", 0)
+	match_view = match_state.snapshot()
+	session_event.emit("practice", {})
+	return OK
+
 func leave() -> void:
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
@@ -448,6 +474,11 @@ func _physics_process(delta: float) -> void:
 			world.bots[id].submit_command(_input_queue[id].pop_front())
 	var active := match_state.phase in ["active", "overtime"]
 	world.step(delta, active, match_state.round_index)
+	if connection_state == "practice":
+		for event: Dictionary in world.weapons.events:
+			combat_event.emit(event.duplicate(true))
+		bot_updated.emit(local_entity, world.bots[local_entity].read_view())
+		return
 	if active:
 		for team: int in [0, 1]:
 			var voters := 0
@@ -471,6 +502,11 @@ func _physics_process(delta: float) -> void:
 	for id: int in players:
 		teams[id] = players[id].team
 	match_state.advance(delta, world.combatants(), teams)
+	if old_phase in ["active", "overtime"] and match_state.phase in ["intermission", "results"]:
+		var round_stats := {}
+		for id: int in world.bots:
+			round_stats[id] = world.bots[id].combat.snapshot()
+		match_state.rounds.back()["participants"] = round_stats
 	if old_phase == "intermission" and match_state.phase == "countdown":
 		world.reset_round()
 		_forfeit.clear()
@@ -478,6 +514,10 @@ func _physics_process(delta: float) -> void:
 		_results = {"match":match_state.snapshot(), "content_hash":registry.content_hash, "build":WireCodec.BUILD, "participants":{}}
 		for id: int in world.bots:
 			_results.participants[id] = world.bots[id].combat.snapshot()
+			for field: String in ["damage", "eliminations", "assists", "component_disables", "recoveries"]:
+				_results.participants[id][field] = 0
+				for round_result: Dictionary in match_state.rounds:
+					_results.participants[id][field] += round_result.get("participants", {}).get(id, {}).get(field, 0)
 		session_event.emit("results", _results.duplicate(true))
 	if match_state.phase == "results" and _rematch.size() == 4:
 		var connected := true

@@ -52,3 +52,7 @@ text = "Developer B — presentation sandbox (mock state)"
 [node name="Quit" type="Button" parent="Center/Panel/Margin/Options"]
 layout_mode = 2
 text = "Quit"
+
+[node name="MVP" type="Button" parent="Center/Panel/Margin/Options"]
+layout_mode = 2
+text = "Developer A — MVP practice / network console"

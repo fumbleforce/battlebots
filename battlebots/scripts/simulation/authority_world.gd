@@ -26,6 +26,15 @@ func make_box(size: Vector3, position: Vector3) -> StaticBody3D:
 	collision.shape = shape
 	node.add_child(collision)
 	node.position = position
+	if DisplayServer.get_name() != "headless":
+		var visual := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = size
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.2, 0.24, 0.29)
+		mesh.material = material
+		visual.mesh = mesh
+		node.add_child(visual)
 	add_child(node)
 	return node
 

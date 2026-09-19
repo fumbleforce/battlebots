@@ -103,6 +103,8 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	if heat >= 100:
 		overheated = true
 		charge = 0.0
+	if zones.weapon <= 0:
+		charge = 0.0
 	weapon_phase = "disabled" if zones.weapon <= 0 else ("overheated" if overheated else (
 		"launch" if launch else ("cooldown" if cooldown > 0 else ("active" if powered else "idle"))))
 	_previous_held = command.primary_held

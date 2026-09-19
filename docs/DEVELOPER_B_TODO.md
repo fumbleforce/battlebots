@@ -128,7 +128,12 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   impairment profiles at 80/150 ms pass; 80 ms non-contact correction p95 is
   0.145 m. Joint LAN/contact/camera feel is not yet accepted. B should consume
   camera_anchor() rather than its internal path, now on a separate visual root.
-- **A-05 NEXT:** app wiring, export presets and CI/check tools. A will not edit
+- **A-05 IMPLEMENTED / TESTED:** app wiring, export presets and CI/check tools.
+  `scenes/app/mvp.tscn` is A's temporary integration console, not production UI.
+  `SessionBotSource` lets B's existing adapter forward local commands through the
+  session and follow the current bot across loading/reconnect. Windows client and
+  Linux server exports build; headless pack/client runs pass. Four independent
+  client processes reach active with a dedicated server. A will not edit
   B's camera/UI/input/settings/arena/fixtures. B's B-03 settings file can remain
   independent; no competing settings global is planned for this MVP increment.
 - **Still joint:** LAN on both computers and real control/camera feel. A's

@@ -54,6 +54,36 @@ func run() -> void:
 	print("Recovery upright dot: ", a.body.global_basis.y.dot(Vector3.UP), " activations: ", a.combat.recovery_count)
 	check(a.body.global_basis.y.dot(Vector3.UP) > 0.5 and a.combat.battery < 100,
 		"Physical recovery rights an unpinned inverted bot without teleporting")
+	world.reset_round()
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
+	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15))
+	await frames(60, false)
+	a.previous_pose = a.body.global_transform
+	b.previous_pose = b.body.global_transform
+	a.combat.stats.weapon = "lifter"
+	a.combat.charge = 1
+	a.combat._previous_held = true
+	a.input_age = 0
+	a.command = BotCommand.new()
+	var lift_core := b.combat.core
+	world.step(1.0 / 60, true, 1)
+	await physics_frame
+	await process_frame
+	check(b.combat.core < lift_core and b.body.linear_velocity.y > 2, "Charged lifter release damages and launches physical enemy")
+	world.reset_round()
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
+	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15))
+	await frames(60, false)
+	a.previous_pose = a.body.global_transform
+	b.previous_pose = b.body.global_transform
+	a.combat.stats.weapon = "vertical_spinner"
+	b.combat.stats.weapon = "vertical_spinner"
+	a.combat.charge = 1
+	b.combat.charge = 1
+	a.combat.core = 1
+	b.combat.core = 1
+	world.step(1.0 / 60, true, 1)
+	check(a.combat.eliminated and b.combat.eliminated, "Mutual lethal attacks resolve together before judging")
 	world.queue_free()
 	await process_frame
 	print("COMBAT PHYSICS PASS" if failures == 0 else "COMBAT PHYSICS FAIL")
