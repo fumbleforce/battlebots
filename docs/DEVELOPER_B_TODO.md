@@ -155,3 +155,17 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   collision fixture now matches B's published chamfer planes at (+/-24,+/-24).
 
 
+## A+B integration checkpoint — A owns codex/a-b-integration
+
+- Published B-01–03 at 40aa6b1 are being combined with A at 759041e.
+- A reserves scenes/app, scripts/core, scripts/networking, scripts/simulation,
+  tests/integration, tools and the shared handoff. B's published files are imported
+  unchanged. B can continue B-04 onward on its own branch.
+- First acceptance: both existing suites pass together. Next: mount B's arena,
+  orbit camera, HUD and settings through A's app/session adapter, with one collision
+  arena and one input producer. Exercise practice/reset and four-client sessions.
+- B-06–09 screens are not published yet. A will retain its integration console for
+  session requests while exposing B's existing components; no replacement garage
+  or production lobby is being authored in B's paths.
+- Two-computer LAN and subjective feel remain pending access to the second host.
+`n- Combined baseline, drive, content, rules, combat, stress and 0/80/150 ms network checks pass; B camera/arena and settings checks also pass.
