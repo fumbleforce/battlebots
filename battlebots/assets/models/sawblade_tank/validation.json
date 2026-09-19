@@ -1,0 +1,9 @@
+{
+  "tread_links": 88,
+  "loop_frames": 120,
+  "fps": 30,
+  "saw_revolutions_per_loop": 6,
+  "evaluated_mesh_triangles": 17132,
+  "moving_links_verified": true,
+  "loop_seam_verified": true
+}
