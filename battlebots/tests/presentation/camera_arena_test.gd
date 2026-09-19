@@ -24,6 +24,7 @@ func _run() -> void:
 	mouse.pressed = true
 	check(InputMap.event_is_action(mouse, "camera_recenter"), "MMB must match recenter action")
 	var sandbox: Node3D = load("res://scenes/dev/b_presentation.tscn").instantiate()
+	sandbox.get_node("Preview").settings_path = ""
 	root.add_child(sandbox)
 	await sync_physics()
 	var source: BotSource = sandbox.get_node("Bot")
@@ -168,6 +169,7 @@ func _run() -> void:
 
 	# Existing A scene remains compatible, including its real collider exclusion.
 	var a_scene: Node3D = load("res://scenes/dev/a_simulation.tscn").instantiate()
+	a_scene.get_node("Preview").settings_path = ""
 	root.add_child(a_scene)
 	await sync_physics()
 	var a_preview: Node3D = a_scene.get_node("Preview")

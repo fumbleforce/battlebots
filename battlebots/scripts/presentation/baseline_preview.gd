@@ -3,23 +3,36 @@ extends Node3D
 
 @export var source_path: NodePath
 @export var fixture_title: String = "Development fixture"
+@export var settings_path: String = CameraPreferences.DEFAULT_PATH
 @onready var source: BotSource = get_node_or_null(source_path) as BotSource
 @onready var rig: BotOrbitCamera = $OrbitCamera
 @onready var hud: BotStatusHud = $CanvasLayer/BotStatusHud
 @onready var hint: Label = $CanvasLayer/Hint
+@onready var settings_button: Button = $CanvasLayer/SettingsButton
+@onready var settings_panel: CameraSettingsPanel = $ModalLayer/CameraSettings
 var sequence: int = 0
 var controls_enabled: bool = false
 var _suppress_primary_until_release: bool = false
+var _load_notice: String = ""
 
 func _ready() -> void:
 	hud.set_context(fixture_title)
 	rig.bind_source(source)
+	var preferences := CameraPreferences.load_file(settings_path)
+	preferences.apply_to(rig)
+	if preferences.load_error != OK:
+		_load_notice = "Saved settings could not be loaded. Using defaults."
+	settings_button.pressed.connect(open_settings)
+	settings_panel.closed.connect(_on_settings_closed)
 	get_window().focus_exited.connect(release_controls)
 	if DisplayServer.get_name() != "headless":
 		capture_controls()
 
 func capture_controls() -> void:
+	if settings_panel.visible or not is_instance_valid(source):
+		return
 	controls_enabled = true
+	settings_button.hide()
 	_suppress_primary_until_release = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -27,7 +40,24 @@ func release_controls() -> void:
 	controls_enabled = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	rig.driving = false
+	settings_button.show()
 	_submit_neutral()
+
+func open_settings() -> void:
+	release_controls()
+	settings_panel.open_for(rig, settings_path, _load_notice)
+
+func _on_settings_closed(saved: bool) -> void:
+	if saved:
+		_load_notice = ""
+	if get_window().has_focus():
+		capture_controls.call_deferred()
+
+func _input(event: InputEvent) -> void:
+	# Handle Escape before focused controls can consume it or the launcher can open.
+	if settings_panel.visible and event.is_action_pressed("pause"):
+		settings_panel.cancel()
+		get_viewport().set_input_as_handled()
 
 func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -48,7 +78,7 @@ func _physics_process(_delta: float) -> void:
 	var command := BotCommand.new()
 	command.sequence = sequence
 	sequence += 1
-	if controls_enabled and get_window().has_focus():
+	if controls_enabled and not settings_panel.visible and get_window().has_focus():
 		if not Input.is_action_pressed("primary"):
 			_suppress_primary_until_release = false
 		command.throttle = Input.get_axis("drive_reverse", "drive_forward")
@@ -69,9 +99,11 @@ func _process(_delta: float) -> void:
 		return
 	hud.show_view(source.read_view())
 	hint.text = "Mouse  Orbit   |   Wheel  Zoom   |   MMB  Recenter   |   Esc  Release cursor" \
-		if controls_enabled else "Click the arena to resume   |   Esc  Return to launcher"
+		if controls_enabled else "Click arena to resume   |   Tab  Camera settings   |   Esc  Launcher"
 
 func _unhandled_input(event: InputEvent) -> void:
+	if settings_panel.visible:
+		return
 	if event.is_action_pressed("pause"):
 		if controls_enabled:
 			release_controls()

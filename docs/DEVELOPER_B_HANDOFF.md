@@ -5,6 +5,33 @@ Owner: Developer B. Branch: `codex/b-arena-camera`. Base: `60feafe`.
 Ongoing work is tracked in [Worker B's to-do list](DEVELOPER_B_TODO.md), including
 priorities, ownership boundaries and dependencies requested from A.
 
+## B-03 follow-up: camera settings
+
+Press Escape to release the cursor, then click **Camera settings** (or Tab to the
+button and press Enter). The modal changes sensitivity, vertical inversion,
+automatic recentering and recenter strength live. **Save & resume** persists them;
+**Cancel** or Escape restores the values from when the panel opened. Reset is
+previewed until saved. Gameplay input stays neutral; the simulation is not paused.
+
+The B-owned `CameraPreferences` adapter writes version 1 to
+`user://presentation_camera.cfg` using a temporary file and replacement. It does
+not create an autoload or alter A's profile service. Unknown file versions fall
+back to defaults with a notice; invalid fields use defaults or bounded values;
+save failures keep the modal open with an error. Tests use isolated temporary
+paths, never the player's preferences. The preview's `settings_path` export can
+be overridden for fixtures; an empty path disables loading/saving.
+
+Integration needs no core API or InputMap changes. The panel lives under its own
+CanvasLayer and handles Escape before it can fall through to launcher navigation.
+Keyboard focus starts on sensitivity; Tab navigates controls. Window focus loss
+leaves the modal open and does not recapture the mouse.
+
+Validation: baseline smoke, camera/arena integration, and
+`res://tests/presentation/camera_settings_test.gd` passed. The settings test covers
+round-trip persistence, replacing an existing file, a fresh scene loading saved
+values, live changes, Cancel/defaults, neutral input, save failure and invalid
+schema/data. Its rendered `-- --capture` run was inspected at 1280 × 720.
+
 ## B-02 follow-up: reusable status HUD
 
 The preview now instances `scenes/ui/bot_status_hud.tscn`, backed by
@@ -54,8 +81,9 @@ launcher. Click inside the arena if the cursor is released.
 | Escape | Release cursor; press again to return to launcher |
 
 Sensitivity, inversion, recenter speed and automatic recenter are exported on the
-OrbitCamera node. First-person view, settings persistence/remapping, obstruction
-outlines, combat effects and a finished HUD are later tasks.
+OrbitCamera node and exposed through the B-03 settings panel. First-person view,
+input remapping, obstruction outlines, combat effects and the full match HUD
+remain later tasks.
 
 ## Integration for A
 
