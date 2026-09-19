@@ -14,6 +14,24 @@ func _ready() -> void:
 	var nav := %Play.get_parent()
 	nav.move_child(%JoinGame, 1)
 	nav.move_child(%Practice, 2)
+	var online := Button.new()
+	online.name = "PlayOnline"
+	online.text = "PLAY ONLINE"
+	online.theme_type_variation = &"MenuItemPrimary"
+	online.custom_minimum_size.y = 82
+	online.pressed.connect(MenuRouter.open_online)
+	nav.add_child(online)
+	online.owner = self
+	online.unique_name_in_owner = true
+	nav.move_child(online, 0)
+	%Play.get_node("Pad/Row/Text/Label").text = "HOST LAN GAME"
+	%Play.get_node("Pad/Row/Text/Label").add_theme_font_size_override("font_size", 36)
+	%Play.get_node("Pad/Row/Text/Caption").text = "Local network · Direct IP"
+	%JoinGame.text = "JOIN LAN GAME"
+	# Keep all eight primary actions within the existing 1080p design area.
+	%Play.custom_minimum_size.y = 94
+	for item: Button in [%JoinGame, %Practice, %Garage, %Settings, %Quit]:
+		item.custom_minimum_size.y = 64
 
 	%ProfileLevel.text = "LOCAL PILOT"
 	%XpBar.hide()
@@ -24,4 +42,4 @@ func _ready() -> void:
 	%BotClass.text = bot.cls
 	%BotWeapon.text = bot.weapon
 	%BotHull.text = "%s HP" % MenuData.fmt_int(bot.hp)
-	%Play.grab_focus()
+	online.grab_focus()

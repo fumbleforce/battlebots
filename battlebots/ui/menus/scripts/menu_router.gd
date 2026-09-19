@@ -3,6 +3,7 @@ extends Node
 signal match_requested(setup: Dictionary)
 const SCREENS := {
 	"main":"res://ui/menus/screens/main_menu.tscn",
+	"online":"res://ui/menus/screens/online.tscn",
 	"mode_select":"res://ui/menus/screens/mode_select.tscn",
 	"garage":"res://ui/menus/screens/garage.tscn",
 	"arena_select":"res://ui/menus/screens/arena_select.tscn",
@@ -35,6 +36,12 @@ func open_host() -> void:
 	current = "main"
 	goto("mode_select")
 
+func open_online() -> void:
+	lobby_intent = "online"
+	_history.clear()
+	current = "main"
+	goto("online")
+
 func open_join() -> void:
 	lobby_intent = "join"
 	_history.clear()
@@ -58,7 +65,13 @@ func goto(screen: String, remember := true) -> void:
 	host.show_screen.call_deferred(screen)
 
 func back() -> void:
+	if current == "online":
+		host.cancel_online()
+		goto("main", false)
+		return
 	if current in ["lobby", "loading"]:
+		if lobby_intent == "online":
+			host.cancel_online()
 		if is_instance_valid(session) and session.connection_state != "offline":
 			session.leave()
 		goto("main", false)

@@ -58,7 +58,7 @@ using 9 battery/14 heat per second. Every full 1/3 second of maintained target
 contact deals 6 raw damage to one contacted zone. Separation or loss of power
 discards partial contact time. Secondary stops it; zero battery or heat 100 ends
 damage eligibility that tick. No authored saw impulse or pin is applied.
-Build `mvp-ab-9` keeps catalogue revision four/protocol 4 and adds reliable state
+Build `mvp-ab-10` keeps catalogue revision four/protocol 4. Build 9 added reliable state
 checkpoints to match transitions and active/countdown heartbeats. Checkpoints use
 the existing snapshot format and per-entity tick guard, so newer fast snapshots
 cannot be rewound by delayed reliable delivery. Finished-match heartbeats remain
@@ -68,6 +68,21 @@ All peers need
 matching build/content. Known revision-one/two/three saves migrate after validation while
 preserving every selected part and cosmetic; unknown/incompatible saves stay invalid.
 Catalogue hashes normalize CRLF to LF for matching Windows/Linux content.
+
+Hosted matchmaking adds `MvpSession.join(address, port, reconnect_token, admission_ticket)`;
+both tokens default empty, retaining LAN callers. Admission tickets are only
+required by allocated public workers. The worker validates player, slot, membership
+reservation generation, build/content and ticket expiry against supervisor-owned
+configuration before admission. Hosted teams follow reserved slots and cannot be
+changed by a client. A valid reconnect token preserves the admitted bot and damage;
+revoked/replaced reservations cannot reconnect. These identities/tokens remain
+internal, outside public lobby and BotView data.
+
+`PublicServiceClient` owns HTTPS guest/room/queue requests and emits a ready endpoint
+assignment. It does not mark a game connected; only the ENet welcome does that.
+The menu shares the existing lobby/Ready flow after successful admission. See
+[hosted coordination](coordination/A_HOSTED_MATCHMAKING.md) for control routes,
+worker lifecycle and the current single-Machine playtest boundaries.
 
 `LoadoutStore.save(Array) -> Error` stores up to twelve uniquely named legal builds;
 `load_saved()` returns `loadouts`, `invalid` (index to reasons), `errors`, and

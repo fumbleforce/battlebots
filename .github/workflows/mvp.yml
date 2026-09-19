@@ -35,6 +35,16 @@ jobs:
         # Both developers' integration checks precede the exported playtest builds.
         shell: pwsh
         run: ./battlebots/tests/presentation/check-presentation.ps1 -GodotPath $env:GODOT
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check hosted matchmaking and assigned dedicated gameplay
+        shell: pwsh
+        run: |
+          node --test services/matchmaking/test/*.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Matchmaking service tests failed' }
+          node tools/check-hosted.mjs --godot $env:GODOT
+          if ($LASTEXITCODE -ne 0) { throw 'Hosted end-to-end test failed' }
       - name: Validate merged Flamebot runtime art
         shell: pwsh
         run: |
@@ -58,6 +68,15 @@ jobs:
           ./tools/check-processes.ps1 -GodotPath $client -Exported
           ./tools/check-processes.ps1 -GodotPath $client -PlayerCount 10 -Exported
           ./tools/check-processes.ps1 -GodotPath $client -Mode ffa -Exported
+          node tools/check-hosted.mjs --godot $env:GODOT --server-binary $client
+          if ($LASTEXITCODE -ne 0) { throw 'Exported hosted-server test failed' }
+      - name: Record native Godot failures
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000; StartTime=(Get-Date).AddHours(-1)} -ErrorAction SilentlyContinue |
+            Where-Object { $_.Message -match 'Godot|battlebots' } |
+            Select-Object TimeCreated, Message | Format-List
       - uses: actions/upload-artifact@v4
         with:
           name: battlebots-mvp-${{ github.sha }}

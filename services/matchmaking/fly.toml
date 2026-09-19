@@ -1,0 +1,56 @@
+# One Machine only: room/queue state and its bounded Godot pool are local.
+app = "battlebots-fumbleforce"
+primary_region = "arn"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "services/matchmaking/Dockerfile"
+
+[deploy]
+  strategy = "immediate"
+
+[env]
+  REGION = "arn"
+  PUBLIC_ADDRESS = "battlebots-fumbleforce.fly.dev"
+  BIND_ADDRESS = "fly-global-services"
+  TRUST_FLY_PROXY = "1"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "3s"
+
+[[services]]
+  protocol = "udp"
+  internal_port = 24570
+  [[services.ports]]
+    port = 24570
+[[services]]
+  protocol = "udp"
+  internal_port = 24571
+  [[services.ports]]
+    port = 24571
+[[services]]
+  protocol = "udp"
+  internal_port = 24572
+  [[services.ports]]
+    port = 24572
+[[services]]
+  protocol = "udp"
+  internal_port = 24573
+  [[services.ports]]
+    port = 24573
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory = "2gb"

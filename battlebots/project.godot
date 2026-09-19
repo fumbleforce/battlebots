@@ -20,6 +20,10 @@ config/icon="res://icon.svg"
 MenuRouter="*res://ui/menus/scripts/menu_router.gd"
 PlayerProfile="*res://ui/menus/scripts/player_profile.gd"
 
+[services]
+
+matchmaking_url=""
+
 [display]
 
 window/size/viewport_width=1280

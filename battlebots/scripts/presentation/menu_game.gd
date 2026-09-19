@@ -14,14 +14,24 @@ var _forfeit: Button
 var _rematch: Button
 var _vote_match := ""
 var _menu_music: AudioStreamPlayer
+var public_service: PublicServiceClient
+var _online_joining := false
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
+	if args.any(func(arg: String) -> bool: return arg.begins_with("--allocation-config=")):
+		_cli_handoff = true
+		get_tree().change_scene_to_file.call_deferred("res://scenes/app/hosted_server.tscn")
+		return
 	if OS.has_feature("dedicated_server") or args.has("--server") or args.has("--host") or args.any(func(arg: String) -> bool: return arg.begins_with("--join=")):
 		_cli_handoff = true
 		get_tree().change_scene_to_file.call_deferred("res://scenes/app/mvp.tscn")
 		return
 	MenuRouter.bind(self, session)
+	public_service = PublicServiceClient.new()
+	public_service.name = "PublicService"
+	add_child(public_service)
+	public_service.assignment_ready.connect(_online_assignment)
 	session.session_event.connect(_session_event)
 	source.input_allowed = gameplay_input_allowed
 	preview.return_button.pressed.disconnect(preview.return_to_launcher)
@@ -97,7 +107,7 @@ func _process(_delta: float) -> void:
 		elif phase == "countdown" and prior == "loading" and not preview.settings_panel.visible:
 			resume_gameplay()
 		elif phase == "lobby" and prior in ["results", "loading", "countdown", "active", "intermission", "overtime"]:
-			MenuRouter.goto("lobby", false)
+			MenuRouter.goto("online" if MenuRouter.lobby_intent == "online" and public_service.state == "failed" else "lobby", false)
 	var menu_open := menu_host.visible
 	preview.get_node("CanvasLayer").visible = not menu_open and not preview.settings_panel.visible
 	preview.get_node("DiagnosticsLayer").visible = not menu_open and not preview.settings_panel.visible
@@ -137,6 +147,8 @@ func resume_gameplay() -> void:
 
 func return_to_main() -> void:
 	preview.release_controls(false)
+	if is_instance_valid(public_service) and (MenuRouter.lobby_intent == "online" or public_service.can_cancel()):
+		cancel_online()
 	session.leave()
 	_last_phase = ""
 	_vote_match = ""
@@ -177,8 +189,38 @@ func _input(event: InputEvent) -> void:
 func _session_event(kind: String, details: Dictionary) -> void:
 	if kind == "error":
 		MenuRouter.session_notice = str(details.get("message", "Session error"))
+		if _online_joining or (MenuRouter.lobby_intent == "online" and session.connection_state == "offline" and public_service.state in ["ready", "connected"]):
+			_online_joining = false
+			public_service.game_failed()
+			MenuRouter.goto("online", false)
 	elif kind in ["left", "hosted", "joined", "practice"]:
 		MenuRouter.session_notice = ""
+		if kind == "joined" and _online_joining:
+			_online_joining = false
+			public_service.game_connected()
+			session.set_loadout(PlayerProfile.active_loadout())
+			MenuRouter.goto("lobby", false)
+
+func _online_assignment(assignment: Dictionary) -> void:
+	if MenuRouter.lobby_intent != "online" or MenuRouter.current != "online" or public_service.state != "ready" or session.connection_state != "offline":
+		return
+	var draft: Dictionary = PlayerProfile.active_loadout()
+	if not session.registry.validate(draft).valid:
+		public_service.game_failed()
+		MenuRouter.session_notice = "Select a valid bot in the Garage before joining online."
+		return
+	_online_joining = true
+	var error: int = session.join(str(assignment.address), int(assignment.port), "", str(assignment.admission_ticket))
+	if error != OK:
+		_online_joining = false
+		public_service.game_failed()
+
+func cancel_online() -> void:
+	_online_joining = false
+	if MenuRouter.lobby_intent == "online" and session.connection_state != "offline":
+		session.leave()
+	if is_instance_valid(public_service):
+		public_service.cancel()
 
 func _add_match_actions() -> void:
 	var actions: Node = preview.return_button.get_parent()

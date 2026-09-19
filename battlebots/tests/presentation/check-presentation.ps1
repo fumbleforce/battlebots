@@ -10,7 +10,8 @@ function Invoke-PresentationCheck {
     $outputLines = & $GodotPath @EngineArgs 2>&1
     $runExitCode = $LASTEXITCODE
     $outputLines | ForEach-Object { Write-Host $_ }
-    if ($runExitCode -ne 0 -or ($outputLines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:') -or
+    # Godot's native crash handler can print a backtrace and still return zero.
+    if ($runExitCode -ne 0 -or ($outputLines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:|CrashHandlerException:|Program crashed|END OF C\+\+ BACKTRACE') -or
         ($Marker -and -not ($outputLines -match "^$Marker$"))) {
         throw "Presentation check failed: $Marker (exit $runExitCode)"
     }
@@ -46,9 +47,13 @@ foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTI
     @('lobby_session_test.gd', 'LOBBY SESSION PASS'),
     @('lobby_game_network_test.gd', 'LOBBY GAME NETWORK PASS'),
     @('menu_kit_lobby_test.gd', 'MENU KIT LOBBY PASS'),
+    @('online_menu_test.gd', 'ONLINE MENU PASS'),
     @('menu_game_network_test.gd', 'MENU GAME NETWORK PASS'))) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
         '--max-fps', '60', '--script', "res://tests/presentation/$($check[0])",
         '--quit-after', '6000') -Marker $check[1]
 }
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', '--script', 'res://tests/services/public_service_client_test.gd',
+    '--quit-after', '6000') -Marker 'PUBLIC SERVICE CLIENT PASS'
 Write-Host 'B PRESENTATION CHECKS PASS'

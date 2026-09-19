@@ -55,8 +55,9 @@ Public hosting is a later release task; MVP export presets are described below.
 ## Playable modes
 
 Current menu correction: `codex/a-menu-flow`, based on `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
-Developer A's `codex/a-performance` includes all five weapon families and reliable
-round-state recovery with build `mvp-ab-9`, protocol 4. Select Duelist for the hammer, or use Garage → Customize →
+Developer A's `codex/a-hosted-matchmaking` includes all five weapon families, reliable
+round-state recovery and hosted online integration with build `mvp-ab-10`, protocol 4.
+Select Duelist for the hammer, or use Garage → Customize →
 Weapon for the saw and other weapons. Both peers must update together; the saved
 menu playtest ZIP remains build 5.
 Use the same branch/build on all peers. The older `codex/a-b-integration`
@@ -107,6 +108,15 @@ Ready/Not ready is available only in the lobby, Forfeit round only during play,
 and Vote rematch only at results. Reconnect is available through the session API.
 
 ### Try multiplayer on two computers
+
+The new **Play Online** route supports Quick Play (four-player 2v2), private
+games and eight-character friend codes through an externally hosted dedicated
+server. This branch's service and deployment files are prepared; online hosting
+must be deployed and `services/matchmaking_url` configured before distributing
+the online build. There is no built-in localhost fallback for players.
+[Deployment instructions](services/matchmaking/DEPLOYMENT.md) describe Fly.io,
+local checks, operating costs and the current single-Machine limits. LAN remains
+available independently through **Host LAN Game** and **Join LAN Game**.
 
 Use the same current game build on both PCs and the same LAN.
 Open one game window on each computer. On PC A choose **Host Game → Private Duel

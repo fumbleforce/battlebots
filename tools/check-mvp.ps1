@@ -11,11 +11,13 @@ function Invoke-MvpTest {
     $lines = & $GodotPath --headless --path $projectRoot @timingArgs @targetArgs --quit-after 10000 2>&1
     $exitCode = $LASTEXITCODE
     $lines | ForEach-Object { Write-Host $_ }
-    if ($exitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:') -or -not ($lines -match "^$Marker`$")) {
+    if ($exitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:|CrashHandlerException:|Program crashed|END OF C\+\+ BACKTRACE') -or -not ($lines -match "^$Marker`$")) {
         throw "MVP test failed: $Script ($exitCode)"
     }
 }
 Invoke-MvpTest 'res://tests/simulation/content_smoke.gd' 'CONTENT PASS'
+Invoke-MvpTest 'res://tests/services/hosted_admission_test.gd' 'HOSTED ADMISSION PASS'
+Invoke-MvpTest 'res://tests/network/hosted_admission_session.tscn' 'HOSTED ADMISSION SESSION PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_state.gd' 'HORIZONTAL SPINNER STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_visual.gd' 'HORIZONTAL VISUAL PASS'
 Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_physics.tscn' 'HORIZONTAL SPINNER PHYSICS PASS' -Scene

@@ -13,7 +13,8 @@ function Invoke-GodotCheck {
     $lines = & $GodotPath @EngineArgs 2>&1
     $engineExitCode = $LASTEXITCODE
     $lines | ForEach-Object { Write-Host $_ }
-    if ($engineExitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:')) {
+    # Godot's native crash handler can print a backtrace and still return zero.
+    if ($engineExitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:|CrashHandlerException:|Program crashed|END OF C\+\+ BACKTRACE')) {
         throw "Godot validation failed (exit $engineExitCode)"
     }
 }

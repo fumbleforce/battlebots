@@ -43,6 +43,9 @@ without running them.
   Independent eleven-process harness implemented on `codex/a-performance`;
   short smoke runs are not the required sixty-minute or rendered acceptance.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.
+  Hosted playtest increment `codex/a-hosted-matchmaking` adds guest identity,
+  private codes, solo 2v2 queue, dedicated allocation and admission. Persistent
+  accounts/results, parties, region/skill matching and release acceptance remain open.
 
 These remain part of A's goal. The MVP checklist does not redefine the complete
 requested game. Final art, menu/garage UX, accessibility and camera work belong to B.

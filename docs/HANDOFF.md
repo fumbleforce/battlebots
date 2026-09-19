@@ -2,6 +2,48 @@
 
 ## Current Developer A increment
 
+`codex/a-hosted-matchmaking` follows performance `3f0e80f`. The user's new priority
+is externally hosted matchmaking/gameplay without tunnelling, using Fly.io or
+Cloudflare. Fly.io supports the existing native Godot/UDP server; the chosen
+first deployment combines HTTPS guest/room/queue service and a bounded dedicated
+server pool on one Stockholm Machine. Build `mvp-ab-10`, protocol 4, catalogue four.
+See [hosted coordination](coordination/A_HOSTED_MATCHMAKING.md) and
+[deployment](../services/matchmaking/DEPLOYMENT.md).
+
+Implemented flow: Play Online → Quick Play (2v2), Create private game, or Join by
+code → assigned ENet server → existing lobby/Ready. Only actual server welcome
+advances the menu. Guest credentials stay in memory; expiry, cancellation and
+server errors are explicit. Admission binds build, identity, slot and reservation
+generation; reconnect retains damage while revoked reservations lose access.
+LAN and practice remain available. Source-level HTTP plus independent Godot
+processes passed both private two-player and queued four-player active gameplay.
+Nineteen Node checks, pure/real-ENet admission, service-client cancellation/errors,
+online menu-to-ENet lobby, existing LAN duel/rematch and snapshot recovery passed.
+The same private/queue check passed with a released Windows server executable;
+Linux server artifacts and Fly configuration are prepared. Exported workers use
+normal application startup because templates ignore the editor's script override.
+No public app/IP/Machine has been provisioned. Linux runtime and real external
+UDP reachability still require deployment; the default service URL remains empty.
+
+Performance CI 35468529835 passed all A checks and the repaired catalogue check.
+It failed after CAMERA CONTACT PASS with native exit code 0xC0000005. Local
+baseline validation also intermittently crashes after BASELINE PASS, despite an
+earlier successful run. Diagnostics map the native fault to GDScript language
+shutdown; scene nodes were already freed and extra teardown frames did not fix
+it. Some crashes print a native backtrace but return zero, so test gates now reject
+native crash signatures as well as script errors and nonzero exits. This remains
+an unresolved engine shutdown limitation, not a passing baseline or a proven
+gameplay fault. No speculative production workaround or gate relaxation was made.
+
+The full public-release service scope remains open: durable accounts/results,
+parties, region/skill matching, multi-Machine allocation and release acceptance.
+The earlier performance increment's 300-second run reached 59.996 Hz, all five
+weapons, one completed match and rematch. Its average downstream was under budget,
+but ten-second peaks reached about 114 KB/s; burst/soak/rendering work remains open.
+Full soak is deferred while the requested online playtest path is prepared.
+
+### Preceding performance and weapons increment
+
 `codex/a-performance` follows saw `5d3fd30`, hammer `9610946`, horizontal spinner `b46084e` and menu/music
 export `db87257`. All five weapon families now have authoritative mechanics and
 primitive visuals. The saw cuts for 6 raw per third-second of maintained contact;

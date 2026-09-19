@@ -30,6 +30,8 @@ func _ready() -> void:
 		_notice = MenuRouter.session_notice
 	else:
 		_notice = "Enter the host's address and public UDP port." if MenuRouter.lobby_intent == "join" else "Start the host, then share its address and UDP port."
+		if MenuRouter.lobby_intent == "online":
+			_notice = "Choose your bot and Ready."
 	_build_connection_controls()
 	_build_roster()
 	%Ready.toggle_mode = false
@@ -221,7 +223,7 @@ func request_ready_state() -> void:
 	refresh()
 
 func request_team(index: int) -> void:
-	if not _can_edit() or index not in [0, 1] or session.lobby_view.get("mode") == "ffa":
+	if not _can_edit() or index not in [0, 1] or session.lobby_view.get("mode") == "ffa" or MenuRouter.lobby_intent == "online":
 		refresh()
 		return
 	_begin("team", index)
@@ -326,6 +328,10 @@ func refresh() -> void:
 	%StatusEyebrow.text = "MINIMUM 4 · EVERYONE READY" if ffa and connected else state.to_upper()
 	%StatusBig.text = "%d/%d PLAYERS" % [slots.size(), capacity] if connected and known else ("CONNECTING…" if state == "connecting" else ("JOIN A HOST" if MenuRouter.lobby_intent == "join" else "HOST A GAME"))
 	%StatusSub.text = _notice
+	if MenuRouter.lobby_intent == "online" and is_instance_valid(MenuRouter.host):
+		var service: PublicServiceClient = MenuRouter.host.public_service
+		var code := str(service.membership.get("code", ""))
+		%StatusSub.text = "Online · %s\n%s%s" % [service.region, "Friend code: " + code + "\n" if not code.is_empty() else "", _notice]
 	if state == "hosting":
 		var ips: PackedStringArray = []
 		for ip: String in IP.get_local_addresses():
@@ -334,7 +340,7 @@ func refresh() -> void:
 		%StatusSub.text += "\n%s · UDP %d" % [", ".join(ips) if not ips.is_empty() else "Use this computer's LAN IPv4 address", _host_port]
 	var edit := _can_edit()
 	var local := _local_slot()
-	_connection_panel.visible = state == "offline"
+	_connection_panel.visible = state == "offline" and MenuRouter.lobby_intent != "online"
 	host_button.visible = MenuRouter.lobby_intent == "host"
 	join_button.visible = MenuRouter.lobby_intent == "join"
 	address.visible = MenuRouter.lobby_intent == "join"
@@ -343,7 +349,7 @@ func refresh() -> void:
 	address.editable = state == "offline"
 	port.editable = state == "offline"
 	team_choice.disabled = not edit
-	team_choice.visible = connected and known and not ffa
+	team_choice.visible = connected and known and not ffa and MenuRouter.lobby_intent != "online"
 	if not ffa:
 		team_choice.select(clampi(int(local.get("team", 0)), 0, 1))
 	build_choice.disabled = state != "offline" and not edit
@@ -359,6 +365,8 @@ func refresh() -> void:
 	%Back.text = "CANCEL CONNECTION" if state == "connecting" else ("LEAVE GAME" if connected else "BACK")
 
 func leave_lobby() -> void:
+	if MenuRouter.lobby_intent == "online" and is_instance_valid(MenuRouter.host):
+		MenuRouter.host.cancel_online()
 	if is_instance_valid(session) and session.connection_state != "offline":
 		session.leave()
 	MenuRouter.goto("main", false)

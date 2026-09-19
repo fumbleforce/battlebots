@@ -50,6 +50,8 @@ var _effect_ids: Dictionary = {}
 var network_simulation := NetworkSimulator.new()
 var player_capacity := 4
 var match_mode := "teams"
+var hosted_admission: HostedAdmission
+var hosted_config_refresh: Callable
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
@@ -59,13 +61,24 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(func() -> void: _fail("Server disconnected; match incomplete"))
 	multiplayer.allow_object_decoding = false
 
-func host(port := 24567, listen := true, player_count := 4, mode := "teams") -> Error:
+func host(port := 24567, listen := true, player_count := 4, mode := "teams", bind_address := "*") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
 	if (mode == "teams" and player_count not in [2, 4, 10]) or (mode == "ffa" and (player_count < 4 or player_count > 8)) or mode not in ["teams", "ffa"]:
 		session_event.emit("error", {"message":"Choose 2, 4 or 10 team players, or an FFA limit of 4–8"})
 		return ERR_INVALID_PARAMETER
+	if hosted_admission != null and (listen or not hosted_admission.live(Time.get_unix_time_from_system())):
+		return ERR_UNAUTHORIZED
+	if hosted_admission != null and (hosted_admission.config.port != port or hosted_admission.config.capacity != player_count
+		or hosted_admission.config.mode != mode or hosted_admission.config.bind_address != bind_address):
+		return ERR_INVALID_PARAMETER
 	var peer := ENetMultiplayerPeer.new()
+	var bind_ip: String = bind_address
+	if bind_ip != "*" and not bind_ip.is_valid_ip_address():
+		bind_ip = IP.resolve_hostname(bind_ip, IP.TYPE_IPV4)
+	if bind_ip.is_empty():
+		return ERR_CANT_RESOLVE
+	peer.set_bind_ip(bind_ip)
 	# Keep a few handshake slots beyond the match capacity for version rejection
 	# and reconnects; admitted players are still bounded by player_capacity.
 	var error := peer.create_server(port, player_count + 4, 3)
@@ -86,14 +99,15 @@ func host(port := 24567, listen := true, player_count := 4, mode := "teams") -> 
 	session_event.emit("hosted", {"port":port, "capacity":player_capacity})
 	return OK
 
-func join(address: String, port := 24567, token := "") -> Error:
+func join(address: String, port := 24567, token := "", admission_ticket := "") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_client(address, port, 3)
 	if error != OK:
 		return error
-	_hello_data = {"protocol":WireCodec.PROTOCOL, "build":WireCodec.BUILD, "content":registry.content_hash, "token":token}
+	_hello_data = {"protocol":WireCodec.PROTOCOL, "build":WireCodec.BUILD, "content":registry.content_hash,
+		"token":token, "admission_ticket":admission_ticket}
 	_server = false
 	connection_state = "connecting"
 	multiplayer.multiplayer_peer = peer
@@ -159,6 +173,8 @@ func leave() -> void:
 	_client_sequence = 0
 	match_state = MatchState.new()
 	match_mode = "teams"
+	hosted_admission = null
+	hosted_config_refresh = Callable()
 	match_view = {}
 	lobby_view = {}
 	if is_instance_valid(world):
@@ -170,6 +186,22 @@ func _make_world() -> void:
 	world = AuthorityWorld.new()
 	world.name = "World"
 	add_child(world)
+
+func refresh_hosted_admission() -> void:
+	if not _server or hosted_admission == null:
+		return
+	for id: int in players.keys():
+		if hosted_admission.retains(players[id], Time.get_unix_time_from_system()):
+			continue
+		var peer: int = players[id].peer
+		if world.bots.has(id):
+			world.bots[id].combat.eliminate("allocation revoked")
+		if peer != 0:
+			_peer_disconnected(peer)
+			multiplayer.multiplayer_peer.disconnect_peer(peer)
+		if match_state.phase == "lobby":
+			players.erase(id)
+	_publish_lobby()
 
 func _fail(message: String) -> void:
 	leave()
@@ -193,7 +225,7 @@ func _peer_disconnected(peer: int) -> void:
 	players[id].ready = false
 	players[id].deadline = _time + 20
 	_input_queue.erase(id)
-	if match_state.phase == "lobby":
+	if match_state.phase == "lobby" and hosted_admission == null:
 		players.erase(id)
 	_publish_lobby()
 
@@ -221,6 +253,8 @@ func _hello(packet: PackedByteArray) -> void:
 	if data.get("protocol") != WireCodec.PROTOCOL or data.get("build") != WireCodec.BUILD or data.get("content") != registry.content_hash:
 		_rejected.rpc_id(peer, "Protocol, build or content version mismatch")
 		return
+	if hosted_admission != null and hosted_config_refresh.is_valid() and not hosted_config_refresh.call():
+		return
 	var id := 0
 	var token: Variant = data.get("token", "")
 	if not token is String or token.length() > 64:
@@ -228,6 +262,8 @@ func _hello(packet: PackedByteArray) -> void:
 	if not token.is_empty():
 		for candidate: int in players:
 			if players[candidate].token == token and players[candidate].peer == 0 and players[candidate].deadline > _time:
+				if hosted_admission != null and not hosted_admission.retains(players[candidate], Time.get_unix_time_from_system()):
+					continue
 				id = candidate
 				players[id].peer = peer
 				players[id].token = Crypto.new().generate_random_bytes(32).hex_encode()
@@ -240,7 +276,16 @@ func _hello(packet: PackedByteArray) -> void:
 		if players.size() >= player_capacity or match_state.phase != "lobby":
 			_rejected.rpc_id(peer, "Lobby full or match already started")
 			return
+		var allocation: Dictionary = {}
+		if hosted_admission != null:
+			allocation = hosted_admission.admit(data.get("admission_ticket", ""), players, Time.get_unix_time_from_system())
+			if allocation.is_empty():
+				_rejected.rpc_id(peer, "Admission ticket invalid, expired or unavailable")
+				return
 		id = _admit(peer, registry.starter())
+		if not allocation.is_empty():
+			players[id].merge(allocation)
+			players[id].team = id if match_mode == "ffa" else int(allocation.allocation_slot) % 2
 	_pending_peers.erase(peer)
 	_input_highwater[id] = -1
 	_input_queue[id] = []
@@ -318,6 +363,8 @@ func _handle_request(peer: int, data: Dictionary) -> void:
 				players[id].ready = false
 			else:
 				_request_error(peer, "loadout", "; ".join(validation.reasons))
+		elif kind == "team" and hosted_admission != null:
+			_request_error(peer, kind, "Allocated teams cannot be changed")
 		elif kind == "team" and match_mode == "ffa":
 			_request_error(peer, kind, "FFA has no teams")
 		# JSON decodes numbers as floats; array membership distinguishes 0.0 from 0.
@@ -386,6 +433,8 @@ func _start() -> void:
 	for id: int in players:
 		var p: Dictionary = players[id]
 		var slot: int = ffa_slot if match_mode == "ffa" else slots[p.team]
+		if hosted_admission != null:
+			slot = int(p.allocation_slot) if match_mode == "ffa" else int(p.allocation_slot) / 2
 		var bot := world.spawn(id, p.team, slot, p.loadout, player_capacity / 2, match_mode)
 		ffa_slot += 1
 		if match_mode != "ffa":
@@ -514,6 +563,14 @@ func _physics_process(delta: float) -> void:
 		if _pending_peers[peer] <= _time:
 			multiplayer.multiplayer_peer.disconnect_peer(peer)
 			_pending_peers.erase(peer)
+	if hosted_admission != null and match_state.phase == "lobby":
+		var removed_reservation := false
+		for id: int in players.keys():
+			if players[id].peer == 0 and players[id].deadline <= _time:
+				players.erase(id)
+				removed_reservation = true
+		if removed_reservation:
+			_publish_lobby()
 	var enough_players := players.size() >= 4 if match_mode == "ffa" else players.size() == player_capacity
 	if match_state.phase == "lobby" and enough_players:
 		var all_ready := true

@@ -93,6 +93,15 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **Hosted online play (in progress):** `codex/a-hosted-matchmaking` from
+  performance `3f0e80f`. User requests removing tunnelling and offers Fly.io or
+  Cloudflare. A is building Fly-hosted matchmaking plus dedicated ENet servers,
+  guest admission, private friend codes and a 2v2 queue. Minimal online menu/client
+  integration is explicitly part of this request; A reserves those routes along
+  with services/networking, tests and deployment. Model/art paths stay untouched.
+  [Scope and shared contract](coordination/A_HOSTED_MATCHMAKING.md). Build 10;
+  deployment, full soak and public-service release acceptance are not yet passed.
+
 - **Performance/reliability (in progress):** `codex/a-performance` from saw
   `5d3fd30`. A reserves independent process/performance fixtures and demonstrated
   network fixes. Ten real command-driving clients will exercise all five weapons,
