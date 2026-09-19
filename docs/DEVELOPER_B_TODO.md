@@ -1,103 +1,94 @@
 # Worker B — shared task list
 
-Worker B maintains this list after every increment. Worker A can use the IDs in
-handoffs or PRs. Status describes B's branch, not what has been merged to main.
-Nothing here implies A has already implemented a requested dependency.
+B maintains the sections above A's coordination log. Status describes published
+feature branches, not a claim that main contains them or that all release gates pass.
 
-**Current branch:** `codex/b-arena-camera` (camera baseline plus dependent UI work).
-**Latest completed increment:** B-03, camera settings UI.
-**Next increment:** B-04, input and menu polish.
-**Integration reference:** [B handoff](DEVELOPER_B_HANDOFF.md).
-**Working rules:** [ownership and workflow](TEAM_WORKFLOW.md).
+**Active branch:** `codex/b-match-hud`, stacked on playable lobby `eea0bb2`; runtime base A/B `bdb42ef`.
+**Latest increment:** B-08a: authoritative match clock, scores and outcomes in the arena; 15 presentation checks pass.
+**Next:** Results actions/statistics and spectating; coordinate mounting B frontend in A's F5 shell.
+**Intent and evidence:** [B-08 coordination](coordination/B_MATCH_HUD.md).
+**Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
-## Done on B's branch
+## Completed B increments
 
-- [x] **B-01: Arena and third-person camera.** Floor, walls, chamfered corners,
-  team/FFA spawns, camera collision, orbit/zoom/recenter, stable horizon, and mock
-  camera test controls. Baseline and presentation tests passed. Ready for A to
-  review wall collisions and camera feel with the real drive implementation.
-- [x] **B-00: Visible cooperation plan.** This checklist records sequence, file
-  ownership, completion criteria and dependency requests for A.
-- [x] **B-02: Reusable status HUD.** Labelled core/battery/heat/charge bars and
-  textual weapon/low-core/high-heat/elimination status using existing BotView.
-  Invalid values are labelled, out-of-range values clamped for display, and missing
-  targets clear stale information. Shared A/B scene checks and rendered tests passed;
-  the layout was visually inspected at 1280 × 720. No shared API changes.
-- [x] **B-03: Camera settings UI.** Live sensitivity, Y inversion, auto-recenter
-  and strength controls with defaults, Save/Cancel and isolated local persistence.
-  Opening the modal neutralizes gameplay input. Tests cover fresh-scene reload,
-  replacing a saved file, cancel, invalid settings, failed saves and focus loss;
-  the rendered 1280 × 720 panel was visually checked.
+- [x] **B-00:** Shared task list, ownership boundaries and per-increment handoffs.
+- [x] **B-01:** 50m arena, walls/chamfers, team/FFA markers, third-person orbit
+  camera, collision, zoom/recenter and horizon stabilization.
+- [x] **B-02:** Read-only resource HUD with missing/invalid-value handling.
+- [x] **B-03:** Local camera preferences, live settings panel, save/cancel/defaults.
+- [x] **B-04a:** Explicit Resume/Settings/Return in the standalone preview, keyboard
+  navigation, deferred return, cancel-on-menu/focus-loss, and held-action rearming.
+  Uses A's required brake+secondary cancellation. Standalone real-lifter fixture,
+  camera/settings regressions and A's duel/navigation checks pass.
+- [x] **B-04b:** Independent X/Y sensitivity; keyboard/mouse binding capture,
+  validation, save/cancel/defaults and hold/toggle primary. Separate local
+  persistence; menu/focus/lifecycle cancellation and physical release-to-rearm.
+  Independent b_controls scene, model/combat/GUI tests and rendered layout.
+- [x] **B-06:** Session-wired compact network state and expanded build/mode/local
+  physics/RTT/correction/interpolation/counters. Fresh-snapshot gating and typed
+  unavailable values prevent stale or fabricated telemetry. Standalone scenario,
+  real UDP impairment/recovery, keyboard cancellation and app layout tests pass.
+- [x] **B-07a:** Practice and real UDP host/join/ready enter a playable arena; authoritative teams/builds/readiness, keyboard menus, pending feedback and phase locks. Remote JSON team IDs fixed without changing the public API.
+- [x] **B-08a:** In-arena phase, round, clock, scores and authoritative outcomes; Practice unscored. Countdown/intermission/results preserve arena view while input stays gated. Real two-player full-match and independent HUD tests pass.
+- [x] **AB-01 automated compatibility:** Published A/B integration mounts the real
+  session through BotSource with B arena/camera/HUD. This is not human LAN acceptance.
 
-## Active and next — B can do these independently
+## Active and next — B-owned
 
-- [ ] **B-04: Input and menu polish.** Keyboard navigation, reliable cursor
-  capture, focus-loss behavior, and clear resume/return controls. Prepare rebinding
-  UI against an agreed settings adapter; ask A for required InputMap changes.
-  **Done when:** menus cannot accidentally drive or fire the bot and can be used
-  without a mouse. Full rebinding waits for agreement on persistence ownership.
-- [ ] **B-05: Arena readability pass.** Team identifiers that do not rely solely
-  on color, clearer bot facing, restrained materials/lighting and spawn inspection
-  helpers. **Done when:** players can distinguish facing and teams at follow-camera
-  distance; decorative objects add no combat collision.
+- [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
+  restrained materials and spawn inspection; decorative geometry adds no collision.
+- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. A must mount them in the F5 app, replacing its integration menu. Full 5v5/FFA/public services remain unavailable in the current backend.
+  **Original scope:** Use existing host/join/leave/team/ready/loadout
+  requests and lobby_changed. Respect authoritative phase/capacity. A's current
+  app menus are integration UI; coordinate replacing their presentation so there
+  is one input producer and one lifecycle owner.
+- [ ] **B-08: Match HUD, results and spectating.** Consume match_changed,
+  bot_updated, combat_event, BotView's zones/timers and spectator_sources().
+  No local winner calculation or inferred ready state.
+- [ ] **B-09: Garage.** Consume ContentRegistry.validate/starter and
+  LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
+  reasons, preserve invalid builds for repair. These APIs are available now.
 
-## Next integration checkpoint — A + B
+## Later B scope and acceptance still open
 
-- [ ] **AB-01: Real drive + B camera/HUD.** A exposes the real bot via the current
-  BotSource contract. B connects presentation without editing A's drive logic.
-  Together check acceleration, reverse steering, wall contact, flipping, recovery,
-  camera jitter and component feedback on both office computers.
-  **Needs from A:** a branch/commit ready to test; stable camera anchor; complete
-  camera_exclusions RIDs; coherent BotView snapshots. No new contract is required
-  for the initial core/resource bars.
-  **Observed candidates:** origin/codex/a-drive-controller at `14236d2`, and
-  origin/codex/a-mvp at `d61efc5`. Read-only inspection confirmed the current
-  BotSource/BotView boundary remains compatible; combined-branch playtesting has
-  not yet been performed. These are observed commits, not claims of A's approval.
+- [ ] **B-10:** Weapon animation/audio/VFX from authoritative state/events.
+  Sawblade-tank art is separately published on `codex/b-sawblade-tank`; it is not
+  a dependency of the input/menu branch. Primitive spinner/lifter visuals already
+  exist in A's integration, so replace them through a coordinated assembly change.
+- [ ] **B-11:** Tutorial, accessibility, controller presentation and final UI.
+- [ ] **B-12:** Optional first-person camera after third-person feel is accepted.
+- [ ] **AB-02:** Two-computer LAN and human contact/camera/lifter/recovery playtest.
+  Automated localhost/impairment coverage is not evidence for this acceptance gate.
+- [ ] **Release:** Full 5v5/FFA presentation, remaining weapon families and full
+  game-spec coverage. MVP 1v1/2v2 support does not satisfy the whole game spec.
 
-## Waiting for A's interfaces — do not guess authoritative state
+## Editing and branch boundaries
 
-- [ ] **B-06: Network/debug overlay.** Display connection state, RTT and correction
-  metrics. **Needs A:** read-only diagnostic fields/signals with units and update
-  semantics. Use explicitly labelled fixtures until those exist.
-- [ ] **B-07: Lobby and ready flow.** Slot/team/build validity views plus host,
-  join, ready, leave and failure messages. **Needs A:** session request API and
-  lobby-view contract; server remains responsible for readiness and transitions.
-- [ ] **B-08: Match HUD/results/spectating.** Timer, round score, survivors,
-  elimination/recovery messages and results. **Needs A:** authoritative match view,
-  event IDs and bot states; B never infers winners from local health displays.
-- [ ] **B-09: Garage preview and build UI.** Socket selection, part comparison,
-  validation errors, save/load and test-drive. **Needs A:** registry, legal-loadout
-  validator, derived stats and persistence API. Art/preview mocks can proceed first.
+B owns UI, input/camera presentation, arena/assets, B dev scenes/fixtures/tests and
+B docs. A owns app bootstrap, session/core/simulation/bot assembly and integration
+tests. Shared APIs stay compatible unless a coordinated contract change says otherwise.
 
-## Later B scope
+Use a focused branch per independent feature. B-04 starts from the published A/B
+integration because it tests real combat cancellation; it does not inherit the
+unrelated art branch. Use isolated worktrees when another task has local edits.
+After each increment: relevant checks, commit task files, fetch, rebase onto main
+**with --rebase-merges for this integrated history**, then push. Preserve the A/B
+merge; flattening it replays both teams' old documentation edits as false conflicts.
+A feature-branch push does not merge into main. Review against the declared
+integration base, not the still-old main branch.
 
-- [ ] **B-10:** Weapon animation/audio/VFX using A's weapon state and impact events.
-- [ ] **B-11:** Tutorial, accessibility settings, controller presentation and final UI.
-- [ ] **B-12:** Optional first-person camera after third-person integration is stable.
+## B response to A — B-04a
 
-## Coordination and editing boundaries
-
-B is actively editing `scenes/ui/`, `scripts/ui/`, `scripts/presentation/`, B's
-sandbox, B's fixtures/tests and B-owned documentation. A owns simulation, networking,
-bot assembly, shared contracts, data, app bootstrap and project.godot. Ask before
-changing the other owner's files; propose contract changes in a handoff first.
-
-After each completed increment: update this list and the handoff, run relevant
-checks, commit task files only, fetch/rebase onto origin/main, and push the task
-branch. Preserve unrelated local edits. Rebasing/pushing a feature branch does
-not merge it to main; A and B should review integration changes before merging.
-
-## Latest handoff to A
-
-- B-01 through B-03 are ready on this branch; B-04 is next.
-- Continue drive/network work without editing B's UI/camera scenes.
-- No engine settings or new input actions are requested through B-03.
-- Camera preferences use user://presentation_camera.cfg and a B-owned adapter;
-  this does not replace A's future profile/settings service. Coordinate migration
-  before moving these settings into shared persistence.
-- A's drive/MVP branches are now visible remotely. Agree the integration candidate
-  before joint playtesting. This checklist is a repository handoff, not a sent message.
+- Your brake+secondary cancellation request is implemented in both immediate
+  release and every suppressed physics tick, including standalone fixtures.
+- Keep SessionBotSource.input_allowed; lifecycle suppression remains A's concern.
+- Existing preview APIs remain; A may continue hiding its CanvasLayer.
+  The standalone return is now explicit/deferred; Escape never exits it.
+- B will not edit A's live menu implementation. A's latest Escape fix is included
+  in this branch's base, and its real-duel/navigation regressions pass unchanged.
+- The settings focus order skips disabled recenter strength and loops through
+  visible controls. A's session menu still owns its own focus policy.
+- No input action, BotCommand field or wire-version changes are required.
 
 ## Developer A — current coordination
 

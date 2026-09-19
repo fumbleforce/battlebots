@@ -6,7 +6,7 @@ Godot **4.7.2 stable** / Jolt / typed GDScript. Two developers, one repository, 
 1. Clone the repository locally and install Godot 4.7.2 stable.
 2. Import `battlebots/project.godot` into Godot.
 3. Press **F5** for the game menu; choose Practice or Multiplayer.
-4. Press Escape in the arena for build selection, camera settings and session controls.
+4. Press Escape in the arena for build selection, camera settings (including Controls rebinding) and session controls.
 
 The integration branch combines A's combat/networking with B's arena, orbit camera,
 resource HUD and camera settings. Simple spinner and lifter geometry shows weapon
@@ -16,11 +16,20 @@ full garage and production match screens remain future work. Development sandbox
 are still available by opening their scenes and pressing F6.
 
 ## Work independently
-- **A:** `battlebots/scenes/dev/a_simulation.tscn` — drive controller, then networking.
-- **B:** `battlebots/scenes/dev/b_presentation.tscn` — implement arena/camera/UI using the mock.
+- **A:** `battlebots/scenes/dev/a_simulation.tscn` — real drive/contact checks.
+- **B:** `battlebots/scenes/dev/b_presentation.tscn` — arena/camera/UI with mock movement.
+- **B playable game:** `battlebots/scenes/dev/b_lobby_game.tscn` — Practice or real LAN host/join/ready, then drive and fight. F5 still uses A's integration menu.
+- **B match HUD:** `battlebots/scenes/dev/b_match_hud.tscn` — frozen mock snapshots for independent phase/score/result inspection; Left/Right/Space cycles cases. The playable B game reads the real session.
+- **B network diagnostics:** `battlebots/scenes/dev/b_network_diagnostics.tscn` — synthetic connection states and telemetry; live preview reads the actual session.
+- **B controls:** `battlebots/scenes/dev/b_controls.tscn` — rebinding, saved input preferences and hold/toggle primary against real lifter rules.
+- **B input/menu:** `battlebots/scenes/dev/b_input_menu.tscn` — real lifter rules,
+  cancellation and keyboard menus without a network session.
 - Read [handoff](docs/HANDOFF.md), [contracts](docs/CONTRACTS.md),
   [team workflow](docs/TEAM_WORKFLOW.md), and [full specification](docs/GAME_SPEC.md).
-- Agree who is A/B, then branch from the common baseline:
+- Use a focused feature branch from main, or explicitly declare the published
+  A/B integration as a dependency while it is ahead of main. Current B work is
+  `codex/b-match-hud`, stacked on lobby/diagnostics/input; artwork stays on separate branches.
+- Example starting names (check existing branches before creating):
   `git switch -c codex/a-drive-controller` or `git switch -c codex/b-arena-camera`.
   These are examples; branches are not created by the baseline.
 
@@ -35,8 +44,10 @@ The check imports resources, loads both sandboxes, checks contracts/input bindin
 and verifies the physical body settles on the floor. It needs no export templates.
 Run `./tools/check-drive.ps1 -GodotPath "C:/path/to/Godot_v4.7.2-stable_win64_console.exe"`
 for the baseline checks plus headless Jolt driving, braking, contact, and input-failure checks.
-For manual inspection, use F5 and both launcher buttons; Escape opens the session
-menu. Use the explicit Main menu action to leave the session and return to the launcher.
+For manual inspection use F5 for Practice/Multiplayer, or F6 on a development scene.
+Escape toggles the current menu; leaving requires its explicit Main menu/Return button.
+Run B's independent scene checks with:
+`./battlebots/tests/presentation/check-presentation.ps1 -GodotPath $GodotPath`.
 Public hosting is a later release task; MVP export presets are described below.
 
 ## Playable modes

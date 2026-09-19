@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/dev/b_input_menu.tscn" id="1"]
+
+[node name="ControlsSandbox" instance=ExtResource("1")]
+
+[node name="Preview" parent="." index="2"]
+fixture_title = "B controls / real lifter rules"
+settings_path = "user://b_controls_camera.cfg"

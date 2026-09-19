@@ -1,10 +1,12 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/presentation/baseline_preview.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/orbit_camera.tscn" id="2"]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/bot_status_hud.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ui/camera_settings_panel.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/ui/preview_pause_menu.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/ui/network_diagnostics_panel.tscn" id="6"]
 
 [node name="Preview" type="Node3D"]
 script = ExtResource("1")
@@ -30,18 +32,21 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 16
 text = "Camera controls"
 
-[node name="SettingsButton" type="Button" parent="CanvasLayer"]
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -224.0
-offset_top = -56.0
-offset_right = -24.0
-offset_bottom = -16.0
-text = "Camera settings"
+[node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("5")]
 
 [node name="ModalLayer" type="CanvasLayer" parent="."]
 layer = 10
 
 [node name="CameraSettings" parent="ModalLayer" instance=ExtResource("4")]
+
+[node name="DiagnosticsLayer" type="CanvasLayer" parent="."]
+layer = 6
+
+[node name="NetworkDiagnostics" parent="DiagnosticsLayer" instance=ExtResource("6")]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -304.0
+offset_top = 24.0
+offset_right = -24.0
+grow_horizontal = 0

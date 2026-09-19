@@ -318,7 +318,9 @@ func _handle_request(peer: int, data: Dictionary) -> void:
 				_request_error(peer, "loadout", "; ".join(validation.reasons))
 		elif kind == "team" and match_mode == "ffa":
 			_request_error(peer, kind, "FFA has no teams")
-		elif kind == "team" and data.get("value") in [0, 1]:
+		# JSON decodes numbers as floats; array membership distinguishes 0.0 from 0.
+		elif kind == "team" and (data.get("value") is int or data.get("value") is float) \
+			and (data.get("value") == 0 or data.get("value") == 1):
 			var count := 0
 			for other: int in players:
 				count += int(players[other].team == int(data.value) and other != id)

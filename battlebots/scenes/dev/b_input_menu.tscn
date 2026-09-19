@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/arenas/baseline_arena.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://tests/fixtures/mock_bot.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/baseline_preview.tscn" id="3"]
+[ext_resource type="Script" path="res://tests/fixtures/input_combat_probe.gd" id="4"]
+
+[node name="InputMenuSandbox" type="Node3D"]
+
+[node name="Arena" parent="." instance=ExtResource("1")]
+
+[node name="Bot" parent="." instance=ExtResource("2")]
+script = ExtResource("4")
+
+[node name="Feedback" type="CanvasLayer" parent="Bot"]
+
+[node name="Label" type="Label" parent="Bot/Feedback"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -400.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = 160.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.73, 0.28, 1)
+theme_override_font_sizes/font_size = 16
+text = "INPUT / MENU FIXTURE"
+
+[node name="Preview" parent="." instance=ExtResource("3")]
+source_path = NodePath("../Bot")
+fixture_title = "B input / real lifter rules"
+settings_path = ""
