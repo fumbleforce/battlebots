@@ -1,0 +1,74 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/components/deal_row.gd" id="2_dealrowg"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hatch_dark.png" id="3_hatchdar"]
+
+[node name="DealRow" type="PanelContainer"]
+theme_type_variation = &"PanelSoft"
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_dealrowg")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Art" type="TextureRect" parent="Row"]
+layout_mode = 2
+texture = ExtResource("3_hatchdar")
+expand_mode = 1
+stretch_mode = 1
+custom_minimum_size = Vector2(106, 106)
+mouse_filter = 2
+
+[node name="Col" type="VBoxContainer" parent="Row"]
+layout_mode = 2
+theme_override_constants/separation = 4
+size_flags_horizontal = 3
+
+[node name="Name" type="Label" parent="Row/Col"]
+layout_mode = 2
+text = "Twin Saws"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 26
+unique_name_in_owner = true
+
+[node name="Info" type="Label" parent="Row/Col"]
+layout_mode = 2
+text = "Weapon · DMG +8"
+theme_type_variation = &"Body"
+theme_override_font_sizes/font_size = 16
+unique_name_in_owner = true
+
+[node name="Spacer" type="Control" parent="Row/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Buy" type="HBoxContainer" parent="Row/Col"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Was" type="RichTextLabel" parent="Row/Col/Buy"]
+layout_mode = 2
+unique_name_in_owner = true
+bbcode_enabled = true
+fit_content = true
+text = "[s]1,400[/s]"
+autowrap_mode = 0
+custom_minimum_size = Vector2(58, 0)
+size_flags_vertical = 4
+theme_override_colors/default_color = Color(0.4941, 0.5412, 0.6, 1)
+theme_override_font_sizes/normal_font_size = 17
+scroll_active = false
+
+[node name="Buy" type="Button" parent="Row/Col/Buy"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "BUY · 1,000"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+theme_override_font_sizes/font_size = 22
+size_flags_horizontal = 3

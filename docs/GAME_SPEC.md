@@ -59,6 +59,7 @@ A first-time player receives a complete starter robot, enters a short practice t
 
 | Mode | Players | Format | Round limit | Win condition |
 |---|---:|---|---:|---|
+| Custom duel (user-requested MVP addition) | 2 | First to 2 round wins | 180 seconds | Eliminate the opponent; otherwise the same judging rules |
 | Standard 2v2 | 4 | First to 2 round wins | 180 seconds | Eliminate the opposing team; otherwise judges' decision |
 | 5v5 | 10 | First to 2 round wins | 240 seconds | Same team rules with five bots per side |
 | FFA | 4–8 | One round | 300 seconds | Last surviving bot; otherwise timeout ranking |

@@ -1,0 +1,13 @@
+{
+  "modules": 13,
+  "selector_states_verified": 18,
+  "shared_socket_hierarchy_verified": true,
+  "visibility_drivers_verified": true,
+  "palette_driver_verified": true,
+  "palette_channels_verified": 4,
+  "weapon_mechanism_ownership_verified": true,
+  "packed_grayscale_atlas": [
+    4096,
+    4096
+  ]
+}

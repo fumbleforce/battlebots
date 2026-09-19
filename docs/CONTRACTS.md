@@ -1,7 +1,11 @@
-# Baseline contracts — v1
+# Shared contracts — local records and current MVP session API
 
-These are local typed GDScript interfaces, not a wire protocol or complete game API.
-A owns implementation definitions under scripts/core; B consumes them via adapters.
+The first sections describe local typed GDScript interfaces; the session section
+below documents the implemented MVP wire-facing API. This is not the full game API.
+A owns networking/session and match/world contracts; B owns combat/bot/control
+and customisation implementations. Shared command/view/loadout records are
+coordinated producer-consumer interfaces, not blanket A ownership of scripts/core.
+The current split in TEAM_WORKFLOW.md supersedes historical authorship below.
 Paths below are relative to the Godot project.
 
 ## BotCommand
@@ -21,8 +25,79 @@ rate-limit and network payload checks separately.
 entity ID, global pose, core/battery/heat/weapon-charge fractions in [0, 1],
 weapon state name, recovery availability, and elimination flag.
 Treat it as read-only; mutating it never writes simulation state.
-Health-zone details, match views, registry/garage validation and serialization are
-future coordinated additions, not empty APIs to implement against today.
+Health-zone details, match views and registry/garage validation are now available
+through the additive fields and APIs below. Existing baseline fields remain valid.
+
+### Additive MVP implementation on A's branch
+
+Existing fields/methods retain their meanings. BotView now also defaults `owner_id`,
+`team`, `server_tick`, `zones`, `weapon_cooldown`, `recovery_cooldown`,
+`immobilized_remaining` (seconds; zero means inactive), and `failure_reason`.
+B's existing mock inherits neutral defaults; its existing consumers need no edits.
+`MvpBot` exposes real values, fresh per read. Camera anchor/exclusions are unchanged.
+
+`ContentRegistry.validate(draft) -> LoadoutValidation` returns `valid`, specific
+`reasons`, canonical `stats`, and a detached normalized `loadout`. `starter(false)`
+is Striker; `starter(true)` is Controller. Draft shape: `schema_version: 1`, `name`,
+`parts` (chassis/drive/weapon/armor/utility IDs), `cosmetics: {paint: id}`,
+`content_hash: registry.content_hash`. All current parts fit their category socket;
+the implemented weapon IDs are `vertical_spinner`, `horizontal_spinner`, `lifter`,
+`hammer` and `saw`. `duelist()` adds the compact/agile/hammer/standard-armor/cooling-pack
+starter (91 kg/70 power), without changing `starter(bool)`.
+Horizontal spinner is 30 kg/40 power, charges over two seconds, uses spinner
+energy/heat rates, deals up to 40 raw damage with a 25% charge threshold and
+consumes 60% charge per hit. Side-contact sweeps and lateral recoil are authoritative.
+Hammer uses a primary press edge, 0.35-second committed windup, 38 raw damage,
+and 1.4-second recovery even on a miss. It spends 16 battery at acceptance and
+adds 20 heat at impact. A strike reaching heat 100 completes and locks further
+activations until 50. Release/secondary do not cancel a committed swing; inactive,
+eliminated or destroyed state does. Secondary prevents starting a new strike.
+Charge is windup progress; phases are `windup`, `strike`, `cooldown` plus the
+existing idle/disabled/overheated states. One target hit per attack ID and round.
+The existing snapshot fields suffice. Physical primary press edges are preserved
+in both hold/toggle modes; the held latch still governs continuous weapons/lifter.
+Saw is 20 kg/30 power. Hold primary to power it immediately (charge 1/phase active),
+using 9 battery/14 heat per second. Every full 1/3 second of maintained target
+contact deals 6 raw damage to one contacted zone. Separation or loss of power
+discards partial contact time. Secondary stops it; zero battery or heat 100 ends
+damage eligibility that tick. No authored saw impulse or pin is applied.
+Build `mvp-ab-10` keeps catalogue revision four/protocol 4. Build 9 added reliable state
+checkpoints to match transitions and active/countdown heartbeats. Checkpoints use
+the existing snapshot format and per-entity tick guard, so newer fast snapshots
+cannot be rewound by delayed reliable delivery. Finished-match heartbeats remain
+compact. Combat events add `kind`: a canonical weapon ID or `ram`, allowing VFX
+and telemetry to distinguish weapon contact from ordinary chassis damage.
+All peers need
+matching build/content. Known revision-one/two/three saves migrate after validation while
+preserving every selected part and cosmetic; unknown/incompatible saves stay invalid.
+Catalogue hashes normalize CRLF to LF for matching Windows/Linux content.
+
+Hosted matchmaking adds `MvpSession.join(address, port, reconnect_token, admission_ticket)`;
+both tokens default empty, retaining LAN callers. Admission tickets are only
+required by allocated public workers. The worker validates player, slot, membership
+reservation generation, build/content and ticket expiry against supervisor-owned
+configuration before admission. Hosted teams follow reserved slots and cannot be
+changed by a client. A valid reconnect token preserves the admitted bot and damage;
+revoked/replaced reservations cannot reconnect. These identities/tokens remain
+internal, outside public lobby and BotView data.
+
+`PublicServiceClient` owns HTTPS guest/room/queue requests and emits a ready endpoint
+assignment. It does not mark a game connected; only the ENet welcome does that.
+The menu shares the existing lobby/Ready flow after successful admission. See
+[hosted coordination](coordination/A_HOSTED_MATCHMAKING.md) for control routes,
+worker lifecycle and the current single-Machine playtest boundaries.
+
+`LoadoutStore.save(Array) -> Error` stores up to twelve uniquely named legal builds;
+`load_saved()` returns `loadouts`, `invalid` (index to reasons), `errors`, and
+`restored_backup`. Invalid/unknown builds remain visible for repair, never silently
+substituted. Local store defaults to `user://loadouts.json`.
+
+`CombatState.snapshot()` carries detached health zones, resources, weapon/recovery
+timers, elimination/failure details and combat counters. `MatchState.snapshot()`
+carries match/event IDs, phase, seconds remaining, round, scores, round results and
+winner (team 0/1; -1 draw). These are server-local records; the session API follows
+in the next increment. Hold LMB to raise the lifter, release fully charged to launch;
+RMB lowers it. Spinner RMB brakes spin. R activates eligible physical recovery.
 
 ## BotSource
 `scripts/core/bot_source.gd`: common Node3D adapter.
@@ -31,8 +106,10 @@ future coordinated additions, not empty APIs to implement against today.
 - camera_anchor() -> Node3D: follow target; caller must handle source destruction.
 - camera_exclusions() -> Array[RID]: bodies to exclude from camera collision queries.
 
-A's baseline source wraps a passive RigidBody3D. B's mock rotates a visual and
-provides sample HUD values; it intentionally ignores input. Both satisfy the same
+A's baseline source wraps a driveable RigidBody3D. It validates commands, copies
+drive intent, and brakes after 250 ms without valid input. Combat flags are accepted
+by the drive fixture's record; real combat is provided by MvpBot. B's mock accepts
+visual-only drive input and provides sample HUD values. Both satisfy the same
 interface. The preview only knows BotSource, never a concrete physics node path.
 CameraAnchor exists on both sources. Networking must not serialize Node/RID handles.
 
@@ -43,20 +120,184 @@ HitZones index 3 (mask 4). Cosmetic visuals have no collision.
 Arena floor surface is Y=0, X/Z bounds +/-25.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
 For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
-The baseline has no FFA markers or perimeter walls; B adds them in the first task.
-Spawn a future bot root with care: the passive fixture already offsets its body
+B's integrated arena includes perimeter walls and FFA spawn markers; A's current
+session rules support 1v1, 2v2, 5v5 and FFA.
+Five-player teams use all five existing team markers; duel/2v2 retain markers
+2 and 4. `AuthorityWorld.spawn(..., team_size=2)` takes the team size as an
+optional fifth argument; pass 5 for 5v5. Optional sixth argument `mode="teams"`
+accepts `"ffa"` to use the existing `FFA_1` through `FFA_8` markers by slot+1.
+The published arena includes perimeter walls, two-meter corner chamfers and
+FFA_1..8 markers on a 20-meter ring facing inward.
+Spawn a future bot root with care: the bot fixture already offsets its body
 upward by 0.5, so do not apply that clearance twice when integrating spawn logic.
 
 ## Registered input actions
 drive_forward=W, drive_reverse=S, steer_left=A, steer_right=D, brake=Space,
 primary=LMB, secondary=RMB, recover=R, camera_toggle=C,
 camera_recenter=MMB, camera_zoom_in/out=wheel, ping=Q, scoreboard=Tab, pause=Escape.
-Only driving/weapon intent collection and Escape navigation are wired in the preview.
-B submits neutral input when the window is unfocused. Full menu capture/rebinding
-is B's future work. New InputMap entries go through A's project.godot ownership.
+B collects drive/weapon intent and implements camera controls and menu/settings
+capture. Suppressed input brakes and lowers/cancels; held actions require release
+before rearming. Escape toggles the standalone menu; explicit Return exits.
+Keyboard/mouse rebinding and hold/toggle primary are supplied by B's merged
+InputPreferences adapter. Controller remapping remains pending. New InputMap
+entries go through A's ownership.
 
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.
 A change to an existing field's meaning is a breaking change; coordinate it before
-editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
-for networking that does not yet exist.
+editing. WireCodec.PROTOCOL below is the actual transport compatibility version;
+do not infer wire support from a baseline configuration constant.
+
+## Session API — protocol 4, build mvp-ab-6 (A horizontal spinner branch)
+
+The playable a-b-integration checkpoint is still mvp-ab-2/protocol 3. Both peers
+must use the same build. Private clock/baseline and snapshot epoch semantics
+changed on a-contact-reconciliation. The preceding 5v5 branch adds ten-player
+capacity and compact match summaries/detailed results delivery as described below.
+BotSource and camera/input APIs remain unchanged.
+
+`MvpSession` must have the same relative NodePath on every peer. Instantiate it
+under the application/session root, then call `host(port=24567, listen=true, player_count=4, mode="teams")` or
+`join(address, port=24567, token="")`; both return a Godot Error. `leave()` closes
+the local connection. Preserve `reconnect_token` in memory for a retry, never in
+logs or lobby UI. A reconnect rotates the token and preserves the original bot.
+
+Requests: `set_loadout(draft)`, `set_team(0|1)`, `set_ready(bool)`,
+`vote_forfeit()`, `vote_rematch()`, `submit_local(BotCommand)`. The session assigns
+transport sequence numbers; B's existing per-tick command sequence may continue.
+The host selects 2 (1v1), 4 (2v2) or 10 (5v5) connected/ready slots. Other counts return
+ERR_INVALID_PARAMETER before opening a server. The API's omitted count remains 4
+for existing consumers; the app defaults to 2. Server alone advances the lifecycle.
+With `mode="ffa"`, the selected count is a maximum of 4–8. At least four admitted
+players, all connected and ready, start even below that maximum. Load acknowledgments
+and rematches use the actual roster. An FFA rematch requires every connected
+participant's vote and at least four connected players; disconnected slots are
+removed before restarting. Team formats still require their full selected count.
+FFA `team` equals the bot's unique entity ID, making all other entities hostile;
+`set_team` returns an operation error. Forfeit affects only the requesting bot.
+
+Signals:
+- `session_event(kind, details)`: hosted, joined, left, results, or error. Error
+  details contain a message and optionally operation/code. Results carry match,
+  participant state, build and content hash.
+- `lobby_changed(view)`: slots (entity_id, peer, team, ready, connected, loadout),
+  capacity=2|4|10 for teams or 4–8 for FFA, mode=1v1|2v2|5v5|ffa, phase.
+  `minimum_players` is 4 for FFA and capacity for teams. Tokens never appear here.
+- `match_changed(view)`: authoritative MatchState view. Timer updates at 1 Hz;
+  phase changes arrive reliably. UI may interpolate a countdown for display only.
+  Mode/capacity are included. `rounds` contains round/winner summaries. Detailed
+  per-round participant records arrive with `session_event("results", details)`
+  as `details.match.rounds[].participants`, alongside aggregate `details.participants`.
+  Reliable result delivery occurs once per match; a results-phase reconnect
+  baseline includes the full record and restores it without duplicate events.
+  FFA includes ordered `placements`: `{entity_id, place, elimination_tick}`
+  (-1 tick for survivors), and `winners`: all first-place entity IDs. Equal places
+  use competition ranking (1, 1, 3); an entity-ID sort only orders tied rows.
+  FFA `winner` is the sole winner's entity ID or -1 for a shared win. Read `winners`
+  instead of labelling a shared FFA win a draw. Team winner/scores are unchanged;
+  team winners/placements arrays are empty. FFA ignores the team `scores` field.
+- `bot_updated(entity_id, BotView)`: resources and health from 20 Hz snapshots.
+  `local_source()` returns the player's BotSource after loading. B's input must
+  call `submit_local`, not mutate a client body or call a server bot directly.
+- `combat_event(event)`: disposable visual event with match/round/event/attack IDs,
+  server tick, attacker/target, zone, effective damage, position and normal.
+  Dropping an effect never loses health state. Deduplicate by match/round/event ID.
+
+`connection_state` is offline/connecting/connected/hosting/practice. `diagnostics` reports
+RTT in milliseconds, correction distance in meters, rejected-input count, maximum
+entity snapshot bytes, and received-snapshot count. UI must not infer request
+success solely from pressing ready/join.
+
+Server validates protocol/build/content at handshake, assigns sender ownership,
+accepts bounded finite-axis command packets only, limits sequences/queue/rate,
+and rejects loadout changes after lock. Input channel 1 is unreliable ordered at
+30 packets/s with recent redundancy; channel 2 carries independently decodable
+entity snapshots at 20 Hz; control uses reliable channel 0. Node/RID/Object handles
+are never serialized. `WireCodec.PROTOCOL` is the actual wire version.
+Snapshot delivery is unordered at the transport layer; per-entity round/epoch
+and tick checks reject stale/duplicate state without dropping another bot's
+valid update when packets arrive in a different order.
+The bounded 1 Hz clock request/reply uses reliable control so ENet's unreliable
+packet throttle cannot indefinitely prevent synchronization after a baseline.
+Clock origin uses the lowest-RTT reply among eight recent samples; a clean reply
+replaces retransmission bias promptly, and the window resets on a fresh baseline.
+Reliable baseline/match payloads are capped at 128 KiB to accommodate ten players
+and the five-round cap; ordinary timer messages omit detailed participant history.
+`MatchState.begin(player_count=4, match_mode="teams")` uses 240-second rounds for ten players and
+180 seconds for duel/2v2, preserving five-second countdown, first-to-two and
+five-round draw cap. `match_mode="ffa"` uses one 300-second round and no overtime;
+survivors rank by rounded core percentage then effective damage, eliminated bots
+by latest elimination tick. Equal elimination ticks share placement regardless
+of damage or kills; a complete first-place tie shares the win. Session calls
+`advance(delta, combatants, teams, world.tick)` after all same-tick eliminations.
+The host CLI accepts `--players=10` or `--mode=ffa --players=4..8`; app default
+remains a two-player duel.
+
+Local drive prediction uses the same DriveModel tire response as the server and
+advances snapshots to the estimated current simulation tick, bounded to 250 ms,
+using recent unacknowledged input. A server tick/echo clock exchange estimates
+snapshot age separately from the input backlog. Free-flight replay includes
+gravity and full angular rotation. Forward replay translation is swept against
+the actual static-world collision shape in the physics callback, starting from
+the authoritative snapshot pose. Existing contact normals prevent deeper
+penetration. Dynamic contacts and rotational collision outcomes are not replayed.
+First/reset snapshots seed exact authoritative pose and velocities before later
+snapshots use swept replay.
+Authoritative pose/velocity/contact
+outcomes replace prediction; small positional visual errors decay, errors >=2 m
+snap. Visual offsets accumulate when Jolt applies the correction, avoiding an
+offset on the old physical pose; offsets above 0.25 m blend faster than smaller
+driving corrections. This is approximate reconciliation, not
+deterministic Jolt rollback. Snapshot epochs include match ID and round number;
+round changes discard interpolation/replay history and reject old-round packets.
+Baselines taken while an authoritative reset is pending carry the planned spawn
+and zero prior motion/input, so reconnect cannot restore a previous round's pose.
+Remote visuals interpolate in a 75–150 ms adaptive buffer; only surviving bots
+in active/overtime extrapolate, stopping after 100 ms. Other phases and eliminated
+bots hold the latest pose once interpolation history is exhausted.
+`diagnostics.degraded` marks snapshots older than 250 ms and
+`interpolation_ms` reports the buffer. MvpBot's stable camera anchor is now under
+its separate Presentation node; use camera_anchor(), never hard-code a node path.
+
+NetworkSimulator is opt-in for tests. It delays/drops/duplicates unreliable input
+and snapshot sends; reliable control remains real ENet without emulated impairment.
+The test profile `BATTLEBOTS_NET_PROFILE=80` uses 40 ms each direction, +/-10 ms
+jitter, 1% loss and 2% duplication; profile 150 uses 75 ms, +/-20 ms, 3%/3%.
+The independent `tests/network/transport_session.tscn` instead disables this
+simulator and routes all four clients through loopback raw UDP relays. Both
+reliable control and unreliable traffic receive the same configured impairment,
+including a forced initial connection-packet loss. Relay instrumentation is
+test-only; printed measured RTT includes scheduling/retransmission overhead and
+must not be equated with the injected delay. No public diagnostics fields change.
+
+## B integration example
+
+Add a `SessionBotSource` Node3D near B's preview and set `session_path` to the
+MvpSession node. Point the preview's `source_path` at this proxy. It forwards input
+to submit_local(), reads the current local bot view, and resolves camera handles
+through local_source(). Until a bot exists, it provides an inert default view and
+itself as the anchor. B should show loading/lobby from session state, not this
+default view. Do not retain an old camera anchor across baseline replacement.
+
+`MvpSession.practice(draft={})` starts local physics against a stationary enemy;
+it validates an unsaved draft before assembly and returns Error. `leave()` resets
+it before starting another mode. No practice result is awarded. Networking MVP
+uses the published B arena through AuthorityWorld and primitive bot rendering;
+B's camera/HUD/settings mount through the combined app. Do not stack both
+arena collision roots in one world. Match results include per-round participant
+snapshots and aggregate damage/elimination/assist/component/recovery counters.
+
+Neutral input for menus/focus loss must set brake and secondary_held so a held
+lifter cancels instead of launching on release. All-false is an ordinary released
+command. The server's stale/disconnect path supplies cancellation automatically.
+`spectator_sources()` returns live teammates in team modes and all live bots in
+FFA for B's spectator camera to cycle.
+
+### Combined app checkpoint (mvp-ab-1)
+
+AuthorityWorld now instantiates B's published arena and its spawn markers on every
+peer; headless worlds remove presentation nodes. Do not add another arena to the
+MVP app. SessionBotSource has an optional `input_allowed: Callable`; returning false
+submits brake+secondary cancellation. No gate retains the previous forwarding API.
+The app uses this to keep B's unmodified input collector safe during modal/focus
+suppression, countdown and elimination. B can later own this gate in its final UI.

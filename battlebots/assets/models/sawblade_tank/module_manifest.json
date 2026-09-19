@@ -1,0 +1,312 @@
+{
+  "version": 2,
+  "animations": {
+    "hammer_attack": {
+      "clip": "hammer_attack",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 33,
+      "duration_seconds": 1.0666666666666667,
+      "impact_frame": 9,
+      "impact_time_seconds": 0.26666666666666666,
+      "hold_end_frame": 12,
+      "loop": false,
+      "pivot": "Hammer_SWING_X",
+      "pivot_position": [
+        0.0,
+        0.28999999165534973,
+        0.8600000143051147
+      ],
+      "contact_marker": "Hammer_Impact",
+      "swing_degrees": -69.00260926405781,
+      "baked_objects": [
+        "Hammer_SWING_X",
+        "Hammer_Cylinder_L",
+        "Hammer_Rod_L",
+        "Hammer_Cylinder_R",
+        "Hammer_Rod_R"
+      ],
+      "bake_step_frames": 0.25,
+      "nla_track": "hammer_attack",
+      "metadata_only": "Impact marker does not apply gameplay damage",
+      "cylinder_barrel_length": 0.44,
+      "cylinder_rod_length": 0.49,
+      "chassis_anchors": [
+        [
+          -0.35,
+          -0.32,
+          0.745
+        ],
+        [
+          0.35,
+          -0.32,
+          0.745
+        ]
+      ],
+      "moving_anchor_offset": [
+        0,
+        0.18,
+        -0.12
+      ]
+    }
+  },
+  "exhaust_geometry": {
+    "axis": [
+      0,
+      -1,
+      0
+    ],
+    "lengths_m": {
+      "small": 0.25,
+      "medium": 0.4,
+      "large": 0.6
+    },
+    "radii_m": {
+      "small": 0.05,
+      "medium": 0.068,
+      "large": 0.095
+    }
+  },
+  "coordinates": "Blender meters, Z up, +Y forward; glTF converts to Godot Y up / -Z forward",
+  "sockets": {
+    "weapon": {
+      "object": "Socket_weapon",
+      "position": [
+        0,
+        0.3,
+        0.65
+      ]
+    },
+    "drive": {
+      "object": "Socket_drive",
+      "position": [
+        0,
+        0,
+        0.3
+      ]
+    },
+    "armor_side": {
+      "object": "Socket_armor_side",
+      "position": [
+        0,
+        0,
+        0.44
+      ]
+    },
+    "armor_top": {
+      "object": "Socket_armor_top",
+      "position": [
+        0,
+        0,
+        1.04
+      ]
+    },
+    "armor_front": {
+      "object": "Socket_armor_front",
+      "position": [
+        0,
+        0.72,
+        0.32
+      ]
+    },
+    "armor_rear": {
+      "object": "Socket_armor_rear",
+      "position": [
+        0,
+        -1.33,
+        1.05
+      ]
+    },
+    "exhaust": {
+      "object": "Socket_exhaust",
+      "position": [
+        0,
+        -1.36,
+        0.55
+      ]
+    }
+  },
+  "selectors": {
+    "weapon": {
+      "default": 0,
+      "max": 2,
+      "choices": "0 Saw / 1 Hammer / 2 Ramp"
+    },
+    "drive": {
+      "default": 0,
+      "max": 1,
+      "choices": "0 Tracks / 1 Four wheels"
+    },
+    "armor_side": {
+      "default": 1,
+      "max": 2,
+      "choices": "0 None / 1 Reference covers / 2 Heavy skirts and fenders"
+    },
+    "armor_top": {
+      "default": 0,
+      "max": 1,
+      "choices": "0 None / 1 Top machinery guard"
+    },
+    "armor_front": {
+      "default": 0,
+      "max": 1,
+      "choices": "0 None / 1 Front chin plate"
+    },
+    "armor_rear": {
+      "default": 0,
+      "max": 1,
+      "choices": "0 None / 1 Rear pack armor"
+    },
+    "exhaust": {
+      "default": 0,
+      "max": 3,
+      "choices": "0 None / 1 Small / 2 Medium dual / 3 Large dual"
+    }
+  },
+  "modules": [
+    {
+      "id": "weapon_saw",
+      "slot": "weapon",
+      "choice": 0,
+      "root": "Module_weapon_saw",
+      "collection": "weapon_saw"
+    },
+    {
+      "id": "drive_tracks",
+      "slot": "drive",
+      "choice": 0,
+      "root": "Module_drive_tracks",
+      "collection": "drive_tracks"
+    },
+    {
+      "id": "armor_side_reference",
+      "slot": "armor_side",
+      "choice": 1,
+      "root": "Module_armor_side_reference",
+      "collection": "armor_side_reference"
+    },
+    {
+      "id": "weapon_hammer",
+      "slot": "weapon",
+      "choice": 1,
+      "root": "Module_weapon_hammer",
+      "collection": "weapon_hammer"
+    },
+    {
+      "id": "weapon_ramp",
+      "slot": "weapon",
+      "choice": 2,
+      "root": "Module_weapon_ramp",
+      "collection": "weapon_ramp"
+    },
+    {
+      "id": "drive_wheels",
+      "slot": "drive",
+      "choice": 1,
+      "root": "Module_drive_wheels",
+      "collection": "drive_wheels"
+    },
+    {
+      "id": "armor_side_heavy",
+      "slot": "armor_side",
+      "choice": 2,
+      "root": "Module_armor_side_heavy",
+      "collection": "armor_side_heavy"
+    },
+    {
+      "id": "armor_top_guard",
+      "slot": "armor_top",
+      "choice": 1,
+      "root": "Module_armor_top_guard",
+      "collection": "armor_top_guard"
+    },
+    {
+      "id": "armor_front_guard",
+      "slot": "armor_front",
+      "choice": 1,
+      "root": "Module_armor_front_guard",
+      "collection": "armor_front_guard"
+    },
+    {
+      "id": "armor_rear_guard",
+      "slot": "armor_rear",
+      "choice": 1,
+      "root": "Module_armor_rear_guard",
+      "collection": "armor_rear_guard"
+    },
+    {
+      "id": "exhaust_small",
+      "slot": "exhaust",
+      "choice": 1,
+      "root": "Module_exhaust_small",
+      "collection": "exhaust_small"
+    },
+    {
+      "id": "exhaust_medium",
+      "slot": "exhaust",
+      "choice": 2,
+      "root": "Module_exhaust_medium",
+      "collection": "exhaust_medium"
+    },
+    {
+      "id": "exhaust_large",
+      "slot": "exhaust",
+      "choice": 3,
+      "root": "Module_exhaust_large",
+      "collection": "exhaust_large"
+    }
+  ],
+  "palette": {
+    "paint_primary": {
+      "label": "Primary paint",
+      "default": [
+        0.66,
+        0.32,
+        0.018,
+        1
+      ]
+    },
+    "paint_secondary": {
+      "label": "Secondary paint",
+      "default": [
+        0.035,
+        0.041,
+        0.044,
+        1
+      ]
+    },
+    "paint_metal": {
+      "label": "Bare metal",
+      "default": [
+        0.58,
+        0.6,
+        0.62,
+        1
+      ]
+    },
+    "paint_rubber": {
+      "label": "Rubber",
+      "default": [
+        0.025,
+        0.029,
+        0.031,
+        1
+      ]
+    }
+  },
+  "surface_texture": "sawblade_tank_surface_4096.png",
+  "shader_formula": "base_color = palette[channel] * (2 * surface_texture.r)",
+  "material_palette_channels": {
+    "02 | graphite steel": "Secondary paint",
+    "04 | machined edge steel": "Bare metal",
+    "05 | oxidized saw steel": "Bare metal",
+    "01 | worn ochre enamel": "Primary paint",
+    "03 | carbon tread pads": "Rubber",
+    "07 | hazard charcoal": "Secondary paint",
+    "06 | hydraulic polished rods": "Bare metal",
+    "09 | freshly ground cutting steel": "Bare metal"
+  },
+  "default_assembly_triangles": 24208,
+  "all_module_triangles": 39172,
+  "integration_status": "Blender art modules and mounting data only; no game assembly, collision or combat implementation"
+}

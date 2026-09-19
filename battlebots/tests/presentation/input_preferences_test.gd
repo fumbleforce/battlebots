@@ -1,0 +1,92 @@
+extends SceneTree
+
+var failures: Array[String] = []
+const PATH := "user://input_preferences_test.json"
+
+func _initialize() -> void:
+	call_deferred("run")
+
+func check(value: bool, message: String) -> void:
+	if not value:
+		failures.append(message)
+		push_error(message)
+
+func key(code: int) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = code
+	return event
+
+func run() -> void:
+	var original := InputPreferences.snapshot_input_map()
+	var prefs := InputPreferences.new()
+	for action in InputPreferences.ACTIONS:
+		check(InputMap.action_has_event(action, prefs.bindings[action]), "Default matches project: %s" % action)
+	check(not prefs.try_bind(&"primary", key(KEY_ESCAPE)).is_empty(), "Escape reserved")
+	check(not prefs.try_bind(&"primary", key(KEY_TAB)).is_empty(), "Tab reserved")
+	check(not prefs.try_bind(&"primary", key(KEY_W)).is_empty(), "Duplicate rejected")
+	var chord := key(KEY_F)
+	chord.ctrl_pressed = true
+	check(not prefs.try_bind(&"primary", chord).is_empty(), "Chord rejected")
+	chord.ctrl_pressed = false
+	chord.echo = true
+	check(not prefs.try_bind(&"primary", chord).is_empty(), "Echo rejected")
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_LEFT
+	check(not prefs.try_bind(&"primary", wheel).is_empty(), "Wheel held action rejected")
+	check(prefs.try_bind(&"camera_zoom_in", wheel).is_empty(), "Wheel zoom accepted")
+	check(prefs.try_bind(&"primary", key(KEY_F)).is_empty(), "Physical key accepted")
+	var copied := prefs.clone()
+	copied.bindings[&"primary"].physical_keycode = KEY_G
+	check(prefs.bindings[&"primary"].physical_keycode == KEY_F, "Clone detached")
+	prefs.toggle_primary = true
+	check(prefs.save_file(PATH) == OK, "Save succeeds")
+	var loaded := InputPreferences.load_file(PATH)
+	check(loaded.load_error == OK and loaded.toggle_primary, "Roundtrip mode")
+	check(loaded.bindings[&"primary"].physical_keycode == KEY_F, "Roundtrip binding")
+	var saved_text := FileAccess.get_file_as_string(PATH)
+	var malformed: Dictionary = JSON.parse_string(saved_text)
+	malformed.bindings.drive_forward = malformed.bindings.drive_reverse.duplicate()
+	var file := FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(malformed))
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error != OK and loaded.bindings[&"drive_forward"].physical_keycode == KEY_W and not loaded.toggle_primary, "Duplicate map returns complete defaults")
+	malformed = JSON.parse_string(saved_text)
+	malformed.bindings.primary.code = 1e30
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(malformed))
+	file.close()
+	check(InputPreferences.load_file(PATH).load_error != OK, "Out of range code rejected before conversion")
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string('{"version":999}')
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error != OK and not loaded.toggle_primary and loaded.bindings[&"primary"] is InputEventMouseButton, "Unknown schema returns full defaults")
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string('{broken')
+	file.close()
+	check(InputPreferences.load_file(PATH).load_error != OK, "Corrupt JSON rejected")
+	var ui_events := InputMap.action_get_events(&"ui_accept")
+	var pause_events := InputMap.action_get_events(&"pause")
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_A
+	InputMap.action_add_event(&"primary", pad)
+	prefs.apply_to_input_map()
+	check(InputMap.action_has_event(&"primary", pad), "Controller preserved")
+	check(InputMap.action_get_events(&"ui_accept") == ui_events and InputMap.action_get_events(&"pause") == pause_events, "Menu input unchanged")
+	var press := key(KEY_F)
+	press.pressed = true
+	Input.parse_input_event(press)
+	Input.flush_buffered_events()
+	await process_frame
+	check(Input.is_action_pressed(&"primary"), "Physical event maps to primary")
+	InputPreferences.restore_input_map(original)
+	check(not Input.is_action_pressed(&"primary"), "Restoration releases old action")
+	for action in original:
+		check(InputMap.action_get_events(action).size() == original[action].size(), "Restored count: %s" % action)
+		for event in original[action]:
+			check(InputMap.action_has_event(action, event), "Restored event: %s" % action)
+	DirAccess.remove_absolute(PATH)
+	if failures.is_empty():
+		print("INPUT PREFERENCES PASS")
+	quit(0 if failures.is_empty() else 1)

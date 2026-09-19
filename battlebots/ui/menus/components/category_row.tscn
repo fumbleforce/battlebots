@@ -1,0 +1,46 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/components/category_row.gd" id="2_category"]
+
+[node name="CategoryRow" type="Button"]
+custom_minimum_size = Vector2(0, 77)
+size_flags_horizontal = 3
+theme_type_variation = &"CategoryRow"
+toggle_mode = true
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_category")
+
+[node name="Pad" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 19
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+mouse_filter = 2
+
+[node name="Col" type="VBoxContainer" parent="Pad"]
+layout_mode = 2
+theme_override_constants/separation = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Pad/Col"]
+layout_mode = 2
+text = "WEAPON"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+unique_name_in_owner = true
+
+[node name="Current" type="Label" parent="Pad/Col"]
+layout_mode = 2
+text = "Spin Blade"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true

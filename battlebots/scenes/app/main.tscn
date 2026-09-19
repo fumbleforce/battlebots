@@ -1,7 +1,5 @@
 [gd_scene load_steps=2 format=3]
-
 [ext_resource type="Script" path="res://scripts/app_main.gd" id="1"]
-
 [node name="Battlebots" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -10,45 +8,60 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
-
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.018, 0.03, 0.045, 1)
+mouse_filter = 2
+[node name="Accent" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_right = 1.0
+offset_bottom = 5.0
+color = Color(0.18, 0.72, 0.83, 1)
+mouse_filter = 2
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-
 [node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
-
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 32
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 32
-
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 26
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 26
 [node name="Options" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 16
-
 [node name="Title" type="Label" parent="Center/Panel/Margin/Options"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "PROJECT BATTLEBOTS"
-
+theme_override_font_sizes/font_size = 40
+text = "BATTLEBOTS"
 [node name="Description" type="Label" parent="Center/Panel/Margin/Options"]
 layout_mode = 2
-text = "Godot 4.7.2 / Two-developer baseline
-Choose an isolated sandbox. Gameplay is not implemented yet."
-
-[node name="DeveloperA" type="Button" parent="Center/Panel/Margin/Options"]
+theme_override_colors/font_color = Color(0.52, 0.7, 0.77, 1)
+text = "Robot combat / 1v1 + 2v2 + 5v5 + FFA"
+[node name="Spacer" type="Control" parent="Center/Panel/Margin/Options"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
-text = "Developer A — simulation sandbox"
-
-[node name="DeveloperB" type="Button" parent="Center/Panel/Margin/Options"]
+[node name="Practice" type="Button" parent="Center/Panel/Margin/Options"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-text = "Developer B — presentation sandbox (mock state)"
-
+text = "Practice"
+[node name="Multiplayer" type="Button" parent="Center/Panel/Margin/Options"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+text = "Multiplayer"
 [node name="Quit" type="Button" parent="Center/Panel/Margin/Options"]
 layout_mode = 2
 text = "Quit"
+[node name="Hint" type="Label" parent="Center/Panel/Margin/Options"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.52, 0.7, 0.77, 1)
+text = "Two builds. One arena. Choose a bot in the pause menu."

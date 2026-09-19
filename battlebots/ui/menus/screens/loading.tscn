@@ -1,0 +1,358 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/screens/loading.gd" id="2_loadingg"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/bg_arena_blur.jpg" id="3_bgarenab"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/vs_split.png" id="4_vssplitp"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hazard_stripe.png" id="5_hazardst"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/bot_chevron.jpg" id="6_botchevr"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/bot_rivetrex.jpg" id="7_botrivet"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/bot_boltbrawler.jpg" id="8_botboltb"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.9608, 0.7216, 0.1804, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(0.0784, 0.0784, 0.0745, 1)
+
+[node name="Loading" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_loadingg")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0549, 0.0706, 0.0902, 1)
+mouse_filter = 2
+
+[node name="Art" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_bgarenab")
+expand_mode = 1
+stretch_mode = 6
+self_modulate = Color(1, 1, 1, 0.45)
+mouse_filter = 2
+
+[node name="TeamSplit" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_vssplitp")
+expand_mode = 1
+stretch_mode = 0
+mouse_filter = 2
+
+[node name="TopStripe" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 10.0
+grow_horizontal = 2
+texture = ExtResource("5_hazardst")
+expand_mode = 1
+stretch_mode = 1
+custom_minimum_size = Vector2(0, 10)
+mouse_filter = 2
+
+[node name="BlueTeam" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 86.0
+offset_top = 86.0
+offset_right = 96.0
+offset_bottom = 96.0
+theme_override_constants/separation = 26
+
+[node name="Title" type="Label" parent="BlueTeam"]
+layout_mode = 2
+text = "BLUE TEAM"
+theme_type_variation = &"HeadingWide"
+theme_override_font_sizes/font_size = 38
+horizontal_alignment = 0
+
+[node name="Row1" type="HBoxContainer" parent="BlueTeam"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 0
+
+[node name="Frame" type="PanelContainer" parent="BlueTeam/Row1"]
+layout_mode = 2
+theme_type_variation = &"Framed"
+custom_minimum_size = Vector2(360, 240)
+
+[node name="BlueImage1" type="TextureRect" parent="BlueTeam/Row1/Frame"]
+layout_mode = 2
+texture = ExtResource("6_botchevr")
+expand_mode = 1
+stretch_mode = 6
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Text" type="VBoxContainer" parent="BlueTeam/Row1"]
+layout_mode = 2
+theme_override_constants/separation = 5
+size_flags_vertical = 4
+
+[node name="BlueName1" type="Label" parent="BlueTeam/Row1/Text"]
+layout_mode = 2
+text = "CHEVRON"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 58
+horizontal_alignment = 0
+unique_name_in_owner = true
+
+[node name="BlueSub1" type="Label" parent="BlueTeam/Row1/Text"]
+layout_mode = 2
+text = "PLAYER · LV 12"
+theme_type_variation = &"Strong"
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 0
+unique_name_in_owner = true
+
+[node name="Row2" type="HBoxContainer" parent="BlueTeam"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 0
+
+[node name="Frame" type="PanelContainer" parent="BlueTeam/Row2"]
+layout_mode = 2
+theme_type_variation = &"FramedDim"
+custom_minimum_size = Vector2(360, 240)
+
+[node name="Placeholder" type="Label" parent="BlueTeam/Row2/Frame"]
+layout_mode = 2
+text = "[TEAMMATE BOT]"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9098, 0.9255, 0.9451, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Text" type="VBoxContainer" parent="BlueTeam/Row2"]
+layout_mode = 2
+theme_override_constants/separation = 5
+size_flags_vertical = 4
+
+[node name="BlueName2" type="Label" parent="BlueTeam/Row2/Text"]
+layout_mode = 2
+text = "[BOT]"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 58
+horizontal_alignment = 0
+unique_name_in_owner = true
+
+[node name="BlueSub2" type="Label" parent="BlueTeam/Row2/Text"]
+layout_mode = 2
+text = "[TEAMMATE] · LV [#]"
+theme_type_variation = &"Strong"
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 0
+unique_name_in_owner = true
+
+[node name="RedTeam" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -96.0
+offset_top = 86.0
+offset_right = -86.0
+offset_bottom = 96.0
+grow_horizontal = 0
+theme_override_constants/separation = 26
+
+[node name="Title" type="Label" parent="RedTeam"]
+layout_mode = 2
+text = "RED TEAM"
+theme_type_variation = &"HeadingWide"
+theme_override_font_sizes/font_size = 38
+horizontal_alignment = 2
+
+[node name="Row1" type="HBoxContainer" parent="RedTeam"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 2
+
+[node name="Text" type="VBoxContainer" parent="RedTeam/Row1"]
+layout_mode = 2
+theme_override_constants/separation = 5
+size_flags_vertical = 4
+
+[node name="RedName1" type="Label" parent="RedTeam/Row1/Text"]
+layout_mode = 2
+text = "RIVETREX"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 58
+horizontal_alignment = 2
+unique_name_in_owner = true
+
+[node name="RedSub1" type="Label" parent="RedTeam/Row1/Text"]
+layout_mode = 2
+text = "[OPPONENT 1] · LV 14"
+theme_type_variation = &"Strong"
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 2
+unique_name_in_owner = true
+
+[node name="Frame" type="PanelContainer" parent="RedTeam/Row1"]
+layout_mode = 2
+theme_type_variation = &"Framed"
+custom_minimum_size = Vector2(360, 240)
+
+[node name="RedImage1" type="TextureRect" parent="RedTeam/Row1/Frame"]
+layout_mode = 2
+texture = ExtResource("7_botrivet")
+expand_mode = 1
+stretch_mode = 6
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Row2" type="HBoxContainer" parent="RedTeam"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 2
+
+[node name="Text" type="VBoxContainer" parent="RedTeam/Row2"]
+layout_mode = 2
+theme_override_constants/separation = 5
+size_flags_vertical = 4
+
+[node name="RedName2" type="Label" parent="RedTeam/Row2/Text"]
+layout_mode = 2
+text = "BOLTBRAWLER"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 58
+horizontal_alignment = 2
+unique_name_in_owner = true
+
+[node name="RedSub2" type="Label" parent="RedTeam/Row2/Text"]
+layout_mode = 2
+text = "[OPPONENT 2] · LV 11"
+theme_type_variation = &"Strong"
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 2
+unique_name_in_owner = true
+
+[node name="Frame" type="PanelContainer" parent="RedTeam/Row2"]
+layout_mode = 2
+theme_type_variation = &"Framed"
+custom_minimum_size = Vector2(360, 240)
+
+[node name="RedImage2" type="TextureRect" parent="RedTeam/Row2/Frame"]
+layout_mode = 2
+texture = ExtResource("8_botboltb")
+expand_mode = 1
+stretch_mode = 6
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="VsDiamond" type="Panel" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 348.0
+offset_right = 120.0
+offset_bottom = 588.0
+rotation = 0.7854
+pivot_offset = Vector2(120, 120)
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="Vs" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 348.0
+offset_right = 120.0
+offset_bottom = 588.0
+text = "VS"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 115
+theme_override_colors/font_color = Color(0.0784, 0.0784, 0.0745, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Bottom" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -180.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"BottomBar"
+
+[node name="Col" type="VBoxContainer" parent="Bottom"]
+layout_mode = 2
+theme_override_constants/separation = 19
+
+[node name="Row" type="HBoxContainer" parent="Bottom/Col"]
+layout_mode = 2
+theme_override_constants/separation = 29
+
+[node name="ArenaName" type="Label" parent="Bottom/Col/Row"]
+layout_mode = 2
+text = "THE FOUNDRY"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 53
+unique_name_in_owner = true
+
+[node name="ModeLine" type="Label" parent="Bottom/Col/Row"]
+layout_mode = 2
+text = "TEAM BRAWL · FIRST TO 5"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 19
+size_flags_vertical = 4
+unique_name_in_owner = true
+
+[node name="Spacer" type="Control" parent="Bottom/Col/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Tip" type="RichTextLabel" parent="Bottom/Col/Row"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+autowrap_mode = 0
+scroll_active = false
+size_flags_vertical = 4
+custom_minimum_size = Vector2(564, 0)
+text = "[color=#F5B82E][b]TIP[/b][/color] — Boost with SPACE to ram rivals into the floor saws."
+
+[node name="Progress" type="ProgressBar" parent="Bottom/Col"]
+layout_mode = 2
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 14)
+value = 68.0
+show_percentage = false

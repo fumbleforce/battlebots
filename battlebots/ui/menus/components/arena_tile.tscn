@@ -1,0 +1,171 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/components/arena_tile.gd" id="2_arenatil"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/arena_foundry.jpg" id="3_arenafou"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hatch_dark.png" id="4_hatchdar"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/lock.svg" id="5_locksvg"]
+
+[node name="ArenaTile" type="Button"]
+custom_minimum_size = Vector2(0, 386)
+size_flags_horizontal = 3
+theme_type_variation = &"Card"
+toggle_mode = true
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_arenatil")
+
+[node name="Inner" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 3
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 3
+theme_override_constants/margin_bottom = 3
+mouse_filter = 2
+
+[node name="Col" type="VBoxContainer" parent="Inner"]
+layout_mode = 2
+theme_override_constants/separation = 0
+mouse_filter = 2
+
+[node name="ArtBox" type="Control" parent="Inner/Col"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 260)
+clip_contents = true
+mouse_filter = 2
+
+[node name="Image" type="TextureRect" parent="Inner/Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_arenafou")
+expand_mode = 1
+stretch_mode = 6
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Placeholder" type="TextureRect" parent="Inner/Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_hatchdar")
+expand_mode = 1
+stretch_mode = 1
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="Inner/Col/ArtBox/Placeholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Tag" type="PanelContainer" parent="Inner/Col/ArtBox/Placeholder/Center"]
+layout_mode = 2
+theme_type_variation = &"PanelDark"
+mouse_filter = 2
+
+[node name="PlaceholderLabel" type="Label" parent="Inner/Col/ArtBox/Placeholder/Center/Tag"]
+layout_mode = 2
+text = "ARENA ART"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+unique_name_in_owner = true
+
+[node name="Lock" type="Control" parent="Inner/Col/ArtBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="Inner/Col/ArtBox/Lock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0392, 0.051, 0.0706, 0.72)
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="Inner/Col/ArtBox/Lock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Col" type="VBoxContainer" parent="Inner/Col/ArtBox/Lock/Center"]
+layout_mode = 2
+theme_override_constants/separation = 10
+mouse_filter = 2
+
+[node name="LockIcon" type="TextureRect" parent="Inner/Col/ArtBox/Lock/Center/Col"]
+layout_mode = 2
+texture = ExtResource("5_locksvg")
+expand_mode = 1
+stretch_mode = 5
+custom_minimum_size = Vector2(38, 38)
+size_flags_vertical = 4
+self_modulate = Color(0.9098, 0.9255, 0.9451, 1)
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="LockLabel" type="Label" parent="Inner/Col/ArtBox/Lock/Center/Col"]
+layout_mode = 2
+text = "UNLOCKS AT LV 20"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+unique_name_in_owner = true
+
+[node name="Text" type="MarginContainer" parent="Inner/Col"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 17
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 17
+mouse_filter = 2
+
+[node name="Col" type="VBoxContainer" parent="Inner/Col/Text"]
+layout_mode = 2
+theme_override_constants/separation = 5
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Inner/Col/Text/Col"]
+layout_mode = 2
+text = "THE FOUNDRY"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 36
+unique_name_in_owner = true
+
+[node name="Sub" type="Label" parent="Inner/Col/Text/Col"]
+layout_mode = 2
+text = "Medium · Floor saws"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 18
+unique_name_in_owner = true

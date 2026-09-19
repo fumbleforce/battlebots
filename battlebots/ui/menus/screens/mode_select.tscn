@@ -1,0 +1,377 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/screens/mode_select.gd" id="2_modesele"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/bg_arena_blur.jpg" id="3_bgarenab"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/chevron_left.svg" id="4_chevronl"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/art/hazard_stripe.png" id="5_hazardst"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/plus.svg" id="6_plussvg"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/chevron_right.svg" id="7_chevronr"]
+
+[node name="ModeSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_menuthem")
+script = ExtResource("2_modesele")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0549, 0.0706, 0.0902, 1)
+mouse_filter = 2
+
+[node name="Art" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_bgarenab")
+expand_mode = 1
+stretch_mode = 6
+self_modulate = Color(1, 1, 1, 0.35)
+mouse_filter = 2
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_type_variation = &"HeaderBar"
+custom_minimum_size = Vector2(0, 115)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Header"]
+layout_mode = 2
+theme_override_constants/separation = 34
+
+[node name="Back" type="Button" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "BACK"
+unique_name_in_owner = true
+icon = ExtResource("4_chevronl")
+custom_minimum_size = Vector2(0, 58)
+size_flags_vertical = 4
+
+[node name="TitleBox" type="VBoxContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_override_constants/separation = 2
+size_flags_vertical = 4
+
+[node name="Eyebrow" type="Label" parent="Layout/Header/Row/TitleBox"]
+layout_mode = 2
+text = "STEP 1 OF 4"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+unique_name_in_owner = true
+
+[node name="Title" type="Label" parent="Layout/Header/Row/TitleBox"]
+layout_mode = 2
+text = "SELECT MODE"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 53
+unique_name_in_owner = true
+
+[node name="SpacerL" type="Control" parent="Layout/Header/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Steps" type="HBoxContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_override_constants/separation = 7
+unique_name_in_owner = true
+size_flags_vertical = 4
+
+[node name="Step1" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepActive"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step1"]
+layout_mode = 2
+text = "1 MODE"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.0784, 0.0784, 0.0745, 1)
+
+[node name="Step2" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepTodo"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step2"]
+layout_mode = 2
+text = "2 BOT"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.6039, 0.651, 0.7098, 1)
+
+[node name="Step3" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepTodo"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step3"]
+layout_mode = 2
+text = "3 ARENA"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.6039, 0.651, 0.7098, 1)
+
+[node name="Step4" type="PanelContainer" parent="Layout/Header/Row/Steps"]
+layout_mode = 2
+theme_type_variation = &"StepTodo"
+
+[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step4"]
+layout_mode = 2
+text = "4 LOBBY"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.6039, 0.651, 0.7098, 1)
+
+[node name="Sep" type="VSeparator" parent="Layout/Header/Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 53)
+size_flags_vertical = 4
+
+[node name="Profile" type="HBoxContainer" parent="Layout/Header/Row"]
+layout_mode = 2
+theme_override_constants/separation = 14
+size_flags_vertical = 4
+
+[node name="Avatar" type="PanelContainer" parent="Layout/Header/Row/Profile"]
+layout_mode = 2
+theme_type_variation = &"Avatar"
+custom_minimum_size = Vector2(53, 53)
+
+[node name="Initial" type="Label" parent="Layout/Header/Row/Profile/Avatar"]
+layout_mode = 2
+text = "P"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 29
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Info" type="VBoxContainer" parent="Layout/Header/Row/Profile"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ProfileName" type="Label" parent="Layout/Header/Row/Profile/Info"]
+layout_mode = 2
+text = "PLAYER"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 24
+unique_name_in_owner = true
+
+[node name="ProfileMeta" type="Label" parent="Layout/Header/Row/Profile/Info"]
+layout_mode = 2
+text = "LV 12 · 4,250 scrap"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 16
+unique_name_in_owner = true
+
+[node name="Stripe" type="TextureRect" parent="Layout"]
+layout_mode = 2
+texture = ExtResource("5_hazardst")
+expand_mode = 1
+stretch_mode = 1
+custom_minimum_size = Vector2(0, 7)
+mouse_filter = 2
+
+[node name="Body" type="MarginContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/margin_left = 58
+theme_override_constants/margin_top = 43
+theme_override_constants/margin_right = 58
+theme_override_constants/margin_bottom = 43
+size_flags_vertical = 3
+
+[node name="Col" type="VBoxContainer" parent="Layout/Body"]
+layout_mode = 2
+theme_override_constants/separation = 29
+
+[node name="Cards" type="GridContainer" parent="Layout/Body/Col"]
+layout_mode = 2
+unique_name_in_owner = true
+columns = 4
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 24
+
+[node name="Bottom" type="HBoxContainer" parent="Layout/Body/Col"]
+layout_mode = 2
+theme_override_constants/separation = 24
+size_flags_vertical = 3
+
+[node name="RulesPanel" type="PanelContainer" parent="Layout/Body/Col/Bottom"]
+layout_mode = 2
+theme_type_variation = &"PanelGlass"
+size_flags_horizontal = 3
+
+[node name="Col" type="VBoxContainer" parent="Layout/Body/Col/Bottom/RulesPanel"]
+layout_mode = 2
+theme_override_constants/separation = 5
+size_flags_vertical = 4
+
+[node name="Label" type="Label" parent="Layout/Body/Col/Bottom/RulesPanel/Col"]
+layout_mode = 2
+text = "RULES"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+
+[node name="Rules" type="Label" parent="Layout/Body/Col/Bottom/RulesPanel/Col"]
+layout_mode = 2
+text = "Team brawl · First team to 5 knockouts · Shared score · Hazards on"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 31
+unique_name_in_owner = true
+
+[node name="PartyPanel" type="PanelContainer" parent="Layout/Body/Col/Bottom"]
+layout_mode = 2
+theme_type_variation = &"PanelGlass"
+custom_minimum_size = Vector2(624, 0)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Body/Col/Bottom/PartyPanel"]
+layout_mode = 2
+theme_override_constants/separation = 19
+
+[node name="Label" type="Label" parent="Layout/Body/Col/Bottom/PartyPanel/Row"]
+layout_mode = 2
+text = "PARTY 1/4"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+size_flags_vertical = 4
+
+[node name="Avatar" type="PanelContainer" parent="Layout/Body/Col/Bottom/PartyPanel/Row"]
+layout_mode = 2
+theme_type_variation = &"Avatar"
+custom_minimum_size = Vector2(53, 53)
+size_flags_vertical = 4
+
+[node name="Initial" type="Label" parent="Layout/Body/Col/Bottom/PartyPanel/Row/Avatar"]
+layout_mode = 2
+text = "P"
+theme_type_variation = &"Heading"
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Invite" type="Button" parent="Layout/Body/Col/Bottom/PartyPanel/Row"]
+layout_mode = 2
+theme_type_variation = &"IconButton"
+text = ""
+unique_name_in_owner = true
+icon = ExtResource("6_plussvg")
+custom_minimum_size = Vector2(53, 53)
+size_flags_vertical = 4
+tooltip_text = "Invite a friend"
+
+[node name="Spacer" type="Control" parent="Layout/Body/Col/Bottom/PartyPanel/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CustomLobby" type="Button" parent="Layout/Body/Col/Bottom/PartyPanel/Row"]
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "CUSTOM LOBBY"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 58)
+size_flags_vertical = 4
+
+[node name="Footer" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_type_variation = &"FooterBar"
+custom_minimum_size = Vector2(0, 120)
+
+[node name="Row" type="HBoxContainer" parent="Layout/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 34
+
+[node name="Hint0" type="HBoxContainer" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_override_constants/separation = 10
+size_flags_vertical = 4
+
+[node name="Key0" type="PanelContainer" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint0/Key0"]
+layout_mode = 2
+text = "A"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Key1" type="PanelContainer" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint0/Key1"]
+layout_mode = 2
+text = "D"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Text" type="Label" parent="Layout/Footer/Row/Hint0"]
+layout_mode = 2
+text = "Choose mode"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 18
+
+[node name="Hint1" type="HBoxContainer" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_override_constants/separation = 10
+size_flags_vertical = 4
+
+[node name="Key0" type="PanelContainer" parent="Layout/Footer/Row/Hint1"]
+layout_mode = 2
+theme_type_variation = &"KeyCap"
+size_flags_vertical = 4
+
+[node name="L" type="Label" parent="Layout/Footer/Row/Hint1/Key0"]
+layout_mode = 2
+text = "ESC"
+theme_type_variation = &"KeyLabel"
+theme_override_font_sizes/font_size = 17
+
+[node name="Text" type="Label" parent="Layout/Footer/Row/Hint1"]
+layout_mode = 2
+text = "Back"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 18
+
+[node name="Spacer" type="Control" parent="Layout/Footer/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Next" type="Button" parent="Layout/Footer/Row"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "CHOOSE BOT"
+unique_name_in_owner = true
+icon = ExtResource("7_chevronr")
+icon_alignment = 2
+custom_minimum_size = Vector2(0, 77)
+size_flags_vertical = 4
