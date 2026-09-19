@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$GodotPath,
     [ValidateSet(2, 4, 10)][int]$PlayerCount = 4,
-    [ValidateSet('teams', 'ffa')][string]$Mode = 'teams'
+    [ValidateSet('teams', 'ffa')][string]$Mode = 'teams',
+    [switch]$Exported
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../battlebots')).Path
@@ -12,7 +13,8 @@ $processes = @()
 try {
     foreach ($index in 0..$PlayerCount) {
         $launchArgs = if ($index -eq 0) { "--server --players=$PlayerCount --mode=$Mode --port=$port" } else { "--join=127.0.0.1 --port=$port --ready" }
-        $arguments = "--headless --path `"$projectRoot`" --max-fps 60 --quit-after 2400 -- $launchArgs"
+        $projectArgs = if ($Exported) { '' } else { "--path `"$projectRoot`"" }
+        $arguments = "--headless $projectArgs --max-fps 60 --quit-after 2400 -- $launchArgs"
         $processes += Start-Process -FilePath $GodotPath -ArgumentList $arguments -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $runDirectory "$index.out.log") `
             -RedirectStandardError (Join-Path $runDirectory "$index.err.log")

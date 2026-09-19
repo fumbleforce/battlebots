@@ -16,10 +16,25 @@ func run() -> void:
 		return
 	observer = make_session("OrderingClient")
 	clients.append(observer)
+	# Configure at transport admission, before application admission's reliable
+	# replies can establish a higher RTT and reduce an unreliable packet's chance.
+	server.multiplayer.peer_connected.connect(func(id: int) -> void:
+		open_throttle(server.multiplayer.multiplayer_peer.get_peer(id)))
+	observer.multiplayer.connected_to_server.connect(func() -> void:
+		open_throttle(observer.multiplayer.multiplayer_peer.get_peer(1)))
 	if not await require(observer.join("127.0.0.1", relay.bound_port) == OK, "Observer connects through raw UDP relay"):
 		return
 	if not await require(await until(func() -> bool: return observer.local_entity > 0), "Observer admitted"):
 		return
+	peer_id = server.players[observer.local_entity].peer
+	var sender: ENetPacketPeer = server.multiplayer.multiplayer_peer.get_peer(peer_id)
+	var receiver: ENetPacketPeer = observer.multiplayer.multiplayer_peer.get_peer(1)
+	# This fixture isolates snapshot ordering with one-shot unreliable packets.
+	# Keep ENet's adaptive dropper fully open before baseline/load work changes
+	# measured RTT; loss/throttle behavior remains covered by whole-match tests.
+	for peer: ENetPacketPeer in [sender, receiver]:
+		open_throttle(peer)
+		peer.ping()
 	server.set_ready(true)
 	observer.set_ready(true)
 	if not await require(await until(func() -> bool:
@@ -31,8 +46,18 @@ func run() -> void:
 	observer.set_physics_process(false)
 	for bot: MvpBot in server.world.bots.values():
 		bot.body.freeze = true
-	peer_id = server.players[observer.local_entity].peer
 	await frames(15)
+	# Admission itself can already lower throttle. Actual RTT samples restore it;
+	# throttle_configure only changes adaptation parameters, not current state.
+	var warmup_deadline := Time.get_ticks_usec() + 2000000
+	while not full_throttle(sender, receiver) and Time.get_ticks_usec() < warmup_deadline:
+		sender.ping()
+		receiver.ping()
+		await frames(6)
+	print("Ordering throttle: sender=%.0f receiver=%.0f" % [sender.get_statistic(ENetPacketPeer.PEER_PACKET_THROTTLE), receiver.get_statistic(ENetPacketPeer.PEER_PACKET_THROTTLE)])
+	if not await require(full_throttle(sender, receiver),
+		"Ordering fixture starts with full ENet unreliable delivery throttle"):
+		return
 	var host_entity := server.local_entity
 	var client_entity := observer.local_entity
 	if not await different_entities(host_entity, client_entity):
@@ -42,6 +67,13 @@ func run() -> void:
 	if not await duplicate_snapshot(host_entity):
 		return
 	await finish()
+
+func full_throttle(sender: ENetPacketPeer, receiver: ENetPacketPeer) -> bool:
+	return sender.get_statistic(ENetPacketPeer.PEER_PACKET_THROTTLE) == ENetPacketPeer.PACKET_THROTTLE_SCALE \
+		and receiver.get_statistic(ENetPacketPeer.PEER_PACKET_THROTTLE) == ENetPacketPeer.PACKET_THROTTLE_SCALE
+
+func open_throttle(peer: ENetPacketPeer) -> void:
+	peer.throttle_configure(100, ENetPacketPeer.PACKET_THROTTLE_SCALE, 0)
 
 func packet(entity: int, position: Vector3) -> PackedByteArray:
 	var bot: MvpBot = server.world.bots[entity]

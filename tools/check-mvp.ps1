@@ -27,9 +27,11 @@ Invoke-MvpTest 'res://tests/integration/app_smoke.gd' 'APP INTEGRATION PASS'
 Invoke-MvpTest 'res://tests/integration/network_presentation_smoke.gd' 'PRESENTATION NETWORK PASS' -RealTime
 Invoke-MvpTest 'res://tests/integration/duel_menu_smoke.gd' 'DUEL MENU PASS' -RealTime
 Invoke-MvpTest 'res://tests/integration/ffa_menu_smoke.gd' 'FFA MENU PASS' -RealTime
+Invoke-MvpTest 'res://tests/integration/advanced_menu_smoke.gd' 'ADVANCED MENU PASS' -RealTime
 Invoke-MvpTest 'res://tests/integration/navigation_smoke.gd' 'NAVIGATION PASS' -RealTime
 Invoke-MvpTest 'res://tests/network/airborne_replay.tscn' 'AIRBORNE REPLAY PASS' -Scene
 Invoke-MvpTest 'res://tests/network/clock_sync.tscn' 'CLOCK SYNC PASS' -Scene -RealTime
+Invoke-MvpTest 'res://tests/network/clock_delivery.tscn' 'CLOCK DELIVERY PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/results_delivery.tscn' 'RESULTS DELIVERY PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/ffa_disconnect.tscn' 'FFA DISCONNECT PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/snapshot_reordering.tscn' 'SNAPSHOT REORDERING PASS' -Scene -RealTime

@@ -15,8 +15,8 @@ const MODES := [
 	{"id":"team","big":"2V2","tag":"STANDARD","title":"TEAM BRAWL","desc":"Coordinate with a teammate in a private match.","meta1":"First to 2","meta2":"4 players","tint":Color("#1F4A9A"),"rules":"2v2 · First to two rounds · Five-round cap · No arena hazards","enabled":true},
 	{"id":"quick","big":"GO","tag":"UNAVAILABLE","title":"QUICK MATCH","desc":"Public matchmaking is not implemented.","meta1":"Unavailable","meta2":"Planned","tint":Color("#3A4452"),"rules":"Public services unavailable","enabled":false},
 	{"id":"ranked","big":"1V1","tag":"DEFERRED","title":"RANKED DUEL","desc":"Ranked play is deferred.","meta1":"Unavailable","meta2":"Deferred","tint":Color("#3A4452"),"rules":"Ranked play unavailable","enabled":false},
-	{"id":"5v5","big":"5V5","tag":"PLANNED","title":"LARGE TEAMS","desc":"Ten-player mode requires additional simulation support.","meta1":"Unavailable","meta2":"Planned","tint":Color("#3A4452"),"rules":"5v5 unavailable","enabled":false},
-	{"id":"ffa","big":"FFA","tag":"PLANNED","title":"FREE FOR ALL","desc":"Free-for-all rules are not yet implemented.","meta1":"Unavailable","meta2":"Planned","tint":Color("#3A4452"),"rules":"FFA unavailable","enabled":false},
+	{"id":"5v5","big":"5V5","tag":"PLAYTEST","title":"LARGE TEAMS","desc":"Open 5V5 / FFA PLAYTEST to host or join ten-player teams.","meta1":"First to 2","meta2":"10 players","tint":Color("#3A4452"),"rules":"5v5 · Four-minute rounds · First to two · Five-round cap","enabled":false},
+	{"id":"ffa","big":"FFA","tag":"PLAYTEST","title":"FREE FOR ALL","desc":"Open 5V5 / FFA PLAYTEST to host or join free-for-all.","meta1":"One round","meta2":"4–8 players","tint":Color("#3A4452"),"rules":"Free-for-all · One five-minute round · No overtime","enabled":false},
 ]
 const ARENAS := [{"name":"THE FOUNDRY","sub":"50 × 50 metres · No hazards","size":"50 × 50 m ARENA","image":preload("res://ui/menus/art/arena_foundry.jpg"),"hazards":["Flat arena with perimeter walls","No active arena hazards","Concept art; playable arena is a graybox"],"enabled":true}]
 

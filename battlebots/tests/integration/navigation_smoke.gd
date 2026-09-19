@@ -34,6 +34,6 @@ func run() -> void:
 	app.return_to_main_menu()
 	check(current_scene == app and app.is_inside_tree(), "Main-menu transition is deferred and idempotent")
 	await frames(5)
-	check(not is_instance_valid(app) and current_scene.name == "Battlebots", "Explicit Main menu safely replaces and frees the session scene")
+	check(not is_instance_valid(app) and current_scene.scene_file_path == ProjectSettings.get_setting("application/run/main_scene"), "Explicit Main menu safely replaces and frees the session scene")
 	print("NAVIGATION PASS" if failures == 0 else "NAVIGATION FAIL")
 	quit(0 if failures == 0 else 1)

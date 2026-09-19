@@ -1,5 +1,18 @@
 # Current A/B handoff
 
+## Current playtest checkpoint
+
+`codex/a-b-playtest` combines A FFA `b71cb9b`, B menu kit `595c8f9` (including
+controls, diagnostics, lobby and match HUD), results intent `0f343f7`, Flamebot
+`909b666` and sawblade source `5e163af`. Build is `mvp-ab-5`, protocol 4.
+F5 opens the supplied menus; advanced modes use the explicit 5v5/FFA setup route.
+See [integration record](coordination/A_PLAYTEST_INTEGRATION.md) for validation.
+Feature work is winding down at the user's request. Remaining game scope stays
+open; this checkpoint prepares testing and does not claim release acceptance.
+Local Windows and Linux exports are under `battlebots/exports/playtest/` (ignored
+build output). The Windows ZIP contains the executable, its required adjacent
+PCK and build/testing notes. The separate modelling checkout remains untouched.
+
 ## Integration checkpoint
 
 `codex/a-b-integration` at `bdb42ef` is the playable combined checkpoint. Its CI
@@ -19,7 +32,7 @@ cover round-end Escape, full matches/rematches, reconnect and malformed input.
 
 ## Active A work
 
-A is on `codex/a-ffa`, based on tested 5v5 `e118f91` and transport fix `df509a0`
+A's FFA implementation is on `codex/a-ffa`, based on tested 5v5 `e118f91` and transport fix `df509a0`
 (which builds on contact `7235e50` and integration `bdb42ef`). Reserved paths:
 `scripts/networking/`, relevant `scripts/simulation/` prediction code,
 `tests/network/`, A check scripts, and these shared coordination docs.
@@ -134,24 +147,24 @@ in CONTRACTS.md, retaining team result semantics for team modes.
 Independent rule/menu tests and FFA sessions at 0/80/150 ms pass. Reservation
 expiry, results reconnect and reduced-roster rematches pass separately. The first
 full run found a 5v5 unreliable-clock starvation case; bounded clock exchange now
-uses reliable control. Combined integration validation is next. No performance
-or human LAN acceptance is claimed.
+uses reliable control. Combined integration testing subsequently exposed reliable
+reply asymmetry after reconnect; a bounded minimum-RTT clock filter fixes it, with
+the 150 ms transport reconnect gate passing at 0.5 ticks. The integration record
+distinguishes the failed full run from focused reruns. No performance or human
+LAN acceptance is claimed.
 
 ## Other developer / modelling boundary
 
-B's `codex/b-sawblade-tank` at observed `5ec8dbb` publishes modelling work. A has not imported
-it. A separate local modelling worktree exists at `C:/Users/jorge/battlebots-art-flame`.
-A will not edit that worktree, B assets, presentation, arena or UI files. No new
-weapon geometry or art changes are planned in this increment. The shared
-[TODO](DEVELOPER_B_TODO.md) records intentions and dependencies.
-B's input-menu branch has published X/Y sensitivity at `6e42594` and controls/
-rebinding at `d533032`; diagnostics intent is published at `ca07c21`.
-B's later match HUD `d983612` and post-match results intent `0f343f7` are visible;
-FFA result-field additions are recorded in the shared TODO for that work.
-A has not imported these follow-ups. A preserves the
-existing preview API and SessionBotSource gate. No app/input/presentation changes
-are made to B's code; A's own app host selector gains FFA. A future integration
-must preserve both owners' contract/TODO additions.
+The user authorized merging published B/art work for this testing checkpoint.
+Flamebot `909b666` and sawblade `5e163af` are included as assets/source; no combat
+geometry or stats were changed. The separate modelling worktree at
+`C:/Users/jorge/battlebots-art-flame` remains untouched. Saw source is excluded
+from Godot import until a portable runtime export exists.
+B controls, diagnostics, match HUD and menu kit are merged. Small integration
+changes add the advanced-mode route and guard, consume rebound control labels,
+and return to the configured main menu. SessionBotSource's input gate remains.
+Both developers' contract/TODO additions are preserved. Detailed results frontend
+work on `codex/b-match-results` remains an intent document, not completed UI.
 
 ## Remaining delivery scope
 

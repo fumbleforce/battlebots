@@ -111,6 +111,31 @@ func check_pong_samples(client: MvpSession) -> void:
 	var prior := client._server_tick_offset
 	client._pong(999999, 999999)
 	check(client._server_tick_offset == prior, "Unsolicited pong cannot change clock estimate")
+	# Reliable retransmission can delay just one direction. A slow first reply
+	# must not keep biasing the origin after a clean short round trip arrives.
+	client._clock_ready = false
+	client._client_tick = 172
+	client._ping_ticks[123457] = 100
+	client._pong(123457, 504) # Four ticks up, 68 down; midpoint estimate is wrong.
+	client._client_tick = 212
+	client._ping_ticks[123458] = 200
+	client._pong(123458, 606) # Clean six ticks each way, true origin remains +400.
+	check(absf(client._server_tick_offset - 400) <= 2,
+		"Clean pong promptly replaces a retransmission-biased first clock sample")
+	client._client_tick = 372
+	client._ping_ticks[123459] = 300
+	client._pong(123459, 704)
+	check(absf(client._server_tick_offset - 400) <= 2,
+		"Later asymmetric retransmission does not displace the clean clock sample")
+	# A formerly faster route must not lock the estimate forever when clock
+	# origins change and all subsequent samples have a slightly longer transit.
+	for index: int in range(8):
+		var sent := 400 + index * 100
+		client._client_tick = sent + 20
+		client._ping_ticks[123460 + index] = sent
+		client._pong(123460 + index, sent + 410 + 10)
+	check(absf(client._server_tick_offset - 410) <= 2,
+		"Recent slower samples eventually retire an obsolete faster clock estimate")
 	print("Clock synthetic RTT samples: 0/67/167/1000 ms passed")
 
 func airborne_values(id: int) -> Array:

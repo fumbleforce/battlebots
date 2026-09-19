@@ -31,6 +31,18 @@ jobs:
       - name: Validate baseline, rules, physics and impaired four-peer networking
         shell: pwsh
         run: ./tools/check-mvp.ps1 -GodotPath $env:GODOT
+      - name: Check B presentation and menu integration
+        # Both developers' integration checks precede the exported playtest builds.
+        shell: pwsh
+        run: ./battlebots/tests/presentation/check-presentation.ps1 -GodotPath $env:GODOT
+      - name: Validate merged Flamebot runtime art
+        shell: pwsh
+        run: |
+          $artCheck = (Resolve-Path ./art_source/flamebot/check_flamebot.gd).Path
+          $artOutput = & $env:GODOT --headless --path battlebots --script $artCheck --quit-after 120 2>&1
+          $artExit = $LASTEXITCODE
+          $artOutput | ForEach-Object { Write-Host $_ }
+          if ($artExit -ne 0 -or ($artOutput -match 'SCRIPT ERROR:|^ERROR:') -or -not ($artOutput -match 'FLAMEBOT CHECK PASSED:')) { throw 'Flamebot check failed' }
       - name: Export client and server
         shell: pwsh
         run: |
@@ -42,9 +54,10 @@ jobs:
       - name: Check independent server and client processes
         shell: pwsh
         run: |
-          ./tools/check-processes.ps1 -GodotPath $env:GODOT
-          ./tools/check-processes.ps1 -GodotPath $env:GODOT -PlayerCount 10
-          ./tools/check-processes.ps1 -GodotPath $env:GODOT -Mode ffa
+          $client = (Resolve-Path ./battlebots/exports/windows/battlebots.exe).Path
+          ./tools/check-processes.ps1 -GodotPath $client -Exported
+          ./tools/check-processes.ps1 -GodotPath $client -PlayerCount 10 -Exported
+          ./tools/check-processes.ps1 -GodotPath $client -Mode ffa -Exported
       - uses: actions/upload-artifact@v4
         with:
           name: battlebots-mvp-${{ github.sha }}

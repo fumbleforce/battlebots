@@ -12,7 +12,8 @@ The user-supplied Godot menu kit is integrated at `battlebots/ui/menus`. Its eig
 screens retain the supplied art/theme and use real loadouts and LAN session state.
 Garage/Customize edit canonical free parts and save named builds locally. Settings
 uses the real camera/control preferences. Concept images remain 2D; career,
-ranked/public matchmaking, 5v5/FFA, invites and decals are not implemented.
+ranked/public matchmaking, invites and decals are not implemented. Choose
+**5V5 / FFA PLAYTEST** on mode selection for the existing advanced-mode setup.
 See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
 
 ## Work independently
@@ -28,7 +29,8 @@ See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
   [team workflow](docs/TEAM_WORKFLOW.md), and [full specification](docs/GAME_SPEC.md).
 - Use a focused feature branch from main, or explicitly declare the published
   A/B integration as a dependency while it is ahead of main. Current B work is
-  `codex/b-menu-kit`, stacked on match HUD/lobby/diagnostics/input; artwork stays on separate branches.
+  `codex/b-menu-kit`, stacked on match HUD/lobby/diagnostics/input. Published art
+  is merged into the playtest branch; the separate modelling checkout is untouched.
 - Example starting names (check existing branches before creating):
   `git switch -c codex/a-drive-controller` or `git switch -c codex/b-arena-camera`.
   These are examples; branches are not created by the baseline.
@@ -52,14 +54,15 @@ Public hosting is a later release task; MVP export presets are described below.
 
 ## Playable modes
 
-Current A branch: `codex/a-ffa`, build `mvp-ab-5`, protocol 4.
+Current combined branch: `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
 Use the same branch/build on all peers. The older `codex/a-b-integration`
 checkpoint remains available; it does not include the 5v5/FFA follow-ups.
 
-The main menu offers **Practice** and **Multiplayer**. Multiplayer opens session
-controls without starting practice. WASD/Space drive/brake, LMB powers the spinner or raises
+The Play menu offers Practice, Private Duel and Team Brawl. The **5V5 / FFA PLAYTEST**
+button opens A's alternate session setup for those modes. WASD/Space drive/brake,
+LMB powers the spinner or raises
 the lifter (release fully charged to flip), RMB brakes/lowers, and R self-rights
-when eligible. Select Striker/Controller, then Practice/reset to test either build.
+when eligible. Select or customize a legal build in the garage before playing.
 The spinner disc rotates with charge; lifter forks rise and flip from weapon state.
 Escape releases controls and opens the menu; Resume recaptures the mouse.
 
@@ -70,12 +73,15 @@ Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executa
 & $GodotPath --path battlebots -- --join=127.0.0.1 --port=24567 --ready
 & $GodotPath --path battlebots -- --host --players=2 --port=24567
 & $GodotPath --path battlebots -- --host --mode=ffa --players=8 --port=24567
-& $GodotPath --path battlebots -- --practice --controller
+& $GodotPath --path battlebots -- --practice
 ./tools/check-mvp.ps1 -GodotPath $GodotPath
 ./tools/check-processes.ps1 -GodotPath $GodotPath
 ./tools/check-processes.ps1 -GodotPath $GodotPath -PlayerCount 10
 ./tools/check-processes.ps1 -GodotPath $GodotPath -Mode ffa
 ```
+
+To check a Windows export, pass its `battlebots.exe` as `-GodotPath` and add
+`-Exported`. Distribute the executable and its adjacent `battlebots.pck` together.
 
 Choose 2 players (1v1, the default), 4 players (2v2), or 10 players (5v5) before
 hosting. CLI hosts accept `--players=2`, `--players=4` or `--players=10`.
@@ -94,12 +100,12 @@ and Vote rematch only at results. Reconnect is available through the session API
 ### Try multiplayer on two computers
 
 Use the same current game build on both PCs and the same LAN.
-Open one game window on each computer. On PC A choose Multiplayer, keep
-**2 players / 1v1**, then click **Host game**. On PC B enter PC A's Ethernet/Wi-Fi
-IPv4 address shown in the lobby (for example `192.168.1.20`) and click **Join game**.
-Choose builds and press **Ready** on both PCs to start the countdown.
-Choose **4 players / 2v2** when four people are available, or **10 players / 5v5**
-when ten people are available. Each person needs only one game window.
+Open one game window on each computer. Choose **Play → Private Duel**, select a
+build and Foundry, then open the lobby. On PC A host the game. On PC B enter PC A's
+Ethernet/Wi-Fi IPv4 shown in the lobby (for example `192.168.1.20`) and join.
+Press **Ready up** on both PCs to start the countdown. Choose **Team Brawl** for
+four players. For ten players or FFA, both PCs use **5V5 / FFA PLAYTEST**, then
+choose the capacity and host/join there. Each person needs one game window.
 Loopback `127.0.0.1` always means the computer where that client is running.
 
 The default port is UDP 24567. If joining fails, check that the host is running,
@@ -127,3 +133,8 @@ and the FFA menu integration test cover rules, impaired sessions and app flow.
 The other weapon families, public identity/allocation, full performance/soak
 acceptance and release polish remain future work. Local automated tests do not
 replace the two-computer LAN and human control-feel playtest.
+
+Published Flamebot and sawblade art is included for inspection. The game still uses
+primitive combat visuals. Flamebot has a validated runtime GLB; the sawblade folder
+contains Blender source and is excluded from Godot import until its runtime export
+is ready. Neither changes combat stats or collision in this checkpoint.

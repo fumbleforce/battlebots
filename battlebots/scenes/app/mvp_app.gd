@@ -249,7 +249,7 @@ func return_to_main_menu() -> void:
 
 func _finish_leave() -> void:
 	session.leave()
-	get_tree().change_scene_to_file("res://scenes/app/main.tscn")
+	get_tree().change_scene_to_file(ProjectSettings.get_setting("application/run/main_scene"))
 
 static func local_lan_addresses() -> PackedStringArray:
 	var candidates := PackedStringArray()
@@ -363,7 +363,10 @@ func _refresh_menu(source: BotSource) -> void:
 	match_actions.visible = leave_button.visible or forfeit_button.visible or rematch_button.visible
 	striker_button.set_pressed_no_signal(not controller)
 	controller_button.set_pressed_no_signal(controller)
-	build_hint.text = "Hold LMB to raise; release charged to flip. RMB lowers." if controller else "Hold LMB to spin up; hit with the front disc. RMB brakes."
+	var primary_label: String = preview.input_preferences.label_for("primary")
+	var secondary_label: String = preview.input_preferences.label_for("secondary")
+	var activation := "Press to toggle" if preview.input_preferences.toggle_primary else "Hold"
+	build_hint.text = "%s %s to raise; release charged to flip. %s lowers." % [activation, primary_label, secondary_label] if controller else "%s %s to spin up; hit with the front disc. %s brakes." % [activation, primary_label, secondary_label]
 	preview.hud.visible = source != null and not console_panel.visible and not preview.settings_panel.visible
 	preview.get_node("CanvasLayer").visible = not console_panel.visible and not preview.settings_panel.visible
 	menu_title.text = "Multiplayer"

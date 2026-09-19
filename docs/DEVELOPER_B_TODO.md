@@ -38,7 +38,7 @@ feature branches, not a claim that main contains them or that all release gates 
 
 - [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
   restrained materials and spawn inspection; decorative geometry adds no collision.
-- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. The supplied menu kit now replaces the default F5 entry through a persistent B session owner; A's explicit legacy scenes/CLI remain available. Full 5v5/FFA/public services remain unavailable in the current backend.
+- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. The supplied menu kit now replaces the default F5 entry through a persistent B session owner; A's explicit legacy scenes/CLI remain available. A's merged backend supports 5v5/FFA through the advanced setup route; extending B's lobby/loading/results layouts to those modes and public services remains open.
   **Original scope:** Use existing host/join/leave/team/ready/loadout
   requests and lobby_changed. Respect authoritative phase/capacity. A's current
   app menus are integration UI; coordinate replacing their presentation so there
@@ -93,19 +93,26 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
-- **A next mode increment:** `codex/a-ffa` from `e118f91`; intent and planned
+- **User-requested wind-down integration:** `codex/a-b-playtest` merges FFA
+  `b71cb9b`, menu kit `595c8f9`, results intent `0f343f7`, Flamebot `909b666` and
+  sawblade `5e163af`. The new menus are default F5; their four-slot frontend keeps
+  duel/2v2 while a labelled button opens A's 5v5/FFA setup. Runtime art mounting is
+  deferred; saw source is ignored by Godot until exported. Separate modelling
+  checkout remains untouched. See coordination/A_PLAYTEST_INTEGRATION.md.
+
+- **A completed mode increment:** `codex/a-ffa` from `e118f91`; intent and
   contracts are in [FFA coordination](coordination/A_FFA.md). A reserves session,
   MatchState, spawn selection, A app and independent tests. FFA uses unique entity
   teams and explicit placement/shared-winner results. B/model files remain untouched.
   B's observed match HUD `d983612` and results intent `0f343f7` are acknowledged,
-  not imported. The results event remains the detailed-stat source; on FFA it now
+  now imported in the playtest branch. The results event remains the detailed-stat source; on FFA it now
   also carries `match.winners` and `match.placements`. A's shell remains separate
   until an explicit integration checkpoint preserves B's final UI and input owner.
 
 - **Playable checkpoint:** codex/a-b-integration at bdb42ef; CI passed. Includes
   2-player 1v1 / 4-player 2v2, session-specific menu actions and the Escape fix.
   Build mvp-ab-2, protocol 3. Both peers must run matching builds.
-- **Active branch:** codex/a-ffa, based on 5v5 e118f91 and transport fix df509a0
+- **A implementation branch:** codex/a-ffa, based on 5v5 e118f91 and transport fix df509a0
   (which builds on contact 7235e50 and bdb42ef). A reserves
   networking, match/spawn simulation, A app hosting, independent test scenes and check
   scripts. Scripted contact/airborne/reset checks now exist at 0/80/150 ms;
@@ -164,7 +171,7 @@ integration base, not the still-old main branch.
   client processes also passed. Worst contact settling was 183.3 ms at 80 ms and
   216.7 ms at 150 ms; local automated evidence does not close human LAN acceptance.
 
-- **A current mode increment:** codex/a-five-v-five from df509a0. Implement ten-player
+- **A preceding mode increment:** codex/a-five-v-five from df509a0. Implement ten-player
   custom team lobbies, existing five-per-side spawn markers and 240-second rounds;
   wire the option through A's app host menu/CLI. Existing duel/2v2 and team view
   semantics remain intact. A reserves session/match/world and A app/test paths;

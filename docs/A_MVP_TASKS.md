@@ -1,7 +1,8 @@
 # Developer A MVP work
 
-Owner: A. Playable branch: `codex/a-b-integration` at `bdb42ef`.
-Active follow-up: `codex/a-ffa` from tested 5v5 `e118f91`. B-owned files remain outside A work.
+Owner: A. Earlier playable checkpoint: `codex/a-b-integration` at `bdb42ef`.
+Current combined playtest: `codex/a-b-playtest`, with FFA `b71cb9b` and B's published
+menu/controls/art branches. Feature work is paused for testing at the user's request.
 
 Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,

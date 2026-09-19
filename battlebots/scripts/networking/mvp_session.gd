@@ -42,6 +42,7 @@ var _last_ping := 0.0
 var _ping_ticks: Dictionary = {}
 var _server_tick_offset := 0.0
 var _clock_ready := false
+var _clock_samples: Array[Vector2] = []
 var _results: Dictionary = {}
 var interpolation_delay := 0.1
 var _last_arrival := 0.0
@@ -151,6 +152,7 @@ func leave() -> void:
 	_ping_ticks.clear()
 	_server_tick_offset = 0.0
 	_clock_ready = false
+	_clock_samples.clear()
 	_client_tick = 0
 	_last_ping = 0.0
 	network_simulation.pending.clear()
@@ -415,6 +417,7 @@ func _baseline(packet: PackedByteArray) -> void:
 	match_view = data.match
 	_server_tick_offset = float(data.server_tick) - _client_tick
 	_clock_ready = false
+	_clock_samples.clear()
 	world.clear_bots()
 	_remote_buffers.clear()
 	_last_snapshot_tick.clear()
@@ -778,7 +781,19 @@ func _pong(stamp: int, server_tick: int) -> void:
 	diagnostics.rtt_ms = maxf(0, Time.get_ticks_msec() - stamp)
 	var elapsed := _client_tick - int(_ping_ticks[stamp])
 	var offset := server_tick + elapsed * 0.5 - _client_tick
-	_server_tick_offset = lerpf(_server_tick_offset, offset, 0.25) if _clock_ready else offset
+	if not _clock_ready:
+		_clock_samples.clear()
+	_clock_samples.append(Vector2(elapsed, offset))
+	if _clock_samples.size() > 8:
+		_clock_samples.pop_front()
+	# Reliable retransmission can add a large delay to only one direction. Prefer
+	# the least delayed recent round trip instead of smoothing that bias into the
+	# clock for several seconds. The bounded window also retires old estimates.
+	var best: Vector2 = _clock_samples.back()
+	for sample: Vector2 in _clock_samples:
+		if sample.x < best.x:
+			best = sample
+	_server_tick_offset = best.y
 	_clock_ready = true
 	_ping_ticks.erase(stamp)
 

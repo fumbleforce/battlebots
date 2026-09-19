@@ -24,7 +24,6 @@ $checks = @(
     @('weapon_toggle_test.gd', 'WEAPON TOGGLE PASS'),
     @('input_settings_test.gd', 'INPUT SETTINGS PASS'),
     @('network_diagnostics_test.gd', 'NETWORK DIAGNOSTICS PASS'),
-    @('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
     @('network_diagnostics_sandbox_test.gd', 'NETWORK DIAGNOSTICS SANDBOX PASS'),
     @('lobby_panel_test.gd', 'LOBBY PANEL PASS'),
     @('match_hud_test.gd', 'MATCH HUD PASS'),
@@ -40,7 +39,9 @@ foreach ($check in $checks) {
         '--quit-after', '10000') -Marker $check[1]
 }
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
-foreach ($check in @(@('lobby_session_test.gd', 'LOBBY SESSION PASS'),
+foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
+    @('menu_mode_guard_test.gd', 'MENU MODE GUARD PASS'),
+    @('lobby_session_test.gd', 'LOBBY SESSION PASS'),
     @('lobby_game_network_test.gd', 'LOBBY GAME NETWORK PASS'),
     @('menu_kit_lobby_test.gd', 'MENU KIT LOBBY PASS'),
     @('menu_game_network_test.gd', 'MENU GAME NETWORK PASS'))) {

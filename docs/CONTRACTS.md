@@ -91,7 +91,9 @@ camera_recenter=MMB, camera_zoom_in/out=wheel, ping=Q, scoreboard=Tab, pause=Esc
 B collects drive/weapon intent and implements camera controls and menu/settings
 capture. Suppressed input brakes and lowers/cancels; held actions require release
 before rearming. Escape toggles the standalone menu; explicit Return exits.
-Input rebinding remains pending. New InputMap entries go through A's ownership.
+Keyboard/mouse rebinding and hold/toggle primary are supplied by B's merged
+InputPreferences adapter. Controller remapping remains pending. New InputMap
+entries go through A's ownership.
 
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.
@@ -170,6 +172,8 @@ and tick checks reject stale/duplicate state without dropping another bot's
 valid update when packets arrive in a different order.
 The bounded 1 Hz clock request/reply uses reliable control so ENet's unreliable
 packet throttle cannot indefinitely prevent synchronization after a baseline.
+Clock origin uses the lowest-RTT reply among eight recent samples; a clean reply
+replaces retransmission bias promptly, and the window resets on a fresh baseline.
 Reliable baseline/match payloads are capped at 128 KiB to accommodate ten players
 and the five-round cap; ordinary timer messages omit detailed participant history.
 `MatchState.begin(player_count=4, match_mode="teams")` uses 240-second rounds for ten players and
