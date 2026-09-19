@@ -1,0 +1,82 @@
+class_name DriveBody
+extends RigidBody3D
+## Ground probes gate authored tire forces; chassis collision supports the weight.
+## No camera, Input singleton, or UI dependency. Units are meters, seconds and kg.
+
+@export var top_speed: float = 10.0
+@export var drive_acceleration: float = 6.0
+@export var grip_acceleration: float = 9.0
+@export var brake_acceleration: float = 9.0
+@export var turn_speed: float = 2.1
+const INPUT_TIMEOUT := 0.25
+const PROBES: Array[Vector3] = [
+	Vector3(-0.65, 0, -0.8), Vector3(0.65, 0, -0.8),
+	Vector3(-0.65, 0, 0.8), Vector3(0.65, 0, 0.8),
+]
+
+var grounded: bool = false
+var _throttle: float = 0.0
+var _steering: float = 0.0
+var _brake: bool = true
+var _command_age: float = INPUT_TIMEOUT
+var _drive_input: float = 0.0
+var _turn_input: float = 0.0
+
+func accept_command(command: BotCommand) -> void:
+	# Copy scalars: a caller cannot mutate accepted input after validation.
+	_throttle = command.throttle
+	_steering = command.steering
+	_brake = command.brake
+	_command_age = 0.0
+	if not is_zero_approx(_throttle) or not is_zero_approx(_steering) or _brake:
+		sleeping = false
+
+func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	_command_age += state.step
+	var stale := _command_age >= INPUT_TIMEOUT
+	var braking := _brake or stale
+	_drive_input = move_toward(_drive_input, 0.0 if braking else _throttle, 3.0 * state.step)
+	_turn_input = move_toward(_turn_input, 0.0 if braking else _steering, 4.0 * state.step)
+	var normal := _ground_normal(state)
+	grounded = not normal.is_zero_approx()
+	if not grounded:
+		return
+	var forward := (-state.transform.basis.z).slide(normal).normalized()
+	var right := forward.cross(normal).normalized()
+	var forward_speed := state.linear_velocity.dot(forward)
+	var side_speed := state.linear_velocity.dot(right)
+	var acceleration := brake_acceleration if braking else drive_acceleration
+	var desired_speed := 0.0 if braking else _drive_input * top_speed
+	var longitudinal := clampf((desired_speed - forward_speed) / state.step,
+		-acceleration, acceleration)
+	var lateral := -side_speed / maxf(0.12, state.step)
+	var tire_acceleration := (forward * longitudinal + right * lateral).limit_length(grip_acceleration)
+	state.apply_central_force(tire_acceleration * mass)
+
+	# Steering has the same sign in reverse; yaw response softens at speed.
+	var speed_ratio := clampf(absf(forward_speed) / top_speed, 0.0, 1.0)
+	var desired_yaw := 0.0 if braking else -_turn_input * turn_speed * lerpf(1.0, 0.4, speed_ratio)
+	var yaw_acceleration := clampf((desired_yaw - state.angular_velocity.dot(normal)) / 0.15, -5.0, 5.0)
+	var inverse_yaw_inertia := normal.dot(state.inverse_inertia_tensor * normal)
+	if inverse_yaw_inertia > 0.0:
+		var torque := clampf(yaw_acceleration / inverse_yaw_inertia,
+			-mass * grip_acceleration * 0.65, mass * grip_acceleration * 0.65)
+		state.apply_torque(normal * torque)
+
+func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
+	var normal_sum := Vector3.ZERO
+	var contacts := 0
+	var up := state.transform.basis.y
+	for probe: Vector3 in PROBES:
+		var origin := state.transform * probe
+		var query := PhysicsRayQueryParameters3D.create(origin, origin - up * 0.32,
+			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [get_rid()])
+		var hit := state.get_space_state().intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var normal: Vector3 = hit.normal
+		# Walls and an upside-down chassis are not usable wheel contact.
+		if normal.dot(Vector3.UP) > 0.5 and normal.dot(up) > 0.5:
+			normal_sum += normal
+			contacts += 1
+	return normal_sum.normalized() if contacts >= 2 else Vector3.ZERO

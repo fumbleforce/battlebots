@@ -1,12 +1,11 @@
 extends BotSource
-## A-owned fixture: passive rigid body only. Drive and networking are not implemented.
+## Local simulation adapter. Networking and combat are not implemented.
 
-@onready var body: RigidBody3D = $Body
-var last_command: BotCommand
+@onready var body: DriveBody = $Body
 
 func submit_command(command: BotCommand) -> void:
-	if command.is_valid():
-		last_command = command
+	if command != null and command.is_valid():
+		body.accept_command(command)
 
 func read_view() -> BotView:
 	var view := BotView.new()

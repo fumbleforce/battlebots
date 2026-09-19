@@ -39,7 +39,7 @@ text = "PROJECT BATTLEBOTS"
 [node name="Description" type="Label" parent="Center/Panel/Margin/Options"]
 layout_mode = 2
 text = "Godot 4.7.2 / Two-developer baseline
-Choose an isolated sandbox. Gameplay is not implemented yet."
+Choose a sandbox. A: driving. B: mock. Combat/networking pending."
 
 [node name="DeveloperA" type="Button" parent="Center/Panel/Margin/Options"]
 layout_mode = 2

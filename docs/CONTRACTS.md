@@ -31,7 +31,9 @@ future coordinated additions, not empty APIs to implement against today.
 - camera_anchor() -> Node3D: follow target; caller must handle source destruction.
 - camera_exclusions() -> Array[RID]: bodies to exclude from camera collision queries.
 
-A's baseline source wraps a passive RigidBody3D. B's mock rotates a visual and
+A's baseline source wraps a driveable RigidBody3D. It validates commands, copies
+drive intent, and brakes after 250 ms without valid input. Combat flags are accepted
+by the record but have no gameplay effect yet. B's mock rotates a visual and
 provides sample HUD values; it intentionally ignores input. Both satisfy the same
 interface. The preview only knows BotSource, never a concrete physics node path.
 CameraAnchor exists on both sources. Networking must not serialize Node/RID handles.
@@ -44,7 +46,7 @@ Arena floor surface is Y=0, X/Z bounds +/-25.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
 For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
 The baseline has no FFA markers or perimeter walls; B adds them in the first task.
-Spawn a future bot root with care: the passive fixture already offsets its body
+Spawn a future bot root with care: the bot fixture already offsets its body
 upward by 0.5, so do not apply that clearance twice when integrating spawn logic.
 
 ## Registered input actions

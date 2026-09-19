@@ -1,5 +1,48 @@
 # Baseline handoff
 
+## Developer A — drive controller (19 September 2026)
+
+Owner / branch / base commit: A / `codex/a-drive-controller` / `60feafe`.
+
+Completed: force-based forward/reverse driving, ramped steering with turning in
+place, speed-dependent yaw, grip-limited braking/lateral traction, ground probes,
+continuous collision detection, and a 250 ms stale-input brake. Chassis collision
+supports weight; the probes gate tire forces (spring suspension is not implemented).
+No drive or steering forces apply in the air or upside down. The bot remains a
+103 kg primitive body with a yellow front stripe. A's sandbox has an overview
+camera, WASD/Space input, focus-loss braking, and temporary wall fixtures.
+
+Changed shared contracts: no field or method signature changes. `BotSource`,
+`BotView`, camera anchor and exclusions are unchanged. Valid input is copied
+instead of retaining the caller's command. Weapon/recovery flags remain inactive.
+B can continue using the mock or mount the real bot behind the same adapter.
+
+Validation performed: Godot 4.7.2 / Jolt baseline import and smoke check passed.
+`tools/check-drive.ps1` also passes headless tests without presentation: settling,
+waking from sleep, forward/reverse, turning in place, steering sign in reverse,
+brake priority, input timeout, invalid/mutated commands, airborne/inverted behavior,
+wall impact/retreat, BotView pose and camera handles. At 60 Hz, speed at 2 seconds
+was 10.0 m/s, braking distance 5.64 m, and wall retreat 4.02 m after 1.5 seconds.
+The graphics-enabled A sandbox also launched with Forward+ / D3D12 on an RTX 3080;
+the arena, body, front stripe and instructions were visually inspected with no
+runtime errors logged. This does not replace a human driving-feel playtest.
+
+Known limitations: no suspension springs, wheel animation, recovery, combat or
+networking. Human control feel and B's camera integration still need a joint
+playtest. B's floor/preview/mock/presentation files were not changed. A's temporary
+walls are isolated in the sandbox script; remove them when integrating B's arena.
+
+Files to avoid until merge: `scripts/simulation/`, `scenes/bots/baseline_bot.tscn`,
+`scenes/dev/a_simulation.tscn`, and A's launcher copy in `scenes/app/main.tscn`.
+
+Next integration action: run A's body with B's camera, then start a separate
+headless server / two-client authority and snapshot task. Network-facing behavior
+has not been implemented or validated by the drive tests.
+
+## Original baseline handoff (60feafe)
+
+The sections below record the starting scaffold before A's drive task.
+
 ## Available now
 - Runnable F5 development launcher.
 - A-owned passive rigid-body bot and simulation sandbox.
