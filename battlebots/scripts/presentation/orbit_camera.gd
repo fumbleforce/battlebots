@@ -72,6 +72,7 @@ func update_camera(delta: float) -> void:
 	var pivot := anchor.global_position
 	pivot.y = maxf(pivot.y, camera_radius + 0.05)
 	pivot = _inside_arena(pivot)
+	pivot = _clear_contact_pivot(pivot)
 	var camera_basis := Basis.from_euler(Vector3(-pitch, yaw, 0.0))
 	var direction := camera_basis.z
 	var distance_limit := _boundary_distance(pivot, direction, desired_distance)
@@ -130,3 +131,34 @@ func _boundary_distance(pivot: Vector3, direction: Vector3, length: float) -> fl
 		if outward > 0.00001:
 			length = minf(length, maxf(0.0, (limit - normal.dot(pivot)) / outward))
 	return length
+
+func _clear_contact_pivot(pivot: Vector3) -> Vector3:
+	# A lifted opponent can cover the anchor. Collapsing the boom to that anchor
+	# puts the view inside our chassis. Seek a clear higher pivot, keeping walls
+	# and ceilings solid throughout the vertical movement.
+	_probe.radius = camera_radius
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _probe
+	query.transform = Transform3D(Basis.IDENTITY, pivot)
+	query.exclude = source.camera_exclusions()
+	query.margin = 0.02
+	var space := get_world_3d().direct_space_state
+	query.collision_mask = BaselineConfig.WORLD_LAYER
+	if not space.intersect_shape(query, 1).is_empty():
+		return pivot
+	query.collision_mask = BaselineConfig.BOT_LAYER
+	if space.intersect_shape(query, 1).is_empty():
+		return pivot
+	query.collision_mask = BaselineConfig.WORLD_LAYER
+	query.motion = Vector3.UP * 4.0
+	var maximum_rise := maxf(0.0, 4.0 * space.cast_motion(query)[0] - 0.03)
+	query.motion = Vector3.ZERO
+	query.collision_mask = BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER
+	for step: int in range(1, 17):
+		var rise := float(step) * 0.25
+		if rise > maximum_rise:
+			break
+		query.transform.origin = pivot + Vector3.UP * rise
+		if space.intersect_shape(query, 1).is_empty():
+			return query.transform.origin
+	return pivot

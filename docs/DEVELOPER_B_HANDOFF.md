@@ -1,11 +1,31 @@
 # Developer B — arena and third-person camera
 
-Owner: Developer B. Active branch: `codex/b-network-diagnostics`.
-Dependency base: B input/menu `d533032`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
+Owner: Developer B. Active branch: `codex/b-lobby-presentation`.
+Dependency base: B diagnostics `85dc14d`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
 was published on `codex/b-arena-camera` through `40aa6b1`.
 
 Ongoing work is tracked in [Worker B's to-do list](DEVELOPER_B_TODO.md), including
 priorities, ownership boundaries and dependencies requested from A.
+
+## B-07a: playable lobby and arena
+
+Open scenes/dev/b_lobby_game.tscn (F6). Practice immediately enters actual combat;
+or host a 2v2/1v1 match, join from another matching build and ready up. Both players
+enter the arena automatically. Escape opens the lobby; Resume returns to play.
+The scene uses A's real session and one B input producer, with no mock gameplay.
+
+LobbyPanel renders authoritative roster/build/readiness; LobbyCoordinator binds
+public session APIs and emits navigation requests to its owner. It does not own
+or free the session. Pending requests disable duplicates and time out visibly.
+Starter selection/acknowledgement handles JSON numeric schema conversion.
+
+A: replace the F5 integration menu with this panel/adapter rather than mounting
+both. The separate B scene is playable now; F5 routing remains A-owned. One narrow
+service fix was necessary: remote team IDs arrive as JSON floats and were rejected
+by integer-array membership. The numeric 0/1 guard preserves rejection of invalid
+values; carry it onto the contact branch. Full details: coordination/B_LOBBY_PRESENTATION.md.
+The current B runtime is mvp-ab-2/protocol 3; A contact is mvp-ab-3/protocol 4.
+Contact-camera follow-up: when an opponent covers the camera anchor, the camera now seeks a clear elevated pivot without crossing world geometry. Real Practice combat and a stationary contact/ceiling regression cover it.
 
 ## B-06: live connection diagnostics
 

@@ -3,10 +3,10 @@
 B maintains the sections above A's coordination log. Status describes published
 feature branches, not a claim that main contains them or that all release gates pass.
 
-**Active branch:** `codex/b-network-diagnostics`, stacked on input/menu `d533032` and A/B integration `bdb42ef`.
-**Latest increment:** B-06, read-only live network status and diagnostics.
-**Next:** B-07 production lobby presentation, then match HUD/garage; B-05 readability remains open.
-**Intent and evidence:** [B-06 coordination](coordination/B_NETWORK_DIAGNOSTICS.md).
+**Active branch:** `codex/b-lobby-presentation`, stacked on diagnostics `85dc14d`; runtime base A/B `bdb42ef`.
+**Latest increment:** B-07a, playable lobby-to-arena flow, Practice, and real remote team requests.
+**Next:** Gameplay readability and match feedback; coordinate mounting the new lobby in A's F5 shell.
+**Intent and evidence:** [B-07 coordination](coordination/B_LOBBY_PRESENTATION.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
 ## Completed B increments
@@ -28,6 +28,7 @@ feature branches, not a claim that main contains them or that all release gates 
   physics/RTT/correction/interpolation/counters. Fresh-snapshot gating and typed
   unavailable values prevent stale or fabricated telemetry. Standalone scenario,
   real UDP impairment/recovery, keyboard cancellation and app layout tests pass.
+- [x] **B-07a:** Practice and real UDP host/join/ready enter a playable arena; authoritative teams/builds/readiness, keyboard menus, pending feedback and phase locks. Remote JSON team IDs fixed without changing the public API.
 - [x] **AB-01 automated compatibility:** Published A/B integration mounts the real
   session through BotSource with B arena/camera/HUD. This is not human LAN acceptance.
 
@@ -35,7 +36,8 @@ feature branches, not a claim that main contains them or that all release gates 
 
 - [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
   restrained materials and spawn inspection; decorative geometry adds no collision.
-- [ ] **B-07: Production lobby.** Use existing host/join/leave/team/ready/loadout
+- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. A must mount them in the F5 app, replacing its integration menu. Full 5v5/FFA/public services remain unavailable in the current backend.
+  **Original scope:** Use existing host/join/leave/team/ready/loadout
   requests and lobby_changed. Respect authoritative phase/capacity. A's current
   app menus are integration UI; coordinate replacing their presentation so there
   is one input producer and one lifecycle owner.
