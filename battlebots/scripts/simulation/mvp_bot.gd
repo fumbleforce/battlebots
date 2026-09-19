@@ -83,9 +83,13 @@ func step(delta: float, active: bool) -> void:
 		var self_drive := minf(maxf(travel, 0), body.top_speed * delta) if absf(command.throttle) > 0.1 and body.grounded else 0.0
 		combat.mobility(delta, body.grounded, body.global_basis.y.dot(Vector3.UP) < 0, self_drive)
 		if combat.recovery_remaining > 0:
-			var axis := body.global_basis.z
-			var direction := 1.0 if body.global_basis.x.y >= 0 else -1.0
-			body.recovery_torque = axis * direction * body.mass * 8.0
+			var up := body.global_basis.y
+			var axis := up.cross(Vector3.UP)
+			if axis.length_squared() < 0.0001 and up.y < 0:
+				axis = body.global_basis.z
+			var angle := acos(clampf(up.dot(Vector3.UP), -1, 1))
+			body.recovery_torque = (axis.normalized() * angle * body.mass * 24.0
+				- body.angular_velocity * body.mass * 3.0).limit_length(body.mass * 24.0)
 			body.sleeping = false
 	if body.grounded and absf(body.global_position.x) < 23.5 and absf(body.global_position.z) < 23.5:
 		last_floor = body.global_position

@@ -1,0 +1,545 @@
+class_name MvpSession
+extends Node
+## B-facing session API. Keep this node at the same relative path on all peers.
+signal session_event(kind: String, details: Dictionary)
+signal lobby_changed(view: Dictionary)
+signal match_changed(view: Dictionary)
+signal bot_updated(entity_id: int, view: BotView)
+signal combat_event(event: Dictionary)
+
+var registry := ContentRegistry.new()
+var match_state := MatchState.new()
+var world: AuthorityWorld
+var players: Dictionary = {}
+var peer_entities: Dictionary = {}
+var local_entity := 0
+var reconnect_token := ""
+var connection_state := "offline"
+var lobby_view: Dictionary = {}
+var match_view: Dictionary = {}
+var diagnostics := {"rtt_ms":0.0, "correction_m":0.0, "rejected_inputs":0, "snapshot_bytes":0, "snapshots_received":0}
+var _server := false
+var _time := 0.0
+var _last_event := -1
+var _next_entity := 1
+var _hello_data: Dictionary = {}
+var _pending_peers: Dictionary = {}
+var _control_budget: Dictionary = {}
+var _input_queue: Dictionary = {}
+var _input_highwater: Dictionary = {}
+var _input_budget: Dictionary = {}
+var _loaded: Dictionary = {}
+var _rematch: Dictionary = {}
+var _forfeit: Dictionary = {}
+var _local_commands: Array = []
+var _client_sequence := 0
+var _client_tick := 0
+var _remote_buffers: Dictionary = {}
+var _last_snapshot_tick: Dictionary = {}
+var _last_ping := 0.0
+var _results: Dictionary = {}
+
+func _ready() -> void:
+	multiplayer.peer_connected.connect(_peer_connected)
+	multiplayer.peer_disconnected.connect(_peer_disconnected)
+	multiplayer.connected_to_server.connect(_connected)
+	multiplayer.connection_failed.connect(func() -> void: _fail("Connection failed"))
+	multiplayer.server_disconnected.connect(func() -> void: _fail("Server disconnected; match incomplete"))
+	multiplayer.allow_object_decoding = false
+
+func host(port := 24567, listen := true) -> Error:
+	if connection_state != "offline":
+		return ERR_ALREADY_IN_USE
+	var peer := ENetMultiplayerPeer.new()
+	var error := peer.create_server(port, 8, 3)
+	if error != OK:
+		session_event.emit("error", {"message":"Cannot bind UDP port", "code":error})
+		return error
+	multiplayer.multiplayer_peer = peer
+	_server = true
+	connection_state = "hosting"
+	_make_world()
+	if listen:
+		local_entity = _admit(1, registry.starter())
+		peer_entities[1] = local_entity
+	_publish_lobby()
+	session_event.emit("hosted", {"port":port})
+	return OK
+
+func join(address: String, port := 24567, token := "") -> Error:
+	if connection_state != "offline":
+		return ERR_ALREADY_IN_USE
+	var peer := ENetMultiplayerPeer.new()
+	var error := peer.create_client(address, port, 3)
+	if error != OK:
+		return error
+	_hello_data = {"protocol":WireCodec.PROTOCOL, "build":WireCodec.BUILD, "content":registry.content_hash, "token":token}
+	_server = false
+	connection_state = "connecting"
+	multiplayer.multiplayer_peer = peer
+	_make_world()
+	return OK
+
+func leave() -> void:
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	connection_state = "offline"
+	_server = false
+	local_entity = 0
+	players.clear()
+	peer_entities.clear()
+	_pending_peers.clear()
+	_control_budget.clear()
+	_input_queue.clear()
+	_input_highwater.clear()
+	_input_budget.clear()
+	_loaded.clear()
+	_rematch.clear()
+	_forfeit.clear()
+	_local_commands.clear()
+	_remote_buffers.clear()
+	_last_snapshot_tick.clear()
+	_client_sequence = 0
+	match_state = MatchState.new()
+	match_view = {}
+	lobby_view = {}
+	if is_instance_valid(world):
+		world.queue_free()
+		world = null
+	session_event.emit("left", {})
+
+func _make_world() -> void:
+	world = AuthorityWorld.new()
+	world.name = "World"
+	add_child(world)
+
+func _fail(message: String) -> void:
+	leave()
+	session_event.emit("error", {"message":message})
+
+func _connected() -> void:
+	_hello.rpc_id(1, WireCodec.json_packet(_hello_data))
+
+func _peer_connected(peer: int) -> void:
+	if _server:
+		_pending_peers[peer] = _time + 10
+
+func _peer_disconnected(peer: int) -> void:
+	_pending_peers.erase(peer)
+	_control_budget.erase(peer)
+	if not _server or not peer_entities.has(peer):
+		return
+	var id: int = peer_entities[peer]
+	peer_entities.erase(peer)
+	players[id].peer = 0
+	players[id].ready = false
+	players[id].deadline = _time + 20
+	_input_queue.erase(id)
+	if match_state.phase == "lobby":
+		players.erase(id)
+	_publish_lobby()
+
+func _admit(peer: int, draft: Dictionary) -> int:
+	var id := _next_entity
+	_next_entity += 1
+	var counts := [0, 0]
+	for existing: int in players:
+		counts[players[existing].team] += 1
+	var team := 0 if counts[0] <= counts[1] else 1
+	players[id] = {"peer":peer, "team":team, "ready":false, "loadout":draft.duplicate(true),
+		"token":Crypto.new().generate_random_bytes(32).hex_encode(), "deadline":0.0}
+	peer_entities[peer] = id
+	return id
+
+@rpc("any_peer", "call_remote", "reliable", 0)
+func _hello(packet: PackedByteArray) -> void:
+	if not _server:
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if not _pending_peers.has(peer) or not _control_allowed(peer):
+		return
+	var data := WireCodec.read_json(packet, 1024)
+	if data.get("protocol") != WireCodec.PROTOCOL or data.get("build") != WireCodec.BUILD or data.get("content") != registry.content_hash:
+		_rejected.rpc_id(peer, "Protocol, build or content version mismatch")
+		return
+	var id := 0
+	var token: Variant = data.get("token", "")
+	if not token is String or token.length() > 64:
+		return
+	if not token.is_empty():
+		for candidate: int in players:
+			if players[candidate].token == token and players[candidate].peer == 0 and players[candidate].deadline > _time:
+				id = candidate
+				players[id].peer = peer
+				players[id].token = Crypto.new().generate_random_bytes(32).hex_encode()
+				peer_entities[peer] = id
+				break
+		if id == 0:
+			_rejected.rpc_id(peer, "Reconnect token invalid or expired")
+			return
+	else:
+		if players.size() >= 4 or match_state.phase != "lobby":
+			_rejected.rpc_id(peer, "Lobby full or match already started")
+			return
+		id = _admit(peer, registry.starter())
+	_pending_peers.erase(peer)
+	_input_highwater[id] = -1
+	_input_queue[id] = []
+	if world.bots.has(id):
+		world.bots[id].last_sequence = -1
+		world.bots[id].owner_id = peer
+	_welcome.rpc_id(peer, id, players[id].token)
+	_send_baseline(peer)
+	_publish_lobby()
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _rejected(message: String) -> void:
+	_fail(message)
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _welcome(id: int, token: String) -> void:
+	local_entity = id
+	reconnect_token = token
+	connection_state = "connected"
+	_client_sequence = 0
+	session_event.emit("joined", {"entity_id":id})
+
+func set_ready(ready: bool) -> void:
+	_request_local({"kind":"ready", "value":ready})
+func set_loadout(draft: Dictionary) -> void:
+	_request_local({"kind":"loadout", "value":draft})
+func set_team(team: int) -> void:
+	_request_local({"kind":"team", "value":team})
+func vote_rematch() -> void:
+	_request_local({"kind":"rematch"})
+func vote_forfeit() -> void:
+	_request_local({"kind":"forfeit"})
+
+func _request_local(data: Dictionary) -> void:
+	if _server:
+		_handle_request(1, data)
+	elif connection_state == "connected":
+		_request.rpc_id(1, WireCodec.json_packet(data))
+
+@rpc("any_peer", "call_remote", "reliable", 0)
+func _request(packet: PackedByteArray) -> void:
+	if _server:
+		var peer := multiplayer.get_remote_sender_id()
+		if _control_allowed(peer):
+			_handle_request(peer, WireCodec.read_json(packet, 4096))
+
+func _control_allowed(peer: int) -> bool:
+	var history: Array = _control_budget.get(peer, [])
+	while not history.is_empty() and _time - float(history.front()) >= 1:
+		history.pop_front()
+	if history.size() >= 12:
+		return false
+	history.append(_time)
+	_control_budget[peer] = history
+	return true
+
+func _handle_request(peer: int, data: Dictionary) -> void:
+	if not peer_entities.has(peer):
+		return
+	var id: int = peer_entities[peer]
+	var kind: String = str(data.get("kind", ""))
+	if kind == "loaded" and match_state.phase == "loading" and data.get("match_id") == match_state.match_id:
+		_loaded[id] = true
+	elif kind == "rematch" and match_state.phase == "results":
+		_rematch[id] = true
+	elif kind == "forfeit" and match_state.phase in ["active", "overtime"]:
+		_forfeit[id] = true
+	elif match_state.phase == "lobby":
+		if kind == "ready" and data.get("value") is bool:
+			players[id].ready = data.value and registry.validate(players[id].loadout).valid
+		elif kind == "loadout" and data.get("value") is Dictionary:
+			var validation := registry.validate(data.value)
+			if validation.valid:
+				players[id].loadout = validation.loadout
+				players[id].ready = false
+			else:
+				_request_error(peer, "loadout", "; ".join(validation.reasons))
+		elif kind == "team" and data.get("value") in [0, 1]:
+			var count := 0
+			for other: int in players:
+				count += int(players[other].team == int(data.value) and other != id)
+			if count < 2:
+				players[id].team = int(data.value)
+				for other: int in players:
+					players[other].ready = false
+	else:
+		_request_error(peer, kind, "Request is not allowed in this match phase")
+	_publish_lobby()
+
+func _request_error(peer: int, operation: String, message: String) -> void:
+	if peer == 1:
+		session_event.emit("error", {"operation":operation, "message":message})
+	else:
+		_control_error.rpc_id(peer, operation, message)
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _control_error(operation: String, message: String) -> void:
+	session_event.emit("error", {"operation":operation, "message":message})
+
+func _public_lobby() -> Dictionary:
+	var slots: Array = []
+	for id: int in players:
+		var p: Dictionary = players[id]
+		slots.append({"entity_id":id, "peer":p.peer, "team":p.team, "ready":p.ready,
+			"connected":p.peer != 0, "loadout":p.loadout.duplicate(true)})
+	return {"slots":slots, "capacity":4, "mode":"2v2", "phase":match_state.phase}
+
+func _publish_lobby() -> void:
+	lobby_view = _public_lobby()
+	lobby_changed.emit(lobby_view.duplicate(true))
+	for peer: int in peer_entities:
+		if peer != 1:
+			_lobby.rpc_id(peer, var_to_bytes(lobby_view))
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _lobby(packet: PackedByteArray) -> void:
+	if packet.size() <= 16384:
+		lobby_view = bytes_to_var(packet)
+		lobby_changed.emit(lobby_view.duplicate(true))
+
+func _start() -> void:
+	world.clear_bots()
+	match_state.begin()
+	_loaded.clear()
+	_rematch.clear()
+	_forfeit.clear()
+	_results.clear()
+	var slots := [0, 0]
+	for id: int in players:
+		var p: Dictionary = players[id]
+		var bot := world.spawn(id, p.team, slots[p.team], p.loadout)
+		slots[p.team] += 1
+		bot.owner_id = p.peer
+		_input_queue[id] = []
+		if p.peer == 1:
+			_loaded[id] = true
+	for peer: int in peer_entities:
+		if peer != 1:
+			_send_baseline(peer)
+	_publish_lobby()
+
+func _send_baseline(peer: int) -> void:
+	var states := {}
+	for id: int in world.bots:
+		states[id] = WireCodec.encode_bot(world.bots[id], match_state.match_id)
+	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":match_state.snapshot(), "bots":states}))
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _baseline(packet: PackedByteArray) -> void:
+	if packet.size() > 32768:
+		return
+	var data: Dictionary = bytes_to_var(packet)
+	lobby_view = data.lobby
+	match_view = data.match
+	world.clear_bots()
+	_remote_buffers.clear()
+	_last_snapshot_tick.clear()
+	_local_commands.clear()
+	for slot: Dictionary in lobby_view.slots:
+		if not data.bots.has(slot.entity_id):
+			continue
+		var bot := world.spawn(slot.entity_id, slot.team, 0, slot.loadout)
+		bot.simulated = false
+		bot.body.freeze = true
+		bot.body.reset_pose = null
+		bot.owner_id = slot.peer
+		_snapshot(data.bots[slot.entity_id])
+	match_changed.emit(match_view.duplicate(true))
+	lobby_changed.emit(lobby_view.duplicate(true))
+	if match_view.phase == "loading":
+		_request_local({"kind":"loaded", "match_id":match_view.match_id})
+
+func submit_local(command: BotCommand) -> void:
+	if command == null or not command.is_valid() or local_entity == 0:
+		return
+	var data := WireCodec.command_to_array(command)
+	data[0] = _client_sequence
+	_client_sequence += 1
+	if _server:
+		_accept_inputs(1, [data])
+	elif connection_state == "connected":
+		_local_commands.append(data)
+		if _local_commands.size() > 120:
+			_local_commands.pop_front()
+
+@rpc("any_peer", "call_remote", "unreliable_ordered", 1)
+func _inputs(packet: PackedByteArray) -> void:
+	if not _server or packet.size() > 512:
+		return
+	var data: Variant = bytes_to_var(packet)
+	if data is Array and data.size() <= 4:
+		_accept_inputs(multiplayer.get_remote_sender_id(), data)
+
+func _accept_inputs(peer: int, data: Array) -> void:
+	if not peer_entities.has(peer):
+		return
+	var id: int = peer_entities[peer]
+	var budget: Array = _input_budget.get(id, [])
+	while not budget.is_empty() and _time - float(budget.front()) >= 1:
+		budget.pop_front()
+	for item: Variant in data:
+		var command := WireCodec.command_from_array(item)
+		var high: int = _input_highwater.get(id, -1)
+		if command == null or command.sequence > high + 128 or budget.size() >= 90:
+			diagnostics.rejected_inputs += 1
+			continue
+		if command.sequence <= high:
+			continue
+		var queue: Array = _input_queue.get(id, [])
+		if queue.size() >= 8:
+			diagnostics.rejected_inputs += 1
+			continue
+		queue.append(command)
+		_input_queue[id] = queue
+		_input_highwater[id] = command.sequence
+		budget.append(_time)
+	_input_budget[id] = budget
+
+func _physics_process(delta: float) -> void:
+	if connection_state == "offline" or not is_instance_valid(world):
+		return
+	_time += delta
+	if not _server:
+		_client_tick += 1
+		if connection_state == "connected" and _client_tick % 2 == 0 and not _local_commands.is_empty():
+			_inputs.rpc_id(1, var_to_bytes(_local_commands.slice(maxi(0, _local_commands.size() - 4))))
+		if connection_state == "connected" and _time - _last_ping >= 1:
+			_last_ping = _time
+			_ping.rpc_id(1, Time.get_ticks_msec())
+		return
+	for peer: int in _pending_peers.keys():
+		if _pending_peers[peer] <= _time:
+			multiplayer.multiplayer_peer.disconnect_peer(peer)
+			_pending_peers.erase(peer)
+	if match_state.phase == "lobby" and players.size() == 4:
+		var all_ready := true
+		for id: int in players:
+			all_ready = all_ready and players[id].ready and players[id].peer != 0
+		if all_ready:
+			_start()
+	if match_state.phase == "loading" and _loaded.size() == 4:
+		match_state.transition("countdown", 5)
+	for id: int in players:
+		if players[id].peer == 0 and players[id].deadline <= _time and world.bots.has(id):
+			world.bots[id].combat.eliminate("disconnect")
+		if world.bots.has(id) and _input_queue.has(id) and not _input_queue[id].is_empty():
+			world.bots[id].submit_command(_input_queue[id].pop_front())
+	var active := match_state.phase in ["active", "overtime"]
+	world.step(delta, active, match_state.round_index)
+	if active:
+		for team: int in [0, 1]:
+			var voters := 0
+			var connected := 0
+			for id: int in players:
+				if players[id].team == team and players[id].peer != 0:
+					connected += 1
+					voters += int(_forfeit.has(id))
+			if connected > 0 and voters == connected:
+				for id: int in players:
+					if players[id].team == team:
+						world.bots[id].combat.eliminate("forfeit")
+		for event: Dictionary in world.weapons.events:
+			event["match_id"] = match_state.match_id
+			combat_event.emit(event.duplicate(true))
+			for peer: int in peer_entities:
+				if peer != 1:
+					_effect.rpc_id(peer, var_to_bytes(event))
+	var old_phase := match_state.phase
+	var teams := {}
+	for id: int in players:
+		teams[id] = players[id].team
+	match_state.advance(delta, world.combatants(), teams)
+	if old_phase == "intermission" and match_state.phase == "countdown":
+		world.reset_round()
+		_forfeit.clear()
+	if match_state.phase == "results" and _results.is_empty():
+		_results = {"match":match_state.snapshot(), "content_hash":registry.content_hash, "build":WireCodec.BUILD, "participants":{}}
+		for id: int in world.bots:
+			_results.participants[id] = world.bots[id].combat.snapshot()
+		session_event.emit("results", _results.duplicate(true))
+	if match_state.phase == "results" and _rematch.size() == 4:
+		var connected := true
+		for id: int in players:
+			connected = connected and players[id].peer != 0
+		if connected:
+			_start()
+	if old_phase != "lobby" and match_state.phase == "lobby":
+		for id: int in players.keys():
+			players[id].ready = false
+			if players[id].peer == 0:
+				players.erase(id)
+		world.clear_bots()
+		_publish_lobby()
+	if match_state.event_id != _last_event or world.tick % 60 == 0:
+		_last_event = match_state.event_id
+		match_view = match_state.snapshot()
+		match_changed.emit(match_view.duplicate(true))
+		for peer: int in peer_entities:
+			if peer != 1:
+				_match.rpc_id(peer, var_to_bytes({"view":match_view, "results":_results}))
+	if world.tick % 3 == 0:
+		for id: int in world.bots:
+			var packet := WireCodec.encode_bot(world.bots[id], match_state.match_id)
+			diagnostics.snapshot_bytes = maxi(diagnostics.snapshot_bytes, packet.size())
+			for peer: int in peer_entities:
+				if peer != 1:
+					_snapshot.rpc_id(peer, packet)
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _match(packet: PackedByteArray) -> void:
+	if packet.size() > 32768:
+		return
+	var data: Dictionary = bytes_to_var(packet)
+	match_view = data.view
+	if match_view.phase == "lobby":
+		world.clear_bots()
+		_remote_buffers.clear()
+	match_changed.emit(match_view.duplicate(true))
+	if not data.results.is_empty() and _results.get("match", {}).get("match_id", "") != data.results.match.match_id:
+		_results = data.results
+		session_event.emit("results", _results.duplicate(true))
+
+@rpc("authority", "call_remote", "unreliable_ordered", 2)
+func _snapshot(packet: PackedByteArray) -> void:
+	if packet.size() > 1200:
+		return
+	var values: Variant = bytes_to_var(packet)
+	if not values is Array or values.size() != 26 or not world.bots.has(values[2]):
+		return
+	var bot: MvpBot = world.bots[values[2]]
+	var state := WireCodec.decode_bot(packet, bot.combat.stats)
+	if state.is_empty() or state.epoch != match_view.get("match_id", "") or state.tick <= int(_last_snapshot_tick.get(bot.entity_id, -1)):
+		return
+	_last_snapshot_tick[bot.entity_id] = state.tick
+	diagnostics.snapshots_received += 1
+	bot.remote_state = state
+	bot.server_tick = state.tick
+	bot.body.global_transform = state.pose
+	bot.body.collision_layer = 0 if state.eliminated else BaselineConfig.BOT_LAYER
+	bot.body.collision_mask = 0 if state.eliminated else 3
+	bot_updated.emit(bot.entity_id, bot.read_view())
+
+@rpc("authority", "call_remote", "unreliable", 2)
+func _effect(packet: PackedByteArray) -> void:
+	if packet.size() <= 1200:
+		var event: Dictionary = bytes_to_var(packet)
+		if event.get("match_id") == match_view.get("match_id") and event.get("round") == match_view.get("round"):
+			combat_event.emit(event)
+
+@rpc("any_peer", "call_remote", "unreliable", 0)
+func _ping(stamp: int) -> void:
+	if _server and _control_allowed(multiplayer.get_remote_sender_id()):
+		_pong.rpc_id(multiplayer.get_remote_sender_id(), stamp)
+
+@rpc("authority", "call_remote", "unreliable", 0)
+func _pong(stamp: int) -> void:
+	diagnostics.rtt_ms = maxf(0, Time.get_ticks_msec() - stamp)
+
+func local_source() -> BotSource:
+	return world.bots.get(local_entity) if is_instance_valid(world) else null

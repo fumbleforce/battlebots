@@ -43,6 +43,17 @@ func run() -> void:
 	b.combat.eliminate("test")
 	world.step(1.0 / 60, true, 1)
 	check(b.body.collision_layer == 0 and b.body.freeze, "Wreck loses combat collision")
+	a.body.reset_pose = Transform3D(Basis(Vector3.FORWARD, PI), Vector3(0, 0.4, 0))
+	a.body.sleeping = false
+	await frames(160)
+	var recovery := BotCommand.new()
+	recovery.sequence = 1
+	recovery.recovery_pressed = true
+	a.submit_command(recovery)
+	await frames(110)
+	print("Recovery upright dot: ", a.body.global_basis.y.dot(Vector3.UP), " activations: ", a.combat.recovery_count)
+	check(a.body.global_basis.y.dot(Vector3.UP) > 0.5 and a.combat.battery < 100,
+		"Physical recovery rights an unpinned inverted bot without teleporting")
 	world.queue_free()
 	await process_frame
 	print("COMBAT PHYSICS PASS" if failures == 0 else "COMBAT PHYSICS FAIL")

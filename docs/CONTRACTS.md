@@ -89,3 +89,43 @@ Update typed definition, mock, consumer, contract notes and checks together.
 A change to an existing field's meaning is a breaking change; coordinate it before
 editing. PROTOCOL_VERSION=1 is reserved configuration, not a compatibility promise
 for networking that does not yet exist.
+
+## MVP session API — protocol 2 (A branch)
+
+`MvpSession` must have the same relative NodePath on every peer. Instantiate it
+under the application/session root, then call `host(port=24567, listen=true)` or
+`join(address, port=24567, token="")`; both return a Godot Error. `leave()` closes
+the local connection. Preserve `reconnect_token` in memory for a retry, never in
+logs or lobby UI. A reconnect rotates the token and preserves the original bot.
+
+Requests: `set_loadout(draft)`, `set_team(0|1)`, `set_ready(bool)`,
+`vote_forfeit()`, `vote_rematch()`, `submit_local(BotCommand)`. The session assigns
+transport sequence numbers; B's existing per-tick command sequence may continue.
+Four connected/ready slots are required. Server alone advances the lifecycle.
+
+Signals:
+- `session_event(kind, details)`: hosted, joined, left, results, or error. Error
+  details contain a message and optionally operation/code. Results carry match,
+  participant state, build and content hash.
+- `lobby_changed(view)`: slots (entity_id, peer, team, ready, connected, loadout),
+  capacity=4, mode=2v2, phase. Tokens never appear in this view.
+- `match_changed(view)`: authoritative MatchState view. Timer updates at 1 Hz;
+  phase changes arrive reliably. UI may interpolate a countdown for display only.
+- `bot_updated(entity_id, BotView)`: resources and health from 20 Hz snapshots.
+  `local_source()` returns the player's BotSource after loading. B's input must
+  call `submit_local`, not mutate a client body or call a server bot directly.
+- `combat_event(event)`: disposable visual event with match/round/event/attack IDs,
+  server tick, attacker/target, zone, effective damage, position and normal.
+  Dropping an effect never loses health state. Deduplicate by match/round/event ID.
+
+`connection_state` is offline/connecting/connected/hosting. `diagnostics` reports
+RTT in milliseconds, correction distance in meters, rejected-input count, maximum
+entity snapshot bytes, and received-snapshot count. UI must not infer request
+success solely from pressing ready/join.
+
+Server validates protocol/build/content at handshake, assigns sender ownership,
+accepts bounded finite-axis command packets only, limits sequences/queue/rate,
+and rejects loadout changes after lock. Input channel 1 is unreliable ordered at
+30 packets/s with recent redundancy; channel 2 carries independently decodable
+entity snapshots at 20 Hz; control uses reliable channel 0. Node/RID/Object handles
+are never serialized. `WireCodec.PROTOCOL` is the actual wire version.
