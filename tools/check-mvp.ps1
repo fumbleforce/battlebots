@@ -19,6 +19,7 @@ Invoke-MvpTest 'res://tests/presentation/camera_arena_test.gd' 'PRESENTATION PAS
 Invoke-MvpTest 'res://tests/presentation/camera_settings_test.gd' 'CAMERA SETTINGS PASS'
 Invoke-MvpTest 'res://tests/integration/app_smoke.gd' 'APP INTEGRATION PASS'
 Invoke-MvpTest 'res://tests/integration/network_presentation_smoke.gd' 'PRESENTATION NETWORK PASS'
+Invoke-MvpTest 'res://tests/integration/duel_menu_smoke.gd' 'DUEL MENU PASS'
 $previousProfile = $env:BATTLEBOTS_NET_PROFILE
 try {
     foreach ($profile in @('0', '80', '150')) {

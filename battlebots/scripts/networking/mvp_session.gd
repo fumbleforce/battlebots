@@ -43,6 +43,7 @@ var interpolation_delay := 0.1
 var _last_arrival := 0.0
 var _effect_ids: Dictionary = {}
 var network_simulation := NetworkSimulator.new()
+var player_capacity := 4
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
@@ -52,15 +53,19 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(func() -> void: _fail("Server disconnected; match incomplete"))
 	multiplayer.allow_object_decoding = false
 
-func host(port := 24567, listen := true) -> Error:
+func host(port := 24567, listen := true, player_count := 4) -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
+	if player_count not in [2, 4]:
+		session_event.emit("error", {"message":"Choose 2 or 4 players"})
+		return ERR_INVALID_PARAMETER
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, 8, 3)
 	if error != OK:
 		session_event.emit("error", {"message":"Cannot bind UDP port", "code":error})
 		return error
 	multiplayer.multiplayer_peer = peer
+	player_capacity = player_count
 	_server = true
 	connection_state = "hosting"
 	_make_world()
@@ -68,7 +73,7 @@ func host(port := 24567, listen := true) -> Error:
 		local_entity = _admit(1, registry.starter())
 		peer_entities[1] = local_entity
 	_publish_lobby()
-	session_event.emit("hosted", {"port":port})
+	session_event.emit("hosted", {"port":port, "capacity":player_capacity})
 	return OK
 
 func join(address: String, port := 24567, token := "") -> Error:
@@ -213,7 +218,7 @@ func _hello(packet: PackedByteArray) -> void:
 			_rejected.rpc_id(peer, "Reconnect token invalid or expired")
 			return
 	else:
-		if players.size() >= 4 or match_state.phase != "lobby":
+		if players.size() >= player_capacity or match_state.phase != "lobby":
 			_rejected.rpc_id(peer, "Lobby full or match already started")
 			return
 		id = _admit(peer, registry.starter())
@@ -298,7 +303,7 @@ func _handle_request(peer: int, data: Dictionary) -> void:
 			var count := 0
 			for other: int in players:
 				count += int(players[other].team == int(data.value) and other != id)
-			if count < 2:
+			if count < player_capacity / 2:
 				players[id].team = int(data.value)
 				for other: int in players:
 					players[other].ready = false
@@ -322,7 +327,7 @@ func _public_lobby() -> Dictionary:
 		var p: Dictionary = players[id]
 		slots.append({"entity_id":id, "peer":p.peer, "team":p.team, "ready":p.ready,
 			"connected":p.peer != 0, "loadout":p.loadout.duplicate(true)})
-	return {"slots":slots, "capacity":4, "mode":"2v2", "phase":match_state.phase}
+	return {"slots":slots, "capacity":player_capacity, "mode":"1v1" if player_capacity == 2 else "2v2", "phase":match_state.phase}
 
 func _publish_lobby() -> void:
 	lobby_view = _public_lobby()
@@ -459,13 +464,13 @@ func _physics_process(delta: float) -> void:
 		if _pending_peers[peer] <= _time:
 			multiplayer.multiplayer_peer.disconnect_peer(peer)
 			_pending_peers.erase(peer)
-	if match_state.phase == "lobby" and players.size() == 4:
+	if match_state.phase == "lobby" and players.size() == player_capacity:
 		var all_ready := true
 		for id: int in players:
 			all_ready = all_ready and players[id].ready and players[id].peer != 0
 		if all_ready:
 			_start()
-	if match_state.phase == "loading" and _loaded.size() == 4:
+	if match_state.phase == "loading" and _loaded.size() == player_capacity:
 		match_state.transition("countdown", 5)
 	for id: int in players:
 		if players[id].peer == 0 and players[id].deadline <= _time and world.bots.has(id):
@@ -519,7 +524,7 @@ func _physics_process(delta: float) -> void:
 				for round_result: Dictionary in match_state.rounds:
 					_results.participants[id][field] += round_result.get("participants", {}).get(id, {}).get(field, 0)
 		session_event.emit("results", _results.duplicate(true))
-	if match_state.phase == "results" and _rematch.size() == 4:
+	if match_state.phase == "results" and _rematch.size() == player_capacity:
 		var connected := true
 		for id: int in players:
 			connected = connected and players[id].peer != 0

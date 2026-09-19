@@ -50,27 +50,28 @@ Escape releases controls and opens the menu; Resume recaptures the mouse.
 Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executable):
 
 ```powershell
-& $GodotPath --headless --path battlebots -- --server --port=24567
+& $GodotPath --headless --path battlebots -- --server --players=2 --port=24567
 & $GodotPath --path battlebots -- --join=127.0.0.1 --port=24567 --ready
-& $GodotPath --path battlebots -- --host --port=24567
+& $GodotPath --path battlebots -- --host --players=2 --port=24567
 & $GodotPath --path battlebots -- --practice --controller
 ./tools/check-mvp.ps1 -GodotPath $GodotPath
 ./tools/check-processes.ps1 -GodotPath $GodotPath
 ```
 
-A dedicated server requires four clients; a listen host requires three joining
-clients. Ready all four slots. For LAN use the host's LAN address in place of
-127.0.0.1. The console exposes host/join/ready/rematch/forfeit/leave; reconnect is
-available through the session API using the in-memory token.
+Choose 2 players (1v1, the default) or 4 players (2v2) before hosting. CLI hosts
+accept `--players=2` or `--players=4`. The host counts as a player unless started
+as a dedicated server. Everyone in the selected player count must press Ready.
+Ready/Not ready is available only in the lobby, Forfeit round only during play,
+and Vote rematch only at results. Reconnect is available through the session API.
 
 ### Try multiplayer on two computers
 
 Use the same current `codex/a-b-integration` build on both PCs and the same LAN.
-Open two game windows on each computer. In Multiplayer, click Host in one window
-on PC A; its menu displays local IPv4 candidates. PC A's second window joins
-`127.0.0.1`. Both windows on PC B join PC A's Ethernet/Wi-Fi IPv4 shown by the host
-(for example `192.168.1.20`). Choose builds and press Ready in all four windows.
-The host counts as one player; four ready clients are required for the countdown.
+Open one game window on each computer. On PC A choose Multiplayer, keep
+**2 players / 1v1**, then click **Host game**. On PC B enter PC A's Ethernet/Wi-Fi
+IPv4 address shown in the lobby (for example `192.168.1.20`) and click **Join game**.
+Choose builds and press **Ready** on both PCs to start the countdown.
+Choose **4 players / 2v2** instead when four people are available.
 Loopback `127.0.0.1` always means the computer where that client is running.
 
 The default port is UDP 24567. If joining fails, check that the host is running,

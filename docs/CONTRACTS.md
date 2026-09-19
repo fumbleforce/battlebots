@@ -93,7 +93,7 @@ for networking that does not yet exist.
 ## MVP session API — protocol 3 (A branch)
 
 `MvpSession` must have the same relative NodePath on every peer. Instantiate it
-under the application/session root, then call `host(port=24567, listen=true)` or
+under the application/session root, then call `host(port=24567, listen=true, player_count=4)` or
 `join(address, port=24567, token="")`; both return a Godot Error. `leave()` closes
 the local connection. Preserve `reconnect_token` in memory for a retry, never in
 logs or lobby UI. A reconnect rotates the token and preserves the original bot.
@@ -101,14 +101,16 @@ logs or lobby UI. A reconnect rotates the token and preserves the original bot.
 Requests: `set_loadout(draft)`, `set_team(0|1)`, `set_ready(bool)`,
 `vote_forfeit()`, `vote_rematch()`, `submit_local(BotCommand)`. The session assigns
 transport sequence numbers; B's existing per-tick command sequence may continue.
-Four connected/ready slots are required. Server alone advances the lifecycle.
+The host selects 2 (1v1) or 4 (2v2) connected/ready slots. Other counts return
+ERR_INVALID_PARAMETER before opening a server. The API's omitted count remains 4
+for existing consumers; the app defaults to 2. Server alone advances the lifecycle.
 
 Signals:
 - `session_event(kind, details)`: hosted, joined, left, results, or error. Error
   details contain a message and optionally operation/code. Results carry match,
   participant state, build and content hash.
 - `lobby_changed(view)`: slots (entity_id, peer, team, ready, connected, loadout),
-  capacity=4, mode=2v2, phase. Tokens never appear in this view.
+  capacity=2|4, mode=1v1|2v2, phase. Tokens never appear in this view.
 - `match_changed(view)`: authoritative MatchState view. Timer updates at 1 Hz;
   phase changes arrive reliably. UI may interpolate a countdown for display only.
 - `bot_updated(entity_id, BotView)`: resources and health from 20 Hz snapshots.

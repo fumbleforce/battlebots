@@ -32,9 +32,14 @@ func make_app(label: String) -> Node:
 func run() -> void:
 	var port := 28000 + OS.get_process_id() % 10000
 	var host = make_app("Server")
+	host._build_console()
+	host.preview.set_physics_process(false)
+	host.player_count_choice.select(1)
+	host.player_count_choice.item_selected.emit(1)
 	host.port = port
 	host.host_game()
 	check(host.session.connection_state == "hosting", "Menu host binds requested UDP port")
+	check(host.session.lobby_view.capacity == 4 and host.session.lobby_view.mode == "2v2", "Four-player menu selection reaches server settings")
 	# Test dedicated four-client admission after exercising the listen-host action.
 	host.session.leave()
 	check(host.session.host(port, false) == OK, "Integrated server binds")

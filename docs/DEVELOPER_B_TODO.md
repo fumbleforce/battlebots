@@ -189,3 +189,17 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
   four-client/two-per-PC instructions, rejects blank joins without leaving, and
   honors custom CLI ports. Menu scrolls when lobby details grow. Baseline/app and
   four-peer presentation tests pass. B's owned files are still unchanged.
+- IN PROGRESS (user-requested): A adds selectable 2-player 1v1 / 4-player 2v2
+  hosting and state-specific app actions. Default UI choice will be 2 players.
+  A reserves mvp_session, app bootstrap, integration tests and shared contracts;
+  B's presentation/UI files remain unchanged. Host capacity drives readiness,
+  team limits, loading and rematch; tests will cover both counts and menu phases.
+- DONE: selectable 2-player 1v1 (app default) / 4-player 2v2. One window per person.
+  API host(port, listen, player_count=4) is backward-compatible; lobby capacity/mode
+  are authoritative. Build mvp-ab-2 requires both computers to update.
+- DONE: setup, connecting, lobby, practice, live match and results show only valid
+  actions. Ready toggles from server state; builds lock after lobby. B's duplicate
+  preview hints are hidden by A's app while its menu is open, without editing B files.
+- PASS: two-player real-UDP full match/rematch plus button-state and count guards;
+  existing four-player 0/80/150ms suite and five-process check. Setup/lobby/practice
+  were rendered and visually inspected at 1280x720. Cross-machine LAN remains pending.

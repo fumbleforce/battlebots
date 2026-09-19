@@ -2,6 +2,21 @@
 
 ## A+B integration — codex/a-b-integration
 
+Current selectable-count/menu increment (supersedes the four-window LAN guidance):
+app hosting defaults to **2 players / 1v1**, with **4 players / 2v2** selectable.
+One window on each PC is enough for 1v1. `MvpSession.host(port, listen, count=4)`
+validates 2/4 and applies that capacity to admission, team limits, ready/loading
+and rematches. CLI supports `--players=2|4`, default 2. Build is `mvp-ab-2`, so
+both computers must update. Protocol remains 3.
+
+The app shows setup only offline, cancel while connecting, Ready/Not ready and
+leave/close in the lobby, Forfeit round only while playing, and rematch at results.
+Builds lock during matches; practice hides networking actions. Rendered 1280x720
+setup/lobby/practice layouts were inspected. Real UDP tests cover a two-player
+match/rematch, team/capacity rejection, readiness and menu transitions; the full
+four-player/impairment suite and five-process check also pass. Real LAN still needs
+the second computer; no Windows firewall settings were modified.
+
 LAN usability increment: join starts blank with a host-IP example; Host displays
 local non-loopback IPv4 candidates and the active UDP port. The menu explains
 four ready windows/two per computer. Empty joins preserve the current session and

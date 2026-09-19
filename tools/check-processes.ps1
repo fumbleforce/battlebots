@@ -7,7 +7,7 @@ $port = Get-Random -Minimum 30000 -Maximum 45000
 $processes = @()
 try {
     foreach ($index in 0..4) {
-        $mode = if ($index -eq 0) { "--server --port=$port" } else { "--join=127.0.0.1 --port=$port --ready" }
+        $mode = if ($index -eq 0) { "--server --players=4 --port=$port" } else { "--join=127.0.0.1 --port=$port --ready" }
         $arguments = "--headless --path `"$projectRoot`" --max-fps 60 --quit-after 1200 -- $mode"
         $processes += Start-Process -FilePath $GodotPath -ArgumentList $arguments -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $runDirectory "$index.out.log") `
