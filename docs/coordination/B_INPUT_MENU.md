@@ -97,3 +97,25 @@ its latch. Keep SessionBotSource.input_allowed for lifecycle suppression. Indepe
 model, real-CombatState toggle, and GUI binding tests will cover this increment.
 Parallel subagents own the preference model and toggle gate/tests; B owns modal
 integration, rendered inspection, combined checks and handoff. Same focused branch.
+
+## B-04b result and A integration handoff
+
+Rebinding and hold/toggle primary implemented. The Controls page remains inside
+settings_panel.visible, with draft edits, conflict/reserved-key validation, explicit
+Save & back and Cancel & back, plus nested Escape cancellation. Existing public
+preview APIs remain. Runtime mapping changes restore on exit and preserve controller
+bindings. The new b_controls scene has separate fixture preferences.
+
+B now also reads SessionBotSource.input_allowed before sampling to clear toggle
+intent during countdown/elimination; A's source guard remains. No A-owned runtime
+files, commands or protocol changed. A should update its hardcoded build_hint to
+use preview.input_preferences labels and toggle_primary when refreshing its menu.
+
+Evidence: baseline and all six presentation suites PASS. These cover model
+validation/persistence, real-lifter toggle/cancellation, raw keyboard and mouse GUI
+capture, nested Escape, save failure, restart persistence, physical held-key
+rearming, lifecycle suppression and prior-map restoration. A duel/menu and navigation
+smokes PASS. Both camera and Controls panels rendered at 1280x720 and inspected.
+Two subagents implemented independent model/gate work and reviewed integration;
+the GUI fixture's script-retention warning was fixed with a separate lifecycle probe.
+Controller remapping, 150% text scaling, human LAN feel and later B features remain.

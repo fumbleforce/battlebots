@@ -6,7 +6,7 @@ Godot **4.7.2 stable** / Jolt / typed GDScript. Two developers, one repository, 
 1. Clone the repository locally and install Godot 4.7.2 stable.
 2. Import `battlebots/project.godot` into Godot.
 3. Press **F5** for the game menu; choose Practice or Multiplayer.
-4. Press Escape in the arena for build selection, camera settings and session controls.
+4. Press Escape in the arena for build selection, camera settings (including Controls rebinding) and session controls.
 
 The integration branch combines A's combat/networking with B's arena, orbit camera,
 resource HUD and camera settings. Simple spinner and lifter geometry shows weapon
@@ -18,6 +18,7 @@ are still available by opening their scenes and pressing F6.
 ## Work independently
 - **A:** `battlebots/scenes/dev/a_simulation.tscn` — real drive/contact checks.
 - **B:** `battlebots/scenes/dev/b_presentation.tscn` — arena/camera/UI with mock movement.
+- **B controls:** `battlebots/scenes/dev/b_controls.tscn` — rebinding, saved input preferences and hold/toggle primary against real lifter rules.
 - **B input/menu:** `battlebots/scenes/dev/b_input_menu.tscn` — real lifter rules,
   cancellation and keyboard menus without a network session.
 - Read [handoff](docs/HANDOFF.md), [contracts](docs/CONTRACTS.md),

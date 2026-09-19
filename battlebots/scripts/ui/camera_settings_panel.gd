@@ -2,6 +2,7 @@ class_name CameraSettingsPanel
 extends Control
 
 signal closed(saved: bool)
+signal input_applied(preferences: InputPreferences)
 @onready var form: VBoxContainer = $Center/Panel/Margin/Form
 @onready var sensitivity: HSlider = $Center/Panel/Margin/Form/Sensitivity/Slider
 @onready var sensitivity_y: HSlider = $Center/Panel/Margin/Form/SensitivityY/Slider
@@ -14,6 +15,11 @@ var _path: String
 var _original: CameraPreferences
 var _display_values: CameraPreferences
 var _display_axes: Vector2
+var input_panel: InputSettingsPanel
+var controls_button: Button
+var _input_preferences: InputPreferences
+var _input_path: String
+var _input_notice: String
 
 func _ready() -> void:
 	sensitivity.value_changed.connect(_on_value_changed)
@@ -24,11 +30,42 @@ func _ready() -> void:
 	form.get_node("Buttons/Defaults").pressed.connect(reset_defaults)
 	form.get_node("Buttons/Cancel").pressed.connect(cancel)
 	form.get_node("Buttons/Save").pressed.connect(save_and_close)
+	controls_button = Button.new()
+	controls_button.text = "Controls…"
+	controls_button.custom_minimum_size.y = 36
+	controls_button.pressed.connect(open_controls)
+	form.add_child(controls_button)
+	input_panel = InputSettingsPanel.new()
+	$Center/Panel/Margin.add_child(input_panel)
+	input_panel.finished.connect(_close_controls)
+	input_panel.applied.connect(_apply_inputs)
+
+func configure_inputs(preferences: InputPreferences, path: String, notice: String = "") -> void:
+	_input_preferences = preferences
+	_input_path = path
+	_input_notice = notice
+
+func open_controls() -> void:
+	if _input_preferences == null:
+		return
+	form.hide()
+	input_panel.open_for(_input_preferences, _input_path, _input_notice)
+
+func _close_controls() -> void:
+	form.show()
+	controls_button.grab_focus()
+
+func _apply_inputs(preferences: InputPreferences) -> void:
+	_input_preferences = preferences
+	_input_notice = ""
+	input_applied.emit(preferences)
 
 func open_for(rig: BotOrbitCamera, path: String, notice: String = "") -> void:
 	_rig = rig
 	_path = path
 	_original = CameraPreferences.from_rig(rig)
+	input_panel.hide()
+	form.show()
 	_fill(_original)
 	message.text = notice
 	show()
@@ -69,7 +106,7 @@ func _refresh_labels() -> void:
 	if automatic.button_pressed:
 		navigation.append(strength)
 	navigation.append_array([form.get_node("Buttons/Defaults"),
-		form.get_node("Buttons/Cancel"), form.get_node("Buttons/Save")])
+		form.get_node("Buttons/Cancel"), form.get_node("Buttons/Save"), controls_button])
 	for index: int in range(navigation.size()):
 		var control := navigation[index]
 		var previous := navigation[posmod(index - 1, navigation.size())]
@@ -95,6 +132,9 @@ func reset_defaults() -> void:
 
 func cancel() -> void:
 	if not visible:
+		return
+	if input_panel.visible:
+		input_panel.cancel()
 		return
 	if is_instance_valid(_rig):
 		_original.apply_to(_rig)

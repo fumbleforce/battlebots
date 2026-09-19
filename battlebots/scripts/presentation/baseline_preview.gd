@@ -19,6 +19,8 @@ var input_gate := GameplayInputGate.new()
 var _load_notice: String = ""
 var _control_generation: int = 0
 var _leaving: bool = false
+var input_preferences: InputPreferences
+var _input_map_before: Dictionary = {}
 
 func _ready() -> void:
 	hud.set_context(fixture_title)
@@ -27,6 +29,15 @@ func _ready() -> void:
 	preferences.apply_to(rig)
 	if preferences.load_error != OK:
 		_load_notice = "Saved settings could not be loaded. Using defaults."
+	_input_map_before = InputPreferences.snapshot_input_map()
+	var input_path := "" if settings_path.is_empty() else settings_path + ".input"
+	if settings_path == CameraPreferences.DEFAULT_PATH:
+		input_path = InputPreferences.DEFAULT_PATH
+	input_preferences = InputPreferences.load_file(input_path)
+	_apply_input_preferences(input_preferences)
+	settings_panel.configure_inputs(input_preferences, input_path,
+		"Saved controls could not be loaded. Using defaults." if input_preferences.load_error != OK else "")
+	settings_panel.input_applied.connect(_apply_input_preferences)
 	resume_button.pressed.connect(capture_controls)
 	settings_button.pressed.connect(open_settings)
 	return_button.pressed.connect(return_to_launcher)
@@ -46,6 +57,12 @@ func capture_controls() -> void:
 	input_gate.require_release()
 	get_viewport().gui_release_focus()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _apply_input_preferences(preferences: InputPreferences) -> void:
+	input_preferences = preferences
+	input_preferences.apply_to_input_map()
+	input_gate.toggle_primary = preferences.toggle_primary
+	input_gate.require_release()
 
 func release_controls() -> void:
 	_control_generation += 1
@@ -103,6 +120,8 @@ func _finish_return() -> void:
 		get_tree().change_scene_to_file("res://scenes/app/main.tscn")
 
 func _exit_tree() -> void:
+	if not _input_map_before.is_empty():
+		InputPreferences.restore_input_map(_input_map_before)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _submit_neutral() -> void:
@@ -121,22 +140,38 @@ func _physics_process(_delta: float) -> void:
 		return
 	var strengths: Dictionary = {}
 	for action: StringName in GameplayInputGate.ACTIONS:
-		strengths[action] = Input.get_action_strength(action)
+		strengths[action] = _action_strength(action)
 	var edges := {
 		&"primary": Input.is_action_just_pressed("primary"),
 		&"recover": Input.is_action_just_pressed("recover"),
 	}
 	var enabled := controls_enabled and not settings_panel.visible \
 		and not _leaving and get_window().has_focus()
+	# Clear toggle intent during A's countdown/elimination/lifecycle suppression too.
+	if source is SessionBotSource and source.input_allowed.is_valid():
+		enabled = enabled and bool(source.input_allowed.call())
 	var command := input_gate.sample(strengths, edges, enabled)
 	command.sequence = sequence
 	sequence += 1
 	rig.driving = absf(command.throttle) > 0.05 or absf(command.steering) > 0.05
 	source.submit_command(command)
 
+func _action_strength(action: StringName) -> float:
+	var strength := Input.get_action_strength(action)
+	# Rebinding releases action state, but a physical key may still be held.
+	# Keep it blocked until real release rather than rearming on an artificial zero.
+	for event: InputEvent in InputMap.action_get_events(action):
+		if event is InputEventKey and Input.is_physical_key_pressed(event.physical_keycode):
+			strength = 1.0
+		elif event is InputEventMouseButton and Input.is_mouse_button_pressed(event.button_index):
+			strength = 1.0
+	return strength
+
 func _process(_delta: float) -> void:
 	hud.show_view(source.read_view() if is_instance_valid(source) else null)
-	hint.text = "Mouse  Orbit   |   Wheel  Zoom   |   MMB  Recenter   |   Esc  Menu" \
+	hint.text = "Mouse  Orbit  |  %s / %s  Zoom  |  %s  Recenter  |  Esc  Menu" % [
+		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),
+		input_preferences.label_for(&"camera_recenter")] \
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
 
 func _unhandled_input(event: InputEvent) -> void:

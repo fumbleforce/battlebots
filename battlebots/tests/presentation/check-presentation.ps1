@@ -19,7 +19,10 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--
 $checks = @(
     @('camera_arena_test.gd', 'PRESENTATION PASS'),
     @('camera_settings_test.gd', 'CAMERA SETTINGS PASS'),
-    @('input_menu_test.gd', 'INPUT MENU PASS')
+    @('input_menu_test.gd', 'INPUT MENU PASS'),
+    @('input_preferences_test.gd', 'INPUT PREFERENCES PASS'),
+    @('weapon_toggle_test.gd', 'WEAPON TOGGLE PASS'),
+    @('input_settings_test.gd', 'INPUT SETTINGS PASS')
 )
 foreach ($check in $checks) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,

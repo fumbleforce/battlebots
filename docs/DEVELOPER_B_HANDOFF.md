@@ -30,8 +30,42 @@ pretending to be drive or multiplayer simulation. Tests:
 ```
 
 Baseline, camera/settings, input menu and A's duel/navigation regressions passed.
-The menu was also rendered and inspected at 1280x720. Rebinding remains B-04b;
+The menu was also rendered and inspected at 1280x720. B-04b rebinding is described below;
 human LAN/contact acceptance remains outstanding.
+
+## B-04b: controls and weapon activation preference
+
+From Camera settings, choose Controls. Bind a keyboard key or mouse button to an
+action, choose hold/toggle primary, then Save & back. Edits are drafts until saved;
+Cancel discards them and Reset defaults is also a draft. Camera and controls have
+separate saves. Escape cancels capture first, then returns to the camera page,
+then closes settings. Duplicate bindings, reserved navigation keys, chords and
+wheel input on held actions are rejected. UI actions remain fixed; future camera
+view/ping/scoreboard actions are explicitly marked planned.
+
+InputPreferences stores validated primitive JSON (schema 1) in
+user://presentation_input.cfg. Runtime binding changes preserve controller events
+and restore the previous action map on scene exit. Other fixture settings paths
+use the same path plus .input; an empty settings_path disables both saves.
+Invalid files load complete defaults and a notice. Physically held controls must
+be released before they can activate after saving/resuming.
+
+Toggle primary: first press activates; second press deliberately releases, which
+fires a charged lifter. Secondary, menu/focus loss and SessionBotSource lifecycle
+suppression cancel the latch. B now also consults A's existing input_allowed
+callback before sampling; A's source still independently enforces it. No command
+or wire changes. Keep that callback pure and retain the source-side guard.
+
+Independent F6 scene: scenes/dev/b_controls.tscn. It uses real lifter rules and its
+own user://b_controls_camera.cfg.input file, leaving normal player preferences
+alone. The presentation runner includes model persistence/validation, real-combat
+toggle safety and GUI capture/navigation/save/reload/rearm/lifecycle tests.
+
+A follow-up: the app's build_hint currently hardcodes LMB/hold text. When refreshing
+that A-owned menu, consume preview.input_preferences.label_for(primary/secondary)
+and toggle_primary so its instructions reflect saved controls. B's fixture and
+camera hints already reflect the selected bindings. Controller remapping remains
+B-11; this increment preserves controller events but does not add controller UI.
 
 ## B-03 follow-up: camera settings
 

@@ -33,4 +33,11 @@ func camera_anchor() -> Node3D:
 
 func _process(_delta: float) -> void:
 	if combat != null:
-		$Feedback/Label.text = "INPUT / MENU FIXTURE\nReal lifter rules; no driving or networking\nHold LMB to charge, release to launch\nEsc / focus loss must CANCEL\nIntentional launches: %d" % launch_count
+		var preview := get_node_or_null("../Preview")
+		var control := "Primary"
+		var instruction := "Hold to charge; release to launch"
+		if preview != null and preview.input_preferences != null:
+			control = preview.input_preferences.label_for(&"primary")
+			if preview.input_preferences.toggle_primary:
+				instruction = "Press to charge; press again to launch"
+		$Feedback/Label.text = "INPUT / MENU FIXTURE\nReal lifter rules; no driving or networking\n%s: %s\nEsc / focus loss must CANCEL\nIntentional launches: %d" % [control, instruction, launch_count]

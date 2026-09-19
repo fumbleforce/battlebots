@@ -4,11 +4,22 @@ extends RefCounted
 const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse",
 	&"steer_left", &"steer_right", &"brake", &"primary", &"secondary", &"recover"]
 var _blocked: Dictionary = {}
+var toggle_primary: bool = false:
+	set(value):
+		if toggle_primary != value:
+			toggle_primary = value
+			require_release()
+var _primary_latched := false
+var _primary_was_down := false
+var _cancel_pending := false
 
 func _init() -> void:
 	require_release()
 
 func require_release() -> void:
+	_primary_latched = false
+	_primary_was_down = false
+	_cancel_pending = true
 	for action: StringName in ACTIONS:
 		_blocked[action] = true
 
@@ -27,10 +38,25 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 	command.brake = _strength(strengths, &"brake") > 0.0
 	for action: StringName in [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right"]:
 		command.brake = command.brake or _blocked.has(action)
-	command.primary_held = _strength(strengths, &"primary") > 0.0
-	command.primary_pressed = command.primary_held and bool(edges.get(&"primary", false))
+	var primary_down := float(strengths.get(&"primary", 0.0)) > 0.0
+	var primary_edge := primary_down and not _primary_was_down and bool(edges.get(&"primary", false))
+	_primary_was_down = primary_down
 	# Suppressed release of a charged lifter must cancel, never launch.
-	command.secondary_held = _blocked.has(&"primary") or _strength(strengths, &"secondary") > 0.0
+	var secondary_down := _strength(strengths, &"secondary") > 0.0
+	command.secondary_held = _cancel_pending or _blocked.has(&"primary") or secondary_down
+	_cancel_pending = false
+	if toggle_primary:
+		if command.secondary_held:
+			_primary_latched = false
+			if secondary_down and primary_down:
+				_blocked[&"primary"] = true
+		elif primary_edge and not _blocked.has(&"primary"):
+			_primary_latched = not _primary_latched
+			command.primary_pressed = _primary_latched
+		command.primary_held = _primary_latched
+	else:
+		command.primary_held = _strength(strengths, &"primary") > 0.0
+		command.primary_pressed = command.primary_held and bool(edges.get(&"primary", false))
 	command.recovery_pressed = not _blocked.has(&"recover") and bool(edges.get(&"recover", false))
 	return command
 

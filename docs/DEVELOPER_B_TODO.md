@@ -4,8 +4,8 @@ B maintains the sections above A's coordination log. Status describes published
 feature branches, not a claim that main contains them or that all release gates pass.
 
 **Active branch:** `codex/b-input-menu`, based on A/B integration `bdb42ef`.
-**Latest increment:** B-04b partial, independent X/Y look sensitivity and settings migration.
-**Next:** B-04b, rebinding and input preferences; then B-06 diagnostics.
+**Latest increment:** B-04b, keyboard/mouse rebinding and hold/toggle primary.
+**Next:** B-06 diagnostics, then lobby/HUD/garage presentation.
 **Intent and evidence:** [B-04 coordination](coordination/B_INPUT_MENU.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
@@ -20,17 +20,15 @@ feature branches, not a claim that main contains them or that all release gates 
   navigation, deferred return, cancel-on-menu/focus-loss, and held-action rearming.
   Uses A's required brake+secondary cancellation. Standalone real-lifter fixture,
   camera/settings regressions and A's duel/navigation checks pass.
+- [x] **B-04b:** Independent X/Y sensitivity; keyboard/mouse binding capture,
+  validation, save/cancel/defaults and hold/toggle primary. Separate local
+  persistence; menu/focus/lifecycle cancellation and physical release-to-rearm.
+  Independent b_controls scene, model/combat/GUI tests and rendered layout.
 - [x] **AB-01 automated compatibility:** Published A/B integration mounts the real
   session through BotSource with B arena/camera/HUD. This is not human LAN acceptance.
 
 ## Active and next — B-owned
 
-- [ ] **B-04b: Rebinding and input preferences.** Keyboard/mouse binding UI,
-  duplicate/reserved-binding validation, reset defaults, independent local
-  persistence and hold/toggle weapon preference. Separate X/Y sensitivity is done, with version-1 migration and independent save/cancel/reset coverage.
-  Coordinate semantics with A; do not edit project.godot or network commands.
-  Done when bindings persist and work in a dedicated input scene without menu
-  events reaching gameplay. Rebinding remains unfinished, not implied by B-04a.
 - [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
   restrained materials and spawn inspection; decorative geometry adds no collision.
 - [ ] **B-06: Network/debug display.** Use published MvpSession.connection_state
