@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bip3k4eqkhv74"
-path="res://.godot/imported/flamebot_07_Ochre safety paint_albedo.png-0b3828ef27eacb96ccdb5db5daf71a06.ctex"
+uid="uid://dkml81sks5gdx"
+path="res://.godot/imported/flamebot_07_Oxide red • chipped paint_roughness_metallic.png-78d1f38a65c809b87b6ba4975ff8f3f7.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "08e3adb9bb1ac6a4510a100bf0f7fa56"
+"md5": "9052fd6fb192e69ea6f0a4a867066185"
 }
 
 [deps]
 
-source_file="res://assets/models/flamebot/flamebot_07_Ochre safety paint_albedo.png"
-dest_files=["res://.godot/imported/flamebot_07_Ochre safety paint_albedo.png-0b3828ef27eacb96ccdb5db5daf71a06.ctex"]
+source_file="res://assets/models/flamebot/flamebot_07_Oxide red • chipped paint_roughness_metallic.png"
+dest_files=["res://.godot/imported/flamebot_07_Oxide red • chipped paint_roughness_metallic.png-78d1f38a65c809b87b6ba4975ff8f3f7.ctex"]
 
 [params]
 

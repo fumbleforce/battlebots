@@ -20,6 +20,11 @@ func _initialize() -> void:
 	assert(mesh_count == 7, "Expected seven independently movable meshes")
 	assert(bounds.size.y > 1.8 and bounds.size.y < 2.2, "Godot must be Y up at meter scale")
 	assert(bounds.position.z < -1.2, "Wedge must point toward Godot -Z")
+	var front := model.find_child("WheelRightFront", true, false) as Node3D
+	var rear := model.find_child("WheelRightRear", true, false) as Node3D
+	assert(front.position.z < rear.position.z, "Front wheels must precede rear wheels along -Z")
+	assert(absf(front.position.x - 0.93) < 0.001, "Widened wheel stance must survive export")
+	assert(absf(front.position.y - 0.42) < 0.001, "Wheel pivot height must match revised tire radius")
 	assert(model.find_children("*", "CollisionObject3D", true, false).is_empty(), "Art must not introduce physics")
 	assert(model.find_children("*", "Camera3D", true, false).is_empty(), "Studio must not be exported")
 	print("FLAMEBOT CHECK PASSED: 7 meshes, movable pivots, materials, Y-up/-Z-forward, no physics or studio. Bounds: ", bounds)
