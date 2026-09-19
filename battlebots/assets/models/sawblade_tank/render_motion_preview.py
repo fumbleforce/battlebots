@@ -2,15 +2,15 @@
 import bpy, os
 ROOT=os.path.dirname(os.path.abspath(__file__))
 scene=bpy.context.scene
-atlas=bpy.data.images['SawbladeTank | 1024 color atlas']
-assert tuple(atlas.size)==(1024,1024) and atlas.packed_file is not None
+atlas=bpy.data.images['SawbladeTank | 4096 surface atlas']
+assert tuple(atlas.size)==(4096,4096) and atlas.packed_file is not None
 links=[o for o in bpy.data.objects if o.name.startswith('Tread_')]
 scene.frame_set(1); seam={o.name:o.matrix_world.copy() for o in links}
 scene.frame_set(121)
 for obj in links:
     assert (obj.matrix_world.translation-seam[obj.name].translation).length<1e-5
     assert obj.matrix_world.to_quaternion().rotation_difference(seam[obj.name].to_quaternion()).angle<.001
-print('SAVED_ASSET_VERIFIED',scene['triangle_count'],'triangles, packed 1K atlas, 88 seamless tread links',flush=True)
+print('SAVED_ASSET_VERIFIED',scene['triangle_count'],'triangles, packed 4K atlas, 88 seamless tread links',flush=True)
 scene.render.engine='BLENDER_EEVEE'; scene.eevee.taa_render_samples=16
 scene.eevee.use_gtao=True; scene.eevee.gtao_distance=3; scene.eevee.gtao_factor=1.25
 scene.render.resolution_x=700; scene.render.resolution_y=550; scene.render.resolution_percentage=100

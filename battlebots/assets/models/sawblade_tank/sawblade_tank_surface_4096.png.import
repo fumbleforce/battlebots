@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ck632eystv1df"
-path="res://.godot/imported/sawblade_tank_color_1024.png-4b26d2e248d1e899590b5b8baf1f006c.ctex"
+uid="uid://bhp241dpxw5f"
+path="res://.godot/imported/sawblade_tank_surface_4096.png-3b0c6a1c6aa65d84b4a323287f330008.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/models/sawblade_tank/sawblade_tank_color_1024.png"
-dest_files=["res://.godot/imported/sawblade_tank_color_1024.png-4b26d2e248d1e899590b5b8baf1f006c.ctex"]
+source_file="res://assets/models/sawblade_tank/sawblade_tank_surface_4096.png"
+dest_files=["res://.godot/imported/sawblade_tank_surface_4096.png-3b0c6a1c6aa65d84b4a323287f330008.ctex"]
 
 [params]
 
