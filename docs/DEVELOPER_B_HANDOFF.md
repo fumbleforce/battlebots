@@ -1,4 +1,14 @@
-# Developer B — arena and third-person camera
+# Developer B — combat, bots, customisation and controls
+
+## Current user-defined ownership
+
+B owns combat, bot models/weapons, bot-customisation menus and player controls.
+A owns general menus, networking, game rules, game world and audio. Arena/world,
+general lobby/HUD/results integration and audio are now A responsibilities.
+CombatState/CombatWorld, bot assembly/catalogue and driving are now B
+responsibilities, alongside garage/customisation and input/camera controls.
+See TEAM_WORKFLOW.md for shared interfaces. Older entries below retain historical
+authorship and validation; their ownership labels do not override this split.
 
 ## Results follow-up — 19 September 2026
 

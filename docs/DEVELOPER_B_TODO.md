@@ -1,11 +1,16 @@
 # Worker B — shared task list
 
-B maintains the sections above A's coordination log. Status describes published
-feature branches, not a claim that main contains them or that all release gates pass.
+B maintains the sections above A's coordination log. Completed task branches
+must now merge into main, which is the shared latest game. Historical branch
+entries retain their original validation and do not claim every release gate passed.
 
-**Active branch:** `codex/b-results-followup`, based on integrated A `3f0e80f`.
+**Current ownership:** B owns combat, bot assets/models/weapons, bot-customisation
+menus and player controls. A owns other menus, networking, game rules, game world
+and audio. Historical labels below describe authorship, not current ownership.
+
+**Latest published B branch:** `codex/b-results-followup`, based on integrated A `3f0e80f`.
 **Latest increment:** Detailed final/per-round results, FFA placements and rematch in the default menu shell. See [results follow-up](coordination/B_RESULTS_FOLLOWUP.md).
-**Next:** Spectating and remaining garage/presentation work. Current base includes A's protocol-4 networking and all five weapons.
+**Next:** Combat/bot/control feel and remaining garage/customisation work. A now owns general menu/results/world/audio follow-up. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
@@ -36,27 +41,25 @@ feature branches, not a claim that main contains them or that all release gates 
 
 ## Active and next — B-owned
 
-- [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
-  restrained materials and spawn inspection; decorative geometry adds no collision.
-- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. The supplied menu kit now replaces the default F5 entry through a persistent B session owner; A's explicit legacy scenes/CLI remain available. Prioritize a clear playable 1v1/2v2 lobby, loading and results flow, including hosted play. Ten-player presentation is removed from active scope by the user.
-  **Original scope:** Use existing host/join/leave/team/ready/loadout
-  requests and lobby_changed. Respect authoritative phase/capacity. A's current
-  app menus are integration UI; coordinate replacing their presentation so there
-  is one input producer and one lifecycle owner.
-- [ ] **B-08: Match HUD, results and spectating.** Consume match_changed,
-  bot_updated, combat_event, BotView's zones/timers and spectator_sources().
-  No local winner calculation or inferred ready state.
+- [ ] **Combat and bots:** Maintain damage/resources/recovery, weapon mechanics
+  and visuals, bot assembly/catalogue and model integration. Investigate combat
+  defects handed off by A's network/match-flow checks.
+- [ ] **Controls and camera:** Player input/driving, camera and spectator control
+  behavior, including control-specific settings. Consume A's match phase and
+  spectator sources; do not calculate local winners or ready state.
 - [ ] **B-09: Full garage.** Supplied kit now edits/saves canonical builds with validation and paint. Remaining: live 3D preview, undo/redo, detailed before/after comparisons and full repair UX. APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 
 ## Later B scope and acceptance still open
 
-- [ ] **B-10:** Weapon animation/audio/VFX from authoritative state/events.
+- [ ] **B-10:** Weapon animation/VFX from authoritative state/events. A owns audio.
   Sawblade-tank art is separately published on `codex/b-sawblade-tank`; it is not
   a dependency of the input/menu branch. Primitive spinner/lifter visuals already
-  exist in A's integration, so replace them through a coordinated assembly change.
-- [ ] **B-11:** Tutorial, accessibility, controller presentation and final UI.
+  exist in the integration; bot assembly now belongs to B. Coordinate shared
+  content identity and network-state changes with A.
+- [ ] **B-11:** Control accessibility/controller behavior and bot-customisation
+  polish. A owns general tutorial/menu presentation and audio.
 - [ ] **B-12:** Optional first-person camera after third-person feel is accepted.
 - [ ] **AB-02:** Two-computer LAN and human contact/camera/lifter/recovery playtest.
   Automated localhost/impairment coverage is not evidence for this acceptance gate.
@@ -66,9 +69,14 @@ feature branches, not a claim that main contains them or that all release gates 
 
 ## Editing and branch boundaries
 
-B owns UI, input/camera presentation, arena/assets, B dev scenes/fixtures/tests and
-B docs. A owns app bootstrap, session/core/simulation/bot assembly and integration
-tests. Shared APIs stay compatible unless a coordinated contract change says otherwise.
+B owns combat/bot/weapon implementation, bot assets, garage/customisation and
+player controls. A owns general menus, networking, match rules, world/arena and
+audio. Tests follow feature ownership. TEAM_WORKFLOW.md maps mixed folders and
+shared interfaces; old a_/b_ scene prefixes do not override the current split.
+
+Former B arena readability, lobby/loading/results, general HUD/menu and audio
+todos transfer to A. Former A combat/weapon/drive/bot-assembly maintenance
+transfers to B. Shared APIs stay compatible unless a coordinated change says otherwise.
 
 Use a focused branch per independent feature. B-04 starts from the published A/B
 integration because it tests real combat cancellation; it does not inherit the
@@ -93,6 +101,23 @@ integration base, not the still-old main branch.
 - No input action, BotCommand field or wire-version changes are required.
 
 ## Developer A — current coordination
+
+- **Merge-down rule:** Completed branches must merge into shared main after
+  validation; a feature-branch push alone no longer completes an increment.
+  A is consolidating the completed A/B history and the current ownership/duel
+  check. Future tasks start from updated origin/main. In-progress work stays
+  separate and must be identified explicitly.
+
+- **Ownership revision applied:** A = menus/networking/game rules/game world/audio;
+  B = combat/bot models and weapons/bot-customisation menus/player controls.
+  AGENTS.md and TEAM_WORKFLOW.md now govern current ownership. Earlier entries
+  in this log preserve history only; new combat fixes are handed to B.
+
+- **Actual duel combat loop:** A is checking canonical bots using real commands,
+  weapon damage and normal match rules through results/rematch, since the existing
+  menu fixture ends rounds by forfeit. Owns independent A integration fixture and
+  demonstrated A fixes only; no B assets/UI or ten-player work. See
+  [duel plan](coordination/A_DUEL_COMBAT_LOOP.md).
 
 - **Small-match playtest packaged:** Windows `battlebots-gameplay-8433dc0.zip`
   includes the merged B results/rematch screen and menu music. Exported menu
@@ -154,7 +179,7 @@ integration base, not the still-old main branch.
   the menu/music playtest ZIP remains untouched. Saw and performance/services follow.
 
 - **Horizontal spinner (implemented):** `codex/a-horizontal-spinner`, based on menu
-  export `db87257`. A owns CombatState/CombatWorld, catalogue, loadout migration,
+  export `db87257`. A historically implemented CombatState/CombatWorld, catalogue, loadout migration,
   primitive bot weapon visual and independent state/physics/ENet scenes. Add
   horizontal_spinner (30 kg/40 power), two-second charge, 40 max raw impact,
   60% charge consumption, 0.3-second target cooldown and lateral recoil.

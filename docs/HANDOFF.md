@@ -1,5 +1,26 @@
 # Current A/B handoff
 
+## Shared integration baseline
+
+Per the user's instruction, completed task branches merge into main after
+validation. Main is the shared latest combined game; future tasks begin from
+updated origin/main. Historical feature-branch names below identify provenance,
+not separate places the other developer must collect to obtain finished work.
+Any genuinely unfinished remote branch is called out rather than merged blindly.
+
+## Current ownership — user revision
+
+- **A:** menus, networking, game rules, game world and audio.
+- **B:** combat, bot assets (models and weapons), bot-customisation menus and
+  player controls.
+
+General menu/session/results integration, arena/world and audio move to A.
+Combat/weapon mechanics, bot assembly/catalogue and driving move to B. Garage
+and bot customisation stay with B. Historical author/owner labels below describe
+past work only. AGENTS.md and TEAM_WORKFLOW.md contain the current boundaries.
+The natural-duel fixture remains A integration of network and match rules;
+demonstrated combat/control defects are handed to B rather than changed by A.
+
 ## Current user priority
 
 The user has removed ten-player support and testing from active todos and asked
@@ -10,6 +31,19 @@ Existing modes, tests and historical measurements remain, but old ten-player
 acceptance targets below do not create current work or block this gameplay scope.
 
 ## Current Developer A increment
+
+`codex/a-duel-combat-loop` adds an independent two-player natural-combat check
+and applies the user's revised ownership throughout the active docs. The final
+check passed at 93.5 seconds: sixteen real hammer hits, two core-destruction
+round wins, synchronized results and a fully repaired active rematch. Canonical
+commands/physics/rules remain unchanged; no forfeit or injected health/charge.
+No ten-player work is included. See [duel evidence](coordination/A_DUEL_COMBAT_LOOP.md).
+
+CI 35470427285 reproduced native exit 0xC0000005 after DRIVE PASS. This extends
+the known shutdown evidence below; it is not a passing drive validation run.
+No retries or relaxed failure detection are used to declare that issue fixed.
+Hosted CI 35470075437 subsequently passed its complete suite/export checks;
+that successful run does not resolve the intermittent native shutdown failure.
 
 Fresh Windows gameplay package from source `8433dc0`:
 `battlebots/exports/playtest/battlebots-gameplay-8433dc0.zip` (129,573,157 bytes),
@@ -298,7 +332,8 @@ See [A MVP acceptance](A_MVP_TASKS.md) and the phase assignments in
 [TEAM_WORKFLOW.md](TEAM_WORKFLOW.md), subject to the current priority above.
 A still owns playable small-match network/contact acceptance,
 public services and verified persistence. These are not complete just because
-MVP automated tests pass. B owns the final garage/presentation/user experience.
+MVP automated tests pass. B owns combat, bots, garage/customisation and player
+controls; A owns general menus, world and audio under the revised division.
 
 Earlier measurements and incremental handoffs are retained in
 [the dated archive](archive/A_HANDOFF_2026-09-19.md); that archive is historical.

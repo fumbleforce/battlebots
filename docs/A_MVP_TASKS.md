@@ -1,6 +1,8 @@
 # Developer A MVP work
 
-Owner: A. Earlier playable checkpoint: `codex/a-b-integration` at `bdb42ef`.
+Owner: A — menus, networking, game rules, game world and audio. B owns combat,
+bot models/weapons, bot-customisation menus and player controls. Earlier playable
+checkpoint: `codex/a-b-integration` at `bdb42ef`.
 Current integration: `ec3195e`, including hosted matchmaking and B's results menu.
 User priority: actual playable 1v1/2v2 gameplay. Ten-player support, optimization
 and acceptance are removed from the active todos. Existing implementation and
@@ -12,9 +14,6 @@ client prediction/snapshots, and documented APIs for B. Primitive bot visuals an
 isolated A test fixtures are intentional. Prioritize combat, weapon feedback,
 round completion, rematch and easy online play over population scaling.
 
-- [x] Drive foundation and ground contact; regression tests.
-- [x] Canonical MVP catalogue, typed validation, assembly, versioned saves/migration.
-- [x] Damage zones, spinner/lifter, battery/heat, recovery, elimination and pins.
 - [x] 2v2 lifecycle, readiness, judging, simultaneous wipes, rematch and results.
 - [x] ENet host/join/leave, ownership/input validation, baseline and snapshots.
 - [x] Local prediction, remote smoothing, reconnect and disconnect timeout.
@@ -35,10 +34,12 @@ without running them.
 
 ## Additional implemented gameplay and remaining services
 
-- [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; independent rules/session/menu checks pass.
-- [x] Horizontal spinner with server-owned swept side contact, recoil and independent state/physics/ENet checks.
-- [x] Hammer with committed overhead sweep, press edges, resource/recovery timing and Duelist starter; independent state/physics/ENet checks.
-- [x] Saw maintained-contact cadence, resources, swept blade and independent state/physics/ENet checks.
+- [x] Main menu/LAN flow and online-client integration; detailed results/rematch merged.
+- [x] User-supplied menu melody integrated and included in playtest exports.
+- [x] Arena/world integration, spawn lifecycle and authoritative match rules.
+- [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; historical implemented mode.
+- [ ] General menu/HUD/tutorial polish and arena readability for playable small matches.
+- [ ] Gameplay audio from authoritative combat/match events, coordinated with B's weapons.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.
   Hosted playtest increment `codex/a-hosted-matchmaking` adds guest identity,
   private codes, solo 2v2 queue, dedicated allocation and admission. Persistent
@@ -46,4 +47,6 @@ without running them.
 
 Apply the user's current gameplay priority when ordering this work. Historical
 ten-player targets in the original spec/handoffs are outside the active backlog.
-Final art, menu/garage UX, accessibility and camera work belong to B.
+Combat, drive/ground physics, bot assembly/catalogue, all five weapon families and
+loadout persistence were implemented earlier; their maintenance now belongs to B.
+A retains network prediction/integration and consumes B's public bot interfaces.

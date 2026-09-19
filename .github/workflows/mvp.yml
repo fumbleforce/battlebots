@@ -8,7 +8,7 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Godot and export templates
@@ -31,10 +31,13 @@ jobs:
       - name: Validate baseline, rules, physics and impaired four-peer networking
         shell: pwsh
         run: ./tools/check-mvp.ps1 -GodotPath $env:GODOT
-      - name: Check B presentation and menu integration
+      - name: Check presentation and menu integration
         # Both developers' integration checks precede the exported playtest builds.
         shell: pwsh
         run: ./battlebots/tests/presentation/check-presentation.ps1 -GodotPath $env:GODOT
+      - name: Check natural two-player combat and rematch
+        shell: pwsh
+        run: ./tools/check-gameplay.ps1 -GodotPath $env:GODOT
       - uses: actions/setup-node@v4
         with:
           node-version: '24'

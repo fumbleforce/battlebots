@@ -2,7 +2,10 @@
 
 The first sections describe local typed GDScript interfaces; the session section
 below documents the implemented MVP wire-facing API. This is not the full game API.
-A owns implementation definitions under scripts/core; B consumes them via adapters.
+A owns networking/session and match/world contracts; B owns combat/bot/control
+and customisation implementations. Shared command/view/loadout records are
+coordinated producer-consumer interfaces, not blanket A ownership of scripts/core.
+The current split in TEAM_WORKFLOW.md supersedes historical authorship below.
 Paths below are relative to the Godot project.
 
 ## BotCommand

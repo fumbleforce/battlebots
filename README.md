@@ -2,18 +2,25 @@
 
 Godot **4.7.2 stable** / Jolt / typed GDScript. Two developers, one repository, separate local clones.
 
+## Current developer ownership
+
+A owns menus, networking, game rules, game world and audio. B owns combat, bot
+models/weapons, bot-customisation menus and player controls. This supersedes
+historical role labels in older notes; see [workflow](docs/TEAM_WORKFLOW.md).
+
 ## Start
 1. Clone the repository locally and install Godot 4.7.2 stable.
 2. Import `battlebots/project.godot` into Godot.
-3. Press **F5**. Choose **Host Game**, **Join Game**, **Practice**, or **Garage** directly.
+3. Press **F5**. Choose **Host LAN Game**, **Join LAN Game**, **Practice**, or **Garage** directly. **Play Online** requires a deployed/configured service.
 4. Hosts choose a mode then create a lobby. Joining goes straight to the host address and port. Practice immediately uses the selected bot. The Foundry is the only map, so no map-selection step is required.
 
 The user-supplied Godot menu kit is integrated at `battlebots/ui/menus`. Its eight
 screens retain the supplied art/theme and use real loadouts and LAN session state.
 Garage/Customize edit canonical free parts and save named builds locally. Settings
 uses the real camera/control preferences. Concept images remain 2D; career,
-ranked/public matchmaking, invites and decals are not implemented. Choose
-**Host Game** for duel, 2v2, 5v5 or FFA; **Join Game** accepts the host's mode automatically.
+ranked play, invites and decals are not implemented. Public room codes and a solo
+2v2 queue are implemented but deployment is pending. Choose **Host LAN Game**
+for a local match; **Join LAN Game** accepts the host's mode automatically.
 See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
 
 ## Work independently
@@ -151,8 +158,12 @@ clients and complete five-round result delivery. Network tests must run in real
 time, without `--fixed-fps` acceleration.
 Independent `tests/simulation/ffa_rules.tscn`, `tests/network/ffa_session.tscn`
 and the FFA menu integration test cover rules, impaired sessions and app flow.
-Public identity/allocation, full performance/soak
-acceptance and release polish remain future work. Local automated tests do not
+`tools/check-gameplay.ps1 -GodotPath <console executable>` runs the independent
+natural duel: real drive/weapon commands, normal round rules, results and rematch.
+It leaves production timers and combat state unchanged; allow up to its bounded
+500-second match deadline. This is automated integration, not human feel approval.
+Public deployment, durable identity/results and release polish remain future work.
+Ten-player performance/soak is removed from active scope. Local automated tests do not
 replace the two-computer LAN and human control-feel playtest.
 
 Published Flamebot and sawblade art is included for inspection. The game still uses
