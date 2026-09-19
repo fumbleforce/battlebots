@@ -16,12 +16,14 @@ def tri_count():
     return count
 before=tri_count()
 if before>18000:
-    ratio=17500/before
-    for obj in meshes:
+    protected=sum(len(obj.data.loop_triangles) for obj in meshes if obj.get('preserve_shape'))
+    ratio=(17500-protected)/(before-protected)
+    for obj in [o for o in meshes if not o.get('preserve_shape')]:
         bpy.context.view_layer.objects.active=obj
         mod=obj.modifiers.new('PS3 geometry budget','DECIMATE'); mod.ratio=ratio
         bpy.ops.object.modifier_apply(modifier=mod.name)
 print('PS3_TRIANGLES',before,tri_count(),flush=True)
+assert tri_count()<=18000, 'PS3 triangle budget exceeded'
 for obj in meshes: obj.select_set(True)
 bpy.context.view_layer.objects.active=meshes[0]
 bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')

@@ -28,7 +28,8 @@ yellow=mat('01 | worn ochre enamel',(.60,.285,.012),.35,.57,True)
 dark=mat('02 | graphite steel',(.055,.063,.066),.8,.43,True)
 rubber=mat('03 | carbon tread pads',(.028,.033,.036),.15,.66)
 steel=mat('04 | machined edge steel',(.39,.43,.46),.85,.29)
-rust=mat('05 | oxidized saw steel',(.29,.23,.19),.7,.48,True)
+rust=mat('05 | oxidized saw steel',(.26,.245,.23),.65,.48,True)
+cutting=mat('09 | freshly ground cutting steel',(.60,.62,.64),.55,.32)
 chrome=mat('06 | hydraulic polished rods',(.62,.67,.71),.95,.2)
 black=mat('07 | hazard charcoal',(.027,.03,.029),.35,.48,True)
 hazard=yellow.copy(); hazard.name='08 | diagonal warning enamel'
@@ -52,13 +53,13 @@ def box(name,loc,size,m,bevel=.015):
     bpy.ops.mesh.primitive_cube_add(size=1,location=loc); o=bpy.context.object; o.dimensions=size
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
     return finish(o,name,m,bevel)
-def cyl(name,loc,r,depth,m,axis='X',verts=24):
+def cyl(name,loc,r,depth,m,axis='X',verts=16,bevel=.007):
     bpy.ops.mesh.primitive_cylinder_add(vertices=verts,radius=r,depth=depth,location=loc)
     o=bpy.context.object
     if axis=='X': o.rotation_euler[1]=pi/2
     elif axis=='Y': o.rotation_euler[0]=pi/2
     bpy.ops.object.transform_apply(location=False,rotation=True,scale=True)
-    return finish(o,name,m,.007)
+    return finish(o,name,m,bevel)
 def bar(name,a,b,width,depth,m):
     mid=(Vector(a)+Vector(b))/2; o=box(name,mid,(width,depth,(Vector(b)-Vector(a)).length),m)
     o.rotation_euler=Vector(b).__sub__(Vector(a)).to_track_quat('Z','Y').to_euler(); return o
@@ -89,6 +90,37 @@ for x in [-.19,.19]:
     bar('Carry handle upright',(x,-.68,1.63),(x,-.68,1.78),.055,.055,dark)
 rod('Carry handle grip',(-.19,-.68,1.78),(.19,-.68,1.78),.034,steel)
 
+# Reference-like layered machinery fills the space between the rear pack and saw.
+box('Central motor block',(0,-.03,.84),(.34,.53,.23),dark,.025)
+for y in [-.23,-.12,-.01,.10]:
+    box('Motor cooling rib',(0,y,.955),(.38,.037,.035),dark,.005)
+cyl('Transverse upper pivot shaft',(0,.24,1.26),.07,.75,dark)
+for x in [-.39,.39]:
+    sign=1 if x>0 else -1
+    box('Rear linkage tower',(x,-.41,1.13),(.10,.16,.40),dark,.017)
+    bar('Diagonal tower brace',(x,-.59,.80),(x,-.36,1.28),.075,.075,dark)
+    box('Rear lower latch',(x,-.432,.86),(.12,.045,.19),dark,.012)
+    for z in [.815,.915]: cyl('Latch bolt',(x,-.468,z),.024,.018,steel,'Y',6,.003)
+    rod('Upper hydraulic cylinder',(x,-.37,1.19),(x,.01,1.29),.045,yellow)
+    rod('Upper chrome piston',(x,.01,1.29),(x,.27,1.36),.018,chrome)
+    rod('Actuator end collar',(x,-.06,1.272),(x,.00,1.288),.052,dark)
+    cyl('Upper arm pivot',(x,.27,1.34),.068,.105,dark,verts=12)
+    cyl('Upper arm pin',(x+sign*.062,.27,1.34),.029,.018,steel,verts=6)
+    rod('Long side hydraulic body',(x,-.43,.75),(x,.02,.75),.075,yellow)
+    rod('Long side piston',(x,.02,.75),(x,.48,.75),.029,chrome)
+    for y in [-.44,-.03]: cyl('Side cylinder collar',(x,y,.75),.085,.045,dark,'Y',12)
+    box('Hydraulic mounting saddle',(x,-.20,.69),(.17,.22,.045),dark,.007)
+    for y in [-.28,-.13]: cyl('Saddle bolt',(x+sign*.089,y,.70),.019,.012,steel,verts=6,bevel=.002)
+    box('Deck side rail',(x,.0,.65),(.075,1.22,.085),dark,.012)
+    for y in [-.38,.01,.37]:
+        box('Track support bracket',(x+sign*.07,y,.57),(.10,.10,.18),yellow,.009)
+        cyl('Bracket pin',(x+sign*.13,y,.57),.023,.014,dark,verts=6,bevel=.003)
+    # Shallow panel seams and rear housing feet break up the large armor block.
+    box('Armor lower foot',(x,-.64,.70),(.19,.35,.09),dark,.015)
+    for z in [1.03,1.105,1.18]:
+        box('Rear pack intake',(x,-.438,z),(.115,.015,.025),black,.002)
+    box('Pack corner spine',(x*1.19,-.433,1.18),(.052,.04,.63),yellow,.009)
+
 # Individual tread shoes run along a stadium loop in the Y/Z plane.
 A=.60; R=.285; Z=.345; L=4*A+2*pi*R; COUNT=44; FRAMES=120
 def path(s):
@@ -105,25 +137,18 @@ for side,x in [('L',-.66),('R',.66)]:
     box('Track internal frame '+side,(x,0,.34),(.24,1.24,.31),dark,.045)
     for y,r in [(-A,.247),(A,.247),(-.22,.17),(.22,.17)]:
         wheel=empty('Drive wheel '+side+str(y),(x,y,Z))
-        parts=[cyl('Wheel tire',(x,y,Z),r,.26,rubber),cyl('Ochre wheel rim',(x+(.15 if x>0 else -.15),y,Z),r*.83,.038,yellow)]
-        outer=x+(.18 if x>0 else -.18)
-        parts.append(cyl('Axle cap',(outer,y,Z),r*.28,.05,steel,verts=12))
-        for j in range(8):
-            q=2*pi*j/8
-            parts.append(cyl('Rim recess',(outer,y+cos(q)*r*.62,Z+sin(q)*r*.62),r*.105,.008,dark,verts=8))
+        parts=[cyl('Plain wheel drum',(x,y,Z),r,.26,rubber,verts=12,bevel=0),cyl('Flat ochre wheel face',(x+(.14 if x>0 else -.14),y,Z),r*.81,.016,yellow,verts=12,bevel=0)]
+        outer=x+(.155 if x>0 else -.155)
+        parts.append(cyl('Flush axle cap',(outer,y,Z),r*.26,.022,dark,verts=8,bevel=0))
         bpy.context.view_layer.update()
         for o in parts: parent_keep(o,wheel)
         for f in [1,121]:
             wheel.rotation_euler[0]=-(f-1)/120*L/r; wheel.keyframe_insert(data_path='rotation_euler',frame=f)
         linear(wheel)
     for j in range(COUNT):
-        o=box('Tread_'+side+'_%02d'%j,(0,0,0),(.34,L/COUNT*.92,.069),dark,.008)
-        # Pads and raised cross-cleats are joined to their shoe before animation.
-        pad=box('Pad',(0,0,.042),(.255,L/COUNT*.71,.034),rubber,.005)
-        cleat=box('Steel grouser',(0,0,.062),(.32,.018,.018),steel,.003)
-        bpy.ops.object.select_all(action='DESELECT')
-        for p in [o,pad,cleat]: p.select_set(True)
-        bpy.context.view_layer.objects.active=o; bpy.ops.object.join()
+        # A single low-profile shoe: no stacked pads or protruding grousers.
+        o=box('Tread_'+side+'_%02d'%j,(0,0,0),(.34,L/COUNT*.96,.046),dark,.004)
+        o['preserve_shape']=True
         o.parent=belt
         for f in range(1,122):
             distance=j*L/COUNT+(f-1)*L/120
@@ -133,7 +158,8 @@ for side,x in [('L',-.66),('R',.66)]:
             o.keyframe_insert(data_path='location',frame=f); o.keyframe_insert(data_path='rotation_euler',frame=f)
         linear(o)
     sign=1 if x>0 else -1
-    box('Side service armor '+side,(x+sign*.15,-.05,.47),(.055,.66,.34),yellow,.025)
+    box('Side service armor '+side,(x+sign*.15,-.05,.47),(.055,.73,.34),yellow,.025)
+    box('Service plate raised spine '+side,(x+sign*.183,.24,.47),(.025,.10,.33),yellow,.008)
     for z in [.405,.49]: box('Cooling slot '+side,(x+sign*.183,-.05,z),(.008,.40,.036),black,.002)
     for y in [-.31,.22]: cyl('Service plate bolt',(x+sign*.19,y,.57),.024,.018,steel,verts=6)
 
@@ -157,12 +183,21 @@ for x in [-.23,.23]:
     o=bpy.data.objects.new('Black hydraulic hose',curve); bot.objects.link(o); o.data.materials.append(rubber)
 
 center=Vector((0,1.16,.97)); saw=empty('Saw_SPIN_X',center)
-parts=[cyl('Saw disc',center,.61,.075,rust,verts=64)]
-# Alternating machined concentric rings lend the blade its turned-steel face.
-for x in [-.041,.041]:
-    for radius in [.23,.36,.49,.585]:
-        bpy.ops.mesh.primitive_torus_add(major_segments=48,minor_segments=3,location=(x,1.16,.97),major_radius=radius,minor_radius=.003,rotation=(0,pi/2,0))
-        parts.append(finish(bpy.context.object,'Concentric tool mark',steel))
+# Thin plate with a ground, double-beveled cutting rim.
+verts=[]; faces=[]; N=64
+profile=[(-.027,.08),(-.027,.555),(-.004,.612),(.004,.612),(.027,.555),(.027,.08)]
+for xx,rr in profile:
+    for j in range(N):
+        q=j*2*pi/N; verts.append((xx,1.16+rr*cos(q),.97+rr*sin(q)))
+for k in range(len(profile)):
+    for j in range(N): faces.append((k*N+j,k*N+(j+1)%N,((k+1)%len(profile))*N+(j+1)%N,((k+1)%len(profile))*N+j))
+mesh=bpy.data.meshes.new('Ground saw rim mesh'); mesh.from_pydata(verts,[],faces); mesh.update()
+disc=bpy.data.objects.new('Saw disc | sharpened bevel',mesh); bot.objects.link(disc); finish(disc,disc.name,rust)
+disc.data.materials.append(cutting)
+for polygon in disc.data.polygons:
+    if polygon.index//N in [1,2,3]: polygon.material_index=1
+disc['preserve_shape']=True; parts=[disc]
+for x in [-.033,.033]:
     parts.append(cyl('Saw hub',(x*1.7,1.16,.97),.155,.07,dark,verts=24))
     parts.append(cyl('Saw locknut',(x*2.7,1.16,.97),.061,.05,yellow,verts=6))
     for j in range(6):
@@ -170,8 +205,17 @@ for x in [-.041,.041]:
         parts.append(cyl('Hub bolt',(x*2.6,1.16+.115*cos(q),.97+.115*sin(q)),.018,.018,steel,verts=6))
 for j in range(24):
     q=j*2*pi/24
-    o=box('Carbide tooth %02d'%j,(0,1.16+.635*cos(q),.97+.635*sin(q)),(.11,.112,.098),steel,.008)
-    o.rotation_euler[0]=q+.16; parts.append(o)
+    # Swept asymmetric wedge tapers from a wide root to a fine cutting point.
+    # Local 2D outline uses radial distance and tangent offset.
+    outline=[(.582,-.065),(.677,-.020),(.606,.055)]
+    vv=[]
+    for side in [-1,1]:
+        for i,(rr,tt) in enumerate(outline):
+            thickness=.004 if i==1 else .031
+            vv.append((side*thickness,1.16+rr*cos(q)-tt*sin(q),.97+rr*sin(q)+tt*cos(q)))
+    mm=bpy.data.meshes.new('Ground carbide wedge'); mm.from_pydata(vv,[],[(0,2,1),(3,4,5),(0,1,4,3),(1,2,5,4),(2,0,3,5)]); mm.update()
+    o=bpy.data.objects.new('Carbide cutting tooth %02d'%j,mm); bot.objects.link(o); finish(o,o.name,cutting)
+    o['preserve_shape']=True; parts.append(o)
 bpy.context.view_layer.update()
 for o in parts: parent_keep(o,saw)
 for f in [1,121]:

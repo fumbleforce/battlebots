@@ -9,7 +9,7 @@ The source includes a studio camera and lighting, with all textures packed.
 
 ## Art and animation
 
-- PS3-inspired asset budget: 17,132 evaluated model triangles, also recorded in
+- PS3-inspired asset budget: 17,220 evaluated model triangles, also recorded in
   `validation.json`. No subdivision surfaces.
 - One shared 1024 × 1024 color atlas, supplied as PNG and packed into the blend.
   Surface groups use scalar metallic/roughness values. No runtime procedural
@@ -20,8 +20,16 @@ The source includes a studio camera and lighting, with all textures packed.
 - `Saw_SPIN_X` makes six revolutions in four seconds (90 RPM for the preview).
 - Frames 1–120 at 30 FPS form the loop. Frame 121 is the matching endpoint.
   Linear keys and cycle modifiers keep the loops running beyond the timeline.
-- Exposed hydraulic rods, fork supports, service covers, handle, hazard stripes,
-  chamfered armor and a toothed vertical saw follow the supplied reference.
+- Sharpened asymmetric carbide teeth taper to 8 mm cutting tips; the thin saw
+  plate has a double-beveled steel rim. Teeth and tread shapes are protected from
+  automatic geometry reduction.
+- Flat, single-piece 46 mm tread plates replace raised pads and cross-cleats.
+  Wheels use simple 12-sided drums and faces with small flush axle caps.
+- Reference-inspired paired upper/lower hydraulics, motor cooling ribs, pivot
+  shaft, rear linkage towers, latches, intake slots, mounting saddles, track
+  brackets and layered service panels add detail to the chassis.
+- Animation timing, atlas resolution and the under-18,000-triangle limit are
+  unchanged by this refinement.
 
 ## Coordinates and integration handoff
 
