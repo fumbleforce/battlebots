@@ -38,7 +38,7 @@ feature branches, not a claim that main contains them or that all release gates 
 
 - [ ] **B-05: Arena readability.** Color-independent team markers, bot facing,
   restrained materials and spawn inspection; decorative geometry adds no collision.
-- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. The supplied menu kit now replaces the default F5 entry through a persistent B session owner; A's explicit legacy scenes/CLI remain available. A's merged backend supports 5v5/FFA through the advanced setup route; extending B's lobby/loading/results layouts to those modes and public services remains open.
+- [ ] **B-07 integration:** Playable B scene and reusable panel/adapter are implemented. The supplied menu kit now replaces the default F5 entry through a persistent B session owner; A's explicit legacy scenes/CLI remain available. Prioritize a clear playable 1v1/2v2 lobby, loading and results flow, including hosted play. Ten-player presentation is removed from active scope by the user.
   **Original scope:** Use existing host/join/leave/team/ready/loadout
   requests and lobby_changed. Respect authoritative phase/capacity. A's current
   app menus are integration UI; coordinate replacing their presentation so there
@@ -60,8 +60,9 @@ feature branches, not a claim that main contains them or that all release gates 
 - [ ] **B-12:** Optional first-person camera after third-person feel is accepted.
 - [ ] **AB-02:** Two-computer LAN and human contact/camera/lifter/recovery playtest.
   Automated localhost/impairment coverage is not evidence for this acceptance gate.
-- [ ] **Release:** Full 5v5/FFA presentation, remaining weapon families and full
-  game-spec coverage. MVP 1v1/2v2 support does not satisfy the whole game spec.
+- [ ] **Gameplay acceptance:** Playable 1v1/2v2 combat, clear weapon/damage feedback,
+  complete round/results/rematch flow and a human playtest. The user's current
+  priority is actual gameplay, not larger player counts.
 
 ## Editing and branch boundaries
 
@@ -92,6 +93,12 @@ integration base, not the still-old main branch.
 - No input action, BotCommand field or wire-version changes are required.
 
 ## Developer A — current coordination
+
+- **User priority correction:** Stop ten-player expansion, bandwidth optimization
+  and soak work; remove them from active todos. Focus on playable 1v1/2v2 combat
+  and the complete player flow. Existing larger modes and historical evidence
+  remain in the code/docs, but do not create further work or release gates.
+  No snapshot codec changes were made before this correction.
 
 - **Results integration:** A is integrating published B `cc49a15` with hosted
   `2eefc31` on `codex/a-results-integration`. Both results/rematch presentation

@@ -1,15 +1,16 @@
 # Developer A MVP work
 
 Owner: A. Earlier playable checkpoint: `codex/a-b-integration` at `bdb42ef`.
-Current combined playtest: `codex/a-b-playtest`, with FFA `b71cb9b` and B's published
-menu/controls/art branches. `codex/a-menu-flow` updates navigation and the playtest
-export; the user requested resuming remaining spec work after that export is ready.
+Current integration: `ec3195e`, including hosted matchmaking and B's results menu.
+User priority: actual playable 1v1/2v2 gameplay. Ten-player support, optimization
+and acceptance are removed from the active todos. Existing implementation and
+historical evidence remain; they do not create further ten-player work.
 
 Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,
 client prediction/snapshots, and documented APIs for B. Primitive bot visuals and
-isolated A test fixtures are intentional. Full 5v5/FFA and remaining three weapon
-families are phase 4, not MVP; public account/allocation services are phase 5.
+isolated A test fixtures are intentional. Prioritize combat, weapon feedback,
+round completion, rematch and easy online play over population scaling.
 
 - [x] Drive foundation and ground contact; regression tests.
 - [x] Canonical MVP catalogue, typed validation, assembly, versioned saves/migration.
@@ -25,27 +26,24 @@ families are phase 4, not MVP; public account/allocation services are phase 5.
 - [x] Sustained wall/chamfer collision bounds and settling; inactive/eliminated remote extrapolation regression.
 - [x] Reliable match transitions and one-second state recovery under total unreliable-snapshot loss; independent actual-ENet regression.
 - [ ] Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
-- [ ] Diagnose intermittent CI observer convergence failures (FFA damage in 35466215676; 5v5 rematch spawn in 35466883297). Strict gates remain; local reproductions pass.
+- [ ] Diagnose intermittent CI observer convergence failure (FFA damage in 35466215676) when relevant to gameplay work. Existing strict tests remain.
 - [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
 
 The final LAN and human-feel gate cannot be replaced by localhost tests. Record
 actual measured outcomes and remaining gates in HANDOFF.md; do not mark them passed
 without running them.
 
-## Full-spec A work after the MVP
+## Additional implemented gameplay and remaining services
 
-- [x] Ten-player 5v5 authority/session and 240-second rounds; impaired-session and independent-process checks pass.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; independent rules/session/menu checks pass.
 - [x] Horizontal spinner with server-owned swept side contact, recoil and independent state/physics/ENet checks.
 - [x] Hammer with committed overhead sweep, press edges, resource/recovery timing and Duelist starter; independent state/physics/ENet checks.
 - [x] Saw maintained-contact cadence, resources, swept blade and independent state/physics/ENet checks.
-- [ ] Ten-player combat/performance/bandwidth and sustained soak acceptance.
-  Independent eleven-process harness implemented on `codex/a-performance`;
-  short smoke runs are not the required sixty-minute or rendered acceptance.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.
   Hosted playtest increment `codex/a-hosted-matchmaking` adds guest identity,
   private codes, solo 2v2 queue, dedicated allocation and admission. Persistent
   accounts/results, parties, region/skill matching and release acceptance remain open.
 
-These remain part of A's goal. The MVP checklist does not redefine the complete
-requested game. Final art, menu/garage UX, accessibility and camera work belong to B.
+Apply the user's current gameplay priority when ordering this work. Historical
+ten-player targets in the original spec/handoffs are outside the active backlog.
+Final art, menu/garage UX, accessibility and camera work belong to B.

@@ -1,5 +1,14 @@
 # Current A/B handoff
 
+## Current user priority
+
+The user has removed ten-player support and testing from active todos and asked
+for actual gameplay instead. Stop ten-player bandwidth/soak/expansion work; focus
+on playable 1v1/2v2 combat and the complete online round/results/rematch flow.
+The proposed snapshot-bandwidth increment was cancelled before code changes.
+Existing modes, tests and historical measurements remain, but old ten-player
+acceptance targets below do not create current work or block this gameplay scope.
+
 ## Current Developer A increment
 
 `codex/a-results-integration` combines hosted `2eefc31` with B results `cc49a15`.
@@ -52,8 +61,8 @@ The full public-release service scope remains open: durable accounts/results,
 parties, region/skill matching, multi-Machine allocation and release acceptance.
 The earlier performance increment's 300-second run reached 59.996 Hz, all five
 weapons, one completed match and rematch. Its average downstream was under budget,
-but ten-second peaks reached about 114 KB/s; burst/soak/rendering work remains open.
-Full soak is deferred while the requested online playtest path is prepared.
+but ten-second peaks reached about 114 KB/s. Those ten-player optimization and
+soak targets are now outside active scope per the user's priority correction.
 
 ### Preceding performance and weapons increment
 
@@ -275,8 +284,8 @@ work on `codex/b-match-results` remains an intent document, not completed UI.
 ## Remaining delivery scope
 
 See [A MVP acceptance](A_MVP_TASKS.md) and the phase assignments in
-[TEAM_WORKFLOW.md](TEAM_WORKFLOW.md). A still owns network/contact acceptance,
-ten-player combat/server performance,
+[TEAM_WORKFLOW.md](TEAM_WORKFLOW.md), subject to the current priority above.
+A still owns playable small-match network/contact acceptance,
 public services and verified persistence. These are not complete just because
 MVP automated tests pass. B owns the final garage/presentation/user experience.
 
