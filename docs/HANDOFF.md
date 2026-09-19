@@ -33,6 +33,16 @@ acceptance targets below do not create current work or block this gameplay scope
 
 ## Current Developer A increment
 
+`codex/a-gameplay-audio` adds A-owned first-pass impact, round, warning and recovery
+cues with captions, plus saved volume/mute settings. The menu composes Audio
+alongside existing control settings and routes the supplied melody through its
+own music bus. B combat, controls, assets and customisation remain unchanged.
+Focused audio/controller/settings/menu checks, the baseline and the real-time
+two-peer results/rematch check with cue assertions passed; see
+[audio evidence and limitations](coordination/A_GAMEPLAY_AUDIO.md). This is
+procedural first-pass sound, with spatial mixing and listening polish still open.
+The existing playtest ZIP below predates this increment.
+
 `codex/a-duel-combat-loop` adds an independent two-player natural-combat check
 and applies the user's revised ownership throughout the active docs. The final
 check passed at 93.5 seconds: sixteen real hammer hits, two core-destruction

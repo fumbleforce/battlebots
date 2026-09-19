@@ -17,6 +17,13 @@ function Invoke-PresentationCheck {
     }
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--editor', '--import', '--quit')
+foreach ($check in @(@('gameplay_audio_test.gd', 'GAMEPLAY AUDIO PASS'),
+    @('audio_settings_test.gd', 'AUDIO SETTINGS PASS'),
+    @('audio_menu_test.gd', 'AUDIO MENU PASS'))) {
+    Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+        '--max-fps', '60', '--script', "res://tests/audio/$($check[0])",
+        '--quit-after', '6000') -Marker $check[1]
+}
 $checks = @(
     @('match_results_test.gd', 'MATCH RESULTS PASS'),
     @('camera_arena_test.gd', 'PRESENTATION PASS'),

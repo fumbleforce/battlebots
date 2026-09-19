@@ -3,7 +3,8 @@
 Owner: A — menus, networking, game rules, game world and audio. B owns combat,
 bot models/weapons, bot-customisation menus and player controls. Earlier playable
 checkpoint: `codex/a-b-integration` at `bdb42ef`.
-Current integration: `ec3195e`, including hosted matchmaking and B's results menu.
+Current shared baseline: `ad1607d` on main, including hosted matchmaking, B's
+results menu and natural-duel validation. Completed increments push main directly.
 User priority: actual playable 1v1/2v2 gameplay. Ten-player support, optimization
 and acceptance are removed from the active todos. Existing implementation and
 historical evidence remain; they do not create further ten-player work.
@@ -39,7 +40,9 @@ without running them.
 - [x] Arena/world integration, spawn lifecycle and authoritative match rules.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; historical implemented mode.
 - [ ] General menu/HUD/tutorial polish and arena readability for playable small matches.
-- [ ] Gameplay audio from authoritative combat/match events, coordinated with B's weapons.
+- [x] First-pass impact/round/warning/recovery audio from authoritative events,
+  with captions and saved master/music/effects/announcement volume and mute.
+- [ ] Drive/skid/spin/arena sound layers, spatial mix and human listening polish.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.
   Hosted playtest increment `codex/a-hosted-matchmaking` adds guest identity,
   private codes, solo 2v2 queue, dedicated allocation and admission. Persistent

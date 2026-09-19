@@ -8,6 +8,24 @@ coordinated producer-consumer interfaces, not blanket A ownership of scripts/cor
 The current split in TEAM_WORKFLOW.md supersedes historical authorship below.
 Paths below are relative to the Godot project.
 
+## Gameplay audio presentation
+
+A's `scripts/audio/gameplay_audio.gd` consumes existing `MvpSession.combat_event`,
+`match_view` and local `BotView` without changing combat/network schemas.
+`observe_match(view, practice)`, `observe_bot(view)`, `combat_event(event, local_entity)`
+and `reset()` drive bounded effect/announcement players. Hit IDs are deduplicated
+per match/round; leaving and reopening practice starts a fresh local event epoch.
+`caption_changed(text)` supplies short visual equivalents, with announcements
+taking priority over impact captions. These cues are procedural first-pass sounds.
+
+`AudioPreferences` loads/saves version-one `user://audio.cfg`; master, music,
+effects and announcements are linear gains in [0, 1], plus a global mute flag.
+`BBMusic`, `BBEffects` and `BBAnnouncements` route to Master. The menu shell
+composes `AudioSettingsPanel` alongside B's existing control settings. Preview
+changes affect buses immediately; Cancel/Escape restores original preferences;
+Save publishes only after successful persistence. Invalid saves remain open.
+No changes to B's controls, combat or bot-customisation paths are required.
+
 ## BotCommand
 `scripts/core/bot_command.gd`: sequence >= 0, throttle and steering in [-1, 1],
 brake, primary_held, primary_pressed, secondary_held, recovery_pressed.

@@ -17,6 +17,13 @@ var _menu_music: AudioStreamPlayer
 var public_service: PublicServiceClient
 var _online_joining := false
 var results_panel: MatchResults
+@export var audio_settings_path := "user://audio.cfg"
+var audio_preferences: AudioPreferences
+var gameplay_audio: GameplayAudio
+var audio_settings: AudioSettingsPanel
+var audio_settings_button: Button
+var _audio_overlay: Control
+var _audio_caption: Label
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -46,6 +53,7 @@ func _ready() -> void:
 	results_layer.add_child(results_panel)
 	results_panel.rematch_requested.connect(_request_rematch)
 	results_panel.leave_requested.connect(return_to_main)
+	_add_gameplay_audio()
 	_add_menu_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
@@ -81,12 +89,81 @@ func _add_menu_music() -> void:
 	melody.loop = true
 	_menu_music.stream = melody
 	_menu_music.volume_db = -16.0
+	_menu_music.bus = &"BBMusic"
 	add_child(_menu_music)
+
+func _add_gameplay_audio() -> void:
+	audio_preferences = AudioPreferences.load_file(audio_settings_path)
+	audio_preferences.apply()
+	gameplay_audio = GameplayAudio.new()
+	gameplay_audio.name = "GameplayAudio"
+	add_child(gameplay_audio)
+	session.combat_event.connect(_audio_combat_event)
+	var captions := CanvasLayer.new()
+	captions.layer = 5
+	add_child(captions)
+	_audio_caption = Label.new()
+	_audio_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_audio_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_audio_caption.add_theme_font_size_override("font_size", 24)
+	_audio_caption.add_theme_constant_override("outline_size", 6)
+	_audio_caption.add_theme_color_override("font_outline_color", Color.BLACK)
+	captions.add_child(_audio_caption)
+	_audio_caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_audio_caption.offset_left = 16
+	_audio_caption.offset_right = -16
+	_audio_caption.offset_top = -58
+	_audio_caption.offset_bottom = -20
+	gameplay_audio.caption_changed.connect(func(text: String) -> void:
+		_audio_caption.text = text
+		_audio_caption.visible = not text.is_empty())
+	_audio_caption.hide()
+	# Compose general Audio settings without changing B's control settings code.
+	audio_settings_button = Button.new()
+	audio_settings_button.name = "AudioSettingsButton"
+	audio_settings_button.text = "Audio…"
+	audio_settings_button.custom_minimum_size.y = 36
+	preview.settings_panel.form.get_node("Title").text = "Settings"
+	preview.settings_panel.form.add_child(audio_settings_button)
+	audio_settings_button.pressed.connect(open_audio_settings)
+	var audio_layer := CanvasLayer.new()
+	audio_layer.layer = 20
+	add_child(audio_layer)
+	_audio_overlay = Control.new()
+	audio_layer.add_child(_audio_overlay)
+	_audio_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade := ColorRect.new()
+	shade.color = Color(0, 0, 0, 0.8)
+	_audio_overlay.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	_audio_overlay.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	audio_settings = AudioSettingsPanel.new()
+	center.add_child(audio_settings)
+	audio_settings.applied.connect(func(preferences: AudioPreferences) -> void: audio_preferences = preferences)
+	audio_settings.finished.connect(_audio_settings_closed)
+	_audio_overlay.hide()
+
+func _audio_combat_event(event: Dictionary) -> void:
+	gameplay_audio.observe_match(session.match_view, session.connection_state == "practice")
+	gameplay_audio.combat_event(event, session.local_entity)
+
+func open_audio_settings() -> void:
+	preview.release_controls(false)
+	preview.settings_panel.hide()
+	_audio_overlay.show()
+	audio_settings.open_for(audio_preferences, audio_settings_path)
+
+func _audio_settings_closed(_saved: bool) -> void:
+	_audio_overlay.hide()
+	preview.settings_panel.show()
+	audio_settings_button.grab_focus()
 
 func _sync_menu_music() -> void:
 	if not is_instance_valid(_menu_music):
 		return
-	var in_menu: bool = menu_host.visible or (_settings_from_menu and preview.settings_panel.visible)
+	var in_menu: bool = menu_host.visible or (_settings_from_menu and (preview.settings_panel.visible or _audio_overlay.visible))
 	if in_menu and not _menu_music.playing:
 		_menu_music.play()
 	elif not in_menu and _menu_music.playing:
@@ -95,6 +172,7 @@ func _sync_menu_music() -> void:
 func gameplay_input_allowed() -> bool:
 	var bot := session.local_source()
 	return not _cli_handoff and not menu_host.visible and preview.controls_enabled \
+		and not _audio_overlay.visible \
 		and not preview.settings_panel.visible and get_window().has_focus() \
 		and bot != null and not bot.read_view().eliminated \
 		and session.match_view.get("phase") in ["active", "overtime"]
@@ -104,6 +182,9 @@ func _process(_delta: float) -> void:
 		return
 	var phase := str(session.match_view.get("phase", "lobby"))
 	var bot := session.local_source()
+	gameplay_audio.observe_match(session.match_view, session.connection_state == "practice")
+	if bot != null:
+		gameplay_audio.observe_bot(bot.read_view())
 	if bot != _last_source:
 		_last_source = bot
 		preview.rig.bind_source(source)
@@ -153,6 +234,8 @@ func start_practice() -> void:
 		show_notice("Cannot start practice: %s" % error_string(error))
 
 func resume_gameplay() -> void:
+	if _audio_overlay.visible:
+		return
 	if session.match_view.get("phase") == "results":
 		return
 	if session.local_source() == null or preview.settings_panel.visible:
@@ -168,6 +251,7 @@ func return_to_main() -> void:
 	if is_instance_valid(public_service) and (MenuRouter.lobby_intent == "online" or public_service.can_cancel()):
 		cancel_online()
 	session.leave()
+	gameplay_audio.reset()
 	_last_phase = ""
 	_vote_match = ""
 	results_panel.hide()
@@ -192,6 +276,10 @@ func _settings_closed(_saved: bool) -> void:
 
 func _input(event: InputEvent) -> void:
 	if _cli_handoff or not event.is_action_pressed("pause"):
+		return
+	if _audio_overlay.visible:
+		get_viewport().set_input_as_handled()
+		audio_settings.cancel()
 		return
 	if results_panel.visible:
 		get_viewport().set_input_as_handled()

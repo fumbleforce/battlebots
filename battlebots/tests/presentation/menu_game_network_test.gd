@@ -2,6 +2,7 @@ extends SceneTree
 ## Imported lobby -> authoritative loading/countdown -> persistent playable arena.
 var failures := 0
 var views: Array[SubViewport] = []
+var audio_cues: Array[String] = []
 func _initialize() -> void:
 	call_deferred("run")
 func check(ok: bool, message: String) -> void:
@@ -31,7 +32,9 @@ func run() -> void:
 	var host_view := viewport("Host")
 	var game: Node3D = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.get_node("Preview").settings_path = ""
+	game.audio_settings_path = ""
 	host_view.add_child(game)
+	game.gameplay_audio.cue_played.connect(func(cue: String) -> void: audio_cues.append(cue))
 	var client_view := viewport("Client")
 	var peer := Node3D.new()
 	peer.name = "MenuGame"
@@ -65,6 +68,7 @@ func run() -> void:
 		check(active, "Real peers reach active match")
 		if active:
 			await ticks(5)
+			check(audio_cues.count("countdown") == 3 and audio_cues.count("start") == 1, "Authoritative countdown and start produce exactly one cue each")
 			check(game.preview.controls_enabled and game.session.local_source() != null, "Persistent shell keeps active bot and controls")
 			var bot: BotSource = game.session.local_source()
 			var start := bot.read_view().pose.origin
@@ -92,6 +96,7 @@ func run() -> void:
 			check(await until(func() -> bool: return client.match_view.get("phase") == "results"), "Shell finishes real first-to-two match")
 			await ticks(3)
 			check(game.results_panel.visible and not game.gameplay_input_allowed(), "Results open automatically with driving blocked")
+			check(audio_cues.count("round_end") == 1 and audio_cues.count("results") == 1, "Round and match completion cues follow actual session transitions")
 			check(game.results_panel.record.get("participants", {}).size() == 2, "Results panel receives both authoritative participant records")
 			check(game.results_panel.scope.item_count == 3, "Both completed rounds available")
 			var completed_match: String = game.session.match_view.get("match_id", "")
