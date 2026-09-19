@@ -121,4 +121,9 @@ not merge it to main; A and B should review integration changes before merging.
 - **Outstanding acceptance:** real two-computer LAN, human contact/camera/weapon
   feel, and measured 250 ms post-contact settling. No localhost test is reported
   as a completed LAN playtest.
+- **A progress:** isolated Jolt/replay comparison reproduced missing gravity and
+  roll/pitch during airborne prediction. Fixed in simulation only; 250 ms replay
+  error fell from 0.327 m / 75.99 degrees to <0.001 m / 0.04 degrees. New independent
+  scene: tests/network/airborne_replay.tscn. No art, B files, or wire/API changes.
+  Landing/contact settling and delayed-network impulse measurements remain next.
 - Prior A coordination entries are preserved in archive/A_COORDINATION_2026-09-19.md.

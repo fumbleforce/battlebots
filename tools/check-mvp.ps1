@@ -3,8 +3,9 @@ $ErrorActionPreference = 'Stop'
 & (Join-Path $PSScriptRoot 'check-drive.ps1') -GodotPath $GodotPath
 $projectRoot = Join-Path $PSScriptRoot '../battlebots'
 function Invoke-MvpTest {
-    param([string]$Script, [string]$Marker)
-    $lines = & $GodotPath --headless --path $projectRoot --fixed-fps 60 --script $Script --quit-after 10000 2>&1
+    param([string]$Script, [string]$Marker, [switch]$Scene)
+    [string[]]$targetArgs = if ($Scene) { @($Script) } else { @('--script', $Script) }
+    $lines = & $GodotPath --headless --path $projectRoot --fixed-fps 60 @targetArgs --quit-after 10000 2>&1
     $exitCode = $LASTEXITCODE
     $lines | ForEach-Object { Write-Host $_ }
     if ($exitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:') -or -not ($lines -match "^$Marker`$")) {
@@ -21,6 +22,7 @@ Invoke-MvpTest 'res://tests/integration/app_smoke.gd' 'APP INTEGRATION PASS'
 Invoke-MvpTest 'res://tests/integration/network_presentation_smoke.gd' 'PRESENTATION NETWORK PASS'
 Invoke-MvpTest 'res://tests/integration/duel_menu_smoke.gd' 'DUEL MENU PASS'
 Invoke-MvpTest 'res://tests/integration/navigation_smoke.gd' 'NAVIGATION PASS'
+Invoke-MvpTest 'res://tests/network/airborne_replay.tscn' 'AIRBORNE REPLAY PASS' -Scene
 $previousProfile = $env:BATTLEBOTS_NET_PROFILE
 try {
     foreach ($profile in @('0', '80', '150')) {

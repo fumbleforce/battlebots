@@ -32,11 +32,17 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 			continue
 		throttle = move_toward(throttle, 0.0 if command.brake else command.throttle, 3 * delta)
 		steering = move_toward(steering, 0.0 if command.brake else command.steering, 4 * delta)
+		velocity.y = minf(velocity.y, 8.0)
+		angular = angular.limit_length(12.0)
 		if state.get("grounded", false):
 			var response := forces(pose.basis, velocity, angular, Vector3.UP, throttle, steering, command.brake, delta, config)
 			velocity += response.acceleration * delta
 			angular.y += float(response.yaw_acceleration) * delta
-			angular *= 1.0 - 0.1 * delta
-			pose.basis = (Basis(Vector3.UP, angular.y * delta) * pose.basis).orthonormalized()
+		else:
+			velocity += Vector3(config.get("gravity", Vector3(0, -9.8, 0))) * delta
+		# Free-flight roll/pitch continue between snapshots after a launch or flip.
+		angular *= maxf(0.0, 1.0 - float(config.get("angular_damp", 0.1)) * delta)
+		if not angular.is_zero_approx():
+			pose.basis = (Basis(angular.normalized(), angular.length() * delta) * pose.basis).orthonormalized()
 		pose.origin += velocity * delta
 	return {"pose":pose, "velocity":velocity, "angular":angular}

@@ -26,6 +26,17 @@ prove the spec's 250 ms settling target. Any failures will be recorded and fixed
 not relabelled as passing. Human camera/contact feel and two-computer LAN remain
 unverified; headless tests cannot replace them.
 
+First measured fix: airborne command replay now integrates gravity and full
+roll/pitch/yaw, using the body's angular damping and the same velocity caps.
+`tests/network/airborne_replay.tscn` compares 250 ms of replay with a real Jolt
+body after a launch/spin. Before the fix, maximum errors were 0.327 m, 2.45 m/s
+and 75.99 degrees; after, below 0.001 m, 0.001 m/s and 0.04 degrees. This isolated
+free-flight check is part of `tools/check-mvp.ps1`. It does not establish landing,
+weapon contact, or delayed-network settling acceptance. Shared APIs/wire unchanged.
+Validation: full MVP suite passed with Godot 4.7.2/Jolt, including baseline,
+simulation, presentation integration, round navigation/rematch and four-client
+0/80/150 ms profiles. Non-contact correction p95 at 80 ms was 0.143 m.
+
 ## Other developer / modelling boundary
 
 B's `codex/b-sawblade-tank` at `daa0c8c` publishes modelling work. A has not imported
