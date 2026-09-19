@@ -203,3 +203,11 @@ Please preserve this section when integrating. A's detailed acceptance tracker i
 - PASS: two-player real-UDP full match/rematch plus button-state and count guards;
   existing four-player 0/80/150ms suite and five-process check. Setup/lobby/practice
   were rendered and visually inspected at 1280x720. Cross-machine LAN remains pending.
+- ROUND-END/ESCAPE FIX: reproduced baseline_preview.gd:112 null viewport by pressing
+  Escape with released controls. The development preview removed the live scene
+  before its final input call. A's app now consumes Escape first and toggles its
+  menu; only explicit Main menu leaves, via a deferred, idempotent transition.
+  B's files remain unchanged. B should also make standalone preview exit deferred
+  and consume input before changing scenes when updating its own sandbox adapter.
+- Regression coverage: real input dispatch after host/client round end and results,
+  normal menu/settings Escape, and explicit current-scene replacement/cleanup.

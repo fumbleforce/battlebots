@@ -2,6 +2,15 @@
 
 ## A+B integration — codex/a-b-integration
 
+Round-end reported error: user log first shows null `set_input_as_handled` at
+baseline_preview.gd:112 after Escape. Reproduced with a real current scene and
+viewport input dispatch: the development preview changed scenes, then accessed
+its detached viewport. The MVP app now consumes Escape before that handler and
+only toggles its menu/settings. Explicit Main menu transitions are deferred and
+idempotent. The full MVP suite passes, including Escape on host/client after a
+round and at results, plus headless and D3D12 navigation/scene-cleanup regressions.
+B's standalone sandbox adapter is unchanged; its follow-up is in the shared TODO.
+
 Current selectable-count/menu increment (supersedes the four-window LAN guidance):
 app hosting defaults to **2 players / 1v1**, with **4 players / 2v2** selectable.
 One window on each PC is enough for 1v1. `MvpSession.host(port, listen, count=4)`

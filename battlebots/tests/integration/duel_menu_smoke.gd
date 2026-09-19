@@ -1,5 +1,20 @@
 extends "res://tests/integration/network_presentation_smoke.gd"
 
+func check_escape(app: Node, label: String) -> void:
+	var scene_before := current_scene
+	var world_before: AuthorityWorld = app.session.world
+	app.preview.release_controls()
+	var event := InputEventAction.new()
+	event.action = "pause"
+	event.pressed = true
+	app.get_viewport().push_input(event)
+	var can_resume: bool = app.session.match_view.get("phase") != "results"
+	check(app.preview.controls_enabled == can_resume, label + ": Escape toggles menu without navigating")
+	app.get_viewport().push_input(event)
+	check(not app.preview.controls_enabled, label + ": repeated Escape releases controls")
+	check(app.is_inside_tree() and app.session.world == world_before and current_scene == scene_before,
+		label + ": scene, world and session survive input dispatch")
+
 func run() -> void:
 	var port := 29000 + OS.get_process_id() % 10000
 	var host = make_app("Host")
@@ -51,10 +66,15 @@ func run() -> void:
 		host.session.vote_forfeit()
 		check(await until(func() -> bool: return host.session.match_state.phase in ["intermission", "results"], 120), "Single-player team can forfeit a round")
 		if round_number == 0:
+			check(await until(func() -> bool: return client.session.match_view.get("phase") == "intermission", 120), "Client receives round end")
+			check_escape(host, "Host round end")
+			check_escape(client, "Client round end")
 			host.session.match_state.remaining = 0
 			check(await until(func() -> bool: return host.session.match_state.phase == "active", 600), "Duel starts its second round")
 	check(await until(func() -> bool: return client.session.match_view.get("phase") == "results", 300), "Duel results reach client")
 	await frames(3)
+	check_escape(host, "Host results")
+	check_escape(client, "Client results")
 	check(host.rematch_button.visible and host.leave_button.visible and not host.forfeit_button.visible and not host.resume_button.visible, "Results offer rematch/leave only")
 	var old_match: String = host.session.match_state.match_id
 	host.session.vote_rematch()

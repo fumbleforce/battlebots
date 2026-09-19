@@ -33,6 +33,7 @@ var rematch_button: Button
 var practice_button: Button
 var camera_button: Button
 var _ui_phase := ""
+var _leaving := false
 var lan_addresses := PackedStringArray()
 var _previous_source: BotSource
 
@@ -210,8 +211,32 @@ func _build_console() -> void:
 	controls.text = "WASD drive / Space brake / LMB weapon\nRMB lower / R recover / Mouse orbit / Esc menu"
 	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(controls)
-	_button(footer, "Main menu", func() -> void: session.leave(); get_tree().change_scene_to_file("res://scenes/app/main.tscn"))
+	_button(footer, "Main menu", return_to_main_menu)
 	_process(0)
+
+func _input(event: InputEvent) -> void:
+	if _leaving or not is_instance_valid(preview) or not event.is_action_pressed("pause"):
+		return
+	# Consume Escape before the development preview can navigate out of this scene.
+	# Menu toggling must never tear down a live session during input dispatch.
+	get_viewport().set_input_as_handled()
+	if preview.settings_panel.visible:
+		preview.settings_panel.cancel()
+	elif preview.controls_enabled:
+		preview.release_controls()
+	elif session.local_source() != null and session.match_view.get("phase") != "results":
+		resume_gameplay()
+
+func return_to_main_menu() -> void:
+	if _leaving:
+		return
+	_leaving = true
+	preview.release_controls()
+	_finish_leave.call_deferred()
+
+func _finish_leave() -> void:
+	session.leave()
+	get_tree().change_scene_to_file("res://scenes/app/main.tscn")
 
 static func local_lan_addresses() -> PackedStringArray:
 	var candidates := PackedStringArray()
