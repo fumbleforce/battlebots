@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/presentation/lobby_game.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/networking/mvp_session.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/baseline_preview.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/ui/lobby_panel.tscn" id="5"]
 [ext_resource type="Script" path="res://scripts/presentation/lobby_coordinator.gd" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/ui/match_hud.tscn" id="7"]
 
 [node name="LobbyGame" type="Node3D"]
 script = ExtResource("1")
@@ -29,3 +30,8 @@ layer = 5
 
 [node name="LobbyCoordinator" type="Node" parent="."]
 script = ExtResource("6")
+
+[node name="MatchLayer" type="CanvasLayer" parent="."]
+layer = 4
+
+[node name="MatchHud" parent="MatchLayer" instance=ExtResource("7")]

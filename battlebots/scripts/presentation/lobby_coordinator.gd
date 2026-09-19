@@ -86,7 +86,7 @@ func refresh() -> void:
 	lobby["phase"] = _phase()
 	panel.render(session.connection_state, lobby, session.local_entity, {
 		"notice": notice, "pending": not pending_kind.is_empty(), "endpoint": _endpoint,
-		"can_resume": session.local_source() != null and _phase() in ["active", "overtime", "intermission"],
+		"can_resume": session.local_source() != null and _phase() in ["countdown", "active", "overtime", "intermission", "results"],
 		"local_rtt": session.diagnostics.get("rtt_ms") if session.connection_state == "connected" else null,
 		"build": WireCodec.BUILD,
 	})
@@ -247,7 +247,7 @@ func _return() -> void:
 	return_requested.emit()
 
 func _resume() -> void:
-	if is_instance_valid(session) and session.local_source() != null and _phase() in ["active", "overtime", "intermission"]:
+	if is_instance_valid(session) and session.local_source() != null and _phase() in ["countdown", "active", "overtime", "intermission", "results"]:
 		resume_requested.emit()
 
 func _settings() -> void:

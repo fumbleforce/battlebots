@@ -3,10 +3,10 @@
 B maintains the sections above A's coordination log. Status describes published
 feature branches, not a claim that main contains them or that all release gates pass.
 
-**Active branch:** `codex/b-lobby-presentation`, stacked on diagnostics `85dc14d`; runtime base A/B `bdb42ef`.
-**Latest increment:** B-07a, playable lobby-to-arena flow, Practice, and real remote team requests.
-**Next:** Gameplay readability and match feedback; coordinate mounting the new lobby in A's F5 shell.
-**Intent and evidence:** [B-07 coordination](coordination/B_LOBBY_PRESENTATION.md).
+**Active branch:** `codex/b-match-hud`, stacked on playable lobby `eea0bb2`; runtime base A/B `bdb42ef`.
+**Latest increment:** B-08a: authoritative match clock, scores and outcomes in the arena; 15 presentation checks pass.
+**Next:** Results actions/statistics and spectating; coordinate mounting B frontend in A's F5 shell.
+**Intent and evidence:** [B-08 coordination](coordination/B_MATCH_HUD.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
 ## Completed B increments
@@ -29,6 +29,7 @@ feature branches, not a claim that main contains them or that all release gates 
   unavailable values prevent stale or fabricated telemetry. Standalone scenario,
   real UDP impairment/recovery, keyboard cancellation and app layout tests pass.
 - [x] **B-07a:** Practice and real UDP host/join/ready enter a playable arena; authoritative teams/builds/readiness, keyboard menus, pending feedback and phase locks. Remote JSON team IDs fixed without changing the public API.
+- [x] **B-08a:** In-arena phase, round, clock, scores and authoritative outcomes; Practice unscored. Countdown/intermission/results preserve arena view while input stays gated. Real two-player full-match and independent HUD tests pass.
 - [x] **AB-01 automated compatibility:** Published A/B integration mounts the real
   session through BotSource with B arena/camera/HUD. This is not human LAN acceptance.
 

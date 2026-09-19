@@ -5,6 +5,8 @@ extends Node3D
 @onready var preview: Node3D = $Preview
 @onready var lobby: LobbyPanel = $LobbyLayer/Lobby
 @onready var coordinator: LobbyCoordinator = $LobbyCoordinator
+@onready var match_hud: Control = $MatchLayer/MatchHud
+const ARENA_PHASES := ["countdown", "active", "overtime", "intermission", "results"]
 var _last_phase := ""
 var _last_source: BotSource
 var _leaving := false
@@ -35,10 +37,11 @@ func _process(_delta: float) -> void:
 		_last_source = bot
 		preview.rig.bind_source(source)
 	if phase != _last_phase:
+		var entering_arena := _last_phase not in ARENA_PHASES
 		_last_phase = phase
-		if phase == "active" and not preview.settings_panel.visible and get_window().has_focus():
+		if entering_arena and phase in ["countdown", "active"] and not preview.settings_panel.visible and get_window().has_focus():
 			resume_gameplay()
-		elif phase not in ["active", "overtime"]:
+		elif phase not in ARENA_PHASES:
 			show_lobby()
 	var show_menu: bool = not preview.controls_enabled and not preview.settings_panel.visible
 	if lobby.visible != show_menu:
@@ -49,6 +52,8 @@ func _process(_delta: float) -> void:
 	# Lobby already presents connection state; preserve screen space for its roster.
 	preview.get_node("DiagnosticsLayer").visible = not lobby.visible
 	preview.hud.visible = bot != null
+	match_hud.visible = bot != null and not lobby.visible and not preview.settings_panel.visible
+	match_hud.render(session.match_view, session.connection_state == "practice")
 
 func show_lobby() -> void:
 	preview.release_controls(false)
@@ -60,7 +65,7 @@ func show_lobby() -> void:
 func resume_gameplay() -> void:
 	if _leaving or session.local_source() == null or preview.settings_panel.visible:
 		return
-	if str(session.match_view.get("phase", "")) not in ["active", "overtime", "intermission"]:
+	if str(session.match_view.get("phase", "")) not in ARENA_PHASES:
 		return
 	lobby.hide()
 	preview.capture_controls()

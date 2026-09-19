@@ -1,11 +1,25 @@
 # Developer B — arena and third-person camera
 
-Owner: Developer B. Active branch: `codex/b-lobby-presentation`.
-Dependency base: B diagnostics `85dc14d`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
+Owner: Developer B. Active branch: `codex/b-match-hud`.
+Dependency base: B playable lobby `eea0bb2`, built on A/B integration `bdb42ef`. Earlier camera/HUD/settings work
 was published on `codex/b-arena-camera` through `40aa6b1`.
 
 Ongoing work is tracked in [Worker B's to-do list](DEVELOPER_B_TODO.md), including
 priorities, ownership boundaries and dependencies requested from A.
+
+## B-08a: in-arena match status
+
+MatchHud.render(match_view, practice) displays authoritative phase, round, clock,
+team scores and round/final winner or draw. It never advances the match clock or
+derives a winner from health/scores. Missing values remain unavailable; Practice
+does not show competitive results. The top-center header leaves resource HUD and
+diagnostics visible at 1280x720. Independent fixture: scenes/dev/b_match_hud.tscn.
+
+The playable B scene stays in the arena for countdown, intermission and results.
+Input remains cancelled outside active/overtime. Escape menus and settings remain
+available, and a phase transition does not dismiss an explicitly opened menu.
+A can mount the reusable HUD without changing the session contract. Detailed
+results statistics, rematch controls and teammate spectating remain B-08 work.
 
 ## B-07a: playable lobby and arena
 

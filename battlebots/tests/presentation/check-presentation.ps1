@@ -27,6 +27,7 @@ $checks = @(
     @('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
     @('network_diagnostics_sandbox_test.gd', 'NETWORK DIAGNOSTICS SANDBOX PASS'),
     @('lobby_panel_test.gd', 'LOBBY PANEL PASS'),
+    @('match_hud_test.gd', 'MATCH HUD PASS'),
     @('lobby_game_test.gd', 'LOBBY GAME PASS'),
     @('camera_contact_test.gd', 'CAMERA CONTACT PASS')
 )
