@@ -4,6 +4,7 @@ extends Control
 signal closed(saved: bool)
 @onready var form: VBoxContainer = $Center/Panel/Margin/Form
 @onready var sensitivity: HSlider = $Center/Panel/Margin/Form/Sensitivity/Slider
+@onready var sensitivity_y: HSlider = $Center/Panel/Margin/Form/SensitivityY/Slider
 @onready var invert: CheckButton = $Center/Panel/Margin/Form/Invert
 @onready var automatic: CheckButton = $Center/Panel/Margin/Form/Automatic
 @onready var strength: HSlider = $Center/Panel/Margin/Form/Strength/Slider
@@ -11,9 +12,12 @@ signal closed(saved: bool)
 var _rig: BotOrbitCamera
 var _path: String
 var _original: CameraPreferences
+var _display_values: CameraPreferences
+var _display_axes: Vector2
 
 func _ready() -> void:
 	sensitivity.value_changed.connect(_on_value_changed)
+	sensitivity_y.value_changed.connect(_on_value_changed)
 	strength.value_changed.connect(_on_value_changed)
 	invert.toggled.connect(_on_toggled)
 	automatic.toggled.connect(_on_toggled)
@@ -31,7 +35,10 @@ func open_for(rig: BotOrbitCamera, path: String, notice: String = "") -> void:
 	sensitivity.grab_focus()
 
 func _fill(values: CameraPreferences) -> void:
-	sensitivity.set_value_no_signal(values.sensitivity / 0.003)
+	_display_values = values
+	sensitivity.set_value_no_signal(values.sensitivity_x / 0.003)
+	sensitivity_y.set_value_no_signal(values.sensitivity_y / 0.003)
+	_display_axes = Vector2(sensitivity.value, sensitivity_y.value)
 	strength.set_value_no_signal(values.recenter_speed)
 	invert.set_pressed_no_signal(values.invert_y)
 	automatic.set_pressed_no_signal(values.auto_recenter)
@@ -39,7 +46,13 @@ func _fill(values: CameraPreferences) -> void:
 
 func _values() -> CameraPreferences:
 	var result := CameraPreferences.new()
-	result.sensitivity = sensitivity.value * 0.003
+	result.sensitivity_x = sensitivity.value * 0.003
+	result.sensitivity_y = sensitivity_y.value * 0.003
+	# An unrelated setting must not round a loaded custom axis to the slider step.
+	if is_equal_approx(sensitivity.value, _display_axes.x):
+		result.sensitivity_x = _display_values.sensitivity_x
+	if is_equal_approx(sensitivity_y.value, _display_axes.y):
+		result.sensitivity_y = _display_values.sensitivity_y
 	result.invert_y = invert.button_pressed
 	result.auto_recenter = automatic.button_pressed
 	result.recenter_speed = strength.value
@@ -47,11 +60,12 @@ func _values() -> CameraPreferences:
 
 func _refresh_labels() -> void:
 	form.get_node("Sensitivity/Value").text = "%.2fx" % sensitivity.value
+	form.get_node("SensitivityY/Value").text = "%.2fx" % sensitivity_y.value
 	form.get_node("Strength/Value").text = "%.1f" % strength.value
 	strength.editable = automatic.button_pressed
 	form.get_node("Strength").modulate.a = 1.0 if automatic.button_pressed else 0.5
 	strength.focus_mode = Control.FOCUS_ALL if automatic.button_pressed else Control.FOCUS_NONE
-	var navigation: Array[Control] = [sensitivity, invert, automatic]
+	var navigation: Array[Control] = [sensitivity, sensitivity_y, invert, automatic]
 	if automatic.button_pressed:
 		navigation.append(strength)
 	navigation.append_array([form.get_node("Buttons/Defaults"),

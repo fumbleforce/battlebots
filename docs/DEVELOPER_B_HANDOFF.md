@@ -36,14 +36,14 @@ human LAN/contact acceptance remains outstanding.
 ## B-03 follow-up: camera settings
 
 Press Escape to release the cursor, then click **Camera settings** (or Tab to the
-button and press Enter). The modal changes sensitivity, vertical inversion,
+button and press Enter). The modal changes independent X/Y sensitivity, vertical inversion,
 automatic recentering and recenter strength live. **Save & resume** persists them;
 **Cancel** or Escape restores the values from when the panel opened. Reset is
 previewed until saved. Gameplay input stays neutral; the simulation is not paused.
 
-The B-owned `CameraPreferences` adapter writes version 1 to
+The B-owned `CameraPreferences` adapter writes version 2 to
 `user://presentation_camera.cfg` using a temporary file and replacement. It does
-not create an autoload or alter A's profile service. Unknown file versions fall
+not create an autoload or alter A's profile service. Version-1 files load their shared sensitivity into both axes and migrate only on Save. The legacy sensitivity setter still sets both axes; its getter returns X. Unknown file versions fall
 back to defaults with a notice; invalid fields use defaults or bounded values;
 save failures keep the modal open with an error. Tests use isolated temporary
 paths, never the player's preferences. The preview's `settings_path` export can

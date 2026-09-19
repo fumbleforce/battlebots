@@ -72,3 +72,11 @@ A/B consumers keep their behavior. No action map, app, wire or command changes.
 Acceptance: distinct orbit deltas, inversion, legacy migration, invalid-value fallback,
 save/reload/cancel/defaults, keyboard order and rendered 1280x720 layout.
 This is one B-04b increment; binding capture and weapon toggle remain pending.
+
+Independent look axes implemented: both sliders apply live, persist separately,
+and restore on Cancel/defaults. Legacy version-1 loads do not rewrite disk; Save
+writes version 2. Untouched custom axis precision survives unrelated UI edits.
+The existing b_presentation scene and camera_settings_test exercise migration,
+orbit/inversion, persistence, keyboard focus and modal suppression. Rendered
+1280x720 panel fits without clipping. No A-owned runtime files changed.
+Validation: baseline PASS; all three presentation suites PASS; A duel/menu smoke PASS; rendered settings test PASS. Independent read-only subagent review completed; its precision finding is fixed and regression-tested.

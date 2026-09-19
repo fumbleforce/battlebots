@@ -2,7 +2,15 @@ class_name BotOrbitCamera
 extends Node3D
 ## Presentation only. Positive pitch looks down; yaw never inherits chassis roll.
 
-@export_range(0.0005, 0.02, 0.0005) var sensitivity: float = 0.003
+@export_range(0.0005, 0.02, 0.0005) var sensitivity_x: float = 0.003
+@export_range(0.0005, 0.02, 0.0005) var sensitivity_y: float = 0.003
+# Compatibility: reading returns X; assigning sets both axes.
+var sensitivity: float:
+	get:
+		return sensitivity_x
+	set(value):
+		sensitivity_x = value
+		sensitivity_y = value
 @export var invert_y: bool = false
 @export var auto_recenter: bool = true
 @export_range(0.1, 8.0, 0.1) var recenter_speed: float = 2.0
@@ -32,9 +40,9 @@ func recenter() -> void:
 	seconds_since_orbit = 0.0
 
 func orbit(relative: Vector2) -> void:
-	yaw = wrapf(yaw - relative.x * sensitivity, -PI, PI)
+	yaw = wrapf(yaw - relative.x * sensitivity_x, -PI, PI)
 	var direction := -1.0 if invert_y else 1.0
-	pitch = clampf(pitch + relative.y * sensitivity * direction,
+	pitch = clampf(pitch + relative.y * sensitivity_y * direction,
 		deg_to_rad(-15.0), deg_to_rad(70.0))
 	seconds_since_orbit = 0.0
 

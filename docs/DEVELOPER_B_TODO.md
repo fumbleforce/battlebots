@@ -4,7 +4,7 @@ B maintains the sections above A's coordination log. Status describes published
 feature branches, not a claim that main contains them or that all release gates pass.
 
 **Active branch:** `codex/b-input-menu`, based on A/B integration `bdb42ef`.
-**Latest increment:** B-04a, menu/focus cancellation and keyboard navigation.
+**Latest increment:** B-04b partial, independent X/Y look sensitivity and settings migration.
 **Next:** B-04b, rebinding and input preferences; then B-06 diagnostics.
 **Intent and evidence:** [B-04 coordination](coordination/B_INPUT_MENU.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -27,7 +27,7 @@ feature branches, not a claim that main contains them or that all release gates 
 
 - [ ] **B-04b: Rebinding and input preferences.** Keyboard/mouse binding UI,
   duplicate/reserved-binding validation, reset defaults, independent local
-  persistence and hold/toggle weapon preference. Expose separate X/Y sensitivity.
+  persistence and hold/toggle weapon preference. Separate X/Y sensitivity is done, with version-1 migration and independent save/cancel/reset coverage.
   Coordinate semantics with A; do not edit project.godot or network commands.
   Done when bindings persist and work in a dedicated input scene without menu
   events reaching gameplay. Rebinding remains unfinished, not implied by B-04a.
