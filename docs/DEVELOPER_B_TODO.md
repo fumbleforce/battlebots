@@ -546,6 +546,9 @@ A is updating the existing hosted server to current main catalogue revision 6 an
   ambient fill and tower light tint in `moon_visuals.gd`, with an offline review
   tool. No bot, control, physics or network edits. See
   [scope and evidence](coordination/A_LUNAR_ATMOSPHERE.md).
+- **A Moon backdrop follow-up:** `codex/a-lunar-backdrop` reserves the same Moon
+  visual/review paths. Exclusive render layer 2 is for exterior geology only;
+  no collision layer changes. Lamps now tilt down with their actual spot beams.
 
 ## A HUD redesign — 20 September 2026
 

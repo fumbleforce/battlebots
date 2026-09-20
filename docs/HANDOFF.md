@@ -2,6 +2,13 @@
 
 ## Godot Moon atmosphere — 20 September 2026
 
+Follow-up: backdrop geology now receives a separate dim key, and all eight
+floodlight housings/lenses tilt toward the arena with matching contained beams.
+Moon physics/assets and native scene teardown pass; the original renderer RID
+warning remains. See the follow-up in the linked evidence below. The review tool
+now captures only production settings to avoid a pinned-engine bug when changing
+mesh render layers during a live comparison.
+
 The user returned to Godot. Moon now uses reduced cool ambient/sun illumination,
 lower-angle shadows and warm arena floodlights so the mountains recede while the
 floor remains readable. Identical 1440p comparisons, rendered two-bot effects,

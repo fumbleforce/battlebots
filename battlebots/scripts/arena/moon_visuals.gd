@@ -2,6 +2,8 @@ extends "res://scripts/arena/foundry_visuals.gd"
 ## Lunar scenery and ballistic dust. Physical terrain lives in moon_surface.gd.
 const REGOLITH = preload("res://assets/textures/moon/regolith_albedo.png")
 const GROUND = preload("res://assets/materials/arena/moon_ground.gdshader")
+# Exclusive render layer for exterior geology. Never a physics/collision layer.
+const BACKDROP_LAYER := 1 << 1
 var _terrain_noise := FastNoiseLite.new()
 var _dust: Dictionary = {}
 
@@ -176,6 +178,7 @@ func _terrain() -> void:
 	var landscape := MeshInstance3D.new()
 	landscape.name = "CraterRidges"
 	landscape.mesh = mesh
+	landscape.layers = BACKDROP_LAYER
 	add_child(landscape)
 
 func _boulders() -> void:
@@ -207,6 +210,7 @@ func _boulders() -> void:
 			var rocks := MultiMeshInstance3D.new()
 			rocks.name = "FracturedRock_%d_%d" % [variant,sector]
 			rocks.multimesh = multi
+			rocks.layers = BACKDROP_LAYER
 			rocks.visibility_range_end = 135
 			add_child(rocks)
 func _perimeter(side: int) -> void:
@@ -275,21 +279,31 @@ func _tower(x: float, side: int) -> void:
 		var y := 3.2+i*1.3
 		_beam("steel",Vector3(x-0.38,y,-26),Vector3(x+0.38,y+1.3,-26),0.055)
 		_beam("steel",Vector3(x+0.38,y,-26),Vector3(x-0.38,y+1.3,-26),0.055)
-	_box("dark",Vector3(x,11.45,-25.8),Vector3(2.4,1.4,0.4))
+	# Lamp housing and all six lenses share the actual beam direction. The
+	# lenses face local +Z; Godot spotlights emit along local -Z.
+	var mount := Vector3(x,11.45,-25.8)
+	var target := Vector3(x*0.3,0,-9)
+	var aim := Basis.looking_at(target-mount,Vector3.UP,true)
+	var fixture_rotation := aim.get_euler()
+	_box("dark",mount,Vector3(2.4,1.4,0.4),fixture_rotation)
 	for dx: float in [-0.75,0,0.75]:
-		for y: float in [11.1,11.8]:
-			_box("white",Vector3(x+dx,y,-25.56),Vector3(0.5,0.46,0.04))
+		for y: float in [-0.35,0.35]:
+			_box("white",mount+aim*Vector3(dx,y,0.24),Vector3(0.5,0.46,0.04),fixture_rotation)
 	var light := SpotLight3D.new()
+	light.name = "ArenaFloodlight%d" % side
 	add_child(light)
-	light.position = _side*Vector3(x,11,-25.3)
-	light.look_at(_side*Vector3(x*0.3,0,-9))
+	light.position = _side*(mount+aim*Vector3(0,0,0.27))
+	light.look_at(_side*target)
+	light.light_cull_mask &= ~BACKDROP_LAYER
 	# Warm practical pools separate the inhabited base from the cool crater rim.
 	light.light_color = Color("ffe1b6")
 	light.light_energy = 3.0
 	light.light_volumetric_fog_energy = 8.0
-	light.spot_angle = 47
-	light.spot_range = 37
-	light.shadow_enabled = side % 2 == 0
+	# The old 47-degree half-cone reached above the horizon. Keep the beam
+	# pointed down and its reach inside the opposite retaining wall.
+	light.spot_angle = 28
+	light.spot_range = 32
+	light.shadow_enabled = true
 
 func _solar_array() -> void:
 	for x: float in [-5.0,5.0]:
@@ -371,6 +385,22 @@ func _lunar_lighting(arena: Node) -> void:
 	sun.rotation_degrees = Vector3(-16,-65,0)
 	sun.light_color = Color("c3d1e5")
 	sun.light_energy = 0.55
+	sun.light_cull_mask &= ~BACKDROP_LAYER
 	sun.light_volumetric_fog_energy = .04
 	sun.directional_shadow_max_distance = 140
 	sun.shadow_enabled = true
+	# A restrained backdrop key lets only ridge contours register. Separating
+	# receivers preserves the existing floor, bot and service-bay illumination.
+	var rim := DirectionalLight3D.new()
+	rim.name = "CraterRimLight"
+	rim.rotation = sun.rotation
+	rim.light_color = sun.light_color
+	rim.light_energy = 0.07
+	rim.light_cull_mask = BACKDROP_LAYER
+	rim.shadow_enabled = true
+	rim.directional_shadow_max_distance = 140
+	rim.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	rim.light_bake_mode = Light3D.BAKE_DISABLED
+	rim.light_indirect_energy = 0.0
+	rim.light_volumetric_fog_energy = 0.0
+	add_child(rim)

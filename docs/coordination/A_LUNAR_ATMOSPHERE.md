@@ -1,5 +1,49 @@
 # Godot lunar atmosphere — Dev A, 20 September 2026
 
+## Follow-up: dark backdrop and inward-facing floodlights
+
+`codex/a-lunar-backdrop` starts from integrated `393ea31`. The user correctly
+identified that sun-facing mountains were still bright and requested floodlights
+angled toward the arena. The first pass lowered broad lighting without adequately
+separating the geology from the combat space.
+
+CraterRidges and FracturedRock batches now use exclusive render layer 2. The
+existing sun keeps its 0.55 energy on the base/floor/bots; a shadowed 0.07 key
+with the same orientation illuminates only geology. Both retain all shadow
+casters. The backdrop key contributes no GI, sky lighting or fog scattering.
+This is deliberate art direction, not a physical claim about sunlight distance.
+Physics layers, meshes, materials, gravity and spawn locations are unchanged.
+
+Each tower's housing and six lens faces tilt together toward its actual arena
+target. The spotlight originates just ahead of the lenses, with a 28-degree
+half-cone, 32 m range and shadows on all eight towers. Floodlight masks exclude
+the backdrop. An independent engine inspection measured all eight beam axes
+32.326 degrees downward, the cone top 4.326 degrees below the horizon, and all
+48 lens normals aligned with their beams (minimum dot product 0.99999994).
+
+Moon arena and lunar asset checks pass first attempt, exit 0, with no errors or
+warnings. Final-tree baseline also passes first attempt, exit 0, with no warnings,
+errors or crash markers. Native 1440p arena/outpost/reverse captures and complete scene removal
+pass on the final production tree, exit 0. Only the previously documented seven
+texture-RID shutdown warning remains. The final captures are under ignored
+`exports/lunar-backdrop/`; check logs are under `exports/lunar-atmosphere/`.
+
+The first comparison tool changed mesh layers during rendering and triggered
+[Godot issue 121989](https://github.com/godotengine/godot/issues/121989) on teardown.
+The review tool now captures production settings only in a fresh process, keeping
+the same three views. It explicitly draws frames so review can complete while
+occluded. The optional full cinematic benchmark was stopped after it stalled
+following its second capture; no new benchmark or movement-pass claim is made.
+The final production capture, unlike that benchmark, completes scene teardown
+and does not report the light-unpairing errors. Older before/after captures remain
+historical evidence of the first pass below.
+
+Godot's [light masks](https://docs.godotengine.org/en/4.7/classes/class_light3d.html#class-light3d-property-light-cull-mask)
+do not filter GI or volumetrics; the new rim light explicitly disables those
+contributions. The existing baked bay indirect lighting remains unchanged.
+
+## First atmosphere pass (integrated as 393ea31)
+
 Branch `codex/a-lunar-atmosphere`, based on current main `69dbbce`. The user
 returned from the isolated Unreal experiment to Godot and requested a less bright,
 more atmospheric Moon base, especially the surrounding mountains.
