@@ -560,3 +560,7 @@ all world health bars. Baseline, native layout and state/session checks pass; th
 reservation is released after integration. See [scope](coordination/A_HUD_REDESIGN.md).
 
 - **B destruction explosion:** codex/b-destruction-explosion reserves MvpBot cosmetic wiring, destruction visuals/shaders and isolated fixtures. No A-owned logic or shared schemas change. See [scope](coordination/B_DESTRUCTION_EXPLOSION.md).
+
+- **A battle music:** `codex/a-battle-music` reserves menu-game music setup/sync,
+  the supplied audio asset and existing playback checks. No B implementation or
+  shared schema changes. See [scope](coordination/A_BATTLE_MUSIC.md).

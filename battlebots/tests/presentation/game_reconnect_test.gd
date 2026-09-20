@@ -55,6 +55,9 @@ func run() -> void:
 		server.set_ready(true)
 		client.set_ready(true)
 		if await until(func() -> bool: return client.match_view.get("phase") == "active"):
+			await process_frame
+			check(game._battle_music.playing and not game._menu_music.playing, "Connected combat plays battle music without menu overlap")
+			var battle_playback: AudioStreamPlayback = game._battle_music.get_stream_playback()
 			var id := client.local_entity
 			var token := client.reconnect_token
 			var match_id: String = client.match_view.match_id
@@ -69,10 +72,14 @@ func run() -> void:
 			game.hud_settings_button.pressed.emit()
 			game.hud_settings.text_scale_choice.select(2)
 			game.hud_settings.text_scale_choice.item_selected.emit(2)
+			await process_frame
+			check(game._battle_music.playing and game._battle_music.get_stream_playback() == battle_playback and not game._menu_music.playing,
+				"Gameplay settings preserve the current battle soundtrack")
 			server.multiplayer.multiplayer_peer.disconnect_peer(int(server.players[id].peer))
 			check(await until(func() -> bool: return game.reconnect_panel.visible and client.connection_state == "offline"), "Transport loss opens reconnect panel")
 			await process_frame
 			check(not game.gameplay_input_allowed() and not game.combat_hud.visible, "Recovery suppresses controls and stale combat HUD")
+			check(not game._battle_music.playing and not game._menu_music.playing, "Transport recovery silences both music tracks")
 			check(not game.world_markers.visible, "Recovery hides world identities with stale transport state")
 			check(not game._hud_overlay.visible and game.combat_hud.text_scale == 1.0, "Connection loss closes HUD settings and restores unsaved preview")
 			check(game._menu_text_scale == 1.0 and game.reconnect_panel.heading.get_theme_font_size("font_size") == 56, "Reconnect presentation restores saved menu size after cancelling draft")
@@ -84,6 +91,8 @@ func run() -> void:
 			check(server.world.bots[id] == body and body.combat.core == retained_core, "Reconnect retains damaged server bot")
 			check(client.match_view.get("match_id") == match_id and not game.menu_host.visible, "Recovery returns to same match without lobby detour")
 			check(game.world_markers.visible, "Recovered gameplay restores world identification")
+			check(game._battle_music.playing and game._battle_music.get_stream_playback() != battle_playback and not game._menu_music.playing,
+				"Recovered active play restarts battle music without menu overlap")
 			client.vote_forfeit()
 			check(await until(func() -> bool: return client.match_view.get("phase") == "intermission"), "Public forfeit ends first round")
 			check(await until(func() -> bool: return client.match_view.get("phase") == "active", 25.0), "Real intermission/countdown completes")
@@ -94,12 +103,14 @@ func run() -> void:
 			game.reconnect_panel.retry.pressed.emit()
 			check(await until(func() -> bool: return not game.reconnect_panel.visible and game.results_panel.visible), "Results-phase reconnect restores score screen")
 			check(game.results_panel.record.get("participants", {}).size() == 2 and not game.gameplay_input_allowed(), "Results baseline restores both participants without enabling arena controls")
+			check(not game._battle_music.playing and not game._menu_music.playing, "Results reconnect keeps both music tracks stopped")
 			server.multiplayer.multiplayer_peer.disconnect_peer(int(server.players[id].peer))
 			check(await until(func() -> bool: return game.reconnect_panel.visible), "Final dropout exposes leave action")
 			game.reconnect_panel.leave_button.pressed.emit()
 			await process_frame
 			check(not game.reconnect_panel.visible and not client.can_reconnect() and client.reconnect_token.is_empty(), "Leave clears recovery and credentials")
 			check(router.current == "main", "Leave returns to main menu")
+			check(game._menu_music.playing and not game._battle_music.playing, "Leaving recovery restores only menu music")
 		else:
 			check(false, "Duel reaches active")
 	else:

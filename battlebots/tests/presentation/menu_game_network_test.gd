@@ -48,6 +48,7 @@ func run() -> void:
 	await ticks(3)
 	var lobby: Control = game.screen
 	check(lobby.has_method("host_session"), "Router mounts imported lobby in persistent game")
+	check(game._menu_music.playing and not game._battle_music.playing, "Lobby plays menu music without battle music")
 	var port := 39000 + OS.get_process_id() % 10000
 	lobby.port.value = port
 	lobby.host_button.pressed.emit()
@@ -64,11 +65,15 @@ func run() -> void:
 		await ticks(3)
 		check(not game.menu_host.visible and game.match_hud.visible, "Countdown enters arena with match HUD")
 		check(not game.gameplay_input_allowed(), "Countdown keeps player command production neutral")
+		check(game._battle_music.playing and not game._menu_music.playing, "Countdown starts battle music without menu overlap")
+		var battle_playback: AudioStreamPlayback = game._battle_music.get_stream_playback()
 		var active := await until(func() -> bool: return game.session.match_view.get("phase") == "active" and client.match_view.get("phase") == "active")
 		check(active, "Real peers reach active match")
 		if active:
 			await ticks(5)
 			check(audio_cues.count("countdown") == 3 and audio_cues.count("start") == 1, "Authoritative countdown and start produce exactly one cue each")
+			check(game._battle_music.playing and game._battle_music.get_stream_playback() == battle_playback and not game._menu_music.playing,
+				"Active combat continues the countdown soundtrack")
 			check(game.preview.controls_enabled and game.session.local_source() != null, "Persistent shell keeps active bot and controls")
 			var bot: BotSource = game.session.local_source()
 			var start := bot.read_view().pose.origin
@@ -88,6 +93,8 @@ func run() -> void:
 			Input.action_press("drive_forward")
 			await ticks(10)
 			check(client.connection_state == "connected", "Paused arena retains peer connection")
+			check(game._battle_music.playing and game._battle_music.get_stream_playback() == battle_playback and not game._menu_music.playing,
+				"Pausing a live duel keeps the battle soundtrack continuous")
 			game._input(pause)
 			await ticks(2)
 			check(game.preview.controls_enabled and not game.preview.pause_menu.visible, "Pause again resumes existing arena")
@@ -97,11 +104,16 @@ func run() -> void:
 			await ticks(3)
 			game._forfeit.pressed.emit()
 			check(await until(func() -> bool: return client.match_view.get("phase") == "intermission"), "Shell forfeit action reaches authority and peer")
+			check(game._battle_music.playing and game._battle_music.get_stream_playback() == battle_playback and not game._menu_music.playing,
+				"Round intermission keeps the same battle soundtrack")
 			check(await until(func() -> bool: return game.session.match_view.get("phase") == "active", 1800), "Second round starts without replacing menu shell")
+			check(game._battle_music.playing and game._battle_music.get_stream_playback() == battle_playback and not game._menu_music.playing,
+				"The next round continues the existing battle soundtrack")
 			game._forfeit.pressed.emit()
 			check(await until(func() -> bool: return client.match_view.get("phase") == "results"), "Shell finishes real first-to-two match")
 			await ticks(3)
 			check(game.results_panel.visible and not game.gameplay_input_allowed(), "Results open automatically with driving blocked")
+			check(not game._battle_music.playing and not game._menu_music.playing, "Results stop battle music without starting menu music")
 			check(game.results_panel.outcome.text == "DEFEAT", "Host forfeit shows local defeat from authoritative team")
 			game.results_panel.scores_tab.pressed.emit()
 			check(game.results_panel.scores_page.visible, "Real match results expose the score details page")
@@ -118,6 +130,8 @@ func run() -> void:
 			await ticks(3)
 			check(not game.menu_host.visible and game.preview.controls_enabled, "Persistent shell reopens arena after rematch loading")
 			check(not game.results_panel.visible and game.results_panel.record.is_empty(), "Rematch clears previous result UI")
+			check(game._battle_music.playing and game._battle_music.get_stream_playback() != battle_playback and not game._menu_music.playing,
+				"Rematch starts fresh battle playback without menu overlap")
 			check(not game.gameplay_audio._crowd.playing, "New match does not retain previous result crowd sound")
 	Input.action_release("drive_forward")
 	# Drain live world teardown before releasing its isolated physics spaces.
@@ -126,6 +140,7 @@ func run() -> void:
 	client.leave()
 	game.session.leave()
 	await ticks(3)
+	check(not game._battle_music.playing, "Leaving the duel stops battle playback")
 	for index: int in range(views.size() - 1, -1, -1):
 		var view := views[index]
 		set_multiplayer(null, view.get_path())

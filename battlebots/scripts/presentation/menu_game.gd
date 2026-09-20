@@ -23,6 +23,7 @@ var _forfeit: Button
 var _rematch: Button
 var _vote_match := ""
 var _menu_music: AudioStreamPlayer
+var _battle_music: AudioStreamPlayer
 var public_service: PublicServiceClient
 var _online_joining := false
 var results_panel: MatchResults
@@ -135,6 +136,7 @@ func _ready() -> void:
 	_add_hud_settings()
 	_add_settings_hub()
 	_add_menu_music()
+	_add_battle_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
 	show_screen("main")
@@ -169,7 +171,7 @@ func show_screen(key: String) -> void:
 		_update_test_drive_entry()
 	if screen.has_method("apply_text_scale"):
 		screen.apply_text_scale(_menu_text_scale)
-	_sync_menu_music()
+	_sync_music()
 
 func _add_menu_music() -> void:
 	_menu_music = AudioStreamPlayer.new()
@@ -180,6 +182,16 @@ func _add_menu_music() -> void:
 	_menu_music.volume_db = -16.0
 	_menu_music.bus = &"BBMusic"
 	add_child(_menu_music)
+
+func _add_battle_music() -> void:
+	_battle_music = AudioStreamPlayer.new()
+	_battle_music.name = "BattleMusic"
+	var song := load("res://assets/audio/battle/relentless_action.mp3").duplicate() as AudioStreamMP3
+	song.loop = true
+	_battle_music.stream = song
+	_battle_music.volume_db = -16.0
+	_battle_music.bus = &"BBMusic"
+	add_child(_battle_music)
 
 func _add_gameplay_audio() -> void:
 	audio_preferences = AudioPreferences.load_file(audio_settings_path)
@@ -534,14 +546,22 @@ func _scale_practice_labels(node: Node, factor: float, width: float) -> void:
 	for child: Node in node.get_children():
 		_scale_practice_labels(child, factor, width)
 
-func _sync_menu_music() -> void:
-	if not is_instance_valid(_menu_music):
+func _sync_music() -> void:
+	if not is_instance_valid(_menu_music) or not is_instance_valid(_battle_music):
 		return
-	var in_menu: bool = menu_host.visible or (_settings_from_menu and (preview.settings_panel.visible or _general_settings_open()))
+	var in_menu: bool = not _recovering and (menu_host.visible or (_settings_from_menu and (preview.settings_panel.visible or _general_settings_open())))
+	# Pause/settings do not end the battle or restart its soundtrack.
+	var in_battle: bool = not _recovering and not in_menu \
+		and session.connection_state in ["hosting", "connected", "practice"] \
+		and session.match_view.get("phase") in ["countdown", "active", "overtime", "intermission"]
+	if not in_menu and _menu_music.playing:
+		_menu_music.stop()
+	if not in_battle and _battle_music.playing:
+		_battle_music.stop()
 	if in_menu and not _menu_music.playing:
 		_menu_music.play()
-	elif not in_menu and _menu_music.playing:
-		_menu_music.stop()
+	if in_battle and not _battle_music.playing:
+		_battle_music.play()
 
 func gameplay_input_allowed() -> bool:
 	var bot := session.local_source()
@@ -576,6 +596,7 @@ func _process(_delta: float) -> void:
 		elif phase == "lobby":
 			MenuRouter.goto("lobby", false)
 	if _recovering:
+		_sync_music()
 		duel_scoreboard.suppress(Input.is_action_pressed("scoreboard"))
 		continuous_audio.reset()
 		preview.release_controls(false)
@@ -674,7 +695,7 @@ func _process(_delta: float) -> void:
 	_rematch.disabled = _vote_match == str(session.match_view.get("match_id", ""))
 	_rematch.text = "Rematch requested" if _rematch.disabled else "Request rematch"
 	_sync_pause_focus()
-	_sync_menu_music()
+	_sync_music()
 
 func _update_world_markers() -> void:
 	if not is_instance_valid(world_markers) or not is_instance_valid(session):
@@ -745,7 +766,7 @@ func resume_gameplay() -> void:
 	preview.network_diagnostics.expanded = false
 	# Hidden workshop shortcuts must not edit the draft behind a running test drive.
 	if is_instance_valid(screen): screen.process_mode = Node.PROCESS_MODE_DISABLED
-	_sync_menu_music()
+	_sync_music()
 	preview.capture_controls()
 
 ## Ordinary sessions leave to main; workshop practice restores its build screen.

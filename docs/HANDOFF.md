@@ -1,5 +1,14 @@
 # Current A/B handoff
 
+## Battle soundtrack — 20 September 2026
+
+A added the supplied Relentless Action MP3 as a looping battle song on the existing
+Music bus. It plays through countdown, combat, round breaks and in-game settings;
+results, disconnect recovery and leaving stop it. The menu melody remains separate.
+Import/baseline, actual loop playback, Music volume preview/cancel, real ENet
+results/rematch and reconnect checks pass. No gameplay or compatibility changes;
+no hosted release is claimed. See [scope and validation](coordination/A_BATTLE_MUSIC.md).
+
 ## Robot destruction explosion — 20 September 2026
 
 B added confirmed zero-core explosions: rolling fireballs, pressure rings, orange
