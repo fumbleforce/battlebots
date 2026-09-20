@@ -1,5 +1,19 @@
 extends MenuScreen
 
+class GaragePreview extends GarageBotPreview:
+	func _layout_status() -> void:
+		super()
+		if is_instance_valid(status): status.hide()
+		if is_instance_valid(_status_next): _status_next.hide()
+
+	func _invalid_status(message: String) -> void:
+		super(message)
+		status.hide()
+		_status_next.hide()
+
+	func rotate_view(delta: Vector2) -> void:
+		super(Vector2(-delta.x, delta.y))
+
 const BOT_ROW := preload("res://ui/menus/components/bot_row.tscn")
 var build_preview: GarageBotPreview
 var recovery_panel: GarageRecoveryPanel
@@ -17,7 +31,7 @@ var _page_label: Label
 
 func _ready() -> void:
 	super()
-	build_preview = GarageBotPreview.new()
+	build_preview = GaragePreview.new()
 	var frame := %BotImage.get_parent()
 	%BotImage.hide()
 	frame.add_child(build_preview)
@@ -29,7 +43,6 @@ func _ready() -> void:
 	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%BotList.get_parent().add_child(notice)
 	%Customize.pressed.connect(MenuRouter.goto.bind("customize"))
-	%Upgrade.pressed.connect(MenuRouter.goto.bind("shop"))
 	%NewBot.pressed.connect(func(): PlayerProfile.new_build(); MenuRouter.goto("customize"))
 	%Steps.hide()
 	%Eyebrow.text = "YOUR BOTS · SELECT OR CUSTOMIZE"
@@ -95,12 +108,11 @@ func _select(i: int) -> void:
 	%BotClass.text = "VALID BUILD · 3D PREVIEW" if b.valid else b.cls
 	if b.get("retained", false): %BotClass.text = b.cls
 	%BotName.text = b.name
-	%BotHp.text = "%s core HP" % MenuData.fmt_int(b.hp) if b.valid else "Stats unavailable"
+	%BotHp.text = "%s core HP" % MenuData.fmt_int(b.hp) if b.valid else "Stats unavailable · " + "; ".join(b.reasons)
 	%Pips.get_parent().hide()
 	%Next.disabled = false
 	%Stats.visible = b.valid
 	%Bays.tooltip_text = "; ".join(PlayerProfile.errors)
-	%Upgrade.text = "PART CATALOGUE"
 	var j := 0
 	for pip in %Pips.get_children():
 		pip.theme_type_variation = &"PipOn" if j < b.shields else &"Pip"
@@ -108,10 +120,26 @@ func _select(i: int) -> void:
 	%Weapon.text = b.weapon
 	%Ability.text = b.ability
 	%Boost.text = b.boost
-	var bars := %Stats.get_children()
-	for k in MenuData.STAT_KEYS.size():
-		var key: String = MenuData.STAT_KEYS[k]
-		bars[k].set_stat(key, b.stats[key], 0, b.stats[key] >= 80)
+	for child in %Stats.get_children():
+		%Stats.remove_child(child)
+		child.queue_free()
+	if b.valid:
+		var stats := ContentRegistry.new().validate(PlayerProfile.loadouts[i]).stats
+		for text: String in [
+			"Mass  %s / 120 kg" % MenuData.fmt_int(stats.mass),
+			"Battery  %s" % MenuData.fmt_int(stats.battery),
+			"Max speed  %s m/s" % MenuData.fmt_int(stats.speed),
+			"Front armor  %s HP" % MenuData.fmt_int(stats.plate_integrity),
+			"Rear armor  %s HP" % MenuData.fmt_int(stats.plate_integrity),
+			"Left armor  %s HP" % MenuData.fmt_int(stats.plate_integrity),
+			"Right armor  %s HP" % MenuData.fmt_int(stats.plate_integrity)]:
+			var label := Label.new()
+			label.text = text
+			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			label.add_theme_font_size_override("font_size", 20)
+			%Stats.add_child(label)
+		MenuTextScale.apply(%Stats, _text_factor)
 
 
 func _prepare_text_layout() -> void:
@@ -119,8 +147,9 @@ func _prepare_text_layout() -> void:
 	var overlay: Control = %Customize.get_parent()
 	overlay.reparent(frame.get_parent())
 	frame.get_parent().move_child(overlay, 0)
-	frame.custom_minimum_size.y = 270
-	for button: Button in [%Customize, %Upgrade]:
+	frame.custom_minimum_size.y = 180
+	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	for button: Button in [%Customize]:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	for label: Label in [%BotName, %BotClass, %BotHp, %Weapon, %Ability, %Boost]:
@@ -131,8 +160,8 @@ func _prepare_text_layout() -> void:
 		pad.minimum_size_changed.connect(_fit_button_content.bind(slot, pad))
 	$Layout/Body/Row/BotsCol.custom_minimum_size.x = 430
 	$Layout/Body/Row/RightCol.custom_minimum_size.x = 400
-	%BotName.add_theme_font_size_override("font_size", 40)
-	%BotHp.add_theme_font_size_override("font_size", 25)
+	%BotName.add_theme_font_size_override("font_size", 32)
+	%BotHp.add_theme_font_size_override("font_size", 22)
 	%BotList.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_pager = HBoxContainer.new()
 	%BotList.get_parent().add_child(_build_pager)
@@ -149,23 +178,7 @@ func _prepare_text_layout() -> void:
 	next.text = "NEXT"
 	next.pressed.connect(_page_builds.bind(1))
 	_build_pager.add_child(next)
-	var details := HBoxContainer.new()
-	var right: VBoxContainer = $Layout/Body/Row/RightCol
-	right.add_child(details)
-	right.move_child(details, 0)
-	var details_group := ButtonGroup.new()
-	for label: String in ["LOADOUT", "STATS"]:
-		var button := Button.new()
-		button.text = label
-		button.toggle_mode = true
-		button.button_group = details_group
-		button.button_pressed = label == "LOADOUT"
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.pressed.connect(func():
-			right.get_node("Loadout").visible = label == "LOADOUT"
-			right.get_node("StatsPanel").visible = label == "STATS")
-		details.add_child(button)
-	right.get_node("StatsPanel").hide()
+	$Layout/Body/Row/RightCol/Loadout.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
 func _page_builds(direction: int) -> void:
@@ -177,6 +190,7 @@ func _page_builds(direction: int) -> void:
 func apply_text_scale(factor: float) -> void:
 	_pagination_frames = 4
 	_text_factor = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	$Layout/Header.custom_minimum_size.y = 115 if _text_factor == 1.0 else 160
 	MenuTextScale.apply(self, _text_factor)
 	if not is_instance_valid(build_preview) or not is_instance_valid(recovery_panel): return
 	build_preview.apply_text_scale(_text_factor)

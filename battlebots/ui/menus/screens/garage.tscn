@@ -287,14 +287,6 @@ unique_name_in_owner = true
 icon = ExtResource("7_wrenchsv")
 custom_minimum_size = Vector2(0, 53)
 
-[node name="Upgrade" type="Button" parent="Layout/Body/Row/Preview/Col/ImageFrame/Overlay"]
-layout_mode = 2
-theme_type_variation = &"OverlayButton"
-text = "UPGRADE"
-unique_name_in_owner = true
-icon = ExtResource("8_arrowups")
-custom_minimum_size = Vector2(0, 53)
-
 [node name="Rotate" type="Button" parent="Layout/Body/Row/Preview/Col/ImageFrame"]
 layout_mode = 1
 anchors_preset = 3
@@ -408,6 +400,13 @@ layout_mode = 2
 theme_type_variation = &"Pip"
 custom_minimum_size = Vector2(31, 14)
 size_flags_vertical = 4
+
+[node name="Stats" type="GridContainer" parent="Layout/Body/Row/Preview/Col/Info"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 4
+unique_name_in_owner = true
 
 [node name="RightCol" type="VBoxContainer" parent="Layout/Body/Row"]
 layout_mode = 2
@@ -631,38 +630,6 @@ custom_minimum_size = Vector2(24, 24)
 size_flags_vertical = 4
 self_modulate = Color(0.6039, 0.651, 0.7098, 1)
 mouse_filter = 2
-
-[node name="StatsPanel" type="PanelContainer" parent="Layout/Body/Row/RightCol"]
-layout_mode = 2
-theme_type_variation = &"PanelBox"
-size_flags_vertical = 3
-
-[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/RightCol/StatsPanel"]
-layout_mode = 2
-theme_override_constants/separation = 17
-
-[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/StatsPanel/Col"]
-layout_mode = 2
-text = "STATS"
-theme_type_variation = &"Eyebrow"
-theme_override_font_sizes/font_size = 16
-
-[node name="Stats" type="VBoxContainer" parent="Layout/Body/Row/RightCol/StatsPanel/Col"]
-layout_mode = 2
-theme_override_constants/separation = 17
-unique_name_in_owner = true
-
-[node name="Stat1" parent="Layout/Body/Row/RightCol/StatsPanel/Col/Stats" instance=ExtResource("12_statbart")]
-layout_mode = 2
-
-[node name="Stat2" parent="Layout/Body/Row/RightCol/StatsPanel/Col/Stats" instance=ExtResource("12_statbart")]
-layout_mode = 2
-
-[node name="Stat3" parent="Layout/Body/Row/RightCol/StatsPanel/Col/Stats" instance=ExtResource("12_statbart")]
-layout_mode = 2
-
-[node name="Stat4" parent="Layout/Body/Row/RightCol/StatsPanel/Col/Stats" instance=ExtResource("12_statbart")]
-layout_mode = 2
 
 [node name="Footer" type="PanelContainer" parent="Layout"]
 layout_mode = 2

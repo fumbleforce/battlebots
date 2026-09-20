@@ -6,12 +6,43 @@ func check(ok: bool, message: String) -> void:
 func settle() -> void:
 	for _frame: int in 8: await get_tree().process_frame
 func run() -> void:
-	get_window().size = Vector2i(1280,720)
+	get_window().size = Vector2i(1920,1080)
 	get_window().content_scale_size = Vector2i(1920,1080)
 	get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	var profile: Node = get_node("/root/PlayerProfile")
 	profile.save_path = "user://garage-catalogue-text-%d.json" % Time.get_ticks_usec()
 	profile.reload()
+	var overview: Control = load("res://ui/menus/screens/garage.tscn").instantiate()
+	add_child(overview)
+	await settle()
+	check(overview.get_node_or_null("%Upgrade") == null, "Catalogue entry removed")
+	check(overview.get_node("Layout/Body/Row/RightCol").get_child_count() == 1, "Right column reserved for loadout")
+	check(overview.build_preview.size.y > 360, "Preview uses expanded height at normal text size")
+	var yaw: float = overview.build_preview.yaw
+	var motion := InputEventMouseMotion.new()
+	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	motion.relative = Vector2(20, 0)
+	overview.build_preview._gui_input(motion)
+	check(overview.build_preview.yaw > yaw, "Horizontal drag is reversed")
+	var key := InputEventKey.new()
+	key.keycode = KEY_RIGHT
+	key.pressed = true
+	yaw = overview.build_preview.yaw
+	overview.build_preview._gui_input(key)
+	check(overview.build_preview.yaw < yaw, "Horizontal keyboard orbit is reversed")
+	check(not overview.build_preview.status.visible, "No text inside valid preview")
+	await capture("garage-overview")
+	profile.loadouts[profile.active_bot].parts.utility = "battery_pack"
+	profile._draft_changed()
+	await settle()
+	var summary := ""
+	for label: Label in overview.get_node("%Stats").get_children(): summary += label.text + "\n"
+	check("Battery  125" in summary, "Actual battery capacity replaces installed power")
+	check("Max speed  8 m/s" in summary, "Canonical max speed is displayed")
+	for side: String in ["Front", "Rear", "Left", "Right"]:
+		check(side + " armor  90 HP" in summary, "Individual plate integrity: " + side)
+	overview.queue_free()
+	await get_tree().process_frame
 	profile.new_build()
 	profile.rename_draft("A very long experimental robot name")
 	profile.new_build()
@@ -33,7 +64,7 @@ func run() -> void:
 			await settle()
 			var row: Control = screen.get_node("%BotList").get_child(0)
 			check(row.get_node("%Name").get_theme_font_size("font_size") == 44,"Rebuilt build row uses current scale")
-			check(screen.get_node("%BotName").get_theme_font_size("font_size") == 60,"Compact design title retains150% scale")
+			check(screen.get_node("%BotName").get_theme_font_size("font_size") == 48,"Compact design title retains150% scale")
 			row.grab_focus()
 			check(row.has_focus(),"Garage build remains keyboard focusable")
 			await capture("garage")
@@ -41,6 +72,8 @@ func run() -> void:
 			profile._draft_changed()
 			await settle()
 			check(not screen.get_node("%Stats").visible,"Invalid build hides unavailable stats")
+			check(not screen.build_preview.status.visible, "No text inside invalid preview")
+			check("Unknown or missing part" in screen.get_node("%BotHp").text, "Invalid reason lives in description")
 			await capture("garage-invalid")
 			for page: int in ceili(profile.bots.size() / 2.0):
 				screen._build_page = page
@@ -77,9 +110,9 @@ func run() -> void:
 		for resolution: Vector2i in [Vector2i(1920,1080),Vector2i(2560,1440),Vector2i(3840,2160)]:
 			get_window().size = resolution
 			await settle()
-			check(screen.get_node("Layout/Footer").get_global_rect().end.y <= 1081,resource + " footer fits " + str(resolution))
+			check(screen.get_node("Layout/Footer").get_global_rect().end.y <= 1081,resource + " footer fits " + str(resolution) + " bounds " + str(screen.get_node("Layout/Footer").get_global_rect()))
 			check(screen.get_node("Layout").size.x <= 1921,resource + " width fits " + str(resolution))
-		get_window().size = Vector2i(1280,720)
+		get_window().size = Vector2i(1920,1080)
 		screen.queue_free()
 		await get_tree().process_frame
 	if failures.is_empty(): print("GARAGE CATALOGUE TEXT PASS")
