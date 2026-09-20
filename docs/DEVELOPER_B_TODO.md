@@ -519,3 +519,5 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
 - 2026-09-20 B intent: direct unsaved-build Test Drive on codex/b-garage-test-drive from e0ce7c4; separate entry/menu_game integration avoids the active Sawblade/legs task. See coordination/B_GARAGE_TEST_DRIVE.md.
 
 - 2026-09-20 B investigation: terrain-aware camera clearance on codex/b-terrain-camera, from f570bf9. Reproduce rolled-anchor overlap on Moon; camera-only scope avoids active Sawblade/legs work. See coordination/B_TERRAIN_CAMERA.md.
+
+- **B camera mouse scaling:** investigate resolution-dependent orbit in B's input adapter on codex/b-camera-mouse-scale; independent engine event/adapter scene. No model/drive/weapon or network changes. See [scope](coordination/B_CAMERA_MOUSE_SCALE.md).
