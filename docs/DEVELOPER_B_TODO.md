@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-garage-test-drive`, based on main `e0ce7c4`.
-**Latest increment:** Garage/Customize Test Drive uses the unsaved build and returns without saving or losing undo history. See [test-drive evidence](coordination/B_GARAGE_TEST_DRIVE.md). The preceding featured selector/rotating preview is merged at `e0ce7c4`.
+**Latest B task:** `codex/b-terrain-camera`, based on main `f570bf9`.
+**Latest increment:** Terrain-aware third-person clearance fixes embedded views for inverted bots on raised Moon ground. Independent collision and camera regressions pass; human handling remains open. See [camera evidence](coordination/B_TERRAIN_CAMERA.md). Unsaved-build Test Drive is merged at `f570bf9`.
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).

@@ -1,5 +1,16 @@
 # Developer B — combat, bots, customisation and controls
 
+## Terrain camera clearance — 20 September 2026
+
+An inverted bot could be clear of raised Moon terrain while its camera sphere
+remained embedded. The camera now queries supporting ground from chassis height
+and raises the pivot only when the candidate sphere and upward path are clear.
+Ceilings and walls still constrain the view; no world, drive or BotSource API changes.
+Independent lunar poses, ceiling/wall removal, perimeter, existing contact/arena
+and settings checks pass, along with Godot 4.7.2 baseline and native visual review.
+These are deterministic collision fixtures; human driving feel remains open.
+See [reproduction and validation](coordination/B_TERRAIN_CAMERA.md).
+
 ## Unsaved-build test drive — 20 September 2026
 
 `codex/b-garage-test-drive`, from `e0ce7c4`, adds TEST DRIVE to Garage and Customize

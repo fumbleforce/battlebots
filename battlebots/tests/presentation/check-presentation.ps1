@@ -95,6 +95,8 @@ foreach ($check in $checks) {
         '--quit-after', '10000') -Marker $check[1]
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/camera_terrain_test.tscn', '--quit-after', '10000') -Marker 'CAMERA TERRAIN PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_preview_test.tscn', '--quit-after', '10000') -Marker 'GARAGE PREVIEW PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_showcase_test.tscn', '--quit-after', '10000') -Marker 'GARAGE SHOWCASE PASS'

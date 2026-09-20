@@ -145,7 +145,9 @@ func _clear_contact_pivot(pivot: Vector3) -> Vector3:
 	var space := get_world_3d().direct_space_state
 	query.collision_mask = BaselineConfig.WORLD_LAYER
 	if not space.intersect_shape(query, 1).is_empty():
-		return pivot
+		pivot = _clear_ground_pivot(pivot)
+		query.transform.origin = pivot
+		if not space.intersect_shape(query, 1).is_empty(): return pivot
 	query.collision_mask = BaselineConfig.BOT_LAYER
 	if space.intersect_shape(query, 1).is_empty():
 		return pivot
@@ -162,3 +164,29 @@ func _clear_contact_pivot(pivot: Vector3) -> Vector3:
 		if space.intersect_shape(query, 1).is_empty():
 			return query.transform.origin
 	return pivot
+
+func _clear_ground_pivot(pivot: Vector3) -> Vector3:
+	# A rolled anchor may be below raised terrain while the chassis is above it.
+	# Read supporting ground from chassis height; never escape through an overhead surface.
+	var view := source.read_view()
+	if view == null or not view.pose.origin.is_finite(): return pivot
+	var start := Vector3(pivot.x, maxf(pivot.y, view.pose.origin.y), pivot.z)
+	var reach := maxf(2.0, start.y - pivot.y + camera_radius + 0.05)
+	var ray := PhysicsRayQueryParameters3D.create(start, start + Vector3.DOWN * reach, BaselineConfig.WORLD_LAYER)
+	ray.hit_from_inside = true
+	var space := get_world_3d().direct_space_state
+	var floor_hit := space.intersect_ray(ray)
+	if floor_hit.is_empty() or floor_hit.normal.y <= 0.25: return pivot
+	var corrected := pivot
+	corrected.y = floor_hit.position.y + (camera_radius + 0.05) / floor_hit.normal.y
+	if corrected.y <= pivot.y: return pivot
+	var top := corrected.y + camera_radius + 0.05
+	if top > start.y:
+		ray.to = Vector3(start.x, top, start.z)
+		if not space.intersect_ray(ray).is_empty(): return pivot
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _probe
+	query.transform = Transform3D(Basis.IDENTITY, corrected)
+	query.collision_mask = BaselineConfig.WORLD_LAYER
+	query.margin = 0.02
+	return corrected if space.intersect_shape(query, 1).is_empty() else pivot
