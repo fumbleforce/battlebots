@@ -68,6 +68,19 @@ and actual-screen scenes plus baseline/garage regressions pass. See
 
 ## Current Developer A increment
 
+`codex/a-live-duel-refinement` now addresses the user's manual hosted menu
+feedback: oversized scrolling navigation, unused screen margins, competing
+yellow actions, hidden private code and inconsistent settings. The current
+implementation is being validated; do not treat it as published before merge.
+All requested items, including B's vehicle selection and rotating 3D showcase,
+are tracked in [the menu feedback handoff](coordination/A_PLAYTEST_MENU_FEEDBACK.md).
+A owns the settings hub/video integration; B retains controls/camera behavior.
+Public private/Quick Play reconnect already passed against the unchanged Fly
+worker, retaining identity and idle state with token rotation. See
+[recovery evidence](coordination/A_LIVE_DUEL_REFINEMENT.md).
+
+### Preceding live deployment increment
+
 `codex/a-fly-duel-live` follows `2b42812`. The user approved hosting costs; one
 Stockholm Machine now serves `https://battlebots-fumbleforce.fly.dev`. Both
 private and queued duels passed actual public UDP gameplay, results and rematch.
@@ -86,8 +99,8 @@ The original-theme panel offers Quick Play alongside private create/code join.
 Expired online credentials clear stale membership so a new explicit action can
 retry. The hosted harness exercises both private and queued duels through
 results/rematch. B source and Godot wire contracts remain unchanged; see
-[duel queue evidence](coordination/A_DUEL_QUICK_PLAY.md). External deployment,
-human design acceptance and the intermittent native shutdown crash remain open.
+[duel queue evidence](coordination/A_DUEL_QUICK_PLAY.md). External deployment is
+now live; human design acceptance and the intermittent native shutdown crash remain open.
 
 ### Preceding impact/crowd audio increment
 

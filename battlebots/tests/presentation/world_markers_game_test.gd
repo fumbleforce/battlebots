@@ -64,7 +64,7 @@ func run() -> void:
 	game.open_settings()
 	await frames()
 	check(not game.world_markers.visible, "Settings suppress world labels")
-	game.preview.settings_panel.cancel()
+	game.settings_hub.back_button.pressed.emit()
 	game.restart_practice()
 	await frames()
 	check(game.world_markers.visible, "Resumed practice restores markers")

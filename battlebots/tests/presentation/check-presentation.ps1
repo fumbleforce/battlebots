@@ -44,6 +44,13 @@ foreach ($check in @(@('gameplay_audio_test.gd', 'GAMEPLAY AUDIO PASS'),
         '--quit-after', '6000') -Marker $check[1]
 }
 $checks = @(
+	@('main_menu_fit_test.gd', 'MAIN MENU FIT PASS'),
+	@('menu_host_fit_test.gd', 'MENU HOST FIT PASS'),
+	@('video_settings_test.gd', 'VIDEO SETTINGS PASS'),
+	@('video_settings_layout_test.gd', 'VIDEO SETTINGS LAYOUT PASS'),
+	@('settings_hub_test.gd', 'SETTINGS HUB PASS'),
+	@('private_lobby_code_test.gd', 'PRIVATE LOBBY CODE PASS'),
+	@('duel_scoreboard_test.gd', 'DUEL SCOREBOARD PASS'),
 	@('world_markers_test.gd', 'WORLD MARKERS PASS'),
 	@('world_markers_game_test.gd', 'WORLD MARKERS GAME PASS'),
     @('menu_text_settings_test.gd', 'MENU TEXT SETTINGS PASS'),

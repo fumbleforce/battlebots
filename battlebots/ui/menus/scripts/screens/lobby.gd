@@ -1,5 +1,5 @@
 extends MenuScreen
-## Direct-IP lobby backed only by authoritative MvpSession publications.
+## Hosted and direct-connection lobby backed by authoritative MvpSession publications.
 var session_override: MvpSession
 var session: MvpSession
 var address: LineEdit
@@ -9,6 +9,11 @@ var join_button: Button
 var team_choice: OptionButton
 var build_button: Button
 var build_choice: OptionButton
+var room_code_panel: PanelContainer
+var room_code_label: Label
+var copy_code_button: Button
+var _copied_code := ""
+var _copy_feedback_until := 0
 var _connection_panel: PanelContainer
 var _address_field: VBoxContainer
 var _connection_title: Label
@@ -49,6 +54,7 @@ func _ready() -> void:
 	allow_back = false
 	super()
 	%Steps.hide()
+	_build_room_code()
 	%Back.pressed.disconnect(MenuRouter.back)
 	%Back.pressed.connect(leave_lobby)
 	session = session_override if is_instance_valid(session_override) else MenuRouter.session
@@ -73,6 +79,51 @@ func _ready() -> void:
 	if is_instance_valid(session):
 		session.lobby_changed.connect(_lobby_changed)
 		session.session_event.connect(_session_event)
+	refresh()
+
+func _build_room_code() -> void:
+	room_code_panel = PanelContainer.new()
+	room_code_panel.theme_type_variation = &"PanelBox"
+	room_code_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	$Layout/Header/Row.add_child(room_code_panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	room_code_panel.add_child(row)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	row.add_child(column)
+	column.add_child(_label("FRIEND CODE", "EyebrowAmber", 16))
+	room_code_label = _label("", "HeadingWide", 32)
+	column.add_child(room_code_label)
+	copy_code_button = _button("COPY CODE", _copy_room_code)
+	copy_code_button.theme_type_variation = &"PrimaryButton"
+	copy_code_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	copy_code_button.tooltip_text = "Copy the friend code to invite your opponent"
+	row.add_child(copy_code_button)
+	room_code_panel.hide()
+
+func _private_room_code() -> String:
+	if MenuRouter.lobby_intent != "online" or not is_instance_valid(MenuRouter.host):
+		return ""
+	var service: PublicServiceClient = MenuRouter.host.public_service
+	if not is_instance_valid(service):
+		return ""
+	var value: Variant = service.membership.get("code", "")
+	if not value is String or value.length() != 8:
+		return ""
+	for index in value.length():
+		var character: int = value.unicode_at(index)
+		if not (character >= 65 and character <= 90) and not (character >= 48 and character <= 57):
+			return ""
+	return value
+
+func _copy_room_code() -> void:
+	var code := _private_room_code()
+	if code.is_empty():
+		return
+	DisplayServer.clipboard_set(code)
+	_copied_code = code
+	_copy_feedback_until = Time.get_ticks_msec() + 1800
 	refresh()
 
 func _build_connection_controls() -> void:
@@ -322,12 +373,20 @@ func _session_event(kind: String, details: Dictionary) -> void:
 	elif kind == "left":
 		_pending = ""
 		_joined_build_sent = false
-		_notice = "Disconnected. Host or join a game."
+		_notice = "Disconnected from the online game. Return to Play Online to try again." if MenuRouter.lobby_intent == "online" else "Disconnected. Host or join a game."
 	refresh()
 
 func refresh() -> void:
 	if not is_node_ready():
 		return
+	var room_code := _private_room_code()
+	var copy_had_focus := copy_code_button.has_focus()
+	room_code_label.text = room_code
+	room_code_panel.visible = not room_code.is_empty()
+	copy_code_button.disabled = room_code.is_empty()
+	copy_code_button.text = "COPIED" if room_code == _copied_code and Time.get_ticks_msec() < _copy_feedback_until else "COPY CODE"
+	if room_code.is_empty() and copy_had_focus:
+		%Back.grab_focus()
 	var valid := is_instance_valid(session)
 	var state := session.connection_state if valid else "unavailable"
 	var slots: Array = session.lobby_view.get("slots", []) if valid else []
@@ -383,12 +442,14 @@ func refresh() -> void:
 	$Layout/Body/Row/Match/Status.size_flags_vertical = Control.SIZE_EXPAND_FILL if known else Control.SIZE_FILL
 	$Layout/Body/Row/Match/Status.custom_minimum_size.y = 0.0 if known else 180.0
 	var mode_title := "FREE FOR ALL" if ffa else ("1V1" if capacity == 2 else mode.to_upper())
-	%Eyebrow.text = "%s · LOBBY" % mode_title if known else "PRIVATE MATCH · DIRECT CONNECTION"
+	%Eyebrow.text = "%s · LOBBY" % mode_title if known else ("ONLINE MATCH · CONNECTION" if MenuRouter.lobby_intent == "online" else "PRIVATE MATCH · DIRECT CONNECTION")
 	%Title.text = "MATCH LOBBY" if known else ("ONLINE MATCH" if MenuRouter.lobby_intent == "online" else ("JOIN A MATCH" if MenuRouter.lobby_intent == "join" else "HOST A MATCH"))
 	$Layout/Body/Row/Match/Rules/Win/Col/Value.text = "Last bot" if ffa else "First to 2"
 	$Layout/Body/Row/Match/Rules/Clock/Col/Value.text = "5:00" if ffa else ("4:00" if capacity == 10 else "3:00")
 	%StatusEyebrow.text = "MINIMUM 4 · EVERYONE READY" if ffa and connected else (("READY CHECK" if slots.size() >= capacity else "WAITING FOR OPPONENT" if capacity == 2 else "WAITING FOR PLAYERS") if connected else "CONNECTION STATUS")
 	%StatusBig.text = "%d/%d PLAYERS" % [slots.size(), capacity] if connected and known else ("CONNECTING…" if state == "connecting" else ("JOIN A HOST" if MenuRouter.lobby_intent == "join" else "HOST A GAME"))
+	if MenuRouter.lobby_intent == "online" and not known:
+		%StatusBig.text = "CONNECTING TO YOUR GAME…" if state == "connecting" else ("WAITING FOR GAME DETAILS…" if connected else "ONLINE CONNECTION UNAVAILABLE")
 	%StatusSub.text = _notice
 	if MenuRouter.lobby_intent == "online" and is_instance_valid(MenuRouter.host):
 		var service: PublicServiceClient = MenuRouter.host.public_service

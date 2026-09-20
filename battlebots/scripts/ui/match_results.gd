@@ -238,7 +238,10 @@ func _render_overview(view: Dictionary) -> void:
 		var scores: Variant = view.get("scores")
 		score.text = "Score unavailable"
 		if scores is Array and scores.size() == 2 and _integer(scores[0], 0, 5) and _integer(scores[1], 0, 5):
-			score.text = "TEAM A   %d  :  %d   TEAM B" % [int(scores[0]), int(scores[1])]
+			if view.get("mode") == "1v1" and _local_team in [0, 1]:
+				score.text = "YOU   %d  :  %d   OPPONENT" % [int(scores[_local_team]), int(scores[1 - _local_team])]
+			else:
+				score.text = "TEAM A   %d  :  %d   TEAM B" % [int(scores[0]), int(scores[1])]
 	var lines := PackedStringArray()
 	var rounds: Variant = view.get("rounds", [])
 	if rounds is Array:
@@ -263,6 +266,8 @@ func _outcome(view: Dictionary) -> String:
 	var winner: Variant = view.get("winner")
 	if not _integer(winner, -1, 1):
 		return "Result unavailable"
+	if _view.get("mode") == "1v1" and _local_team in [0, 1] and winner != -1:
+		return "You won" if winner == _local_team else "You lost"
 	return "Draw" if winner == -1 else "Team %s wins" % ("A" if winner == 0 else "B")
 
 func _render_table() -> void:

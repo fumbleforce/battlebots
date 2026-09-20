@@ -13,6 +13,42 @@ active expansion or acceptance work.
 
 ## Highest-priority active work
 
+### Manual online playtest feedback — 2026-09-20
+
+These user-reported defects reopen presentation acceptance. Earlier automated
+layout passes do not close them. Prioritize these alongside the working 1v1 loop.
+
+- [ ] **A: Responsive menus without scrolling.** Fit navigation and actions to
+  the actual window, including 720p, 1080p and wide aspect ratios. Replace oversized
+  fixed layout and scrolling with adaptive composition; preserve readable text.
+  Main navigation and A's settings categories now fit without scrolling in
+  independent/native checks; remaining networking and B binding-list pages need
+  the same no-scroll review. Keep this broader request open.
+- [x] **A: Full-screen menu coverage.** Remove grey borders on either axis;
+  background and panels must adapt when the window is resized.
+  Main host/background now cover both axes in actual composed-game checks.
+- [x] **A: Correct button emphasis.** Only Play Online is solid yellow on the
+  main menu. LAN and other secondary actions use subdued hover/focus treatment.
+- [ ] **A: Complete settings presentation overhaul and video settings.** Use the
+  established menu theme and clear category navigation, with display/window mode,
+  resolution and appropriate graphics options. Integrate B's existing camera and
+  controls pages without changing their behavior; coordinate their restyling.
+  Five-category themed hub and video preferences now implemented and rendered;
+  physical display switching and B's no-scroll binding presentation remain open.
+- [x] **A: Persistent, prominent private friend code.** Keep the code clearly
+  visible in the lobby after creation, with an obvious Copy code action. A fleeting
+  creation screen is insufficient; Quick Play must not show a private-room code.
+- [ ] **B implementation / A integration: Featured vehicle selection.** Replace
+  the small dropdown with a clear selection/switching experience, prominently
+  displaying the active vehicle before joining or readying.
+- [ ] **B implementation / A integration: Live bot showcase.** Replace the static
+  image with the actual active bot in 3D on a rotating pedestal; changes to the
+  selected build must update the preview. Coordinate a reusable preview interface.
+
+See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK.md).
+
+### Existing 1v1 delivery work
+
 - [ ] Complete the end-to-end 1v1 game: online entry, combat, round completion,
   results and rematch, with clear feedback and reliable recovery/reconnect.
 - [ ] Finish presentation refinement across multiplayer/networking menus, the
@@ -25,7 +61,8 @@ active expansion or acceptance work.
 - [x] Expose same-session reconnect in the game menus, with bounded retry,
   damage/identity retention, results recovery and explicit leave. Independent
   ENet and composed-game checks pass; see [recovery evidence](coordination/A_RECONNECT_FLOW.md).
-  External hosting and human recovery acceptance remain open.
+  Public Fly private/Quick Play reconnect now passes automated checks; human
+  recovery acceptance remains open. See [public recovery evidence](coordination/A_LIVE_DUEL_REFINEMENT.md).
 - [x] Deploy the externally hosted matchmaker and dedicated game server for 1v1.
   `battlebots-fumbleforce` runs one Stockholm Fly Machine. External private and
   Quick Play duels passed assigned UDP connectivity, driving, two-round results
@@ -36,8 +73,8 @@ active expansion or acceptance work.
   lifecycle checks do not replace this human acceptance.
 - [x] Add 1v1 Quick Play, isolated from the legacy four-player queue, with
   coherent online-menu waiting/cancel states and expired-session retry.
-  See [duel queue evidence](coordination/A_DUEL_QUICK_PLAY.md). External hosted
-  and human acceptance remain outstanding.
+  See [duel queue evidence](coordination/A_DUEL_QUICK_PLAY.md). Public hosted
+  automation passes; human acceptance remains outstanding.
 - [x] Run private 1v1 through the production Linux container's real release worker,
   including results/rematch. [Linux CI evidence](coordination/A_LINUX_HOSTED_RUNTIME.md)
   closes the runtime packaging gap, not external deployment.
@@ -63,7 +100,8 @@ active expansion or acceptance work.
   [accessibility evidence](coordination/A_HUD_ACCESSIBILITY.md).
 - [x] Extend text sizes through 150% to A's general menus, online/lobby/loading,
   game/results/reconnect and audio/accessibility panels, with saved preview/cancel
-  behavior and keyboard-accessible scrolling. See
+  behavior and keyboard-accessible scrolling. The new user feedback rejects
+  scrolling as a menu solution; adaptive no-scroll presentation remains open. See
   [general-menu evidence](coordination/A_MENU_TEXT_ACCESSIBILITY.md).
 - [x] Add 1v1/practice world identification with distinct symbols/text, OUT state,
   color presets and high contrast. Depth-tested badges follow published poses

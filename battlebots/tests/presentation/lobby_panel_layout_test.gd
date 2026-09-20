@@ -68,6 +68,34 @@ func run() -> void:
 			await process_frame
 			fixture.connection_state = "offline"
 			fixture.lobby_view = {}
+		router.lobby_intent = "online"
+		var online: Control = load("res://ui/menus/screens/lobby.tscn").instantiate()
+		online.session_override = fixture
+		view.add_child(online)
+		online.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		online.size = Vector2(1920, 1080)
+		online.scale = Vector2.ONE * (float(resolution.x) / 1920.0)
+		for text_scale in [1.0, 1.5]:
+			online.apply_text_scale(text_scale)
+			fixture.connection_state = "connecting"
+			online.refresh()
+			await settle()
+			check(online.get_node("%Eyebrow").text == "ONLINE MATCH · CONNECTION" and online.get_node("%StatusBig").text == "CONNECTING TO YOUR GAME…", "Hosted admission uses online connection language")
+			check(not online._connection_panel.visible and online.get_node("%Back").text == "CANCEL CONNECTION", "Hosted connection has cancellation without direct endpoint controls")
+			await inspect(online, view, "online-connecting-%d" % roundi(text_scale * 100), resolution)
+			fixture.connection_state = "connected"
+			online.refresh()
+			check(online.get_node("%StatusBig").text == "WAITING FOR GAME DETAILS…", "Connected transport without baseline waits for actual game data")
+			fixture.connection_state = "offline"
+			online._session_event("error", {"message":"Admission expired. Return to Play Online and try again."})
+			await settle()
+			check(online.get_node("%StatusBig").text == "ONLINE CONNECTION UNAVAILABLE" and online.get_node("%StatusSub").text.contains("Admission expired"), "Hosted failure preserves reason and never suggests hosting locally")
+			check(not online._connection_panel.visible, "Hosted failure does not expose direct host controls")
+			await inspect(online, view, "online-failed-%d" % roundi(text_scale * 100), resolution)
+			online._session_event("left", {})
+			check(online.get_node("%StatusSub").text.contains("Return to Play Online"), "Hosted leave directs the player back to online admission")
+		online.queue_free()
+		await process_frame
 		fixture.queue_free()
 		view.queue_free()
 		await process_frame

@@ -9,6 +9,15 @@ var screen: Control
 var _last_phase := ""
 var _last_source: BotSource
 var _settings_from_menu := false
+var settings_hub: SettingsHub
+var _settings_session_open := false
+var _settings_category := ""
+var _settings_dismissing := false
+var _settings_return_focus: Control
+@export var video_settings_path := "user://video.cfg"
+var video_preferences: VideoPreferences
+var video_settings: VideoSettingsPanel
+var _video_overlay: Control
 var _cli_handoff := false
 var _forfeit: Button
 var _rematch: Button
@@ -17,6 +26,7 @@ var _menu_music: AudioStreamPlayer
 var public_service: PublicServiceClient
 var _online_joining := false
 var results_panel: MatchResults
+var duel_scoreboard: DuelScoreboard
 @export var audio_settings_path := "user://audio.cfg"
 var audio_preferences: AudioPreferences
 var gameplay_audio: GameplayAudio
@@ -62,7 +72,10 @@ func _ready() -> void:
 	preview.return_button.pressed.disconnect(preview.return_to_launcher)
 	preview.return_button.pressed.connect(return_to_main)
 	preview.settings_button.text = "Settings"
+	preview.settings_button.pressed.disconnect(preview.open_settings)
+	preview.settings_button.pressed.connect(open_settings)
 	preview.settings_panel.closed.connect(_settings_closed)
+	preview.settings_panel.input_panel.finished.connect(_controls_category_finished)
 	_add_match_actions()
 	game_menu_page = preload("res://scripts/ui/game_menu_page.gd").new()
 	game_menu_page.configure(preview.pause_menu)
@@ -74,6 +87,11 @@ func _ready() -> void:
 	results_layer.add_child(results_panel)
 	results_panel.rematch_requested.connect(_request_rematch)
 	results_panel.leave_requested.connect(return_to_main)
+	var scoreboard_layer := CanvasLayer.new()
+	scoreboard_layer.layer = 5
+	add_child(scoreboard_layer)
+	duel_scoreboard = DuelScoreboard.new()
+	scoreboard_layer.add_child(duel_scoreboard)
 	var recovery_layer := CanvasLayer.new()
 	recovery_layer.layer = 10
 	add_child(recovery_layer)
@@ -100,6 +118,7 @@ func _ready() -> void:
 	_audio_caption.size = Vector2(568, 40)
 	_style_auxiliary_hud()
 	_add_hud_settings()
+	_add_settings_hub()
 	_add_menu_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
@@ -111,12 +130,14 @@ func _resize_menu() -> void:
 	var extent := get_viewport().get_visible_rect().size
 	var ratio := minf(extent.x / 1920.0, extent.y / 1080.0)
 	menu_host.scale = Vector2.ONE * ratio
-	menu_host.size = Vector2(1920, 1080)
-	menu_host.position = (extent - menu_host.size * ratio) * 0.5
+	# Keep the design scale while letting anchored backgrounds cover any aspect.
+	menu_host.size = extent / maxf(ratio, 0.001)
+	menu_host.position = Vector2.ZERO
 
 func show_screen(key: String) -> void:
 	if _cli_handoff or not MenuRouter.SCREENS.has(key):
 		return
+	duel_scoreboard.suppress(Input.is_action_pressed("scoreboard"))
 	preview.release_controls(false)
 	preview.pause_menu.hide()
 	if is_instance_valid(screen):
@@ -172,14 +193,6 @@ func _add_gameplay_audio() -> void:
 		_audio_caption.text = text
 		_audio_caption.visible = not text.is_empty())
 	_audio_caption.hide()
-	# Compose general Audio settings without changing B's control settings code.
-	audio_settings_button = Button.new()
-	audio_settings_button.name = "AudioSettingsButton"
-	audio_settings_button.text = "Audio…"
-	audio_settings_button.custom_minimum_size.y = 36
-	preview.settings_panel.form.get_node("Title").text = "Settings"
-	preview.settings_panel.form.add_child(audio_settings_button)
-	audio_settings_button.pressed.connect(open_audio_settings)
 	var audio_layer := CanvasLayer.new()
 	audio_layer.layer = 20
 	add_child(audio_layer)
@@ -248,23 +261,17 @@ func restart_practice() -> void:
 	resume_gameplay()
 
 func open_audio_settings() -> void:
-	preview.release_controls(false)
+	_prepare_settings_category("audio")
 	preview.settings_panel.hide()
 	_audio_overlay.show()
 	audio_settings.open_for(audio_preferences, audio_settings_path)
 
 func _audio_settings_closed(_saved: bool) -> void:
 	_audio_overlay.hide()
-	preview.settings_panel.show()
-	audio_settings_button.grab_focus()
+	_return_to_settings_hub()
 
 func _add_hud_settings() -> void:
 	hud_preferences = HudPreferences.load_file(hud_settings_path)
-	hud_settings_button = Button.new()
-	hud_settings_button.text = "Accessibility…"
-	hud_settings_button.custom_minimum_size.y = 36
-	preview.settings_panel.form.add_child(hud_settings_button)
-	hud_settings_button.pressed.connect(open_hud_settings)
 	var layer := CanvasLayer.new()
 	layer.layer = 20
 	add_child(layer)
@@ -282,50 +289,198 @@ func _add_hud_settings() -> void:
 	hud_settings.applied.connect(func(value: HudPreferences) -> void: hud_preferences = value)
 	hud_settings.finished.connect(func(_saved: bool) -> void:
 		_hud_overlay.hide()
-		preview.settings_panel.show()
-		hud_settings_button.grab_focus())
+		_return_to_settings_hub())
 	_hud_overlay.hide()
 	_apply_hud_preferences(hud_preferences)
 
+func _add_settings_hub() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 19
+	add_child(layer)
+	settings_hub = SettingsHub.new()
+	layer.add_child(settings_hub)
+	settings_hub.category_requested.connect(_open_settings_category)
+	settings_hub.back_requested.connect(_close_settings_hub)
+	audio_settings_button = settings_hub.buttons.audio
+	hud_settings_button = settings_hub.buttons.accessibility
+	settings_hub.apply_text_scale(_menu_text_scale)
+	var video_layer := CanvasLayer.new()
+	video_layer.layer = 20
+	add_child(video_layer)
+	_video_overlay = Control.new()
+	video_layer.add_child(_video_overlay)
+	_video_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade := ColorRect.new()
+	shade.color = Color(0.035, 0.045, 0.06, 0.98)
+	_video_overlay.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	video_settings = VideoSettingsPanel.new()
+	_settings_center(_video_overlay).add_child(video_settings)
+	video_preferences = VideoPreferences.load_file(video_settings_path)
+	if video_preferences.load_error != OK or not FileAccess.file_exists(video_settings_path):
+		video_preferences = VideoPreferences.capture()
+	elif DisplayServer.get_name() != "headless":
+		video_preferences.apply()
+	video_settings.applied.connect(func(value: VideoPreferences) -> void: video_preferences = value)
+	video_settings.finished.connect(func(_saved: bool) -> void:
+		_video_overlay.hide()
+		_return_to_settings_hub())
+	video_settings.apply_text_scale(_menu_text_scale)
+	_video_overlay.hide()
+	# Theme B's published settings container here; its transactions, binding
+	# capture, camera preview and source files remain owned by B.
+	var camera_panel: Control = preview.settings_panel.get_node("Center/Panel")
+	preview.settings_panel.theme = preload("res://ui/menus/theme/menu_theme.tres")
+	camera_panel.remove_theme_stylebox_override("panel")
+	camera_panel.theme_type_variation = &"PanelDark"
+	preview.settings_panel.form.get_node("Title").text = "CAMERA SETTINGS"
+	preview.settings_panel.form.get_node("Title").remove_theme_color_override("font_color")
+	preview.settings_panel.form.get_node("Title").theme_type_variation = &"Heading"
+	preview.settings_panel.form.get_node("Buttons/Save").text = "Save"
+	for overlay: Control in [_audio_overlay, _hud_overlay, _video_overlay, preview.settings_panel]:
+		var background := TextureRect.new()
+		background.texture = preload("res://ui/menus/art/bg_arena_blur.jpg")
+		background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(background)
+		overlay.move_child(background, 0)
+		background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		for child: Node in overlay.get_children():
+			if child is ColorRect:
+				child.color = Color(0.035, 0.045, 0.06, 0.93)
+	get_viewport().size_changed.connect(_fit_camera_settings)
+	_fit_camera_settings()
+	MenuTextScale.apply(preview.settings_panel, _menu_text_scale)
+	for owned_panel: Control in [audio_settings, hud_settings]:
+		owned_panel.theme = preload("res://ui/menus/theme/menu_theme.tres")
+		owned_panel.remove_theme_stylebox_override("panel")
+		owned_panel.theme_type_variation = &"PanelDark"
+
+func _fit_camera_settings() -> void:
+	var center: CenterContainer = preview.settings_panel.get_node("Center")
+	center.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	var extent := get_viewport().get_visible_rect().size
+	var ratio := minf(extent.x / 1600.0, extent.y / 900.0)
+	center.size = Vector2(1600, 900)
+	center.scale = Vector2.ONE * ratio
+	center.position = (extent - center.size * ratio) * 0.5
+
+func _prepare_settings_category(category: String) -> void:
+	if not _settings_session_open:
+		open_settings()
+	_settings_category = category
+	settings_hub.hide()
+	menu_host.hide()
+	preview.release_controls(false)
+	preview.pause_menu.hide()
+
+func _open_settings_category(category: String) -> void:
+	match category:
+		"audio": open_audio_settings()
+		"accessibility": open_hud_settings()
+		"video":
+			_prepare_settings_category(category)
+			_video_overlay.show()
+			video_settings.open_for(video_preferences, video_settings_path)
+		"camera", "controls":
+			_prepare_settings_category(category)
+			preview.open_settings()
+			if category == "controls":
+				preview.settings_panel.open_controls()
+
+func _controls_category_finished() -> void:
+	if _settings_session_open and _settings_category == "controls":
+		# B first closes its input editor back to the camera form. Closing that
+		# unchanged camera transaction returns directly to the hub category.
+		preview.settings_panel.cancel()
+
+func _return_to_settings_hub() -> void:
+	preview.release_controls(false)
+	preview.settings_panel.hide()
+	preview.pause_menu.hide()
+	if _recovering or _settings_dismissing:
+		settings_hub.hide()
+		_settings_session_open = false
+		return
+	settings_hub.open(_settings_category if not _settings_category.is_empty() else "video")
+
+func _close_settings_hub() -> void:
+	settings_hub.hide()
+	_settings_session_open = false
+	_settings_category = ""
+	preview.release_controls(false)
+	if _settings_from_menu:
+		menu_host.show()
+		preview.pause_menu.hide()
+		if is_instance_valid(_settings_return_focus) and _settings_return_focus.is_visible_in_tree():
+			_settings_return_focus.grab_focus()
+		elif is_instance_valid(screen):
+			var focus := screen.find_next_valid_focus()
+			if focus:
+				focus.grab_focus()
+	else:
+		preview.pause_menu.show()
+		preview.settings_button.grab_focus()
+	_settings_from_menu = false
+
+func _dismiss_settings() -> void:
+	_settings_dismissing = true
+	if is_instance_valid(_audio_overlay) and _audio_overlay.visible:
+		audio_settings.cancel()
+	if is_instance_valid(_hud_overlay) and _hud_overlay.visible:
+		hud_settings.cancel()
+	if is_instance_valid(_video_overlay) and _video_overlay.visible:
+		video_settings.cancel()
+	# Capture cancellation, controls cancellation and camera cancellation are
+	# separate B transactions. Complete each when navigating away entirely.
+	for step in 3:
+		if preview.settings_panel.visible:
+			preview.settings_panel.cancel()
+	if is_instance_valid(settings_hub):
+		settings_hub.hide()
+	_settings_session_open = false
+	_settings_from_menu = false
+	_settings_dismissing = false
+
 func _settings_center(overlay: Control) -> CenterContainer:
-	var inset := MarginContainer.new()
-	overlay.add_child(inset)
-	inset.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side: String in ["left", "right", "top", "bottom"]:
-		inset.add_theme_constant_override("margin_" + side, 24)
-	var scroll := ScrollContainer.new()
-	scroll.name = "SettingsScroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	inset.add_child(scroll)
-	var center := CenterContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.add_child(center)
+	var center := preload("res://scripts/ui/settings_category_frame.gd").new()
+	center.name = "SettingsPage"
+	overlay.add_child(center)
 	return center
 
 func open_hud_settings() -> void:
-	preview.release_controls(false)
+	_prepare_settings_category("accessibility")
 	preview.settings_panel.hide()
 	_hud_overlay.show()
 	hud_settings.open_for(hud_preferences, hud_settings_path)
 
 func _general_settings_open() -> bool:
-	return _audio_overlay.visible or (is_instance_valid(_hud_overlay) and _hud_overlay.visible)
+	return _audio_overlay.visible or (is_instance_valid(_hud_overlay) and _hud_overlay.visible) \
+		or (is_instance_valid(settings_hub) and settings_hub.visible) \
+		or (is_instance_valid(_video_overlay) and _video_overlay.visible)
 
 func _cancel_general_settings() -> void:
 	if _hud_overlay.visible:
 		hud_settings.cancel()
 	elif _audio_overlay.visible:
 		audio_settings.cancel()
+	elif is_instance_valid(_video_overlay) and _video_overlay.visible:
+		video_settings.cancel()
+	elif is_instance_valid(settings_hub) and settings_hub.visible:
+		_close_settings_hub()
 
 func _apply_hud_preferences(value: HudPreferences) -> void:
+	duel_scoreboard.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	world_markers.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	_menu_text_scale = value.text_scale
 	# These entries are A-owned; B's control-settings widgets retain their layout.
 	for entry: Button in [audio_settings_button, hud_settings_button]:
-		MenuTextScale.apply(entry, _menu_text_scale)
-	for panel: Control in [screen, game_menu_page, results_panel, reconnect_panel, audio_settings, hud_settings]:
+		if is_instance_valid(entry):
+			MenuTextScale.apply(entry, _menu_text_scale)
+	if is_instance_valid(settings_hub):
+		MenuTextScale.apply(preview.settings_panel, _menu_text_scale)
+	for panel: Control in [screen, game_menu_page, results_panel, reconnect_panel, audio_settings, hud_settings, settings_hub, video_settings]:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
@@ -375,6 +530,15 @@ func gameplay_input_allowed() -> bool:
 		and bot != null and not bot.read_view().eliminated \
 		and session.match_view.get("phase") in ["active", "overtime"]
 
+func scoreboard_allowed() -> bool:
+	return not _cli_handoff and not _recovering and get_window().has_focus() \
+		and session.connection_state in ["hosting", "connected"] \
+		and session.match_view.get("mode") == "1v1" \
+		and session.match_view.get("phase") in ["countdown", "active", "overtime", "intermission"] \
+		and not menu_host.visible and not preview.pause_menu.visible \
+		and not preview.settings_panel.visible and not _general_settings_open() \
+		and not results_panel.visible and not preview.network_diagnostics.expanded
+
 func _process(_delta: float) -> void:
 	if _cli_handoff:
 		return
@@ -390,6 +554,7 @@ func _process(_delta: float) -> void:
 		elif phase == "lobby":
 			MenuRouter.goto("lobby", false)
 	if _recovering:
+		duel_scoreboard.suppress(Input.is_action_pressed("scoreboard"))
 		continuous_audio.reset()
 		preview.release_controls(false)
 		preview.pause_menu.hide()
@@ -436,6 +601,11 @@ func _process(_delta: float) -> void:
 	match_hud.visible = bot != null and not menu_open and not game_menu_open and not preview.settings_panel.visible
 	var local_view: BotView
 	var published_views := session.bot_views()
+	duel_scoreboard.update_hold(Input.is_action_pressed("scoreboard"), scoreboard_allowed())
+	if duel_scoreboard.visible:
+		duel_scoreboard.render(session.match_view, session.lobby_view, published_views,
+			session.local_entity, preview.input_preferences.label_for(&"scoreboard"),
+			bool(session.diagnostics.get("degraded", false)))
 	for candidate: BotView in published_views:
 		if candidate.entity_id == session.local_entity:
 			local_view = candidate
@@ -530,6 +700,8 @@ func resume_gameplay() -> void:
 	preview.capture_controls()
 
 func return_to_main() -> void:
+	_dismiss_settings()
+	duel_scoreboard.suppress(Input.is_action_pressed("scoreboard"))
 	_recovering = false
 	_resume_after_reconnect = false
 	reconnect_panel.hide()
@@ -546,12 +718,25 @@ func return_to_main() -> void:
 	MenuRouter.goto("main", false)
 
 func open_settings() -> void:
+	if _settings_session_open:
+		return
 	_settings_from_menu = menu_host.visible
+	_settings_return_focus = get_viewport().gui_get_focus_owner()
+	_settings_session_open = true
+	_settings_category = ""
+	duel_scoreboard.suppress(Input.is_action_pressed("scoreboard"))
+	preview.release_controls(false)
+	preview.pause_menu.hide()
 	menu_host.hide()
-	preview.open_settings()
+	settings_hub.open()
 
 func _settings_closed(_saved: bool) -> void:
 	preview.release_controls(false)
+	if _settings_dismissing:
+		return
+	if _settings_session_open:
+		_return_to_settings_hub()
+		return
 	if _settings_from_menu:
 		menu_host.show()
 		preview.pause_menu.hide()
@@ -562,6 +747,9 @@ func _settings_closed(_saved: bool) -> void:
 	_settings_from_menu = false
 
 func _input(event: InputEvent) -> void:
+	if not _cli_handoff and event.is_action("scoreboard") and (scoreboard_allowed() or duel_scoreboard.visible):
+		get_viewport().set_input_as_handled()
+		return
 	if _cli_handoff or not event.is_action_pressed("pause"):
 		return
 	if _recovering:

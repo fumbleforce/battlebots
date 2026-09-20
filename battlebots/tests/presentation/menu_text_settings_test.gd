@@ -62,9 +62,9 @@ func run() -> void:
 		var scroll := find_scroll(game._hud_overlay)
 		game.hud_settings.save_button.grab_focus()
 		await frames()
-		check(Rect2(Vector2.ZERO, Vector2(extent)).encloses(scroll.get_global_rect()), "Settings scroll viewport fits screen")
-		check(scroll.get_global_rect().encloses(game.hud_settings.save_button.get_global_rect()), "Keyboard focus reveals Save at enlarged size")
-		check(game.hud_settings.size.x <= scroll.size.x, "Large settings need no horizontal scroll")
+		check(scroll == null, "Accessibility uses a complete category page without scrolling")
+		check(Rect2(Vector2.ZERO, Vector2(extent)).encloses(game.hud_settings.get_global_rect()), "Whole enlarged category fits screen")
+		check(Rect2(Vector2.ZERO, Vector2(extent)).encloses(game.hud_settings.save_button.get_global_rect()), "Save stays visible at enlarged size")
 		check(not game.gameplay_input_allowed(), "Enlarged settings remain modal")
 		if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 			await RenderingServer.frame_post_draw

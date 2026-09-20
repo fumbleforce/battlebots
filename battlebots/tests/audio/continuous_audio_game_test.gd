@@ -50,7 +50,7 @@ func run() -> void:
 	game.open_settings()
 	await frames()
 	check(audio._bots.is_empty(), "Settings do not resume gameplay loops")
-	game.preview.settings_panel.cancel()
+	game._close_settings_hub()
 	game.restart_practice()
 	await frames(12)
 	check(audio._bots.size() == 2 and audio._arena.playing, "Practice restart resumes fresh sound sources")

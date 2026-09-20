@@ -63,7 +63,7 @@ func run() -> void:
 			screen.apply_text_scale(1.5)
 			screen.get_node("%Quit").grab_focus()
 			await settle()
-			check(Rect2(0, 0, 1920, 1080).encloses(screen.get_node("%Quit").get_global_rect()), "Keyboard focus scrolls to the last main-menu action")
+			check(Rect2(0, 0, 1920, 1080).encloses(screen.get_node("%Quit").get_global_rect()), "Last main-menu action remains visible without scrolling")
 			screen.get_node("%PlayOnline").grab_focus()
 		if screen_name == "arena_select":
 			screen.apply_text_scale(1.5)

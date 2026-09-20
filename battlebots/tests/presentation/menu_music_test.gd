@@ -34,9 +34,9 @@ func run() -> void:
 		check(music.playing and music.get_stream_playback() == playback, "Navigation to %s keeps the current melody playing" % screen)
 	game.open_settings()
 	await frames()
-	check(game.preview.settings_panel.visible and music.playing and music.get_stream_playback() == playback,
+	check(game.settings_hub.visible and music.playing and music.get_stream_playback() == playback,
 		"Settings opened from main keep the melody continuous")
-	game.preview.settings_panel.cancel()
+	game.settings_hub.back_button.pressed.emit()
 	await frames()
 	check(music.playing and music.get_stream_playback() == playback, "Closing menu settings does not restart the melody")
 	game.start_practice()
@@ -47,8 +47,8 @@ func run() -> void:
 	check(not music.playing, "Pausing gameplay does not start menu music")
 	game.open_settings()
 	await frames()
-	check(game.preview.settings_panel.visible and not music.playing, "Settings opened from gameplay stay silent")
-	game.preview.settings_panel.cancel()
+	check(game.settings_hub.visible and not music.playing, "Settings opened from gameplay stay silent")
+	game.settings_hub.back_button.pressed.emit()
 	await frames()
 	check(not music.playing, "Closing gameplay settings stays silent")
 	game.return_to_main()

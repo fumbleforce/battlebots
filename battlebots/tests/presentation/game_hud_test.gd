@@ -52,7 +52,7 @@ func run() -> void:
 	game.preview.settings_button.pressed.emit()
 	await frames()
 	check(not game.combat_hud.visible, "Settings suppresses HUD")
-	game.preview.settings_panel.cancel()
+	game.settings_hub.back_button.pressed.emit()
 	game.restart_practice()
 	await frames()
 	check(game.combat_hud.visible and game.combat_hud.resources.Core.value.text == "100%" and not game.combat_hud.warning_label.visible, "Restart clears damage warning and restores new state")

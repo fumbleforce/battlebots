@@ -59,6 +59,38 @@ func run() -> void:
 	check(panel.record.is_empty() and panel.rematch.disabled, "New match clears old record and gates rematch")
 	panel.render({"match_id":"new", "phase":"results", "winner":-1}, 1)
 	check(panel.heading.text.ends_with("Draw") and not panel.rematch.disabled, "Team draw uses authority and vote resets")
+	var duel := {"match_id":"duel", "phase":"results", "mode":"1v1", "winner":0, "remaining":20,
+		"scores":[2, 1], "rounds":[{"round":1,"winner":0}, {"round":2,"winner":1}, {"round":3,"winner":-1}]}
+	for team in [0, 1]:
+		for winner in [0, 1, -1]:
+			duel.winner = winner
+			panel.render(duel, 1, team)
+			check(panel.score.text == ("YOU   2  :  1   OPPONENT" if team == 0 else "YOU   1  :  2   OPPONENT"), "Duel score preserves values oriented to authoritative local team")
+			check(panel.heading.text.ends_with("Draw" if winner == -1 else ("You won" if winner == team else "You lost")), "Duel heading identifies local win, loss and draw")
+			check(panel.outcome.text == ("DRAW" if winner == -1 else ("VICTORY" if winner == team else "DEFEAT")), "Duel overview agrees with heading")
+			check(panel.round_summary.text == ("ROUND 1  ·  You won\nROUND 2  ·  You lost\nROUND 3  ·  Draw" if team == 0 else "ROUND 1  ·  You lost\nROUND 2  ·  You won\nROUND 3  ·  Draw"), "Round language uses authoritative local team")
+	duel.winner = 1
+	panel.render(duel, 1, -1)
+	check(panel.score.text == "TEAM A   2  :  1   TEAM B" and panel.heading.text.ends_with("Team B wins"), "Unknown local team retains neutral score and result")
+	check(panel.round_summary.text.contains("Team A wins") and not panel.round_summary.text.contains("You"), "Unknown identity never invents local round outcome")
+	duel.mode = "2v2"
+	panel.render(duel, 1, 1)
+	check(panel.score.text.begins_with("TEAM A") and panel.heading.text.ends_with("Team B wins"), "Deferred team modes retain legacy presentation")
+	duel.mode = "1v1"
+	duel.winner = null
+	panel.render(duel, 1, 0)
+	check(panel.heading.text.ends_with("Result unavailable"), "Malformed winner does not imply a local result")
+	duel.winner = 1
+	duel.scores = [1, 2]
+	duel.rounds[2].winner = 1
+	panel.render(duel, 1, 1)
+	panel.apply_text_scale(1.5)
+	await process_frame
+	await process_frame
+	check(panel.score.get_global_rect().end.x <= 1280 and panel.leave.get_global_rect().end.y <= 720, "Enlarged local result fits 720p")
+	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("battlebots-duel-local-results-720.png"))
 	panel.queue_free()
 	await process_frame
 	print("MATCH RESULTS PASS" if failures == 0 else "MATCH RESULTS FAIL")

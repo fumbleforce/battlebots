@@ -29,6 +29,7 @@ assert.ok(!(endpoint && localService), '--endpoint and --local-service are mutua
 const managedService = Boolean(endpoint || localService);
 assert.ok(!managedService || !serverBinary, '--server-binary applies only when this check starts the service');
 const duelOnly = managedService || args.includes('--duel-only');
+const reconnectCheck = args.includes('--reconnect');
 if (localService) {
   assert.match(localService, /^http:\/\/127\.0\.0\.1:[0-9]+\/?$/,
     'Local service must use http://127.0.0.1:<port> without credentials or a path');
@@ -201,6 +202,10 @@ try {
       const output = path.join(run, `${label}-${index}.json`);
       credentialFiles.push(config);
       await writeFile(config, JSON.stringify({ ...assignments[index], output,
+        reconnect_check: reconnectCheck && count === 2, reconnect_peer: index === 0,
+        reconnect_ready: path.join(run, `${label}-${index}.ready`),
+        observer_ready: path.join(run, `${label}-${1 - index}.ready`),
+        reconnect_done: path.join(run, `${label}.reconnected`),
         duel_lifecycle: count === 2, forfeit_peer: index === 0 }), { mode: 0o600 });
       peers.push(launch(`${label}-${index}`, godot, ['--headless', '--path', path.join(root, 'battlebots'),
         '--max-fps', '60', '--script', 'res://tests/services/hosted_playtest_peer.gd', '--', `--peer-config=${config}`]));
@@ -216,6 +221,15 @@ try {
         assert.equal(report.rematch_active, true);
         assert.equal(report.completed_rounds, 2);
         assert.equal(report.participants, 2);
+        if (reconnectCheck) {
+          assert.equal(report.reconnect_barrier_passed, true);
+          if (index === 0) {
+            assert.equal(report.reconnect_verified, true);
+            assert.equal(report.reconnect_token_rotated, true);
+            assert.equal(report.reconnect_health_retained, true);
+            assert.ok(report.reconnect_elapsed_ms >= 0 && report.reconnect_elapsed_ms < 20000);
+          }
+        }
       }
       evidence.push(report);
     }
@@ -233,7 +247,7 @@ try {
     // Wait for worker disconnect status before cancelling reserved memberships.
     await delay(1500);
     for (const member of guests) await request('/v1/membership', member, 'DELETE');
-    console.log(`HOSTED ${label.toUpperCase()} PASS: ${count} independent clients reached active and drove${count === 2 ? '; two public forfeit votes resolved rounds, results agreed and rematch became active (not natural combat acceptance)' : ''}`);
+    console.log(`HOSTED ${label.toUpperCase()} PASS: ${count} independent clients reached active and drove${reconnectCheck && count === 2 ? '; actual transport reconnect retained entity/match/round and idle health with rotated token' : ''}${count === 2 ? '; two public forfeit votes resolved rounds, results agreed and rematch became active (not natural combat acceptance)' : ''}`);
     return evidence;
   }
   const evidence = { private: await exercise('private-duel', 2, true),

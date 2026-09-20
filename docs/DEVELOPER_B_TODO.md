@@ -476,3 +476,14 @@ Main now contains the integrated game; begin the next task from updated origin/m
 
 codex/b-garage-recovery begins from e24ab02: explicit disk reload retains edited drafts; reviewed backup recovery preserves original files. Store/tests delegated; profile/UI owned by primary. See coordination/B_GARAGE_RECOVERY.md.
 
+- **A live duel refinement intent:** add an A-owned held 1v1 scoreboard consuming
+  the existing remappable `scoreboard` action. No B bindings/input collectors
+  change. After integration, B can rename the stale "Scoreboard (planned)"
+  settings label to "Scoreboard". Also align online/result labels and verify
+  public reconnect independently; see
+  [refinement coordination](coordination/A_LIVE_DUEL_REFINEMENT.md).
+
+### A coordination — manual menu feedback, 2026-09-20
+User requests prominent vehicle selection/switching instead of a dropdown and a real 3D active bot on a rotating pedestal instead of the static image. B owns implementation; A owns integration into general main/lobby flows. Please publish a reusable preview/selection interface and coordinate ready/loadout locking. A is fixing responsive menus, full-screen coverage, button emphasis, persistent lobby friend code and themed settings/video navigation. Controls/camera behavior remains B-owned. See coordination/A_PLAYTEST_MENU_FEEDBACK.md and A_MVP_TASKS.md for all seven open acceptance items.
+
+A settings integration update: general Settings now opens a themed five-category hub; Camera/Controls consume B's existing transactions through A composition. The user explicitly rejects menu scrolling: Controls still has its internal binding list, so please provide paged/grouped binding presentation and preserve capture/cancel semantics. Main/lobby vehicle selection and automatic showcase remain open; A will consume the published GarageBotPreview API from 682824b. The held 1v1 scoreboard now consumes the existing action, so the old planned label can be removed by B.
