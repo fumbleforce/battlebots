@@ -42,6 +42,7 @@ func run() -> void:
 	var game: Node3D = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.get_node("Preview").settings_path = ""
 	game.audio_settings_path = ""
+	game.hud_settings_path = ""
 	viewport("Client").add_child(game)
 	var client: MvpSession = game.session
 	var router: Node = root.get_node("MenuRouter")
@@ -64,10 +65,15 @@ func run() -> void:
 			router.lobby_intent = "online"
 			game.public_service.state = "connected"
 			game.public_service.membership = {"room_id":"fixture-room"}
+			game.preview.open_settings()
+			game.hud_settings_button.pressed.emit()
+			game.hud_settings.text_scale_choice.select(2)
+			game.hud_settings.text_scale_choice.item_selected.emit(2)
 			server.multiplayer.multiplayer_peer.disconnect_peer(int(server.players[id].peer))
 			check(await until(func() -> bool: return game.reconnect_panel.visible and client.connection_state == "offline"), "Transport loss opens reconnect panel")
 			await process_frame
 			check(not game.gameplay_input_allowed() and not game.combat_hud.visible, "Recovery suppresses controls and stale combat HUD")
+			check(not game._hud_overlay.visible and game.combat_hud.text_scale == 1.0, "Connection loss closes HUD settings and restores unsaved preview")
 			check(game.public_service.state == "connected" and not game.public_service.membership.is_empty(), "Recovery preserves hosted membership instead of failing/cancelling it")
 			game.reconnect_panel.retry.pressed.emit()
 			check(client.is_reconnecting(), "Retry action starts same-session connection")

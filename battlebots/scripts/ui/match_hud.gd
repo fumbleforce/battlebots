@@ -3,6 +3,12 @@ extends Control
 ## Read-only authoritative MatchState snapshot. Never advances time or judges winners.
 
 const PHASES := {"lobby":"LOBBY", "loading":"LOADING", "countdown":"GET READY", "active":"FIGHT", "overtime":"OVERTIME", "intermission":"INTERMISSION", "results":"MATCH COMPLETE"}
+var text_scale := 1.0
+var palette := "standard"
+var high_contrast := false
+var accent := Color("f5b82e")
+var panel_width := 416.0
+
 @onready var phase_label: Label = $Panel/Content/Phase
 @onready var round_label: Label = $Panel/Content/Round
 @onready var timer_label: Label = $Panel/Content/Timer
@@ -15,18 +21,43 @@ func _ready() -> void:
 	$Panel.minimum_size_changed.connect(_fit_content)
 	get_viewport().size_changed.connect(_resize)
 	_resize()
+	apply_accessibility(text_scale, palette, high_contrast)
 	render({})
+
+func apply_accessibility(value: float, colors: String, contrast: bool) -> void:
+	var highlighted_timer := is_node_ready() and timer_label.get_theme_color("font_color") == accent
+	text_scale = clampf(value, 1.0, 1.5) if is_finite(value) else 1.0
+	palette = colors if colors in ["standard", "deuteranopia", "protanopia", "tritanopia"] else "standard"
+	high_contrast = contrast
+	accent = {"standard":Color("f5b82e"), "deuteranopia":Color("82cfff"), "protanopia":Color("82cfff"), "tritanopia":Color("ffcc91")}[palette]
+	if not is_node_ready():
+		return
+	var sizes := {phase_label:13, round_label:14, timer_caption:12, timer_label:36, score_label:22, result_label:20}
+	for label: Label in sizes:
+		label.add_theme_font_size_override("font_size", roundi(sizes[label] * text_scale))
+		label.add_theme_color_override("font_color", Color.WHITE if high_contrast else Color("e8ecf1"))
+	if highlighted_timer:
+		timer_label.add_theme_color_override("font_color", accent)
+	phase_label.add_theme_color_override("font_color", accent)
+	result_label.add_theme_color_override("font_color", accent)
+	panel_width = 520.0 if text_scale > 1.0 else 416.0
+	var style := $Panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	style.bg_color = Color("080c12") if high_contrast else Color(0.055, 0.071, 0.09, 0.94)
+	style.border_color = Color.WHITE if high_contrast else accent
+	$Panel.add_theme_stylebox_override("panel", style)
+	_fit_content()
+	_resize()
 
 func _fit_content() -> void:
 	var panel: Control = $Panel
-	panel.size = Vector2(416.0, panel.get_combined_minimum_size().y)
+	panel.size = Vector2(panel_width, panel.get_combined_minimum_size().y)
 
 func _resize() -> void:
 	var extent := get_viewport_rect().size
 	var ratio := minf(extent.x / 1280.0, extent.y / 720.0)
 	var panel: Control = $Panel
 	panel.scale = Vector2.ONE * ratio
-	panel.position = Vector2((extent.x - 416.0 * ratio) * 0.5, 24.0 * ratio)
+	panel.position = Vector2((extent.x - panel_width * ratio) * 0.5, 24.0 * ratio)
 
 func render(view: Dictionary, practice: bool = false, local_team: int = -1) -> void:
 	phase_label.text = "PRACTICE" if practice else "MATCH UNAVAILABLE"
@@ -36,7 +67,7 @@ func render(view: Dictionary, practice: bool = false, local_team: int = -1) -> v
 	result_label.text = ""
 	timer_caption.text = ""
 	timer_caption.visible = false
-	timer_label.add_theme_color_override("font_color", Color("e8ecf1"))
+	timer_label.add_theme_color_override("font_color", Color.WHITE if high_contrast else Color("e8ecf1"))
 	round_label.visible = not practice
 	timer_label.visible = not practice
 	score_label.visible = not practice
@@ -68,7 +99,7 @@ func render(view: Dictionary, practice: bool = false, local_team: int = -1) -> v
 		timer_label.text = str(seconds) if phase == "countdown" else time
 		timer_caption.visible = not timer_caption.text.is_empty()
 		if phase == "countdown" or phase == "overtime":
-			timer_label.add_theme_color_override("font_color", Color("f5b82e"))
+			timer_label.add_theme_color_override("font_color", accent)
 	if view.get("mode") == "ffa":
 		round_label.text = "FREE FOR ALL"
 		score_label.visible = false

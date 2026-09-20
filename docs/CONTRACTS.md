@@ -10,6 +10,16 @@ Paths below are relative to the Godot project.
 
 ## Combat and round HUD
 
+`CombatHud.apply_accessibility(text_scale, palette, high_contrast)` and the same
+`MatchHud` method change local presentation only. Text grows independently from
+viewport scaling; the enlarged layout reflows panels and component cells.
+`CombatHud.caption_bounds()` returns its reserved logical subtitle rectangle.
+`HudPreferences` stores validated 100/125/150% HUD text size, standard/deuteranopia/
+protanopia/tritanopia palette and high contrast in version-one `user://hud.cfg`.
+The settings panel emits detached previews; Cancel restores the original, while
+Save publishes only after successful atomic persistence. This does not change
+B control settings, world markers, general menu text size or network schemas.
+
 `MvpSession.bot_views() -> Array[BotView]` returns fresh detached views for the
 current world. Server/practice views read the real bot state; clients omit bots
 without an accepted snapshot for the current epoch. No world returns an empty

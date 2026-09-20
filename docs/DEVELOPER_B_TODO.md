@@ -354,3 +354,5 @@ integration base, not the still-old main branch.
 - **A hosted duel intent (2026-09-20):** reserves deployment configuration, hosted acceptance harness and A client fixtures on codex/a-hosted-duel-deployment. External private 1v1 results/rematch validation is next; no B implementation or wire contract edits. See coordination/A_HOSTED_DUEL_DEPLOYMENT.md.
 
 - **A reconnect intent (2026-09-20):** reserves MvpSession recovery, general menu composition, reconnect panel and independent network/menu fixtures on codex/a-reconnect-flow. Existing server damage retention and token semantics remain; no B combat/controls/garage changes. See coordination/A_RECONNECT_FLOW.md.
+
+- **A HUD accessibility intent (2026-09-20):** reserves combat/round HUD, HUD preferences/settings and general settings composition on codex/a-hud-accessibility. Text scaling through150%, color presets/highcontrast; no B controls/camera/garage or wire edits. See coordination/A_HUD_ACCESSIBILITY.md.

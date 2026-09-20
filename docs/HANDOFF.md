@@ -54,6 +54,17 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-hud-accessibility` follows `bd1dd3f`. General Settings now offers HUD
+text at 100/125/150%, four color palettes and opaque high-contrast panels with a
+visible sample, save and cancel. Combat/round HUD fonts enlarge independently
+from viewport scaling; larger panels reflow. Practice readout and announcement
+captions follow the selected size. B implementation and wire format are unchanged.
+See [accessibility evidence](coordination/A_HUD_ACCESSIBILITY.md). Whole-menu text
+scaling, world/team markers, pings and human accessibility acceptance remain open.
+Hosting remains unprovisioned pending the recurring-cost decision.
+
+### Preceding reconnect increment
+
 `codex/a-reconnect-flow` follows `50f3a63`. The general game now offers manual
 same-session recovery after unexpected transport loss, with bounded status,
 retry/leave and original-menu styling. It retains hosted membership, restores

@@ -33,6 +33,11 @@ var reconnect_panel: Control
 var _recovering := false
 var _resume_after_reconnect := false
 var _reconnect_message := ""
+@export var hud_settings_path := "user://hud.cfg"
+var hud_preferences: HudPreferences
+var hud_settings: HudSettingsPanel
+var hud_settings_button: Button
+var _hud_overlay: Control
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -87,6 +92,7 @@ func _ready() -> void:
 	_audio_caption.position = Vector2(356, 460)
 	_audio_caption.size = Vector2(568, 40)
 	_style_auxiliary_hud()
+	_add_hud_settings()
 	_add_menu_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
@@ -207,7 +213,7 @@ func _update_practice(bot: BotSource) -> void:
 	_restart_practice.visible = practice
 	var view: BotView = bot.read_view() if bot != null else null
 	var knocked_out := practice and view != null and view.eliminated
-	var modal: bool = preview.settings_panel.visible or _audio_overlay.visible or menu_host.visible
+	var modal: bool = preview.settings_panel.visible or _general_settings_open() or menu_host.visible
 	if knocked_out and (not _practice_knockout_handled or preview.controls_enabled) and not modal:
 		preview.release_controls(false)
 		_restart_practice.grab_focus()
@@ -219,7 +225,7 @@ func _update_practice(bot: BotSource) -> void:
 		practice_hud.render(view, target.read_view() if target != null else null)
 
 func restart_practice() -> void:
-	if session.connection_state != "practice" or preview.settings_panel.visible or _audio_overlay.visible:
+	if session.connection_state != "practice" or preview.settings_panel.visible or _general_settings_open():
 		return
 	preview.release_controls(false)
 	var error := session.restart_practice()
@@ -239,10 +245,87 @@ func _audio_settings_closed(_saved: bool) -> void:
 	preview.settings_panel.show()
 	audio_settings_button.grab_focus()
 
+func _add_hud_settings() -> void:
+	hud_preferences = HudPreferences.load_file(hud_settings_path)
+	hud_settings_button = Button.new()
+	hud_settings_button.text = "HUD accessibility…"
+	hud_settings_button.custom_minimum_size.y = 36
+	preview.settings_panel.form.add_child(hud_settings_button)
+	hud_settings_button.pressed.connect(open_hud_settings)
+	var layer := CanvasLayer.new()
+	layer.layer = 20
+	add_child(layer)
+	_hud_overlay = Control.new()
+	layer.add_child(_hud_overlay)
+	_hud_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade := ColorRect.new()
+	shade.color = Color(0, 0, 0, 0.85)
+	_hud_overlay.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	_hud_overlay.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hud_settings = HudSettingsPanel.new()
+	center.add_child(hud_settings)
+	hud_settings.preview_changed.connect(_apply_hud_preferences)
+	hud_settings.applied.connect(func(value: HudPreferences) -> void: hud_preferences = value)
+	hud_settings.finished.connect(func(_saved: bool) -> void:
+		_hud_overlay.hide()
+		preview.settings_panel.show()
+		hud_settings_button.grab_focus())
+	_hud_overlay.hide()
+	_apply_hud_preferences(hud_preferences)
+
+func open_hud_settings() -> void:
+	preview.release_controls(false)
+	preview.settings_panel.hide()
+	_hud_overlay.show()
+	hud_settings.open_for(hud_preferences, hud_settings_path)
+
+func _general_settings_open() -> bool:
+	return _audio_overlay.visible or (is_instance_valid(_hud_overlay) and _hud_overlay.visible)
+
+func _cancel_general_settings() -> void:
+	if _hud_overlay.visible:
+		hud_settings.cancel()
+	elif _audio_overlay.visible:
+		audio_settings.cancel()
+
+func _apply_hud_preferences(value: HudPreferences) -> void:
+	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
+	match_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
+	_audio_caption.add_theme_font_size_override("font_size", roundi(24 * value.text_scale))
+	var caption: Rect2 = combat_hud.caption_bounds()
+	_audio_caption.position = caption.position
+	_audio_caption.size = caption.size
+	_audio_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var large := value.text_scale > 1.0
+	practice_hud.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	practice_hud.position = Vector2(24, 150) if large else Vector2(946, 174)
+	practice_hud.size = Vector2(348, 0) if large else Vector2(310, 0)
+	_scale_practice_labels(practice_hud, value.text_scale, 324.0 if large else 286.0)
+	practice_hud.hint_label.visible = not large
+	practice_hud.local_status.modulate = Color.WHITE if value.high_contrast else Color(1, 0.73, 0.35)
+	for panel: PanelContainer in [practice_hud, preview.network_diagnostics]:
+		var style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		style.bg_color = Color.BLACK if value.high_contrast else Color(0.045, 0.06, 0.08, 0.94)
+		style.border_color = Color.WHITE if value.high_contrast else Color("f5b82e")
+		panel.add_theme_stylebox_override("panel", style)
+
+func _scale_practice_labels(node: Node, factor: float, width: float) -> void:
+	if node is Label:
+		if not node.has_meta("hud_base_font"):
+			node.set_meta("hud_base_font", node.get_theme_font_size("font_size"))
+		node.add_theme_font_size_override("font_size", roundi(float(node.get_meta("hud_base_font")) * factor))
+		node.custom_minimum_size.x = width
+		node.size.x = width
+	for child: Node in node.get_children():
+		_scale_practice_labels(child, factor, width)
+
 func _sync_menu_music() -> void:
 	if not is_instance_valid(_menu_music):
 		return
-	var in_menu: bool = menu_host.visible or (_settings_from_menu and (preview.settings_panel.visible or _audio_overlay.visible))
+	var in_menu: bool = menu_host.visible or (_settings_from_menu and (preview.settings_panel.visible or _general_settings_open()))
 	if in_menu and not _menu_music.playing:
 		_menu_music.play()
 	elif not in_menu and _menu_music.playing:
@@ -251,7 +334,7 @@ func _sync_menu_music() -> void:
 func gameplay_input_allowed() -> bool:
 	var bot := session.local_source()
 	return not _cli_handoff and not _recovering and not menu_host.visible and preview.controls_enabled \
-		and not _audio_overlay.visible \
+		and not _general_settings_open() \
 		and not preview.settings_panel.visible and get_window().has_focus() \
 		and bot != null and not bot.read_view().eliminated \
 		and session.match_view.get("phase") in ["active", "overtime"]
@@ -309,7 +392,7 @@ func _process(_delta: float) -> void:
 	results_panel.render(session.match_view, session.local_entity, bot.read_view().team if bot != null else -1)
 	game_menu_page.render(session.match_view, session.connection_state == "practice")
 	var menu_open := menu_host.visible
-	var game_menu_open: bool = preview.pause_menu.visible or results_panel.visible or _audio_overlay.visible
+	var game_menu_open: bool = preview.pause_menu.visible or results_panel.visible or _general_settings_open()
 	preview.get_node("CanvasLayer").visible = not menu_open and not preview.settings_panel.visible
 	preview.get_node("DiagnosticsLayer").visible = not menu_open and not game_menu_open and not preview.settings_panel.visible
 	preview.hud.hide()
@@ -359,7 +442,7 @@ func _sync_pause_focus() -> void:
 func _network_details_interaction() -> void:
 	# The preview releases controls on button-down. Keep the clicked panel visible
 	# until release so its Details button can complete the interaction.
-	if not menu_host.visible and not results_panel.visible and not preview.settings_panel.visible and not _audio_overlay.visible:
+	if not menu_host.visible and not results_panel.visible and not preview.settings_panel.visible and not _general_settings_open():
 		preview.pause_menu.hide()
 
 func start_practice() -> void:
@@ -376,7 +459,7 @@ func start_practice() -> void:
 		show_notice("Cannot start practice: %s" % error_string(error))
 
 func resume_gameplay() -> void:
-	if _audio_overlay.visible:
+	if _general_settings_open():
 		return
 	if session.match_view.get("phase") == "results":
 		return
@@ -427,9 +510,9 @@ func _input(event: InputEvent) -> void:
 	if _recovering:
 		get_viewport().set_input_as_handled()
 		return
-	if _audio_overlay.visible:
+	if _general_settings_open():
 		get_viewport().set_input_as_handled()
-		audio_settings.cancel()
+		_cancel_general_settings()
 		return
 	if results_panel.visible:
 		get_viewport().set_input_as_handled()
@@ -461,8 +544,8 @@ func _session_event(kind: String, details: Dictionary) -> void:
 			if not _recovering:
 				_recovering = true
 				gameplay_audio.reset()
-				if _audio_overlay.visible:
-					audio_settings.cancel()
+				if _general_settings_open():
+					_cancel_general_settings()
 				if preview.settings_panel.visible:
 					preview.settings_panel.cancel()
 				reconnect_panel.show()

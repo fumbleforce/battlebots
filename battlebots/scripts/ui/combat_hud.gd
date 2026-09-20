@@ -7,6 +7,19 @@ const TEXT := Color("e8ecf1")
 const MUTED := Color("9aa6b5")
 const ZONES := {"front":"FRONT", "rear":"REAR", "left":"LEFT", "right":"RIGHT", "drive_left":"L DRIVE", "drive_right":"R DRIVE", "weapon":"WEAPON"}
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
+var text_scale := 1.0
+var palette := "standard"
+var high_contrast := false
+var accent := AMBER
+var danger := RED
+var panels: Array[PanelContainer] = []
+var base_fonts: Dictionary = {}
+var resources_panel: PanelContainer
+var components_panel: PanelContainer
+var weapon_panel: PanelContainer
+var roster_panel: PanelContainer
+var diagram: Control
+var weapon_row: BoxContainer
 var canvas: Control
 var resources: Dictionary = {}
 var components: Dictionary = {}
@@ -25,13 +38,13 @@ func _ready() -> void:
 	theme = preload("res://ui/menus/theme/menu_theme.tres")
 	canvas = Control.new()
 	add_child(canvas)
-	var resources_panel := _panel(Rect2(24, 490, 310, 206))
+	resources_panel = _panel(Rect2(24, 490, 310, 206))
 	var resource_col := _column(resources_panel)
 	_label(resource_col, "YOUR BOT / RESOURCES", 20, &"Heading")
 	for key: String in ["Core", "Battery", "Heat"]:
 		resources[key] = _resource(resource_col, key.to_upper())
-	var components_panel := _panel(Rect2(946, 448, 310, 248))
-	var diagram := Control.new()
+	components_panel = _panel(Rect2(946, 448, 310, 248))
+	diagram = Control.new()
 	diagram.custom_minimum_size = Vector2(282, 220)
 	components_panel.add_child(diagram)
 	var caption := _label(diagram, "COMPONENT INTEGRITY", 20, &"Heading")
@@ -47,9 +60,9 @@ func _ready() -> void:
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		components[key] = value
-	var weapon_panel := _panel(Rect2(356, 548, 568, 148))
+	weapon_panel = _panel(Rect2(356, 548, 568, 148))
 	var weapon_col := _column(weapon_panel)
-	var weapon_row := HBoxContainer.new()
+	weapon_row = BoxContainer.new()
 	weapon_col.add_child(weapon_row)
 	weapon_label = _label(weapon_row, "", 23, &"Heading")
 	weapon_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -57,13 +70,13 @@ func _ready() -> void:
 	resources["Charge"] = _resource(weapon_col, "CHARGE")
 	recovery_label = _label(weapon_col, "", 18)
 	failure_label = _label(weapon_col, "", 15)
-	failure_label.modulate = AMBER
+	failure_label.modulate = accent
 	heading_label = _label(canvas, "", 18, &"Heading")
 	heading_label.position = Vector2(356, 512)
 	heading_label.size = Vector2(568, 30)
 	heading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var roster := _panel(Rect2(24, 24, 310, 74))
-	var roster_col := _column(roster)
+	roster_panel = _panel(Rect2(24, 24, 310, 74))
+	var roster_col := _column(roster_panel)
 	roster_title = _label(roster_col, "DUEL / BOT STATUS", 18, &"Heading")
 	roster_label = _label(roster_col, "", 16)
 	warning_label = _label(canvas, "", 27, &"Heading")
@@ -75,7 +88,69 @@ func _ready() -> void:
 	_ignore_input(self)
 	get_viewport().size_changed.connect(_resize)
 	_resize()
+	apply_accessibility(text_scale, palette, high_contrast)
 	render(null)
+
+## Text grows independently of the viewport canvas. Enlarged mode reflows the
+## component diagram and stacks weapon state/cooldown instead of shrinking text.
+func apply_accessibility(value: float, colors: String, contrast: bool) -> void:
+	var previous_accent := accent
+	var previous_danger := danger
+	text_scale = clampf(value, 1.0, 1.5) if is_finite(value) else 1.0
+	palette = colors if colors in ["standard", "deuteranopia", "protanopia", "tritanopia"] else "standard"
+	high_contrast = contrast
+	accent = {"standard":AMBER, "deuteranopia":Color("82cfff"), "protanopia":Color("82cfff"), "tritanopia":Color("ffcc91")}[palette]
+	danger = {"standard":RED, "deuteranopia":Color("ffce75"), "protanopia":Color("ffe083"), "tritanopia":Color("ffa7cd")}[palette]
+	if not is_node_ready():
+		return
+	for label: Label in base_fonts:
+		if label.modulate == previous_accent:
+			label.modulate = accent
+		elif label.modulate == previous_danger:
+			label.modulate = danger
+		elif label.modulate == TEXT or label.modulate == Color.WHITE:
+			label.modulate = _text_color()
+		label.add_theme_font_size_override("font_size", roundi(base_fonts[label] * text_scale))
+		label.add_theme_color_override("font_color", Color.WHITE if high_contrast else _text_color())
+	for panel: PanelContainer in panels:
+		var style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		style.bg_color = Color("080c12") if high_contrast else Color(0.045, 0.06, 0.08, 0.9)
+		style.border_color = Color.WHITE if high_contrast else Color("36424f")
+		panel.add_theme_stylebox_override("panel", style)
+	for key: String in resources:
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = accent
+		resources[key].bar.add_theme_stylebox_override("fill", fill)
+		var background := StyleBoxFlat.new()
+		background.bg_color = Color("384553")
+		resources[key].bar.add_theme_stylebox_override("background", background)
+	var large := text_scale > 1.0
+	_set_bounds(resources_panel, Rect2(24, 430, 348, 266) if large else Rect2(24, 490, 310, 206))
+	_set_bounds(weapon_panel, Rect2(396, 466, 440, 230) if large else Rect2(356, 548, 568, 148))
+	_set_bounds(components_panel, Rect2(860, 350, 396, 346) if large else Rect2(946, 448, 310, 248))
+	_set_bounds(roster_panel, Rect2(24, 24, 340, 110) if large else Rect2(24, 24, 310, 74))
+	weapon_row.vertical = large
+	weapon_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if large else TextServer.AUTOWRAP_OFF
+	recovery_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if large else TextServer.AUTOWRAP_OFF
+	failure_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if large else TextServer.AUTOWRAP_OFF
+	roster_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if large else TextServer.AUTOWRAP_OFF
+	roster_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if large else TextServer.AUTOWRAP_OFF
+	diagram.custom_minimum_size = Vector2(368, 326) if large else Vector2(282, 220)
+	var positions := {"front":Rect2(94, 30, 96, 42), "weapon":Rect2(94, 76, 96, 42), "left":Rect2(0, 70, 86, 52), "right":Rect2(198, 70, 86, 52), "drive_left":Rect2(32, 128, 100, 42), "drive_right":Rect2(152, 128, 100, 42), "rear":Rect2(94, 176, 96, 42)}
+	var order := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
+	for index: int in order.size():
+		var key: String = order[index]
+		_set_bounds(components[key].get_parent(), Rect2(0 if index % 2 == 0 else 190, 42 + (index / 2) * 70, 178, 64) if large else positions[key])
+	_set_bounds(heading_label, Rect2(396, 428, 440, 34) if large else Rect2(356, 512, 568, 30))
+	_set_bounds(warning_label, Rect2(396, 270, 440, 100) if large else Rect2(350, 232, 580, 76))
+	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if large else TextServer.AUTOWRAP_OFF
+
+func caption_bounds() -> Rect2:
+	return Rect2(396, 374, 440, 50) if text_scale > 1.0 else Rect2(356, 460, 568, 40)
+
+func _set_bounds(control: Control, bounds: Rect2) -> void:
+	control.position = bounds.position
+	control.size = bounds.size
 
 func _panel(bounds: Rect2) -> PanelContainer:
 	var item := PanelContainer.new()
@@ -89,6 +164,7 @@ func _panel(bounds: Rect2) -> PanelContainer:
 	style.content_margin_top = 10
 	style.content_margin_bottom = 10
 	item.add_theme_stylebox_override("panel", style)
+	panels.append(item)
 	canvas.add_child(item)
 	item.position = bounds.position
 	item.size = bounds.size
@@ -102,6 +178,7 @@ func _column(parent: Node) -> VBoxContainer:
 
 func _label(parent: Node, text: String, font_size: int, variation: StringName = &"Body") -> Label:
 	var item := Label.new()
+	base_fonts[item] = font_size
 	item.text = text
 	item.theme_type_variation = variation
 	item.add_theme_font_size_override("font_size", font_size)
@@ -152,7 +229,7 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		var valid := is_finite(value) and value >= 0.0 and value <= 1.0
 		resources[key].bar.value = value * 100.0 if valid else 0.0
 		resources[key].value.text = "%d%%" % roundi(value * 100.0) if valid else "--"
-		resources[key].value.modulate = AMBER if valid and ((key == "Core" and value <= 0.25) or (key == "Heat" and value >= 0.9)) else TEXT
+		resources[key].value.modulate = accent if valid and ((key == "Core" and value <= 0.25) or (key == "Heat" and value >= 0.9)) else _text_color()
 		index += 1
 	for key: String in ZONES:
 		var integrity: Variant = view.zones.get(key) if view != null else null
@@ -161,7 +238,7 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		if valid:
 			detail = str(ceili(float(integrity))) if integrity > 0 else ("BREACHED" if key in ["front", "rear", "left", "right"] else "DISABLED")
 		components[key].text = ZONES[key] + "\n" + detail
-		components[key].modulate = RED if valid and integrity == 0 else (TEXT if valid else MUTED)
+		components[key].modulate = danger if valid and integrity == 0 else (_text_color() if valid else (Color.WHITE if high_contrast else MUTED))
 	weapon_label.text = "WEAPON / " + (PHASES.get(str(view.weapon_state), "UNKNOWN") if view != null else "UNAVAILABLE")
 	cooldown_label.text = ""
 	if view != null and _number(view.weapon_cooldown) and view.weapon_cooldown >= 0:
@@ -177,7 +254,7 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		elif _number(view.recovery_cooldown) and view.recovery_cooldown > 0:
 			recovery = "%.1f s COOLDOWN" % view.recovery_cooldown
 	recovery_label.text = "SELF-RIGHT / " + recovery
-	recovery_label.modulate = AMBER if view != null and view.recovery_available and not view.eliminated and combat_active else TEXT
+	recovery_label.modulate = accent if view != null and view.recovery_available and not view.eliminated and combat_active else _text_color()
 	var failures := {"battery_empty":"Not enough battery", "recovery_unavailable":"Self-right unavailable", "disabled":"Weapon disabled", "overheated":"Weapon overheated", "cooldown":"Weapon cooling down"}
 	failure_label.text = failures.get(view.failure_reason, "") if view != null else "Bot data unavailable"
 	if view != null and not view.eliminated and not combat_active:
@@ -188,14 +265,14 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 	if not practice and not duel:
 		roster_label.text = "YOUR BOT: " + _alive(view)
 	warning_label.text = ""
-	warning_label.modulate = AMBER
+	warning_label.modulate = accent
 	if view != null:
 		if view.eliminated:
 			warning_label.text = "BOT ELIMINATED"
-			warning_label.modulate = RED
+			warning_label.modulate = danger
 		elif _number(view.immobilized_remaining) and view.immobilized_remaining > 0:
-			warning_label.text = "IMMOBILIZED / %.1f s\nRegain wheel contact and drive to recover" % view.immobilized_remaining
-			warning_label.modulate = RED
+			warning_label.text = ("IMMOBILIZED %.1f s\nWheels down; drive" if text_scale > 1.0 else "IMMOBILIZED / %.1f s\nRegain wheel contact and drive to recover") % view.immobilized_remaining
+			warning_label.modulate = danger
 		elif view.weapon_state == &"overheated":
 			warning_label.text = "WEAPON OVERHEATED"
 		elif is_finite(view.core_fraction) and view.core_fraction >= 0 and view.core_fraction <= 0.25:
@@ -217,3 +294,6 @@ func _heading(view: BotView) -> String:
 
 func _number(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value))
+
+func _text_color() -> Color:
+	return Color.WHITE if high_contrast else TEXT

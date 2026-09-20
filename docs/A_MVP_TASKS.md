@@ -31,9 +31,13 @@ active expansion or acceptance work.
   B's authoritative combat/bot interfaces. Core HUD, raw component diagram,
   recovery/immobilization, heading and duel survival status are implemented;
   [HUD evidence](coordination/A_DUEL_HUD.md) records scope and remaining limits.
-- [ ] Remaining HUD accessibility and communication: independent text scaling,
-  color-vision/high-contrast presets and ping presentation after the coordinated
-  input/network interfaces exist. These are not claimed by the core HUD increment.
+- [x] Independent combat/round HUD text sizes through 150%, color-vision presets
+  and high-contrast panels, saved through general Settings. Enlarged practice
+  readout/captions and original-theme settings sample are included; see
+  [accessibility evidence](coordination/A_HUD_ACCESSIBILITY.md).
+- [ ] Remaining accessibility and communication: 150% text throughout all menus,
+  world/team marker recognition and human color-vision acceptance; ping
+  presentation after the coordinated input/network interfaces exist.
 - [x] Refine the general menus, especially multiplayer/networking screens (A).
   User feedback (2026-09-20): these screens are poorly integrated into the
   original menu system. Make online entry, host/join, connection progress,
