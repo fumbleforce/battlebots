@@ -73,6 +73,7 @@ func run() -> void:
 			check(await until(func() -> bool: return game.reconnect_panel.visible and client.connection_state == "offline"), "Transport loss opens reconnect panel")
 			await process_frame
 			check(not game.gameplay_input_allowed() and not game.combat_hud.visible, "Recovery suppresses controls and stale combat HUD")
+			check(not game.world_markers.visible, "Recovery hides world identities with stale transport state")
 			check(not game._hud_overlay.visible and game.combat_hud.text_scale == 1.0, "Connection loss closes HUD settings and restores unsaved preview")
 			check(game._menu_text_scale == 1.0 and game.reconnect_panel.heading.get_theme_font_size("font_size") == 56, "Reconnect presentation restores saved menu size after cancelling draft")
 			check(game.public_service.state == "connected" and not game.public_service.membership.is_empty(), "Recovery preserves hosted membership instead of failing/cancelling it")
@@ -82,6 +83,7 @@ func run() -> void:
 			check(client.local_entity == id and client.reconnect_token != token, "Recovery retains identity and rotates private token")
 			check(server.world.bots[id] == body and body.combat.core == retained_core, "Reconnect retains damaged server bot")
 			check(client.match_view.get("match_id") == match_id and not game.menu_host.visible, "Recovery returns to same match without lobby detour")
+			check(game.world_markers.visible, "Recovered gameplay restores world identification")
 			client.vote_forfeit()
 			check(await until(func() -> bool: return client.match_view.get("phase") == "intermission"), "Public forfeit ends first round")
 			check(await until(func() -> bool: return client.match_view.get("phase") == "active", 25.0), "Real intermission/countdown completes")

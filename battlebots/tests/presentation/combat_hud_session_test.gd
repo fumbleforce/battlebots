@@ -6,6 +6,7 @@ var views: Array[SubViewport] = []
 var host: MvpSession
 var client: MvpSession
 var hud: Control
+var markers: BotWorldMarkers
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -37,6 +38,7 @@ func make_session(label: String) -> MvpSession:
 	return session
 
 func render_received() -> bool:
+	markers.render(client.bot_views(), client.local_entity, false, true)
 	var local: BotView
 	var rival: BotView
 	for view: BotView in client.bot_views():
@@ -55,9 +57,12 @@ func run() -> void:
 	client = make_session("HudClient")
 	hud = HudScript.new()
 	views[1].add_child(hud)
+	markers = BotWorldMarkers.new()
+	views[1].add_child(markers)
 	await process_frame
 	check(client.bot_views().is_empty(), "Disconnected client exposes no fabricated bots")
 	check(not render_received() and hud.resources.Core.value.text == "--", "Missing network baseline displays unavailable")
+	check(markers.markers.is_empty(), "No world identity is invented without a baseline")
 	var port := 42000 + OS.get_process_id() % 10000
 	check(host.host(port, true, 2) == OK, "Duel listen host starts real ENet")
 	check(client.join("127.0.0.1", port) == OK, "HUD observer joins through ENet")
@@ -72,9 +77,12 @@ func run() -> void:
 		await finish()
 		return
 	check(hud.resources.Core.value.text == "100%" and hud.roster_label.text == "YOU: IN   /   RIVAL: IN", "Fresh authoritative duel displays healthy living bots")
+	check(markers.markers.size() == 2 and markers.markers[client.local_entity].text.contains("YOU"), "Client identity selects its own world badge independently of host ordering")
 	var snapshot_tick: int = client._last_snapshot_tick[client.local_entity]
 	client._last_snapshot_tick.erase(client.local_entity)
 	check(not client.bot_views().any(func(view: BotView) -> bool: return view.entity_id == client.local_entity), "Existing client body without baseline is not published as healthy")
+	markers.render(client.bot_views(), client.local_entity, false, true)
+	check(markers.markers.is_empty(), "Missing local baseline suppresses rival classification too")
 	client._last_snapshot_tick[client.local_entity] = snapshot_tick
 	var detached: BotView = client.bot_views()[0]
 	detached.zones.front = -123.0
@@ -97,6 +105,7 @@ func run() -> void:
 		return client.match_view.get("phase") == "intermission" and render_received() \
 			and hud.roster_label.text == "YOU: IN   /   RIVAL: OUT"),
 		"Server elimination reaches rival status through real round transition")
+	check(markers.markers[host.local_entity].text.contains("OUT"), "Authoritative elimination reaches world badge")
 	# Advance only the authoritative fixture clock; production reset repairs bots.
 	host.match_state.remaining = 0.0
 	check(await until(func() -> bool:
@@ -108,9 +117,11 @@ func run() -> void:
 			and not hud.recovery_label.text.contains("COOLDOWN") \
 			and hud.warning_label.text.is_empty()),
 		"Authoritative next-round baseline clears damage, disabled components, cooldown and elimination")
+	check(not markers.markers[host.local_entity].text.contains("OUT"), "New-round view clears stale elimination marker")
 	client.leave()
 	check(not render_received() and hud.resources.Core.value.text == "--" \
 		and hud.roster_label.text == "YOU: --   /   RIVAL: --", "Leaving clears stale HUD data")
+	check(markers.markers.is_empty(), "Leaving removes world badges")
 	await finish()
 
 func finish() -> void:

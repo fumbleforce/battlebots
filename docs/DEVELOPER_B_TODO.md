@@ -384,3 +384,17 @@ integration base, not the still-old main branch.
   garage/customisation/control-settings surfaces separately, with enlarged
   layout checks. A preview/cancel/save/new-screen propagation and independent
   menu/match/settings tests are included. No B implementation edits.
+
+- **A world-marker intent (2026-09-20):** reserves a read-only 1v1/practice badge
+  node, menu-game/accessibility composition and independent tests on
+  codex/a-duel-world-markers. Consume published BotView presentation poses/team/
+  elimination state. Preserve B paint/meshes, camera, controls and combat; no
+  wire changes. See coordination/A_DUEL_WORLD_MARKERS.md.
+
+- **A world-marker handoff:** `BotWorldMarkers` reads published `bot_views()`
+  after presentation interpolation; local/practice identity does not use lobby
+  slots or owner-ID ordering. Labels/stems are A-owned depth-tested geometry,
+  leaving bot paint, meshes, camera and collision unchanged. OUT uses the
+  authoritative elimination field and resets with the new-round view. Existing
+  HUD text/palette/contrast settings apply. B may continue asset/control work
+  without modifying this node; no new producer fields are required.

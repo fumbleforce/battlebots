@@ -29,6 +29,7 @@ var _restart_practice: Button
 var _practice_knockout_handled := false
 var game_menu_page: Control
 var combat_hud: CombatHud
+var world_markers: BotWorldMarkers
 var reconnect_panel: Control
 var _recovering := false
 var _resume_after_reconnect := false
@@ -84,6 +85,10 @@ func _ready() -> void:
 	_add_practice_hud()
 	combat_hud = CombatHud.new()
 	$MatchLayer.add_child(combat_hud)
+	world_markers = BotWorldMarkers.new()
+	world_markers.name = "WorldMarkers"
+	add_child(world_markers)
+	world_markers.hide()
 	practice_hud.reparent(combat_hud.canvas, false)
 	preview.network_diagnostics.reparent(combat_hud.canvas, false)
 	var caption_layer := _audio_caption.get_parent()
@@ -308,6 +313,7 @@ func _cancel_general_settings() -> void:
 		audio_settings.cancel()
 
 func _apply_hud_preferences(value: HudPreferences) -> void:
+	world_markers.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	_menu_text_scale = value.text_scale
 	# These entries are A-owned; B's control-settings widgets retain their layout.
 	for entry: Button in [audio_settings_button, hud_settings_button]:
@@ -383,6 +389,7 @@ func _process(_delta: float) -> void:
 		results_panel.hide()
 		match_hud.hide()
 		combat_hud.hide()
+		world_markers.hide()
 		practice_hud.hide()
 		preview.get_node("CanvasLayer").hide()
 		preview.get_node("DiagnosticsLayer").hide()
@@ -429,6 +436,9 @@ func _process(_delta: float) -> void:
 			break
 	match_hud.render(session.match_view, session.connection_state == "practice", local_view.team if local_view != null else -1)
 	combat_hud.visible = match_hud.visible
+	world_markers.visible = combat_hud.visible
+	# Read presentation poses after child bot smoothing has advanced this frame.
+	_update_world_markers.call_deferred()
 	var opponent: BotView
 	if session.match_view.get("mode") == "1v1" and local_view != null:
 		for candidate: BotView in published_views:
@@ -447,6 +457,12 @@ func _process(_delta: float) -> void:
 	_rematch.text = "Rematch requested" if _rematch.disabled else "Request rematch"
 	_sync_pause_focus()
 	_sync_menu_music()
+
+func _update_world_markers() -> void:
+	if not is_instance_valid(world_markers) or not is_instance_valid(session):
+		return
+	world_markers.render(session.bot_views(), session.local_entity,
+		session.connection_state == "practice", session.match_view.get("mode") == "1v1")
 
 func _sync_pause_focus() -> void:
 	var buttons: Array[Button] = []

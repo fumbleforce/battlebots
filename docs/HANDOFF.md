@@ -54,6 +54,17 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-duel-world-markers` follows `fa99d97`. A's read-only 1v1/practice world
+badges use symbols plus YOU/RIVAL/TARGET/OUT text and the saved HUD accessibility
+settings. Published presentation poses keep them attached to the displayed bots;
+depth-tested stems clarify which bot a label belongs to. Menus/recovery suppress
+them, and missing baseline/invalid views cannot fabricate identities. No B bot,
+paint, camera or controls implementation changes. See
+[world-marker evidence](coordination/A_DUEL_WORLD_MARKERS.md). Human acceptance
+and other open board items remain separate.
+
+### Preceding general-menu text increment
+
 `codex/a-menu-text-accessibility` follows `35ef6a6`. The saved text preference
 now applies to A's general menus and game/results/reconnect/audio/accessibility
 panels as well as the HUD. Original-theme layouts wrap and scroll while keeping

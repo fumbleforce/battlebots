@@ -18,7 +18,20 @@ viewport scaling; the enlarged layout reflows panels and component cells.
 protanopia/tritanopia palette and high contrast in version-one `user://hud.cfg`.
 The settings panel emits detached previews; Cancel restores the original, while
 Save publishes only after successful atomic persistence. This does not change
-B control settings, world markers or network schemas.
+B control settings or network schemas.
+
+`BotWorldMarkers.render(views, local_id, practice, duel)` consumes only detached
+published views. It creates depth-tested, fixed-size world badges with distinct
+`+ YOU` and `◇ RIVAL`/`◇ TARGET` labels, explicit `/ OUT` state and small stems
+connecting them to bot positions. `apply_accessibility(text_scale, palette,
+high_contrast)` uses the HUD preference. These are separate A-owned presentation
+nodes; bot meshes, paint, physics and camera controls are unchanged.
+Classification requires a valid local identity/team and pose; missing local
+baseline clears badges, invalid/removed peers cannot retain a stale marker, and
+ambiguous extra opponents are suppressed. Only 1v1/practice uses this feature.
+The game reads global presentation poses after child interpolation and suppresses
+world badges with menus/results/settings/recovery. Rendering respects scene
+depth and sits below Canvas HUD layers; it is not an off-screen tracking system.
 
 `MenuTextScale.apply(root, factor)` preserves each text control's base font size
 and reapplies a bounded scale without compounding. It covers labels, buttons,

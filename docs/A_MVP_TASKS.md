@@ -29,8 +29,9 @@ active expansion or acceptance work.
 - [x] Run private 1v1 through the production Linux container's real release worker,
   including results/rematch. [Linux CI evidence](coordination/A_LINUX_HOSTED_RUNTIME.md)
   closes the runtime packaging gap, not external deployment.
-- [ ] Resolve the intermittent Windows native shutdown crash. Latest CI reproduced
-  `0xC0000005` after DRIVE PASS; strict gates remain and full Windows CI is not green.
+- [ ] Resolve the intermittent Windows native shutdown crash. CI and local runs
+  reproduced `0xC0000005` after DRIVE PASS. Windows run35502338810 at35ef6a6
+  subsequently passed the full workflow; one clean run does not establish a fix.
   [Bounded diagnostics](coordination/A_SHUTDOWN_DIAGNOSTICS.md) also reproduce it
   locally; the drive gate rejects native crash text even when the exit code is zero.
 - [x] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
@@ -46,9 +47,12 @@ active expansion or acceptance work.
   game/results/reconnect and audio/accessibility panels, with saved preview/cancel
   behavior and keyboard-accessible scrolling. See
   [general-menu evidence](coordination/A_MENU_TEXT_ACCESSIBILITY.md).
+- [x] Add 1v1/practice world identification with distinct symbols/text, OUT state,
+  color presets and high contrast. Depth-tested badges follow published poses
+  and hide with menus/recovery; see [marker evidence](coordination/A_DUEL_WORLD_MARKERS.md).
 - [ ] Remaining accessibility and communication: B-owned garage/customisation/
   control-settings text scaling to complete coverage throughout all menus,
-  world/team marker recognition and human color-vision acceptance; ping
+  human world/team marker recognition and color-vision acceptance; ping
   presentation after the coordinated input/network interfaces exist.
 - [x] Refine the general menus, especially multiplayer/networking screens (A).
   User feedback (2026-09-20): these screens are poorly integrated into the

@@ -62,3 +62,8 @@ having fixed the original temporary reproduction. It is opt-in diagnosis, not
 an additional flaky CI gate. The runner's six fake-engine regression cases
 verify retained raw logs and that a failed first trial still fails after a clean
 second trial, including native text with exit zero and native exits without text.
+
+Later observation: Windows [run35502338810](https://github.com/fumbleforce/battlebots/actions/runs/35502338810)
+at35ef6a6 passed the full workflow, including the new gate regressions and exports.
+This supersedes the earlier lack of a green run for that checkpoint; it does not
+invalidate the retained intermittent failures or establish a runtime fix.
