@@ -88,3 +88,10 @@ remain playtest work, not a claim of full-game release acceptance.
 
 Windows Client PCK export and execution of the Sawblade acceptance scene directly
 from that pack pass, including runtime GLB, palette shader and JSON animation data.
+
+Integrated the newer shared Turntable preview, featured main/lobby selection,
+unsaved Test Drive and terrain camera updates. Authored previews use the shared
+rotation controls/status and keep preview feet attached to the rotating display.
+After rebase, the full Sawblade suite, featured_vehicle_test, garage_showcase_test,
+featured_vehicle_menu_test and both garage_test_drive scenes pass. Rebase conflicts
+were additive coordination-doc entries; both developers' records were retained.

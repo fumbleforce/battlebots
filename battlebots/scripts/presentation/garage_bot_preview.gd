@@ -62,7 +62,8 @@ func _layout_status() -> void:
 	if is_instance_valid(_status_next): _status_next.offset_top = -36 * value
 
 func _valid_status() -> void:
-	status.text = "Drag to inspect" if _auto_rotate else "Equipped draft · primitive geometry\nDrag to rotate · Wheel to zoom"
+	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
+	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
 	_update_rotation_control()
 	_layout_status()
 
@@ -207,7 +208,7 @@ func show_loadout(draft: Dictionary) -> void:
 		if sawblade_visual.walker_legs != null:
 			sawblade_visual.walker_legs.terrain = false
 			sawblade_visual.walker_legs.reset_feet()
-		status.text = "Sawblade Tank · equipped modules\nDrag to rotate · Wheel to zoom"
+		_valid_status()
 		return
 	var chassis := BoxMesh.new()
 	chassis.size = size

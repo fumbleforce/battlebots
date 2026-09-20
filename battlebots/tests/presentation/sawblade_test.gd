@@ -58,6 +58,21 @@ func run() -> void:
 	preview.show_loadout(draft)
 	check(preview.sawblade_visual.nodes.Module_drive_wheels.visible, "Four wheel drive selects wheels")
 	check(not preview.sawblade_visual.nodes.Module_drive_tracks.visible, "Wheels hide tracks")
+	var walking := draft.duplicate(true)
+	walking.parts.drive = "walker"
+	walking.parts.armor = "light"
+	preview.show_loadout(walking)
+	preview.set_auto_rotate(true)
+	var assembly: Node3D = preview.model.get_parent()
+	var before_rotation := assembly.rotation.y
+	preview._process(0.5)
+	preview.sawblade_visual.walker_legs._process(0.5)
+	check(not is_equal_approx(before_rotation, assembly.rotation.y), "Authored walker participates in the shared rotating showcase")
+	check(preview.rotation_button.visible and preview.status.text == "Drag to inspect", "Authored showcase exposes rotation controls and compact status")
+	for leg: Dictionary in preview.sawblade_visual.walker_legs.legs:
+		check(Vector3(leg.neutral).distance_to(preview.sawblade_visual.walker_legs.to_local(leg.foot)) < 0.001, "Showcase feet rotate with the pedestal without terrain stepping")
+	preview.set_auto_rotate(false)
+	preview.show_loadout(draft)
 	# Existing primary action exercises real combat readiness, charge and cooldown.
 	var combat := CombatState.new(registry.validate(draft).stats)
 	var command := BotCommand.new()

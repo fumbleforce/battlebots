@@ -173,6 +173,9 @@ func _set_contact(leg: Dictionary, hit: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	if legs.is_empty(): return
+	if not terrain:
+		reset_feet()
+		return
 	if global_basis.y.dot(Vector3.UP) < 0.45:
 		reset_feet()
 		return

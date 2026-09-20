@@ -91,8 +91,8 @@ B's featured vehicle increment replaces the main static image and lobby dropdown
 with shared selection and an isolated rotating chassis/weapon preview. Lobby
 selection remains a draft until Apply is host-confirmed; paint-only confirmation
 and phase/pending locks are covered independently. See
-[featured vehicle handoff](coordination/B_FEATURED_VEHICLE.md). The primitive
-models are the current canonical representation; authored assets remain open.
+[featured vehicle handoff](coordination/B_FEATURED_VEHICLE.md). Its shared preview
+now also assembles Sawblade Tank's selected authored modules and walking legs.
 
 Sawblade Tank integration adds the authored runtime model, all root module and
 paint controls, primary-driven hammer clip and physical walking-leg drive.
