@@ -79,11 +79,13 @@ func run() -> void:
 	click.position = featured.previous_button.get_global_rect().get_center()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
-	Input.parse_input_event(click)
+	# The rect is in viewport coordinates; a resized Full HD window applies
+	# stretch to raw OS events, so inject this local position explicitly.
+	get_viewport().push_input(click, true)
 	await settle()
 	click = click.duplicate()
 	click.pressed = false
-	Input.parse_input_event(click)
+	get_viewport().push_input(click, true)
 	await settle()
 	check(requests.size() == count + 1, "Mouse click activates vehicle selection")
 	featured.set_compact(true)

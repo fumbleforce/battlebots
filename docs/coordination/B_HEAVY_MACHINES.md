@@ -234,12 +234,20 @@ external online acceptance is claimed.
 
 ## Integration verification
 
-The initial rebase included battle soundtrack `ac2bda4`. The final source at
-`f77dd58` also includes completed sampled audio `a972308` and main-menu cleanup
-`deebff3`. Documentation insertions were combined, retaining both owners' entries.
+The initial rebase included battle soundtrack `ac2bda4`. Powerful-drive code
+`b872466` also includes completed sampled audio `a972308`, main-menu cleanup
+`deebff3` and Full HD garage layout `03388c0`. Documentation insertions were
+combined, retaining both owners' entries.
 GarageBotPreview's new compact APIs and physical-size normalization compose
 without conflict. After this final rebase, `tools/check-drive.ps1` passes editor
 import, baseline, original drive and powerful enlarged Jolt/replay regressions.
 Main-menu fit, featured vehicle, garage showcase/preview and heavy visual scale
 checks all pass on the combined source. Source diff whitespace validation passes.
 The separate working checkout's unrelated project/import edits remain untouched.
+
+The final Full HD garage merge changed viewport stretch. Its featured-vehicle
+fixture initially injected a viewport-coordinate click as an OS-coordinate event,
+missing the button at the new scale. The fixture now uses local viewport input
+for that same button-center press/release; real button dispatch is still asserted.
+Featured vehicle, garage preview and garage catalogue text pass, as do the full
+baseline/original-drive/powerful-drive checks after the Full HD merge.
