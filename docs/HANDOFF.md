@@ -11,6 +11,14 @@ on confirmed core destruction, and respawn safely for repeated testing. The gara
 adds the HX-6 preset and retains existing bodies/builds. Foundry reflections and
 4x MSAA improve the metal/material presentation.
 
+The corrected Blender model has a strongly inset roof, six radial leg sockets,
+a forged chamfered hammer on a visible telescoping stage, and detailed rotary
+barrels/receiver. The diesel follow-up adds a vented engine and two hollow stacks;
+bounded world-space soot thickens during real movement and disperses after
+stopping. Actual planted tripods play the cropped supplied footfall. The new
+hammer recording follows the existing confirmed-hit audio path. See the narrow
+[supplied-audio handoff](coordination/B_SCORPION_AUDIO.md).
+
 Current local validation and release status are recorded in
 [B Scorpion handoff](coordination/B_SCORPION.md). Catalogue 8 / protocol 5 /
 `mvp-ab-13` require A to release matching hosted workers before online acceptance.

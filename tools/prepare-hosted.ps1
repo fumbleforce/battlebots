@@ -7,6 +7,9 @@ if ($LASTEXITCODE -ne 0 -or $engineVersion -notmatch '^4\.7\.2\.stable') {
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../battlebots')).Path
 $outputDirectory = Join-Path $projectRoot 'exports/hosted-server'
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
+# Review captures and previous builds are artifacts, never runtime resources.
+# Create the import boundary before the editor scans or either preset exports.
+New-Item -ItemType File -Force -Path (Join-Path $projectRoot 'exports/.gdignore') | Out-Null
 function Invoke-PreparedCheck([string[]]$EngineArguments) {
     $outputLines = & $GodotPath @EngineArguments 2>&1
     $code = $LASTEXITCODE

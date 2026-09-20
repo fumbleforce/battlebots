@@ -31,6 +31,14 @@ light gray floor; arena lighting is provided by the game.
   Y -.25 at scale .92, Y -.16 at scale 1, and Y +.25 at scale .70. Separately
   rounded, sloping trapezoid armor panels leave dark seams over that monocoque.
   Roof equipment and the recessed underframe are cosmetic.
+- The compact diesel engine has a shallow vented service cover, filler cap,
+  two swept open exhaust pipes, perforated wraparound heat shields and soot-dark
+  rolled lips. `Scorpion/Body/ExhaustLeft` is (-.39,.66,.60), and
+  `Scorpion/Body/ExhaustRight` is (.39,.66,.60). Their local +Y emission axes
+  point along (-.20,.60,.7745966692) and (.20,.60,.7745966692), respectively.
+  These source-space marker centers match the open outlet planes; the pipe bore
+  radius is .046, narrowed to .045 at the lip. Runtime plumes consume the named
+  transforms and apply model scale once. Exhaust equipment is visual only.
 - The main hierarchy is `Scorpion/Body`,
   `Scorpion/TailBase/TailUpper/TailFore/TailExtension/HammerHead`, and
   `Scorpion/GunMount/GunRotor`. Each moving part has a joined mesh with material
@@ -58,7 +66,7 @@ light gray floor; arena lighting is provided by the game.
   positions are (+/-.90,-.95,+/-1.10) and (+/-1.40,-.95,0). Feet point radially out.
   Their origin is floor contact and ankle height is .18. Blender's showcase
   uses the same two-link solution and dimensions as the Scorpion runtime.
-- Fully assembled detail is 168,370 triangles: 84,730 body/tail/gun, plus six
+- Fully assembled detail is 179,366 triangles: 95,726 body/tail/gun, plus six
   copies of 4,484 upper, 6,548 lower and 2,908 foot. Geometry is joined per moving
   part; Godot's generated LODs remain enabled. This count records full source
   detail, not a rendered performance certification.

@@ -599,6 +599,7 @@ func _process(_delta: float) -> void:
 		_sync_music()
 		duel_scoreboard.suppress(Input.is_action_pressed("scoreboard"))
 		continuous_audio.reset()
+		get_tree().call_group(&"bot_action_audio", &"set_playback_enabled", false)
 		preview.release_controls(false)
 		preview.pause_menu.hide()
 		menu_host.hide()
@@ -673,6 +674,10 @@ func _process(_delta: float) -> void:
 	continuous_audio.render(audio_records, combat_hud.visible
 		and phase in ["active", "overtime"] and local_view != null
 		and (session.connection_state == "practice" or session.match_view.get("mode") == "1v1"))
+	# Weapon/gait voices share the existing gameplay visibility gate. Resetting
+	# their baselines prevents pending steps or old shots replaying on return.
+	get_tree().call_group(&"bot_action_audio", &"set_playback_enabled",
+		combat_hud.visible and phase in ["active", "overtime"] and local_view != null)
 	world_markers.visible = combat_hud.visible
 	# Read presentation poses after child bot smoothing has advanced this frame.
 	_update_world_markers.call_deferred()

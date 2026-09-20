@@ -150,11 +150,11 @@
     "ankle_height": 0.18
   },
   "triangles": {
-    "body_tail_gun": 84730,
+    "body_tail_gun": 95726,
     "leg_upper": 4484,
     "leg_lower": 6548,
     "leg_foot": 2908,
-    "assembled_six_legs": 168370
+    "assembled_six_legs": 179366
   },
   "materials": "Original authored shared 1024px base color / metallic-roughness / tangent normal maps referenced by all GLBs; metallic surfaces reflect scene lighting.",
   "tail_extension": {
@@ -229,5 +229,41 @@
         0.7
       ]
     ]
+  },
+  "diesel_exhaust": {
+    "outlets": [
+      {
+        "node": "Body/ExhaustLeft",
+        "position": [
+          -0.38999998569488525,
+          0.6600000262260437,
+          0.6000000238418579
+        ],
+        "direction": [
+          -0.20000000298023224,
+          0.6000000238418579,
+          0.7745966911315918
+        ],
+        "emission_axis": "+Y",
+        "bore_radius": 0.046
+      },
+      {
+        "node": "Body/ExhaustRight",
+        "position": [
+          0.38999998569488525,
+          0.6600000262260437,
+          0.6000000238418579
+        ],
+        "direction": [
+          0.20000000298023224,
+          0.6000000238418579,
+          0.7745966911315918
+        ],
+        "emission_axis": "+Y",
+        "bore_radius": 0.046
+      }
+    ],
+    "engine_cover": "Compact vented turbo-diesel service cover",
+    "visual_only": true
   }
 }

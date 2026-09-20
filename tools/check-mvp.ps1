@@ -27,9 +27,11 @@ Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_physics.tscn' 'HORIZON
 Invoke-MvpTest 'res://tests/simulation/hammer_state.gd' 'HAMMER STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/minigun_state.gd' 'MINIGUN STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/minigun_physics.tscn' 'MINIGUN PHYSICS PASS' -Scene
+Invoke-MvpTest 'res://tests/simulation/scorpion_grounded_modules.tscn' 'SCORPION GROUNDED MODULES PASS' -Scene
 Invoke-MvpTest 'res://tests/presentation/scorpion_input_test.gd' 'SCORPION INPUT PASS'
 Invoke-MvpTest 'res://tests/presentation/scorpion_assembly_test.tscn' 'SCORPION ASSEMBLY PASS' -Scene
 Invoke-MvpTest 'res://tests/presentation/scorpion_tail_test.tscn' 'SCORPION TAIL PASS' -Scene
+Invoke-MvpTest 'res://tests/presentation/scorpion_diesel_test.tscn' 'SCORPION DIESEL PASS' -Scene
 Invoke-MvpTest 'res://tests/presentation/scorpion_garage_test.tscn' 'SCORPION GARAGE PASS' -Scene
 Invoke-MvpTest 'res://tests/practice/practice_npcs_test.gd' 'PRACTICE NPC PASS'
 Invoke-MvpTest 'res://tests/simulation/hammer_visual.gd' 'HAMMER VISUAL PASS'

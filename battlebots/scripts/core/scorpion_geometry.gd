@@ -10,6 +10,7 @@ const HEAD_PIVOT := Vector3(0, 1.51, -0.88)
 const HEAD_CENTER := Vector3(0, 1.25, -1.12)
 const HEAD_SIZE := Vector3(0.62, 0.76, 0.50)
 const HAMMER_EXTENSION := 0.22
+const FALLBACK_SOCKET := Vector3(0, -0.55, 0)
 const GUN_MUZZLE := Vector3(0.66, 0.27, -1.72)
 const GUN_BREECH := Vector3(0.66, 0.3155, -0.42)
 const GUN_PIVOT := Vector3(0.66, 0.22, -0.42)
@@ -18,6 +19,9 @@ const GUN_REST_PITCH := -0.0349857188
 
 static func enabled(loadout: Dictionary) -> bool:
 	return loadout.get("parts", {}).get("chassis", "") == "scorpion_hex"
+
+static func fallback_socket(size: Vector3) -> Vector3:
+	return FALLBACK_SOCKET * BotScale.from_size(size)
 
 static func hammer_angles(fraction: float) -> Vector4:
 	return Vector4(-0.90, -0.15, 0.50, 0.55) * clampf(fraction, 0.0, 1.0)

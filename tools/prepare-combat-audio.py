@@ -32,9 +32,9 @@ def remove_dc(samples):
     return [value - mean for value in samples]
 
 
-def impact(name, end):
-    # Keep the immediate strike; discard the inaudible tail and encoder end noise.
-    samples = remove_dc(decode(name)[:round(end * RATE)])
+def impact(name, end, start=0.0):
+    # Align the selected strike with contact, retaining its useful recorded decay.
+    samples = remove_dc(decode(name)[round(start * RATE):round(end * RATE)])
     attack, release = round(0.001 * RATE), round(0.035 * RATE)
     for index in range(attack):
         samples[index] *= index / (attack - 1)
@@ -76,5 +76,6 @@ def write(name, samples, peak):
 
 if __name__ == "__main__":
     write("metal_collision.wav", impact("metal_collision.mp3", 0.80), 0.65)
-    write("hammer_crash.wav", impact("hammer_crash.mp3", 0.90), 0.70)
+    write("hammer_crash.wav", impact("hammer_crash.mp3", 1.50, 0.325), 0.70)
+    write("scorpion_footfall.wav", impact("scorpion_footfall.mp3", 1.16, 0.66), 0.60)
     write("heavy_saw_loop.wav", saw_loop(), 0.30)

@@ -55,8 +55,17 @@ func sound_bank() -> void:
 			var source := load(recordings[cue]) as AudioStreamWAV
 			check(stream != source and stream != other.stream(cue) and stream.data == source.data,
 				cue + " uses a private copy of the adapted recording")
-			check(is_equal_approx(stream.get_length(), 0.9 if cue == "impact_hammer" else 0.8),
+			check(is_equal_approx(stream.get_length(), 1.175 if cue == "impact_hammer" else 0.8),
 				cue + " retains the trimmed impact and decay")
+			if cue == "impact_hammer":
+				var onset := -1
+				var tail_energy := 0.0
+				for frame: int in stream.data.size() / 2:
+					var value := stream.data.decode_s16(frame * 2) / 32767.0
+					if onset < 0 and absf(value) >= 0.5: onset = frame
+					if frame >= 44400: tail_energy += value * value
+				check(onset >= 0 and onset < 1440, "Main supplied hammer transient starts within 30ms of contact")
+				check(tail_energy / 12000.0 > 0.001, "Supplied hammer retains its audible final quarter-second decay")
 		var peak := 0
 		for index: int in range(0, stream.data.size(), 2):
 			peak = maxi(peak, absi(stream.data.decode_s16(index)))

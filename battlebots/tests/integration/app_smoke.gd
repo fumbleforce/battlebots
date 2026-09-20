@@ -23,7 +23,8 @@ func run() -> void:
 	app.join_game()
 	check(session.connection_state == "practice" and "Enter the address" in app.notice,
 		"Empty join explains the host address without leaving the current session")
-	check(session.world.get_child_count() == 3, "One arena and two practice bots, no duplicate walls")
+	check(session.world.get_child_count() == 5 and session.world.bots.size() == 4,
+		"One arena, the player and three practice NPCs, no duplicate walls")
 	check(session.world.arena.find_children("*", "StaticBody3D", true, false).size() == 9,
 		"Published arena has one floor, four walls and four chamfers")
 	var proxy: SessionBotSource = app.player_source

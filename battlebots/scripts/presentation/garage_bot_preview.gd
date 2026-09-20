@@ -322,7 +322,9 @@ func _update_camera() -> void:
 	var orbit_distance := distance
 	if scorpion_visual != null:
 		target = Vector3(0, 1.10, -0.10)
-		orbit_distance += 0.8
+		# FeaturedVehicle starts closer for the low wheeled hulls. Keep the tall
+		# hammer and radial feet inside that same selection card through its orbit.
+		orbit_distance += 2.6 if _auto_rotate else 0.8
 	camera.position = target + Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)) * orbit_distance
 	camera.look_at(target)
 

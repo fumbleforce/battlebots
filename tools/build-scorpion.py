@@ -375,6 +375,94 @@ for x in [-.23,.0,.23]:
 for x in [-.20,.20]:
     cylinder('Rear running lens',(x,-.06,.815),(x,-.06,.829),.022,red,body,16,bevel=0)
 textmesh('HX-6',(0,.301,-.15),.070,body)
+# Compact turbo-diesel package. Exhaust outlets are real open bores; the two
+# named emission markers use local +Y and share the exact rim center/axis.
+exhaust_metal=simple('Scorpion_HeatCycledExhaust',(.115,.119,.111),.80,.51)
+soot=simple('Scorpion_DieselSoot',(.027,.025,.021),.06,.91)
+heat_oxide=simple('Scorpion_ExhaustHeatOxide',(.235,.198,.137),.82,.47)
+box('Compact diesel engine access cover',(0,.325,.19),(.30,.068,.35),dark,body,.027)
+box('Engine cover recessed heat grille',(0,.363,.155),(.237,.012,.198),rubber,body,.012)
+for i in range(6):
+    box('Diesel engine cooling louver',(0,.375,.073+i*.032),(.213,.020,.014),exhaust_metal,body,.003)
+for side in [-1,1]:
+    for z in [.048,.327]:bolt((side*.111,.365,z),(0,1,0),body,.012)
+    cylinder('Diesel coolant rail',(side*.158,.310,.085),(side*.158,.310,.329),.020,exhaust_metal,body,16,bevel=0)
+cylinder('Diesel filler neck',(0,.359,.294),(0,.372,.294),.035,exhaust_metal,body,24,bevel=0)
+cylinder('Captive diesel filler cap',(0,.372,.294),(0,.384,.294),.044,dark,body,8,bevel=0)
+box('Filler cap cross grip',(0,.390,.294),(.056,.017,.014),heat_oxide,body,.004)
+
+def hollow_exhaust(name,points,tangents,outer_radius,inner_radius):
+    n=32;verts=[]
+    for radius in [outer_radius,inner_radius]:
+        for center,axis in zip(points,tangents):
+            side=axis.cross(Vector((1,0,0))).normalized()
+            up=axis.cross(side).normalized()
+            for i in range(n):
+                angle=i*math.tau/n
+                verts.append(tuple(center+(side*math.cos(angle)+up*math.sin(angle))*radius))
+    rings=len(points);offset=rings*n;faces=[];soot_faces=[]
+    for row in range(rings-1):
+        for i in range(n):
+            j=(i+1)%n
+            faces.append((row*n+i,row*n+j,(row+1)*n+j,(row+1)*n+i))
+            if row>=rings-3:soot_faces.append(len(faces)-1)
+            faces.append((offset+row*n+i,offset+(row+1)*n+i,offset+(row+1)*n+j,offset+row*n+j))
+            soot_faces.append(len(faces)-1)
+    for row in [0,rings-1]:
+        for i in range(n):
+            j=(i+1)%n
+            faces.append((row*n+i,offset+row*n+i,offset+row*n+j,row*n+j))
+            if row==rings-1:soot_faces.append(len(faces)-1)
+    obj=mesh(name,verts,faces,exhaust_metal,body,0)
+    obj.data.materials.append(soot)
+    for polygon in obj.data.polygons:polygon.use_smooth=True
+    for index in soot_faces:obj.data.polygons[index].material_index=1
+
+def perforated_heat_shield(center):
+    # Staggered actual ventilation windows leave the dark pipe visible inside.
+    n=24;rows=9;verts=[];faces=[]
+    for radius in [.078,.073]:
+        for row in range(rows+1):
+            y=.295+row*.016
+            for i in range(n):
+                angle=i*math.tau/n
+                verts.append((center.x+radius*math.cos(angle),y,center.z+radius*math.sin(angle)))
+    offset=(rows+1)*n
+    for row in range(rows):
+        for i in range(n):
+            if row in [2,3,5,6] and (i+row//3)%3==1:continue
+            j=(i+1)%n;a=row*n+i;b=row*n+j;c=(row+1)*n+j;d=(row+1)*n+i
+            faces.extend([(a,b,c,d),(a+offset,d+offset,c+offset,b+offset),
+                          (a,a+offset,b+offset,b),(d,c,c+offset,d+offset),
+                          (a,d,d+offset,a+offset),(b,b+offset,c+offset,c)])
+    obj=mesh('Perforated wraparound diesel heat shield',verts,faces,exhaust_metal,body,0)
+    for polygon in obj.data.polygons:polygon.use_smooth=True
+
+exhaust_markers=[];diesel_outlets=[]
+for side,label in [(-1,'Left'),(1,'Right')]:
+    base=Vector((side*.34,.23,.42));outlet=Vector((side*.39,.66,.60))
+    direction=Vector((side*.20,.60,math.sqrt(.60)))
+    cylinder('Exhaust deck socket',base-Vector((0,.035,0)),base+Vector((0,.055,0)),.085,dark,body,24,bevel=.006)
+    for dx,dz in [(-.063,-.035),(.063,-.035)]:bolt(base+Vector((dx,.052,dz)),(0,1,0),body,.010)
+    p0=Vector((side*.34,.442,.42));p1=p0+Vector((0,.110,0));p2=outlet-direction*.110;p3=outlet
+    points=[base-Vector((0,.045,0)),p0];tangents=[Vector((0,1,0)),Vector((0,1,0))]
+    for step in range(1,13):
+        t=step/12;s=1-t
+        points.append(p0*s**3+p1*3*s*s*t+p2*3*s*t*t+p3*t**3)
+        tangents.append(((p1-p0)*3*s*s+(p2-p1)*6*s*t+(p3-p2)*3*t*t).normalized())
+    hollow_exhaust('Hollow swept diesel exhaust '+label,points,tangents,.060,.046)
+    perforated_heat_shield(base)
+    for y in [.293,.443]:
+        ring('Heat shield retaining collar',(side*.34,y,.42),(0,1,0),.082,.072,.014,heat_oxide,body,32)
+    # The outlet's final annular rim is black with soot, never a solid cap.
+    ring('Soot-darkened exhaust rolled lip',outlet-direction*.004,direction,.064,.045,.008,soot,body,32)
+    marker=part('Exhaust'+label,tuple(outlet),body)
+    conv=Matrix(((1,0,0),(0,0,-1),(0,1,0)))
+    right=Vector((1,0,0)).cross(direction).normalized();back=right.cross(direction)
+    marker.rotation_mode='QUATERNION'
+    marker.rotation_quaternion=(conv@Matrix((right,direction,back)).transposed()@conv.inverted()).to_quaternion()
+    exhaust_markers.append(marker)
+    diesel_outlets.append({'node':'Body/'+marker.name,'position':list(outlet),'direction':list(direction),'emission_axis':'+Y','bore_radius':.046})
 # Tail and gun are separate authored modules with a shared precision helper API.
 sys.path.insert(0,str(ROOT/'tools'))
 module_metadata={}
@@ -539,6 +627,7 @@ manifest['triangles']['assembled_six_legs']=triangles(root)+6*(triangles(upper)+
 manifest.update(module_metadata)
 if 'gun_detail_manifest' in globals():manifest['gun_detail']=gun_detail_manifest
 manifest['body_collider']={'profile_xz':profile,'rings_y_scale':[[-.25,.92],[-.16,1.0],[.25,.70]]}
+manifest['diesel_exhaust']={'outlets':diesel_outlets,'engine_cover':'Compact vented turbo-diesel service cover','visual_only':True}
 (RUNTIME/'scorpion_manifest.json').write_text(json.dumps(manifest,indent=2))
 print('SCORPION_ASSET_MANIFEST',json.dumps(manifest['triangles']))
 

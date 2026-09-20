@@ -37,7 +37,7 @@ func run() -> void:
 	check(host.audio_views().is_empty(), "Offline session has no audio records")
 	check(host.practice() == OK, "Practice starts")
 	var records := host.audio_views()
-	check(records.size() == 2, "Practice target metadata does not depend on admitted roster")
+	check(records.size() == 4, "All three practice NPC audio records are independent of the admitted roster")
 	for record: Dictionary in records:
 		check(record.velocity == Vector3.ZERO and record.angular == Vector3.ZERO
 			and record.drive_input == 0.0 and record.turn_input == 0.0

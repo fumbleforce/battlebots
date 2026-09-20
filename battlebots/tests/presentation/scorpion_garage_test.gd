@@ -38,6 +38,9 @@ func check_preview(preview: GarageBotPreview, hammer: bool, gun: bool) -> void:
 	check(visual.nodes.TailBase.visible == hammer, "Hammer visibility follows the selected primary part")
 	check(visual.nodes.GunMount.visible == gun, "Minigun visibility follows primary or auxiliary selection")
 	check(preview.model.find_children("*", "CollisionObject3D", true, false).is_empty(), "Preview never instantiates gameplay collision")
+	check(visual.nodes.has("ExhaustLeft") and visual.nodes.has("ExhaustRight"), "Preview imports both actual diesel outlet markers")
+	for emitter: GPUParticles3D in visual.diesel_exhaust.emitters:
+		check(not emitter.emitting, "Workshop and selection previews keep the diesel engine off")
 
 func capture(name: String) -> void:
 	if "--capture" not in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless": return
@@ -54,6 +57,34 @@ func check_default_framing(preview: GarageBotPreview, location: String) -> void:
 			var point := preview.camera.unproject_position(world_point)
 			check(not preview.camera.is_position_behind(world_point) and point.x >= 0 and point.y >= 0 and point.x <= extent.x and point.y <= extent.y,
 				location + " shows the complete default Scorpion including its head and feet: " + str(mesh.name))
+
+func check_featured_menu(scene_path: String, location: String) -> void:
+	var screen: Control = load(scene_path).instantiate()
+	var session: MvpSession
+	if location == "Lobby":
+		session = MvpSession.new()
+		add_child(session)
+		screen.session_override = session
+	add_child(screen)
+	for resolution: Vector2i in [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1080)]:
+		get_window().size = resolution
+		for factor: float in [1.0, 1.5]:
+			screen.apply_text_scale(factor)
+			await frames(6)
+			var preview: GarageBotPreview = screen.featured_vehicle.preview
+			preview._rotation_paused = true
+			check_preview(preview, true, true)
+			for step: int in 16:
+				preview._turntable.rotation.y = step * TAU / 16.0
+				await frames(1)
+				check_default_framing(preview, "%s %s text %.1f" % [location, resolution, factor])
+			if resolution == Vector2i(1920, 1080) and is_equal_approx(factor, 1.0):
+				preview._turntable.rotation.y = 0.0
+				await capture("scorpion-" + location.to_lower() + ".png")
+	screen.queue_free()
+	if session != null: session.queue_free()
+	get_window().size = Vector2i(1920, 1080)
+	await frames()
 
 func run() -> void:
 	get_window().size = Vector2i(1920, 1080)
@@ -90,6 +121,20 @@ func run() -> void:
 	await capture("scorpion-garage.png")
 	garage.queue_free()
 	await frames(1)
+	var featured := FeaturedVehicle.new()
+	featured.size = Vector2(560, 620)
+	featured.render([profile.registry.scorpion()], 0)
+	add_child(featured)
+	await frames(10)
+	featured.preview._rotation_paused = true
+	for angle: float in [0.0, PI * 0.5, PI, PI * 1.5]:
+		featured.preview._turntable.rotation.y = angle
+		await frames(1)
+		check_default_framing(featured.preview, "Vehicle selection")
+	featured.queue_free()
+	await frames(1)
+	await check_featured_menu("res://ui/menus/screens/main_menu.tscn", "Main")
+	await check_featured_menu("res://ui/menus/screens/lobby.tscn", "Lobby")
 	var customize: Control = load("res://ui/menus/screens/customize.tscn").instantiate()
 	add_child(customize)
 	await frames()

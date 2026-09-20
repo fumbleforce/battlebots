@@ -9,6 +9,7 @@ var flash: MeshInstance3D
 var light: OmniLight3D
 var shot_count := 0
 var gun_mount: Node3D
+var weapon_audio: MinigunWeaponAudio
 var _mount_rest := Transform3D.IDENTITY
 var _seen := -1
 var _tick := -1
@@ -61,6 +62,8 @@ func configure(barrels: Node3D, socket: Node3D, geometry_scale: float, mount: No
 	light.light_energy = 0.0
 	add_child(light)
 	light.top_level = true
+	weapon_audio = MinigunWeaponAudio.new()
+	add_child(weapon_audio)
 
 func _mesh(shape: Mesh, material: Material) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
@@ -80,12 +83,16 @@ func show_state(view: BotView, delta: float, primary := false) -> void:
 	var spool := view.weapon_charge_fraction if primary else view.secondary_charge
 	if is_instance_valid(rotor) and not view.eliminated:
 		rotor.rotate_z(-delta * spool * 65.0)
-	if _seen < 0 or view.server_tick < _tick or view.shot_sequence < _seen:
+	var baseline := _seen < 0 or view.server_tick < _tick or view.shot_sequence < _seen
+	if baseline: clear_effects()
+	var motor_origin := gun_mount.global_position if gun_mount != null else muzzle.global_position
+	weapon_audio.observe(view, spool, motor_origin, delta)
+	if baseline:
 		_seen = view.shot_sequence
-		clear_effects()
 	elif view.shot_sequence > _seen:
 		_seen = view.shot_sequence
-		if not view.eliminated and view.server_tick - view.last_shot_tick <= 12:
+		if not view.eliminated and view.last_shot_tick >= 0 and view.last_shot_tick <= view.server_tick \
+			and view.server_tick - view.last_shot_tick <= 12:
 			_fire(view.last_shot_from, view.last_shot_to, view.pose)
 	_tick = view.server_tick
 	if view.eliminated: clear_effects()
@@ -123,8 +130,10 @@ func _fire(from: Vector3, to: Vector3, pose: Transform3D) -> void:
 	casing.velocity = (pose.basis.x * 1.3 + Vector3.UP * 0.8) * _scale
 	casing.spin = Vector3(9, 15, 4)
 	shot_count += 1
+	weapon_audio.fire(from)
 
 func clear_effects() -> void:
+	if weapon_audio != null: weapon_audio.reset()
 	_flash_age = 1.0
 	for tracer: Dictionary in _tracers: tracer.age = 1.0
 	for casing: Dictionary in _casings: casing.age = 2.0

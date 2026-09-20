@@ -156,6 +156,7 @@ func _sweep(bot: MvpBot) -> Array:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
+	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
 	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout) and bot.combat.stats.weapon == "lifter":
 		var size: Vector3 = bot.combat.stats.size
 		var angle := bot.combat.charge * deg_to_rad(40)
@@ -188,6 +189,7 @@ func _horizontal_sweep(bot: MvpBot) -> Array:
 	shape.radius = bot.combat.stats.size.x * 0.65
 	shape.height = 0.24 * linear_scale
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
+	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
 	var angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
@@ -214,6 +216,7 @@ func _saw_sweep(bot: MvpBot) -> Array:
 	shape.radius = 0.32 * linear_scale
 	shape.height = 0.16 * linear_scale
 	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, 0.1 * linear_scale, -bot.combat.stats.size.z * 0.5 - 0.4 * linear_scale))
+	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
 	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout):
 		var size: Vector3 = bot.combat.stats.size
 		var scale := SawbladeGeometry.scale_for(size)

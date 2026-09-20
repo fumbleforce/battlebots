@@ -32,6 +32,22 @@ and deals 6 raw damage per shot through existing zone/armor rules. Motor and
 shot costs share battery/heat with the primary weapon. Both modules currently
 share the canonical `weapon` integrity zone. ScorpionGeometry defines the exact
 articulated hammer arc for both rendered joints and authoritative sweeps.
+The final telescopic stage extends 0.22 source meters (0.66 at game scale) along
+the authored forearm, and the wrist keeps the striking head level. The pure
+ScorpionStance profile supplies the tapered collision hull, radial visual hips
+and six corresponding suspension contacts.
+Alternate saw/lifter/spinner tools attach through a lower-front adapter socket
+at source offset `(0, -0.55, 0)`. Rendering and authoritative sweeps share this
+offset so the tall walker can hit grounded wheeled opponents. The native
+hammer/minigun keep their independent reference geometry.
+
+Diesel exhaust and footfalls are cosmetic observations of accepted presentation
+state, with no additional wire fields. Both imported exhaust lips drive bounded
+world-space smoke (256 particles per bot, 3.6-second lifetime). Translation and
+turning load the engine; elimination stops emission while existing smoke fades.
+Terrain-disabled garage previews stay silent and smoke-free. Explicit round
+resets, teleports and tick rollbacks clear old observation state. Completed
+displaced, grounded tripods share one spatial footfall cue with two pooled voices.
 
 Offline `MvpSession.practice()` installs PracticeBotDirector with stationary
 Bulwark and mobile Rammer/Watchdog NPCs. `practice_target()` retains the stable

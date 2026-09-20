@@ -5,6 +5,7 @@ var model: Node3D
 var nodes: Dictionary = {}
 var walker_legs: ScorpionLegs
 var gun_effects: MinigunEffects
+var diesel_exhaust: ScorpionDieselExhaust
 var fallback_weapon: MvpWeaponVisual
 var kind := "hammer"
 var hammer_fraction := 0.0
@@ -28,11 +29,16 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		fallback_weapon = MvpWeaponVisual.new()
 		add_child(fallback_weapon)
 		fallback_weapon.scale = Vector3.ONE / scale
+		fallback_weapon.position = ScorpionGeometry.fallback_socket(size) / scale
 		fallback_weapon.assemble(kind, size)
+		_assemble_fallback_mount()
 	walker_legs = ScorpionLegs.new()
 	add_child(walker_legs)
 	walker_legs.scale = Vector3.ONE / scale
 	walker_legs.assemble(size, null, {})
+	diesel_exhaust = ScorpionDieselExhaust.new()
+	add_child(diesel_exhaust)
+	diesel_exhaust.configure(nodes, BotScale.from_size(size))
 	_apply_paint(draft)
 	if has_gun:
 		var muzzle := Node3D.new()
@@ -41,6 +47,45 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		gun_effects = MinigunEffects.new()
 		add_child(gun_effects)
 		gun_effects.configure(nodes.GunRotor, muzzle, BotScale.from_size(size), nodes.GunMount)
+
+func _assemble_fallback_mount() -> void:
+	# These source-metre adapter arms join the underside of the hexagonal hull
+	# to the lowered tool socket. The main tail and gun keep their own mounts.
+	var dark := _mount_material("BlackenedSteel")
+	var paint := _mount_material("OrangeCeramic")
+	for side: int in [-1, 1]:
+		var upper := Vector3(side * 0.24, 0.34, -0.67)
+		var lower := Vector3(side * 0.24, 0, -0.94)
+		var arm := BoxMesh.new()
+		arm.size = Vector3(0.12, upper.distance_to(lower), 0.13)
+		var visual := _mount_piece(arm, (upper + lower) * 0.5, dark)
+		visual.basis = Basis(Quaternion(Vector3.UP, (upper - lower).normalized()))
+		var cap := CylinderMesh.new()
+		cap.top_radius = 0.085
+		cap.bottom_radius = 0.085
+		cap.height = 0.08
+		cap.radial_segments = 16
+		visual = _mount_piece(cap, lower, paint)
+		visual.rotation.z = PI * 0.5
+	var bridge := BoxMesh.new()
+	bridge.size = Vector3(0.52, 0.12, 0.32)
+	_mount_piece(bridge, Vector3(0, 0, -0.94), dark)
+
+func _mount_material(label: String) -> Material:
+	for mesh: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		for index: int in mesh.mesh.get_surface_count():
+			var material := mesh.mesh.surface_get_material(index)
+			if material != null and label in material.resource_name: return material
+	return null
+
+func _mount_piece(mesh: PrimitiveMesh, at: Vector3, material: Material) -> MeshInstance3D:
+	var visual := MeshInstance3D.new()
+	visual.name = "ToolSocketAdapter"
+	mesh.material = material
+	visual.mesh = mesh
+	visual.position = at
+	fallback_weapon.add_child(visual)
+	return visual
 
 func _apply_paint(draft: Dictionary) -> void:
 	var paint_id: String = draft.cosmetics.get("paint", "orange")
@@ -89,4 +134,11 @@ func show_state(view: BotView, delta: float) -> void:
 		set_hammer_fraction(fraction)
 	if fallback_weapon != null: fallback_weapon.show_state(view, delta)
 	if gun_effects != null: gun_effects.show_state(view, delta, kind == "minigun")
+	diesel_exhaust.show_state(view, global_transform, delta, walker_legs.terrain)
+	walker_legs.observe_state(view)
 	walker_legs.set_process(not view.eliminated)
+
+func reset_observation() -> void:
+	walker_legs.reset_feet()
+	diesel_exhaust.reset_observation()
+	if gun_effects != null: gun_effects.clear_effects()

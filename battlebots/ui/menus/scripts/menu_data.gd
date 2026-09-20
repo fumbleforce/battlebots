@@ -10,7 +10,7 @@ const MUTED := Color("#9AA6B5")
 const INK := Color("#141413")
 const STAT_KEYS := ["MASS kg", "POWER", "SPEED m/s", "ARMOR %"]
 const MODES := [
-	{"id":"training","big":"SOLO","tag":"PRACTICE","title":"PRACTICE","desc":"Test your build in the arena against a stationary target.","meta1":"Solo","meta2":"No rewards","tint":Color("#2F5A36"),"rules":"Solo practice · Stationary target · No rating or rewards","enabled":true},
+	{"id":"training","big":"SOLO","tag":"PRACTICE","title":"PRACTICE","desc":"Test your build against a calibration target and two active NPC bots.","meta1":"Solo","meta2":"No rewards","tint":Color("#2F5A36"),"rules":"Solo practice · Three respawning NPC bots · No rating or rewards","enabled":true},
 	{"id":"duel","big":"1V1","tag":"PRIVATE","title":"PRIVATE DUEL","desc":"Host a private duel for two players.","meta1":"First to 2","meta2":"2 players","tint":Color("#8A2520"),"rules":"1v1 · First to two rounds · Five-round cap","enabled":true},
 	{"id":"team","big":"2V2","tag":"STANDARD","title":"TEAM BRAWL","desc":"Coordinate with a teammate in a private match.","meta1":"First to 2","meta2":"4 players","tint":Color("#1F4A9A"),"rules":"2v2 · First to two rounds · Five-round cap · No arena hazards","enabled":true},
 	{"id":"quick","big":"GO","tag":"UNAVAILABLE","title":"QUICK MATCH","desc":"Public matchmaking is not implemented.","meta1":"Unavailable","meta2":"Planned","tint":Color("#3A4452"),"rules":"Public services unavailable","enabled":false},
@@ -69,13 +69,13 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Six legs on Scorpion, four on Sawblade · 32 kg · 35 power · 4 m/s. Planted feet adapt to terrain and smooth alternating steps."
 			elif item.id == "scorpion_hex":
 				item.name = "Scorpion hex body"
-				item.desc = "Orange six-legged combat machine. Hexagonal armor, interchangeable dorsal weapon and minigun socket. Requires walking drive; preserves your other selected parts."
+				item.desc = "Orange diesel-powered six-legged combat machine. Tapered hexagonal armor, interchangeable dorsal weapon and minigun socket. Requires walking drive; preserves your other selected parts."
 			elif item.id == "minigun_pod":
 				item.name = "Minigun • Auxiliary"
 				item.desc = "Scorpion gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Uses battery and builds heat. Swap for another utility to remove."
 			elif item.id == "minigun":
 				item.name = "Minigun • Primary"
-				item.desc = "Scorpion gun socket · 24 kg · 35 power. Hold primary fire for sustained ranged fire. Replaces the dorsal hammer; choose a separate utility."
+				item.desc = "Primary weapon module · 24 kg · 35 power. Hold primary fire for sustained ranged fire. On Scorpion it replaces the dorsal hammer; choose a separate utility."
 
 	return {"parts":categories,"paint":paint_categories,"decals":vehicle}
 

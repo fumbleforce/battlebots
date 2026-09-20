@@ -20,6 +20,11 @@ Scorpion HX-6 with six articulated walking legs, interchangeable primary hammer
 and auxiliary minigun. Ranged miniguns are now explicitly in scope despite the
 historical exclusion below. The garage retains Sawblade and adds Scorpion;
 practice includes three authored NPC machines and repeatable destructive combat.
+The reference correction requires an inward-tapered, rounded hexagonal shell,
+radial legs, an extendible articulated hammer arm and a forged striking head.
+The Scorpion runs on diesel: twin stacks leave dense soot under movement load,
+and its grounded steps use the user's cropped footfall recording. Confirmed
+hammer impacts use the supplied smash recording.
 See [Scorpion implementation](coordination/B_SCORPION.md) for current behavior,
 validation and coordinated client/server compatibility requirements.
 

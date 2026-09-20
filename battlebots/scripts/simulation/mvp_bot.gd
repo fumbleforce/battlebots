@@ -268,6 +268,7 @@ func step(delta: float, active: bool) -> void:
 
 func reset_round() -> void:
 	if destruction_visual != null: destruction_visual.reset_observation()
+	if scorpion_visual != null: scorpion_visual.reset_observation()
 	combat = CombatState.new(combat.stats)
 	command = BotCommand.new()
 	input_age = 1
