@@ -523,3 +523,4 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
 - **B camera mouse scaling:** investigate resolution-dependent orbit in B's input adapter on codex/b-camera-mouse-scale; independent engine event/adapter scene. No model/drive/weapon or network changes. See [scope](coordination/B_CAMERA_MOUSE_SCALE.md).
 
 - 2026-09-20 B: Sawblade Tank runtime/garage integration reserved; optional cosmetics contract and acceptance in coordination/B_SAWBLADE_INTEGRATION.md.
+- **B camera round lifecycle:** independent real-session camera/input continuity and rearming acceptance on codex/b-camera-round-lifecycle; no new spectator behavior or model/drive/weapon edits. See [scope](coordination/B_CAMERA_ROUND_LIFECYCLE.md).
