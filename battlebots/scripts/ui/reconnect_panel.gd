@@ -38,17 +38,26 @@ func _ready() -> void:
 	stripe.size = Vector2(1280, 8)
 	canvas.add_child(stripe)
 	var column := VBoxContainer.new()
-	column.position = Vector2(96, 96)
-	column.size = Vector2(1088, 536)
-	column.add_theme_constant_override("separation", 20)
+	column.position = Vector2(64, 48)
+	column.size = Vector2(1152, 624)
+	column.add_theme_constant_override("separation", 16)
 	canvas.add_child(column)
 	_label(column, "THE FOUNDRY  /  MULTIPLAYER", &"EyebrowAmber", 20)
 	heading = _label(column, "CONNECTION LOST", &"HeadingItalic", 56)
-	status = _label(column, "", &"Muted", 24)
+	var scroll := ScrollContainer.new()
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(scroll)
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 16)
+	scroll.add_child(body)
+	status = _label(body, "", &"Muted", 24)
 	status.custom_minimum_size.y = 68
 	var card := PanelContainer.new()
 	card.theme_type_variation = &"PanelGlass"
-	column.add_child(card)
+	body.add_child(card)
 	var inset := MarginContainer.new()
 	for side: String in ["left", "right", "top", "bottom"]:
 		inset.add_theme_constant_override("margin_" + side, 20)
@@ -58,9 +67,6 @@ func _ready() -> void:
 	inset.add_child(details)
 	countdown = _label(details, "", &"EyebrowAmber", 22)
 	_label(details, "The match continues while you are disconnected. Your bot remains vulnerable.\nThe server decides whether you can rejoin the match.", &"Muted", 22)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(spacer)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 28)
 	column.add_child(actions)
@@ -71,6 +77,9 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_resize)
 	_resize()
 	render(false, false, 0.0)
+
+func apply_text_scale(factor: float) -> void:
+	MenuTextScale.apply(self, factor)
 
 func render(can_retry: bool, connecting: bool, seconds: float, message: String = "") -> void:
 	if not is_instance_valid(retry):

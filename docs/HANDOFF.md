@@ -54,6 +54,16 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-menu-text-accessibility` follows `35ef6a6`. The saved text preference
+now applies to A's general menus and game/results/reconnect/audio/accessibility
+panels as well as the HUD. Original-theme layouts wrap and scroll while keeping
+actions keyboard reachable. The shared local helper is documented in CONTRACTS;
+B's garage/customisation/control settings remain a separate owned follow-up.
+See [menu accessibility evidence](coordination/A_MENU_TEXT_ACCESSIBILITY.md).
+No B runtime, gameplay rules or network schemas changed.
+
+### Preceding Windows diagnostic increment
+
 `codex/a-shutdown-diagnostics` follows `7287540`. Bounded Windows experiments
 reproduce the native shutdown failure after successful gameplay assertions.
 Removing WireCodec's concrete bot type did not fix it and was reverted. A's

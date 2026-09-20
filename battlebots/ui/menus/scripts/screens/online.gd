@@ -14,6 +14,9 @@ var code_label: Label
 var actions: VBoxContainer
 var state_heading: Label
 
+func apply_text_scale(factor: float) -> void:
+	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
+
 func _ready() -> void:
 	allow_back = false
 	super()
@@ -49,9 +52,14 @@ func _ready() -> void:
 	for side: String in ["top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 38)
 	layout.add_child(margin)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	margin.add_child(scroll)
 	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 24)
-	margin.add_child(body)
+	scroll.add_child(body)
 	label(body, "ONE ARENA. TWO BOTS.", 42, &"HeadingItalic")
 	label(body, "Create a duel and share your code, or join a friend’s game.", 27, &"Muted")
 	actions = VBoxContainer.new()

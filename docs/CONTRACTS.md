@@ -14,11 +14,22 @@ Paths below are relative to the Godot project.
 `MatchHud` method change local presentation only. Text grows independently from
 viewport scaling; the enlarged layout reflows panels and component cells.
 `CombatHud.caption_bounds()` returns its reserved logical subtitle rectangle.
-`HudPreferences` stores validated 100/125/150% HUD text size, standard/deuteranopia/
+`HudPreferences` stores validated 100/125/150% HUD/general-menu text size, standard/deuteranopia/
 protanopia/tritanopia palette and high contrast in version-one `user://hud.cfg`.
 The settings panel emits detached previews; Cancel restores the original, while
 Save publishes only after successful atomic persistence. This does not change
-B control settings, world markers, general menu text size or network schemas.
+B control settings, world markers or network schemas.
+
+`MenuTextScale.apply(root, factor)` preserves each text control's base font size
+and reapplies a bounded scale without compounding. It covers labels, buttons,
+text inputs, rich text and option popups. It does not resize the whole canvas or
+choose layout; A's general screens and game/results/reconnect/audio/accessibility
+panels expose `apply_text_scale(factor)` and own wrapping and scroll behavior.
+The game owner propagates live drafts to current panels and newly opened screens,
+restores the saved value on Cancel/reconnect cancellation, and loads the same
+version-one HUD preference at startup. Existing files need no migration.
+B's garage/customisation/control-settings layouts are unchanged; B may consume
+this helper and adapt those layouts separately before whole-menu acceptance.
 
 `MvpSession.bot_views() -> Array[BotView]` returns fresh detached views for the
 current world. Server/practice views read the real bot state; clients omit bots

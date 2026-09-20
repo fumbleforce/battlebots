@@ -78,6 +78,10 @@ func _button(parent: Node, text: String, callback: Callable) -> Button:
 	parent.add_child(result)
 	return result
 
+func apply_text_scale(factor: float) -> void:
+	MenuTextScale.apply(self, factor)
+	custom_minimum_size.x = 600 if factor > 1.0 else 480
+
 func open_for(preferences: AudioPreferences, path: String) -> void:
 	if _opened:
 		_original.apply()

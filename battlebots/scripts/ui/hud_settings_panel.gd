@@ -1,6 +1,6 @@
 class_name HudSettingsPanel
 extends PanelContainer
-## Emits detached live drafts; cancel restores the original HUD presentation.
+## Emits detached live drafts; cancel restores HUD and general-menu presentation.
 signal preview_changed(preferences: HudPreferences)
 signal applied(preferences: HudPreferences)
 signal finished(saved: bool)
@@ -27,8 +27,8 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	inset.add_child(column)
-	_label(column, "HUD ACCESSIBILITY", 28).theme_type_variation = &"HeadingItalic"
-	_label(column, "HUD text size", 20)
+	_label(column, "ACCESSIBILITY", 28).theme_type_variation = &"HeadingItalic"
+	_label(column, "HUD & general menu text size", 20)
 	text_scale_choice = OptionButton.new()
 	for percentage: int in [100, 125, 150]:
 		text_scale_choice.add_item("%d%%" % percentage)
@@ -96,7 +96,7 @@ func open_for(preferences: HudPreferences, path: String) -> void:
 	palette_choice.select(maxi(0, HudPreferences.PALETTES.find(preferences.palette)))
 	contrast_toggle.set_pressed_no_signal(preferences.high_contrast)
 	_update_sample(_values())
-	message.text = "Preview HUD text above. Save applies these settings to the combat and round HUD." if preferences.load_error == OK else "HUD settings could not be loaded. Defaults are shown; Save replaces the file."
+	message.text = "Text size applies to general menus and the match HUD. Preview changes before saving." if preferences.load_error == OK else "Settings could not be loaded. Defaults are shown; Save replaces the file."
 	show()
 	text_scale_choice.grab_focus()
 
@@ -110,7 +110,7 @@ func _values() -> HudPreferences:
 func _preview() -> void:
 	if not _opened:
 		return
-	message.text = "Unsaved HUD changes"
+	message.text = "Unsaved accessibility changes"
 	var preferences := _values()
 	_update_sample(preferences)
 	preview_changed.emit(preferences)
@@ -129,6 +129,12 @@ func _update_sample(preferences: HudPreferences) -> void:
 	style.border_color = Color.WHITE if preferences.high_contrast else Color(colors[0])
 	sample_label.add_theme_color_override("font_color", Color(colors[1]))
 	sample_panel.add_theme_stylebox_override("panel", style)
+
+func apply_text_scale(factor: float) -> void:
+	# The sample reflects its own preview value and must not be scaled twice.
+	MenuTextScale.apply(self, factor)
+	_update_sample(_values())
+	custom_minimum_size.x = 600 if factor > 1.0 else 480
 
 func cancel() -> void:
 	if not _opened:

@@ -156,7 +156,9 @@ stretch_mode = 1
 custom_minimum_size = Vector2(0, 7)
 mouse_filter = 2
 
-[node name="Body" type="MarginContainer" parent="Layout"]
+[node name="Body" type="ScrollContainer" parent="Layout"]
+horizontal_scroll_mode = 0
+follow_focus = true
 layout_mode = 2
 theme_override_constants/margin_left = 58
 theme_override_constants/margin_top = 34
@@ -165,6 +167,7 @@ theme_override_constants/margin_bottom = 34
 size_flags_vertical = 3
 
 [node name="Row" type="HBoxContainer" parent="Layout/Body"]
+size_flags_horizontal = 3
 layout_mode = 2
 theme_override_constants/separation = 29
 
@@ -244,7 +247,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"Caption"
 
-[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/Match/ArenaCard/Caption"]
+[node name="Row" type="VBoxContainer" parent="Layout/Body/Row/Match/ArenaCard/Caption"]
 layout_mode = 2
 theme_override_constants/separation = 10
 

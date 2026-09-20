@@ -33,11 +33,18 @@ func configure(existing_panel: PanelContainer) -> void:
 	margin.add_theme_constant_override("margin_top", 92)
 	margin.add_theme_constant_override("margin_bottom", 84)
 	var actions := margin.get_node("Content") as VBoxContainer
+	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	margin.add_child(scroll)
+	actions.reparent(scroll)
+	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.add_theme_constant_override("separation", 20)
 	var title := actions.get_node("Title") as Label
 	title.text = "GAME MENU"
 	title.theme_type_variation = &"HeadingItalic"
 	title.add_theme_font_size_override("font_size", 76)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description = actions.get_node("Description") as Label
 	description.theme_type_variation = &"Muted"
 	description.add_theme_font_size_override("font_size", 25)
@@ -89,6 +96,9 @@ func configure(existing_panel: PanelContainer) -> void:
 	stripe.offset_bottom = 10
 	get_viewport().size_changed.connect(_resize)
 	_resize()
+
+func apply_text_scale(factor: float) -> void:
+	MenuTextScale.apply(self, factor)
 
 func _label(parent: Node, text: String, variation: StringName, font_size: int) -> Label:
 	var item := Label.new()

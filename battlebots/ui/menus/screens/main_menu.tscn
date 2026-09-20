@@ -558,7 +558,7 @@ theme_override_constants/margin_bottom = 24
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="NameRow" type="HBoxContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col"]
+[node name="NameRow" type="VBoxContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col"]
 layout_mode = 2
 theme_override_constants/separation = 10
 

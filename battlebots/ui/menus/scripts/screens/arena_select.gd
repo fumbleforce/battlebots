@@ -2,9 +2,26 @@ extends MenuScreen
 
 const ARENA_TILE := preload("res://ui/menus/components/arena_tile.tscn")
 const HAZARD_TEX := preload("res://ui/menus/art/hazard_stripe.png")
+var _text_scale := 1.0
+
+func apply_text_scale(factor: float) -> void:
+	_text_scale = factor
+	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
+	%Tiles.columns = 2 if factor > 1.0 else 3
+	%DetailName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	$Layout/Header/Row/TitleBox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for tile: Control in %Tiles.get_children():
+		if not tile.has_meta("base_tile_height"):
+			tile.set_meta("base_tile_height", tile.custom_minimum_size.y)
+		tile.custom_minimum_size.y = maxf(float(tile.get_meta("base_tile_height")), 340 * factor)
 
 
 func _ready() -> void:
+	var body_style := StyleBoxEmpty.new()
+	for side: String in ["left", "right", "top", "bottom"]:
+		body_style.set("content_margin_" + side, $Layout/Body.get_theme_constant("margin_" + side))
+	$Layout/Body.add_theme_stylebox_override("panel", body_style)
 	super()
 	set_step(3)
 	var bot: Dictionary = PlayerProfile.bots[MenuRouter.match_setup.bot]
@@ -52,6 +69,9 @@ func _select(i: int) -> void:
 		row.add_child(sw)
 		row.add_child(lbl)
 		%Hazards.add_child(row)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preload("res://scripts/ui/menu_text_scale.gd").apply(%Hazards, _text_scale)
 
 func _next() -> void:
 	if MenuRouter.match_setup.mode == "training":

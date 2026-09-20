@@ -5,6 +5,21 @@ const LIFTER_ART := preload("res://ui/menus/art/bot_rivetrex.jpg")
 var _blue_image2: TextureRect
 var _roster: Label
 
+func apply_text_scale(factor: float) -> void:
+	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
+	for label: Label in [%BlueName1, %BlueName2, %RedName1, %RedName2, %BlueSub1, %BlueSub2, %RedSub1, %RedSub2]:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.get_parent().custom_minimum_size.x = 480
+		label.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	$BlueTeam.size.x = 780
+	$RedTeam.offset_left = -866
+	$RedTeam.offset_right = -86
+	$Bottom/Col/Row/Tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	$Bottom/Col/Row/Tip.custom_minimum_size.x = 500
+	$Bottom/Col/Row/Tip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	%ModeLine.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%ModeLine.custom_minimum_size.x = 240
+
 func _ready() -> void:
 	allow_back = false
 	super()

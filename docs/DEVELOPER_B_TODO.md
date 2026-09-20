@@ -368,3 +368,19 @@ integration base, not the still-old main branch.
   independent diagnostic fixture/runner and strengthened drive crash detection.
   Native crashes can return zero after PASS, so retain both exit and log checks.
   Root cause remains open; see the diagnostic note for all trial counts.
+
+- **A general-menu accessibility intent (2026-09-20):** reserves A-owned general
+  screens, results/game/reconnect panels and composition/settings on
+  codex/a-menu-text-accessibility. Existing HUD text scale will also cover those
+  general menus, with independent enlarged-layout tests. B garage/customisation
+  and control panels remain B-owned; shared local MenuTextScale helper will be
+  available for follow-up integration. No network/input schema changes. See
+  coordination/A_MENU_TEXT_ACCESSIBILITY.md.
+
+- **A general-menu accessibility handoff:** `HudPreferences.text_scale` now
+  applies to A's general menus as well as the HUD without a file/schema migration.
+  `MenuTextScale.apply(root, factor)` caches base fonts and covers option popups;
+  individual `apply_text_scale` methods own reflow. B should adopt this in its
+  garage/customisation/control-settings surfaces separately, with enlarged
+  layout checks. A preview/cancel/save/new-screen propagation and independent
+  menu/match/settings tests are included. No B implementation edits.

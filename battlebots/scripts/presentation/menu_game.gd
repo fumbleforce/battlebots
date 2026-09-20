@@ -38,6 +38,7 @@ var hud_preferences: HudPreferences
 var hud_settings: HudSettingsPanel
 var hud_settings_button: Button
 var _hud_overlay: Control
+var _menu_text_scale := 1.0
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -119,6 +120,8 @@ func show_screen(key: String) -> void:
 	menu_host.add_child(screen)
 	menu_host.show()
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if screen.has_method("apply_text_scale"):
+		screen.apply_text_scale(_menu_text_scale)
 	_sync_menu_music()
 
 func _add_menu_music() -> void:
@@ -175,9 +178,7 @@ func _add_gameplay_audio() -> void:
 	shade.color = Color(0, 0, 0, 0.8)
 	_audio_overlay.add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var center := CenterContainer.new()
-	_audio_overlay.add_child(center)
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := _settings_center(_audio_overlay)
 	audio_settings = AudioSettingsPanel.new()
 	center.add_child(audio_settings)
 	audio_settings.applied.connect(func(preferences: AudioPreferences) -> void: audio_preferences = preferences)
@@ -248,7 +249,7 @@ func _audio_settings_closed(_saved: bool) -> void:
 func _add_hud_settings() -> void:
 	hud_preferences = HudPreferences.load_file(hud_settings_path)
 	hud_settings_button = Button.new()
-	hud_settings_button.text = "HUD accessibility…"
+	hud_settings_button.text = "Accessibility…"
 	hud_settings_button.custom_minimum_size.y = 36
 	preview.settings_panel.form.add_child(hud_settings_button)
 	hud_settings_button.pressed.connect(open_hud_settings)
@@ -262,9 +263,7 @@ func _add_hud_settings() -> void:
 	shade.color = Color(0, 0, 0, 0.85)
 	_hud_overlay.add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var center := CenterContainer.new()
-	_hud_overlay.add_child(center)
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := _settings_center(_hud_overlay)
 	hud_settings = HudSettingsPanel.new()
 	center.add_child(hud_settings)
 	hud_settings.preview_changed.connect(_apply_hud_preferences)
@@ -275,6 +274,23 @@ func _add_hud_settings() -> void:
 		hud_settings_button.grab_focus())
 	_hud_overlay.hide()
 	_apply_hud_preferences(hud_preferences)
+
+func _settings_center(overlay: Control) -> CenterContainer:
+	var inset := MarginContainer.new()
+	overlay.add_child(inset)
+	inset.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side: String in ["left", "right", "top", "bottom"]:
+		inset.add_theme_constant_override("margin_" + side, 24)
+	var scroll := ScrollContainer.new()
+	scroll.name = "SettingsScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	inset.add_child(scroll)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center)
+	return center
 
 func open_hud_settings() -> void:
 	preview.release_controls(false)
@@ -292,6 +308,13 @@ func _cancel_general_settings() -> void:
 		audio_settings.cancel()
 
 func _apply_hud_preferences(value: HudPreferences) -> void:
+	_menu_text_scale = value.text_scale
+	# These entries are A-owned; B's control-settings widgets retain their layout.
+	for entry: Button in [audio_settings_button, hud_settings_button]:
+		MenuTextScale.apply(entry, _menu_text_scale)
+	for panel: Control in [screen, game_menu_page, results_panel, reconnect_panel, audio_settings, hud_settings]:
+		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
+			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	match_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	_audio_caption.add_theme_font_size_override("font_size", roundi(24 * value.text_scale))

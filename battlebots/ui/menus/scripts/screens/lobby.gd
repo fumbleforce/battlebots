@@ -23,7 +23,29 @@ var _refresh_time := 0.0
 var _host_port := 24567
 var _joined_build_sent := false
 
+func apply_text_scale(factor: float) -> void:
+	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
+	$Layout/Header/Row/TitleBox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for label: Label in [%StatusSub, %StatusBig, %StatusEyebrow, _connection_title, _connection_help]:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for column: Control in [$Layout/Body/Row/Blue, $Layout/Body/Row/Red]:
+		column.custom_minimum_size.x = 500 if factor > 1.0 else 528
+		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		column.get_node("RosterScroll").custom_minimum_size.y = 380 if factor > 1.0 else 240
+	for cards: Array in _roster_cards:
+		for card: Control in cards:
+			card.get_node("Row/ThumbBox").custom_minimum_size.x = 80 if factor > 1.0 else 158
+			card.get_node("Row/Text").size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			card.get_node("Row/Text/Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			card.get_node("Row/Text/Sub").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			card.get_node("Row/Badge").custom_minimum_size.x = 100
+	build_choice.custom_minimum_size.x = 360 if factor > 1.0 else 280
+
 func _ready() -> void:
+	var body_style := StyleBoxEmpty.new()
+	for side: String in ["left", "right", "top", "bottom"]:
+		body_style.set("content_margin_" + side, $Layout/Body.get_theme_constant("margin_" + side))
+	$Layout/Body.add_theme_stylebox_override("panel", body_style)
 	allow_back = false
 	super()
 	%Steps.hide()

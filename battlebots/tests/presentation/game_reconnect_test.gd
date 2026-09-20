@@ -74,6 +74,7 @@ func run() -> void:
 			await process_frame
 			check(not game.gameplay_input_allowed() and not game.combat_hud.visible, "Recovery suppresses controls and stale combat HUD")
 			check(not game._hud_overlay.visible and game.combat_hud.text_scale == 1.0, "Connection loss closes HUD settings and restores unsaved preview")
+			check(game._menu_text_scale == 1.0 and game.reconnect_panel.heading.get_theme_font_size("font_size") == 56, "Reconnect presentation restores saved menu size after cancelling draft")
 			check(game.public_service.state == "connected" and not game.public_service.membership.is_empty(), "Recovery preserves hosted membership instead of failing/cancelling it")
 			game.reconnect_panel.retry.pressed.emit()
 			check(client.is_reconnecting(), "Retry action starts same-session connection")

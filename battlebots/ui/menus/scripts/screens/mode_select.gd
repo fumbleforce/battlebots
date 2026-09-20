@@ -4,7 +4,20 @@ const MODE_CARD := preload("res://ui/menus/components/mode_card.tscn")
 const PLAYABLE := ["duel", "team", "5v5", "ffa"]
 var capacity_choice: OptionButton
 
+func apply_text_scale(factor: float) -> void:
+	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
+	%Cards.columns = 2 if factor > 1.0 else 4
+	%Rules.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for card: Control in %Cards.get_children():
+		card.custom_minimum_size.y = 660 if factor > 1.0 else 542
+		card.get_node("Inner/Col/Body/Col/Title").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card.get_node("Selected").offset_left = -240 if factor > 1.0 else -180
+
 func _ready() -> void:
+	var body_style := StyleBoxEmpty.new()
+	for side: String in ["left", "right", "top", "bottom"]:
+		body_style.set("content_margin_" + side, $Layout/Body.get_theme_constant("margin_" + side))
+	$Layout/Body.add_theme_stylebox_override("panel", body_style)
 	super()
 	%Steps.hide()
 	$Layout/Header/Row/TitleBox/Eyebrow.text = "HOST GAME"

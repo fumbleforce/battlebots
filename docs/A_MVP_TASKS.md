@@ -5,7 +5,7 @@ bot models/weapons, bot-customisation menus and player controls. Earlier playabl
 checkpoint: `codex/a-b-integration` at `bdb42ef`.
 Shared main includes hosted matchmaking source, natural-duel validation, gameplay
 audio, practice, Foundry and the menu panels published as `1a5d38a`. Completed
-increments push main directly; the current HUD increment is recorded below.
+increments push main directly; current priorities and acceptance are recorded below.
 User priority (2026-09-20): finish a fully working 1v1 game first. Defer 2v2,
 FFA and all other multiplayer modes until that is done. Defer the tutorial too.
 Existing mode implementations and historical evidence remain, but do not create
@@ -42,7 +42,12 @@ active expansion or acceptance work.
   and high-contrast panels, saved through general Settings. Enlarged practice
   readout/captions and original-theme settings sample are included; see
   [accessibility evidence](coordination/A_HUD_ACCESSIBILITY.md).
-- [ ] Remaining accessibility and communication: 150% text throughout all menus,
+- [x] Extend text sizes through 150% to A's general menus, online/lobby/loading,
+  game/results/reconnect and audio/accessibility panels, with saved preview/cancel
+  behavior and keyboard-accessible scrolling. See
+  [general-menu evidence](coordination/A_MENU_TEXT_ACCESSIBILITY.md).
+- [ ] Remaining accessibility and communication: B-owned garage/customisation/
+  control-settings text scaling to complete coverage throughout all menus,
   world/team marker recognition and human color-vision acceptance; ping
   presentation after the coordinated input/network interfaces exist.
 - [x] Refine the general menus, especially multiplayer/networking screens (A).

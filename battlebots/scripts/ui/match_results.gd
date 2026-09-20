@@ -24,6 +24,9 @@ var round_summary: Label
 var overview_tab: Button
 var scores_tab: Button
 var _local_team := -1
+var _text_scale := 1.0
+var _margin: MarginContainer
+var _column: VBoxContainer
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -39,10 +42,12 @@ func _ready() -> void:
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(backdrop)
 	var margin := MarginContainer.new()
+	_margin = margin
 	for edge: String in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + edge, 28)
 	add_child(margin)
 	var column := VBoxContainer.new()
+	_column = column
 	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
 	_label("THE FOUNDRY  /  MATCH RESULTS", column).theme_type_variation = &"EyebrowAmber"
@@ -63,18 +68,28 @@ func _ready() -> void:
 	overview = VBoxContainer.new()
 	overview.add_theme_constant_override("separation", 12)
 	body.add_child(overview)
-	outcome = _label("MATCH COMPLETE", overview)
+	var hero := HBoxContainer.new()
+	hero.add_theme_constant_override("separation", 24)
+	overview.add_child(hero)
+	outcome = _label("MATCH COMPLETE", hero)
 	outcome.theme_type_variation = &"HeadingItalic"
 	outcome.add_theme_font_size_override("font_size", 48)
 	outcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	score = _label("", overview)
+	outcome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	outcome.custom_minimum_size.x = 250
+	score = _label("", hero)
+	score.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	score.theme_type_variation = &"HeadingWide"
 	score.add_theme_font_size_override("font_size", 50)
 	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var score_caption := _label("FINAL RESULT", overview)
 	score_caption.theme_type_variation = &"Eyebrow"
 	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var round_scroll := ScrollContainer.new()
+	round_scroll.custom_minimum_size.y = 80
+	round_scroll.focus_mode = Control.FOCUS_ALL
+	round_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	round_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	overview.add_child(round_scroll)
 	round_summary = _label("", round_scroll)
@@ -90,6 +105,8 @@ func _ready() -> void:
 	scores_page.add_child(scope)
 	scope.item_selected.connect(func(_index: int) -> void: _render_table())
 	var scroll := ScrollContainer.new()
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scores_page.add_child(scroll)
 	table = GridContainer.new()
@@ -113,6 +130,20 @@ func _ready() -> void:
 	leave.pressed.connect(func() -> void: leave_requested.emit())
 	show_scores(false)
 	hide()
+
+func apply_text_scale(factor: float) -> void:
+	_text_scale = factor
+	MenuTextScale.apply(self, factor)
+	for edge: String in ["left", "right", "top", "bottom"]:
+		_margin.add_theme_constant_override("margin_" + edge, 20 if factor > 1.0 else 28)
+	_column.add_theme_constant_override("separation", 10 if factor > 1.0 else 14)
+	# Fixed column shares let enlarged headings wrap instead of widening the page.
+	table.add_theme_constant_override("h_separation", 12 if factor > 1.0 else 36)
+	for child: Node in table.get_children():
+		if child is Label:
+			child.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			child.custom_minimum_size.x = 160 if child.get_index() % 6 == 0 else 140
+			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _button(value: String, parent: Node, variation: StringName) -> Button:
 	var button := Button.new()
@@ -246,6 +277,7 @@ func _render_table() -> void:
 	var participants: Variant = data.get("participants")
 	if not participants is Dictionary:
 		_label("Statistics unavailable", table)
+		apply_text_scale(_text_scale)
 		return
 	var ids: Array[int] = []
 	for key: Variant in participants:
@@ -264,6 +296,7 @@ func _render_table() -> void:
 		for field: String in ["damage", "eliminations", "assists", "component_disables", "recoveries"]:
 			var value: Variant = stats.get(field) if stats is Dictionary else null
 			_label(str(int(value)) if _integer(value, 0, 2147483647) else "—", table)
+	apply_text_scale(_text_scale)
 
 func _number(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value))

@@ -1,6 +1,6 @@
 class_name HudPreferences
 extends RefCounted
-## Local HUD presentation only; loading is bounded and never rewrites a bad file.
+## Local HUD/general-menu presentation; loading never rewrites a bad file.
 const DEFAULT_PATH := "user://hud.cfg"
 const TEXT_SCALES := [1.0, 1.25, 1.5]
 const PALETTES := ["standard", "deuteranopia", "protanopia", "tritanopia"]
