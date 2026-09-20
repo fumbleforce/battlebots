@@ -46,6 +46,10 @@ User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
 the raised HUD priority and external matchmaker/server deployment; B supplies
 combat/bot state and feedback through the shared interfaces.
 
+A also prioritizes general menu refinement, especially integrating multiplayer
+and networking screens with the original menu system's design and navigation
+(user feedback, 2026-09-20). B retains garage/customisation ownership.
+
 - [ ] **Combat and bots:** Maintain damage/resources/recovery, weapon mechanics
   and visuals, bot assembly/catalogue and model integration. Investigate combat
   defects handed off by A's network/match-flow checks.

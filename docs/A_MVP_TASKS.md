@@ -22,6 +22,12 @@ active expansion or acceptance work.
 - [ ] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
   state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
   B's authoritative combat/bot interfaces.
+- [ ] Refine the general menus, especially multiplayer/networking screens (A).
+  User feedback (2026-09-20): these screens are poorly integrated into the
+  original menu system. Make online entry, host/join, connection progress,
+  errors/retry/cancel and lobby transitions consistent with its visual design,
+  layout and navigation. Treat this as high-priority 1v1 completion work alongside
+  hosting and HUD, and review the complete player flow in the rendered menus.
 - [x] Human multiplayer playtest through a tunnel succeeded, as reported by the
   user on 2026-09-20. This records human play evidence, not external-hosting
   acceptance or measured camera/contact/network thresholds.
@@ -57,7 +63,7 @@ internet acceptance must still be performed after deployment.
 - [x] User-supplied menu melody integrated and included in playtest exports.
 - [x] Arena/world integration, spawn lifecycle and authoritative match rules.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; historical implemented mode.
-- [ ] General menu polish and arena readability for 1v1; HUD is prioritized above.
+- [ ] Arena readability for 1v1; menu refinement and HUD are prioritized above.
 - [x] Practice target damage/knockout readout and direct restart with both bots repaired.
 - [x] First-pass impact/round/warning/recovery audio from authoritative events,
   with captions and saved master/music/effects/announcement volume and mute.

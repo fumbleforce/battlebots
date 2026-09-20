@@ -31,6 +31,13 @@ and rematch. Defer 2v2, FFA and all other multiplayer modes until the 1v1 game i
 fully working. The tutorial is also deferred until then, with B retaining control
 exercise ownership and A retaining menu integration.
 
+Further user feedback (2026-09-20): menus still need refinement, particularly
+the multiplayer/networking screens that fit poorly into the original menu
+system. A owns this high-priority 1v1 work alongside hosting and HUD: consistent
+visual design, layout and navigation across online entry, host/join, connection
+progress, errors/retry/cancel and lobby transitions. Validate the complete
+rendered player flow; this board entry does not claim the menus are fixed.
+
 The user reports human multiplayer was conducted successfully through a tunnel.
 Record that gate as completed human-play evidence; do not keep describing human
 multiplayer as untested. No specific measurements were supplied, and this does
