@@ -1,5 +1,15 @@
 # Current A/B handoff
 
+## Robot destruction explosion — 20 September 2026
+
+B added confirmed zero-core explosions: rolling fireballs, pressure rings, orange
+light, spark streaks, tumbling metal and lingering smoke above scorched wrecks.
+Silent existing-wreck baselines, remote state, repair/rematch, camera/collision
+preservation and shared twenty-piece debris limits are covered by independent
+checks. Baseline and affected regressions pass; native Foundry/Moon captures were
+reviewed. No gameplay, networking, audio or catalogue change, and no hosted release
+is claimed. See [scope and evidence](coordination/B_DESTRUCTION_EXPLOSION.md).
+
 ## Godot Moon atmosphere — 20 September 2026
 
 Follow-up: backdrop geology now receives a separate dim key, and all eight

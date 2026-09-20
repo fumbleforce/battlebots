@@ -558,3 +558,5 @@ contracts are consumed unchanged; B mechanics, controls and garage remain
 untouched. The explicit follow-up removes local YOU text/leader while preserving
 all world health bars. Baseline, native layout and state/session checks pass; the
 reservation is released after integration. See [scope](coordination/A_HUD_REDESIGN.md).
+
+- **B destruction explosion:** codex/b-destruction-explosion reserves MvpBot cosmetic wiring, destruction visuals/shaders and isolated fixtures. No A-owned logic or shared schemas change. See [scope](coordination/B_DESTRUCTION_EXPLOSION.md).

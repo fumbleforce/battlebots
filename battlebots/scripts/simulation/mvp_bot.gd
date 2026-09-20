@@ -22,6 +22,7 @@ var visual_error := Vector3.ZERO
 var weapon_visual: MvpWeaponVisual
 var sawblade_visual: SawbladeVisual
 var damage_visual: BotDamageVisual
+var destruction_visual: BotDestructionVisual
 
 static func create(id: int, side: int, build: Dictionary, registry: ContentRegistry) -> MvpBot:
 	var validation := registry.validate(build)
@@ -93,6 +94,12 @@ func _ready() -> void:
 			legs.assemble(stats.size, material, SawbladeConfig.defaults())
 	if DisplayServer.get_name() != "headless":
 		_create_damage_visual(stats.size)
+		destruction_visual = BotDestructionVisual.new()
+		add_child(destruction_visual)
+		var damaged_meshes: Array = []
+		for record: Dictionary in damage_visual.components.values():
+			for surface: Dictionary in record.surfaces: damaged_meshes.append(surface.mesh)
+		destruction_visual.configure(presentation, stats.size, damaged_meshes)
 	previous_pose = body.global_transform
 	last_floor = body.global_position
 	body.freeze = not simulated
@@ -118,6 +125,10 @@ func _process(delta: float) -> void:
 		sawblade_visual.show_state(view, delta)
 	if damage_visual != null:
 		damage_visual.show_state(view)
+	# A newly spawned remote bot has default healthy combat until its baseline is
+	# accepted. Never use that fallback to invent a destruction edge on reconnect.
+	if destruction_visual != null and (simulated or not remote_state.is_empty()):
+		destruction_visual.observe(view)
 
 func _create_damage_visual(size: Vector3) -> void:
 	var groups: Dictionary
@@ -206,6 +217,7 @@ func step(delta: float, active: bool) -> void:
 		body.freeze = true
 
 func reset_round() -> void:
+	if destruction_visual != null: destruction_visual.reset_observation()
 	combat = CombatState.new(combat.stats)
 	command = BotCommand.new()
 	input_age = 1

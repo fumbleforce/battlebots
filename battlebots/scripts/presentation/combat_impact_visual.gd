@@ -11,6 +11,9 @@ var _serial := 0
 var _spark_mesh: BoxMesh
 var _fragment_mesh: BoxMesh
 
+func _ready() -> void:
+	add_to_group(&"combat_impact_visuals")
+
 func spawn_impact(position: Vector3, normal: Vector3, kind: String, damage: float) -> void:
 	if not position.is_finite() or not normal.is_finite() or not is_finite(damage) or damage < 0 or kind not in KINDS:
 		return
@@ -25,6 +28,20 @@ func spawn_impact(position: Vector3, normal: Vector3, kind: String, damage: floa
 		_emit(_sparks, MAX_SPARKS, false, position, outward, tangent, bitangent, index, spark_total)
 	for index: int in fragment_total:
 		_emit(_fragments, MAX_FRAGMENTS, true, position, outward, tangent, bitangent, index, fragment_total)
+	trim_fragments()
+
+func trim_fragments() -> void:
+	# Destruction panels share the existing twenty-piece client debris budget.
+	var budget := MAX_FRAGMENTS
+	for effect: Node in get_tree().get_nodes_in_group(&"bot_destruction_visuals"):
+		if effect.active and effect.effect_age < 2.1: budget -= 8
+	for particle: Dictionary in _fragments:
+		if not particle.active: continue
+		if budget > 0:
+			budget -= 1
+		else:
+			particle.active = false
+			particle.mesh.hide()
 
 func spark_count() -> int:
 	return _active_count(_sparks)

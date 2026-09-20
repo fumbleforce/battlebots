@@ -1,5 +1,14 @@
 # Shared contracts — local records and current MVP session API
 
+## Robot core destruction presentation — 20 September 2026
+
+MvpBot consumes existing accepted BotView state for one explosion on observed
+zero-core elimination. Initial terminal/reconnect baselines remain silent. Repair
+clears effects and restores original hull overlays; camera anchors and physics
+remain intact. Up to two bursts share the twenty-piece debris budget with ordinary
+impact fragments and expire within 4.2 seconds. This changes no shared record,
+catalogue or network version. See [B destruction](coordination/B_DESTRUCTION_EXPLOSION.md).
+
 ## Confirmed impact feedback — 20 September 2026
 
 The normal menu game now consumes confirmed hit events for localized sparks and
