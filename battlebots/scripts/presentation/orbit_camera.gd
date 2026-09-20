@@ -25,13 +25,31 @@ var actual_distance: float = 6.0
 var seconds_since_orbit: float = 0.0
 var driving: bool = false
 var _initialized: bool = false
+var _bot_scale := 1.0
+var _boom_scale := 1.0
 var _probe := SphereShape3D.new()
 @onready var camera: Camera3D = $Camera
 
 func bind_source(value: BotSource) -> void:
 	source = value
+	if is_instance_valid(source): _sync_anchor_scale(source.camera_anchor())
 	_initialized = false
 	recenter()
+
+func _sync_anchor_scale(anchor: Node3D) -> void:
+	if not is_instance_valid(anchor): return
+	var value: Variant = anchor.get_meta(&"bot_scale", 1.0)
+	if not (value is int or value is float) or not is_finite(float(value)) or float(value) <= 0.0: return
+	var next_scale := float(value)
+	if is_equal_approx(next_scale, _bot_scale): return
+	# Grow the boom less than the hull so bigger machines remain imposing while
+	# preserving arena awareness and the player's relative zoom when rebound.
+	var next_boom_scale := (1.0 + next_scale) * 0.5
+	desired_distance *= next_boom_scale / _boom_scale
+	actual_distance *= next_boom_scale / _boom_scale
+	_bot_scale = next_scale
+	_boom_scale = next_boom_scale
+	_initialized = false
 
 func recenter() -> void:
 	if is_instance_valid(source):
@@ -47,7 +65,7 @@ func orbit(relative: Vector2) -> void:
 	seconds_since_orbit = 0.0
 
 func zoom(steps: float) -> void:
-	desired_distance = clampf(desired_distance + steps * 0.5, 4.0, 9.0)
+	desired_distance = clampf(desired_distance + steps * 0.5 * _boom_scale, 4.0 * _boom_scale, 9.0 * _boom_scale)
 
 func _heading() -> float:
 	var forward := -source.read_view().pose.basis.z
@@ -65,6 +83,7 @@ func update_camera(delta: float) -> void:
 	var anchor := source.camera_anchor()
 	if not is_instance_valid(anchor):
 		return
+	_sync_anchor_scale(anchor)
 	seconds_since_orbit += delta
 	if auto_recenter and driving and seconds_since_orbit >= 1.5:
 		yaw = lerp_angle(yaw, _heading(), 1.0 - exp(-recenter_speed * delta))
@@ -152,12 +171,12 @@ func _clear_contact_pivot(pivot: Vector3) -> Vector3:
 	if space.intersect_shape(query, 1).is_empty():
 		return pivot
 	query.collision_mask = BaselineConfig.WORLD_LAYER
-	query.motion = Vector3.UP * 4.0
-	var maximum_rise := maxf(0.0, 4.0 * space.cast_motion(query)[0] - 0.03)
+	query.motion = Vector3.UP * 4.0 * _bot_scale
+	var maximum_rise := maxf(0.0, 4.0 * _bot_scale * space.cast_motion(query)[0] - 0.03)
 	query.motion = Vector3.ZERO
 	query.collision_mask = BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER
 	for step: int in range(1, 17):
-		var rise := float(step) * 0.25
+		var rise := float(step) * 0.25 * _bot_scale
 		if rise > maximum_rise:
 			break
 		query.transform.origin = pivot + Vector3.UP * rise
@@ -171,7 +190,7 @@ func _clear_ground_pivot(pivot: Vector3) -> Vector3:
 	var view := source.read_view()
 	if view == null or not view.pose.origin.is_finite(): return pivot
 	var start := Vector3(pivot.x, maxf(pivot.y, view.pose.origin.y), pivot.z)
-	var reach := maxf(2.0, start.y - pivot.y + camera_radius + 0.05)
+	var reach := maxf(2.0 * _bot_scale, start.y - pivot.y + camera_radius + 0.05)
 	var ray := PhysicsRayQueryParameters3D.create(start, start + Vector3.DOWN * reach, BaselineConfig.WORLD_LAYER)
 	ray.hit_from_inside = true
 	var space := get_world_3d().direct_space_state

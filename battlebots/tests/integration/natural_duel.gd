@@ -63,15 +63,16 @@ func driver_command() -> BotCommand:
 	var distance := displacement.length()
 	# Slow before contact rather than depending on a high-speed chassis impact.
 	var forward_speed: float = Vector3(state.velocity).dot(-pose.basis.z)
-	var desired_speed := clampf((distance - 2.0) * 1.3, -1.0, 4.0)
+	var contact_distance := 2.0 * BotScale.FACTOR
+	var desired_speed := clampf((distance - contact_distance) * 1.3, -1.0, 4.0)
 	command.steering = clampf(angle * 1.4, -1.0, 1.0)
 	command.throttle = clampf((desired_speed - forward_speed) * 0.5, -0.4, 0.7) if absf(angle) < 1.2 else 0.0
-	command.brake = absf(distance - 2.0) < 0.10 and absf(angle) < 0.10
+	command.brake = absf(distance - contact_distance) < 0.10 * BotScale.FACTOR and absf(angle) < 0.10
 	if state.battery < 25 or state.heat > 80:
 		cooling = true
 	elif state.battery > 60 and state.heat < 35:
 		cooling = false
-	command.primary_held = not cooling and absf(angle) < 0.25 and distance < 2.3 \
+	command.primary_held = not cooling and absf(angle) < 0.25 and distance < 2.3 * BotScale.FACTOR \
 		and fmod(active_seconds, 2.1) < 0.25
 	command.primary_pressed = command.primary_held and not previous_primary
 	previous_primary = command.primary_held

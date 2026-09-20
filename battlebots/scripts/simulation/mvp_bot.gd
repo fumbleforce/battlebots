@@ -40,11 +40,23 @@ func _ready() -> void:
 	body = $Body
 	body.reconciled.connect(_on_reconciled)
 	var stats := combat.stats
+	body.geometry_scale = BotScale.from_size(stats.size)
 	body.mass = stats.mass
 	body.top_speed = stats.speed
 	body.walker = loadout.parts.drive == "walker"
 	body.grip_acceleration = stats.grip
-	body.drive_acceleration = 6.0 * 103.0 / body.mass
+	body.drive_acceleration = 3.8 * 103.0 / body.mass
+	body.brake_acceleration = 6.0
+	body.coast_acceleration = 1.1
+	body.turn_speed = 1.05
+	body.throttle_response = 1.6
+	body.steering_response = 1.8
+	body.yaw_response = 0.4
+	body.yaw_acceleration_limit = 1.8
+	body.lateral_response = 0.28
+	# Enlarge the hull reach, not the contact tolerance: a bigger robot must not
+	# continue applying tire forces during a shallow airborne weapon launch.
+	body.probe_depth = stats.size.y * 0.5 + 0.07
 	body.max_contacts_reported = 8
 	body.contact_monitor = true
 	body.probe_half_width = stats.size.x * 0.4
@@ -67,7 +79,13 @@ func _ready() -> void:
 	material.albedo_color = Color(0.1, 0.65, 0.85) if team == 0 else Color(0.95, 0.4, 0.1)
 	mesh.material = material
 	$Body/Visual.mesh = mesh
+	var stripe_mesh: BoxMesh = $Body/ForwardStripe.mesh.duplicate()
+	stripe_mesh.size *= body.geometry_scale
+	$Body/ForwardStripe.mesh = stripe_mesh
+	$Body/ForwardStripe.position.y = stats.size.y * 0.5 + 0.015 * body.geometry_scale
 	$Body/ForwardStripe.position.z = -stats.size.z * 0.38
+	$Body/CameraAnchor.position.y = 0.6 * body.geometry_scale
+	$Body/CameraAnchor.set_meta("bot_scale", body.geometry_scale)
 	presentation = Node3D.new()
 	presentation.name = "Presentation"
 	add_child(presentation)
@@ -149,9 +167,9 @@ func _create_damage_visual(size: Vector3) -> void:
 			for side: int in [-1, 1]:
 				var pod := MeshInstance3D.new()
 				var mesh := BoxMesh.new()
-				mesh.size = Vector3(0.16, 0.26, size.z * 0.75)
+				mesh.size = Vector3(0.16 * body.geometry_scale, 0.26 * body.geometry_scale, size.z * 0.75)
 				pod.mesh = mesh
-				pod.position = Vector3(side * size.x * 0.5, -0.08, 0)
+				pod.position = Vector3(side * size.x * 0.5, -0.08 * body.geometry_scale, 0)
 				var material := StandardMaterial3D.new()
 				material.albedo_color = Color(0.25, 0.28, 0.3)
 				material.metallic = 0.6
@@ -159,6 +177,7 @@ func _create_damage_visual(size: Vector3) -> void:
 				presentation.add_child(pod)
 				groups["drive_left" if side < 0 else "drive_right"].append(pod)
 	damage_visual = BotDamageVisual.new()
+	damage_visual.set_geometry_scale(body.geometry_scale)
 	presentation.add_child(damage_visual)
 	for zone: String in groups:
 		var anchor := Node3D.new()
@@ -204,9 +223,12 @@ func step(delta: float, active: bool) -> void:
 				axis = body.global_basis.z
 			var angle := acos(clampf(up.dot(Vector3.UP), -1, 1))
 			body.recovery_torque = (axis.normalized() * angle * body.mass * 24.0
-				- body.angular_velocity * body.mass * 3.0).limit_length(body.mass * 24.0)
+				- body.angular_velocity * body.mass * 3.0).limit_length(body.mass * 24.0) * body.geometry_scale * body.geometry_scale
 			body.sleeping = false
-	if body.grounded and absf(body.global_position.x) < 23.5 and absf(body.global_position.z) < 23.5:
+	var safe_radius: float = Vector2(combat.stats.size.x, combat.stats.size.z).length() * 0.5
+	var at := body.global_position
+	if body.grounded and maxf(absf(at.x), absf(at.z)) + safe_radius < 25.0 \
+		and absf(at.x) + absf(at.z) + safe_radius * sqrt(2.0) < 25.0 * sqrt(2.0):
 		last_floor = body.global_position
 	if absf(body.global_position.x) > 27 or absf(body.global_position.z) > 27 or body.global_position.y < -2:
 		body.reset_pose = Transform3D(Basis.IDENTITY, last_floor + Vector3.UP * 0.2)
@@ -237,7 +259,7 @@ func zone_at(world_point: Vector3) -> String:
 	if point.y < -half.y * 0.8:
 		return "underside"
 	if absf(point.x) / half.x > absf(point.z) / half.z:
-		if point.y < 0.05 and absf(point.z) < half.z * 0.8:
+		if point.y < 0.05 * body.geometry_scale and absf(point.z) < half.z * 0.8:
 			return "drive_left" if point.x < 0 else "drive_right"
 		return "left" if point.x < 0 else "right"
 	if point.z < 0 and absf(point.x) < half.x * 0.45:

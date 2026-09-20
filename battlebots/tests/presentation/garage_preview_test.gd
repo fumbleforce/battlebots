@@ -62,11 +62,11 @@ func run() -> void:
 			check(preview.weapon_visual.kind == weapon, "Preview matches selected weapon " + weapon)
 			check(preview.weapon_visual.mechanism.get_child_count() > 0, "Weapon has visible geometry " + weapon)
 			var expected: Array = registry.parts[chassis].size
-			var expected_size := Vector3(expected[0], expected[1], expected[2])
+			var expected_size := Vector3(expected[0], expected[1], expected[2]) / BotScale.FACTOR
 			var found := false
 			for mesh: MeshInstance3D in meshes(preview.model):
 				if mesh.mesh is BoxMesh and mesh.mesh.size.is_equal_approx(expected_size): found = true
-			check(found, "Chassis uses catalogue dimensions for " + chassis)
+			check(found, "Chassis preserves canonical workshop dimensions for " + chassis)
 			check_cosmetic_only(preview.model)
 	var prior_colors: Array[String] = []
 	for paint: String in ["cyan", "orange", "white", "red"]:
@@ -130,5 +130,4 @@ func run() -> void:
 	else:
 		for message: String in failures: push_error(message)
 	get_tree().quit(0 if failures.is_empty() else 1)
-
 

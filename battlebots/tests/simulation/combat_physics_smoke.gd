@@ -17,8 +17,8 @@ func run() -> void:
 	root.add_child(world)
 	var a := world.spawn(1, 0, 0, world.registry.starter())
 	var b := world.spawn(2, 1, 0, world.registry.starter(true))
-	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
-	b.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, -2.15))
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0) * BotScale.FACTOR)
+	b.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, -2.15) * BotScale.FACTOR)
 	await frames(60, false)
 	a.previous_pose = a.body.global_transform
 	a.combat.charge = 1
@@ -45,7 +45,7 @@ func run() -> void:
 	b.combat.eliminate("test")
 	world.step(1.0 / 60, true, 1)
 	check(b.body.collision_layer == 0 and b.body.freeze, "Wreck loses combat collision")
-	a.body.reset_pose = Transform3D(Basis(Vector3.FORWARD, PI), Vector3(0, 0.4, 0))
+	a.body.reset_pose = Transform3D(Basis(Vector3.FORWARD, PI), Vector3(0, 0.4, 0) * BotScale.FACTOR)
 	a.body.sleeping = false
 	await frames(160)
 	var recovery := BotCommand.new()
@@ -57,8 +57,8 @@ func run() -> void:
 	check(a.body.global_basis.y.dot(Vector3.UP) > 0.5 and a.combat.battery < 100,
 		"Physical recovery rights an unpinned inverted bot without teleporting")
 	world.reset_round()
-	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
-	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15))
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0) * BotScale.FACTOR)
+	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15) * BotScale.FACTOR)
 	await frames(60, false)
 	a.previous_pose = a.body.global_transform
 	b.previous_pose = b.body.global_transform
@@ -73,8 +73,8 @@ func run() -> void:
 	await process_frame
 	check(b.combat.core < lift_core and b.body.linear_velocity.y > 2, "Charged lifter release damages and launches physical enemy")
 	world.reset_round()
-	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
-	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15))
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0) * BotScale.FACTOR)
+	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15) * BotScale.FACTOR)
 	await frames(60, false)
 	a.previous_pose = a.body.global_transform
 	b.previous_pose = b.body.global_transform
@@ -87,8 +87,8 @@ func run() -> void:
 	world.step(1.0 / 60, true, 1)
 	check(a.combat.eliminated and b.combat.eliminated, "Mutual lethal attacks resolve together before judging")
 	world.reset_round()
-	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
-	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15))
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0) * BotScale.FACTOR)
+	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -2.15) * BotScale.FACTOR)
 	await frames(60, false)
 	a.previous_pose = a.body.global_transform
 	b.previous_pose = b.body.global_transform

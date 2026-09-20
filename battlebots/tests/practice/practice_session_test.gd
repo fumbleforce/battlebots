@@ -126,6 +126,7 @@ func playable_hit(session: MvpSession) -> void:
 		if candidate != bot: target = candidate
 	var initial_core := target.combat.core
 	var start := bot.body.global_position
+	var contact_distance: float = (bot.combat.stats.size.z + target.combat.stats.size.z) * 0.5 + 0.15 * BotScale.FACTOR
 	var previous_primary := false
 	for tick: int in range(360):
 		var own_view := bot.read_view()
@@ -136,9 +137,9 @@ func playable_hit(session: MvpSession) -> void:
 		var angle := atan2(local.x, -local.z)
 		var command := BotCommand.new()
 		command.steering = clampf(angle * 1.4, -1, 1)
-		command.throttle = clampf((offset.length() - 2.0) * 0.5, -0.2, 0.5)
-		command.brake = absf(offset.length() - 2.0) < 0.1 and absf(angle) < 0.1
-		command.primary_held = offset.length() < 2.3 and absf(angle) < 0.25 and fmod(tick / 60.0, 2.1) < 0.25
+		command.throttle = clampf((offset.length() - contact_distance) * 0.5, -0.2, 0.5)
+		command.brake = absf(offset.length() - contact_distance) < 0.1 and absf(angle) < 0.1
+		command.primary_held = offset.length() < contact_distance + 0.6 * BotScale.FACTOR and absf(angle) < 0.25 and fmod(tick / 60.0, 2.1) < 0.25
 		command.primary_pressed = command.primary_held and not previous_primary
 		previous_primary = command.primary_held
 		session.submit_local(command)

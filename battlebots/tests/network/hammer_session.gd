@@ -38,8 +38,9 @@ func hit_count(attacker_id: int, victim_id: int) -> int:
 		return event.attacker == attacker_id and event.target == victim_id).size()
 
 func place_pair(attacker: MvpBot, victim: MvpBot) -> void:
-	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.25, 0))
-	victim.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.25, -1.9))
+	attacker.body.reset_pose = server.world.clear_spawn_pose(attacker, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	var separation: float = (attacker.combat.stats.size.z + victim.combat.stats.size.z) * 0.5 + 0.1 * BotScale.FACTOR
+	victim.body.reset_pose = server.world.clear_spawn_pose(victim, Transform3D(Basis.IDENTITY, Vector3(0, 0, -separation)))
 
 func observe_recoil(client: MvpSession, attacker: MvpBot, victim_id: int, duration_ticks: int, label: String) -> void:
 	var predicted: MvpBot = client.world.bots[attacker.entity_id]

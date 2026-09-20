@@ -44,7 +44,7 @@ func run() -> void:
 
 func catalogue() -> void:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/mvp_parts.json"))
-	check(data.revision == 4, "Saw advances catalogue to revision four")
+	check(data.revision >= 4, "Catalogue includes the saw introduced in revision four")
 	var part: Dictionary = registry.parts.get("saw", {})
 	check(part.get("mass") == 20 and part.get("power") == 30 and part.get("category") == "weapon", "Saw uses specified mass, installed power and category")
 	var state := fresh()

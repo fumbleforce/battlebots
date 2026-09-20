@@ -44,6 +44,9 @@ func run() -> void:
 	var leader := original.get_node("Leader") as MeshInstance3D
 	var stem := leader.mesh as CylinderMesh
 	var leader_material := leader.material_override
+	var tallest_rear_pack := 1.57 * 6.6 / 2.6 - 1.5 * 0.5
+	check(BotWorldMarkers.ANCHOR_HEIGHT > tallest_rear_pack and BotWorldMarkers.HEIGHT > BotWorldMarkers.LEADER_TOP,
+		"Identity and its leader clear the tallest three-times-size authored rear pack")
 	check(is_equal_approx(leader.global_position.y - stem.height * 0.5, rival.pose.origin.y + BotWorldMarkers.ANCHOR_HEIGHT), "Leader ends above the chassis")
 	rival.pose.origin.z = -2
 	badges.render(views, 29, false, true)

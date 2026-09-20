@@ -30,6 +30,10 @@ func run() -> void:
 			bot.body.global_position = Vector3(0, 4, 0)
 			bot.previous_pose = bot.body.global_transform
 			await settle()
+			# Pin presentation to the fixture pose before sampling mesh contacts;
+			# process_frame resumes before a newly added bot's first _process.
+			bot.presentation.global_transform = bot.body.global_transform
+			bot.set_process(false)
 			var art := SawbladeVisual.new()
 			bot.presentation.add_child(art)
 			art.assemble(draft, bot.combat.stats.size)
@@ -43,7 +47,7 @@ func run() -> void:
 			await settle()
 			var combat := CombatWorld.new()
 			check(combat._sweep(bot).has(target.get_instance_id()), chassis + " " + weapon + " hits actual rendered contact surface")
-			target.global_position = Vector3(0, 4, -3.4)
+			target.global_position = Vector3(0, 4, -3.4 * BotScale.FACTOR)
 			await settle()
 			check(not combat._sweep(bot).has(target.get_instance_id()), weapon + " cannot hit beyond authored reach")
 			bot.free()

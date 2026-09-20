@@ -65,13 +65,14 @@ func run() -> void:
 		var obstacle := StaticBody3D.new()
 		var collider := CollisionShape3D.new()
 		var shape := BoxShape3D.new()
-		shape.size = Vector3(4, 0.35, 2.4)
+		shape.size = Vector3(4, 0.35, 2.4) * BotScale.FACTOR
 		collider.shape = shape
 		obstacle.add_child(collider)
 		peer.world.add_child(obstacle)
 		obstacle.global_transform = start_pose
-		obstacle.global_position = start_pose * Vector3(0, 0, -3.0)
-		obstacle.global_position.y = 0.175
+		var hull_length: float = server.world.bots[id].combat.stats.size.z
+		obstacle.global_position = start_pose * Vector3(0, 0, -(hull_length + shape.size.z) * 0.5 - 0.6)
+		obstacle.global_position.y = shape.size.y * 0.5
 		if OS.get_environment("BATTLEBOTS_NET_PROFILE") == "80":
 			peer.network_simulation.delay_ms = 40
 			peer.network_simulation.jitter_ms = 10
@@ -94,7 +95,7 @@ func run() -> void:
 		peak_height = maxf(peak_height, server.world.bots[id].body.global_position.y)
 	check(attack and remote_attack, "Primary starts hammer attack and replicates its animation state")
 	check(server.world.bots[id].body.global_position.distance_to(start) > 2, "Walking client commands move authoritative bot")
-	check(peak_height > 1.22, "Network-controlled walker physically climbs fixture obstacle")
+	check(peak_height > 1.22 * BotScale.FACTOR, "Network-controlled walker physically climbs fixture obstacle")
 	check(first.world.bots[id].body.global_position.distance_to(server.world.bots[id].body.global_position) < 0.35, "Walker settles to authoritative pose")
 	print("SAWBLADE NETWORK max correction=", maximum_correction)
 	finish()

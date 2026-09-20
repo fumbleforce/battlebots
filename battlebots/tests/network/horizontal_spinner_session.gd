@@ -65,8 +65,8 @@ func run() -> void:
 			session.network_simulation.duplicate = 0.03
 	var attacker: MvpBot = server.world.bots[attacker_id]
 	var victim: MvpBot = server.world.bots[victim_id]
-	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.25, 0))
-	victim.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(8, 0.25, 0))
+	attacker.body.reset_pose = server.world.clear_spawn_pose(attacker, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	victim.body.reset_pose = server.world.clear_spawn_pose(victim, Transform3D(Basis.IDENTITY, Vector3(8, 0, 0)))
 	await frames(30)
 	spinning = true
 	if not await require(await until(func() -> bool:
@@ -77,7 +77,7 @@ func run() -> void:
 		and client.world.bots[attacker_id].remote_state.weapon_state == "active", "Baseline and snapshots retain horizontal weapon identity and phase")
 	# This side contact is outside the narrow vertical-spinner box. Hulls remain
 	# separated, so the only source of damage is the charged horizontal disc.
-	var contact_offset := Vector3(1.7, 0, -1.2)
+	var contact_offset := Vector3(1.7, 0, -1.2) * BotScale.FACTOR
 	victim.body.reset_pose = Transform3D(Basis.IDENTITY, attacker.body.global_position + contact_offset)
 	var before := victim.combat.core
 	if not await require(await until(func() -> bool: return victim.combat.core < before, 60), "Horizontal disc produces authoritative lateral hit"):

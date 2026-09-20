@@ -21,8 +21,8 @@ func contact_hit() -> bool:
 		bot.body.collision_mask = 0
 		bot.body.linear_velocity = Vector3.ZERO
 		bot.body.angular_velocity = Vector3.ZERO
-	attacker.body.global_transform = Transform3D(Basis.IDENTITY, Vector3(0, 1, 0))
-	target.body.global_transform = Transform3D(Basis.IDENTITY, Vector3(0, 1, -2.3))
+	attacker.body.global_transform = Transform3D(Basis.IDENTITY, Vector3(0, 1, 0) * BotScale.FACTOR)
+	target.body.global_transform = Transform3D(Basis.IDENTITY, Vector3(0, 1, -2.3) * BotScale.FACTOR)
 	for tick: int in 3: await get_tree().physics_frame
 	attacker.previous_pose = attacker.body.global_transform
 	target.previous_pose = target.body.global_transform
@@ -58,7 +58,7 @@ func run() -> void:
 	game.preview.set_physics_process(false)
 	game.preview.rig.auto_recenter = false
 	game.preview.rig.yaw = -0.8
-	game.preview.rig.desired_distance = 6.0
+	game.preview.rig.desired_distance = 12.0
 	game.session.combat_event.connect(func(event: Dictionary): impacts.append(event.duplicate(true)))
 	var visual: CombatImpactVisual = game.impact_feedback.visual
 	check(visual.spark_count() == 0 and visual.fragment_count() == 0, "Practice has no invented impact")

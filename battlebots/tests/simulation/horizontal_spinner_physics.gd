@@ -8,8 +8,8 @@ var victim: MvpBot
 var weapons: CombatWorld
 var bots: Dictionary
 var tick := 0
-const ORIGIN := Vector3(0, 10, 0)
-const SIDE := Vector3(1.65, 10, -2.1)
+const ORIGIN := Vector3(0, 10, 0) * BotScale.FACTOR
+const SIDE := Vector3(1.65, 10, -2.1) * BotScale.FACTOR
 
 func _ready() -> void:
 	run.call_deferred()
@@ -85,20 +85,20 @@ func run() -> void:
 		check(event.attacker == 1 and event.target == 2 and event.tick == tick
 			and event.round == 3 and event.attack_id > 0 and event.zone == "left",
 			"Authoritative event identifies attack, target, server tick, round and actual zone")
-	await reset_case(Vector3(1.65, 10, -1.3))
+	await reset_case(Vector3(1.65, 10, -1.3) * BotScale.FACTOR)
 	strike()
 	check(is_equal_approx(victim.combat.zones.drive_left, 70.0)
 		and is_equal_approx(victim.combat.core, 250.0)
 		and attacker.combat.effective_damage == 40,
 		"Drive-pod contact splits 40 raw into 30 component and 10 core damage")
 
-	await reset_case(Vector3(0, 10, 2.3))
+	await reset_case(Vector3(0, 10, 2.3) * BotScale.FACTOR)
 	expect_miss("Enemy behind chassis")
-	await reset_case(Vector3(2.2, 10, -1.2))
+	await reset_case(Vector3(2.2, 10, -1.2) * BotScale.FACTOR)
 	expect_miss("Enemy outside blade radius")
-	await reset_case(Vector3(0, 10.6, -1.8))
+	await reset_case(Vector3(0, 10.6, -1.8) * BotScale.FACTOR)
 	expect_miss("Enemy above thin horizontal blade")
-	await reset_case(Vector3(0, 9.4, -1.8))
+	await reset_case(Vector3(0, 9.4, -1.8) * BotScale.FACTOR)
 	expect_miss("Enemy below thin horizontal blade")
 
 	await reset_case(SIDE)
@@ -140,18 +140,18 @@ func run() -> void:
 	expect_miss("Eliminated target")
 
 	# Both endpoint poses miss. Only movement between ticks crosses the target.
-	var crossed_target := Vector3(0, 10, -1.2)
-	await reset_case(crossed_target, Vector3(-5, 10, 0))
+	var crossed_target := Vector3(0, 10, -1.2) * BotScale.FACTOR
+	await reset_case(crossed_target, Vector3(-5, 10, 0) * BotScale.FACTOR)
 	expect_miss("Translation start endpoint")
-	await reset_case(crossed_target, Vector3(5, 10, 0))
+	await reset_case(crossed_target, Vector3(5, 10, 0) * BotScale.FACTOR)
 	expect_miss("Translation finish endpoint")
-	attacker.previous_pose = Transform3D(Basis.IDENTITY, Vector3(-5, 10, 0))
+	attacker.previous_pose = Transform3D(Basis.IDENTITY, Vector3(-5, 10, 0) * BotScale.FACTOR)
 	strike()
 	check(weapons.events.size() == 1, "Fast translation hits between endpoint poses")
 
 	# Half-turn carries the front blade around the left side. Interpolating only
 	# the two weapon-center positions would sweep a chord and miss this bot.
-	var arc_target := Vector3(-2.8, 10, 0)
+	var arc_target := Vector3(-2.8, 10, 0) * BotScale.FACTOR
 	await reset_case(arc_target)
 	expect_miss("Turning start endpoint")
 	await reset_case(arc_target, ORIGIN, PI - 0.001)
@@ -162,7 +162,7 @@ func run() -> void:
 
 	# Read velocities only after Jolt consumes the actual impulses. The victim is
 	# slightly higher, so accidentally using a 3D direction would impart lift.
-	await reset_case(SIDE + Vector3.UP * 0.1)
+	await reset_case(SIDE + Vector3.UP * 0.1 * BotScale.FACTOR)
 	attacker.body.freeze = false
 	victim.body.freeze = false
 	await flush_physics()

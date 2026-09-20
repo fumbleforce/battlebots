@@ -9,6 +9,14 @@ signal reconciled(displacement: Vector3)
 @export var grip_acceleration: float = 9.0
 @export var brake_acceleration: float = 9.0
 @export var turn_speed: float = 2.1
+@export var coast_acceleration: float = 6.0
+@export var throttle_response: float = 3.0
+@export var steering_response: float = 4.0
+@export var yaw_response: float = 0.15
+@export var yaw_acceleration_limit: float = 5.0
+@export var lateral_response: float = 0.12
+var geometry_scale := 1.0
+var probe_depth := 0.32
 const INPUT_TIMEOUT := 0.25
 const PROBES: Array[Vector3] = [
 	Vector3(-0.65, 0, -0.8), Vector3(0.65, 0, -0.8),
@@ -69,8 +77,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	_command_age += state.step
 	var stale := _command_age >= INPUT_TIMEOUT
 	var braking := _brake or stale
-	_drive_input = move_toward(_drive_input, 0.0 if braking else _throttle, 3.0 * state.step)
-	_turn_input = move_toward(_turn_input, 0.0 if braking else _steering, 4.0 * state.step)
+	_drive_input = move_toward(_drive_input, 0.0 if braking else _throttle, throttle_response * state.step)
+	_turn_input = move_toward(_turn_input, 0.0 if braking else _steering, steering_response * state.step)
 	var normal := WalkerDrive.support(state, self) if walker else _ground_normal(state)
 	grounded = not normal.is_zero_approx()
 	if not grounded:
@@ -82,7 +90,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var inverse_yaw_inertia := normal.dot(state.inverse_inertia_tensor * normal)
 	if inverse_yaw_inertia > 0.0:
 		var torque := clampf(yaw_acceleration / inverse_yaw_inertia,
-			-mass * grip_acceleration * 0.65 * steering_multiplier, mass * grip_acceleration * 0.65 * steering_multiplier)
+			-mass * grip_acceleration * 0.65 * geometry_scale * steering_multiplier,
+			mass * grip_acceleration * 0.65 * geometry_scale * steering_multiplier)
 		state.apply_torque(normal * torque)
 
 func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
@@ -97,7 +106,11 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 	var collider := get_node("Collision") as CollisionShape3D
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = collider.shape
-	query.transform = origin * collider.transform
+	# Replay already advances rotation. Sweep that resulting hull orientation:
+	# a tipped chassis can lower its center while rotating upright, whereas its
+	# obsolete snapshot orientation would falsely stop that descent on the floor.
+	var sweep_pose := Transform3D(correction.pose.basis, origin.origin)
+	query.transform = sweep_pose * collider.transform
 	query.collision_mask = BaselineConfig.WORLD_LAYER
 	query.exclude = [get_rid()]
 	# cast_motion ignores initial overlaps. Keep extrapolation from pushing deeper
@@ -130,6 +143,9 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 
 func model_config() -> Dictionary:
 	return {"speed":top_speed, "acceleration":drive_acceleration, "grip":grip_acceleration,
+		"coast":coast_acceleration, "throttle_response":throttle_response,
+		"steering_response":steering_response, "yaw_response":yaw_response,
+		"yaw_acceleration_limit":yaw_acceleration_limit, "lateral_response":lateral_response,
 		"walker":walker,
 		"brake":brake_acceleration, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,
@@ -143,7 +159,7 @@ func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 	for probe: Vector3 in PROBES:
 		var local_probe := Vector3(signf(probe.x) * probe_half_width, 0, signf(probe.z) * probe_half_length)
 		var origin := state.transform * local_probe
-		var query := PhysicsRayQueryParameters3D.create(origin, origin - up * 0.32,
+		var query := PhysicsRayQueryParameters3D.create(origin, origin - up * probe_depth,
 			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [get_rid()])
 		var hit := state.get_space_state().intersect_ray(query)
 		if hit.is_empty():

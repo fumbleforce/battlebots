@@ -62,7 +62,7 @@ func run() -> void:
 				for elevation: float in [-15.0, 24.0, 70.0]:
 					rig.yaw = heading
 					rig.pitch = deg_to_rad(elevation)
-					rig.desired_distance = 6.0
+					rig.desired_distance = 12.0
 					rig.update_camera(1.0)
 					var probe := PhysicsShapeQueryParameters3D.new()
 					var sphere := SphereShape3D.new()
@@ -97,6 +97,11 @@ func obstruction(at: Vector3, size: Vector3) -> StaticBody3D:
 	return obstacle
 
 func check_obstructions(bot: MvpBot, rig: BotOrbitCamera) -> void:
+	# Keep this deliberately constrained clearance case: a larger hull leaves
+	# sufficient room for the ordinary 25cm probe beneath the old ceiling.
+	# Exercise the exported conservative probe size at the same hull ratio.
+	var normal_radius := rig.camera_radius
+	rig.camera_radius *= BotScale.FACTOR
 	var space := get_world_3d().direct_space_state
 	var collider: CollisionShape3D = bot.body.get_node("Collision")
 	var shape: BoxShape3D = collider.shape
@@ -133,11 +138,12 @@ func check_obstructions(bot: MvpBot, rig: BotOrbitCamera) -> void:
 	rig.update_camera(1.0)
 	check(rig.camera.global_position.x + rig.camera_radius < wall_x,
 		"Raised-ground boom remains on chassis side of wall")
-	check(rig.actual_distance < 1.0, "Adjacent wall shortens boom")
+	check(rig.actual_distance < 1.0 * BotScale.FACTOR, "Adjacent wall shortens boom")
 	wall.queue_free()
 	await sync_physics()
 	rig.update_camera(1.0)
 	check(rig.actual_distance > 3.0, "Removing side wall restores boom")
+	rig.camera_radius = normal_radius
 
 func capture(rig: BotOrbitCamera) -> void:
 	if not "--capture" in OS.get_cmdline_user_args():

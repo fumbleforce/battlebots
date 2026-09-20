@@ -7,6 +7,11 @@ var metal := StandardMaterial3D.new()
 var accent := StandardMaterial3D.new()
 
 func assemble(weapon: String, size: Vector3) -> void:
+	# Author in the original meter frame, including fixed blade/arm dimensions.
+	# Multiply existing scale so Sawblade's art-scale compensation is preserved.
+	var geometry_scale := BotScale.from_size(size)
+	size /= geometry_scale
+	scale *= geometry_scale
 	kind = weapon
 	metal.albedo_color = Color(0.28, 0.32, 0.37)
 	metal.metallic = 0.75

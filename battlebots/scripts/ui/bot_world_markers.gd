@@ -2,9 +2,11 @@ class_name BotWorldMarkers
 extends Node3D
 ## Detached world badges; depth-tested geometry keeps arena walls authoritative.
 
-const HEIGHT := 1.4
-const ANCHOR_HEIGHT := 0.65
-const LEADER_TOP := 1.25
+const HEIGHT := 1.4 * BotScale.FACTOR
+# The tallest authored rear pack rises above the main chassis collision box.
+# BotView deliberately carries no geometry; every canonical hull shares scale.
+const ANCHOR_HEIGHT := 1.15 * BotScale.FACTOR
+const LEADER_TOP := 1.30 * BotScale.FACTOR
 const HEALTH_SIZE := Vector2i(128, 12)
 const HEALTH_GREEN := Color("35d05b")
 const HEALTH_RED := Color("df3945")

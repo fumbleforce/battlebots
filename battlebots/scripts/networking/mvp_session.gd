@@ -177,13 +177,16 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	local_entity = _admit(1, build)
 	var bot := world.spawn(local_entity, 0, 0, build)
 	bot.owner_id = 1
-	bot.spawn_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 4))
+	var target := world.spawn(_next_entity, 1, 0, registry.starter(true))
+	var separation: float = (bot.combat.stats.size.z + target.combat.stats.size.z) * 0.5 + 2.0 * BotScale.FACTOR
+	bot.spawn_pose = world.clear_spawn_pose(bot, Transform3D(Basis.IDENTITY, Vector3(0, 0, separation * 0.5)))
 	bot.body.reset_pose = bot.spawn_pose
 	bot.previous_pose = bot.spawn_pose
-	var target := world.spawn(_next_entity, 1, 0, registry.starter(true))
-	target.spawn_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, 0))
+	bot.last_floor = bot.spawn_pose.origin
+	target.spawn_pose = world.clear_spawn_pose(target, Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0, -separation * 0.5)))
 	target.body.reset_pose = target.spawn_pose
 	target.previous_pose = target.spawn_pose
+	target.last_floor = target.spawn_pose.origin
 	match_state.match_id = "practice"
 	match_state.round_index = 1
 	match_state.transition("active", 0)

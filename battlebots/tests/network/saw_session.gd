@@ -88,8 +88,8 @@ func run() -> void:
 			session.network_simulation.duplicate = 0.03
 	var attacker: MvpBot = server.world.bots[attacker_id]
 	var victim: MvpBot = server.world.bots[victim_id]
-	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.25, 0))
-	victim.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.25, -2.6))
+	attacker.body.reset_pose = server.world.clear_spawn_pose(attacker, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	victim.body.reset_pose = server.world.clear_spawn_pose(victim, Transform3D(Basis.IDENTITY, Vector3(0, 0, -2.6 * BotScale.FACTOR)))
 	await frames(45)
 	var initial_core := victim.combat.core
 	var initial_rear: float = victim.combat.zones.rear

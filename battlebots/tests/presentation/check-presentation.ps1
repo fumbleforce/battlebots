@@ -98,6 +98,8 @@ foreach ($check in $checks) {
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/all_body_weapons_test.tscn', '--quit-after', '10000') -Marker 'ALL BODY WEAPONS PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/heavy_visual_scale_test.tscn', '--quit-after', '10000') -Marker 'HEAVY VISUAL SCALE PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/component_mesh_mapping_test.tscn', '--quit-after', '10000') -Marker 'COMPONENT MESH MAPPING PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/component_damage_test.tscn', '--quit-after', '10000') -Marker 'COMPONENT DAMAGE PASS'

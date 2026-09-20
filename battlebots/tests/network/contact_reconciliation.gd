@@ -158,8 +158,9 @@ func weapon_case(label: String, attacker_index: int, victim_index: int) -> void:
 	server.world.reset_round()
 	var attacker: MvpBot = server.world.bots[clients[attacker_index].local_entity]
 	var victim: MvpBot = server.world.bots[clients[victim_index].local_entity]
-	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
-	victim.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, -2.15))
+	attacker.body.reset_pose = server.world.clear_spawn_pose(attacker, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	var separation: float = (attacker.combat.stats.size.z + victim.combat.stats.size.z) * 0.5 + 0.05 * BotScale.FACTOR
+	victim.body.reset_pose = server.world.clear_spawn_pose(victim, Transform3D(Basis.IDENTITY, Vector3(0, 0, -separation)))
 	await frames(90)
 	attacker.combat.charge = 1
 	attacker.combat._previous_held = label == "lifter"
@@ -180,6 +181,11 @@ func weapon_case(label: String, attacker_index: int, victim_index: int) -> void:
 				hit_frame = index
 		var distance := client_bot.presentation.global_position.distance_to(victim.body.global_position)
 		var angle := rad_to_deg(client_bot.presentation.global_basis.get_rotation_quaternion().angle_to(victim.body.global_basis.get_rotation_quaternion()))
+		if OS.get_environment("BATTLEBOTS_CONTACT_TRACE") == "1":
+			print("weapon=", label, " frame=", index + 1, " server=", victim.body.global_position,
+				" client=", client_bot.presentation.global_position, " error=", Vector2(distance, angle),
+				" server_velocity=", victim.body.linear_velocity, " client_velocity=", client_bot.body.linear_velocity,
+				" snapshot_ground=", client_bot.remote_state.grounded, " ground=", victim.body.grounded)
 		peak = maxf(peak, distance)
 		if distance > 0.25 or angle > 10:
 			last_bad = index
@@ -194,8 +200,10 @@ func ram_case() -> void:
 	server.world.reset_round()
 	var a: MvpBot = server.world.bots[clients[0].local_entity]
 	var b: MvpBot = server.world.bots[clients[1].local_entity]
-	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
-	b.body.reset_pose = Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.5, -4))
+	a.body.reset_pose = server.world.clear_spawn_pose(a, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	# Preserve the original 1.9m approach gap at the same 8m/s collision speed.
+	var separation: float = (a.combat.stats.size.z + b.combat.stats.size.z) * 0.5 + 1.9
+	b.body.reset_pose = server.world.clear_spawn_pose(b, Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0, -separation)))
 	await frames(90)
 	a.body.linear_velocity = Vector3(0, 0, -8)
 	b.body.linear_velocity = Vector3(0, 0, 8)
@@ -226,7 +234,7 @@ func recovery_case() -> void:
 	server.world.reset_round()
 	var id := clients[0].local_entity
 	var authoritative: MvpBot = server.world.bots[id]
-	authoritative.body.reset_pose = Transform3D(Basis(Vector3.FORWARD, PI), Vector3(0, 0.5, 0))
+	authoritative.body.reset_pose = Transform3D(Basis(Vector3.FORWARD, PI), Vector3(0, authoritative.combat.stats.size.y * 0.5 + 0.05, 0))
 	await frames(160)
 	check(authoritative.combat.can_recover(), "Flipped authoritative bot is eligible for recovery")
 	recover_next = id

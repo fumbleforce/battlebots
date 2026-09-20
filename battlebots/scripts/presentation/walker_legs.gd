@@ -14,8 +14,12 @@ var _paint: Material
 var _dark: StandardMaterial3D
 var _metal: StandardMaterial3D
 var _rubber: StandardMaterial3D
+var _geometry_scale := 1.0
 
 func assemble(size: Vector3, paint: Material, config: Dictionary) -> void:
+	_geometry_scale = BotScale.from_size(size)
+	size /= _geometry_scale
+	scale *= _geometry_scale
 	var panel_material := StandardMaterial3D.new()
 	panel_material.albedo_color = paint.get_shader_parameter("paint") if paint is ShaderMaterial else Color("c98b30")
 	panel_material.metallic = 0.55
@@ -36,7 +40,8 @@ func assemble(size: Vector3, paint: Material, config: Dictionary) -> void:
 		var side := -1.0 if index % 2 == 0 else 1.0
 		var front := -1.0 if index < 2 else 1.0
 		var hip := Vector3(side * size.x * 0.34, 0.02, front * size.z * 0.30)
-		var neutral := Vector3(side * (size.x * 0.40 + WalkerDrive.FOOT_SPREAD), -WalkerDrive.RIDE_HEIGHT, front * size.z * 0.40)
+		var neutral := Vector3(side * (size.x * 0.40 + WalkerDrive.FOOT_SPREAD / BotScale.FACTOR),
+			-WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR, front * size.z * 0.40)
 		var upper := Node3D.new()
 		var lower := Node3D.new()
 		var foot := Node3D.new()
@@ -150,10 +155,10 @@ static func solve_knee(hip: Vector3, ankle: Vector3, outward: Vector3) -> Vector
 
 func _contact(leg: Dictionary, ahead := Vector3.ZERO) -> Dictionary:
 	var target := global_transform * Vector3(leg.neutral) + ahead
-	if not terrain or global_basis.y.dot(Vector3.UP) < 0.45:
-		return {"position":target, "normal":global_basis.y, "collider":null}
-	var start := Vector3(target.x, global_position.y + 0.20, target.z)
-	var end := Vector3(target.x, global_position.y - WalkerDrive.REACH, target.z)
+	if not terrain or global_basis.y.normalized().dot(Vector3.UP) < 0.45:
+		return {"position":target, "normal":global_basis.y.normalized(), "collider":null}
+	var start := Vector3(target.x, global_position.y + 0.20 * _geometry_scale, target.z)
+	var end := Vector3(target.x, global_position.y - WalkerDrive.REACH * _geometry_scale / BotScale.FACTOR, target.z)
 	var query := PhysicsRayQueryParameters3D.create(start, end,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, exclusions)
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
@@ -186,10 +191,10 @@ func _process(delta: float) -> void:
 	if not terrain:
 		reset_feet()
 		return
-	if global_basis.y.dot(Vector3.UP) < 0.45:
+	if global_basis.y.normalized().dot(Vector3.UP) < 0.45:
 		reset_feet()
 		return
-	if not _initialized or global_position.distance_to(_last_origin) > 2.0:
+	if not _initialized or global_position.distance_to(_last_origin) > 2.0 * _geometry_scale:
 		reset_feet()
 		return
 	var velocity := (global_position - _last_origin) / maxf(delta, 0.001)
@@ -198,7 +203,7 @@ func _process(delta: float) -> void:
 	for leg: Dictionary in legs:
 		if leg.time < 1.0:
 			leg.time = minf(1.0, leg.time + delta / STEP_TIME)
-			leg.foot = Vector3(leg.start).lerp(leg.target, smoothstep(0, 1, leg.time)) + Vector3.UP * sin(leg.time * PI) * 0.25
+			leg.foot = Vector3(leg.start).lerp(leg.target, smoothstep(0, 1, leg.time)) + Vector3.UP * sin(leg.time * PI) * 0.25 * _geometry_scale
 			stepping = true
 		elif leg.collider != null:
 			var collider: Node3D = leg.collider.get_ref()
@@ -209,12 +214,12 @@ func _process(delta: float) -> void:
 		var needs_step := false
 		for leg: Dictionary in legs:
 			if leg.pair != _pair: continue
-			var hit := _contact(leg, velocity.slide(Vector3.UP).limit_length(4) * 0.12)
-			if Vector3(leg.foot).distance_to(hit.position) > 0.22: needs_step = true
+			var hit := _contact(leg, velocity.slide(Vector3.UP).limit_length(4 * _geometry_scale) * 0.12)
+			if Vector3(leg.foot).distance_to(hit.position) > 0.22 * _geometry_scale: needs_step = true
 		if needs_step:
 			for leg: Dictionary in legs:
 				if leg.pair != _pair: continue
-				var hit := _contact(leg, velocity.slide(Vector3.UP).limit_length(4) * 0.12)
+				var hit := _contact(leg, velocity.slide(Vector3.UP).limit_length(4 * _geometry_scale) * 0.12)
 				leg.start = leg.foot
 				leg.target = hit.position
 				leg.normal = hit.normal
@@ -230,7 +235,7 @@ func _pose() -> void:
 	for leg: Dictionary in legs:
 		var hip: Vector3 = leg.hip
 		var foot := to_local(leg.foot)
-		var ankle := foot + global_basis.inverse() * Vector3(leg.normal) * 0.18
+		var ankle := foot + global_basis.inverse() * Vector3(leg.normal) * (0.18 * _geometry_scale)
 		var offset := (ankle - hip).limit_length(UPPER + LOWER - 0.01)
 		ankle = hip + offset
 		var knee := solve_knee(hip, ankle, Vector3(leg.side, 0, 0.12 * signf(hip.z)))
@@ -240,7 +245,8 @@ func _pose() -> void:
 		var forward := -global_basis.z.slide(normal).normalized()
 		if forward.is_zero_approx(): forward = Vector3.FORWARD
 		var basis := Basis(forward.cross(normal).normalized(), normal, -forward)
-		leg.foot_mesh.global_transform = Transform3D(basis, to_global(ankle) - normal * 0.18)
+		leg.foot_mesh.global_transform = Transform3D(basis.scaled(global_basis.get_scale()),
+			to_global(ankle) - normal * (0.18 * _geometry_scale))
 
 func _segment(node: Node3D, start: Vector3, end: Vector3) -> void:
 	var direction := (end - start).normalized()

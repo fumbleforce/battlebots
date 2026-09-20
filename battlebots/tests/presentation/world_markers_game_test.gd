@@ -78,6 +78,11 @@ func run() -> void:
 	var target_bot := target as MvpBot
 	var local_bot := game.session.local_source() as MvpBot
 	check(target_bot != null and local_bot != null, "Practice exposes real combat bots")
+	for actual: MvpBot in [target_bot, local_bot]:
+		var label: Label3D = game.world_markers.markers[actual.entity_id]
+		var rear_top: float = 1.57 * actual.combat.stats.size.z / 2.6 - actual.combat.stats.size.y * 0.5
+		check(label.global_position.y > actual.read_view().pose.origin.y + rear_top,
+			"Actual practice badge clears its enlarged authored rear pack")
 	target_bot.combat.damage("top", target_bot.combat.stats.core * 0.5 / 0.95)
 	local_bot.combat.damage("top", local_bot.combat.stats.core * 0.25 / 0.95)
 	await frames()

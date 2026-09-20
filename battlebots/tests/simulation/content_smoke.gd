@@ -11,6 +11,11 @@ func _initialize() -> void:
 	var striker := registry.starter()
 	var result := registry.validate(striker)
 	check(result.valid and result.stats.mass == 103.0 and result.stats.power == 75.0, "Striker derived stats")
+	for chassis: String in ["compact", "balanced", "wide"]:
+		var sizes := {"compact": Vector3(1.2, 0.5, 1.5), "balanced": Vector3(1.6, 0.5, 2.0), "wide": Vector3(1.8, 0.5, 2.2)}
+		var scaled := striker.duplicate(true)
+		scaled.parts.chassis = chassis
+		check(registry.validate(scaled).stats.size.is_equal_approx(sizes[chassis] * 3.0), "Every canonical hull is exactly three times larger")
 	result = registry.validate(registry.starter(true))
 	check(result.valid and result.stats.mass == 108.0, "Controller derived stats")
 	var bad := striker.duplicate(true)
@@ -37,7 +42,19 @@ func _initialize() -> void:
 	registry = ContentRegistry.new()
 	var path := "user://test-loadouts-%d.json" % OS.get_process_id()
 	var store := LoadoutStore.new(path)
-	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES + LoadoutStore.REVISION_TWO_HASHES + LoadoutStore.REVISION_THREE_HASHES + LoadoutStore.REVISION_FOUR_HASHES:
+	var saved_sawblade := SawbladeConfig.starter(registry)
+	saved_sawblade.name = "Painted heavy walker"
+	saved_sawblade.parts.drive = "walker"
+	saved_sawblade.parts.weapon = "hammer"
+	saved_sawblade.cosmetics.sawblade.exhaust = 3
+	saved_sawblade.cosmetics.sawblade.paint_primary = [0.3, 0.1, 0.7, 1.0]
+	saved_sawblade.content_hash = LoadoutStore.REVISION_SIX_HASHES[0]
+	check(not registry.validate(saved_sawblade).valid, "Old-size peers remain incompatible before local save migration")
+	var resized_save: Dictionary = store.migrate({"schema_version": 1, "loadouts": [saved_sawblade]}).loadouts[0]
+	check(registry.validate(resized_save).valid and resized_save.parts == saved_sawblade.parts
+		and resized_save.cosmetics == saved_sawblade.cosmetics and resized_save.name == saved_sawblade.name,
+		"Revision-six saved machine migrates size while preserving all selected parts and appearance")
+	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES + LoadoutStore.REVISION_TWO_HASHES + LoadoutStore.REVISION_THREE_HASHES + LoadoutStore.REVISION_FOUR_HASHES + LoadoutStore.REVISION_FIVE_HASHES + LoadoutStore.REVISION_SIX_HASHES:
 		var old_build := registry.starter()
 		old_build.content_hash = old_hash
 		var upgraded: Dictionary = store.migrate({"schema_version":1, "loadouts":[old_build]}).loadouts[0]

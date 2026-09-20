@@ -37,7 +37,8 @@ func run() -> void:
 		var slot := (id - 1) % 5
 		var bot := world.spawn(id, team, slot, registry.starter(), 5)
 		var marker: Node3D = world.arena.get_node("SpawnPoints/Team%d_%d" % [team + 1, slot + 1])
-		check(bot.spawn_pose.is_equal_approx(marker.global_transform), "5v5 bot %d uses its own authored spawn" % id)
+		check(bot.spawn_pose.basis.is_equal_approx(marker.global_basis) and is_equal_approx(bot.spawn_pose.origin.x, marker.global_position.x)
+			and absf(bot.spawn_pose.origin.z) <= absf(marker.global_position.z), "5v5 bot %d preserves its authored lane and facing with hull clearance" % id)
 		var forward := -bot.spawn_pose.basis.z
 		check(forward.dot(Vector3.FORWARD if team == 0 else Vector3.BACK) > 0.99,
 			"5v5 bot %d faces the enemy side" % id)
@@ -64,13 +65,13 @@ func run() -> void:
 			var id := team * 2 + slot + 1
 			var bot := world.spawn(id, team, slot, registry.starter())
 			var marker: Node3D = world.arena.get_node("SpawnPoints/Team%d_%d" % [team + 1, 2 if slot == 0 else 4])
-			check(bot.spawn_pose.is_equal_approx(marker.global_transform), "Default 2v2 preserves marker mapping")
+			check(bot.spawn_pose.is_equal_approx(world.clear_spawn_pose(bot, marker.global_transform)), "Default 2v2 preserves marker mapping with physical clearance")
 	world.clear_bots()
 	await get_tree().process_frame
 	for team: int in range(2):
 		var bot := world.spawn(team + 1, team, 0, registry.starter(), 1)
 		var marker: Node3D = world.arena.get_node("SpawnPoints/Team%d_2" % (team + 1))
-		check(bot.spawn_pose.is_equal_approx(marker.global_transform), "Duel preserves marker 2 per team")
+		check(bot.spawn_pose.is_equal_approx(world.clear_spawn_pose(bot, marker.global_transform)), "Duel preserves marker 2 per team with physical clearance")
 	world.queue_free()
 	await get_tree().process_frame
 	print("FIVE V FIVE RULES PASS" if failures == 0 else "FIVE V FIVE RULES FAIL")

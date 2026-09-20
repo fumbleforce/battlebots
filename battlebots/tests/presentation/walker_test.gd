@@ -6,6 +6,7 @@ var steering := 0.0
 var ticks := 0
 var peak_y := 0.0
 var visual_legs: WalkerLegs
+const SCALE := BotScale.FACTOR
 
 func check(ok: bool, message: String) -> void:
 	if not ok: failures.append(message)
@@ -27,15 +28,15 @@ func _physics_process(delta: float) -> void:
 
 func block(at: Vector3, size: Vector3, color: Color) -> void:
 	var body := StaticBody3D.new()
-	body.position = at
+	body.position = at * SCALE
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = size
+	box.size = size * SCALE
 	shape.shape = box
 	body.add_child(shape)
 	var mesh := MeshInstance3D.new()
 	var geometry := BoxMesh.new()
-	geometry.size = size
+	geometry.size = size * SCALE
 	mesh.mesh = geometry
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
@@ -74,7 +75,7 @@ func run() -> void:
 	draft.parts.weapon = "hammer"
 	check(registry.validate(draft).valid, "Walking hammer build is legal")
 	bot = MvpBot.create(1, 0, draft, registry)
-	bot.position = Vector3(0, 0.5, 4.5)
+	bot.position = Vector3(0, 0.5, 4.5) * SCALE
 	add_child(bot)
 	if bot.sawblade_visual != null:
 		visual_legs = bot.sawblade_visual.walker_legs
@@ -88,35 +89,36 @@ func run() -> void:
 	check(absf(bot.body.global_position.y - WalkerDrive.RIDE_HEIGHT) < 0.08, "Leg forces hold authored ride height")
 	check(bot.body.walker_contacts.size() == 4, "Four footholds on flat ground")
 	throttle = 1
-	await wait_ticks(115)
+	# Linear speed stays in meters/second; the course is three times longer.
+	await wait_ticks(roundi(115 * SCALE))
 	throttle = 0
 	await wait_ticks(50)
 	print("WALKER CLIMB pose=", bot.body.global_position, " peak_y=", peak_y)
-	check(peak_y > 1.50, "Physically climbs two 0.35 m steps")
-	check(bot.body.global_position.z < -1.2, "Moves onto the raised platform")
+	check(peak_y > 1.50 * SCALE, "Physically climbs two 1.05 m steps")
+	check(bot.body.global_position.z < -1.2 * SCALE, "Moves onto the raised platform")
 	check(bot.body.global_basis.y.dot(Vector3.UP) > 0.85, "Stance remains upright after climbing")
 	for leg: Dictionary in visual_legs.legs:
 		var foot: Vector3 = leg.foot_mesh.global_position
-		var floor_y := 0.7 if foot.z >= -3.6 and foot.z < -1.2 else (0.35 if absf(foot.z) <= 1.2 else 0.0)
+		var floor_y := (0.7 if foot.z >= -3.6 * SCALE and foot.z < -1.2 * SCALE else (0.35 if absf(foot.z) <= 1.2 * SCALE else 0.0)) * SCALE
 		check(foot.y >= floor_y - 0.025, "IK feet do not penetrate raised surfaces")
 		if leg.time >= 1.0:
 			check(foot.distance_to(leg.foot) < 0.035, "Reachable planted foot matches terrain contact")
-	camera.position = bot.body.global_position + Vector3(4, 2.5, 3.5)
-	camera.look_at(bot.body.global_position + Vector3.UP * 0.15)
+	camera.position = bot.body.global_position + Vector3(4, 2.5, 3.5) * SCALE
+	camera.look_at(bot.body.global_position + Vector3.UP * 0.15 * SCALE)
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("battlebots-walker.png"))
 	throttle = 1
-	await wait_ticks(180)
-	check(bot.body.global_position.z > -5.1, "Cannot climb a three-meter wall")
+	await wait_ticks(roundi(180 * SCALE))
+	check(bot.body.global_position.z > -5.1 * SCALE, "Cannot climb a nine-meter wall")
 	throttle = 0
 	# An unsupported inverted walker must fall; stance is not a free self-right.
-	bot.body.reset_pose = Transform3D(Basis(Vector3.FORWARD, PI), Vector3(7, 3, 3))
+	bot.body.reset_pose = Transform3D(Basis(Vector3.FORWARD, PI), Vector3(7, 3, 3) * SCALE)
 	await wait_ticks(20)
 	check(not bot.body.grounded and bot.body.walker_contacts.is_empty(), "Inversion disables foot support")
-	check(bot.body.global_position.y < 2.7, "Unsupported legs obey gravity")
+	check(bot.body.global_position.y < 3.0 * SCALE - 0.3, "Unsupported legs obey gravity")
 	bot.body.gravity_scale = 1.62 / 9.8
-	bot.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(7, 1, 3))
+	bot.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(7, 1, 3) * SCALE)
 	await wait_ticks(90)
 	check(absf(bot.body.global_position.y - WalkerDrive.RIDE_HEIGHT) < 0.08, "Walker stance supports lunar gravity")
 	for ankle: Vector3 in [Vector3(0.3, -0.9, 0.1), Vector3(-0.2, -1.0, 0), Vector3(0.5, -0.6, 0.3)]:

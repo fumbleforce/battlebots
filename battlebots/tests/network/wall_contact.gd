@@ -51,7 +51,8 @@ func wall_case(wall_name: String, start: Vector3, yaw: float) -> void:
 	var authority: MvpBot = server.world.bots[clients[0].local_entity]
 	var predicted: MvpBot = clients[0].world.bots[clients[0].local_entity]
 	var wall: StaticBody3D = server.world.arena.get_node("Walls/" + wall_name)
-	authority.body.reset_pose = Transform3D(Basis(Vector3.UP, yaw), start)
+	# Wall coordinates stay in the unchanged arena; only hull floor height grows.
+	authority.body.reset_pose = server.world.clear_spawn_pose(authority, Transform3D(Basis(Vector3.UP, yaw), start))
 	await frames(90)
 	drive_throttle = 1
 	drive_brake = false

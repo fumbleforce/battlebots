@@ -31,6 +31,29 @@ Import/baseline, actual loop playback, Music volume preview/cancel, real ENet
 results/rematch and reconnect checks pass. No gameplay or compatibility changes;
 no hosted release is claimed. See [scope and validation](coordination/A_BATTLE_MUSIC.md).
 
+## Three-times-larger heavy machines — 20 September 2026
+
+B enlarged physical hulls, weapons and drive assemblies by three. Slower throttle,
+steering and acceleration, neutral coasting and longer braking give them weight;
+drive-package top speeds and construction budgets remain. Camera, garage framing,
+effects, terrain/wall spawn clearance and practice spacing follow the new size.
+Known revision-six saves retain their parts and appearance when migrated.
+
+Godot 4.7.2/Jolt checks cover actual geometry/weapon contacts, handling/recovery,
+visual framing, saved builds, both arenas and a full natural duel through results
+and rematch. An exposed landing-prediction defect was fixed in the static replay
+sweep; the 150ms contact gate now passes without relaxed tolerances. See
+[scope, measurements and validation](coordination/B_HEAVY_MACHINES.md).
+
+**A release handoff:** catalogue revision 7 hashes to
+`45bb581a3c4403fd74ce7067150eb480148e70a6e5b8dba9a5977dda95db25be`.
+The live Fly health check still reports build `mvp-ab-12`, protocol 4 and
+revision-six hash `63b655000dc8129c3cd52cb735ecfaec5cbc7cdb1513b43de024383e7473e8a5`.
+Source integration does not update that service. Prepare matching client/server
+artifacts, establish a playtest break before restarting the single Machine, deploy
+workers, then run external private/Quick Play duel/results/rematch acceptance.
+Compatibility rejection stays enabled; hosted readiness is not claimed here.
+
 ## Robot destruction explosion — 20 September 2026
 
 B added confirmed zero-core explosions: rolling fireballs, pressure rings, orange

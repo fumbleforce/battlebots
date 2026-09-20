@@ -112,7 +112,7 @@ FFA uses the same survivor/core/damage ordering for players remaining at timeout
 | R | Activate self-right recovery when eligible |
 | C | Toggle third-person / first-person camera |
 | Middle mouse | Recenter camera behind chassis |
-| Mouse wheel | Third-person distance, 4–9 meters |
+| Mouse wheel | Third-person distance, 8–18 meters for the enlarged machines |
 | Q | Context ping: opponent, location, or regroup |
 | Tab | Hold scoreboard |
 | Escape | Menu; online gameplay continues |
@@ -123,7 +123,7 @@ Inputs are remappable. Expose mouse sensitivity, inversion, camera recenter stre
 
 ### Third-person behavior
 
-- Default follow distance 6 meters; target anchor 0.6 meters above chassis center; pitch range approximately −15° to 70° relative to the horizontal viewing convention.
+- Default follow distance 12 meters; target anchor 1.8 meters above chassis center; pitch range approximately −15° to 70° relative to the horizontal viewing convention.
 - Collision-aware camera boom pulls inward before intersecting walls. Camera casts exclude its own bot and cosmetic debris.
 - Follow yaw is independent of chassis roll. Horizon stabilization prevents flips from rotating the view upside down.
 - Optional automatic recenter activates after 1.5 seconds without mouse input while driving. Default is enabled at gentle strength.
@@ -142,7 +142,7 @@ Use authored chassis sockets and compatible modules, not freeform geometry. Ever
 
 All builds share a **120 kg** mass ceiling and a **100-unit installed power** budget. Power budget controls legal construction; battery is the separate runtime resource. Chassis fixes socket locations, collision envelope, core integrity, and recovery mechanism. No part can extend beyond its permitted weapon sweep or deployment envelope.
 
-Target body footprint is 1.5–2.2 meters long and 1.2–1.8 meters wide. These deliberately enlarged game machines make the 50-meter arena practical; they are not a literal engineering simulation of the reference photo.
+**User revision, 20 September 2026:** machines are three times their original size on every axis. Canonical hulls are now 4.5–6.6 meters long, 3.6–5.4 meters wide and 1.5 meters tall; the active balanced hull is 4.8 × 1.5 × 6.0 meters. Weapons, drive assemblies, collision and effects follow the physical size. The arena remains 50 meters across. These are deliberately oversized game machines; the 120 kg construction budget remains a gameplay stat. See [implementation and checks](coordination/B_HEAVY_MACHINES.md).
 
 ### Initial part catalogue
 
@@ -194,7 +194,7 @@ Before a match, the server rebuilds every loadout from allowed part IDs and vali
 
 ### Movement and contact
 
-Robots use rigid-body chassis with suspension/contact probes and applied tire forces. Wheels are animated from contact speed rather than simulated as four networked rigid bodies. Target acceleration is 0 to 10 m/s in approximately 2 seconds for the Striker. Steering torque decreases at high forward speed to avoid weightless cornering. Brake force is limited by grip.
+Robots use rigid-body chassis with suspension/contact probes and applied tire forces. Wheels are animated from contact speed rather than simulated as four networked rigid bodies. The enlarged machines use gradual throttle and steering response, lower acceleration and turning rates, and coast when the throttle is released. Braking remains deliberate and stops a standard 10 m/s machine in roughly eight meters; unchanged drive-package top speeds preserve arena traversal. Steering torque decreases at high forward speed to avoid weightless cornering. Brake force is limited by grip.
 
 Bots can push, climb low wedges, flip, and tumble. Prevent permanent nose-balancing with authored collision shapes and sensible centers of mass. Use convex chassis colliders and simplified wall geometry. Mechanical mechanisms have bounded travel; a spinning visual mesh does not require thousands of collision contacts per second.
 

@@ -1,5 +1,31 @@
 # Shared contracts — local records and current MVP session API
 
+## Three-times-larger heavy machines — 20 September 2026
+
+Catalogue revision 7 grows all three canonical hull dimensions by three. The
+balanced hull is now Vector3(4.8, 1.5, 6.0). `BotScale.from_size(size)` supplies
+the linear authoring multiplier; Jolt body transforms remain unit scale. Weapon
+queries, authored/primitive meshes, walker support and recovery follow that size.
+DriveModel and live DriveBody share slower response, coast/brake and yaw tuning.
+The static replay sweep uses the extrapolated hull orientation, allowing a tipped
+chassis to descend while rotating upright without bypassing wall translation
+checks. No command/view wire fields or damage/cadence values change.
+
+`AuthorityWorld.clear_spawn_pose(bot, authored)` retains marker lane/facing while
+clearing the whole hull against the octagon and terrain. Practice derives spacing
+from hull lengths. CameraAnchor publishes local `bot_scale` metadata; physical
+clearance follows scale 3 and the boom uses scale 2 (12m default, 8–18m zoom).
+Garage previews divide catalogue dimensions by BotScale.FACTOR for original
+workshop framing. Detached markers clear the enlarged rear pack. Explosion and
+smoke dimensions grow without raising effect counts.
+
+Known revision-six saved builds migrate with IDs, names and cosmetics preserved;
+unknown hashes remain rejected. New catalogue SHA256 is
+`45bb581a3c4403fd74ce7067150eb480148e70a6e5b8dba9a5977dda95db25be`.
+A must deploy matching workers before hosted acceptance: the inspected service
+still reported revision-six content, and this increment does not deploy it.
+See [B scope and validation](coordination/B_HEAVY_MACHINES.md).
+
 ## Robot core destruction presentation — 20 September 2026
 
 MvpBot consumes existing accepted BotView state for one explosion on observed
@@ -447,7 +473,9 @@ The floor collider extends beneath the full 50 m square; diagonal walls exclude
 the corner wedges from play. Existing orbit-camera scene `corner_chamfer` is
 14.644661 so its above-wall boundary also matches the octagon.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
-For 2v2 use indices 2 and 4 (X=-6/+6). Spawn Y=0.5 is body-center clearance.
+For 2v2 use indices 2 and 4 (X=-6/+6). Marker Y=0.5 is historical authoring data;
+`clear_spawn_pose` replaces it with full-footprint terrain clearance plus half
+hull height (walker ride height instead for walking drives) and 0.05m spare.
 B's integrated arena includes perimeter walls and FFA spawn markers; A's current
 session rules support 1v1, 2v2, 5v5 and FFA.
 Five-player teams use all five existing team markers; duel/2v2 retain markers
@@ -456,8 +484,8 @@ optional fifth argument; pass 5 for 5v5. Optional sixth argument `mode="teams"`
 accepts `"ffa"` to use the existing `FFA_1` through `FFA_8` markers by slot+1.
 The published arena includes eight equal perimeter faces (25 m inradius) and
 FFA_1..8 markers on a 20-meter ring facing inward.
-Spawn a future bot root with care: the bot fixture already offsets its body
-upward by 0.5, so do not apply that clearance twice when integrating spawn logic.
+Spawn poses are world body-center transforms, applied through body.reset_pose;
+do not add a second body-height offset when integrating a future bot root.
 
 ## Registered input actions
 drive_forward=W, drive_reverse=S, steer_left=A, steer_right=D, brake=Space,

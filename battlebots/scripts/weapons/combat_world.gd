@@ -141,16 +141,20 @@ func _sweep(bot: MvpBot) -> Array:
 		return _hammer_sweep(bot)
 	if bot.combat.stats.weapon == "saw":
 		return _saw_sweep(bot)
+	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45, 0.65)
-	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2))
+	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
+	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	if SawbladeConfig.enabled(bot.loadout) and bot.combat.stats.weapon == "lifter":
 		var size: Vector3 = bot.combat.stats.size
 		var angle := bot.combat.charge * deg_to_rad(40)
 		if bot.combat.launch or bot.combat.cooldown > 2.7: angle = deg_to_rad(75)
 		var rotation := Basis(Vector3.RIGHT, angle)
-		shape.size = Vector3(1.49, 0.30, 1.30) * SawbladeGeometry.scale_for(size)
-		local = Transform3D(rotation, SawbladeGeometry.point(Vector3(0, 0.36, -0.30) + rotation * Vector3(0, 0.04, -0.65), size))
+		# Include the low leading edge of the actual ramp (y=.0645,z=-1.63
+		# in source meters), so an enlarged blade cannot visibly pass under a
+		# target while the authored query floats above its contact surface.
+		shape.size = Vector3(1.50, 0.50, 1.36) * SawbladeGeometry.scale_for(size)
+		local = Transform3D(rotation, SawbladeGeometry.point(Vector3(0, 0.36, -0.30) + rotation * Vector3(0, -0.06, -0.66), size))
 	var start := bot.previous_pose * local
 	var finish := bot.body.global_transform * local
 	var distance := start.origin.distance_to(finish.origin)
@@ -168,10 +172,11 @@ func _sweep(bot: MvpBot) -> Array:
 	return found
 
 func _horizontal_sweep(bot: MvpBot) -> Array:
+	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := CylinderShape3D.new()
 	shape.radius = bot.combat.stats.size.x * 0.65
-	shape.height = 0.24
-	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2))
+	shape.height = 0.24 * linear_scale
+	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
 	var angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
@@ -193,10 +198,11 @@ func _horizontal_sweep(bot: MvpBot) -> Array:
 	return found
 
 func _saw_sweep(bot: MvpBot) -> Array:
+	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := CylinderShape3D.new()
-	shape.radius = 0.32
-	shape.height = 0.16
-	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, 0.1, -bot.combat.stats.size.z * 0.5 - 0.4))
+	shape.radius = 0.32 * linear_scale
+	shape.height = 0.16 * linear_scale
+	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, 0.1 * linear_scale, -bot.combat.stats.size.z * 0.5 - 0.4 * linear_scale))
 	if SawbladeConfig.enabled(bot.loadout):
 		var size: Vector3 = bot.combat.stats.size
 		var scale := SawbladeGeometry.scale_for(size)
@@ -223,10 +229,11 @@ func _saw_sweep(bot: MvpBot) -> Array:
 
 func _hammer_sweep(bot: MvpBot) -> Array:
 	if SawbladeConfig.enabled(bot.loadout): return _sawblade_hammer_sweep(bot)
+	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := SphereShape3D.new()
-	shape.radius = 0.2
-	var pivot := Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15)
-	var arm := Vector3(0, 0, -1.2)
+	shape.radius = 0.2 * linear_scale
+	var pivot := Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15 * linear_scale)
+	var arm := Vector3(0, 0, -1.2 * linear_scale)
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
 	var body_angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
@@ -259,7 +266,14 @@ func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
 	var body_angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
-	var travel := start.origin.distance_to(finish.origin) + body_angle * 2.0 + 1.4
+	# Bound the scaled head's full arc, including its corners and body rotation.
+	# A fixed old-model distance undersamples the enlarged hammer during turns.
+	var pivot := SawbladeGeometry.point(Vector3(0, 0.86, -0.29), size)
+	var arm := Vector3(0, 0.63, -0.93) * SawbladeGeometry.scale_for(size)
+	var head_radius := shape.size.length() * 0.5
+	var travel := start.origin.distance_to(finish.origin) \
+		+ body_angle * (pivot.length() + arm.length() + head_radius) \
+		+ absf(SawbladeGeometry.HAMMER_SWING) * (arm.length() + head_radius)
 	var steps := maxi(20, ceili(travel / 0.06) + 1)
 	var found: Array = []
 	for index: int in steps:

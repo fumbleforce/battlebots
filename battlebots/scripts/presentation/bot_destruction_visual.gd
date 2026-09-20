@@ -18,6 +18,7 @@ var _observed := false
 var _eliminated := false
 var _wrecked := false
 var _size := Vector3(1.6, 0.5, 2.0)
+var _geometry_scale := 1.0
 var _surfaces: Array[Dictionary] = []
 var _wreck_material: ShaderMaterial
 var _fire_material: ShaderMaterial
@@ -39,7 +40,11 @@ func _ready() -> void:
 func configure(visual_root: Node3D, size: Vector3, excluded_meshes: Array = []) -> void:
 	reset_observation()
 	_surfaces.clear()
-	_size = size
+	_geometry_scale = BotScale.from_size(size)
+	_size = size / _geometry_scale
+	if is_instance_valid(_flash):
+		_flash.omni_range = 9.0 * _geometry_scale
+		_flash.position.y = 0.7 * _geometry_scale
 	_wreck_material = ShaderMaterial.new()
 	_wreck_material.shader = WRECK
 	for mesh: MeshInstance3D in visual_root.find_children("*", "MeshInstance3D", true, false):
@@ -147,10 +152,10 @@ func _build_burst() -> void:
 	burst_root.add_child(_ring)
 	_flash = OmniLight3D.new()
 	_flash.light_color = Color(1.0, 0.42, 0.08)
-	_flash.omni_range = 9.0
+	_flash.omni_range = 9.0 * _geometry_scale
 	_flash.omni_attenuation = 1.4
 	_flash.shadow_enabled = false
-	_flash.position.y = 0.7
+	_flash.position.y = 0.7 * _geometry_scale
 	burst_root.add_child(_flash)
 	var spark_material := StandardMaterial3D.new()
 	spark_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -206,22 +211,22 @@ func _update_burst() -> void:
 	_flash.light_energy = 9.0 * exp(-t * 8.0) + 1.5 * exp(-t * 3.0)
 	_flash.visible = t < 1.5
 	_ring.visible = t < 0.55
-	_ring.position.y = -_size.y * 0.35
-	_ring.scale = Vector3.ONE * (0.6 + t * 12.0)
+	_ring.position.y = -_size.y * 0.35 * _geometry_scale
+	_ring.scale = Vector3.ONE * (0.6 + t * 12.0) * _geometry_scale
 	for index: int in _fire.size():
 		var puff := _fire[index]
 		puff.visible = t < 1.05
 		var angle := float(index) * 2.39996
 		var spread := (1.0 - exp(-t * 7.0)) * (0.35 + float(index % 3) * 0.35)
-		puff.position = Vector3(cos(angle) * spread, 0.25 + t * (0.9 + float(index % 3) * 0.45), sin(angle) * spread)
-		puff.scale = Vector3.ONE * (0.15 + (1.0 - exp(-t * 12.0)) * (0.6 + float(index % 3) * 0.16))
+		puff.position = Vector3(cos(angle) * spread, 0.25 + t * (0.9 + float(index % 3) * 0.45), sin(angle) * spread) * _geometry_scale
+		puff.scale = Vector3.ONE * (0.15 + (1.0 - exp(-t * 12.0)) * (0.6 + float(index % 3) * 0.16)) * _geometry_scale
 	for index: int in _smoke.size():
 		var puff := _smoke[index]
 		puff.visible = t > 0.12
 		var angle := float(index) * 2.39996
 		var spread := (0.15 + t * 0.42) * (0.7 + float(index % 3) * 0.3)
-		puff.position = Vector3(cos(angle) * spread, 0.4 + t * (0.7 + float(index % 4) * 0.23), sin(angle) * spread)
-		puff.scale = Vector3.ONE * (0.35 + t * 0.47 + float(index % 3) * 0.13)
+		puff.position = Vector3(cos(angle) * spread, 0.4 + t * (0.7 + float(index % 4) * 0.23), sin(angle) * spread) * _geometry_scale
+		puff.scale = Vector3.ONE * (0.35 + t * 0.47 + float(index % 3) * 0.13) * _geometry_scale
 	_sparks.visible = t < 1.35
 	for index: int in _spark_paths.size():
 		if not _sparks.visible: break
@@ -230,8 +235,8 @@ func _update_burst() -> void:
 		var velocity: Vector3 = path.velocity + Vector3.DOWN * 5.0 * t
 		var location: Vector3 = path.velocity * t + Vector3.DOWN * 2.5 * t * t
 		var basis := Basis.looking_at(velocity.normalized(), Vector3.UP)
-		basis = basis.scaled(Vector3(0.022, 0.022, 0.18 + velocity.length() * 0.025) * maxf(fade, 0.0001))
-		_sparks.multimesh.set_instance_transform(index, Transform3D(basis, location))
+		basis = basis.scaled(Vector3(0.022, 0.022, 0.18 + velocity.length() * 0.025) * maxf(fade, 0.0001) * _geometry_scale)
+		_sparks.multimesh.set_instance_transform(index, Transform3D(basis, location * _geometry_scale))
 		_sparks.multimesh.set_instance_color(index, Color(1.0, 0.35 + fade * 0.55, 0.06 + fade * 0.35))
 	_panels.visible = t < 2.1
 	for index: int in _panel_paths.size():
@@ -241,6 +246,6 @@ func _update_burst() -> void:
 		var location: Vector3 = path.origin + path.velocity * t + Vector3.DOWN * 4.9 * t * t
 		# Ballistic pieces disappear naturally behind terrain. Never invent a floor
 		# at the blast height: a robot may be destroyed while airborne or inverted.
-		var basis := Basis.from_euler(path.spin * t).scaled(path.scale * maxf(fade, 0.0001))
-		_panels.multimesh.set_instance_transform(index, Transform3D(basis, location))
+		var basis := Basis.from_euler(path.spin * t).scaled(path.scale * maxf(fade, 0.0001) * _geometry_scale)
+		_panels.multimesh.set_instance_transform(index, Transform3D(basis, location * _geometry_scale))
 		_panels.multimesh.set_instance_color(index, Color(1.0, 0.6 + t * 0.2, 0.4 + t * 0.25))

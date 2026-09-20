@@ -180,8 +180,8 @@ func check_roster() -> void:
 		var matched_marker := false
 		for slot: int in range(1, 9):
 			var marker := server.world.arena.get_node("SpawnPoints/FFA_%d" % slot) as Node3D
-			matched_marker = matched_marker or bot.spawn_pose.is_equal_approx(marker.global_transform)
-		check(matched_marker, "FFA spawn uses an existing authored marker")
+			matched_marker = matched_marker or bot.spawn_pose.is_equal_approx(server.world.clear_spawn_pose(bot, marker.global_transform))
+		check(matched_marker, "FFA spawn uses an existing authored marker with physical clearance")
 		check(bot.body.global_position.distance_to(bot.spawn_pose.origin) < 0.35, "Active start or rematch restores authored FFA spawn")
 		for origin: Vector3 in origins:
 			check(bot.spawn_pose.origin.distance_to(origin) > 1, "FFA spawn markers are distinct")
@@ -193,8 +193,9 @@ func check_roster() -> void:
 func hostile_combat_and_reconnect() -> bool:
 	var attacker: MvpBot = server.world.bots[clients[0].local_entity]
 	var victim: MvpBot = server.world.bots[clients[1].local_entity]
-	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0))
-	victim.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, -2.15))
+	var separation: float = (attacker.combat.stats.size.z + victim.combat.stats.size.z) * 0.5 + 0.15 * BotScale.FACTOR
+	attacker.body.reset_pose = server.world.clear_spawn_pose(attacker, Transform3D(Basis.IDENTITY, Vector3.ZERO))
+	victim.body.reset_pose = server.world.clear_spawn_pose(victim, Transform3D(Basis.IDENTITY, Vector3(0, 0, -separation)))
 	await frames(30)
 	var before := victim.combat.core
 	armed_entity = attacker.entity_id

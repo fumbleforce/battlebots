@@ -68,12 +68,46 @@ func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 
 	var marker_index := slot + 1 if team_size == 5 else (2 if slot == 0 else 4)
 	var marker_path := "SpawnPoints/FFA_%d" % (slot + 1) if mode == "ffa" else "SpawnPoints/Team%d_%d" % [team + 1, marker_index]
 	var marker := arena.get_node(marker_path) as Node3D
-	var pose := marker.global_transform
+	var pose := clear_spawn_pose(bot, marker.global_transform)
 	bot.spawn_pose = pose
 	bot.body.reset_pose = pose
 	bot.previous_pose = pose
+	bot.last_floor = pose.origin
 	bots[id] = bot
 	return bot
+
+func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
+	# Keep the authored lane and facing; enlarged outer team slots need room at
+	# the octagon's chamfers. These are the existing 50m arena's inner planes.
+	var pose := authored
+	var half: Vector3 = bot.combat.stats.size * 0.5
+	var extent_x := absf(pose.basis.x.x) * half.x + absf(pose.basis.z.x) * half.z
+	var extent_z := absf(pose.basis.x.z) * half.x + absf(pose.basis.z.z) * half.z
+	const WALL_GAP := 0.25
+	pose.origin.x = clampf(pose.origin.x, -25.0 + extent_x + WALL_GAP, 25.0 - extent_x - WALL_GAP)
+	pose.origin.z = clampf(pose.origin.z, -25.0 + extent_z + WALL_GAP, 25.0 - extent_z - WALL_GAP)
+	for side_x: float in [-1.0, 1.0]:
+		for side_z: float in [-1.0, 1.0]:
+			var normal := Vector3(side_x, 0, side_z)
+			var reach := absf(normal.dot(pose.basis.x)) * half.x + absf(normal.dot(pose.basis.z)) * half.z
+			var bound := (25.0 - WALL_GAP) * sqrt(2.0) - side_x * pose.origin.x - reach
+			pose.origin.z = minf(pose.origin.z, bound) if side_z > 0 else maxf(pose.origin.z, -bound)
+	var floor_y := 0.0
+	if arena_id == "moon":
+		# The physical height map is a linear interpolation of these vertices.
+		# Include every cell beneath the hull, so no corner starts in a slope even
+		# when the authored centre lies on one of the smaller flattened pads.
+		const SURFACE = preload("res://scripts/arena/moon_surface.gd")
+		var low_x := floori((pose.origin.x - extent_x + 25.0) / SURFACE.STEP)
+		var high_x := ceili((pose.origin.x + extent_x + 25.0) / SURFACE.STEP)
+		var low_z := floori((pose.origin.z - extent_z + 25.0) / SURFACE.STEP)
+		var high_z := ceili((pose.origin.z + extent_z + 25.0) / SURFACE.STEP)
+		for x: int in range(low_x, high_x + 1):
+			for z: int in range(low_z, high_z + 1):
+				floor_y = maxf(floor_y, SURFACE.height_at(x * SURFACE.STEP - 25.0, z * SURFACE.STEP - 25.0))
+	var clearance := WalkerDrive.RIDE_HEIGHT * BotScale.from_size(bot.combat.stats.size) / BotScale.FACTOR if bot.body.walker else half.y
+	pose.origin.y = floor_y + clearance + 0.05
+	return pose
 
 func reset_round() -> void:
 	weapons = CombatWorld.new()

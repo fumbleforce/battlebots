@@ -243,9 +243,10 @@ func show_loadout(draft: Dictionary) -> void:
 	model.name = "BuildModel"
 	model.position.y = 0.4
 	_turntable.add_child(model)
-	var size: Vector3 = validation.stats.size
+	# This isolated workshop keeps its original framing regardless of arena scale.
+	var size: Vector3 = validation.stats.size / BotScale.FACTOR
 	if SawbladeConfig.enabled(draft):
-		if draft.parts.drive == "walker": model.position.y = WalkerDrive.RIDE_HEIGHT - 0.12
+		if draft.parts.drive == "walker": model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
 		sawblade_visual = SawbladeVisual.new()
 		model.add_child(sawblade_visual)
 		sawblade_visual.assemble(draft, size)
@@ -265,7 +266,7 @@ func show_loadout(draft: Dictionary) -> void:
 	model.add_child(weapon_visual)
 	weapon_visual.assemble(validation.stats.weapon, size)
 	if draft.parts.drive == "walker":
-		model.position.y = WalkerDrive.RIDE_HEIGHT - 0.12
+		model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
 		var legs := WalkerLegs.new()
 		model.add_child(legs)
 		legs.terrain = false

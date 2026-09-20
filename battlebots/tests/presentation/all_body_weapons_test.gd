@@ -11,7 +11,7 @@ func _ready() -> void:
 func run() -> void:
 	var registry := ContentRegistry.new()
 	var draft := SawbladeConfig.starter(registry)
-	for size: Vector3 in [Vector3(1.4, 0.5, 1.8), Vector3(1.8, 0.6, 2.4)]:
+	for size: Vector3 in [Vector3(1.4, 0.5, 1.8), Vector3(1.8, 0.6, 2.4), Vector3(4.8, 1.5, 6.0), Vector3(5.4, 1.5, 7.2)]:
 		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
 			draft.parts.weapon = weapon
 			var visual := SawbladeVisual.new()
@@ -23,8 +23,15 @@ func run() -> void:
 			if not SawbladeConfig.WEAPONS.has(weapon):
 				var fallback := visual.fallback_weapon
 				check(fallback != null and fallback.kind == weapon, "Canonical spinner assembled")
-				check(fallback.global_basis.is_equal_approx(Basis.IDENTITY), "Spinner dimensions remain canonical")
+				var geometry_scale := BotScale.from_size(size)
+				check(fallback.global_basis.is_equal_approx(Basis.IDENTITY.scaled(Vector3.ONE * geometry_scale)),
+					"Spinner composes physical dimensions without inherited authored scale")
 				check(fallback.global_position.is_zero_approx(), "Spinner keeps canonical body origin")
+				var rotor: MeshInstance3D = fallback.mechanism.get_child(0)
+				var disc: CylinderMesh = rotor.mesh
+				var expected_radius := 0.36 * geometry_scale if weapon == "vertical_spinner" else size.x * 0.65
+				check(is_equal_approx(disc.top_radius * rotor.global_basis.x.length(), expected_radius),
+					"Actual composed spinner radius matches physical weapon geometry")
 				var view := BotView.new()
 				view.weapon_charge_fraction = 1
 				var before := fallback.mechanism.basis

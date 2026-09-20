@@ -7,8 +7,8 @@ var victim: MvpBot
 var weapons: CombatWorld
 var bots: Dictionary
 var tick := 0
-const ORIGIN := Vector3(0, 10, 0)
-const TARGET := Vector3(0, 10, -2.6)
+const ORIGIN := Vector3(0, 10, 0) * BotScale.FACTOR
+const TARGET := Vector3(0, 10, -2.6) * BotScale.FACTOR
 
 func _ready() -> void:
 	run.call_deferred()
@@ -92,11 +92,11 @@ func run() -> void:
 	if first.size() == 1 and next.size() == 2:
 		check(first[0].attack_id != next[0].attack_id and next[0].attack_id != next[1].attack_id,
 			"Separate cadence impacts receive distinct deduplication identifiers")
-	await reset_case(Vector3(0.8, 10.1, -1.4))
+	await reset_case(Vector3(0.8, 10.1, -1.4) * BotScale.FACTOR)
 	check(resolve(20).size() == 1 and is_equal_approx(victim.combat.zones.drive_left, 95.5)
 		and is_equal_approx(victim.combat.core, 258.5),
 		"Drive-pod contact routes 6 raw into 4.5 component and 1.5 core damage once")
-	await reset_case(Vector3(0, 9.6, -1.4))
+	await reset_case(Vector3(0, 9.6, -1.4) * BotScale.FACTOR)
 	var top := resolve(20)
 	check(top.size() == 1 and top[0].zone == "top" and is_equal_approx(victim.combat.core, 254.3)
 		and victim.combat.zones.rear == 90.0 and victim.combat.zones.weapon == 140.0,
@@ -104,7 +104,7 @@ func run() -> void:
 
 	await reset_case()
 	resolve(19)
-	await place(victim, Vector3(0, 10, -5))
+	await place(victim, Vector3(0, 10, -5) * BotScale.FACTOR)
 	check(resolve().is_empty(), "Separation prevents a pending damage pulse")
 	await place(victim, TARGET)
 	verify_restart("Separation clears accrued contact")
@@ -113,7 +113,7 @@ func run() -> void:
 	for pass_index: int in range(6):
 		await place(victim, TARGET)
 		passing_hits += resolve(10).size()
-		await place(victim, Vector3(0, 10, -5))
+		await place(victim, Vector3(0, 10, -5) * BotScale.FACTOR)
 		passing_hits += resolve().size()
 	check(passing_hits == 0 and victim.combat.core == 260,
 		"Repeated brief mobile contacts cannot accumulate into sustained-contact damage")
@@ -148,13 +148,13 @@ func run() -> void:
 
 	# Stagger arrival by half a cadence: one victim must not borrow the other's
 	# progress or share a single attacker-wide cooldown.
-	await reset_case(Vector3(-0.7, 10, -2.6))
+	await reset_case(Vector3(-0.7, 10, -2.6) * BotScale.FACTOR)
 	check(resolve(10).is_empty(), "First target starts its own contact timer")
 	var other := MvpBot.create(3, 1, registry.starter(), registry)
 	add_child(other)
 	other.body.freeze = true
 	other.body.collision_mask = 0
-	await place(other, Vector3(0.7, 10, -2.6))
+	await place(other, Vector3(0.7, 10, -2.6) * BotScale.FACTOR)
 	bots[3] = other
 	var a := resolve(10)
 	var b := resolve(10)
@@ -164,7 +164,7 @@ func run() -> void:
 	other.queue_free()
 	await flush_physics()
 
-	for point: Vector3 in [Vector3(1.1, 10, -2.6), Vector3(0, 10, -3), Vector3(0, 11, -2.6), Vector3(0, 10, 2)]:
+	for point: Vector3 in [Vector3(1.1, 10, -2.6) * BotScale.FACTOR, Vector3(0, 10, -3) * BotScale.FACTOR, Vector3(0, 11, -2.6) * BotScale.FACTOR, Vector3(0, 10, 2) * BotScale.FACTOR]:
 		await reset_case(point)
 		check(resolve(60).is_empty(), "Side/height/range/rear miss cannot accrue contact damage: " + str(point))
 	await reset_case()
@@ -178,10 +178,10 @@ func run() -> void:
 	# stationary endpoint misses, so only the between-tick sweep can finish it.
 	await reset_case()
 	resolve(19)
-	await place(attacker, Vector3(3, 10, 0))
-	attacker.previous_pose = Transform3D(Basis.IDENTITY, Vector3(-3, 10, 0))
+	await place(attacker, Vector3(3, 10, 0) * BotScale.FACTOR)
+	attacker.previous_pose = Transform3D(Basis.IDENTITY, Vector3(-3, 10, 0) * BotScale.FACTOR)
 	check(resolve().size() == 1, "Fast translation preserves a real swept contact on the cadence tick")
-	var arc_target := Vector3(-1.4, 10, 0)
+	var arc_target := Vector3(-1.4, 10, 0) * BotScale.FACTOR
 	await reset_case(arc_target, ORIGIN, PI * 0.5)
 	resolve(19)
 	await place(attacker, ORIGIN, PI - 0.001)

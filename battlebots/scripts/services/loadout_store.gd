@@ -9,6 +9,7 @@ const REVISION_TWO_HASHES := ["db17ced752e95309a2535da0fe5d8c6aded0ff2ab70f80ffe
 const REVISION_THREE_HASHES := ["4145fa8eff0fef9e4336ef5dc8f5698a16f8cb5bb277cdbf02cb313eafa37819"]
 const REVISION_FOUR_HASHES := ["703edd52af68069b180b69767f144771b9fa453a0e00a194ece169a365512f41"]
 const REVISION_FIVE_HASHES := ["2e559b989e4c9c990ca276bd4a319b707bb23a7b1796242444979a2736edb959"]
+const REVISION_SIX_HASHES := ["63b655000dc8129c3cd52cb735ecfaec5cbc7cdb1513b43de024383e7473e8a5"]
 const MAX_SAVE_BYTES := 65536
 var registry := ContentRegistry.new()
 var path: String
@@ -210,16 +211,17 @@ func _recovery_envelope(bytes: PackedByteArray) -> Dictionary:
 	return {"valid": true, "loadouts": envelope.loadouts}
 
 func migrate(data: Dictionary) -> Dictionary:
-	# Schema 0 used a `builds` envelope; part IDs/stats are never silently replaced.
+	# Schema 0 used a `builds` envelope; selections are never silently replaced.
 	var copy := data.duplicate(true)
 	if copy.get("schema_version") == 0 and copy.get("builds") is Array:
 		copy = {"schema_version": 1, "loadouts": copy.builds}
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES:
 				continue
-			# New catalogue entries preserve existing part IDs and balance values.
+			# Known catalogues preserve part IDs, names and cosmetics while adopting
+			# current canonical dimensions/handling. No arbitrary old hash is trusted.
 			# Upgrade known compatible saves locally, never loosen network checks.
 			var upgraded: Dictionary = draft.duplicate(true)
 			upgraded.content_hash = registry.content_hash

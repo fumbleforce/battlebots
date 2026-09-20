@@ -7,8 +7,8 @@ var victim: MvpBot
 var weapons: CombatWorld
 var bots: Dictionary
 var tick := 0
-const ORIGIN := Vector3(0, 10, 0)
-const TARGET := Vector3(0, 10, -2)
+const ORIGIN := Vector3(0, 10, 0) * BotScale.FACTOR
+const TARGET := Vector3(0, 10, -2) * BotScale.FACTOR
 
 func _ready() -> void:
 	run.call_deferred()
@@ -83,7 +83,7 @@ func run() -> void:
 		check(event.zone == "top" and event.attack_id == 7 and event.attacker == 1
 			and event.target == 2 and event.tick == tick and event.round == 2,
 			"Actual overhead event records top zone and accepted activation/server tick")
-		check(is_equal_approx(event.position.y, 10.25), "Impact position lies on the victim's top face")
+		check(is_equal_approx(event.position.y, 10.25 * BotScale.FACTOR), "Impact position lies on the victim's top face")
 	var damaged := victim.combat.core
 	resolve()
 	check(weapons.events.is_empty() and victim.combat.core == damaged,
@@ -95,12 +95,12 @@ func run() -> void:
 	resolve()
 	check(weapons.events.size() == 1 and victim.combat.core < damaged,
 		"A distinct activation may strike the same target")
-	await reset_case(Vector3(-0.7, 10, -2))
+	await reset_case(Vector3(-0.7, 10, -2) * BotScale.FACTOR)
 	var second_target := MvpBot.create(3, 1, registry.starter(), registry)
 	add_child(second_target)
 	second_target.body.freeze = true
 	second_target.body.collision_mask = 0
-	second_target.body.global_position = Vector3(0.7, 10, -2)
+	second_target.body.global_position = Vector3(0.7, 10, -2) * BotScale.FACTOR
 	second_target.previous_pose = second_target.body.global_transform
 	bots[3] = second_target
 	await flush_physics()
@@ -118,11 +118,11 @@ func run() -> void:
 	await flush_physics()
 
 	for item: Array in [
-		[Vector3(0, 10, 2), "Behind chassis"],
-		[Vector3(2, 10, -2), "Outside the narrow hammer arc"],
-		[Vector3(0, 10, -3.4), "Beyond forward reach"],
-		[Vector3(0, 12.5, -2), "Above maximum head height"],
-		[Vector3(0, 8.8, -2), "Below completed swing"],
+		[Vector3(0, 10, 2) * BotScale.FACTOR, "Behind chassis"],
+		[Vector3(2, 10, -2) * BotScale.FACTOR, "Outside the narrow hammer arc"],
+		[Vector3(0, 10, -3.4) * BotScale.FACTOR, "Beyond forward reach"],
+		[Vector3(0, 12.5, -2) * BotScale.FACTOR, "Above maximum head height"],
+		[Vector3(0, 8.8, -2) * BotScale.FACTOR, "Below completed swing"],
 	]:
 		await reset_case(item[0])
 		expect_miss(item[1])
@@ -178,15 +178,15 @@ func run() -> void:
 	expect_miss("Inactive round cannot hit")
 
 	# Each stationary endpoint misses, while the moving hammer passes through.
-	var crossing_target := Vector3(1.2, 10, -2)
-	await reset_case(crossing_target, Vector3(-3, 10, 0))
+	var crossing_target := Vector3(1.2, 10, -2) * BotScale.FACTOR
+	await reset_case(crossing_target, Vector3(-3, 10, 0) * BotScale.FACTOR)
 	expect_miss("Translation start endpoint")
-	await reset_case(crossing_target, Vector3(3, 10, 0))
+	await reset_case(crossing_target, Vector3(3, 10, 0) * BotScale.FACTOR)
 	expect_miss("Translation finish endpoint")
-	attacker.previous_pose = Transform3D(Basis.IDENTITY, Vector3(-3, 10, 0))
+	attacker.previous_pose = Transform3D(Basis.IDENTITY, Vector3(-3, 10, 0) * BotScale.FACTOR)
 	resolve()
 	check(weapons.events.size() == 1, "Fast translation is swept through a target between endpoints")
-	var turning_target := Vector3(-2.05, 10, 0.6)
+	var turning_target := Vector3(-2.05, 10, 0.6) * BotScale.FACTOR
 	await reset_case(turning_target)
 	expect_miss("Turning start endpoint")
 	await reset_case(turning_target, ORIGIN, PI - 0.001)

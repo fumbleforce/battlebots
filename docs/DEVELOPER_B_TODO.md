@@ -574,7 +574,10 @@ reservation is released after integration. See [scope](coordination/A_HUD_REDESI
   banks, continuous audio presentation and matching tests/assets. Existing ram,
   hammer and powered-saw signals are consumed unchanged. See
   [scope](coordination/A_SAMPLED_COMBAT_AUDIO.md).
+
 ## Garage layout annotation follow-up - B
 
 Scope and validation: [garage layout](coordination/B_GARAGE_LAYOUT.md). Isolated
 branch preserves concurrent main-menu/audio edits. No shared API changes.
+
+- **B heavy machines:** codex/b-heavy-machines reserves 3x canonical bot scale, heavier drive/replay, weapon/walker geometry, camera/preview and narrow documented spawn/practice/marker integration. See [scope](coordination/B_HEAVY_MACHINES.md).

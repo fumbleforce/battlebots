@@ -5,6 +5,19 @@ const OVERLAY := preload("res://scripts/presentation/component_damage.gdshader")
 const MAXIMUM := {"drive_left": 100.0, "drive_right": 100.0, "weapon": 140.0}
 const SMOKE_PARTICLES := 6
 var components: Dictionary = {}
+var _geometry_scale := 1.0
+
+func set_geometry_scale(value: float) -> void:
+	if not is_finite(value) or value <= 0.0: return
+	_geometry_scale = value
+	for record: Dictionary in components.values(): _scale_smoke(record.smoke)
+
+func _scale_smoke(smoke: CPUParticles3D) -> void:
+	smoke.gravity = Vector3(0, 0.15, 0) * _geometry_scale
+	smoke.initial_velocity_min = 0.45 * _geometry_scale
+	smoke.initial_velocity_max = 0.75 * _geometry_scale
+	smoke.emission_sphere_radius = 0.04 * _geometry_scale
+	(smoke.mesh as QuadMesh).size = Vector2(0.45, 0.45) * _geometry_scale
 
 func bind_component(zone: String, meshes: Array, anchor: Node3D) -> void:
 	assert(MAXIMUM.has(zone))
@@ -108,5 +121,6 @@ func _smoke() -> CPUParticles3D:
 	quad.size = Vector2(0.45, 0.45)
 	quad.material = material
 	smoke.mesh = quad
+	_scale_smoke(smoke)
 	smoke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return smoke

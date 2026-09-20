@@ -7,13 +7,18 @@ static func forces(basis: Basis, velocity: Vector3, angular: Vector3, normal: Ve
 	var right := forward.cross(normal).normalized()
 	var speed := velocity.dot(forward)
 	var acceleration: float = config.brake if braking else config.acceleration * config.drive_scale
+	# Releasing the motor lets momentum carry the chassis. Explicit braking and
+	# the existing stale-input failsafe remain stronger than neutral coasting.
+	if not braking and is_zero_approx(throttle):
+		acceleration = float(config.get("coast", config.acceleration))
 	var desired: float = 0 if braking else throttle * config.speed
 	var longitudinal := clampf((desired - speed) / delta, -acceleration, acceleration)
-	var lateral := -velocity.dot(right) / maxf(0.12, delta)
+	var lateral := -velocity.dot(right) / maxf(float(config.get("lateral_response", 0.12)), delta)
 	var force := (forward * longitudinal + right * lateral).limit_length(config.grip)
 	var ratio := clampf(absf(speed) / float(config.speed), 0, 1)
 	var yaw: float = 0 if braking else -steering * config.turn * lerpf(1, 0.4, ratio)
-	var yaw_acceleration := clampf((yaw - angular.dot(normal)) / 0.15, -5, 5)
+	var yaw_limit := float(config.get("yaw_acceleration_limit", 5.0))
+	var yaw_acceleration := clampf((yaw - angular.dot(normal)) / float(config.get("yaw_response", 0.15)), -yaw_limit, yaw_limit)
 	if config.steering_scale == 0:
 		yaw_acceleration = 0
 	return {"acceleration":force, "yaw_acceleration":yaw_acceleration}
@@ -30,8 +35,8 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 		var command := WireCodec.command_from_array(data)
 		if command == null:
 			continue
-		throttle = move_toward(throttle, 0.0 if command.brake else command.throttle, 3 * delta)
-		steering = move_toward(steering, 0.0 if command.brake else command.steering, 4 * delta)
+		throttle = move_toward(throttle, 0.0 if command.brake else command.throttle, float(config.get("throttle_response", 3.0)) * delta)
+		steering = move_toward(steering, 0.0 if command.brake else command.steering, float(config.get("steering_response", 4.0)) * delta)
 		velocity.y = minf(velocity.y, 8.0)
 		angular = angular.limit_length(12.0)
 		if state.get("grounded", false):
