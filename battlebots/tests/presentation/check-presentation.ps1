@@ -25,6 +25,10 @@ foreach ($check in @(@('practice_hud_test.gd', 'PRACTICE HUD PASS'),
         '--quit-after', '6000') -Marker $check[1]
 }
 foreach ($check in @(@('gameplay_audio_test.gd', 'GAMEPLAY AUDIO PASS'),
+    @('gameplay_loop_bank_test.gd', 'GAMEPLAY_LOOP_BANK_PASS'),
+    @('continuous_gameplay_audio_test.gd', 'CONTINUOUS_GAMEPLAY_AUDIO_TEST: PASS'),
+    @('audio_session_test.gd', 'AUDIO SESSION PASS'),
+    @('continuous_audio_game_test.gd', 'CONTINUOUS AUDIO GAME PASS'),
     @('audio_settings_test.gd', 'AUDIO SETTINGS PASS'),
     @('audio_menu_test.gd', 'AUDIO MENU PASS'))) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,

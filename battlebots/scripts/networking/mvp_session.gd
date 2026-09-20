@@ -984,6 +984,44 @@ func bot_views() -> Array[BotView]:
 			views.append(world.bots[id].read_view())
 	return views
 
+func audio_views() -> Array[Dictionary]:
+	# Physical movement comes from authority, never from differentiated smoothing
+	# or the client's predicted body. Position alone follows the displayed bot.
+	var records: Array[Dictionary] = []
+	if not is_instance_valid(world):
+		return records
+	for id: int in world.bots:
+		var bot: MvpBot = world.bots[id]
+		if not _server and not _last_snapshot_tick.has(id):
+			continue
+		var view := bot.read_view()
+		var state: Dictionary
+		if _server:
+			var resetting := bot.body.reset_pose is Transform3D
+			state = {
+				"pose": bot.body.reset_pose if resetting else bot.body.global_transform,
+				"velocity": Vector3.ZERO if resetting else bot.body.linear_velocity,
+				"angular": Vector3.ZERO if resetting else bot.body.angular_velocity,
+				"drive_input": 0.0 if resetting else bot.body._drive_input,
+				"turn_input": 0.0 if resetting else bot.body._turn_input,
+				"grounded": false if resetting else bot.body.grounded,
+				"weapon": bot.combat.stats.weapon, "charge": bot.combat.charge,
+				"eliminated": bot.combat.eliminated, "tick": bot.server_tick,
+			}
+		else:
+			state = bot.remote_state
+			if state.is_empty() or state.get("epoch") != WireCodec.snapshot_epoch(
+				match_view.get("match_id", ""), match_view.get("round", 0)):
+				continue
+		records.append({"entity_id": id, "tick": state.tick,
+			"position": view.pose.origin, "pose": state.pose,
+			"velocity": state.velocity, "angular": state.angular,
+			"drive_input": state.drive_input, "turn_input": state.turn_input,
+			"grounded": state.grounded, "weapon": state.weapon,
+			"charge": state.charge, "eliminated": state.eliminated,
+			"age": 0.0 if _server else maxf(0.0, _time - float(state.arrival))})
+	return records
+
 func spectator_sources() -> Array[BotSource]:
 	var sources: Array[BotSource] = []
 	if not is_instance_valid(world) or not world.bots.has(local_entity):

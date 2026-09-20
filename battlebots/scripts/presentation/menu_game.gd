@@ -20,6 +20,7 @@ var results_panel: MatchResults
 @export var audio_settings_path := "user://audio.cfg"
 var audio_preferences: AudioPreferences
 var gameplay_audio: GameplayAudio
+var continuous_audio: ContinuousGameplayAudio
 var audio_settings: AudioSettingsPanel
 var audio_settings_button: Button
 var _audio_overlay: Control
@@ -145,6 +146,12 @@ func _add_gameplay_audio() -> void:
 	gameplay_audio = GameplayAudio.new()
 	gameplay_audio.name = "GameplayAudio"
 	add_child(gameplay_audio)
+	continuous_audio = ContinuousGameplayAudio.new()
+	continuous_audio.name = "ContinuousAudio"
+	add_child(continuous_audio)
+	gameplay_audio.cue_played.connect(func(cue: String) -> void:
+		if cue in ["countdown", "start", "round_end", "results", "low_core", "recovery"]:
+			continuous_audio.duck())
 	session.combat_event.connect(_audio_combat_event)
 	var captions := CanvasLayer.new()
 	captions.layer = 5
@@ -383,6 +390,7 @@ func _process(_delta: float) -> void:
 		elif phase == "lobby":
 			MenuRouter.goto("lobby", false)
 	if _recovering:
+		continuous_audio.reset()
 		preview.release_controls(false)
 		preview.pause_menu.hide()
 		menu_host.hide()
@@ -436,6 +444,9 @@ func _process(_delta: float) -> void:
 			break
 	match_hud.render(session.match_view, session.connection_state == "practice", local_view.team if local_view != null else -1)
 	combat_hud.visible = match_hud.visible
+	continuous_audio.render(session.audio_views(), combat_hud.visible
+		and phase in ["active", "overtime"] and local_view != null
+		and (session.connection_state == "practice" or session.match_view.get("mode") == "1v1"))
 	world_markers.visible = combat_hud.visible
 	# Read presentation poses after child bot smoothing has advanced this frame.
 	_update_world_markers.call_deferred()
@@ -521,6 +532,7 @@ func return_to_main() -> void:
 		cancel_online()
 	session.leave()
 	gameplay_audio.reset()
+	continuous_audio.reset()
 	_last_phase = ""
 	_vote_match = ""
 	results_panel.hide()
@@ -574,6 +586,7 @@ func _session_event(kind: String, details: Dictionary) -> void:
 		_practice_knockout_handled = false
 	if kind == "practice_restarted":
 		gameplay_audio.reset()
+		continuous_audio.reset()
 	if kind == "results":
 		results_panel.accept_record(details, str(session.match_view.get("match_id", "")))
 	elif kind == "error":
@@ -583,6 +596,7 @@ func _session_event(kind: String, details: Dictionary) -> void:
 			if not _recovering:
 				_recovering = true
 				gameplay_audio.reset()
+				continuous_audio.reset()
 				if _general_settings_open():
 					_cancel_general_settings()
 				if preview.settings_panel.visible:

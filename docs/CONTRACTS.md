@@ -10,6 +10,26 @@ Paths below are relative to the Godot project.
 
 ## Combat and round HUD
 
+`MvpSession.audio_views() -> Array[Dictionary]` supplies detached audio records
+for current bots: entity_id, tick, position (displayed world position), pose
+(physical world transform), velocity, angular, drive_input, turn_input,
+grounded, weapon, charge, eliminated and age (seconds). Server/practice records
+use authoritative body/combat state, neutral movement during pending resets,
+and zero age. Client records require an accepted current-round baseline and
+use its physical snapshot even for the predicted local player; age measures
+time since acceptance. Presentation must reject stale records beyond 250 ms.
+Practice target metadata is included independently of lobby membership. No
+BotView or wire fields changed. A owns this accessor and its continuous audio
+consumer; B's drive and combat producers remain unchanged.
+
+`ContinuousGameplayAudio.render(records, active)` supplies at most two bots'
+spatial drive/sliding/rotor loops plus arena ambience on BBEffects. Only grounded
+lateral motion drives the approximate sliding cue. Spinner charge also drives
+spin-down pitch; saw power is binary, hammer/lifter have no rotor loop.
+`reset()` stops all continuous sound; `duck(seconds)` lowers arena gain locally
+without changing user bus settings. Game menus, recovery, results and inactive
+rounds suppress these loops; captions/HUD remain the visual source of information.
+
 `CombatHud.apply_accessibility(text_scale, palette, high_contrast)` and the same
 `MatchHud` method change local presentation only. Text grows independently from
 viewport scaling; the enlarged layout reflows panels and component cells.

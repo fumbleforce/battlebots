@@ -398,3 +398,18 @@ integration base, not the still-old main branch.
   authoritative elimination field and resets with the new-round view. Existing
   HUD text/palette/contrast settings apply. B may continue asset/control work
   without modifying this node; no new producer fields are required.
+
+- **A continuous audio intent (2026-09-20):** reserves audio scripts, A session
+  `audio_views()` accessor, menu-game composition and independent audio tests
+  on `codex/a-spatial-gameplay-audio`. Reuse existing physical snapshot fields
+  and weapon metadata, including practice targets; no B producer/wire changes.
+  B can continue combat/drive/assets work. Details and planned validation:
+  [audio coordination](coordination/A_SPATIAL_GAMEPLAY_AUDIO.md).
+
+- **A continuous audio handoff:** `MvpSession.audio_views()` now publishes
+  detached existing physical snapshot data plus displayed position. A's
+  continuous audio consumes drive demand, grounded sideways velocity and
+  weapon family/charge. Spinner coast-down is retained, saw power is binary,
+  and hammer/lifter charge does not create fake rotor sound. No additional B
+  producer fields or wire changes are required. B may continue its owned work;
+  audio coverage and human listening polish remain A follow-ups.

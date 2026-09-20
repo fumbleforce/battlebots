@@ -57,6 +57,18 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-spatial-gameplay-audio` follows `9a3053a`. A adds a detached session
+audio accessor over existing physical snapshots and first-pass 1v1/practice
+drive/sliding/spinner/saw/arena loops. Client audio uses accepted authority data
+even for the predicted local bot; spatial positions follow presentation. Two
+fixed bot rigs cap voices, stale data and menus/recovery stop playback, and
+warnings duck ambience without changing saved bus volumes. B's producers,
+controls, camera and assets are unchanged; no wire change. See
+[audio evidence](coordination/A_SPATIAL_GAMEPLAY_AUDIO.md). Remaining cue coverage,
+spatial impact mixing and human listening acceptance stay open on the board.
+
+### Preceding world-marker increment
+
 `codex/a-duel-world-markers` follows `fa99d97`. A's read-only 1v1/practice world
 badges use symbols plus YOU/RIVAL/TARGET/OUT text and the saved HUD accessibility
 settings. Published presentation poses keep them attached to the displayed bots;
