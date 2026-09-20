@@ -2,11 +2,12 @@
 
 ## Featured vehicle selection — 20 September 2026
 
-`codex/b-featured-vehicle` starts from `9e54dcc`. Main and lobby consume B's
+`codex/b-featured-vehicle` starts from `9e54dcc` and integrates A's lunar arena
+update through `dfd5e64`. Main and lobby consume B's
 session-free FeaturedVehicle control: named local builds, Previous/Next, live
 canonical chassis/weapon preview, and optional rotating pedestal with Pause/Resume.
-The old main image/info and lobby dropdown/arena card are removed. The Foundry
-rules remain in the lobby; general session/navigation ownership stays with A.
+The old main image/info and lobby dropdown/arena card are removed. Arena identity
+and rules remain in the lobby; general session/navigation ownership stays with A.
 
 Selection updates the local profile only. Lobby Apply submits through the existing
 session API; status distinguishes drafts from host-confirmed builds and existing

@@ -4,8 +4,9 @@ User feedback, 2026-09-20. Current A branch: `codex/a-live-duel-refinement`.
 The released Fly-compatible client exposed oversized scrolling navigation,
 grey margins, two yellow primary actions, mismatched settings without video
 options, an easily missed private code, and weak vehicle selection/showcase.
-All seven requests are open on A_MVP_TASKS.md; these supersede previous claims
-that automated layout checks establish finished menu presentation.
+All seven requests are tracked on A_MVP_TASKS.md; its current checkboxes distinguish
+implemented corrections from remaining acceptance. This feedback supersedes
+previous claims that automated layout checks establish finished menu presentation.
 
 A is implementing responsive general navigation, full-bleed background, softer
 secondary button states and a persistent lobby code/copy action first. A also

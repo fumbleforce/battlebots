@@ -1,6 +1,7 @@
 # Featured vehicle selector and rotating showcase — B handoff
 
 Branch: `codex/b-featured-vehicle`, based on shared main `9e54dcc`.
+Rebased onto A's lunar arena integration `dfd5e64` before publication.
 Owner B implements the requested prominent vehicle selection and assembled-bot
 showcase. A owns general main/lobby flow and authoritative session integration.
 
@@ -51,7 +52,7 @@ Baseline, FEATURED VEHICLE, GARAGE SHOWCASE, B MENU TEXT GAME, MENU FLOW and
 MENU MODE GUARD pass. The last mode-guard run reports two ObjectDB instances at
 exit, consistent with the existing cleanup-warning gate; no crash or script error
 occurred. This increment does not claim a general shutdown fix or new remote-play
-acceptance. Published intent is f999cd4; completed source is integrated into main
+acceptance. Intent was published before implementation; completed source is integrated into main
 under the feature commit on this branch.
 
 Final FEATURED VEHICLE MENU and MAIN MENU FIT pass, including native D3D12
@@ -69,3 +70,15 @@ Captures are written to `user://featured-*-150.png`. Keyboard Enter and mouse
 activation travel through the actual input pipeline in FEATURED VEHICLE PASS.
 Three new scenes are registered in check-presentation.ps1. No test writes loadouts
 or changes the user's selected build after the fixture exits.
+
+## Lunar arena integration
+
+Final fetch incorporated A's `dfd5e64`. The textual rebase succeeded, but semantic
+review found A's new lobby arena-image references pointed at the removed card.
+The compact lobby display now preserves authoritative arena identity/gravity
+alongside the featured vehicle; A's arena selector, hosting and practice choice
+remain. Baseline and real Moon ENet admission/reconnect/gravity checks pass after
+integration. No B drive/combat changes are inferred from the lunar menu work;
+low-gravity handling/balance remains a separate human playtest gate.
+
+Post-rebase ARENA SELECTION, FEATURED VEHICLE MENU (headless and native Moon), PRIVATE LOBBY CODE, MENU HOST FIT and B MENU TEXT GAME pass. Headless clipboard remains unavailable; the clipboard implementation is unchanged.

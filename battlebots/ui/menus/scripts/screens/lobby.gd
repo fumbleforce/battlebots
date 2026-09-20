@@ -82,9 +82,13 @@ func _ready() -> void:
 		var style := panel.get_theme_stylebox("panel").duplicate() as StyleBox
 		style.content_margin_top = 8
 		style.content_margin_bottom = 8
+		style.content_margin_left = 8
+		style.content_margin_right = 8
 		panel.add_theme_stylebox_override("panel", style)
 	%StatusBig.add_theme_font_size_override("font_size", 36)
 	%StatusSub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	$Layout/Body/Row/Match/Rules/Hazards/Col/Value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if is_instance_valid(session):
 		session.lobby_changed.connect(_lobby_changed)
 		session.session_event.connect(_session_event)
@@ -391,10 +395,7 @@ func refresh() -> void:
 	var connected := state in ["hosting", "connected"]
 	var arena_id: String = session.lobby_view.get("arena", "foundry") if connected else (preload("res://scripts/arena/arena_scenery.gd").load_choice() if MenuRouter.lobby_intent == "host" else "foundry")
 	var arena_data: Dictionary = MenuData.ARENAS[1 if arena_id == "moon" else 0]
-	%ArenaName.text = arena_data.name
-	%ArenaImage.texture = arena_data.image
-	$Layout/Body/Row/Match/ArenaCard/Caption/Row/Vote.text = "LUNAR GRAVITY" if arena_id == "moon" else "STANDARD GRAVITY"
-	$Layout/Body/Row/Match/Rules/Hazards/Col/Value.text = "Uneven ground" if arena_id == "moon" else "None"
+	$Layout/Body/Row/Match/Rules/Hazards/Col/Value.text = "Uneven" if arena_id == "moon" else "None"
 	var known := connected and session.lobby_view.has("mode")
 	var per_team := ceili(capacity / 2.0)
 	var teams: Array = [[], []]
@@ -442,12 +443,14 @@ func refresh() -> void:
 	var match_column := $Layout/Body/Row/Match as VBoxContainer
 	$Layout/Body/Row.alignment = BoxContainer.ALIGNMENT_CENTER
 	match_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL if known else Control.SIZE_SHRINK_CENTER
-	match_column.custom_minimum_size.x = 0.0 if known else 960.0
+	match_column.custom_minimum_size.x = 660.0 if known else 960.0
 	match_column.alignment = BoxContainer.ALIGNMENT_BEGIN if known else BoxContainer.ALIGNMENT_CENTER
 	$Layout/Body/Row/Match/Status.size_flags_vertical = Control.SIZE_EXPAND_FILL if known else Control.SIZE_FILL
 	$Layout/Body/Row/Match/Status.custom_minimum_size.y = 0.0 if known else 180.0
 	var mode_title := "FREE FOR ALL" if ffa else ("1V1" if capacity == 2 else mode.to_upper())
 	%Eyebrow.text = "%s · LOBBY" % mode_title if known else ("ONLINE MATCH · CONNECTION" if MenuRouter.lobby_intent == "online" else "PRIVATE MATCH · DIRECT CONNECTION")
+	if known or MenuRouter.lobby_intent == "host":
+		%Eyebrow.text += " · " + str(arena_data.name) + (" · LUNAR GRAVITY" if arena_id == "moon" else " · STANDARD GRAVITY")
 	%Title.text = "MATCH LOBBY" if known else ("ONLINE MATCH" if MenuRouter.lobby_intent == "online" else ("JOIN A MATCH" if MenuRouter.lobby_intent == "join" else "HOST A MATCH"))
 	$Layout/Body/Row/Match/Rules/Win/Col/Value.text = "Last bot" if ffa else "First to 2"
 	$Layout/Body/Row/Match/Rules/Clock/Col/Value.text = "5:00" if ffa else ("4:00" if capacity == 10 else "3:00")

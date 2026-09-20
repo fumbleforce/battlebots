@@ -48,6 +48,14 @@ func run() -> void:
  lobby.host_button.pressed.emit()
  check(session.connection_state == "hosting", "Lobby fixture uses real host authority")
  await layout(lobby, "lobby")
+ var published_arena: String = session.lobby_view.get("arena", "foundry")
+ session.lobby_view.arena = "moon"
+ lobby.refresh()
+ check(lobby.get_node("%Eyebrow").text.contains("LUNAR OUTPOST") and lobby.get_node("%Eyebrow").text.contains("LUNAR GRAVITY"), "Published Moon identity remains visible beside vehicle showcase")
+ check(lobby.get_node("Layout/Body/Row/Match/Rules/Hazards/Col/Value").text == "Uneven", "Moon terrain rule remains visible")
+ await layout(lobby, "lobby-moon")
+ session.lobby_view.arena = published_arena
+ lobby.refresh()
  PlayerProfile.loadouts[0].name = "W".repeat(48)
  PlayerProfile.inventory_changed.emit()
  await layout(lobby, "lobby-long")
