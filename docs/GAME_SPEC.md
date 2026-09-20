@@ -4,6 +4,14 @@
 
 **Status:** Proposed design and implementation specification. This document does not represent implemented features. Numerical balance values are initial playtest targets unless explicitly stated otherwise.
 
+**Delivery priority — user update, 20 September 2026:** complete a fully working
+1v1 game first, including externally hosted matchmaking/game servers, readable
+HUD, coherent multiplayer menus, win/score screens and an in-game menu matching
+the other panels. Human multiplayer through a tunnel has succeeded per the user;
+external hosting still needs separate acceptance. The broader mode and tutorial
+designs below remain future scope: defer 2v2, other modes and tutorial until 1v1
+is fully working. See [the current board](A_MVP_TASKS.md) for implementation status.
+
 ## 1. Product definition
 
 A competitive 3D robot-combat game in which players build a compact fighting machine, drive it directly into an enclosed arena, and win through positioning, weapon timing, and teamwork. Machines should feel heavy and mechanically understandable while remaining responsive enough for online competition.

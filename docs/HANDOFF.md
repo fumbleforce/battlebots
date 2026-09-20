@@ -54,6 +54,17 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-hosted-duel-deployment` prepares external 1v1 acceptance after `bca152c`.
+The hosted harness can target an HTTPS allocator without starting a local server,
+and verifies assigned ENet play through two forfeit-driven rounds, agreed scores,
+results and an active rematch. Fresh Linux and Windows exports, service checks
+and Fly configuration validation pass. External hosting remains unprovisioned;
+the existing pending confirmation concerns the recurring one-Machine/dedicated-IP
+cost. See [deployment acceptance](coordination/A_HOSTED_DUEL_DEPLOYMENT.md).
+Do not treat a local test or a Linux export as proof of external reachability.
+
+### Preceding HUD increment
+
 `codex/a-duel-hud` follows menu panels `1a5d38a`. The default game now has a
 read-only combat HUD for resources, raw component integrity/breaches/disables,
 weapon state/charge/cooldown, recovery availability/cooldown, prominent

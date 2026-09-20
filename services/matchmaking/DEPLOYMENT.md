@@ -19,6 +19,13 @@ node tools/check-hosted.mjs --godot $GodotPath --server-binary (Resolve-Path bat
 fly config validate -c services/matchmaking/fly.toml
 ```
 
+For the current 1v1 priority, add `--duel-only` to either hosted check. It uses
+two independent clients and public forfeit votes to verify two rounds, matching
+authoritative scores/results and an active rematch. This is lifecycle acceptance,
+not natural combat or human-feel acceptance. Omitting the flag retains the older
+four-client queue regression too when running locally; external endpoint mode
+always selects the duel check. Queue regression is not required for deployment.
+
 The prepare command creates a fresh Linux binary, PCK and compatibility manifest
 under `battlebots/exports/hosted-server/`. The existing menu/music playtest ZIP is
 preserved. The Docker context excludes unrelated repository files, private local
@@ -58,6 +65,17 @@ After health and a real external assigned-ENet check pass, set
 is public configuration, not a secret. An override `--matchmaking-url=...` permits
 testing a different HTTPS service; plain HTTP is accepted only for literal
 loopback addresses. Deploying a new build requires matching clients/server.
+
+Run the external acceptance check from a computer outside the Fly Machine:
+
+```powershell
+node tools/check-hosted.mjs --godot $GodotPath --endpoint https://battlebots-fumbleforce.fly.dev --duel-only
+```
+
+This mode uses the deployed allocator and its assigned UDP workers; it does not
+start a local service/server. It still runs two independent clients on the test
+computer. Keep the resulting report as deployment evidence, then conduct a
+two-computer human hosted duel to assess actual combat and connection quality.
 
 ## Costs and limits
 

@@ -350,3 +350,5 @@ integration base, not the still-old main branch.
   transport; plain unreliable snapshots now use the existing per-entity tick
   guard. An adversarial raw-UDP test proves both the old failure and new behavior.
   No input-command ordering or B diagnostic-field semantics change.
+
+- **A hosted duel intent (2026-09-20):** reserves deployment configuration, hosted acceptance harness and A client fixtures on codex/a-hosted-duel-deployment. External private 1v1 results/rematch validation is next; no B implementation or wire contract edits. See coordination/A_HOSTED_DUEL_DEPLOYMENT.md.

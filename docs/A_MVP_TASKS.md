@@ -18,7 +18,10 @@ active expansion or acceptance work.
 - [ ] Deploy the externally hosted matchmaker and dedicated game server for 1v1;
   verify external connectivity and complete a real hosted duel through rematch.
   Existing private-duel support is the starting point; the current 2v2 queue is
-  not the active delivery target. Public hosting remains outstanding.
+  not the active delivery target. Public hosting remains outstanding. The
+  [external duel harness](coordination/A_HOSTED_DUEL_DEPLOYMENT.md) now checks
+  authoritative results and rematch as well as assigned connectivity; local
+  validation does not close this deployment task.
 - [x] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
   state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
   B's authoritative combat/bot interfaces. Core HUD, raw component diagram,

@@ -1,7 +1,7 @@
 // Exercise the real HTTP allocator, separate Godot server and real ENet clients.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, writeFile, readFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { Transform } from 'node:stream';
 import { finished } from 'node:stream/promises';
@@ -21,8 +21,19 @@ function option(name) {
 const godot = option('--godot');
 if (!godot) throw new Error('Required: --godot <Godot 4.7.2 executable>');
 const serverBinary = option('--server-binary');
+const endpoint = option('--endpoint');
+const duelOnly = Boolean(endpoint) || args.includes('--duel-only');
+if (endpoint) {
+  const url = new URL(endpoint);
+  assert.equal(url.protocol, 'https:', 'External endpoint must use HTTPS');
+  assert.ok(!url.username && !url.password && !url.search && !url.hash && url.pathname === '/',
+    'External endpoint must be an HTTPS origin without credentials');
+  assert.ok(!serverBinary, '--server-binary applies only to local service checks');
+}
 const run = await mkdtemp(path.join(os.tmpdir(), 'battlebots-hosted-'));
 const children = [];
+const ownedGuests = [];
+const credentialFiles = [];
 const crashPatterns = [
   ['SCRIPT ERROR', /SCRIPT ERROR/], ['Parse Error', /Parse Error/],
   ['ERROR', /(?:^|[\r\n])ERROR/], ['CrashHandlerException', /CrashHandlerException/],
@@ -109,9 +120,9 @@ const port = await new Promise(resolve => {
     probe.close(() => resolve(chosen));
   });
 });
-const base = `http://127.0.0.1:${port}`;
+const base = endpoint ? new URL(endpoint).origin : `http://127.0.0.1:${port}`;
 async function request(route, guest, method = 'GET', body) {
-  const response = await fetch(base + route, { method, signal: AbortSignal.timeout(5000),
+  const response = await fetch(base + route, { method, redirect: 'error', signal: AbortSignal.timeout(5000),
     headers: { 'Content-Type': 'application/json', ...(guest ? { Authorization: `Bearer ${guest.access_token}` } : {}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const value = await response.json();
@@ -125,17 +136,21 @@ try {
   const compatibility = JSON.parse(await readFile(manifest, 'utf8'));
   const stateDirectory = path.join(run, 'state');
   await mkdir(stateDirectory);
-  const service = launch('service', process.execPath, ['services/matchmaking/index.mjs'], {
+  const service = endpoint ? null : launch('service', process.execPath, ['services/matchmaking/index.mjs'], {
     ...process.env, HOST: '127.0.0.1', PORT: String(port), PUBLIC_ADDRESS: '127.0.0.1',
     BIND_ADDRESS: '127.0.0.1', REGION: 'local-test', STATE_DIRECTORY: stateDirectory,
     GODOT_PATH: serverBinary || godot, GODOT_PROJECT_PATH: serverBinary ? '' : path.join(root, 'battlebots'),
     BUILD_MANIFEST_PATH: manifest,
   });
   await until(async () => {
-    if (service.exitCode !== null) throw new Error(`Service exited; logs: ${run}`);
+    if (service && service.exitCode !== null) throw new Error(`Service exited; logs: ${run}`);
     try { return await request('/healthz'); } catch { return null; }
   });
-  async function guest() { return request('/v1/guests', null, 'POST', compatibility); }
+  async function guest() {
+    const created = await request('/v1/guests', null, 'POST', compatibility);
+    ownedGuests.push(created);
+    return created;
+  }
   async function exercise(label, count) {
     const guests = [];
     for (let index = 0; index < count; index++) guests.push(await guest());
@@ -155,13 +170,25 @@ try {
       });
       assignments.push(membership.assignment);
     }
+    if (endpoint) {
+      for (const assignment of assignments) {
+        assert.ok(net.isIPv4(assignment.address), 'External worker must supply an IPv4 address');
+        const [a, b] = assignment.address.split('.').map(Number);
+        assert.ok(a !== 0 && a !== 10 && a !== 127 && a < 224
+          && !(a === 169 && b === 254) && !(a === 172 && b >= 16 && b <= 31)
+          && !(a === 192 && b === 168) && !(a === 100 && b >= 64 && b <= 127),
+        'External check must not accept a local/private worker address');
+      }
+    }
     assert.equal(new Set(assignments.map(value => value.room_id)).size, 1);
     assert.equal(new Set(assignments.map(value => value.admission_ticket)).size, count);
     const peers = [];
     for (let index = 0; index < count; index++) {
       const config = path.join(run, `${label}-${index}.config.json`);
       const output = path.join(run, `${label}-${index}.json`);
-      await writeFile(config, JSON.stringify({ ...assignments[index], output }), { mode: 0o600 });
+      credentialFiles.push(config);
+      await writeFile(config, JSON.stringify({ ...assignments[index], output,
+        duel_lifecycle: count === 2, forfeit_peer: index === 0 }), { mode: 0o600 });
       peers.push(launch(`${label}-${index}`, godot, ['--headless', '--path', path.join(root, 'battlebots'),
         '--max-fps', '60', '--script', 'res://tests/services/hosted_playtest_peer.gd', '--', `--peer-config=${config}`]));
     }
@@ -171,18 +198,36 @@ try {
       const report = JSON.parse(await readFile(path.join(run, `${label}-${index}.json`), 'utf8'));
       assert.equal(report.valid, true);
       assert.equal(report.players, count);
+      if (count === 2) {
+        assert.equal(report.results_received, true);
+        assert.equal(report.rematch_active, true);
+        assert.equal(report.completed_rounds, 2);
+        assert.equal(report.participants, 2);
+      }
       evidence.push(report);
+    }
+    if (count === 2) {
+      assert.equal(evidence[0].completed_match, evidence[1].completed_match);
+      assert.deepEqual(evidence[0].scores, evidence[1].scores);
+      assert.equal(evidence[0].winner, evidence[1].winner);
+      assert.ok([0, 1].includes(evidence[0].team));
+      assert.equal(evidence[1].team, 1 - evidence[0].team);
+      assert.equal(evidence[0].winner, evidence[1].team, 'The peer that did not forfeit must win');
+      assert.equal(evidence[0].scores[evidence[0].team], 0);
+      assert.equal(evidence[0].scores[evidence[1].team], 2);
+      assert.equal(evidence[0].rematch_id, evidence[1].rematch_id);
     }
     // Wait for worker disconnect status before cancelling reserved memberships.
     await delay(1500);
     for (const member of guests) await request('/v1/membership', member, 'DELETE');
-    console.log(`HOSTED ${label.toUpperCase()} PASS: ${count} independent clients reached active and drove`);
+    console.log(`HOSTED ${label.toUpperCase()} PASS: ${count} independent clients reached active and drove${count === 2 ? '; two public forfeit votes resolved rounds, results agreed and rematch became active (not natural combat acceptance)' : ''}`);
     return evidence;
   }
-  const evidence = { private: await exercise('private', 2), queue: await exercise('queue', 4),
-    build: compatibility.build, exported_server: Boolean(serverBinary) };
+  const evidence = { private: await exercise('private', 2),
+    ...(duelOnly ? {} : { queue: await exercise('queue', 4) }),
+    build: compatibility.build, exported_server: Boolean(serverBinary), external_endpoint: endpoint ? base : null };
   await writeFile(path.join(run, 'report.json'), JSON.stringify(evidence, null, 2));
-  assert.equal(service.crashSignature, undefined, `Service diagnostic: ${service.crashSignature}; logs: ${run}`);
+  assert.equal(service?.crashSignature, undefined, `Service diagnostic: ${service?.crashSignature}; logs: ${run}`);
   console.log(`HOSTED END TO END PASS: ${run}`);
 } finally {
   // Kill only processes owned by this check; the supervisor owns its workers.
@@ -194,4 +239,12 @@ try {
     }
     await Promise.race([child.completed, delay(3000, undefined, { ref: false })]);
   }
+  // A failed external check must release its own reservations too. Never print
+  // bearer tokens or keep admission files with the non-secret evidence bundle.
+  if (endpoint) {
+    const cleanup = await Promise.allSettled(ownedGuests.map(member => request('/v1/membership', member, 'DELETE')));
+    if (cleanup.some(result => result.status === 'rejected')) console.warn('Some test memberships could not be released; service leases will expire.');
+  }
+  const removed = await Promise.allSettled(credentialFiles.map(file => rm(file, { force: true })));
+  if (removed.some(result => result.status === 'rejected')) console.warn('A temporary admission file could not be removed.');
 }
