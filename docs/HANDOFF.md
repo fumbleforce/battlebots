@@ -722,3 +722,12 @@ gravity to 1.62 m/s². Existing body gravity-scale/replay support is consumed wi
 B implementation edits. Baseline arena selection and capability negotiation keep
 older Foundry hosting compatible. See [implementation and validation](coordination/A_MOON_ARENA.md).
 Human lunar handling/balance and low-end performance remain playtest work.
+
+## A — Cinematic lunar environment
+
+Custom Blender rock/outpost assets, layered original materials, baked outpost
+indirect lighting, reflections, localized animated volumetric dust, vent/beacon
+choreography, layered movement dust and pooled fading tracks are implemented.
+The collision/gravity/network contract stays unchanged. See
+[cinematic Moon evidence](coordination/A_LUNAR_CINEMATIC.md) for 1440p performance,
+validation, source rebuild steps and the pinned renderer shutdown warning.

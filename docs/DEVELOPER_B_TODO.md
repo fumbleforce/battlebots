@@ -538,3 +538,6 @@ A is updating the existing hosted server to current main catalogue revision 6 an
 
 - B visual budget audit on `codex/b-visual-budget`: two/ten bot native load and all
   authored combination geometry/LOD inventory. See [scope](coordination/B_VISUAL_BUDGET.md).
+- **A cinematic Moon:** codex/a-lunar-cinematic reserves Moon visual scripts,
+  environmental assets/materials and arena tests. Physical terrain, bots, controls
+  and network state stay unchanged. See coordination/A_LUNAR_CINEMATIC.md.

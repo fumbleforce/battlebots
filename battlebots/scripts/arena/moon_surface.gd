@@ -59,10 +59,7 @@ func _ready() -> void:
 		arrays[Mesh.ARRAY_INDEX] = indices
 		var mesh := ArrayMesh.new()
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
-		var material := ShaderMaterial.new()
-		material.shader = preload("res://assets/materials/arena/moon_ground.gdshader")
-		material.set_shader_parameter("regolith",preload("res://assets/textures/moon/regolith_albedo.png"))
-		material.set_shader_parameter("playable",true)
+		var material := preload("res://scripts/arena/lunar_materials.gd").ground(true)
 		mesh.surface_set_material(0,material)
 		var visual := MeshInstance3D.new()
 		visual.mesh = mesh

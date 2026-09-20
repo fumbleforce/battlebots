@@ -19,9 +19,7 @@ func _build() -> void:
 	_material("amber", Color("ffae44"), 2.0)
 	_material("cyan", Color("70d3e8"), 1.5)
 	var arena := get_node(arena_path)
-	var ground := ShaderMaterial.new()
-	ground.shader = GROUND
-	ground.set_shader_parameter("regolith", REGOLITH)
+	var ground := preload("res://scripts/arena/lunar_materials.gd").ground()
 	_materials.regolith = ground
 	var playable := ground.duplicate() as ShaderMaterial
 	playable.set_shader_parameter("playable", true)
@@ -42,6 +40,9 @@ func _build() -> void:
 		if child is MultiMeshInstance3D and child.name not in ["WhiteBatch","AmberBatch","CyanBatch"]:
 			child.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_pebbles()
+	var effects := preload("res://scripts/arena/lunar_effects.gd").new()
+	effects.name = "LunarEffects"
+	add_child(effects)
 
 func _pebbles() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -55,13 +56,13 @@ func _pebbles() -> void:
 	var multi := MultiMesh.new()
 	multi.transform_format = MultiMesh.TRANSFORM_3D
 	multi.mesh = mesh
-	multi.instance_count = 900
+	multi.instance_count = 4800
 	for i: int in range(multi.instance_count):
 		var p := Vector3(rng.randf_range(-24,24),0,rng.randf_range(-24,24))
 		if absf(p.x)+absf(p.z)>34:
 			p *= 0.65
 		p.y = preload("res://scripts/arena/moon_surface.gd").height_at(p.x,p.z)+0.005
-		var scale := rng.randf_range(0.012,0.05)
+		var scale := rng.randf_range(0.012,0.065)
 		multi.set_instance_transform(i,Transform3D(Basis(Vector3.UP,rng.randf()*TAU).scaled_local(Vector3(scale,scale*0.6,scale)),p))
 	var pebbles := MultiMeshInstance3D.new()
 	pebbles.name = "SurfacePebbles"
@@ -136,7 +137,7 @@ func _height(x: float, z: float) -> float:
 	var ramp := smoothstep(29.0,48.0,r)
 	var ridge := exp(-pow((r-66.0)/19.0,2.0))
 	var angular := 0.5+0.5*sin(atan2(z,x)*7.0+0.8)
-	var y := -0.18+ramp*(2.5+ridge*(11.0+angular*9.0)+n*9.0)
+	var y := -0.18+ramp*(2.5+ridge*(7.0+angular*5.0)+n*9.0)
 	# Two broad crater bowls with raised rims, entirely beyond the combat boundary.
 	for center: Vector2 in [Vector2(-43,-31),Vector2(37,40),Vector2(20,-55)]:
 		var d := p.distance_to(center)
@@ -147,8 +148,8 @@ func _terrain() -> void:
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var indices := PackedInt32Array()
-	const SEGMENTS := 192
-	const RINGS := 56
+	const SEGMENTS := 320
+	const RINGS := 80
 	for ring: int in range(RINGS+1):
 		for sector: int in range(SEGMENTS+1):
 			var angle := sector*TAU/SEGMENTS
@@ -179,40 +180,35 @@ func _terrain() -> void:
 
 func _boulders() -> void:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 19720720
-	# One irregular low-poly rock mesh instanced at many scales and rotations.
-	var sphere := SphereMesh.new()
-	sphere.radial_segments = 9
-	sphere.rings = 5
-	sphere.radius = 1
-	sphere.height = 2
-	var arrays := sphere.get_mesh_arrays()
-	var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	for index: int in range(points.size()):
-		var at := points[index]
-		var shape := 0.84+0.18*sin(at.x*8+at.z*3)+0.14*cos(at.y*9-at.x*4)
-		points[index] *= shape
-	arrays[Mesh.ARRAY_VERTEX] = points
-	var rock := ArrayMesh.new()
-	rock.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
-	rock.surface_set_material(0,_materials.regolith)
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.mesh = rock
-	multi.instance_count = 380
-	for index: int in range(multi.instance_count):
-		var angle := rng.randf()*TAU
-		var r := rng.randf_range(34,94)
-		var p := Vector3(cos(angle)*r,0,sin(angle)*r)
-		var scale := rng.randf_range(0.25,2.3)
-		p.y = _height(p.x,p.z)+scale*0.3
-		var basis := Basis.from_euler(Vector3(rng.randf(),rng.randf()*TAU,rng.randf())).scaled_local(Vector3(scale,scale*0.7,scale*1.2))
-		multi.set_instance_transform(index,Transform3D(basis,p))
-	var rocks := MultiMeshInstance3D.new()
-	rocks.name = "LunarBoulders"
-	rocks.multimesh = multi
-	add_child(rocks)
-
+	rng.seed = 62026
+	for variant: int in range(8):
+		var source := load("res://assets/models/lunar/rock_%02d.glb" % variant).instantiate() as Node3D
+		var template := source.find_children("*","MeshInstance3D",true,false)[0] as MeshInstance3D
+		var mesh := template.mesh.duplicate() as ArrayMesh
+		for surface: int in range(mesh.get_surface_count()):
+			mesh.surface_set_material(surface,_materials.regolith)
+		source.free()
+		# Separate octants give each batch meaningful culling bounds.
+		for sector: int in range(8):
+			var multi := MultiMesh.new()
+			multi.transform_format = MultiMesh.TRANSFORM_3D
+			multi.mesh = mesh
+			multi.instance_count = 12
+			for i: int in range(12):
+				var angle := (sector+rng.randf())*TAU/8
+				var d := Vector2(cos(angle),sin(angle))
+				var edge := 25.0/maxf(maxf(absf(d.x),absf(d.y)),(absf(d.x)+absf(d.y))/sqrt(2.0))
+				var r := edge+rng.randf_range(5,39)
+				var p := Vector3(d.x*r,0,d.y*r)
+				var scale := rng.randf_range(.45,3.2)
+				p.y = _height(p.x,p.z)+scale*.24
+				var basis := Basis.from_euler(Vector3(rng.randf()*.4,rng.randf()*TAU,rng.randf()*.2)).scaled_local(Vector3(scale,scale,scale))
+				multi.set_instance_transform(i,Transform3D(basis,p))
+			var rocks := MultiMeshInstance3D.new()
+			rocks.name = "FracturedRock_%d_%d" % [variant,sector]
+			rocks.multimesh = multi
+			rocks.visibility_range_end = 135
+			add_child(rocks)
 func _perimeter(side: int) -> void:
 	# Segmented pressure-resistant retaining walls visibly match the shared collider.
 	for panel: int in range(6):
@@ -240,35 +236,38 @@ func _perimeter(side: int) -> void:
 	_tower(-9.6,side)
 
 func _outpost(side: int) -> void:
-	_box("dark",Vector3(0,4,-29.8),Vector3(8.2,1.2,5.1))
-	_box("concrete",Vector3(0,6.1,-30),Vector3(7.6,3.6,4.6))
-	_box("steel",Vector3(0,8,-30),Vector3(8.1,0.28,5.0))
-	for x: float in [-3.4,3.4]:
-		_box("dark",Vector3(x,6.1,-27.66),Vector3(0.2,3.6,0.15))
-	_box("dark",Vector3(-1.8,5.9,-27.64),Vector3(1.7,2.6,0.12))
-	_box("steel",Vector3(-1.8,5.9,-27.54),Vector3(1.3,2.25,0.08))
-	_box("cyan",Vector3(-1.8,6.85,-27.47),Vector3(0.75,0.08,0.04))
-	_box("dark",Vector3(1.3,6.35,-27.63),Vector3(2.7,0.95,0.14))
-	_box("cyan",Vector3(1.3,6.35,-27.54),Vector3(2.35,0.63,0.05))
-	for x: float in [0.65,1.9]:
-		_box("steel",Vector3(x,6.35,-27.48),Vector3(0.08,0.8,0.07))
-	_text("LUNAR / %02d" % (side+1),Vector3(0,7.55,-27.5),64,0.009,Color("252e35"))
-	_text("O U T P O S T",Vector3(4.7,1.3,-24.77),42,0.009,Color("32393a"))
-	# Insulated tanks and exterior utility bundles.
-	for x: float in [-5.5,5.5]:
-		_pipe(Vector3(x,5.2,-30),0.85,3.8,Vector3.ZERO,"concrete")
-		for y: float in [3.7,6.7]:
-			_pipe(Vector3(x,y,-30),0.9,0.17,Vector3.ZERO,"steel")
-		_box("foil",Vector3(x,4.5,-28.8),Vector3(1.4,1.2,0.7))
-	# Parabolic communication dish, physically modeled rather than a billboard.
-	if side == 0 or side == 4:
-		_dish(Vector3(1.7,9.7,-30.5))
-	else:
-		for x: float in [-2,2]:
-			_box("dark",Vector3(x,8.5,-30),Vector3(2.1,0.6,2.6))
-			for offset: float in [-0.7,-0.35,0,0.35,0.7]:
-				_box("steel",Vector3(x+offset,8.82,-30),Vector3(0.08,0.06,2.3))
-
+	if side not in [0,2,6]:
+		_solar_array()
+		return
+	var bay := preload("res://assets/models/lunar/baked_service_bay.tscn").instantiate()
+	bay.name = "ServiceBay%d" % side
+	for child: Node in bay.get_children():
+		if child is DirectionalLight3D: child.free()
+	bay.transform = _side*Transform3D(Basis.IDENTITY,Vector3(0,3.25,-30.5))
+	add_child(bay)
+	var finishes := {}
+	for mesh: MeshInstance3D in bay.find_children("*","MeshInstance3D",true,false):
+		for index: int in range(mesh.mesh.get_surface_count()):
+			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
+			if original==null or original.emission_enabled: continue
+			if not finishes.has(original):
+				var finish := ShaderMaterial.new()
+				finish.shader = preload("res://assets/materials/arena/lunar_alloy.gdshader")
+				finish.set_shader_parameter("paint",original.albedo_color)
+				finish.set_shader_parameter("metalness",original.metallic)
+				finish.set_shader_parameter("rough",original.roughness)
+				finish.set_shader_parameter("grain",preload("res://assets/textures/lunar/surface3_relief.png"))
+				finishes[original] = finish
+			mesh.set_surface_override_material(index,finishes[original])
+	_text("SELENE  /  %02d" % (side+1),Vector3(1,7.1,-28.86),64,.009,Color("20292f"))
+	if side == 0:
+		_dish(Vector3(1.7,9.5,-30.5))
+	var probe := ReflectionProbe.new()
+	probe.position = _side*Vector3(0,6,-30)
+	probe.size = Vector3(15,10,15)
+	probe.max_distance = 22
+	probe.intensity = .65
+	add_child(probe)
 func _tower(x: float, side: int) -> void:
 	for dx: float in [-0.38,0.38]:
 		_box("steel",Vector3(x+dx,7.2,-26.0),Vector3(0.12,8.1,0.18))
@@ -285,7 +284,8 @@ func _tower(x: float, side: int) -> void:
 	light.position = _side*Vector3(x,11,-25.3)
 	light.look_at(_side*Vector3(x*0.3,0,-9))
 	light.light_color = Color("d3e8ff")
-	light.light_energy = 1.4
+	light.light_energy = 3.0
+	light.light_volumetric_fog_energy = 12.0
 	light.spot_angle = 47
 	light.spot_range = 37
 	light.shadow_enabled = side % 2 == 0
@@ -353,17 +353,22 @@ func _lunar_lighting(arena: Node) -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("adbace")
-	env.ambient_light_energy = 0.35
+	env.ambient_light_energy = 0.15
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.ssao_enabled = true
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.7
 	env.glow_enabled = true
-	env.glow_intensity = 0.4
+	env.glow_intensity = 0.35
+	env.volumetric_fog_enabled = true
+	env.volumetric_fog_density = 0.0
+	env.volumetric_fog_length = 90.0
+	env.volumetric_fog_sky_affect = 0.0
 	(arena.get_node("WorldEnvironment") as WorldEnvironment).environment = env
 	var sun := arena.get_node("Sun") as DirectionalLight3D
 	sun.rotation_degrees = Vector3(-28,-38,0)
-	sun.light_color = Color("fff0da")
-	sun.light_energy = 1.45
+	sun.light_color = Color("ffebd5")
+	sun.light_energy = 1.25
+	sun.light_volumetric_fog_energy = .15
 	sun.directional_shadow_max_distance = 140
 	sun.shadow_enabled = true
