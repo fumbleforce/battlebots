@@ -63,9 +63,9 @@ func _ready() -> void:
 	camera.current = true
 	status = Label.new()
 	status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	status.offset_top = -60
+	status.offset_top = -84
 	status.offset_left = 12
-	status.offset_right = -12
+	status.offset_right = -84
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status.add_theme_font_size_override("font_size", 18)
 	status.add_theme_color_override("font_shadow_color", Color.BLACK)
@@ -164,4 +164,3 @@ func _gui_input(event: InputEvent) -> void:
 			KEY_HOME: reset_view()
 			_: return
 		accept_event()
-

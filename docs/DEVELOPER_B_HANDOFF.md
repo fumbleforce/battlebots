@@ -1,5 +1,22 @@
 # Developer B — combat, bots, customisation and controls
 
+## Saved-build repair — 20 September 2026
+
+`codex/b-garage-repair` starts from main `331e073`. Save now replaces/appends one
+valid build while retaining unrelated malformed or unknown records. Several bad
+entries can be repaired independently; unsaved edits to siblings are not written.
+External changes to the loaded file reject the write instead of overwriting it.
+Explicit Revalidate updates only draft envelope/catalogue metadata, preserves
+selected part IDs and paint, supports Undo and writes nothing until Save.
+
+A: additive local LoadoutStore API is documented in CONTRACTS.md; strict full-list
+save, gameplay validation and wire schema are unchanged. Subagent implemented
+storage and its independent scene; primary integrated actual Customize repair.
+See [repair evidence](coordination/B_GARAGE_REPAIR.md). Corrupt-envelope/backup
+recovery and stale-file reload still require a dedicated user-facing workflow;
+this increment deliberately refuses ambiguous overwrites. Text scaling, authored
+bot art and broader gameplay acceptance remain open.
+
 ## Garage comparisons — 20 September 2026
 
 `codex/b-garage-comparison` starts from main `682824b`. Customize now compares

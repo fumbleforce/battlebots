@@ -258,6 +258,16 @@ worker lifecycle and the current single-Machine playtest boundaries.
 `restored_backup`. Invalid/unknown builds remain visible for repair, never silently
 substituted. Local store defaults to `user://loadouts.json`.
 
+B's local garage repair API adds `LoadoutStore.save_build(draft, index, expected)`.
+`index=-1` appends; otherwise it replaces one saved slot with a valid unique-name
+build. `expected` is the last loaded array. A changed disk baseline returns
+`ERR_BUSY`; corrupt/backup recovery input returns `ERR_FILE_CORRUPT`. Untouched
+invalid/malformed sibling records are preserved, allowing independent repairs.
+Strict `save(Array)` still requires an entirely legal list. Neither API changes
+wire validation, content identity or the JSON schema. Explicit garage Revalidate
+updates draft format/catalogue metadata only, retains part IDs/paint, supports
+Undo and does not persist until Save. See coordination/B_GARAGE_REPAIR.md.
+
 `CombatState.snapshot()` carries detached health zones, resources, weapon/recovery
 timers, elimination/failure details and combat counters. `MatchState.snapshot()`
 carries match/event IDs, phase, seconds remaining, round, scores, round results and

@@ -15,6 +15,7 @@ var undo_button: Button
 var redo_button: Button
 var build_preview: GarageBotPreview
 var comparison_panel: GarageComparisonPanel
+var revalidate_button: Button
 
 
 func _ready() -> void:
@@ -61,6 +62,12 @@ func _ready() -> void:
 	redo_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	history.add_child(redo_button)
 	redo_button.pressed.connect(PlayerProfile.redo_edit)
+	revalidate_button = Button.new()
+	revalidate_button.text = "REVALIDATE"
+	revalidate_button.tooltip_text = "Use the current loadout format and catalogue with your existing part IDs and paint. No parts are substituted. Undo is available; Save writes the repaired draft."
+	revalidate_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	history.add_child(revalidate_button)
+	revalidate_button.pressed.connect(PlayerProfile.revalidate_active)
 	for control: Node in find_children("Rotate","Button",true,false):
 		control.tooltip_text = "Reset build preview view"
 		control.pressed.connect(build_preview.reset_view)
@@ -112,6 +119,7 @@ func _refresh() -> void:
 	if not name_edit.has_focus(): name_edit.text = current.name
 	undo_button.disabled = not PlayerProfile.can_undo()
 	redo_button.disabled = not PlayerProfile.can_redo()
+	revalidate_button.visible = PlayerProfile.needs_revalidation()
 	%Eyebrow.text = current.name + " · " + ("EQUIPPED DRAFT" if current.valid else "REPAIR REQUIRED")
 	%Save.disabled = not current.valid
 	var cats: Array = PlayerProfile.catalogue[_tab]
@@ -134,7 +142,7 @@ func _refresh() -> void:
 			_refocus = "cat"
 			_refresh())
 		if _refocus == "cat" and i == ci:
-			row.grab_focus.call_deferred()
+			_focus_control.call_deferred(row)
 
 	clear_children(%Items)
 	var ig := ButtonGroup.new()
@@ -154,7 +162,7 @@ func _refresh() -> void:
 			_refocus = "item"
 			_refresh())
 		if _refocus == "item" and i == ii:
-			tile.grab_focus.call_deferred()
+			_focus_control.call_deferred(tile)
 	_refocus = ""
 
 	%CatLabel.text = cat.label
@@ -215,3 +223,7 @@ func _save_build() -> void:
 func _commit_name() -> void:
 	if is_inside_tree():
 		PlayerProfile.rename_draft(name_edit.text)
+
+func _focus_control(control: Control) -> void:
+	if is_instance_valid(control) and control.is_inside_tree() and control.is_visible_in_tree():
+		control.grab_focus()

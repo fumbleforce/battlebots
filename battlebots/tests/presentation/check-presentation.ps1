@@ -93,6 +93,10 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_comparison_test.tscn', '--quit-after', '10000') -Marker 'GARAGE COMPARISON PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_comparison_panel_test.tscn', '--quit-after', '10000') -Marker 'GARAGE COMPARISON PANEL PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/loadout_repair_test.tscn', '--quit-after', '10000') -Marker 'LOADOUT REPAIR PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/garage_repair_test.tscn', '--quit-after', '10000') -Marker 'GARAGE REPAIR PASS'
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
 foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
     @('combat_hud_session_test.gd', 'COMBAT HUD SESSION PASS'),

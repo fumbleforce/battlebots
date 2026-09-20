@@ -51,7 +51,10 @@ func run() -> void:
 	check(profile.equipped_name("parts",profile.catalogue.parts[0]) == "Missing / invalid","Malformed parts safe in Customize")
 	check(profile.equipped_name("paint",profile.catalogue.paint[0]) == "Missing / invalid","Malformed cosmetics safe in Customize")
 	profile.active_bot = 0
-	check(profile.save_active("New") == ERR_INVALID_DATA,"Unrelated save cannot erase invalid entries")
+	check(profile.save_active("New") == OK,"Unrelated valid save succeeds without requiring every sibling repair")
+	var preserved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
+	check(preserved.loadouts.size() == 2 and preserved.loadouts[0] == {"name":"Broken"},
+		"Unrelated save preserves invalid disk entry exactly, not its unsaved edits")
 	profile.free()
 	for suffix: String in ["",".bak",".tmp"]:
 		if FileAccess.file_exists(path+suffix): DirAccess.remove_absolute(path+suffix)

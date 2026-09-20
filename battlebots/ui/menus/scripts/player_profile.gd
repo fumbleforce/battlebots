@@ -60,14 +60,14 @@ func save_active(name: String) -> Error:
 	var index := _save_indices[active_bot]
 	if index < 0: next.append(validation.loadout)
 	else: next[index] = validation.loadout
-	# Invalid saved entries remain visible and prevent replacement until repaired.
-	for saved: Variant in next:
-		if not saved is Dictionary or not registry.validate(saved).valid:
-			errors.append("Another saved build needs repair. Existing saved data was preserved.")
-			return ERR_INVALID_DATA
-	var result := LoadoutStore.new(save_path).save(next)
+	var result := LoadoutStore.new(save_path).save_build(validation.loadout, index, _saved)
 	if result != OK:
-		errors.append("Could not save build: " + error_string(result) + ". Names must be unique; maximum 12 saved builds.")
+		if result == ERR_BUSY:
+			errors.append("The saved file changed outside this garage. Your draft was retained; reload the profile before saving again.")
+		elif result == ERR_FILE_CORRUPT:
+			errors.append("The saved file cannot be read safely. Your draft and existing file were preserved.")
+		else:
+			errors.append("Could not save build: " + error_string(result) + ". Names must be unique; maximum 12 saved builds.")
 		return result
 	_saved = next
 	if index < 0: _save_indices[active_bot] = next.size()-1
@@ -122,6 +122,21 @@ func rename_draft(value: String) -> void:
 	draft.name = value.strip_edges()
 	if not _record_edit(draft): return
 	loadouts[active_bot] = draft
+	_draft_changed()
+
+func needs_revalidation() -> bool:
+	var draft: Dictionary = loadouts[active_bot]
+	return draft.size() != 5 or draft.get("schema_version") != ContentRegistry.SCHEMA \
+		or draft.get("content_hash") != registry.content_hash
+
+func revalidate_active() -> void:
+	var current: Dictionary = loadouts[active_bot]
+	# Explicit repair changes only the local envelope; no part/paint substitutions.
+	var repaired := {"schema_version":ContentRegistry.SCHEMA,
+		"content_hash":registry.content_hash, "name":current.get("name", ""),
+		"parts":current.get("parts", {}), "cosmetics":current.get("cosmetics", {})}
+	if not _record_edit(repaired): return
+	loadouts[active_bot] = repaired.duplicate(true)
 	_draft_changed()
 
 func can_undo() -> bool:
