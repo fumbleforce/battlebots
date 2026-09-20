@@ -37,7 +37,7 @@ func _initialize() -> void:
 	registry = ContentRegistry.new()
 	var path := "user://test-loadouts-%d.json" % OS.get_process_id()
 	var store := LoadoutStore.new(path)
-	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES + LoadoutStore.REVISION_TWO_HASHES + LoadoutStore.REVISION_THREE_HASHES:
+	for old_hash: String in LoadoutStore.REVISION_ONE_HASHES + LoadoutStore.REVISION_TWO_HASHES + LoadoutStore.REVISION_THREE_HASHES + LoadoutStore.REVISION_FOUR_HASHES:
 		var old_build := registry.starter()
 		old_build.content_hash = old_hash
 		var upgraded: Dictionary = store.migrate({"schema_version":1, "loadouts":[old_build]}).loadouts[0]

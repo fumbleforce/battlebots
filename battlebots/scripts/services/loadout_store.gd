@@ -7,6 +7,7 @@ const REVISION_ONE_HASHES := [
 ]
 const REVISION_TWO_HASHES := ["db17ced752e95309a2535da0fe5d8c6aded0ff2ab70f80ffe1e2581893b69c29"]
 const REVISION_THREE_HASHES := ["4145fa8eff0fef9e4336ef5dc8f5698a16f8cb5bb277cdbf02cb313eafa37819"]
+const REVISION_FOUR_HASHES := ["703edd52af68069b180b69767f144771b9fa453a0e00a194ece169a365512f41"]
 const MAX_SAVE_BYTES := 65536
 var registry := ContentRegistry.new()
 var path: String
@@ -215,9 +216,9 @@ func migrate(data: Dictionary) -> Dictionary:
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES:
 				continue
-			# Revisions two through four only add weapons; prior parts keep their stats.
+			# New catalogue entries preserve existing part IDs and balance values.
 			# Upgrade known compatible saves locally, never loosen network checks.
 			var upgraded: Dictionary = draft.duplicate(true)
 			upgraded.content_hash = registry.content_hash

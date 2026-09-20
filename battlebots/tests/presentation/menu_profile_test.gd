@@ -10,8 +10,8 @@ func run() -> void:
 	profile.save_path = path
 	root.add_child(profile)
 	await process_frame
-	check(profile.bots.size() == 3 and profile.active_loadout().parts.weapon == "vertical_spinner","Canonical starter builds")
-	check(profile.bots[0].hp == 260 and profile.bots[0].stats["SPEED m/s"] == 10,"Canonical derived stats")
+	check(profile.bots.size() == 3 and profile.active_loadout().parts.weapon == "saw" and SawbladeConfig.enabled(profile.active_loadout()),"Sawblade starter selected by default")
+	check(profile.bots[0].hp == 260 and profile.bots[0].stats["SPEED m/s"] == 8,"Canonical derived stats")
 	profile.active_bot = 2
 	check(profile.active_loadout().parts.weapon == "hammer" and profile.bots[2].name == "Duelist",
 		"Duelist is a selectable legal hammer starter")
@@ -28,7 +28,9 @@ func run() -> void:
 	var chassis: Dictionary = profile.catalogue.parts[0]
 	profile.equip("parts",chassis,chassis.items[2])
 	var drive: Dictionary = profile.catalogue.parts[1]
-	profile.equip("parts",drive,drive.items[2])
+	profile.equip("parts",drive,drive.items[3])
+	var weapon: Dictionary = profile.catalogue.parts[2]
+	profile.equip("parts",weapon,weapon.items[2])
 	var armor: Dictionary = profile.catalogue.parts[3]
 	profile.equip("parts",armor,armor.items[2])
 	check(profile.active_loadout().is_empty() and not profile.bots[3].valid,"Overweight combination retained but cannot play")
@@ -39,7 +41,7 @@ func run() -> void:
 	check(profile.save_active("Repaired") == OK,"Repaired build saves")
 	var detached: Dictionary = profile.active_loadout()
 	detached.parts.weapon = "bogus"
-	check(profile.active_loadout().parts.weapon == "vertical_spinner","Returned draft is detached")
+	check(profile.active_loadout().parts.weapon == "hammer","Returned draft is detached")
 	var file := FileAccess.open(path,FileAccess.WRITE)
 	file.store_string(JSON.stringify({"schema_version":1,"loadouts":[{"name":"Broken"}]}))
 	file.close()

@@ -33,7 +33,8 @@ static func valid(value: Variant) -> bool:
 	return true
 
 static func enabled(draft: Dictionary) -> bool:
-	return draft.get("cosmetics", {}).has("sawblade")
+	var cosmetics: Variant = draft.get("cosmetics")
+	return cosmetics is Dictionary and valid(cosmetics.get("sawblade"))
 
 static func starter(registry: ContentRegistry) -> Dictionary:
 	var draft := registry.starter()

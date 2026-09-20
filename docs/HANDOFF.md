@@ -94,6 +94,13 @@ and phase/pending locks are covered independently. See
 [featured vehicle handoff](coordination/B_FEATURED_VEHICLE.md). The primitive
 models are the current canonical representation; authored assets remain open.
 
+Sawblade Tank integration adds the authored runtime model, all root module and
+paint controls, primary-driven hammer clip and physical walking-leg drive.
+Catalogue revision 5 requires matching clients/server; the live hosted worker
+has not been deployed by this B task. See
+[the Sawblade handoff](coordination/B_SAWBLADE_INTEGRATION.md) for exact mappings,
+automated climbing/network evidence and remaining human playtest scope.
+
 B's latest menu accessibility work is documented in
 [the B handoff](DEVELOPER_B_HANDOFF.md#b-menu-text-accessibility--20-september-2026).
 Garage/Customize/catalogue/recovery and camera/input settings consume the shared

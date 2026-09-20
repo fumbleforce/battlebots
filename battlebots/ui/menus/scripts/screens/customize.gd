@@ -57,6 +57,10 @@ func _show_choice_details(value: bool) -> void:
 	_choice_pager.visible = not value
 	%SelDesc.get_parent().visible = value
 
+func _show_preview_stats(value: bool) -> void:
+	build_preview.get_parent().visible = not value
+	comparison_panel.visible = value
+
 
 func _ready() -> void:
 	super()
@@ -134,6 +138,21 @@ func _ready() -> void:
 	var preview_column := frame.get_parent()
 	preview_column.add_child(comparison_panel)
 	preview_column.move_child(comparison_panel, %Stats.get_index())
+	var preview_tabs := HBoxContainer.new()
+	preview_column.add_child(preview_tabs)
+	preview_column.move_child(preview_tabs, frame.get_index())
+	var preview_group := ButtonGroup.new()
+	for title: String in ["MODEL", "STATS"]:
+		var button := Button.new()
+		button.text = title
+		button.toggle_mode = true
+		button.button_group = preview_group
+		button.button_pressed = title == "MODEL"
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		preview_tabs.add_child(button)
+		button.pressed.connect(_show_preview_stats.bind(title == "STATS"))
+	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	comparison_panel.hide()
 	$Layout/Footer/Row/Hint1.hide()
 	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
 	name_edit = LineEdit.new()
@@ -226,6 +245,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _set_tab(t: String) -> void:
 	_tab = t
+	for index: int in TABS.size():
+		[%TabParts, %TabPaint, %TabDecals][index].button_pressed = TABS[index] == t
 	_refresh()
 
 

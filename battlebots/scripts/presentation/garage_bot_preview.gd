@@ -200,9 +200,13 @@ func show_loadout(draft: Dictionary) -> void:
 	_turntable.add_child(model)
 	var size: Vector3 = validation.stats.size
 	if SawbladeConfig.enabled(draft):
+		if draft.parts.drive == "walker": model.position.y = WalkerDrive.RIDE_HEIGHT - 0.12
 		sawblade_visual = SawbladeVisual.new()
 		model.add_child(sawblade_visual)
 		sawblade_visual.assemble(draft, size)
+		if sawblade_visual.walker_legs != null:
+			sawblade_visual.walker_legs.terrain = false
+			sawblade_visual.walker_legs.reset_feet()
 		status.text = "Sawblade Tank · equipped modules\nDrag to rotate · Wheel to zoom"
 		return
 	var chassis := BoxMesh.new()

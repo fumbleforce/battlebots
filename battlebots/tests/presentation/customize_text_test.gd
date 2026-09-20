@@ -41,6 +41,7 @@ func run() -> void:
 	var original: Dictionary = profile.loadouts[0].duplicate(true)
 	var screen: Control = load("res://ui/menus/screens/customize.tscn").instantiate()
 	add_child(screen)
+	screen._show_preview_stats(true)
 	await settle()
 	var base_title: int = screen.get_node("%Title").get_theme_font_size("font_size")
 	for factor: float in [1.0, 1.25, 1.5, 1.0, 1.5]:

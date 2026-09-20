@@ -11,9 +11,11 @@ var hammer_frame := 1.0
 var _travel := [0.0, 0.0]
 var _wheel_rest: Dictionary = {}
 var _ramp_rest := Transform3D.IDENTITY
+var _ramp_pivot: Node3D
 var _previous_pose := Transform3D.IDENTITY
 var _have_pose := false
 var _tracks := true
+var walker_legs: WalkerLegs
 
 func assemble(draft: Dictionary, size: Vector3) -> void:
 	if hammer_samples.is_empty():
@@ -26,7 +28,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		if not source.is_empty(): nodes[source] = node
 	# Fit the authored 1.68 x 2.60 body footprint to the canonical chassis.
 	# Keep ground origin aligned with the bottom of the physics body.
-	scale = Vector3(size.x / 1.68, size.z / 2.60, size.z / 2.60)
+	scale = SawbladeGeometry.scale_for(size)
 	position.y = -size.y * 0.5
 	kind = draft.parts.weapon
 	_tracks = draft.parts.drive == "traction"
@@ -34,7 +36,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	for weapon: String in ["saw", "hammer", "ramp"]:
 		nodes["Module_weapon_" + weapon].visible = weapon == SawbladeConfig.WEAPONS[kind]
 	nodes.Module_drive_tracks.visible = _tracks
-	nodes.Module_drive_wheels.visible = not _tracks
+	nodes.Module_drive_wheels.visible = draft.parts.drive in ["standard_wheels", "agile"]
 	nodes.Module_armor_side_reference.visible = config.armor_side == 1
 	nodes.Module_armor_side_heavy.visible = config.armor_side == 2
 	for side: String in ["top", "front", "rear"]:
@@ -65,13 +67,27 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 				material.set_shader_parameter("rough", original.roughness)
 				materials[label] = material
 			node.set_surface_override_material(surface, materials[label])
-	_ramp_rest = nodes.Module_weapon_ramp.transform
+	_ramp_pivot = Node3D.new()
+	nodes.SawbladeTank_ROOT.add_child(_ramp_pivot)
+	_ramp_pivot.position = Vector3(0, 0.36, -0.30)
+	nodes.Module_weapon_ramp.reparent(_ramp_pivot, true)
+	_ramp_rest = _ramp_pivot.transform
+	if draft.parts.drive == "walker":
+		walker_legs = WalkerLegs.new()
+		add_child(walker_legs)
+		walker_legs.scale = Vector3.ONE / scale
+		walker_legs.position.y = size.y * 0.5 / scale.y
+		var primary: Material
+		for label: String in materials:
+			if label.begins_with("01"): primary = materials[label]
+		walker_legs.assemble(size, primary, config)
 	set_hammer_frame(1)
 
 func set_hammer_frame(frame: float) -> void:
 	hammer_frame = clampf(frame, 1, 33)
-	var index := mini(int(hammer_frame) - 1, 31)
-	var weight := hammer_frame - float(index + 1)
+	var sample := (hammer_frame - 1.0) * 4.0
+	var index := mini(int(sample), 127)
+	var weight := sample - float(index)
 	for key: String in hammer_samples:
 		var a: Array = hammer_samples[key][index]
 		var b: Array = hammer_samples[key][index + 1]
@@ -95,7 +111,7 @@ func show_state(view: BotView, delta: float) -> void:
 	elif kind == "lifter":
 		var angle := 0.0 if disabled else view.weapon_charge_fraction * deg_to_rad(40)
 		if not disabled and (view.weapon_state == "launch" or view.weapon_cooldown > 2.7): angle = deg_to_rad(75)
-		nodes.Module_weapon_ramp.transform = _ramp_rest * Transform3D(Basis(Vector3.RIGHT, angle), Vector3.ZERO)
+		_ramp_pivot.transform = _ramp_rest * Transform3D(Basis(Vector3.RIGHT, angle), Vector3.ZERO)
 	if _have_pose and delta > 0:
 		var displacement := view.pose.origin - _previous_pose.origin
 		if displacement.length() < 1.0 and not view.eliminated:
@@ -124,4 +140,3 @@ func advance_drive(left: float, right: float) -> void:
 		var node: Node3D = nodes[key]
 		var root_node: Node3D = nodes.SawbladeTank_ROOT
 		node.global_transform = root_node.global_transform * Transform3D(Basis(Vector3.RIGHT, lerp_angle(a[3], b[3], phase - index)), origin)
-

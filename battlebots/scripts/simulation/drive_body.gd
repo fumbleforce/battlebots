@@ -16,6 +16,8 @@ const PROBES: Array[Vector3] = [
 ]
 
 var grounded: bool = false
+var walker := false
+var walker_contacts: Array[Dictionary] = []
 var drive_multiplier: float = 1.0
 var steering_multiplier: float = 1.0
 var recovery_torque: Vector3 = Vector3.ZERO
@@ -69,7 +71,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var braking := _brake or stale
 	_drive_input = move_toward(_drive_input, 0.0 if braking else _throttle, 3.0 * state.step)
 	_turn_input = move_toward(_turn_input, 0.0 if braking else _steering, 4.0 * state.step)
-	var normal := _ground_normal(state)
+	var normal := WalkerDrive.support(state, self) if walker else _ground_normal(state)
 	grounded = not normal.is_zero_approx()
 	if not grounded:
 		return
@@ -128,6 +130,7 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 
 func model_config() -> Dictionary:
 	return {"speed":top_speed, "acceleration":drive_acceleration, "grip":grip_acceleration,
+		"walker":walker,
 		"brake":brake_acceleration, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,
 		"gravity":Vector3(ProjectSettings.get_setting("physics/3d/default_gravity_vector", Vector3.DOWN))

@@ -1,0 +1,44 @@
+class_name WalkerDrive
+extends RefCounted
+## Four ray-supported legs. Forces, clearance and climb limits are authoritative.
+const RIDE_HEIGHT := 0.95
+const MAX_STEP := 0.45
+const REACH := 1.45
+const FOOT_SPREAD := 0.18
+
+static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3:
+	body.walker_contacts.clear()
+	var up := state.transform.basis.y
+	if up.dot(Vector3.UP) < 0.45: return Vector3.ZERO
+	var forward := -state.transform.basis.z.slide(Vector3.UP).normalized()
+	var lead := forward * clampf(body._drive_input * 0.45, -0.45, 0.45)
+	var normal_sum := Vector3.ZERO
+	var floor_height := -INF
+	for probe: Vector3 in DriveBody.PROBES:
+		var hip := state.transform * Vector3(signf(probe.x) * (body.probe_half_width + FOOT_SPREAD), 0, signf(probe.z) * body.probe_half_length)
+		var foot := hip + lead
+		var start := Vector3(foot.x, state.transform.origin.y - RIDE_HEIGHT + MAX_STEP + 0.08, foot.z)
+		var end := Vector3(foot.x, state.transform.origin.y - REACH, foot.z)
+		var query := PhysicsRayQueryParameters3D.create(start, end,
+			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [body.get_rid()])
+		var hit := state.get_space_state().intersect_ray(query)
+		if hit.is_empty() or Vector3(hit.normal).dot(Vector3.UP) < 0.65: continue
+		# A wall face cannot masquerade as a foothold. Step ceilings are measured
+		# from the current supported plane; no teleporting the collision body.
+		var point: Vector3 = hit.position
+		if point.y > start.y - 0.01: continue
+		body.walker_contacts.append({"position":point, "normal":hit.normal})
+		normal_sum += Vector3(hit.normal)
+		floor_height = maxf(floor_height, point.y)
+	if body.walker_contacts.size() < 2: return Vector3.ZERO
+	var normal := normal_sum.normalized()
+	var desired_y := floor_height + RIDE_HEIGHT
+	var gravity := maxf(0.0, -state.total_gravity.y)
+	var lift := clampf(gravity + (desired_y - state.transform.origin.y) * 80.0 - state.linear_velocity.y * 16.0, 0, 45)
+	state.apply_central_force(Vector3.UP * lift * body.mass)
+	# Damped stance correction is bounded and requires live footholds. In air or
+	# upside down the walker obeys normal rigid-body gravity/recovery mechanics.
+	var tilt_velocity := state.angular_velocity - normal * state.angular_velocity.dot(normal)
+	var torque := (up.cross(normal) * 55.0 - tilt_velocity * 10.0) * body.mass
+	state.apply_torque(torque.limit_length(body.mass * 35.0))
+	return normal

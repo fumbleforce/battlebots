@@ -166,6 +166,10 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 	return "Unavailable" if tab == "decals" else "Missing / invalid"
 
 func item_state(tab: String, cat: Dictionary, item: Dictionary) -> String:
+	var model_enabled := SawbladeConfig.enabled(loadouts[active_bot])
+	if tab == "parts" and cat.slot == "weapon" and model_enabled and item.id not in SawbladeConfig.WEAPONS: return "lock"
+	if tab == "parts" and cat.slot == "drive" and item.id == "walker" and not model_enabled: return "lock"
+	if tab == "paint" and cat.slot == "paint" and model_enabled: return "lock"
 	if (tab == "decals" and cat.slot != "model") or (tab == "paint" and cat.slot != "paint"):
 		if not SawbladeConfig.enabled(loadouts[active_bot]): return "lock"
 	return "eq" if equipped_name(tab,cat) == item.name else "own"
@@ -179,8 +183,10 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 		draft.parts[cat.slot] = item.id
 	elif tab == "decals":
 		if cat.slot == "model":
+			if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {"paint":"cyan"}
 			if item.id == "sawblade":
 				draft.cosmetics["sawblade"] = SawbladeConfig.defaults()
+				if not draft.get("parts") is Dictionary: draft.parts = {}
 				if draft.parts.get("weapon") not in SawbladeConfig.WEAPONS: draft.parts.weapon = "saw"
 			else: draft.cosmetics.erase("sawblade")
 		elif SawbladeConfig.enabled(draft): draft.cosmetics.sawblade[cat.slot] = int(item.id)

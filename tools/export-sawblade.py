@@ -48,8 +48,9 @@ scene.frame_set(1)
 depsgraph = bpy.context.evaluated_depsgraph_get()
 hammer = bpy.data.objects['Module_weapon_hammer']
 hammer_samples = {}
-for frame in range(1, 34):
-    scene.frame_set(frame)
+for sample in range(129):
+    frame = 1 + sample * 0.25
+    scene.frame_set(int(frame), subframe=frame % 1)
     for obj in [hammer, *hammer.children_recursive]:
         matrix = obj.parent.matrix_world.inverted() @ obj.matrix_world if obj.parent else obj.matrix_world
         pos, quat, scale = matrix.decompose()

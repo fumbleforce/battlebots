@@ -40,6 +40,7 @@ func _ready() -> void:
 	var stats := combat.stats
 	body.mass = stats.mass
 	body.top_speed = stats.speed
+	body.walker = loadout.parts.drive == "walker"
 	body.grip_acceleration = stats.grip
 	body.drive_acceleration = 6.0 * 103.0 / body.mass
 	body.max_contacts_reported = 8
@@ -49,6 +50,15 @@ func _ready() -> void:
 	var shape := BoxShape3D.new()
 	shape.size = stats.size
 	$Body/Collision.shape = shape
+	if SawbladeConfig.enabled(loadout):
+		var rear := CollisionShape3D.new()
+		rear.name = "RearPackCollision"
+		var rear_shape := BoxShape3D.new()
+		var art_scale: float = stats.size.z / 2.60
+		rear_shape.size = Vector3(1.10 * stats.size.x / 1.68, 1.04 * art_scale, 0.88 * art_scale)
+		rear.shape = rear_shape
+		rear.position = Vector3(0, 1.05 * art_scale - stats.size.y * 0.5, 0.83 * art_scale)
+		body.add_child(rear)
 	var mesh := BoxMesh.new()
 	mesh.size = stats.size
 	var material := StandardMaterial3D.new()
@@ -68,6 +78,8 @@ func _ready() -> void:
 		sawblade_visual = SawbladeVisual.new()
 		presentation.add_child(sawblade_visual)
 		sawblade_visual.assemble(loadout, stats.size)
+		if sawblade_visual.walker_legs != null:
+			sawblade_visual.walker_legs.exclusions = [body.get_rid()]
 	elif DisplayServer.get_name() != "headless":
 		weapon_visual = MvpWeaponVisual.new()
 		weapon_visual.name = "Weapon"

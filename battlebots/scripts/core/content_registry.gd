@@ -67,6 +67,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 			result.reasons.append("Invalid Sawblade Tank appearance")
 		elif selected.get("weapon") not in SawbladeConfig.WEAPONS:
 			result.reasons.append("Sawblade Tank supports Saw, Hammer or Ramp (lifter)")
+	if selected.get("drive") == "walker" and (not cosmetics is Dictionary or not cosmetics.has("sawblade")):
+		result.reasons.append("Walking legs require the Sawblade Tank vehicle")
 	if not result.reasons.is_empty():
 		return result
 	var chassis: Dictionary = parts[selected.chassis]

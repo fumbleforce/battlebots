@@ -20,6 +20,22 @@ and settings checks pass, along with Godot 4.7.2 baseline and native visual revi
 These are deterministic collision fixtures; human driving feel remains open.
 See [reproduction and validation](coordination/B_TERRAIN_CAMERA.md).
 
+## Sawblade Tank and walking drive — catalogue revision 5
+
+B's optional `cosmetics.sawblade` record has armor_side (0–2), armor_top/front/rear
+(0–1), exhaust (0–3), and paint_primary/secondary/metal/rubber (four finite linear
+RGBA channels in 0–1, alpha exactly 1). All nine keys are required when present.
+Weapon IDs remain saw/hammer/lifter; drive traction renders tracks, agile/standard
+render wheels, and new canonical `walker` supplies physical leg suspension and
+procedural IK. Walker requires this vehicle. Armor covers/exhaust are cosmetic.
+Existing loadout schema 1 and command/view wire records are unchanged; catalogue
+hash changes separate old peers. Local revision-four saves migrate preserving
+parts/colors. A's hosted worker needs the matching updated catalogue/export.
+DriveBody retains its existing model_config/grounded API; walker contacts are
+local physics data, not transmitted foot targets. Input replay remains approximate
+at terrain contacts, corrected by authoritative body snapshots. See
+[B integration and validation](coordination/B_SAWBLADE_INTEGRATION.md).
+
 The first sections describe local typed GDScript interfaces; the session section
 below documents the implemented MVP wire-facing API. This is not the full game API.
 A owns networking/session and match/world contracts; B owns combat/bot/control

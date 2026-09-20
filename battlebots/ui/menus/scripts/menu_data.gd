@@ -35,7 +35,7 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 	var paints: Array = []
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 	for id: String in colors:
-		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Canonical bot paint; no effect on performance."})
+		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Classic bot paint. For Sawblade Tank, select Primary, Secondary, Metal or Rubber. Paint has no performance effect."})
 	var paint_categories: Array = [{"label":"CLASSIC PAINT","slot":"paint","items":paints}]
 	for channel: String in SawbladeConfig.COLORS:
 		var choices: Array = []
@@ -62,6 +62,9 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 			elif item.id == "standard_wheels": item.name = "Four wheels · Standard"
 			elif item.id == "agile": item.name = "Four wheels · Agile"
 			elif item.id == "lifter": item.name = "Ramp · Lifter"
+			elif item.id == "walker":
+				item.name = "Four walking legs"
+				item.desc = "Sawblade Tank articulated legs · 32 kg · 35 power · 4 m/s. Ray-supported stance climbs steps up to 0.45 m; feet adapt to ground and slopes."
 			if item.id in ["vertical_spinner", "horizontal_spinner"]: item.desc += " Classic bot only."
 	return {"parts":categories,"paint":paint_categories,"decals":vehicle}
 
