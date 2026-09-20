@@ -1,6 +1,7 @@
 # Robot destruction explosion — B
 
-Branch `codex/b-destruction-explosion`, based on main `b6135df`.
+Branch `codex/b-destruction-explosion`, based on main `b6135df`, then rebased onto
+the published lunar-backdrop update `44c7498` without conflicts.
 User request: destroyed robots should explode impressively.
 
 B reserves MvpBot presentation wiring, impact debris budget integration, new
@@ -57,6 +58,8 @@ The effect continues across the immediate round-results transition.
   they do not claim an external two-computer playtest.
 - Existing component damage/mapping, impact visual/controller/game and camera
   round-lifecycle checks pass headlessly. New checks are in the presentation runner.
+- After rebasing, baseline, native destruction/snapshot acceptance and native
+  `component_damage_runtime_test.tscn` pass; arena captures were refreshed/reviewed.
 - Native D3D12 Forward+, RTX 3080, 1280x720: reviewed Foundry and Moon captures at
   0.08, 0.25, 0.7 and 1.5 seconds. TEMP/destruction-{foundry,moon}-{008,025,070,150}.png.
   Final capture run passes; the known seven-texture-RID renderer shutdown warning
