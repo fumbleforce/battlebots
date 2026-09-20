@@ -43,6 +43,9 @@ with the other panels (2026-09-20). These are high-priority A-owned 1v1 delivery
 tasks. Existing results/rematch implementation is a foundation; its historical
 completion does not close these requested presentation tasks. Use authoritative
 outcomes/scores and review navigation through game menu, win, score and rematch.
+The current board retains an explicit open presentation-refinement task across
+these pages and networking menus. Implemented menu-panel checkboxes record the
+existing foundation, not closure of the user's remaining design feedback.
 
 The user reports human multiplayer was conducted successfully through a tunnel.
 Record that gate as completed human-play evidence; do not keep describing human

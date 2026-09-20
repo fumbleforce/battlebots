@@ -15,6 +15,13 @@ active expansion or acceptance work.
 
 - [ ] Complete the end-to-end 1v1 game: online entry, combat, round completion,
   results and rematch, with clear feedback and reliable recovery/reconnect.
+- [ ] Finish presentation refinement across multiplayer/networking menus, the
+  win screen, score screen and in-game menu (A, high priority). The user requests
+  these pages as part of a complete 1v1 game, with the game menu consistent with
+  the other panels. Existing implemented pages below are the starting point;
+  retain an open polish task for consistent original-theme layout, styling,
+  navigation and clear win/score/rematch/return actions throughout the full flow.
+  Automated implementation checks do not close this remaining design feedback.
 - [x] Expose same-session reconnect in the game menus, with bounded retry,
   damage/identity retention, results recovery and explicit leave. Independent
   ENet and composed-game checks pass; see [recovery evidence](coordination/A_RECONNECT_FLOW.md).
