@@ -96,6 +96,10 @@ func run() -> void:
 	check(replacement.command.throttle > 0.9 and replacement.command.primary_held, "Release then press rearms replacement")
 	held(false)
 	game.return_to_main()
+	# Let the audio server release playback before destroying the fixture.
+	game.set_process(false)
+	game._menu_music.stop()
+	await frames(8)
 	game.queue_free()
 	await frames()
 	original_audio.apply()

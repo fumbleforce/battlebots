@@ -95,6 +95,10 @@ foreach ($check in $checks) {
         '--quit-after', '10000') -Marker $check[1]
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', 'res://tests/presentation/camera_round_lifecycle_test.tscn', '--quit-after', '6000') -Marker 'CAMERA ROUND LIFECYCLE PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', 'res://tests/presentation/camera_duel_lifecycle_test.tscn', '--quit-after', '6000') -Marker 'CAMERA DUEL LIFECYCLE PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/camera_mouse_scale_test.tscn', '--quit-after', '10000') -Marker 'CAMERA MOUSE SCALE PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/camera_terrain_test.tscn', '--quit-after', '10000') -Marker 'CAMERA TERRAIN PASS'

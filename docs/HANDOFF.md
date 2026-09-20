@@ -1,5 +1,13 @@
 # Current A/B handoff
 
+## Camera/input lifecycle acceptance — 20 September 2026
+
+Independent practice/source replacement and real ENet duel scenes verify current
+camera anchors/exclusions, camera clearance through round transitions, cancellation
+and release-before-rearm. Headless checks and native duel execution pass; baseline
+passes. No runtime or shared API change. The prior intermittent baseline shutdown
+access violation remains unresolved. See [evidence](coordination/B_CAMERA_ROUND_LIFECYCLE.md).
+
 ## Camera mouse scaling — 20 September 2026
 
 The B input adapter now uses unscaled screen mouse motion, so viewport stretching

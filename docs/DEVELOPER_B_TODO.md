@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-camera-mouse-scale`, based on main `8978fdf`.
-**Latest increment:** Camera input uses unscaled screen motion for consistent sensitivity under viewport stretching. Independent event-transform/adapter, settings, menu and baseline checks pass. See [camera input evidence](coordination/B_CAMERA_MOUSE_SCALE.md). Terrain clearance is merged at `8978fdf`.
+**Latest B task:** `codex/b-camera-round-lifecycle`, rebased onto main `7ce48ab`.
+**Latest increment:** Independent practice/source-replacement and real ENet duel camera/input lifecycle checks pass. See [evidence and shutdown limitation](coordination/B_CAMERA_ROUND_LIFECYCLE.md).
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -45,8 +45,7 @@ and audio. Historical labels below describe authorship, not current ownership.
 menu_game's Garage/Customize composition. Existing practice authority and selected
 arena remain; Back to Build restores the originating screen and in-memory history.
 Hidden workshop processing is disabled while driving. No wire, physics or save
-schema changes. The active Sawblade/physical-legs task owns model/registry/drive
-and Customize source changes separately. See [test-drive scope](coordination/B_GARAGE_TEST_DRIVE.md).
+schema changes. Sawblade/physical-legs model, registry, drive and Customize integration is now merged on main `7ce48ab`. See [test-drive scope](coordination/B_GARAGE_TEST_DRIVE.md).
 
 User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
 2v2, FFA and other multiplayer modes, plus all tutorial work, until then. A owns
@@ -66,17 +65,14 @@ these newly requested presentation tasks.
 - [ ] **Controls and camera:** Player input/driving, camera and spectator control
   behavior, including control-specific settings. Consume A's match phase and
   spectator sources; do not calculate local winners or ready state.
-- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live 3D preview, comparisons, individual invalid-build repair, explicit disk/backup recovery, 150% text and direct unsaved-build Test Drive are implemented. Remaining: authored bot-art integration (active Sawblade task). APIs: ContentRegistry.validate/starter and
+- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live 3D preview, comparisons, individual invalid-build repair, explicit disk/backup recovery, 150% text and direct unsaved-build Test Drive are implemented. Authored Sawblade modules, paint, drive variants and walking legs are now integrated on main `7ce48ab`; human build/handling acceptance remains open. APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 
 ## Later B scope and acceptance still open
 
 - [ ] **B-10:** Weapon animation/VFX from authoritative state/events. A owns audio.
-  Sawblade-tank art is separately published on `codex/b-sawblade-tank`; it is not
-  a dependency of the input/menu branch. Primitive spinner/lifter visuals already
-  exist in the integration; bot assembly now belongs to B. Coordinate shared
-  content identity and network-state changes with A.
+  Authored Sawblade weapon animations and drive variants are integrated on main `7ce48ab`. Next: recognizable damaged/disabled drive and weapon presentation from authoritative component snapshots. Coordinate shared content identity and network-state changes with A.
 - [ ] **B-11:** Control accessibility/controller behavior and bot-customisation
   polish. A owns general tutorial/menu presentation and audio.
 - [ ] **B-12:** Optional first-person camera after third-person feel is accepted.

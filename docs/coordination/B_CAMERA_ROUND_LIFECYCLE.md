@@ -1,32 +1,38 @@
-# Camera/input round lifecycle — B intent
+# Camera/input lifecycle — B validation
 
-Branch `codex/b-camera-round-lifecycle`, from main `bd0af46`.
-B is checking the camera and input adapter across elimination, next-round reset
-and replacement of the current session bot. Existing initial-binding and deleted
-fixture checks do not directly cover these transitions.
+Branch `codex/b-camera-round-lifecycle`, rebased onto main `7ce48ab`.
+Two independent scenes now cover real practice source replacement and real ENet
+1v1 round transitions through the composed menu/input/camera adapter. No production
+logic, match rules, BotSource API, content identity or saved preferences changed.
 
-Add an independent scene using real sessions and the existing presentation
-adapter/menu composition. Assert current anchor/exclusions, finite constrained
-camera, neutral eliminated/transition input, and release-before-rearm on return.
-No new spectator feature: team/FFA cycling stays deferred behind the 1v1 priority.
+## Evidence
 
-Reserve only the new B presentation fixture, test-runner registration and docs.
-If a production defect appears, reproduce and coordinate the owner before fixing.
-The concurrent Sawblade task retains models, drive, weapons and customization;
-A retains session lifecycle and general menu implementation.
+- `camera_round_lifecycle_test.tscn`: active input, authoritative practice knockout,
+  restart with same bot, full leave/recreate with new bot and collision RIDs.
+  Held input remains canceled until release/repress; camera follows current source.
+- `camera_duel_lifecycle_test.tscn`: two real ENet peers, readiness/loading,
+  countdown, active input received by authority, elimination/intermission,
+  second-round reset/countdown/active. Actual app gates remain intact. Held throttle,
+  steering, primary/recovery edges and weapon hold stay canceled across transitions;
+  release/repress rearms. Camera sphere is clear of world/other bots at each phase,
+  transforms/boom remain finite/bounded, and anchor/exclusions stay current.
+- Both markers pass headless with exit 0; duel also passes native D3D12/Forward+.
+  Both scenes are registered at real-time 60 FPS in the presentation runner.
+- Full Godot 4.7.2 baseline import/smoke runner passes on resumed main runtime.
 
-## Paused checkpoint — user requested wrap-up
+These deterministic tests directly eliminate an authoritative combatant and shorten
+only server phase timers. They do not synthesize client match views, bypass input
+gates, certify natural combat outcomes or replace human hosted playtests. Team/FFA
+spectator cycling remains deferred behind 1v1. No production defect was found.
 
-Rebased onto main `7ce48ab`, preserving both teams' coordination entries.
-The new camera_round_lifecycle scene covers real composed practice knockout,
-restart and full leave/recreate. Actual app gates and held action input verify
-cancellation/release-before-rearm; current anchor/exclusions and finite bounded
-camera checks pass. Headless verbose run exits 0 without leak warnings.
-It does not yet exercise a network duel's intermission/next-round transition.
-Keep this unfinished acceptance work on the task branch; do not merge it as
-completed duel-lifecycle coverage. No production files changed.
+## Shutdown observations
 
-During main import/baseline validation, BASELINE PASS printed but the process
-exited -1073741819 (access violation). The runner correctly rejected that result;
-the shutdown failure remains unresolved and has been reported to the other task.
-The latest main game was launched separately for user testing.
+An earlier baseline run printed PASS but exited -1073741819; the runner rejected
+it. Standalone verbose and complete baseline reruns exit 0 unchanged. The earlier
+access violation remains intermittent/unresolved, not claimed fixed by this task.
+A practice teardown warning identified retained MP3 playback; the fixture now
+stops menu playback and lets the audio server drain before freeing the game.
+Its final verbose run exits 0 without leaked-object warnings.
+
+Updated stale B task notes to reflect merged Sawblade assets. Next substantive B
+work is recognizable component damage presentation from authoritative snapshots.
