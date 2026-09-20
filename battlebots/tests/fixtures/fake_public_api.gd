@@ -15,13 +15,18 @@ var health_build := WireCodec.BUILD
 var fail_next_action := false
 var oversize_health := false
 
-func start() -> Error:
-	for candidate: int in range(47000 + OS.get_process_id() % 8000, 47020 + OS.get_process_id() % 8000):
-		var error := listener.listen(candidate, "127.0.0.1")
-		if error == OK:
-			port = candidate
-			return OK
-	return ERR_CANT_CREATE
+func start(requested_port := 0) -> Error:
+	# Keep the bound socket: no probe/close/rebind race or PID-derived port range.
+	var error := listener.listen(requested_port, "127.0.0.1")
+	if error != OK:
+		print("HTTP fixture bind failed: 127.0.0.1:%d, %s (%d)" % [requested_port, error_string(error), error])
+		return error
+	port = listener.get_local_port()
+	if port <= 0:
+		listener.stop()
+		print("HTTP fixture bind returned no assigned port")
+		return ERR_CANT_CREATE
+	return OK
 
 func url() -> String:
 	return "http://127.0.0.1:%d" % port

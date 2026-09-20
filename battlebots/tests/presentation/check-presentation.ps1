@@ -98,6 +98,9 @@ foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTI
         '--quit-after', '6000') -Marker $check[1]
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', '--script', 'res://tests/services/fake_public_api_port_test.gd',
+    '--quit-after', '6000') -Marker 'HTTP FIXTURE PORT PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     '--max-fps', '60', '--script', 'res://tests/services/public_service_client_test.gd',
     '--quit-after', '6000') -Marker 'PUBLIC SERVICE CLIENT PASS'
 Write-Host 'B PRESENTATION CHECKS PASS'

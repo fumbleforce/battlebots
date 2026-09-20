@@ -26,7 +26,14 @@ func run() -> void:
 	root.size = Vector2i(1280, 720)
 	var api := FakeApi.new()
 	root.add_child(api)
-	check(api.start() == OK, "Online UI HTTP fixture binds")
+	var bind_error := api.start()
+	check(bind_error == OK, "Online UI HTTP fixture binds: %s (%d)" % [error_string(bind_error), bind_error])
+	if bind_error != OK:
+		api.queue_free()
+		await frames()
+		print("ONLINE MENU FAIL")
+		quit(1)
+		return
 	var viewport := SubViewport.new()
 	viewport.name = "DedicatedServer"
 	viewport.own_world_3d = true
