@@ -25,6 +25,11 @@ foreach ($check in @(@('practice_hud_test.gd', 'PRACTICE HUD PASS'),
         '--quit-after', '6000') -Marker $check[1]
 }
 foreach ($check in @(@('gameplay_audio_test.gd', 'GAMEPLAY AUDIO PASS'),
+    @('combat_audio_status_test.gd', 'COMBAT_AUDIO_STATUS_PASS'),
+    @('status_sound_bank_test.gd', 'STATUS_SOUND_BANK_PASS'),
+    @('combat_status_playback_test.gd', 'COMBAT STATUS PLAYBACK PASS'),
+    @('status_audio_game_test.gd', 'STATUS AUDIO GAME PASS'),
+    @('status_caption_layout_test.gd', 'STATUS_CAPTION_LAYOUT_PASS'),
     @('gameplay_loop_bank_test.gd', 'GAMEPLAY_LOOP_BANK_PASS'),
     @('continuous_gameplay_audio_test.gd', 'CONTINUOUS_GAMEPLAY_AUDIO_TEST: PASS'),
     @('audio_session_test.gd', 'AUDIO SESSION PASS'),

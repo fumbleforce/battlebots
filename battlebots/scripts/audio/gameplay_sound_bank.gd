@@ -3,9 +3,9 @@ extends RefCounted
 ## Original, deliberately small procedural first-pass sounds. No imported samples.
 const RATE := 16000
 const CUES := ["impact_hammer", "impact_spinner", "impact_lifter", "impact_saw", "impact_ram",
-	"countdown", "start", "round_end", "results", "low_core", "recovery"]
-const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34]
-const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0]
+	"countdown", "start", "round_end", "results", "low_core", "recovery", "weapon_ready", "armor_break"]
+const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34, 0.24, 0.30]
+const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0, 740.0, 730.0]
 var _streams: Dictionary = {}
 
 func stream(cue: String) -> AudioStreamWAV:
@@ -39,6 +39,17 @@ func stream(cue: String) -> AudioStreamWAV:
 			elif cue == "impact_saw":
 				ring = (sin(TAU * pitch * time) + 0.3 * sin(TAU * pitch * 3.0 * time)) * 0.40
 			value = (ring + rasp) * envelope * 0.55
+		elif cue == "armor_break":
+			# A short fracture crack followed by irregular metallic resonances.
+			var crack := noise * 0.78 * exp(-time * 65.0)
+			var shards := sin(TAU * pitch * time) * 0.23 * exp(-time * 11.0) \
+				+ sin(TAU * 1907.0 * time) * 0.19 * exp(-time * 17.0) \
+				+ sin(TAU * 3181.0 * time) * 0.11 * exp(-time * 24.0)
+			value = (crack + shards) * envelope * 0.55
+		elif cue == "weapon_ready":
+			# A consonant, compact confirmation, distinct from damage transients.
+			value = (sin(TAU * pitch * time) * 0.75 \
+				+ sin(TAU * pitch * 1.5 * time) * 0.25) * envelope * 0.32
 		else:
 			var phase: float = pitch * time
 			if cue in ["start", "recovery"]:

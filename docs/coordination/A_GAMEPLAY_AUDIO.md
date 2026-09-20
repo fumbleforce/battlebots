@@ -1,5 +1,11 @@
 # A gameplay audio increment
 
+Historical first increment. Current extensions add
+[continuous spatial layers](A_SPATIAL_GAMEPLAY_AUDIO.md) and
+[weapon/armor status cues](A_COMBAT_STATUS_AUDIO.md), including three fixed
+announcement voices for simultaneous critical warnings. The evidence below
+describes the original scope; see the current task board for remaining work.
+
 Owner: A. Branch `codex/a-gameplay-audio`, based on merged `ad1607d`.
 Current division: A owns audio/general menus; B combat/bots/customisation/controls.
 Use authoritative combat events and read-only match/bot views. Do not change B

@@ -80,6 +80,7 @@ func _ready() -> void:
 	roster_title = _label(roster_col, "DUEL / BOT STATUS", 18, &"Heading")
 	roster_label = _label(roster_col, "", 16)
 	warning_label = _label(canvas, "", 27, &"Heading")
+	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	warning_label.position = Vector2(350, 232)
 	warning_label.size = Vector2(580, 76)
 	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -143,10 +144,12 @@ func apply_accessibility(value: float, colors: String, contrast: bool) -> void:
 		_set_bounds(components[key].get_parent(), Rect2(0 if index % 2 == 0 else 190, 42 + (index / 2) * 70, 178, 64) if large else positions[key])
 	_set_bounds(heading_label, Rect2(396, 428, 440, 34) if large else Rect2(356, 512, 568, 30))
 	_set_bounds(warning_label, Rect2(396, 270, 440, 100) if large else Rect2(350, 232, 580, 76))
-	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if large else TextServer.AUTOWRAP_OFF
+	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 func caption_bounds() -> Rect2:
-	return Rect2(396, 374, 440, 50) if text_scale > 1.0 else Rect2(356, 460, 568, 40)
+	# Enlarged captions occupy the clear upper-right column; default captions
+	# use the central gap between warnings and chassis status.
+	return Rect2(928, 148, 328, 190) if text_scale > 1.0 else Rect2(356, 320, 568, 190)
 
 func _set_bounds(control: Control, bounds: Rect2) -> void:
 	control.position = bounds.position

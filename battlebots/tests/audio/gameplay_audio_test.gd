@@ -60,7 +60,7 @@ func run() -> void:
 	root.add_child(audio)
 	audio.cue_played.connect(func(cue: String) -> void: cues.append(cue))
 	audio.caption_changed.connect(func(text: String) -> void: captions.append(text))
-	check(audio.get_child_count() == 6, "Fixed four-effect/two-announcement player pools")
+	check(audio.get_child_count() == 7, "Fixed four-effect/three-announcement player pools")
 	for child: AudioStreamPlayer in audio.get_children():
 		check(child.bus in [&"BBEffects", &"BBAnnouncements"], "Real player uses configured gameplay bus")
 	audio.observe_match(match_view())
@@ -132,7 +132,7 @@ func run() -> void:
 	for index: int in range(100, 130):
 		advance(0.04)
 		audio.combat_event(hit(index, "vertical_spinner", 2), 1)
-	check(audio.get_child_count() == 6, "Sustained effects reuse bounded voices")
+	check(audio.get_child_count() == 7, "Sustained effects reuse bounded voices")
 	await create_timer(2.2).timeout
 	check(captions.back() == "", "Caption expires through real process frames")
 	audio.reset()
@@ -180,7 +180,7 @@ func run() -> void:
 	check(count("start") == starts_before + 2 and count("round_end") == ends_before + 1 \
 		and count("results") == results_before + 1 and captions.back() == "Match complete",
 		"Rapid actual phase changes cannot lose critical cues or final caption to announcement throttle")
-	check(audio.get_child_count() == 6, "Rapid transitions still use the bounded voice pools")
+	check(audio.get_child_count() == 7, "Rapid transitions still use the bounded voice pools")
 	audio.reset()
 	for index: int in range(30):
 		audio.observe_match(match_view("active", 1, 3, 180.0, "bounded-%d" % index))

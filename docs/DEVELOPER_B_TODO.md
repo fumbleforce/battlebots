@@ -413,3 +413,17 @@ integration base, not the still-old main branch.
   and hammer/lifter charge does not create fake rotor sound. No additional B
   producer fields or wire changes are required. B may continue its owned work;
   audio coverage and human listening polish remain A follow-ups.
+
+- **A combat-status audio intent (2026-09-20):** reserves A audio scripts,
+  menu-game composition and independent tests on `codex/a-combat-status-audio`.
+  Uses existing BotView armor/charge/cooldown/state plus published weapon family;
+  no B source or wire changes. Precise captions report full speed/charge/power
+  or cooldown completion without duplicating attack eligibility rules. See
+  [status-audio coordination](coordination/A_COMBAT_STATUS_AUDIO.md).
+
+- **A combat-status audio handoff:** detector consumes existing accepted local
+  BotView plus family metadata; spinner/lifter/saw/hammer captions describe
+  observed states rather than promise an eligible attack. Armor breaches and
+  simultaneous critical warnings use bounded sound/caption pools. A's caption
+  layout was extended for combined warnings at enlarged text sizes. No B source,
+  controls, combat rules, content IDs or wire schemas changed.

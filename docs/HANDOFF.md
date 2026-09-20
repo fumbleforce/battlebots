@@ -57,6 +57,17 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-combat-status-audio` follows `fb3d633`. A adds weapon status and armor
+breach cues with captions from accepted local views; precise wording avoids
+duplicating B's attack eligibility rules. Fresh baselines are silent, invalid
+or stale views do not fabricate events, and critical captions retain concurrent
+core/recovery/armor details. Three fixed announcement voices preserve those
+simultaneous sounds. The caption layout fits enlarged text alongside existing
+HUD and network panels. B producers, combat, input and assets are unchanged;
+see [status-audio evidence](coordination/A_COMBAT_STATUS_AUDIO.md).
+
+### Preceding continuous-audio increment
+
 `codex/a-spatial-gameplay-audio` follows `9a3053a`. A adds a detached session
 audio accessor over existing physical snapshots and first-pass 1v1/practice
 drive/sliding/spinner/saw/arena loops. Client audio uses accepted authority data

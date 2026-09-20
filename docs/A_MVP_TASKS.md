@@ -118,8 +118,11 @@ internet acceptance must still be performed after deployment.
 - [x] First-pass 1v1/practice spatial drive, grounded sliding, spinner/saw and
   arena sound layers from authoritative data, with stale-source silence and
   local ambience ducking for warnings. See [audio evidence](coordination/A_SPATIAL_GAMEPLAY_AUDIO.md).
-- [ ] Finish audio coverage and listening polish: weapon-ready/armor-break/crowd
-  cues, spatial impact mix, material variation and human listening acceptance.
+- [x] First-pass weapon status/armor-break cues with precise captions, accepted
+  local baselines, bounded concurrent critical warnings and enlarged caption
+  layout. See [status-audio evidence](coordination/A_COMBAT_STATUS_AUDIO.md).
+- [ ] Finish audio coverage and listening polish: crowd cues, spatial impact
+  mix, material variation and human listening acceptance.
   Current sliding audio approximates grounded sideways motion; it is not a
   measured tire-slip simulation. Hammer/lifter have no continuous rotor sound.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.

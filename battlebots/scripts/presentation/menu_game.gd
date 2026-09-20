@@ -150,7 +150,7 @@ func _add_gameplay_audio() -> void:
 	continuous_audio.name = "ContinuousAudio"
 	add_child(continuous_audio)
 	gameplay_audio.cue_played.connect(func(cue: String) -> void:
-		if cue in ["countdown", "start", "round_end", "results", "low_core", "recovery"]:
+		if cue in ["countdown", "start", "round_end", "results", "low_core", "recovery", "armor_break"]:
 			continuous_audio.duck())
 	session.combat_event.connect(_audio_combat_event)
 	var captions := CanvasLayer.new()
@@ -406,8 +406,6 @@ func _process(_delta: float) -> void:
 		reconnect_panel.render(session.can_reconnect(), session.is_reconnecting(), session.reconnect_seconds_remaining(), _reconnect_message)
 		return
 	gameplay_audio.observe_match(session.match_view, session.connection_state == "practice")
-	if bot != null:
-		gameplay_audio.observe_bot(bot.read_view())
 	if bot != _last_source:
 		_last_source = bot
 		preview.rig.bind_source(source)
@@ -444,7 +442,15 @@ func _process(_delta: float) -> void:
 			break
 	match_hud.render(session.match_view, session.connection_state == "practice", local_view.team if local_view != null else -1)
 	combat_hud.visible = match_hud.visible
-	continuous_audio.render(session.audio_views(), combat_hud.visible
+	var audio_records := session.audio_views()
+	var local_audio: Dictionary = {}
+	for record: Dictionary in audio_records:
+		if record.entity_id == session.local_entity and record.age <= ContinuousGameplayAudio.MAX_AGE:
+			local_audio = record
+			break
+	gameplay_audio.observe_bot(local_view if not local_audio.is_empty() else null,
+		str(local_audio.get("weapon", "")))
+	continuous_audio.render(audio_records, combat_hud.visible
 		and phase in ["active", "overtime"] and local_view != null
 		and (session.connection_state == "practice" or session.match_view.get("mode") == "1v1"))
 	world_markers.visible = combat_hud.visible

@@ -4,7 +4,7 @@ extends Node
 signal caption_changed(text: String)
 signal cue_played(cue: String)
 const EFFECT_VOICES := 4
-const ANNOUNCEMENT_VOICES := 2
+const ANNOUNCEMENT_VOICES := 3
 const CONTEXT_LIMIT := 16
 const CAPTION_SECONDS := 2.0
 const PHASES := ["lobby", "loading", "countdown", "active", "overtime", "intermission", "results"]
@@ -16,8 +16,11 @@ var _announcement_cursor := 0
 var _clock := 0.0
 var _next_effect := 0.0
 var _next_announcement := 0.0
+var _next_ready := 0.0
 var _caption_until := 0.0
 var _caption_priority := 0
+var _caption_parts: Dictionary = {}
+var _status := CombatAudioStatus.new()
 var _match := ""
 var _round := 0
 var _phase := ""
@@ -47,6 +50,7 @@ func _process(delta: float) -> void:
 	_clock += maxf(0.0, delta)
 	if _caption_priority > 0 and _clock >= _caption_until:
 		_caption_priority = 0
+		_caption_parts.clear()
 		caption_changed.emit("")
 
 func reset() -> void:
@@ -67,13 +71,16 @@ func reset() -> void:
 	_next_announcement = _clock
 	_clear_bot()
 	_caption_priority = 0
+	_caption_parts.clear()
 	caption_changed.emit("")
 
 func _clear_bot() -> void:
+	_status.reset()
 	_bot_id = 0
 	_bot_tick = -1
 	_low_core = false
 	_recovery_cooldown = 0.0
+	_next_ready = _clock
 
 func _integer(value: Variant, minimum: int) -> bool:
 	return value is int and value >= minimum
@@ -122,29 +129,39 @@ func observe_match(view: Dictionary, practice := false) -> void:
 		elif _phase == "intermission": _play("round_end", "Round complete", true, true)
 		elif _phase == "results": _play("results", "Match complete", true, true)
 
-func observe_bot(view: BotView) -> void:
+func observe_bot(view: BotView, weapon := "") -> void:
 	if view == null or _phase not in ["active", "overtime"] or view.entity_id <= 0 \
 		or not is_finite(view.core_fraction) or view.core_fraction < 0.0 or view.core_fraction > 1.0 \
 		or not is_finite(view.recovery_cooldown) or view.recovery_cooldown < 0.0 or view.server_tick < 0:
+		_clear_bot()
 		return
 	if view.entity_id != _bot_id:
 		_bot_id = view.entity_id
 		_bot_tick = view.server_tick
 		_low_core = view.core_fraction <= 0.25
 		_recovery_cooldown = view.recovery_cooldown
+		_status.observe(view, weapon)
 		return # Joining an already damaged/recovering bot is not a new warning.
 	if view.server_tick <= _bot_tick:
 		return
 	_bot_tick = view.server_tick
+	var status_edges := _status.observe(view, weapon)
 	if not view.eliminated:
 		if view.core_fraction > 0.35:
 			_low_core = false
 		elif view.core_fraction <= 0.25 and not _low_core:
 			_low_core = true
-			_play("low_core", "Core integrity low", true)
+			_play("low_core", "Core integrity low", true, true, true)
 		if view.recovery_cooldown > _recovery_cooldown + 1.0:
-			_play("recovery", "Recovery activated", true)
+			_play("recovery", "Recovery activated", true, true, true)
 	_recovery_cooldown = view.recovery_cooldown
+	for edge: Dictionary in status_edges:
+		if edge.cue == "armor_break":
+			_play(edge.cue, edge.caption, true, true, true)
+		elif _clock >= _next_ready and (_caption_priority < 2 or _clock >= _caption_until):
+			# Critical warnings take precedence over positive readiness feedback.
+			_play(edge.cue, edge.caption, true, true, false, 1)
+			_next_ready = _clock + 0.75
 
 func combat_event(event: Dictionary, local_entity: int) -> void:
 	if _match.is_empty() or _phase not in ["active", "overtime"] \
@@ -175,7 +192,8 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	elif event.target == local_entity: caption = "Hit by " + kind
 	_play("impact_" + kind, caption, false)
 
-func _play(cue: String, caption: String, announcement: bool, transition := false) -> void:
+func _play(cue: String, caption: String, announcement: bool, transition := false,
+	merge_caption := false, priority_override := -1) -> void:
 	var pool := _announcements if announcement else _effects
 	# Match changes cannot be retried on a later view refresh. Let them preempt
 	# a bounded announcement voice instead of losing them to warning throttling.
@@ -191,13 +209,24 @@ func _play(cue: String, caption: String, announcement: bool, transition := false
 	player.play()
 	if announcement:
 		_announcement_cursor += 1
-		_next_announcement = _clock + 0.08
+		if priority_override != 1:
+			_next_announcement = _clock + 0.08
 	else:
 		_effect_cursor += 1
 		_next_effect = _clock + 0.035
 	cue_played.emit(cue)
-	var priority := 2 if announcement else 1
+	var priority := priority_override if priority_override >= 0 else (2 if announcement else 1)
 	if priority >= _caption_priority or _clock >= _caption_until:
+		if not merge_caption or _caption_priority != priority or _clock >= _caption_until:
+			_caption_parts.clear()
+		if merge_caption:
+			# Keep at most the latest core, recovery and armor warning. Unrelated
+			# countdown/round text and repeated warnings cannot grow the caption.
+			for prior: String in _caption_parts.keys():
+				if prior not in ["low_core", "recovery", "armor_break"]:
+					_caption_parts.erase(prior)
+		_caption_parts[cue] = caption
+		caption = " · ".join(_caption_parts.values())
 		_caption_priority = priority
 		_caption_until = _clock + CAPTION_SECONDS
 		caption_changed.emit(caption)

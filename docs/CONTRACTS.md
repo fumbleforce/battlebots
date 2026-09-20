@@ -10,6 +10,19 @@ Paths below are relative to the Godot project.
 
 ## Combat and round HUD
 
+`GameplayAudio.observe_bot(view, weapon = "")` consumes a fresh accepted local
+BotView and optional family from the audio accessor. It silently establishes a
+baseline after missing data, reconnect, identity/round changes or leave.
+`CombatAudioStatus` reports positive-to-zero armor edges and family-specific
+weapon edges: full spinner speed, charged lifter, running saw or hammer cooldown
+completion. These captions do not assert attack affordability or hit success.
+Repeated/stale ticks and invalid per-field baselines cannot fabricate events.
+Critical core/recovery/armor captions retain the latest of each type together;
+positive readiness is rate limited to 750 ms and suppressed during critical
+captions. Four effect and three announcement players cap concurrent voices,
+including a simultaneous core/recovery/breach warning. The game's caption region
+fits the combined warning at 100–150% text without covering HUD/status panels.
+
 `MvpSession.audio_views() -> Array[Dictionary]` supplies detached audio records
 for current bots: entity_id, tick, position (displayed world position), pose
 (physical world transform), velocity, angular, drive_input, turn_input,
