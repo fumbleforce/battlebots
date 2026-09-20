@@ -16,6 +16,9 @@ func run() -> void:
 	profile.save_path = path
 	profile.reload()
 	profile.active_bot = 0
+	# This fixture's overweight sequence targets the original Striker catalogue.
+	profile.loadouts[0] = profile.registry.starter()
+	profile._refresh_bots()
 	var original: Dictionary = profile.loadouts[0].duplicate(true)
 	var paint: Dictionary = profile.catalogue.paint[0]
 	profile.equip("paint", paint, paint.items[1])

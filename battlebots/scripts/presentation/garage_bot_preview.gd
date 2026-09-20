@@ -7,6 +7,7 @@ var viewport: SubViewport
 var camera: Camera3D
 var model: Node3D
 var weapon_visual: MvpWeaponVisual
+var sawblade_visual: SawbladeVisual
 var status: Label
 var yaw := 0.6
 var pitch := 0.45
@@ -184,6 +185,7 @@ func show_loadout(draft: Dictionary) -> void:
 		model.queue_free()
 	model = null
 	weapon_visual = null
+	sawblade_visual = null
 	var validation := _registry.validate(draft)
 	if not validation.valid:
 		_invalid_status("; ".join(validation.reasons))
@@ -197,6 +199,12 @@ func show_loadout(draft: Dictionary) -> void:
 	model.position.y = 0.4
 	_turntable.add_child(model)
 	var size: Vector3 = validation.stats.size
+	if SawbladeConfig.enabled(draft):
+		sawblade_visual = SawbladeVisual.new()
+		model.add_child(sawblade_visual)
+		sawblade_visual.assemble(draft, size)
+		status.text = "Sawblade Tank · equipped modules\nDrag to rotate · Wheel to zoom"
+		return
 	var chassis := BoxMesh.new()
 	chassis.size = size
 	_mesh(model, chassis, Vector3.ZERO, PAINTS[draft.cosmetics.paint]).name = "Chassis"

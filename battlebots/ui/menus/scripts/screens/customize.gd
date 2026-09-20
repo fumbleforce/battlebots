@@ -4,7 +4,7 @@ extends MenuScreen
 const CATEGORY_ROW := preload("res://ui/menus/components/category_row.tscn")
 const ITEM_TILE := preload("res://ui/menus/components/item_tile.tscn")
 const TABS := ["parts", "paint", "decals"]
-const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS", "decals": "DECAL SPOTS"}
+const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS", "decals": "VEHICLE MODULES"}
 
 var _tab := "parts"
 var _cat := {"parts": 0, "paint": 0, "decals": 0}
@@ -23,6 +23,10 @@ var _choice_pages: Dictionary = {}
 var _choice_page_label: Label
 var _choice_pager: HBoxContainer
 var _show_details := false
+var _category_page := {"parts": 0, "paint": 0, "decals": 0}
+var _category_pager: HBoxContainer
+var _category_page_label: Label
+var _color_picker: ColorPickerButton
 
 func apply_text_scale(factor: float) -> void:
 	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
@@ -56,6 +60,30 @@ func _show_choice_details(value: bool) -> void:
 
 func _ready() -> void:
 	super()
+	%TabDecals.text = "VEHICLE"
+	_category_pager = HBoxContainer.new()
+	%Categories.get_parent().add_child(_category_pager)
+	%Categories.get_parent().move_child(_category_pager, %Categories.get_index() + 1)
+	for direction: int in [-1, 1]:
+		var button := Button.new()
+		button.text = "PREV" if direction < 0 else "NEXT"
+		_category_pager.add_child(button)
+		button.pressed.connect(func():
+			_category_page[_tab] = wrapi(_category_page[_tab] + direction, 0, ceili(PlayerProfile.catalogue[_tab].size() / 3.0))
+			_cat[_tab] = _category_page[_tab] * 3
+			_refresh())
+		if direction < 0:
+			_category_page_label = Label.new()
+			_category_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_category_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_category_pager.add_child(_category_page_label)
+	_color_picker = ColorPickerButton.new()
+	_color_picker.text = "CUSTOM COLOR"
+	_color_picker.edit_alpha = false
+	%Items.get_parent().add_child(_color_picker)
+	_color_picker.popup_closed.connect(func():
+		var category: Dictionary = PlayerProfile.catalogue[_tab][_cat[_tab]]
+		if _tab == "paint" and category.slot != "paint": PlayerProfile.set_sawblade_color(category.slot, _color_picker.color))
 	var options := %Items.get_parent()
 	var view_tabs := HBoxContainer.new()
 	options.add_child(view_tabs)
@@ -214,6 +242,11 @@ func _refresh() -> void:
 	var cats: Array = PlayerProfile.catalogue[_tab]
 	var ci: int = _cat[_tab]
 	var cat: Dictionary = cats[ci]
+	_category_page_label.text = "%d / %d" % [_category_page[_tab] + 1, ceili(cats.size() / 3.0)]
+	_color_picker.visible = _tab == "paint" and cat.slot != "paint" and SawbladeConfig.enabled(PlayerProfile.loadouts[PlayerProfile.active_bot])
+	if _color_picker.visible:
+		var rgba: Array = PlayerProfile.loadouts[PlayerProfile.active_bot].cosmetics.sawblade[cat.slot]
+		_color_picker.color = Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb()
 	var key := "%s:%d" % [_tab, ci]
 	var ii: int = _item.get(key, 0)
 	var choice_page: int = _choice_pages.get(key, 0)
@@ -228,6 +261,7 @@ func _refresh() -> void:
 		row.setup(cats[i].label, PlayerProfile.equipped_name(_tab, cats[i]))
 		row.button_group = cg
 		row.button_pressed = i == ci
+		row.visible = i / 3 == _category_page[_tab]
 		row.pressed.connect(func():
 			_cat[_tab] = i
 			_refocus = "cat"

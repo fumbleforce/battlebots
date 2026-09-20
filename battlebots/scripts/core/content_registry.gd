@@ -60,8 +60,13 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 	if power > 100.0:
 		result.reasons.append("Installed power exceeds 100")
 	var cosmetics: Variant = draft.get("cosmetics")
-	if not cosmetics is Dictionary or cosmetics.size() != 1 or cosmetics.get("paint") not in ["cyan", "orange", "white", "red"]:
+	if not cosmetics is Dictionary or cosmetics.size() not in [1, 2] or cosmetics.get("paint") not in ["cyan", "orange", "white", "red"]:
 		result.reasons.append("Unknown cosmetic selection")
+	elif cosmetics.size() == 2:
+		if not SawbladeConfig.valid(cosmetics.get("sawblade")):
+			result.reasons.append("Invalid Sawblade Tank appearance")
+		elif selected.get("weapon") not in SawbladeConfig.WEAPONS:
+			result.reasons.append("Sawblade Tank supports Saw, Hammer or Ramp (lifter)")
 	if not result.reasons.is_empty():
 		return result
 	var chassis: Dictionary = parts[selected.chassis]

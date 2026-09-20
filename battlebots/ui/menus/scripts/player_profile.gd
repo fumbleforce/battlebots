@@ -34,7 +34,7 @@ func reload() -> void:
 	errors = loaded.errors
 	_read_errors = not errors.is_empty() or loaded.restored_backup
 	_saved = loaded.loadouts.duplicate(true)
-	loadouts = [registry.starter(),registry.starter(true),registry.duelist()]
+	loadouts = [SawbladeConfig.starter(registry),registry.starter(true),registry.duelist()]
 	_save_indices = [-1,-1,-1]
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
@@ -141,7 +141,7 @@ func save_active(name: String) -> Error:
 	return OK
 
 func new_build() -> void:
-	var draft := registry.starter()
+	var draft := SawbladeConfig.starter(registry)
 	draft.name = "Custom %d" % (loadouts.size()-1)
 	loadouts.append(draft)
 	_save_indices.append(-1)
@@ -151,6 +151,12 @@ func new_build() -> void:
 
 func equipped_name(tab: String, cat: Dictionary) -> String:
 	var draft: Dictionary = loadouts[active_bot]
+	if tab == "decals" or (tab == "paint" and cat.slot != "paint"):
+		if cat.slot == "model": return "Sawblade Tank" if SawbladeConfig.enabled(draft) else "Classic bot"
+		if not SawbladeConfig.enabled(draft): return "Choose Sawblade Tank"
+		var config: Dictionary = draft.cosmetics.sawblade
+		if tab == "paint": return "Custom color"
+		return SawbladeConfig.OPTIONS[cat.slot][int(config[cat.slot])]
 	var raw: Variant = draft.get("cosmetics") if tab == "paint" else draft.get("parts")
 	var selected := ""
 	if raw is Dictionary:
@@ -160,25 +166,47 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 	return "Unavailable" if tab == "decals" else "Missing / invalid"
 
 func item_state(tab: String, cat: Dictionary, item: Dictionary) -> String:
-	if tab == "decals": return "lock"
+	if (tab == "decals" and cat.slot != "model") or (tab == "paint" and cat.slot != "paint"):
+		if not SawbladeConfig.enabled(loadouts[active_bot]): return "lock"
 	return "eq" if equipped_name(tab,cat) == item.name else "own"
 
 func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
-	if tab not in ["parts","paint"]: return
+	if tab not in ["parts","paint","decals"]: return
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
 	if tab == "parts":
 		if not registry.parts.has(item.id) or registry.parts[item.id].category != cat.slot: return
 		if not draft.get("parts") is Dictionary: draft.parts = {}
 		draft.parts[cat.slot] = item.id
+	elif tab == "decals":
+		if cat.slot == "model":
+			if item.id == "sawblade":
+				draft.cosmetics["sawblade"] = SawbladeConfig.defaults()
+				if draft.parts.get("weapon") not in SawbladeConfig.WEAPONS: draft.parts.weapon = "saw"
+			else: draft.cosmetics.erase("sawblade")
+		elif SawbladeConfig.enabled(draft): draft.cosmetics.sawblade[cat.slot] = int(item.id)
+	elif cat.slot != "paint":
+		if not SawbladeConfig.enabled(draft): return
+		draft.cosmetics.sawblade[cat.slot] = item.rgba.duplicate()
 	else:
 		if item.id not in ["cyan","orange","white","red"]: return
-		draft.cosmetics = {"paint":item.id}
+		if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {}
+		draft.cosmetics.paint = item.id
 	# Preserve invalid combinations for repair; never silently replace selected parts.
 	if not _record_edit(draft): return
 	loadouts[active_bot] = draft
 	errors = registry.validate(draft).reasons
 	_refresh_bots()
 	inventory_changed.emit()
+
+func set_sawblade_color(channel: String, color: Color) -> void:
+	if channel not in SawbladeConfig.COLORS: return
+	var draft: Dictionary = loadouts[active_bot].duplicate(true)
+	if not SawbladeConfig.enabled(draft): return
+	var linear := color.srgb_to_linear()
+	draft.cosmetics.sawblade[channel] = [linear.r, linear.g, linear.b, 1.0]
+	if not _record_edit(draft): return
+	loadouts[active_bot] = draft
+	_draft_changed()
 
 func rename_draft(value: String) -> void:
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)

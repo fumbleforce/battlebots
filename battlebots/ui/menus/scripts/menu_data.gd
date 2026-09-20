@@ -36,7 +36,34 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 	for id: String in colors:
 		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Canonical bot paint; no effect on performance."})
-	return {"parts":categories,"paint":[{"label":"PAINT","slot":"paint","items":paints}],"decals":[{"label":"DECALS","slot":"unavailable","items":[{"id":"unavailable","name":"Not available","default":"lock","desc":"Decals are not supported by the current loadout format."}]}]}
+	var paint_categories: Array = [{"label":"CLASSIC PAINT","slot":"paint","items":paints}]
+	for channel: String in SawbladeConfig.COLORS:
+		var choices: Array = []
+		var original: Array = SawbladeConfig.defaults()[channel]
+		choices.append({"id":"original", "name":"Original", "default":"own", "rgba":original,
+			"swatch":Color(original[0], original[1], original[2]).linear_to_srgb().to_html(), "desc":"Authored Sawblade Tank color. Use CUSTOM COLOR for any color."})
+		for id: String in colors:
+			var color := Color(colors[id]).srgb_to_linear()
+			choices.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],
+				"rgba":[color.r,color.g,color.b,1.0],"desc":"Tint this channel across all Sawblade Tank modules."})
+		paint_categories.append({"label":channel.trim_prefix("paint_").to_upper(),"slot":channel,"items":choices})
+	var vehicle: Array = [{"label":"VEHICLE", "slot":"model", "items":[
+		{"id":"sawblade","name":"Sawblade Tank","default":"own","desc":"Modular Blender vehicle. Equips the saw if the current weapon is incompatible. Tracks use Traction; other drive packages use four wheels."},
+		{"id":"classic","name":"Classic bot","default":"own","desc":"Original primitive chassis; supports all five weapons."}]}]
+	for slot: String in SawbladeConfig.OPTIONS:
+		var choices: Array = []
+		for index: int in SawbladeConfig.OPTIONS[slot].size():
+			choices.append({"id":str(index),"name":SawbladeConfig.OPTIONS[slot][index],"default":"own",
+				"desc":"Sawblade Tank appearance. Armor protection and weight come from PARTS > ARMOR; exhaust has no performance effect."})
+		vehicle.append({"label":slot.replace("_", " ").to_upper(),"slot":slot,"items":choices})
+	for category: Dictionary in categories:
+		for item: Dictionary in category.items:
+			if item.id == "traction": item.name = "Tracks · Traction"
+			elif item.id == "standard_wheels": item.name = "Four wheels · Standard"
+			elif item.id == "agile": item.name = "Four wheels · Agile"
+			elif item.id == "lifter": item.name = "Ramp · Lifter"
+			if item.id in ["vertical_spinner", "horizontal_spinner"]: item.desc += " Classic bot only."
+	return {"parts":categories,"paint":paint_categories,"decals":vehicle}
 
 static func mode_by_id(id: String) -> Dictionary:
 	for mode: Dictionary in MODES:
