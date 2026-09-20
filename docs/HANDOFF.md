@@ -54,6 +54,17 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-shutdown-diagnostics` follows `7287540`. Bounded Windows experiments
+reproduce the native shutdown failure after successful gameplay assertions.
+Removing WireCodec's concrete bot type did not fix it and was reverted. A's
+drive gate now rejects native crash text even with exit zero, and a repeatable
+diagnostic runner retains every trial instead of retrying toward a green result.
+No B implementation or game behavior changes. See
+[diagnostic evidence](coordination/A_SHUTDOWN_DIAGNOSTICS.md). The crash remains
+open; this increment improves detection and reproduction, not runtime stability.
+
+### Preceding Linux runtime increment
+
 `codex/a-linux-hosted-runtime` follows `4cf0a99`. A new independent Linux job
 builds and starts the production Docker image as its default unprivileged user,
 then runs two host-side clients through its real allocated UDP release server,

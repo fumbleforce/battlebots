@@ -358,3 +358,13 @@ integration base, not the still-old main branch.
 - **A HUD accessibility intent (2026-09-20):** reserves combat/round HUD, HUD preferences/settings and general settings composition on codex/a-hud-accessibility. Text scaling through150%, color presets/highcontrast; no B controls/camera/garage or wire edits. See coordination/A_HUD_ACCESSIBILITY.md.
 
 - **A Linux hosting intent (2026-09-20):** reserves CI/container runtime acceptance on codex/a-linux-hosted-runtime. Exercise real Linux release worker plus private1v1 lifecycle inside production image; no B runtime or contracts changed. See coordination/A_LINUX_HOSTED_RUNTIME.md.
+
+- **A shutdown diagnosis intent (2026-09-20):** reserves independent runtime-exit diagnostics and validation harnesses on codex/a-shutdown-diagnostics. Investigate reproducible GDScript teardown failure; no speculative B camera/drive/bot edits or gate relaxation. See coordination/A_SHUTDOWN_DIAGNOSTICS.md.
+
+- **A shutdown findings (2026-09-20):** no B implementation edits. One stationary
+  baseline bot reading public views reproduces the same native 0x547f2c shutdown
+  fault; command processing and repeated replacement are not necessary. Removing
+  the encoder's MvpBot type did not fix it and was reverted. Added an opt-in
+  independent diagnostic fixture/runner and strengthened drive crash detection.
+  Native crashes can return zero after PASS, so retain both exit and log checks.
+  Root cause remains open; see the diagnostic note for all trial counts.

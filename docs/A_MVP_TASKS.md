@@ -31,6 +31,8 @@ active expansion or acceptance work.
   closes the runtime packaging gap, not external deployment.
 - [ ] Resolve the intermittent Windows native shutdown crash. Latest CI reproduced
   `0xC0000005` after DRIVE PASS; strict gates remain and full Windows CI is not green.
+  [Bounded diagnostics](coordination/A_SHUTDOWN_DIAGNOSTICS.md) also reproduce it
+  locally; the drive gate rejects native crash text even when the exit code is zero.
 - [x] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
   state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
   B's authoritative combat/bot interfaces. Core HUD, raw component diagram,

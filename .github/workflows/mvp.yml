@@ -11,6 +11,11 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - name: Check native-crash validation gates
+        shell: pwsh
+        run: |
+          ./tools/tests/check-drive-gate.ps1
+          ./tools/tests/diagnose-shutdown-test.ps1
       - name: Install pinned Godot and export templates
         shell: pwsh
         run: |
