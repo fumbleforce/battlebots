@@ -18,10 +18,11 @@ func _run() -> void:
 	var view := state.snapshot()
 	var original := view.duplicate(true)
 	hud.render(view)
-	_check(hud.timer_label.text == "Starts in  0:05", "Countdown rounds up server seconds")
+	_check(hud.timer_label.text == "5", "Countdown rounds up server seconds")
+	_check(hud.timer_caption.text == "STARTS IN" and hud.timer_caption.visible, "Countdown explains prominent server numeral")
 	for _tick in range(3):
 		await process_frame
-	_check(hud.timer_label.text == "Starts in  0:05" and view == original, "No local timer or snapshot mutation")
+	_check(hud.timer_label.text == "5" and view == original, "No local timer or snapshot mutation")
 	state.transition("active", 179.1)
 	hud.render(state.snapshot())
 	_check(hud.phase_label.text == "FIGHT" and hud.timer_label.text == "3:00", "Active phase timer")
@@ -31,6 +32,10 @@ func _run() -> void:
 	state.resolve(1)
 	hud.render(state.snapshot())
 	_check(hud.score_label.text == "TEAM A  0  :  1  TEAM B" and hud.result_label.text == "Team B wins the round", "Authoritative intermission score and winner")
+	hud.render(state.snapshot(), false, 1)
+	_check(hud.result_label.text == "Round won", "Round outcome uses supplied local team")
+	hud.render(state.snapshot(), false, 0)
+	_check(hud.result_label.text == "Round lost", "Opposing local team sees round loss")
 	state.round_index = 2
 	state.resolve(-1)
 	hud.render(state.snapshot())
@@ -61,6 +66,7 @@ func _run() -> void:
 	_check(hud.result_label.text == "Team A wins the round", "Integral JSON floats accepted")
 	hud.render(state.snapshot(), true)
 	_check(hud.phase_label.text == "PRACTICE" and not hud.round_label.visible and not hud.score_label.visible and not hud.timer_label.visible and not hud.result_label.visible, "Practice never awards competitive score or result")
+	_check(not hud.timer_caption.visible, "Practice clears previous timer caption")
 	hud.render({"phase":"results", "mode":"ffa", "remaining":20, "winners":[2, 5]})
 	_check(not hud.score_label.visible and hud.round_label.text == "FREE FOR ALL" and hud.result_label.text == "Player 2, Player 5 share the win", "FFA shared winners are bots, not team scores or a draw")
 	hud.render({"phase":"results", "mode":"ffa", "remaining":20, "winners":[3]})
@@ -74,7 +80,7 @@ func _run() -> void:
 	for child: Node in hud.find_children("*", "Control", true, false):
 		_check(child.mouse_filter == Control.MOUSE_FILTER_IGNORE, "HUD cannot intercept game mouse: " + child.name)
 	var panel: Control = hud.get_node("Panel")
-	_check(panel.get_global_rect().position.x >= 484 and panel.get_global_rect().end.x < 976 and panel.get_global_rect().end.y < 250, "Header fits between existing HUD and diagnostics at 720p")
+	_check(panel.get_global_rect().position.x >= 420 and panel.get_global_rect().end.x < 976 and panel.get_global_rect().end.y < 220, "Header fits between existing HUD and diagnostics at 720p")
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("user://b-match-hud.png")

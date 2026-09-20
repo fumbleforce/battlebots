@@ -28,6 +28,7 @@ var practice_hud: PracticeHud
 var _restart_practice: Button
 var _practice_knockout_handled := false
 var game_menu_page: Control
+var combat_hud: CombatHud
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -63,6 +64,17 @@ func _ready() -> void:
 	results_panel.leave_requested.connect(return_to_main)
 	_add_gameplay_audio()
 	_add_practice_hud()
+	combat_hud = CombatHud.new()
+	$MatchLayer.add_child(combat_hud)
+	practice_hud.reparent(combat_hud.canvas, false)
+	preview.network_diagnostics.reparent(combat_hud.canvas, false)
+	var caption_layer := _audio_caption.get_parent()
+	_audio_caption.reparent(combat_hud.canvas)
+	caption_layer.queue_free()
+	_audio_caption.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_audio_caption.position = Vector2(356, 460)
+	_audio_caption.size = Vector2(568, 40)
+	_style_auxiliary_hud()
 	_add_menu_music()
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
@@ -168,6 +180,16 @@ func _add_practice_hud() -> void:
 	practice_hud.offset_bottom = 394
 	practice_hud.hide()
 
+func _style_auxiliary_hud() -> void:
+	for panel: PanelContainer in [practice_hud, preview.network_diagnostics]:
+		panel.theme = preload("res://ui/menus/theme/menu_theme.tres")
+		var style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		style.bg_color = Color(0.045, 0.06, 0.08, 0.94)
+		style.border_color = Color("f5b82e")
+		panel.add_theme_stylebox_override("panel", style)
+	preview.network_diagnostics.details_button.theme_type_variation = &"GhostButton"
+	preview.network_diagnostics.details_button.add_theme_font_size_override("font_size", 16)
+
 func _update_practice(bot: BotSource) -> void:
 	var practice := session.connection_state == "practice"
 	_restart_practice.visible = practice
@@ -255,10 +277,25 @@ func _process(_delta: float) -> void:
 	var game_menu_open: bool = preview.pause_menu.visible or results_panel.visible or _audio_overlay.visible
 	preview.get_node("CanvasLayer").visible = not menu_open and not preview.settings_panel.visible
 	preview.get_node("DiagnosticsLayer").visible = not menu_open and not game_menu_open and not preview.settings_panel.visible
-	preview.hud.visible = bot != null and not game_menu_open
-	preview.hint.visible = not menu_open and not game_menu_open
+	preview.hud.hide()
+	preview.hint.hide()
 	match_hud.visible = bot != null and not menu_open and not game_menu_open and not preview.settings_panel.visible
-	match_hud.render(session.match_view, session.connection_state == "practice")
+	var local_view: BotView
+	var published_views := session.bot_views()
+	for candidate: BotView in published_views:
+		if candidate.entity_id == session.local_entity:
+			local_view = candidate
+			break
+	match_hud.render(session.match_view, session.connection_state == "practice", local_view.team if local_view != null else -1)
+	combat_hud.visible = match_hud.visible
+	var opponent: BotView
+	if session.match_view.get("mode") == "1v1" and local_view != null:
+		for candidate: BotView in published_views:
+			if candidate.entity_id != local_view.entity_id and candidate.team != local_view.team:
+				opponent = candidate
+				break
+	combat_hud.render(local_view, preview.input_preferences.label_for(&"recover"), opponent,
+		session.connection_state == "practice", session.match_view.get("mode") == "1v1", phase in ["active", "overtime"])
 	_update_practice(bot)
 	if menu_open:
 		preview.pause_menu.hide()

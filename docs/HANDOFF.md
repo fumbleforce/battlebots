@@ -54,6 +54,25 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-duel-hud` follows menu panels `1a5d38a`. The default game now has a
+read-only combat HUD for resources, raw component integrity/breaches/disables,
+weapon state/charge/cooldown, recovery availability/cooldown, prominent
+immobilization/elimination/core/heat warnings, chassis heading and duel bot status.
+Round countdown/time/score/outcome use the original menu theme and scale through
+4K. Combat, practice, diagnostics and captions share the HUD layout; menus and
+settings suppress it. The preview's old resource/hint overlays remain for its
+standalone fixtures, while the default game uses the composed HUD.
+
+`MvpSession.bot_views()` is a local read-only API with fresh detached records;
+clients omit bots without an accepted snapshot. It prevents missing baselines
+from masquerading as healthy bots. No B combat/control/bot implementation or
+wire/schema changed. See [HUD evidence](coordination/A_DUEL_HUD.md) for validation
+and limitations. External hosting remains outstanding. Text-scale/color-vision
+presets and coordinated ping presentation are still open, not part of this core
+HUD delivery. The known intermittent engine shutdown issue also remains open.
+
+### Preceding menu-panel increment
+
 `codex/a-duel-menu-panels` implements the requested general menu refinement from
 `1a56c38`. Online entry now focuses on private 1v1 create/join with original menu
 art/theme, service status and cancellation. Direct host/join uses labelled,

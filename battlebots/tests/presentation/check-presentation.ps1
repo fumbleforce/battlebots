@@ -32,6 +32,9 @@ foreach ($check in @(@('gameplay_audio_test.gd', 'GAMEPLAY AUDIO PASS'),
         '--quit-after', '6000') -Marker $check[1]
 }
 $checks = @(
+    @('combat_hud_test.gd', 'COMBAT HUD PASS'),
+    @('game_hud_test.gd', 'GAME HUD PASS'),
+    @('match_hud_layout_test.gd', 'MATCH HUD LAYOUT PASS'),
     @('game_menu_page_test.gd', 'GAME MENU PAGE PASS'),
     @('online_panel_test.gd', 'ONLINE PANEL PASS'),
     @('results_panels_test.gd', 'RESULTS PANELS PASS'),
@@ -63,6 +66,7 @@ foreach ($check in $checks) {
 }
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
 foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
+    @('combat_hud_session_test.gd', 'COMBAT HUD SESSION PASS'),
     @('menu_mode_guard_test.gd', 'MENU MODE GUARD PASS'),
     @('lobby_session_test.gd', 'LOBBY SESSION PASS'),
     @('lobby_game_network_test.gd', 'LOBBY GAME NETWORK PASS'),

@@ -6,18 +6,37 @@ const PHASES := {"lobby":"LOBBY", "loading":"LOADING", "countdown":"GET READY", 
 @onready var phase_label: Label = $Panel/Content/Phase
 @onready var round_label: Label = $Panel/Content/Round
 @onready var timer_label: Label = $Panel/Content/Timer
+@onready var timer_caption: Label = $Panel/Content/TimerCaption
 @onready var score_label: Label = $Panel/Content/Score
 @onready var result_label: Label = $Panel/Content/Result
 
 func _ready() -> void:
+	$Panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	$Panel.minimum_size_changed.connect(_fit_content)
+	get_viewport().size_changed.connect(_resize)
+	_resize()
 	render({})
 
-func render(view: Dictionary, practice: bool = false) -> void:
+func _fit_content() -> void:
+	var panel: Control = $Panel
+	panel.size = Vector2(416.0, panel.get_combined_minimum_size().y)
+
+func _resize() -> void:
+	var extent := get_viewport_rect().size
+	var ratio := minf(extent.x / 1280.0, extent.y / 720.0)
+	var panel: Control = $Panel
+	panel.scale = Vector2.ONE * ratio
+	panel.position = Vector2((extent.x - 416.0 * ratio) * 0.5, 24.0 * ratio)
+
+func render(view: Dictionary, practice: bool = false, local_team: int = -1) -> void:
 	phase_label.text = "PRACTICE" if practice else "MATCH UNAVAILABLE"
 	round_label.text = "Round unavailable"
 	timer_label.text = "Time unavailable"
 	score_label.text = "Score unavailable"
 	result_label.text = ""
+	timer_caption.text = ""
+	timer_caption.visible = false
+	timer_label.add_theme_color_override("font_color", Color("e8ecf1"))
 	round_label.visible = not practice
 	timer_label.visible = not practice
 	score_label.visible = not practice
@@ -41,11 +60,15 @@ func render(view: Dictionary, practice: bool = false) -> void:
 		var seconds := ceili(float(remaining))
 		var time := "%d:%02d" % [seconds / 60, seconds % 60]
 		match phase:
-			"loading": timer_label.text = "Loading timeout  " + time
-			"countdown": timer_label.text = "Starts in  " + time
-			"intermission": timer_label.text = "Next round in  " + time
-			"results": timer_label.text = "Lobby in  " + time
+			"loading": timer_caption.text = "LOADING TIMEOUT"
+			"countdown": timer_caption.text = "STARTS IN"
+			"intermission": timer_caption.text = "NEXT ROUND IN"
+			"results": timer_caption.text = "LOBBY IN"
 			_: timer_label.text = time
+		timer_label.text = str(seconds) if phase == "countdown" else time
+		timer_caption.visible = not timer_caption.text.is_empty()
+		if phase == "countdown" or phase == "overtime":
+			timer_label.add_theme_color_override("font_color", Color("f5b82e"))
 	if view.get("mode") == "ffa":
 		round_label.text = "FREE FOR ALL"
 		score_label.visible = false
@@ -64,7 +87,7 @@ func render(view: Dictionary, practice: bool = false) -> void:
 		score_label.text = "TEAM A  %d  :  %d  TEAM B" % [int(scores[0]), int(scores[1])]
 	if phase == "results":
 		result_label.visible = true
-		result_label.text = _winner_text(view.get("winner"), true)
+		result_label.text = _winner_text(view.get("winner"), true, local_team)
 	elif phase == "intermission":
 		result_label.visible = true
 		result_label.text = "Round result unavailable"
@@ -72,14 +95,16 @@ func render(view: Dictionary, practice: bool = false) -> void:
 		if rounds is Array and not rounds.is_empty() and rounds.back() is Dictionary:
 			var last: Dictionary = rounds.back()
 			if _integer_in(round_value, 1, 999) and _integer_in(last.get("round"), 1, 999) and last.round == round_value:
-				result_label.text = _winner_text(last.get("winner"), false)
+				result_label.text = _winner_text(last.get("winner"), false, local_team)
 
-func _winner_text(winner: Variant, match_result: bool) -> String:
+func _winner_text(winner: Variant, match_result: bool, local_team: int = -1) -> String:
 	var scope := "Match" if match_result else "Round"
 	if not _integer_in(winner, -1, 1):
 		return scope + " result unavailable"
 	if winner == -1:
 		return scope + " drawn"
+	if local_team in [0, 1]:
+		return scope + (" won" if winner == local_team else " lost")
 	return "Team %s wins %s" % ["A" if winner == 0 else "B", "the match" if match_result else "the round"]
 
 func _number(value: Variant) -> bool:

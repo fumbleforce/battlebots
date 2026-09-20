@@ -8,6 +8,30 @@ coordinated producer-consumer interfaces, not blanket A ownership of scripts/cor
 The current split in TEAM_WORKFLOW.md supersedes historical authorship below.
 Paths below are relative to the Godot project.
 
+## Combat and round HUD
+
+`MvpSession.bot_views() -> Array[BotView]` returns fresh detached views for the
+current world. Server/practice views read the real bot state; clients omit bots
+without an accepted snapshot for the current epoch. No world returns an empty
+array. This lets UI display unknown peers instead of neutral full-health defaults.
+It is a local read API, not a new RPC or wire field.
+
+A's `CombatHud` displays fractions, raw component integrity, weapon phase and
+cooldown, recovery availability/cooldown, immobilization seconds, and a chassis
+bearing derived from presentation pose (-Z forward, arena -Z treated as north).
+Raw zone values are not percentages; no armor maximum is inferred. Zero armor
+is breached; zero drive/weapon is disabled; invalid or missing data stays unknown.
+Recovery readiness uses the published flag and active match phase; no inversion,
+battery-max or recovery-animation state is invented. Timers do not advance locally.
+
+The default menu game reads local/rival views from `bot_views()`, applies current
+recovery binding labels, and uses a shared scalable canvas for combat, practice,
+diagnostics and captions. The old preview HUD/hints stay available to B's fixtures
+but are hidden in this composed game. B preview/control/camera code is unchanged.
+`MatchHud.render(view, practice = false, local_team = -1)` accepts an authoritative
+team for local round won/lost wording; its neutral behavior remains available.
+No protocol/build/catalogue or BotView schema change is needed.
+
 ## General game menu and result presentation
 
 A composes the preview's existing pause panel into `scripts/ui/game_menu_page.gd`.

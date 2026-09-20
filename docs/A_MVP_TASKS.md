@@ -3,9 +3,9 @@
 Owner: A — menus, networking, game rules, game world and audio. B owns combat,
 bot models/weapons, bot-customisation menus and player controls. Earlier playable
 checkpoint: `codex/a-b-integration` at `bdb42ef`.
-Current shared baseline: `6ff5c89` on main, including hosted matchmaking source,
-B's results menu, natural-duel validation, gameplay audio, practice and Foundry. Completed increments
-push main directly.
+Shared main includes hosted matchmaking source, natural-duel validation, gameplay
+audio, practice, Foundry and the menu panels published as `1a5d38a`. Completed
+increments push main directly; the current HUD increment is recorded below.
 User priority (2026-09-20): finish a fully working 1v1 game first. Defer 2v2,
 FFA and all other multiplayer modes until that is done. Defer the tutorial too.
 Existing mode implementations and historical evidence remain, but do not create
@@ -19,9 +19,14 @@ active expansion or acceptance work.
   verify external connectivity and complete a real hosted duel through rematch.
   Existing private-duel support is the starting point; the current 2v2 queue is
   not the active delivery target. Public hosting remains outstanding.
-- [ ] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
+- [x] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
   state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
-  B's authoritative combat/bot interfaces.
+  B's authoritative combat/bot interfaces. Core HUD, raw component diagram,
+  recovery/immobilization, heading and duel survival status are implemented;
+  [HUD evidence](coordination/A_DUEL_HUD.md) records scope and remaining limits.
+- [ ] Remaining HUD accessibility and communication: independent text scaling,
+  color-vision/high-contrast presets and ping presentation after the coordinated
+  input/network interfaces exist. These are not claimed by the core HUD increment.
 - [x] Refine the general menus, especially multiplayer/networking screens (A).
   User feedback (2026-09-20): these screens are poorly integrated into the
   original menu system. Make online entry, host/join, connection progress,
@@ -32,8 +37,8 @@ active expansion or acceptance work.
   [menu-panel evidence](coordination/A_DUEL_MENU_PANELS.md). Human design review
   remains welcome and does not certify hosted deployment.
 - [x] Add finished win and score screens for 1v1 (A), using authoritative match
-  outcomes and scores with clear rematch/return actions. Existing results code
-  is a foundation, not completion of these user-requested screens.
+  outcomes and scores with clear rematch/return actions; the menu-panel increment
+  adds overview and score-detail pages to the existing results foundation.
 - [x] Add an in-game menu page consistent with the design of the other panels
   (A), including coherent layout, styling and navigation. Validate it alongside
   the win/score screens as part of the complete 1v1 flow.

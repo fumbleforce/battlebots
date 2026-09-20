@@ -117,6 +117,12 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **1v1 core HUD implemented:** `codex/a-duel-hud` adds read-only resources,
+  component diagram, weapon/recovery state, immobilization, heading and duel bot
+  status plus original-theme round presentation. B-owned combat/control/camera/
+  bot/garage code is unchanged. Local `MvpSession.bot_views()` returns detached,
+  snapshot-initialized data; no wire/schema change. See [HUD evidence](coordination/A_DUEL_HUD.md).
+
 - **1v1 menu panels implemented:** A refined online/direct-connect/lobby panels,
   added win/score tabs and composed an original-theme in-game menu on
   `codex/a-duel-menu-panels`. B combat/control/camera/garage paths are untouched.

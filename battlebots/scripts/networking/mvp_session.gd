@@ -897,6 +897,16 @@ func _pong(stamp: int, server_tick: int) -> void:
 func local_source() -> BotSource:
 	return world.bots.get(local_entity) if is_instance_valid(world) else null
 
+func bot_views() -> Array[BotView]:
+	# A client bot exists before its first baseline; do not publish its defaults.
+	var views: Array[BotView] = []
+	if not is_instance_valid(world):
+		return views
+	for id: int in world.bots:
+		if _server or _last_snapshot_tick.has(id):
+			views.append(world.bots[id].read_view())
+	return views
+
 func spectator_sources() -> Array[BotSource]:
 	var sources: Array[BotSource] = []
 	if not is_instance_valid(world) or not world.bots.has(local_entity):
