@@ -17,8 +17,8 @@ func _ready() -> void:
 		var turn := Basis(Vector3.UP,side*PI/4)
 		var volume := FogVolume.new()
 		volume.name = "BayDust%d" % side
-		volume.size = Vector3(13,8,12)
-		volume.position = turn*Vector3(-4,4.5,-20)
+		volume.size = Vector3(13,8,9)
+		volume.position = turn*Vector3(-4,6,-30)
 		volume.rotation.y = side*PI/4
 		var material := ShaderMaterial.new()
 		material.shader = preload("res://assets/materials/arena/lunar_fog.gdshader")

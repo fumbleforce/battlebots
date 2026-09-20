@@ -32,8 +32,11 @@ func run() -> void:
 	world=AuthorityWorld.new()
 	world.arena_id="moon"
 	root.add_child(world)
-	world.spawn(1,0,0,world.registry.starter())
-	world.spawn(2,1,0,world.registry.starter())
+	var first := SawbladeConfig.starter(world.registry)
+	var second := SawbladeConfig.starter(world.registry)
+	second.parts.weapon = "hammer"
+	world.spawn(1,0,0,first)
+	world.spawn(2,1,0,second)
 	var camera:=Camera3D.new()
 	world.add_child(camera)
 	camera.current=true
@@ -102,6 +105,9 @@ func run() -> void:
 	timings.sort()
 	var report:={"resolution":"2560x1440","bots":2,"samples":timings.size(),"p50_ms":timings[timings.size()/2],"p95_ms":timings[int(timings.size()*.95)],"p99_ms":timings[int(timings.size()*.99)],"engine_peak_video_mib":peak_memory/1048576.0}
 	report["system_gpu_peak_mib"]=gpu_peak_mib
+	report["adapter"]=RenderingServer.get_video_adapter_name()
+	report["engine"]=Engine.get_version_info().string
+	report["scope"]="Two moving authored SawbladeConfig bots (saw/hammer), three views, native Forward+, 2xMSAA; no HUD/network traffic or sustained combat effects. System VRAM sampled per view."
 	check(report.p95_ms<=16.7,"1440p frame-time target")
 	check(gpu_peak_mib>0 and gpu_peak_mib<8192,"Total GPU memory stays below 8 GiB")
 	FileAccess.open(output+"benchmark.json",FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))

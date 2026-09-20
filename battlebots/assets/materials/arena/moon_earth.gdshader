@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded;
+render_mode unshaded, fog_disabled;
 uniform sampler2D earth_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 varying vec3 sphere;
 void vertex() { sphere=normalize(VERTEX); }

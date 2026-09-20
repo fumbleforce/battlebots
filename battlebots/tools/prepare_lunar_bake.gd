@@ -49,5 +49,3 @@ func run() -> void:
 	ResourceSaver.save(packed,"res://assets/models/lunar/baked_service_bay.tscn")
 	print("BAKE SCENE READY")
 	quit()
-
-

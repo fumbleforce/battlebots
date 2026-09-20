@@ -285,7 +285,7 @@ func _tower(x: float, side: int) -> void:
 	light.look_at(_side*Vector3(x*0.3,0,-9))
 	light.light_color = Color("d3e8ff")
 	light.light_energy = 3.0
-	light.light_volumetric_fog_energy = 12.0
+	light.light_volumetric_fog_energy = 8.0
 	light.spot_angle = 47
 	light.spot_range = 37
 	light.shadow_enabled = side % 2 == 0

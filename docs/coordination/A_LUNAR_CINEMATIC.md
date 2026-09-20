@@ -1,6 +1,7 @@
 # Cinematic lunar environment — Dev A
 
-Branch codex/a-lunar-cinematic, base 6c1eb0e. Custom Blender environment kit,
+Branch codex/a-lunar-cinematic, initial base 6c1eb0e, integrated against ea68e9b.
+Custom Blender environment kit,
 layered original materials, baked indirect light, dynamic sun/floodlights,
 localized animated fog, synchronized vent/beacon, layered dust and pooled tracks.
 Authoritative Moon surface, colliders, spawns, gravity, bot/control/network files
@@ -42,11 +43,20 @@ compatibility, Foundry four-client lifecycle, lightmap receiver and rendered eff
 lifecycle checks. Reviewed showcase, arena and reverse 1440p captures plus movement.
 
 RTX3080 / D3D12 Forward+ / 2560×1440 / 2×MSAA / uncapped / two moving bots:
-1080 warmed samples across three views. p50 3.403ms, p95 4.774ms, p99 5.095ms;
-engine peak tracked video allocation 1687MiB; highest system-wide GPU memory sample
-3430MiB. GPU samples taken per view; not a continuous hardware memory trace.
+1080 warmed samples across three views. Two current authored SawbladeConfig bots
+(saw and hammer), with physics and movement effects active. p50 3.596ms,
+p95 6.297ms, p99 16.306ms; engine peak tracked video allocation 1695MiB;
+highest system-wide GPU memory sample 3735MiB. GPU samples taken per view;
+not a continuous hardware memory trace. This fixture excludes HUD/network traffic
+and sustained weapon-impact effects; it is an arena benchmark, not a full match soak.
 Both requested thresholds passed on this machine; numbers are fixture-specific,
 not a guarantee for different GPUs, player counts or future bot assets.
+
+The full regression runner passed again after rebasing onto ea68e9b. A final
+rendered pass then validated the authored bots, reduced local fog density,
+bay-centered volumes and Earth fog exclusion. This keeps the black sky and
+combat sightlines clear while retaining illuminated vent plumes. Persistent
+measurement: [benchmark JSON](evidence/a-lunar-cinematic-2026-09-20.json).
 
 The pinned renderer prints a shutdown warning about seven leaked texture RIDs;
 no missing bake receivers, script errors or runtime errors remain in the accepted

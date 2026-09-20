@@ -1,0 +1,13 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3080",
+	"bots": 2,
+	"engine": "4.7.2-stable (official)",
+	"engine_peak_video_mib": 1694.54296875,
+	"p50_ms": 3.596,
+	"p95_ms": 6.297,
+	"p99_ms": 16.306,
+	"resolution": "2560x1440",
+	"samples": 1080,
+	"scope": "Two moving authored SawbladeConfig bots (saw/hammer), three views, native Forward+, 2xMSAA; no HUD/network traffic or sustained combat effects. System VRAM sampled per view.",
+	"system_gpu_peak_mib": 3735
+}

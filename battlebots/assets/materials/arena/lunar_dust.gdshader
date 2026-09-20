@@ -13,5 +13,3 @@ void fragment(){
  ROUGHNESS=1.;
  ALPHA=alpha*alpha*COLOR.a*.22;
 }
-
-
