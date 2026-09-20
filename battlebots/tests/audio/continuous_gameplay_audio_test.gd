@@ -68,10 +68,29 @@ func run() -> void:
 	r.weapon = "saw"
 	r.charge = 0.1
 	audio.render([r], true)
-	var saw_pitch := voice(1, "weapon").pitch_scale
+	var saw_voice := voice(1, "weapon")
+	var saw_pitch := saw_voice.pitch_scale
+	var saw_stream := saw_voice.stream as AudioStreamWAV
+	check(saw_stream.data == (load("res://assets/audio/combat/heavy_saw_loop.wav") as AudioStreamWAV).data,
+		"Powered saw plays the supplied continuous recording")
+	check(is_equal_approx(saw_pitch, 1.0) and is_equal_approx(saw_voice.volume_db, -14.0),
+		"Recorded saw keeps its natural pitch and calibrated mix gain")
+	var saw_playback := saw_voice.get_stream_playback()
+	audio.render([r], true)
+	check(saw_voice.playing and saw_voice.get_stream_playback() == saw_playback,
+		"Repeated powered saw records do not restart playback")
 	r.charge = 1.0
 	audio.render([r], true)
 	check(voice(1, "weapon").playing and voice(1, "weapon").pitch_scale == saw_pitch, "Saw uses binary power")
+	check(saw_voice.get_stream_playback() == saw_playback, "Powered charge changes preserve the running saw loop")
+	saw_playback = null
+	r.charge = 0.0
+	audio.render([r], true)
+	check(not saw_voice.playing, "Powering off stops the saw recording immediately")
+	r.charge = 1.0
+	audio.render([r], true)
+	check(saw_voice.playing and saw_voice.stream == saw_stream, "Powering on reuses the retained saw recording")
+	saw_stream = null
 	var bus := AudioServer.get_bus_index("BBEffects")
 	var bus_db := AudioServer.get_bus_volume_db(bus)
 	audio.duck(0.2)
@@ -112,8 +131,13 @@ func run() -> void:
 	audio.render([r], true)
 	check(voice(1, "weapon").playing and audio._arena.playing, "Resume restarts retained loop streams")
 	audio.reset()
+	# Let spatial players flush their queued stop/start operations while in-tree.
+	await physics_frame
+	await physics_frame
 	audio.queue_free()
 	audio = null
 	await process_frame
+	# Let the mixer release the stopped/restarted saw playbacks before shutdown.
+	await create_timer(0.15).timeout
 	print("CONTINUOUS_GAMEPLAY_AUDIO_TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

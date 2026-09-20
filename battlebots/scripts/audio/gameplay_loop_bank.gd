@@ -1,6 +1,6 @@
 class_name GameplayLoopBank
 extends RefCounted
-## Original periodic industrial textures. Playback pitch/gain follows gameplay elsewhere.
+## Recorded saw loop and procedural industrial textures; playback follows accepted state.
 const RATE := 16000
 const SECONDS := 2
 const CUES := ["drive", "skid", "spinner", "saw", "arena"]
@@ -13,6 +13,13 @@ func stream(cue: String) -> AudioStreamWAV:
 		return null
 	if _streams.has(cue):
 		return _streams[cue]
+	if cue == "saw":
+		var recording := load("res://assets/audio/combat/heavy_saw_loop.wav").duplicate() as AudioStreamWAV
+		recording.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		recording.loop_begin = 0
+		recording.loop_end = recording.data.size() / 2 # Prepared mono PCM16, sample units.
+		_streams[cue] = recording
+		return recording
 	var count := RATE * SECONDS
 	var samples := PackedFloat32Array()
 	samples.resize(count)

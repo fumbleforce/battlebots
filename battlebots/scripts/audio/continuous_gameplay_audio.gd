@@ -84,7 +84,10 @@ func render(records: Array[Dictionary], active: bool) -> void:
 		var rotor := float(record.charge) if record.weapon in ["vertical_spinner", "horizontal_spinner"] else 0.0
 		if record.weapon == "saw":
 			rotor = 1.0 if float(record.charge) > 0.0 else 0.0
-		_layer(rig, "weapon", "saw" if record.weapon == "saw" else "spinner", rotor, 0.55 + rotor * 0.95, -18.0)
+			# Keep the recording's heavy pitch; compensate its lower RMS vs synthesis.
+			_layer(rig, "weapon", "saw", rotor, 1.0, -14.0)
+		else:
+			_layer(rig, "weapon", "spinner", rotor, 0.55 + rotor * 0.95, -18.0)
 	if not accepted.is_empty():
 		if not _arena.playing:
 			_arena.play()

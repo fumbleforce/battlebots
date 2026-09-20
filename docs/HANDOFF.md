@@ -1,5 +1,15 @@
 # Current A/B handoff
 
+## Supplied combat recordings — 20 September 2026
+
+A adapted the supplied heavy metal collision, hammer crash and continuous saw
+recordings to confirmed ram/hammer impacts and powered saw playback. Mono PCM
+preparation removes clipping risk from the source peaks, preserves impact tails
+and crossfades the saw loop. Effects volume, spatial positions, voice limits and
+state guards remain in use. Baseline, recorded-source/loop checks, actual spatial
+mix capture and composed audio lifecycle pass. No gameplay/compatibility change
+or hosted release. See [mapping and evidence](coordination/A_SAMPLED_COMBAT_AUDIO.md).
+
 ## Battle soundtrack — 20 September 2026
 
 A added the supplied Relentless Action MP3 as a looping battle song on the existing

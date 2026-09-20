@@ -37,12 +37,26 @@ func count(cue: String) -> int:
 
 func sound_bank() -> void:
 	var bank := GameplaySoundBank.new()
+	var other := GameplaySoundBank.new()
+	var recordings := {
+		"impact_hammer": "res://assets/audio/combat/hammer_crash.wav",
+		"impact_ram": "res://assets/audio/combat/metal_collision.wav",
+	}
 	var signatures: Array[int] = []
 	for cue: String in GameplaySoundBank.CUES:
 		var stream := bank.stream(cue)
 		check(stream != null and stream == bank.stream(cue), cue + " is cached")
+		var recorded := recordings.has(cue)
 		check(stream.format == AudioStreamWAV.FORMAT_16_BITS and not stream.stereo \
-			and stream.mix_rate == 16000 and stream.data.size() > 3000, cue + " has finite-length original PCM")
+			and stream.mix_rate == (48000 if recorded else 16000) and stream.data.size() > 3000,
+			cue + " has finite-length mono PCM")
+		check(stream.loop_mode == AudioStreamWAV.LOOP_DISABLED, cue + " plays once per event")
+		if recorded:
+			var source := load(recordings[cue]) as AudioStreamWAV
+			check(stream != source and stream != other.stream(cue) and stream.data == source.data,
+				cue + " uses a private copy of the adapted recording")
+			check(is_equal_approx(stream.get_length(), 0.9 if cue == "impact_hammer" else 0.8),
+				cue + " retains the trimmed impact and decay")
 		var peak := 0
 		for index: int in range(0, stream.data.size(), 2):
 			peak = maxi(peak, absi(stream.data.decode_s16(index)))
@@ -68,6 +82,9 @@ func run() -> void:
 	audio.combat_event(hit(), 1)
 	check(cues == ["impact_hammer"] and captions.back() == "Hammer hit", "Authoritative local hit plays and captions")
 	check(audio._effects.any(func(player: AudioStreamPlayer3D) -> bool: return player.playing), "Actual spatial impact playback started")
+	var hammer_stream := audio._effects[0].stream as AudioStreamWAV
+	check(hammer_stream.data == (load("res://assets/audio/combat/hammer_crash.wav") as AudioStreamWAV).data,
+		"Authoritative hammer hit plays the supplied hammer recording")
 	advance()
 	audio.combat_event(hit(), 1)
 	audio.combat_event(hit(0), 1)
@@ -104,6 +121,9 @@ func run() -> void:
 	check(count("start") == 1, "Actual countdown completion announces fight")
 	audio.combat_event(hit(1, "ram", 2), 1)
 	check(count("impact_ram") == 1, "Fresh round permits reset event ID")
+	var ram_stream := audio._effects[(audio._effect_cursor - 1) % audio.EFFECT_VOICES].stream as AudioStreamWAV
+	check(ram_stream.data == (load("res://assets/audio/combat/metal_collision.wav") as AudioStreamWAV).data,
+		"Authoritative ram hit plays the supplied metal-collision recording")
 	advance()
 	audio.observe_bot(bot(100, 0.2, 10.0))
 	check(count("low_core") == 0 and count("recovery") == 0, "Initial damaged/recovering view stays quiet")

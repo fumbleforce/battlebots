@@ -564,3 +564,8 @@ reservation is released after integration. See [scope](coordination/A_HUD_REDESI
 - **A battle music:** `codex/a-battle-music` reserves menu-game music setup/sync,
   the supplied audio asset and existing playback checks. No B implementation or
   shared schema changes. See [scope](coordination/A_BATTLE_MUSIC.md).
+
+- **A supplied combat audio:** `codex/a-sampled-combat-audio` reserves the sound
+  banks, continuous audio presentation and matching tests/assets. Existing ram,
+  hammer and powered-saw signals are consumed unchanged. See
+  [scope](coordination/A_SAMPLED_COMBAT_AUDIO.md).

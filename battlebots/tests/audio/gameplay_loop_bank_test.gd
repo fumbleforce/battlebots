@@ -14,10 +14,16 @@ func _initialize() -> void:
 	for cue: String in GameplayLoopBank.CUES:
 		var sound := bank.stream(cue)
 		check(sound != null and sound == bank.stream(cue), cue + " cache reuses stream")
-		check(sound != other.stream(cue) and sound.data == other.stream(cue).data, cue + " independent banks synthesize identically")
-		check(sound.format == AudioStreamWAV.FORMAT_16_BITS and not sound.stereo and sound.mix_rate == 16000, cue + " PCM format")
+		check(sound != other.stream(cue) and sound.data == other.stream(cue).data, cue + " independent banks provide identical private PCM")
+		check(sound.format == AudioStreamWAV.FORMAT_16_BITS and not sound.stereo \
+			and sound.mix_rate == (48000 if cue == "saw" else 16000), cue + " PCM format")
 		var count := sound.data.size() / 2
-		check(count == 32000 and sound.loop_mode == AudioStreamWAV.LOOP_FORWARD and sound.loop_begin == 0 and sound.loop_end == count, cue + " full two-second loop in sample units")
+		check(count == (50880 if cue == "saw" else 32000) and sound.loop_mode == AudioStreamWAV.LOOP_FORWARD \
+			and sound.loop_begin == 0 and sound.loop_end == count, cue + " full loop uses sample-frame bounds")
+		if cue == "saw":
+			var source := load("res://assets/audio/combat/heavy_saw_loop.wav") as AudioStreamWAV
+			check(sound != source and sound.data == source.data, "Saw loop uses a private copy of the adapted recording")
+			check(is_equal_approx(sound.get_length(), 1.06), "Saw keeps the crossfaded recording length")
 		var peak := 0.0
 		var mean := 0.0
 		var energy := 0.0

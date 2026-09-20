@@ -1,6 +1,10 @@
 class_name GameplaySoundBank
 extends RefCounted
-## Original, deliberately small procedural first-pass sounds. No imported samples.
+## Recorded heavy impacts with small procedural cues for the remaining events.
+const SAMPLES := {
+	"impact_ram": "res://assets/audio/combat/metal_collision.wav",
+	"impact_hammer": "res://assets/audio/combat/hammer_crash.wav",
+}
 const RATE := 16000
 const CUES := ["impact_hammer", "impact_spinner", "impact_lifter", "impact_saw", "impact_ram",
 	"countdown", "start", "round_end", "results", "low_core", "recovery", "weapon_ready", "armor_break",
@@ -15,6 +19,11 @@ func stream(cue: String) -> AudioStreamWAV:
 		return null
 	if _streams.has(cue):
 		return _streams[cue]
+	if SAMPLES.has(cue):
+		var recording := load(SAMPLES[cue]).duplicate() as AudioStreamWAV
+		recording.loop_mode = AudioStreamWAV.LOOP_DISABLED
+		_streams[cue] = recording
+		return recording
 	var duration: float = LENGTHS[index]
 	var pitch: float = PITCHES[index]
 	var count := int(RATE * duration)
