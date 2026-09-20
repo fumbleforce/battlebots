@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-garage-preview`, based on main `2a9e70a`.
-**Latest increment:** Live equipped-draft preview in Garage/Customize, bounded rotate/zoom/reset, independent automated scene and manual F6 sandbox. See [preview evidence](coordination/B_GARAGE_PREVIEW.md).
+**Latest B task:** `codex/b-garage-comparison`, based on main `682824b`.
+**Latest increment:** Canonical equipped/proposed part comparisons, persistent budgets and explicit invalid-candidate reasons. See [comparison evidence](coordination/B_GARAGE_COMPARISON.md).
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -65,7 +65,7 @@ these newly requested presentation tasks.
 - [ ] **Controls and camera:** Player input/driving, camera and spectator control
   behavior, including control-specific settings. Consume A's match phase and
   spectator sources; do not calculate local winners or ready state.
-- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo and a live primitive 3D preview are implemented. Remaining: detailed before/after comparisons, full repair UX, text scaling and authored bot-art integration. APIs: ContentRegistry.validate/starter and
+- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live primitive 3D preview and canonical before/after comparisons are implemented. Remaining: full repair UX, text scaling and authored bot-art integration. APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 

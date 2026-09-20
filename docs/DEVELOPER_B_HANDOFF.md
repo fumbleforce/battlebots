@@ -1,5 +1,21 @@
 # Developer B — combat, bots, customisation and controls
 
+## Garage comparisons — 20 September 2026
+
+`codex/b-garage-comparison` starts from main `682824b`. Customize now compares
+equipped/proposed canonical part stats before Equip, with signed neutral deltas.
+Mass and power budgets stay visible above scrollable core, speed, armor, grip,
+battery, cooling, recovery and plate-integrity rows. Invalid fully identifiable
+builds show known mass/power; other derived values remain unavailable. Proposed
+validation errors are explicit, and invalid drafts remain editable for repair.
+The 3D preview remains the equipped draft; highlighting a candidate never equips.
+
+A: no catalogue, wire, schema, network, general-menu or combat changes. Scope was
+published in [the comparison record](coordination/B_GARAGE_COMPARISON.md) before
+implementation. A subagent supplied the pure model and independent acceptance
+scenes; the primary integrated/reviewed the screen. Full repair/save UX, text
+scaling and authored bot-art integration remain B work.
+
 ## Live garage preview — 20 September 2026
 
 Branch `codex/b-garage-preview`, from main `2a9e70a`, adds a lit cosmetic viewport

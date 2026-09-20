@@ -14,6 +14,7 @@ var name_edit: LineEdit
 var undo_button: Button
 var redo_button: Button
 var build_preview: GarageBotPreview
+var comparison_panel: GarageComparisonPanel
 
 
 func _ready() -> void:
@@ -24,6 +25,12 @@ func _ready() -> void:
 	frame.add_child(build_preview)
 	frame.move_child(build_preview, 1)
 	frame.get_node("PreviewChip").hide()
+	frame.custom_minimum_size.y = 300
+	comparison_panel = GarageComparisonPanel.new()
+	comparison_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var preview_column := frame.get_parent()
+	preview_column.add_child(comparison_panel)
+	preview_column.move_child(comparison_panel, %Stats.get_index())
 	$Layout/Footer/Row/Hint1.hide()
 	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
 	name_edit = LineEdit.new()
@@ -153,12 +160,21 @@ func _refresh() -> void:
 	%CatLabel.text = cat.label
 	%Count.text = "%d / %d available" % [owned_count, cat.items.size()]
 	var cur: Dictionary = cat.items[ii]
+	var comparison_slot: String = cat.slot if _tab == "parts" else "chassis"
+	var selected_parts: Variant = PlayerProfile.loadouts[PlayerProfile.active_bot].get("parts", {})
+	var candidate_id := ""
+	if _tab == "parts": candidate_id = str(cur.id)
+	elif selected_parts is Dictionary: candidate_id = str(selected_parts.get("chassis", ""))
+	var comparison := GarageComparison.compare(PlayerProfile.registry, PlayerProfile.loadouts[PlayerProfile.active_bot], comparison_slot, candidate_id)
+	comparison_panel.render(comparison, str(cur.name), _tab == "parts")
 	var state := PlayerProfile.item_state(_tab, cat, cur)
 	%SelName.text = cur.name
 	%PreviewName.text = cur.name
 	var fallback := ("Applies to the %s layer." if _tab == "paint" else "Decal for the %s.") % cat.label.to_lower()
 	%SelDesc.text = cur.get("desc", fallback)
 	if not current.valid: %SelDesc.text += "\nBuild invalid: " + "; ".join(current.reasons)
+	if _tab == "parts" and not comparison.proposed.valid:
+		%SelDesc.text += "\nProposed build: " + "; ".join(comparison.proposed.reasons)
 	match state:
 		"eq":
 			%Action.text = "EQUIPPED"
@@ -173,16 +189,8 @@ func _refresh() -> void:
 			%Action.text = "UNAVAILABLE"
 			%Action.disabled = true
 
-	var is_parts := _tab == "parts"
-	%Stats.visible = is_parts and current.valid
-	%CosmeticNote.visible = not is_parts
-	if is_parts:
-		var base: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot].stats
-		var d: Dictionary = cur.get("d", {})
-		var bars := %Stats.get_children()
-		for k in MenuData.STAT_KEYS.size():
-			var s: String = MenuData.STAT_KEYS[k]
-			bars[k].set_stat(s, base[s], int(d.get(s, 0)))
+	%Stats.hide()
+	%CosmeticNote.hide()
 
 
 func _on_action() -> void:
