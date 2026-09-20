@@ -81,7 +81,7 @@ func run() -> void:
 			await ticks(2)
 			check(client.game.match_hud.visible and not client.game.lobby.visible and not client.game.gameplay_input_allowed(),
 				"Intermission keeps outcome visible without allowing drive")
-			check(client.game.match_hud.score_label.text.contains("1"), "Authoritative round score appears in HUD")
+			check([client.game.match_hud.score_label.text, client.game.match_hud.opponent_score_label.text].has("1"), "Authoritative round score appears in the split HUD")
 			check(await until(func() -> bool: return client.game.session.match_view.get("phase") == "active", 1800),
 				"Server starts second round")
 			host.game.session.vote_forfeit()

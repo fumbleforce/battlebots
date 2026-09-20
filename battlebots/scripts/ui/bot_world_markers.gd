@@ -62,8 +62,9 @@ func render(views: Array[BotView], local_id: int, practice: bool, duel: bool) ->
 			if marker.get_meta("own") != own:
 				marker.set_meta("own", own)
 				_style(marker)
-			var title := "+ YOU" if own else ("◇ TARGET" if practice else "◇ RIVAL")
-			marker.text = title + (" / OUT" if view.eliminated else "")
+			var title := "◇ TARGET" if practice else "◇ RIVAL"
+			# Local health remains visible without a floating identity tag or stem.
+			marker.text = "" if own else title + (" / OUT" if view.eliminated else "")
 			_update_health_bar(marker, view.core_fraction)
 			marker.global_transform = Transform3D(Basis.IDENTITY, view.pose.origin + Vector3.UP * HEIGHT)
 	for id: int in markers.keys():
@@ -80,6 +81,7 @@ func _style(marker: Label3D) -> void:
 	marker.modulate = Color("080c12") if high_contrast else PALETTES[palette][0 if marker.get_meta("own", false) else 1]
 	marker.outline_modulate = Color.WHITE if high_contrast else Color("080c12")
 	var leader := marker.get_node("Leader") as MeshInstance3D
+	leader.visible = not marker.get_meta("own", false)
 	var material := leader.material_override as StandardMaterial3D
 	material.albedo_color = Color.WHITE if high_contrast else marker.modulate
 	var health := marker.get_node("HealthBar") as Sprite3D

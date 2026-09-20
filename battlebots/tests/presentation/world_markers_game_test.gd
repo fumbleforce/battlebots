@@ -17,7 +17,7 @@ func frames(count := 8) -> void:
 func check_health(game: Node, view: BotView) -> void:
 	var marker: Label3D = game.world_markers.markers[view.entity_id]
 	var bar := marker.get_node("HealthBar") as Sprite3D
-	check(bar != null and bar.is_visible_in_tree(), "Actual practice shows health below each name")
+	check(bar != null and bar.is_visible_in_tree(), "Actual practice shows health for local bot and target")
 	if bar == null: return
 	var width := roundi(view.core_fraction * 124)
 	check(bar.fixed_size and bar.offset.y < 0, "Health bar has fixed screen size and sits below name")
@@ -46,7 +46,8 @@ func run() -> void:
 	var target: BotSource = game.session.practice_target()
 	var target_id: int = target.read_view().entity_id
 	check(game.world_markers.visible and game.world_markers.markers.size() == 2, "Actual practice supplies both world identities")
-	check(game.world_markers.markers[local_id].text.contains("YOU") and game.world_markers.markers[target_id].text.contains("TARGET"), "Practice target does not need a lobby roster entry")
+	check(game.world_markers.markers[local_id].text.is_empty() and game.world_markers.markers[target_id].text.contains("TARGET"), "Practice retains target identity without a redundant local floating tag")
+	check(not game.world_markers.markers[local_id].get_node("Leader").visible and game.world_markers.markers[target_id].get_node("Leader").visible, "Only target retains the floating identity stem")
 	check_health(game, game.session.local_source().read_view())
 	check_health(game, target.read_view())
 	var initial: Vector3 = game.world_markers.markers[local_id].global_position

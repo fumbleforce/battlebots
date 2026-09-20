@@ -48,7 +48,7 @@ func run() -> void:
 						check(panel == other or not panel.get_global_rect().intersects(other.get_global_rect()), "Combat panels do not overlap")
 					check(not panel.get_global_rect().intersects(match_hud.get_node("Panel").get_global_rect()), "Combat does not overlap round panel")
 				check(combat.components.front.text.ends_with("BREACHED") and combat.components.weapon.text.ends_with("DISABLED"), "Status is expressed without color")
-				check(combat.weapon_label.get_theme_font_size("font_size") == 35, "Text scale grows font independent of canvas")
+				check(combat.weapon_label.get_theme_font_size("font_size") == 27, "Text scale grows font independent of canvas")
 				if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless" and contrast:
 					await RenderingServer.frame_post_draw
 					root.get_texture().get_image().save_png("user://a-accessible-hud-%d-%s.png" % [extent.x, colors])
@@ -62,7 +62,7 @@ func run() -> void:
 	match_hud.apply_accessibility(1.0, "standard", false)
 	combat.render(bot)
 	await frames()
-	check(combat.weapon_label.get_theme_font_size("font_size") == 23 and combat.weapon_panel.position == Vector2(356,548), "Default scale and layout restore")
+	check(combat.weapon_label.get_theme_font_size("font_size") == 18 and combat.weapon_panel.position.x == 1000, "Default scale and layout restore")
 	combat.free()
 	match_hud.free()
 	print("HUD ACCESSIBILITY PASS" if failures == 0 else "HUD ACCESSIBILITY FAIL")

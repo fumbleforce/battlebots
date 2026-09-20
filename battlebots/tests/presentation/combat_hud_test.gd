@@ -34,14 +34,6 @@ func run() -> void:
 	check(hud.components.right.text.contains("BREACHED") and hud.components.drive_right.text.contains("DISABLED"), "Destroyed armor and disabled mechanisms are distinguished")
 	check(hud.recovery_label.text.ends_with("UNAVAILABLE"), "Zero cooldown does not imply recovery eligibility")
 	check(hud.weapon_label.text.ends_with("ACTIVE"), "Powered partial charge is not labelled ready")
-	check(hud.roster_label.text == "YOU: IN   /   RIVAL: IN", "Published duel survival status")
-	for entry: Array in [[0.0, "N 000"], [-PI / 2, "E 090"], [PI, "S 180"], [PI / 2, "W 270"]]:
-		bot.pose.basis = Basis(Vector3.UP, entry[0])
-		hud.render(bot)
-		check(hud.heading_label.text.contains(entry[1]), "Heading uses chassis negative Z with north at arena negative Z")
-	bot.pose.basis = Basis(Vector3.RIGHT, PI / 2)
-	hud.render(bot)
-	check(hud.heading_label.text.ends_with("--"), "Vertical chassis has no fabricated bearing")
 	bot.pose = Transform3D.IDENTITY
 	bot.recovery_available = true
 	bot.immobilized_remaining = 4.2
@@ -85,8 +77,8 @@ func run() -> void:
 	for key: String in CombatHud.ZONES:
 		check(hud.components[key].text.ends_with("--"), "Malformed/missing component unavailable: " + key)
 	hud.render(null)
-	check(hud.resources.Battery.value.text == "--" and not hud.warning_label.visible and hud.heading_label.text.ends_with("--"), "Missing bot clears old HUD state")
-	check(hud.roster_label.text == "YOU: --   /   RIVAL: --", "Missing peers are unknown, not eliminated")
+	check(hud.resources.Battery.value.text == "--" and not hud.warning_label.visible and not hud.components_panel.visible, "Missing bot clears old HUD state")
+	check(not hud.recovery_label.visible, "Missing bot hides stale recovery prompt")
 	hud.free()
 	print("COMBAT HUD PASS" if failures == 0 else "COMBAT HUD FAIL")
 	quit(0 if failures == 0 else 1)

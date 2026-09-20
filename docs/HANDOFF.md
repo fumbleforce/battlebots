@@ -10,6 +10,19 @@ texture-RID shutdown warning remains. No gameplay, B paths or Foundry changes.
 See [scope and evidence](coordination/A_LUNAR_ATMOSPHERE.md). Unreal and the older
 unfinished lunar geometry/material branch remain separate experiments.
 
+## Compact combat HUD — 20 September 2026
+
+A replaced the oversized HUD with an angular illuminated match strip and corner
+instruments, segmented resource bars and circular weapon charge. Warnings,
+component failures and self-right appear at bottom center. The local floating
+YOU tag/leader, compass, alive roster and redundant practice/debug cards leave
+the fighting view; world health bars remain. 100–150% text, color palettes,
+captions, authoritative state and menu flow
+are preserved. Baseline, state/network/lifecycle and native layout checks pass;
+healthy HUD cards occupy 7.84% at 720p. See [scope and evidence](coordination/A_HUD_REDESIGN.md).
+No combat, input, catalogue or network contract change; human visual acceptance
+remains open and no hosted release was deployed for this client-only HUD change.
+
 ## Bot visual budget audit — 20 September 2026
 
 Independent geometry/LOD inventory and two/ten-bot native Foundry measurements are

@@ -546,3 +546,12 @@ A is updating the existing hosted server to current main catalogue revision 6 an
   ambient fill and tower light tint in `moon_visuals.gd`, with an offline review
   tool. No bot, control, physics or network edits. See
   [scope and evidence](coordination/A_LUNAR_ATMOSPHERE.md).
+
+## A HUD redesign — 20 September 2026
+
+A completed general combat/match HUD presentation and menu_game HUD
+composition for the user-requested compact redesign. Existing BotView and match
+contracts are consumed unchanged; B mechanics, controls and garage remain
+untouched. The explicit follow-up removes local YOU text/leader while preserving
+all world health bars. Baseline, native layout and state/session checks pass; the
+reservation is released after integration. See [scope](coordination/A_HUD_REDESIGN.md).

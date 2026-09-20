@@ -25,15 +25,16 @@ func _run() -> void:
 	_check(hud.timer_label.text == "5" and view == original, "No local timer or snapshot mutation")
 	state.transition("active", 179.1)
 	hud.render(state.snapshot())
-	_check(hud.phase_label.text == "FIGHT" and hud.timer_label.text == "3:00", "Active phase timer")
+	_check(not hud.phase_label.visible and hud.timer_label.text == "3:00", "Active timer keeps the arena clear of a permanent FIGHT heading")
 	state.transition("overtime", 0)
 	hud.render(state.snapshot())
 	_check(hud.phase_label.text == "OVERTIME" and hud.timer_label.text == "0:00" and not hud.result_label.visible, "Zero timer never resolves round locally")
 	state.resolve(1)
 	hud.render(state.snapshot())
-	_check(hud.score_label.text == "TEAM A  0  :  1  TEAM B" and hud.result_label.text == "Team B wins the round", "Authoritative intermission score and winner")
+	_check(hud.score_label.text == "0" and hud.opponent_score_label.text == "1" and hud.local_name_label.text == "TEAM A" and hud.opponent_name_label.text == "TEAM B" and hud.result_label.text == "Team B wins the round", "Authoritative intermission score and winner")
 	hud.render(state.snapshot(), false, 1)
 	_check(hud.result_label.text == "Round won", "Round outcome uses supplied local team")
+	_check(hud.score_label.text == "1" and hud.opponent_score_label.text == "0" and hud.local_name_label.text == "YOU" and hud.opponent_name_label.text == "RIVAL", "Known local team is always the left score, including team B")
 	hud.render(state.snapshot(), false, 0)
 	_check(hud.result_label.text == "Round lost", "Opposing local team sees round loss")
 	state.round_index = 2
@@ -57,7 +58,11 @@ func _run() -> void:
 		_check(hud.result_label.text == "Match result unavailable", "Malformed winner rejected: %s" % str(bad))
 	view = {"phase":"active", "remaining":NAN, "round":true, "scores":[0, -1]}
 	hud.render(view)
-	_check(hud.timer_label.text == "Time unavailable" and hud.round_label.text == "Round unavailable" and hud.score_label.text == "Score unavailable", "Invalid numeric values unavailable")
+	_check(hud.timer_label.text == "--:--" and hud.round_label.text == "ROUND —" and hud.score_label.text == "—" and hud.opponent_score_label.text == "—", "Invalid numeric values remain visibly unavailable")
+	for bad: Variant in [null, true, "1", 0.5, NAN, INF, -1, 1000]:
+		view.scores = [bad, 0]
+		hud.render(view)
+		_check(hud.score_label.text == "—" and hud.opponent_score_label.text == "—", "Both split scores reject malformed input: %s" % str(bad))
 	view = {"phase":"intermission", "remaining":15, "round":2, "scores":[1, 0], "rounds":[{"round":1, "winner":0}]}
 	hud.render(view)
 	_check(hud.result_label.text == "Round result unavailable", "Stale previous-round result rejected")
@@ -80,7 +85,7 @@ func _run() -> void:
 	for child: Node in hud.find_children("*", "Control", true, false):
 		_check(child.mouse_filter == Control.MOUSE_FILTER_IGNORE, "HUD cannot intercept game mouse: " + child.name)
 	var panel: Control = hud.get_node("Panel")
-	_check(panel.get_global_rect().position.x >= 420 and panel.get_global_rect().end.x < 976 and panel.get_global_rect().end.y < 220, "Header fits between existing HUD and diagnostics at 720p")
+	_check(panel.get_global_rect().position.x >= 440 and panel.get_global_rect().end.x <= 840 and panel.get_global_rect().end.y < 130, "Context result fits the compact centered header at 720p")
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("user://b-match-hud.png")

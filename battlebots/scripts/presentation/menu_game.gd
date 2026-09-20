@@ -44,6 +44,7 @@ var _test_drive_entry: GarageTestDriveEntry
 var _test_drive_screen := ""
 var game_menu_page: Control
 var combat_hud: CombatHud
+var _diagnostics_canvas: Control
 var world_markers: BotWorldMarkers
 var impact_feedback: CombatImpactFeedback
 var reconnect_panel: Control
@@ -76,6 +77,8 @@ func _ready() -> void:
 	source.input_allowed = gameplay_input_allowed
 	preview.return_button.pressed.disconnect(preview.return_to_launcher)
 	preview.return_button.pressed.connect(return_to_main)
+	preview.resume_button.pressed.disconnect(preview.capture_controls)
+	preview.resume_button.pressed.connect(resume_gameplay)
 	preview.settings_button.text = "Settings"
 	preview.settings_button.pressed.disconnect(preview.open_settings)
 	preview.settings_button.pressed.connect(open_settings)
@@ -85,7 +88,6 @@ func _ready() -> void:
 	game_menu_page = preload("res://scripts/ui/game_menu_page.gd").new()
 	game_menu_page.configure(preview.pause_menu)
 	_default_return_text = preview.return_button.text
-	preview.network_diagnostics.interaction_started.connect(_network_details_interaction)
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
 	add_child(results_layer)
@@ -119,7 +121,10 @@ func _ready() -> void:
 	add_child(impact_feedback)
 	impact_feedback.bind_session(session)
 	practice_hud.reparent(combat_hud.canvas, false)
-	preview.network_diagnostics.reparent(combat_hud.canvas, false)
+	_diagnostics_canvas = Control.new()
+	_diagnostics_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$MatchLayer.add_child(_diagnostics_canvas)
+	preview.network_diagnostics.reparent(_diagnostics_canvas, false)
 	var caption_layer := _audio_caption.get_parent()
 	_audio_caption.reparent(combat_hud.canvas)
 	caption_layer.queue_free()
@@ -195,6 +200,7 @@ func _add_gameplay_audio() -> void:
 	_audio_caption = Label.new()
 	_audio_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_audio_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_audio_caption.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_audio_caption.add_theme_font_size_override("font_size", 24)
 	_audio_caption.add_theme_constant_override("outline_size", 6)
 	_audio_caption.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -206,6 +212,9 @@ func _add_gameplay_audio() -> void:
 	_audio_caption.offset_bottom = -20
 	gameplay_audio.caption_changed.connect(func(text: String) -> void:
 		_audio_caption.text = text
+		if is_instance_valid(combat_hud):
+			_audio_caption.position = combat_hud.caption_bounds().position
+			_audio_caption.size = combat_hud.caption_bounds().size
 		_audio_caption.visible = not text.is_empty())
 	_audio_caption.hide()
 	var audio_layer := CanvasLayer.new()
@@ -260,7 +269,9 @@ func _update_practice(bot: BotSource) -> void:
 		_restart_practice.grab_focus()
 		_practice_knockout_handled = true
 	preview.resume_button.disabled = knocked_out or bot == null
-	practice_hud.visible = practice and not modal and not preview.pause_menu.visible and not preview.network_diagnostics.expanded
+	# The target already has an in-world health bar. Keep the practice fixture's
+	# readout out of the normal fighting view.
+	practice_hud.hide()
 	if practice:
 		var target := session.practice_target()
 		practice_hud.render(view, target.read_view() if target != null else null)
@@ -495,7 +506,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	match_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
-	_audio_caption.add_theme_font_size_override("font_size", roundi(24 * value.text_scale))
+	_audio_caption.add_theme_font_size_override("font_size", roundi(18 * value.text_scale))
 	var caption: Rect2 = combat_hud.caption_bounds()
 	_audio_caption.position = caption.position
 	_audio_caption.size = caption.size
@@ -573,6 +584,7 @@ func _process(_delta: float) -> void:
 		results_panel.hide()
 		match_hud.hide()
 		combat_hud.hide()
+		_diagnostics_canvas.hide()
 		world_markers.hide()
 		practice_hud.hide()
 		preview.get_node("CanvasLayer").hide()
@@ -623,6 +635,12 @@ func _process(_delta: float) -> void:
 			break
 	match_hud.render(session.match_view, session.connection_state == "practice", local_view.team if local_view != null else -1)
 	combat_hud.visible = match_hud.visible
+	# Diagnostics remain available from the pause screen; ordinary play only
+	# surfaces a connection warning when the session reports degradation.
+	_diagnostics_canvas.visible = preview.pause_menu.visible and not menu_open and not _general_settings_open() and not preview.settings_panel.visible
+	_diagnostics_canvas.size = combat_hud.canvas.size
+	_diagnostics_canvas.scale = combat_hud.canvas.scale
+	combat_hud.connection_label.visible = combat_hud.visible and session.connection_state == "connected" and phase in ["active", "overtime"] and bool(session.diagnostics.get("degraded", false))
 	var audio_records := session.audio_views()
 	var local_audio: Dictionary = {}
 	for record: Dictionary in audio_records:
@@ -645,6 +663,8 @@ func _process(_delta: float) -> void:
 				break
 	combat_hud.render(local_view, preview.input_preferences.label_for(&"recover"), opponent,
 		session.connection_state == "practice", session.match_view.get("mode") == "1v1", phase in ["active", "overtime"])
+	_audio_caption.position = combat_hud.caption_bounds().position
+	_audio_caption.size = combat_hud.caption_bounds().size
 	_update_practice(bot)
 	if menu_open:
 		preview.pause_menu.hide()
@@ -675,12 +695,6 @@ func _sync_pause_focus() -> void:
 		button.focus_neighbor_bottom = next
 		button.focus_previous = previous
 		button.focus_neighbor_top = previous
-
-func _network_details_interaction() -> void:
-	# The preview releases controls on button-down. Keep the clicked panel visible
-	# until release so its Details button can complete the interaction.
-	if not menu_host.visible and not results_panel.visible and not preview.settings_panel.visible and not _general_settings_open():
-		preview.pause_menu.hide()
 
 func _test_drive_allowed() -> bool:
 	if _test_drive_screen.is_empty() or not is_instance_valid(screen) or not menu_host.visible:
@@ -728,6 +742,7 @@ func resume_gameplay() -> void:
 	if session.match_view.get("phase") not in ["countdown", "active", "overtime", "intermission", "results"]:
 		return
 	menu_host.hide()
+	preview.network_diagnostics.expanded = false
 	# Hidden workshop shortcuts must not edit the draft behind a running test drive.
 	if is_instance_valid(screen): screen.process_mode = Node.PROCESS_MODE_DISABLED
 	_sync_menu_music()

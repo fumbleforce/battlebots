@@ -76,8 +76,8 @@ func run() -> void:
 		check(false, "Client receives active duel and both bot baselines")
 		await finish()
 		return
-	check(hud.resources.Core.value.text == "100%" and hud.roster_label.text == "YOU: IN   /   RIVAL: IN", "Fresh authoritative duel displays healthy living bots")
-	check(markers.markers.size() == 2 and markers.markers[client.local_entity].text.contains("YOU"), "Client identity selects its own world badge independently of host ordering")
+	check(hud.resources.Core.value.text == "100%" and not hud.components_panel.visible, "Fresh authoritative duel displays healthy living bots")
+	check(markers.markers.size() == 2 and markers.markers[client.local_entity].text.is_empty() and markers.markers[client.local_entity].get_node("HealthBar").visible and not markers.markers[client.local_entity].get_node("Leader").visible, "Published client identity keeps local health while suppressing its floating tag and stem")
 	var snapshot_tick: int = client._last_snapshot_tick[client.local_entity]
 	client._last_snapshot_tick.erase(client.local_entity)
 	check(not client.bot_views().any(func(view: BotView) -> bool: return view.entity_id == client.local_entity), "Existing client body without baseline is not published as healthy")
@@ -103,7 +103,7 @@ func run() -> void:
 	rival.combat.eliminate("HUD propagation fixture")
 	check(await until(func() -> bool:
 		return client.match_view.get("phase") == "intermission" and render_received() \
-			and hud.roster_label.text == "YOU: IN   /   RIVAL: OUT"),
+			and markers.markers[host.local_entity].text.contains("OUT")),
 		"Server elimination reaches rival status through real round transition")
 	check(markers.markers[host.local_entity].text.contains("OUT"), "Authoritative elimination reaches world badge")
 	# Advance only the authoritative fixture clock; production reset repairs bots.
@@ -111,7 +111,7 @@ func run() -> void:
 	check(await until(func() -> bool:
 		return client.match_view.get("round") == 2 and render_received() \
 			and hud.resources.Core.value.text == "100%" \
-			and hud.roster_label.text == "YOU: IN   /   RIVAL: IN" \
+			and not hud.components_panel.visible \
 			and hud.components.drive_left.text == "L DRIVE\n100" \
 			and not hud.components.front.text.ends_with("BREACHED") \
 			and not hud.recovery_label.text.contains("COOLDOWN") \
@@ -120,7 +120,7 @@ func run() -> void:
 	check(not markers.markers[host.local_entity].text.contains("OUT"), "New-round view clears stale elimination marker")
 	client.leave()
 	check(not render_received() and hud.resources.Core.value.text == "--" \
-		and hud.roster_label.text == "YOU: --   /   RIVAL: --", "Leaving clears stale HUD data")
+		and not hud.components_panel.visible, "Leaving clears stale HUD data")
 	check(markers.markers.is_empty(), "Leaving removes world badges")
 	await finish()
 

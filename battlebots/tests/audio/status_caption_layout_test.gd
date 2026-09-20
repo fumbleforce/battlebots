@@ -43,8 +43,7 @@ func run() -> void:
 			for practice in [false, true]:
 				combat.render(bot, "T", bot, practice)
 				game.match_hud.render({"phase": "active", "round": 999, "remaining": 180, "scores": [999, 999]}, practice, 0)
-				game.practice_hud.visible = practice
-				game.practice_hud.render(bot, bot)
+				game.practice_hud.hide()
 				game.gameplay_audio.caption_changed.emit(CAPTION)
 				await frames()
 				var bounds := combat.caption_bounds()
@@ -56,10 +55,9 @@ func run() -> void:
 				check(Rect2(Vector2.ZERO, Vector2(extent)).encloses(occupied), "Caption stays inside viewport")
 				for panel in combat.panels:
 					check(not occupied.intersects(panel.get_global_rect()), "Caption avoids combat panels")
-				for other in [combat.heading_label, combat.warning_label, game.match_hud.get_node("Panel"), game.preview.network_diagnostics]:
+				for other in [combat.recovery_label, combat.warning_label, game.match_hud.get_node("Panel"), game.preview.network_diagnostics]:
 					check(not occupied.intersects(other.get_global_rect()), "Caption avoids %s at %s/%s: caption %s, other %s" % [other.name, extent, text_scale, occupied, other.get_global_rect()])
-				if practice:
-					check(not occupied.intersects(game.practice_hud.get_global_rect()), "Caption avoids practice target")
+				check(not game.practice_hud.visible, "Composition keeps redundant practice target readout hidden")
 				if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 					await RenderingServer.frame_post_draw
 					root.get_texture().get_image().save_png("user://a-status-caption-%d-%d-%s.png" % [extent.x, roundi(text_scale * 100), practice])

@@ -38,7 +38,8 @@ func run() -> void:
 	var rival := bot(3, 4, Vector3(2, 0.4, 0))
 	var views: Array[BotView] = [rival, local]
 	badges.render(views, 29, false, true)
-	check(badges.markers.size() == 2 and badges.markers[29].text == "+ YOU" and badges.markers[3].text == "◇ RIVAL", "Identity uses local ID and authoritative team, not ID order")
+	check(badges.markers.size() == 2 and badges.markers[29].text.is_empty() and badges.markers[3].text == "◇ RIVAL", "Only rival receives a floating identity, selected by published local ID rather than ordering")
+	check(not badges.markers[29].get_node("Leader").visible and badges.markers[29].get_node("HealthBar").is_visible_in_tree(), "Local floating tag and stem are suppressed while its health bar remains visible")
 	var original := badges.markers[3]
 	var leader := original.get_node("Leader") as MeshInstance3D
 	var stem := leader.mesh as CylinderMesh
@@ -55,6 +56,15 @@ func run() -> void:
 	check(original.global_position.is_equal_approx(rival.pose.origin + Vector3.UP * BotWorldMarkers.HEIGHT), "Global presentation pose is independent of marker parent transform")
 	check(original.global_basis.is_equal_approx(Basis.IDENTITY), "Leader stays world-up with unscaled dimensions beneath a transformed parent")
 	badges.transform = Transform3D.IDENTITY
+	badges.render(views, 3, false, true)
+	check(original.text.is_empty() and not leader.visible and original.get_node("HealthBar").is_visible_in_tree(), "Changing local identity suppresses the new local tag and stem without hiding health")
+	check(badges.markers[29].text == "◇ RIVAL" and badges.markers[29].get_node("Leader").visible, "Previous local identity regains rival text and stem")
+	badges.render(views, 29, false, true)
+	check(original.text == "◇ RIVAL" and leader.visible and badges.markers[29].text.is_empty(), "Returning local identity restores the original classification")
+	local.eliminated = true
+	badges.render(views, 29, false, true)
+	check(badges.markers[29].text.is_empty() and badges.markers[29].get_node("HealthBar").visible, "Local elimination does not recreate a tag or invent missing health")
+	local.eliminated = false
 	rival.eliminated = true
 	badges.render(views, 29, true, false)
 	check(original.text == "◇ TARGET / OUT", "Practice and elimination are explicit text")
@@ -62,6 +72,7 @@ func run() -> void:
 		badges.apply_accessibility(1.5, colors, true)
 		check(original.font_size == 48 and original.outline_modulate == Color.WHITE, "150 percent and high contrast apply")
 		check(not original.no_depth_test and original.fixed_size and not original.shaded and original.billboard == BaseMaterial3D.BILLBOARD_ENABLED, "Badges stay readable but depth tested")
+		check(not badges.markers[29].get_node("Leader").visible and badges.markers[29].get_node("HealthBar").visible, "Accessibility preserves local tag suppression and health feedback")
 	badges.render([rival], 29, false, true)
 	check(badges.markers.is_empty(), "Missing local baseline suppresses all classification")
 	local.team = -1

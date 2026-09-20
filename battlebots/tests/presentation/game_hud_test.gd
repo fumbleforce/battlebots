@@ -27,7 +27,10 @@ func run() -> void:
 	await frames()
 	check(game.combat_hud.visible and not game.preview.hud.visible and not game.preview.hint.visible, "Composed HUD replaces old resource and hint overlays")
 	check(game.combat_hud.resources.Core.value.text == "100%", "Actual practice bot provides full core")
-	check(game.combat_hud.roster_label.text.contains("UNSCORED"), "Practice has no fabricated duel rival")
+	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("user://a-hud-redesign-practice.png")
+	check(game.match_hud.phase_label.text == "PRACTICE" and not game.practice_hud.visible and not game._diagnostics_canvas.visible, "Practice has no fabricated duel rival")
 	var bot: MvpBot = game.session.local_source()
 	bot.combat.core = bot.combat.stats.core * 0.2
 	bot.combat.zones.front = 0.0
@@ -49,6 +52,13 @@ func run() -> void:
 	game.preview.release_controls()
 	await frames()
 	check(not game.combat_hud.visible and not game.match_hud.visible, "Game menu suppresses HUD")
+	check(game._diagnostics_canvas.visible and game.preview.network_diagnostics.is_visible_in_tree(), "Pause keeps diagnostics accessible outside the hidden combat HUD")
+	game.preview.network_diagnostics.expanded = true
+	game.preview.resume_button.pressed.emit()
+	await frames()
+	check(not game.preview.network_diagnostics.expanded and not game._diagnostics_canvas.visible and game.combat_hud.visible, "Actual Resume button collapses diagnostics so a hidden details panel cannot block scoreboard use")
+	game.preview.release_controls()
+	await frames()
 	game.preview.settings_button.pressed.emit()
 	await frames()
 	check(not game.combat_hud.visible, "Settings suppresses HUD")

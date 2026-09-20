@@ -32,8 +32,10 @@ func run() -> void:
 	var bot: MvpBot = game.session.local_source()
 	var target: MvpBot = game.session.practice_target()
 	var world: AuthorityWorld = game.session.world
-	check(game.practice_hud.visible and game._restart_practice.visible, "Practice exposes target readout and pause restart")
-	check(game.practice_hud.target_label.text.contains("100"), "Fresh target health is shown")
+	check(not game.practice_hud.visible and game._restart_practice.visible, "Practice keeps the duplicate target panel hidden and exposes pause restart")
+	var target_marker: Label3D = game.world_markers.markers.get(target.read_view().entity_id)
+	check(target_marker != null and target_marker.is_visible_in_tree() and target_marker.get_node("HealthBar").is_visible_in_tree(), "Practice target retains visible in-world identity and health feedback")
+	check(game.practice_hud.target_label.text.contains("100"), "Retained practice readout receives fresh target health")
 	check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(game.practice_hud.get_global_rect()), "Target HUD fits 720p: %s within %s" % [game.practice_hud.get_global_rect(), root.size])
 	game.preview.release_controls()
 	await frames()
@@ -42,10 +44,10 @@ func run() -> void:
 	target.combat.core = target.combat.stats.core * 0.5
 	target.combat.zones.weapon = 0
 	await frames()
-	check(game.practice_hud.target_label.text.contains("50") and game.practice_hud.components_label.text.contains("Weapon"), "HUD reads authoritative damage and disabled weapon")
+	check(game.practice_hud.target_label.text.contains("50") and game.practice_hud.components_label.text.contains("Weapon"), "Retained practice readout consumes authoritative damage and disabled weapon")
 	target.combat.eliminate("test knockout")
 	await frames()
-	check(game.practice_hud.target_label.text.to_lower().contains("defeated"), "Target knockout has explicit feedback")
+	check(game.practice_hud.target_label.text.to_lower().contains("defeated") and target_marker != null and target_marker.text.contains("OUT"), "Target knockout reaches retained readout and in-world marker")
 	game._restart_practice.pressed.emit()
 	await frames()
 	check(game.session.world == world and game.session.local_source() == bot and game.session.practice_target() == target, "Restart retains world and bot identities")
