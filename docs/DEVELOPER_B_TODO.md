@@ -49,6 +49,9 @@ combat/bot state and feedback through the shared interfaces.
 A also prioritizes general menu refinement, especially integrating multiplayer
 and networking screens with the original menu system's design and navigation
 (user feedback, 2026-09-20). B retains garage/customisation ownership.
+A's high-priority menu scope also includes finished 1v1 win/score screens and an
+in-game menu page matching the other panels. Existing results code does not close
+these newly requested presentation tasks.
 
 - [ ] **Combat and bots:** Maintain damage/resources/recovery, weapon mechanics
   and visuals, bot assembly/catalogue and model integration. Investigate combat

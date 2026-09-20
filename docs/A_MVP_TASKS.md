@@ -28,6 +28,12 @@ active expansion or acceptance work.
   errors/retry/cancel and lobby transitions consistent with its visual design,
   layout and navigation. Treat this as high-priority 1v1 completion work alongside
   hosting and HUD, and review the complete player flow in the rendered menus.
+- [ ] Add finished win and score screens for 1v1 (A), using authoritative match
+  outcomes and scores with clear rematch/return actions. Existing results code
+  is a foundation, not completion of these user-requested screens.
+- [ ] Add an in-game menu page consistent with the design of the other panels
+  (A), including coherent layout, styling and navigation. Validate it alongside
+  the win/score screens as part of the complete 1v1 flow.
 - [x] Human multiplayer playtest through a tunnel succeeded, as reported by the
   user on 2026-09-20. This records human play evidence, not external-hosting
   acceptance or measured camera/contact/network thresholds.

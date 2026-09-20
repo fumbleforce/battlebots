@@ -38,6 +38,12 @@ visual design, layout and navigation across online entry, host/join, connection
 progress, errors/retry/cancel and lobby transitions. Validate the complete
 rendered player flow; this board entry does not claim the menus are fixed.
 
+The user also requests win and score screens and an in-game menu page consistent
+with the other panels (2026-09-20). These are high-priority A-owned 1v1 delivery
+tasks. Existing results/rematch implementation is a foundation; its historical
+completion does not close these requested presentation tasks. Use authoritative
+outcomes/scores and review navigation through game menu, win, score and rematch.
+
 The user reports human multiplayer was conducted successfully through a tunnel.
 Record that gate as completed human-play evidence; do not keep describing human
 multiplayer as untested. No specific measurements were supplied, and this does
