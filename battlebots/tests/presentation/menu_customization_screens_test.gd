@@ -49,7 +49,8 @@ func run() -> void:
 					"Canonical part appears exactly once: " + part_id)
 			for weapon_id: String in ["vertical_spinner", "horizontal_spinner", "hammer", "saw", "lifter"]:
 				check(displayed_parts.has(weapon_id.capitalize()),"Implemented weapon is available: " + weapon_id)
-			check(screen.get_node("%ItemsView").get_parent() is ScrollContainer,"Catalogue scrolls")
+			check(screen.get_node("Layout").find_children("*", "ScrollContainer", true, false).is_empty(),"Catalogue uses pages without scrolling")
+			check(screen._pager.visible,"Catalogue page controls available")
 		for _frame in 4: await process_frame
 		var footer: Control = screen.get_node("Layout/Footer")
 		check(footer.get_global_rect().end.y <= 1081,"Footer remains within viewport: "+name)

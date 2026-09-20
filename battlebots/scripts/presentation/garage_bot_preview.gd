@@ -14,14 +14,44 @@ var distance := 5.4
 var _stage: Node3D
 var _registry := ContentRegistry.new()
 var _draft: Dictionary = {}
-var _status_scroll: ScrollContainer
+var _status_next: Button
+var _status_pages: Array[String] = []
+var _status_page := 0
+var _text_factor := 1.0
 
 func apply_text_scale(factor: float) -> void:
 	var value := clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	_text_factor = value
 	MenuTextScale.apply(self, value)
-	if is_instance_valid(_status_scroll): _status_scroll.offset_top = -84 * value
+	_layout_status()
+
+func _layout_status() -> void:
+	var value := _text_factor
+	if is_instance_valid(status):
+		status.offset_top = -minf(size.y, (140 if not _status_pages.is_empty() else 84) * value)
+		status.offset_bottom = -36 * value if not _status_pages.is_empty() else 0.0
+	if is_instance_valid(_status_next): _status_next.offset_top = -36 * value
+
+func _show_status_page() -> void:
+	if _status_pages.is_empty(): return
+	status.text = "Invalid build · %d / %d\n%s" % [_status_page + 1, _status_pages.size(), _status_pages[_status_page]]
+	_status_next.visible = _status_pages.size() > 1
+
+func _invalid_status(message: String) -> void:
+	_status_pages.clear()
+	while not message.is_empty():
+		var split := mini(64, message.length())
+		if message.length() > 64:
+			var space := message.rfind(" ", 64)
+			if space > 0: split = space
+		_status_pages.append(message.left(split))
+		message = message.substr(split).strip_edges()
+	_status_page = 0
+	_show_status_page()
+	_layout_status()
 
 func _ready() -> void:
+	resized.connect(_layout_status)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	focus_mode = Control.FOCUS_ALL
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -67,23 +97,29 @@ func _ready() -> void:
 	camera.near = 0.05
 	_stage.add_child(camera)
 	camera.current = true
-	_status_scroll = ScrollContainer.new()
-	_status_scroll.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_status_scroll.offset_top = -84
-	_status_scroll.offset_left = 12
-	_status_scroll.offset_right = -84
-	_status_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_status_scroll.focus_mode = Control.FOCUS_ALL
-	add_child(_status_scroll)
 	status = Label.new()
-	status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	status.offset_top = -84
+	status.offset_left = 12
+	status.offset_right = -84
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status.add_theme_font_size_override("font_size", 18)
 	status.add_theme_color_override("font_shadow_color", Color.BLACK)
 	status.add_theme_constant_override("shadow_offset_x", 1)
 	status.add_theme_constant_override("shadow_offset_y", 1)
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_status_scroll.add_child(status)
+	add_child(status)
+	_status_next = Button.new()
+	_status_next.text = "NEXT REASON"
+	_status_next.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	_status_next.offset_top = -36
+	_status_next.offset_left = 12
+	_status_next.add_theme_font_size_override("font_size", 18)
+	_status_next.pressed.connect(func():
+		_status_page = wrapi(_status_page + 1, 0, _status_pages.size())
+		_show_status_page())
+	add_child(_status_next)
+	_status_next.hide()
 	reset_view()
 	show_loadout(_draft)
 
@@ -101,8 +137,11 @@ func show_loadout(draft: Dictionary) -> void:
 	weapon_visual = null
 	var validation := _registry.validate(draft)
 	if not validation.valid:
-		status.text = "Preview unavailable — " + "; ".join(validation.reasons)
+		_invalid_status("; ".join(validation.reasons))
 		return
+	_status_pages.clear()
+	_status_next.hide()
+	_layout_status()
 	model = Node3D.new()
 	model.name = "BuildModel"
 	model.position.y = 0.4

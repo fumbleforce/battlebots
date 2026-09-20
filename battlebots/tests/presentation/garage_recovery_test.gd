@@ -12,6 +12,9 @@ func put(path: String, text: String) -> void:
 	file.store_string(text)
 	file.close()
 
+func page_text(panel: GarageRecoveryPanel) -> String:
+	return " ".join(panel._detail_pages).replace("\n", " ")
+
 func run() -> void:
 	var profile: Node = get_node("/root/PlayerProfile")
 	var path := "user://garage-recovery-test-%d.json" % Time.get_ticks_usec()
@@ -99,8 +102,9 @@ func run() -> void:
 	panel = screen.recovery_panel
 	check(not panel.review_button.disabled, "Garage exposes available backup")
 	panel.review_button.pressed.emit()
+	for _frame: int in 3: await get_tree().process_frame
 	check(panel.restore_button.visible and panel.close_button.text == "CANCEL" and panel.close_button.has_focus(), "Restore requires reviewed confirmation, Cancel default")
-	check(panel.details.text.contains("Malformed entry") and panel.details.text.contains("needs repair"), "Review identifies invalid sibling without dropping it")
+	check(page_text(panel).contains("Malformed entry") and page_text(panel).contains("needs repair"), "Review pages identify invalid sibling without dropping it")
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("garage-recovery-review.png"))
@@ -110,13 +114,15 @@ func run() -> void:
 	panel.review_button.pressed.emit()
 	put(path, "changed after review")
 	panel.restore_button.pressed.emit()
-	check(panel.details.text.contains("refused") and FileAccess.get_file_as_string(path) == "changed after review", "Changed source refuses stale confirmation")
+	for _frame: int in 3: await get_tree().process_frame
+	check(page_text(panel).contains("refused") and FileAccess.get_file_as_string(path) == "changed after review", "Changed source refuses stale confirmation")
 	panel.review_button.pressed.emit()
 	panel.restore_button.pressed.emit()
-	check(panel.details.text.contains("Backup restored"), "Reviewed restore succeeds")
+	for _frame: int in 3: await get_tree().process_frame
+	check(page_text(panel).contains("Backup restored"), "Reviewed restore succeeds")
 	check(FileAccess.get_file_as_string(path) == backup and FileAccess.get_file_as_string(path + ".bak") == backup, "Recovery restores exact backup and retains backup")
 	check(profile.loadouts[profile.active_bot].name == "Recovered local edit" and profile.can_undo(), "Backup recovery retains dirty draft and Undo")
-	check(screen.get_node("%BotList").get_child_count() == profile.loadouts.size(), "Garage list refreshes after retained recovery")
+	check(screen.get_node("%Bays").text.contains(str(profile.loadouts.size())) and screen.get_node("%BotList").get_child_count() <= 2, "Garage count and active build page refresh after retained recovery")
 	check(profile.save_active("Recovered local edit") == OK, "Successful recovery unblocks save despite invalid sibling")
 	check(store.load_saved().loadouts[1] == "malformed sibling", "Post-recovery save retains malformed sibling")
 	for _frame: int in 3: await get_tree().process_frame

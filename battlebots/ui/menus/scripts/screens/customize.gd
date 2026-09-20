@@ -19,56 +19,77 @@ var revalidate_button: Button
 var recovery_panel: GarageRecoveryPanel
 var recovery_button: Button
 var _text_scale := 1.0
-var _items_scroll: ScrollContainer
+var _choice_pages: Dictionary = {}
+var _choice_page_label: Label
+var _choice_pager: HBoxContainer
+var _show_details := false
 
 func apply_text_scale(factor: float) -> void:
 	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
 	MenuTextScale.apply(self, _text_scale)
+	$Layout/Header.custom_minimum_size.y = 115 if _text_scale == 1.0 else 160
 	if not is_instance_valid(build_preview): return
 	build_preview.apply_text_scale(_text_scale)
 	comparison_panel.apply_text_scale(_text_scale)
 	if is_instance_valid(recovery_panel): recovery_panel.apply_text_scale(_text_scale)
-	%BotImage.get_parent().custom_minimum_size.y = 300 if _text_scale == 1.0 else 220
-	_items_scroll.custom_minimum_size.y = 180 if _text_scale == 1.0 else 300
+	%BotImage.get_parent().custom_minimum_size.y = 300 if _text_scale == 1.0 else 180
 	for row: Control in %Categories.get_children():
 		row.custom_minimum_size.y = ceilf(82 * _text_scale)
 		row.get_node("%Current").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	for tile: Control in %Items.get_children():
-		tile.custom_minimum_size.y = ceilf(190 * _text_scale)
+		tile.custom_minimum_size.y = ceilf(150 * _text_scale)
+		tile.get_node("Inner/Col/ArtBox").custom_minimum_size.y = 40
 		tile.get_node("%Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-func _scroll_content(content: Control, minimum: float, expand := true) -> ScrollContainer:
-	var parent := content.get_parent()
-	var index := content.get_index()
-	var owned: Array[Node] = [content]
-	for node: Node in content.find_children("*", "", true, false):
-		if node.owner == self: owned.append(node)
-	parent.remove_child(content)
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	scroll.focus_mode = Control.FOCUS_ALL
-	scroll.custom_minimum_size.y = minimum
-	if expand: scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	parent.add_child(scroll)
-	parent.move_child(scroll, index)
-	scroll.add_child(content)
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_FILL
-	for node: Node in owned: node.owner = self
-	return scroll
+func _change_choice_page(direction: int) -> void:
+	var key := "%s:%d" % [_tab, _cat[_tab]]
+	var count: int = PlayerProfile.catalogue[_tab][_cat[_tab]].items.size()
+	_choice_pages[key] = wrapi(int(_choice_pages.get(key, 0)) + direction, 0, ceili(count / 2.0))
+	_refresh()
+
+func _show_choice_details(value: bool) -> void:
+	_show_details = value
+	%Items.visible = not value
+	_choice_pager.visible = not value
+	%SelDesc.get_parent().visible = value
 
 
 func _ready() -> void:
 	super()
-	_scroll_content(%Categories, 100)
-	_items_scroll = _scroll_content(%Items, 180)
-	_scroll_content(%SelDesc.get_parent(), 130)
+	var options := %Items.get_parent()
+	var view_tabs := HBoxContainer.new()
+	options.add_child(view_tabs)
+	options.move_child(view_tabs, %Items.get_index())
+	for caption: String in ["CHOICES", "DETAILS"]:
+		var button := Button.new()
+		button.text = caption
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		view_tabs.add_child(button)
+		button.pressed.connect(_show_choice_details.bind(caption == "DETAILS"))
+	_choice_pager = HBoxContainer.new()
+	options.add_child(_choice_pager)
+	options.move_child(_choice_pager, %Items.get_index() + 1)
+	var previous := Button.new()
+	previous.text = "PREVIOUS"
+	previous.pressed.connect(_change_choice_page.bind(-1))
+	_choice_pager.add_child(previous)
+	_choice_page_label = Label.new()
+	_choice_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_choice_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_choice_pager.add_child(_choice_page_label)
+	var next := Button.new()
+	next.text = "NEXT"
+	next.pressed.connect(_change_choice_page.bind(1))
+	_choice_pager.add_child(next)
+	%Items.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	%SelDesc.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options.get_node("Line").hide()
 	%SelName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%CatLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%CatLabel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%Eyebrow.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	%Eyebrow.get_parent().size_flags_vertical = Control.SIZE_FILL
 	$Layout/Header/Row/SpacerL.size_flags_horizontal = Control.SIZE_FILL
 	$Layout/Header/Row/SpacerR.hide()
 	$Layout/Header/Row/Sep.hide()
@@ -195,6 +216,8 @@ func _refresh() -> void:
 	var cat: Dictionary = cats[ci]
 	var key := "%s:%d" % [_tab, ci]
 	var ii: int = _item.get(key, 0)
+	var choice_page: int = _choice_pages.get(key, 0)
+	_choice_page_label.text = "%d / %d" % [choice_page + 1, ceili(cat.items.size() / 2.0)]
 	%SlotHeading.text = SLOT_HEADINGS[_tab]
 
 	clear_children(%Categories)
@@ -225,8 +248,10 @@ func _refresh() -> void:
 		tile.setup(it, st)
 		tile.button_group = ig
 		tile.button_pressed = i == ii
+		tile.visible = i / 2 == choice_page
 		tile.pressed.connect(func():
 			_item[key] = i
+			_choice_pages[key] = i / 2
 			_refocus = "item"
 			_refresh())
 		if _refocus == "item" and i == ii:
@@ -267,6 +292,7 @@ func _refresh() -> void:
 
 	%Stats.hide()
 	%CosmeticNote.hide()
+	_show_choice_details(_show_details)
 	apply_text_scale(_text_scale)
 
 
@@ -286,6 +312,7 @@ func _save_build() -> void:
 		%SelDesc.text = "Build saved to this computer."
 	else:
 		%SelDesc.text = "; ".join(PlayerProfile.errors)
+	_show_choice_details(true)
 
 func _commit_name() -> void:
 	if is_inside_tree():

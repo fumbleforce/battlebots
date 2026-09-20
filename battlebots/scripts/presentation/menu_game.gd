@@ -351,7 +351,7 @@ func _add_settings_hub() -> void:
 				child.color = Color(0.035, 0.045, 0.06, 0.93)
 	get_viewport().size_changed.connect(_fit_camera_settings)
 	_fit_camera_settings()
-	MenuTextScale.apply(preview.settings_panel, _menu_text_scale)
+	preview.settings_panel.apply_text_scale(_menu_text_scale)
 	for owned_panel: Control in [audio_settings, hud_settings]:
 		owned_panel.theme = preload("res://ui/menus/theme/menu_theme.tres")
 		owned_panel.remove_theme_stylebox_override("panel")
@@ -359,12 +359,8 @@ func _add_settings_hub() -> void:
 
 func _fit_camera_settings() -> void:
 	var center: CenterContainer = preview.settings_panel.get_node("Center")
-	center.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	var extent := get_viewport().get_visible_rect().size
-	var ratio := minf(extent.x / 1600.0, extent.y / 900.0)
-	center.size = Vector2(1600, 900)
-	center.scale = Vector2.ONE * ratio
-	center.position = (extent - center.size * ratio) * 0.5
+	center.scale = Vector2.ONE
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func _prepare_settings_category(category: String) -> void:
 	if not _settings_session_open:
@@ -479,8 +475,6 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	for entry: Button in [audio_settings_button, hud_settings_button]:
 		if is_instance_valid(entry):
 			MenuTextScale.apply(entry, _menu_text_scale)
-	if is_instance_valid(settings_hub):
-		MenuTextScale.apply(preview.settings_panel, _menu_text_scale)
 	for panel: Control in [screen, game_menu_page, results_panel, reconnect_panel, audio_settings, hud_settings, settings_hub, video_settings]:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)

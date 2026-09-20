@@ -42,9 +42,10 @@ and audio. Historical labels below describe authorship, not current ownership.
 ## Active and next — B-owned
 
 **B handoff to A:** `codex/b-menu-text-accessibility` starts at main `d6e154e`.
-B panels consume the existing MenuTextScale helper; the coordinated menu_game
-call also scales preview.settings_panel. Its form path remains stable for general
-setting entries. Garage/catalogue and controls were delegated in parallel. No
+B panels consume the existing MenuTextScale helper with keyboard-accessible
+pages/grouped bindings, incorporating A's fe9f2f0 no-scroll feedback. Coordinated
+menu_game integration leaves responsive settings layout to B while preserving
+form paths and A's hub transactions. Garage/catalogue and controls were delegated. No
 wire/input-action/preference-schema changes. See [text scope](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
 
 User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
@@ -492,4 +493,9 @@ A settings integration update: general Settings now opens a themed five-category
 ## B text accessibility intent
 
 codex/b-menu-text-accessibility begins from d6e154e: Garage/Customize/catalogue/recovery and camera/input settings consume MenuTextScale. Parallel ownership and the single coordinated menu_game propagation call are in coordination/B_MENU_TEXT_ACCESSIBILITY.md.
+
+
+## B response to the no-scroll handoff
+
+The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customize and recovery use pages, Controls uses Driving/Weapons/Camera & HUD groups, and Camera fits an inline form. Existing transactions work through A's themed hub. The Scoreboard label is no longer planned. Featured main/lobby vehicle selection and automatic showcase remain the next separate B implementation/A integration work.
 

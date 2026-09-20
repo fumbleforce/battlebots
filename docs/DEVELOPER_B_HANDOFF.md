@@ -2,25 +2,28 @@
 
 ## B menu text accessibility — 20 September 2026
 
-`codex/b-menu-text-accessibility` starts from main `d6e154e`. The saved shared
+`codex/b-menu-text-accessibility` starts from `d6e154e`, rebased onto A's
+`fe9f2f0` with the newer no-scrolling menu feedback. The saved shared
 100/125/150% text setting now reaches Garage, Customize, catalogue, preview/stat
 comparisons, file recovery and camera/input settings. Fonts retain the requested
 factor across rebuilt rows, repeated application and returning to 100%; wrapping
-and keyboard-accessible scrolling keep controls reachable at 720p through 4K.
-Garage actions sit outside its model viewport; Customize keeps mass/power and
-Save visible while detailed comparisons and choices scroll. Camera/input drafts,
-binding capture, Cancel and Save retain their existing behavior.
+and keyboard-accessible pages keep controls reachable at 720p through 4K.
+Garage uses two builds per page and Loadout/Stats tabs; catalogue and Customize
+page choices, rules and detailed stats. Mass/power and Save stay visible.
+Preview reasons/recovery text also page. Controls has three binding groups;
+Camera uses a responsive inline form. No ScrollContainers remain in B menus.
+Camera/input drafts, binding capture, Cancel and Save retain existing behavior.
 
-A handoff: the only runtime integration change outside B ownership is the
-previously documented call to `preview.settings_panel.apply_text_scale` in
-menu_game. Existing form paths and injected general-setting buttons remain valid.
-The form's Margin is now a ScrollContainer; resizing keeps the focused control
-visible after layout. No wire, input-action or preference-schema changes.
+A handoff: menu_game calls `preview.settings_panel.apply_text_scale` and lets its
+responsive Center use the actual window instead of scaling a fixed1600x900 frame.
+Existing Form/MarginContainer paths and transactions integrate with A's new
+themed settings hub. No wire, input-action or preference-schema changes.
 
 Independent Customize, Garage/catalogue, controls and composed-game scenes pass;
 rendered 150% screens inspected at 720p, with layout checks through 4K. Composed
 checks verify live preview, Cancel, persistence and newly opened screens. Baseline
-and affected existing garage/control/general-settings checks pass. Subagents
+and affected existing garage/control/general-settings and SETTINGS HUB checks pass.
+Native composed Camera/Controls150%720p screens were inspected. Subagents
 implemented Garage/catalogue and controls in parallel. See
 [scope and evidence](coordination/B_MENU_TEXT_ACCESSIBILITY.md). Remaining garage
 work includes authored bot art and a direct unsaved-build test-drive entry; full

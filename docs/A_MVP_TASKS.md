@@ -22,7 +22,8 @@ layout passes do not close them. Prioritize these alongside the working 1v1 loop
   the actual window, including 720p, 1080p and wide aspect ratios. Replace oversized
   fixed layout and scrolling with adaptive composition; preserve readable text.
   Main navigation and A's settings categories now fit without scrolling in
-  independent/native checks; remaining networking and B binding-list pages need
+  independent/native checks; B garage/customisation and grouped bindings now
+  fit without scrolling too. Remaining networking pages need
   the same no-scroll review. Keep this broader request open.
 - [x] **A: Full-screen menu coverage.** Remove grey borders on either axis;
   background and panels must adapt when the window is resized.
@@ -34,7 +35,8 @@ layout passes do not close them. Prioritize these alongside the working 1v1 loop
   resolution and appropriate graphics options. Integrate B's existing camera and
   controls pages without changing their behavior; coordinate their restyling.
   Five-category themed hub and video preferences now implemented and rendered;
-  physical display switching and B's no-scroll binding presentation remain open.
+  B's grouped no-scroll bindings and responsive Camera page are now integrated;
+  physical display switching and human presentation acceptance remain open.
 - [x] **A: Persistent, prominent private friend code.** Keep the code clearly
   visible in the lobby after creation, with an obvious Copy code action. A fleeting
   creation screen is insufficient; Quick Play must not show a private-room code.
@@ -107,7 +109,7 @@ See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK
   color presets and high contrast. Depth-tested badges follow published poses
   and hide with menus/recovery; see [marker evidence](coordination/A_DUEL_WORLD_MARKERS.md).
 - [x] B garage/customisation/catalogue/recovery and camera/input settings consume
-  the shared text scale with reflow and keyboard scrolling; independent/composed
+  the shared text scale with reflow and keyboard-accessible pages; independent/composed
   checks and rendered 720p evidence are in [B text accessibility](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
 - [ ] Remaining accessibility and communication: human world/team marker
   recognition and color-vision acceptance; ping

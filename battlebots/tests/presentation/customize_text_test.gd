@@ -12,6 +12,7 @@ func settle() -> void:
 
 func inspect(screen: Control, context: String) -> void:
 	for node: Node in screen.find_children("*", "Control", true, false):
+		check(not node is ScrollContainer, context + " does not require scroll containers")
 		if not node is Label and not node is Button and not node is LineEdit and not node is RichTextLabel: continue
 		var control := node as Control
 		if not control.is_visible_in_tree(): continue
@@ -54,10 +55,13 @@ func run() -> void:
 	await settle()
 	for row: Control in screen.get_node("%Categories").get_children():
 		check(row.get_node("%Label").get_theme_font_size("font_size") == 44, "Rebuilt category heading uses 150%")
+	screen._change_choice_page(1)
+	screen._change_choice_page(1)
+	await settle()
 	var last: Control = screen.get_node("%Items").get_child(4)
 	last.grab_focus()
 	await settle()
-	check(screen._items_scroll.get_global_rect().encloses(last.get_global_rect()), "Keyboard focus reveals last weapon tile")
+	check(last.is_visible_in_tree() and Rect2(0, 0, 1920, 1080).encloses(last.get_global_rect()), "Paging reveals last weapon tile without scrolling")
 	last.pressed.emit()
 	await settle()
 	check(screen.get_node("%Items").get_child(4).get_node("%Name").get_theme_font_size("font_size") == 38, "Rebuilt item labels use 150%")
@@ -66,6 +70,14 @@ func run() -> void:
 		check(screen.comparison_panel.budgets.get_child(index).get_line_count() == 1, "Comparison headings remain whole at 150%")
 	check(profile.loadouts[0] == original, "Text scaling and selection do not alter build")
 	inspect(screen, "weapon comparison")
+	screen._show_choice_details(true)
+	await settle()
+	inspect(screen, "selected details")
+	screen._show_choice_details(false)
+	screen.comparison_panel.page = 1
+	screen.comparison_panel._show_page()
+	await settle()
+	inspect(screen, "second comparison page")
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("customize-text-150.png"))
@@ -77,7 +89,13 @@ func run() -> void:
 	inspect(screen, "invalid build")
 	check(screen.get_node("%Save").disabled, "Invalid draft cannot save at enlarged text")
 	var backup := FileAccess.open(path + ".bak", FileAccess.WRITE)
-	backup.store_string(JSON.stringify({"schema_version":1, "loadouts":[original, "Malformed entry"]}))
+	var review_builds: Array = []
+	for index: int in 11:
+		var build := original.duplicate(true)
+		build.name = "Reviewed build %02d with a long descriptive name" % index
+		review_builds.append(build)
+	review_builds.append("Malformed entry")
+	backup.store_string(JSON.stringify({"schema_version":1, "loadouts":review_builds}))
 	backup.close()
 	screen.recovery_button.pressed.emit()
 	await settle()
@@ -87,6 +105,16 @@ func run() -> void:
 	await settle()
 	inspect(screen, "backup review")
 	check(screen.recovery_panel.restore_button.visible and screen.recovery_panel.close_button.has_focus(), "Large backup review retains explicit confirmation and Cancel focus")
+	check(not screen.recovery_panel.details.scroll_active, "Recovery text uses pages instead of scrolling")
+	check(screen.recovery_panel._detail_pages.size() > 1, "Twelve-build review provides multiple readable pages")
+	var all_pages := " ".join(screen.recovery_panel._detail_pages).replace("\n", " ")
+	for index: int in 11: check(all_pages.contains("Reviewed build %02d" % index), "Review preserves build %d across pages" % index)
+	check(all_pages.contains("Malformed entry"), "Last invalid record remains in paged review")
+	for page: int in screen.recovery_panel._detail_pages.size():
+		screen.recovery_panel._detail_page = page
+		screen.recovery_panel._show_details_page()
+		await settle()
+		check(screen.recovery_panel.details.get_content_height() <= screen.recovery_panel.details.size.y, "Each recovery page fits at150%")
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("recovery-text-150.png"))

@@ -23,6 +23,7 @@ func run() -> void:
 	var game: Node = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.hud_settings_path = path
 	game.audio_settings_path = ""
+	game.video_settings_path = ""
 	game.get_node("Preview").settings_path = ""
 	add_child(game)
 	await settle()
@@ -50,12 +51,13 @@ func run() -> void:
 	get_window().size = Vector2i(1280, 720)
 	await settle()
 	for entry: Button in [game.audio_settings_button, game.hud_settings_button]:
-		check(Rect2(0, 0, 1280, 720).encloses(entry.get_global_rect()), "Resize keeps general settings navigation visible: %s focus=%s scroll=%s" % [entry.get_global_rect(), get_viewport().gui_get_focus_owner(), game.preview.settings_panel.get_node("Center/Panel/Margin").get_global_rect()])
+		check(Rect2(0, 0, 1280, 720).encloses(entry.get_global_rect()), "Settings hub entries remain visible after resize")
 	game.queue_free()
 	await settle()
 	game = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.hud_settings_path = path
 	game.audio_settings_path = ""
+	game.video_settings_path = ""
 	game.get_node("Preview").settings_path = ""
 	add_child(game)
 	await settle()
@@ -63,15 +65,35 @@ func run() -> void:
 		game.show_screen(screen_name)
 		await settle()
 		check(scaled(game.screen.get_node("%Title"), 1.5), screen_name + " receives saved preference on navigation")
+		for extent: Vector2i in [Vector2i(1280,720), Vector2i(2560,1080), Vector2i(1280,1024)]:
+			get_window().size = extent
+			await settle()
+			for control: Node in game.screen.find_children("*", "Control", true, false):
+				if (control is BaseButton or control is Label) and control.is_visible_in_tree():
+					var rect: Rect2 = control.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, control.size)
+					check(Rect2(Vector2(-1,-1), Vector2(extent) + Vector2(2,2)).encloses(rect), screen_name + " composed responsive bounds " + str(control.name))
+	get_window().size = Vector2i(1280,720)
+	await settle()
 	game.open_settings()
+	game._open_settings_category("camera")
 	await settle()
 	var settings: CameraSettingsPanel = game.preview.settings_panel
 	check(scaled(settings.invert, 1.5), "New game loads saved camera text size")
+	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("themed-camera-text-150.png"))
 	settings.controls_button.pressed.emit()
 	await settle()
 	check(scaled(settings.input_panel.mode, 1.5), "New controls page inherits saved text size")
 	check(not game.gameplay_input_allowed(), "Enlarged controls preserve gameplay input suppression")
 	check(settings.input_panel.is_visible_in_tree(), "Controls open through the real settings navigation")
+	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("themed-controls-text-150.png"))
+	for control: Node in settings.find_children("*", "Control", true, false):
+		if control is ScrollContainer: check(false, "Control settings must not require scrolling")
+		if control is BaseButton and control.is_visible_in_tree():
+			check(Rect2(0, 0, 1280, 720).encloses(control.get_global_rect()), "Themed composed controls fit720p: " + str(control.name))
 	game.queue_free()
 	await settle()
 	for suffix: String in ["", ".bak", ".tmp"]:

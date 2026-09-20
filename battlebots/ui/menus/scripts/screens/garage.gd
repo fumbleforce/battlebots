@@ -6,6 +6,10 @@ var recovery_panel: GarageRecoveryPanel
 var recovery_button: Button
 var notice: Label
 var _text_factor := 1.0
+var _build_page := 0
+var _displayed_active := -1
+var _build_pager: HBoxContainer
+var _page_label: Label
 
 
 func _ready() -> void:
@@ -29,20 +33,6 @@ func _ready() -> void:
 	%Next.text = "DONE"
 	%Next.pressed.connect(MenuRouter.goto.bind("main", false))
 	_select(PlayerProfile.active_bot)
-	var list: VBoxContainer = %BotList
-	var list_parent := list.get_parent()
-	var list_position := list.get_index()
-	list_parent.remove_child(list)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.follow_focus = true
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	list_parent.add_child(scroll)
-	list_parent.move_child(scroll,list_position)
-	scroll.add_child(list)
-	list.owner = self
-	list.unique_name_in_owner = true
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	recovery_panel = GarageRecoveryPanel.new()
 	add_child(recovery_panel)
 	recovery_button = Button.new()
@@ -51,24 +41,28 @@ func _ready() -> void:
 	%Next.get_parent().add_child(recovery_button)
 	recovery_button.pressed.connect(func(): recovery_panel.open(PlayerProfile))
 	PlayerProfile.inventory_changed.connect(_refresh_builds)
-	_refresh_builds()
 	_prepare_text_layout()
+	_build_page = PlayerProfile.active_bot / 2
+	_refresh_builds()
 	apply_text_scale(_text_factor)
 	_focus_selected.call_deferred()
 
 func _focus_selected() -> void:
 	if not is_inside_tree() or recovery_panel.visible: return
 	var rows := %BotList.get_children()
-	if PlayerProfile.active_bot < rows.size(): rows[PlayerProfile.active_bot].grab_focus()
+	for row: Button in rows:
+		if row.button_pressed: row.grab_focus(); return
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_instance_valid(recovery_panel) and recovery_panel.visible: return
 	super(event)
 
 func _refresh_builds() -> void:
+	if _displayed_active != PlayerProfile.active_bot: _build_page = PlayerProfile.active_bot / 2
 	clear_children(%BotList)
 	var group := ButtonGroup.new()
-	for i in PlayerProfile.bots.size():
+	_build_page = clampi(_build_page, 0, (PlayerProfile.bots.size() - 1) / 2)
+	for i in range(_build_page * 2, mini(_build_page * 2 + 2, PlayerProfile.bots.size())):
 		var row := BOT_ROW.instantiate()
 		%BotList.add_child(row)
 		row.setup(PlayerProfile.bots[i])
@@ -78,14 +72,18 @@ func _refresh_builds() -> void:
 		row.pressed.connect(_select.bind(i))
 		row.button_pressed = i == PlayerProfile.active_bot
 	%Bays.text = "%d builds · 12 saved max" % PlayerProfile.bots.size()
-	notice.text = "; ".join(PlayerProfile.errors)
+	notice.text = "Build/file needs attention. Inspect SAVED FILE or customize the selected build." if not PlayerProfile.errors.is_empty() else ""
 	notice.visible = not notice.text.is_empty()
+	_page_label.text = "%d / %d" % [_build_page + 1, ceili(PlayerProfile.bots.size() / 2.0)]
+	_build_pager.get_child(0).disabled = _build_page == 0
+	_build_pager.get_child(2).disabled = (_build_page + 1) * 2 >= PlayerProfile.bots.size()
 	_select(PlayerProfile.active_bot)
 	apply_text_scale(_text_factor)
 
 
 func _select(i: int) -> void:
 	PlayerProfile.active_bot = i
+	_displayed_active = i
 	MenuRouter.match_setup.bot = i
 	var b: Dictionary = PlayerProfile.bots[i]
 	build_preview.show_loadout(PlayerProfile.loadouts[i])
@@ -117,7 +115,7 @@ func _prepare_text_layout() -> void:
 	var overlay: Control = %Customize.get_parent()
 	overlay.reparent(frame.get_parent())
 	frame.get_parent().move_child(overlay, 0)
-	frame.custom_minimum_size.y = 340
+	frame.custom_minimum_size.y = 270
 	for button: Button in [%Customize, %Upgrade]:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -129,20 +127,47 @@ func _prepare_text_layout() -> void:
 		pad.minimum_size_changed.connect(_fit_button_content.bind(slot, pad))
 	$Layout/Body/Row/BotsCol.custom_minimum_size.x = 430
 	$Layout/Body/Row/RightCol.custom_minimum_size.x = 400
-	# Growing content scrolls while footer actions remain available.
-	var body: Control = $Layout/Body
-	var position := body.get_index()
-	var scroll := ScrollContainer.new()
-	scroll.name = "GarageBodyScroll"
-	scroll.focus_mode = Control.FOCUS_ALL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	$Layout.add_child(scroll)
-	$Layout.move_child(scroll, position)
-	body.reparent(scroll)
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.custom_minimum_size.y = 740
+	%BotName.add_theme_font_size_override("font_size", 40)
+	%BotHp.add_theme_font_size_override("font_size", 25)
+	%BotList.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_build_pager = HBoxContainer.new()
+	%BotList.get_parent().add_child(_build_pager)
+	%BotList.get_parent().move_child(_build_pager, 2)
+	var previous := Button.new()
+	previous.text = "PREV"
+	previous.pressed.connect(_page_builds.bind(-1))
+	_build_pager.add_child(previous)
+	_page_label = Label.new()
+	_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_build_pager.add_child(_page_label)
+	var next := Button.new()
+	next.text = "NEXT"
+	next.pressed.connect(_page_builds.bind(1))
+	_build_pager.add_child(next)
+	var details := HBoxContainer.new()
+	var right: VBoxContainer = $Layout/Body/Row/RightCol
+	right.add_child(details)
+	right.move_child(details, 0)
+	var details_group := ButtonGroup.new()
+	for label: String in ["LOADOUT", "STATS"]:
+		var button := Button.new()
+		button.text = label
+		button.toggle_mode = true
+		button.button_group = details_group
+		button.button_pressed = label == "LOADOUT"
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(func():
+			right.get_node("Loadout").visible = label == "LOADOUT"
+			right.get_node("StatsPanel").visible = label == "STATS")
+		details.add_child(button)
+	right.get_node("StatsPanel").hide()
+
+
+func _page_builds(direction: int) -> void:
+	_build_page += direction
+	_refresh_builds()
+	%BotList.get_child(0).grab_focus()
 
 
 func apply_text_scale(factor: float) -> void:

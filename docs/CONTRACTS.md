@@ -89,7 +89,7 @@ depth and sits below Canvas HUD layers; it is not an off-screen tracking system.
 and reapplies a bounded scale without compounding. It covers labels, buttons,
 text inputs, rich text and option popups. It does not resize the whole canvas or
 choose layout; A's general screens and game/results/reconnect/audio/accessibility
-panels expose `apply_text_scale(factor)` and own wrapping and scroll behavior.
+panels expose `apply_text_scale(factor)` and own their layouts.
 The game owner propagates live drafts to current panels and newly opened screens,
 restores the saved value on Cancel/reconnect cancellation, and loads the same
 version-one HUD preference at startup. Existing files need no migration.
@@ -97,10 +97,13 @@ B's Garage, Customize, catalogue, preview/comparison/recovery and camera/input
 settings now expose `apply_text_scale(factor)` too. The existing screen dispatch
 covers B menus; one explicit call in menu_game propagates to CameraSettingsPanel,
 which also scales InputSettingsPanel. Rebuilt rows retain the current factor.
-Keyboard-following scroll areas and wrapping preserve full 100/125/150% fonts.
-The camera form NodePath stays stable for A's injected audio/accessibility entries;
-its enclosing Margin is now a ScrollContainer. Window resizing keeps focused
-settings controls visible after layout. No preference schema changes. See
+Keyboard-accessible pages and wrapping preserve full 100/125/150% fonts without
+scrolling. Garage/catalogue choices and comparison stats use fixed pages;
+recovery text and invalid-preview reasons use pages too. Controls has three
+binding groups; Camera uses an inline responsive form. Existing Form and
+MarginContainer paths integrate with A's themed settings hub. menu_game uses the
+actual viewport instead of reducing camera/settings through a fixed design-frame
+scale. No preference schema changes. See
 [B text evidence](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
 
 `MvpSession.bot_views() -> Array[BotView]` returns fresh detached views for the

@@ -9,9 +9,60 @@ var details: RichTextLabel
 var _profile: Node
 var _review: Dictionary = {}
 var _return_focus: Control
+var _full_details := ""
+var _detail_pages: Array[String] = []
+var _detail_page := 0
+var _page_label: Label
+var _page_previous: Button
+var _page_next: Button
 
 func apply_text_scale(factor: float) -> void:
 	MenuTextScale.apply(self, factor)
+	_paginate_details.call_deferred()
+
+func _set_details(value: String) -> void:
+	_full_details = value
+	_detail_page = 0
+	_paginate_details()
+
+func _paginate_details() -> void:
+	if not is_instance_valid(details) or not is_instance_valid(_page_label) or details.size.x <= 0: return
+	var font := details.get_theme_font("normal_font")
+	var font_size := details.get_theme_font_size("normal_font_size")
+	var line_height := font.get_height(font_size) + details.get_theme_constant("line_separation")
+	var max_lines := maxi(1, floori(details.size.y / line_height) - 1)
+	var lines: Array[String] = []
+	for paragraph: String in _full_details.split("\n"):
+		var line := ""
+		for word: String in paragraph.split(" "):
+			if font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > details.size.x - 4:
+				if not line.is_empty(): lines.append(line)
+				line = ""
+				for character: String in word:
+					if not line.is_empty() and font.get_string_size(line + character, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > details.size.x - 4:
+						lines.append(line)
+						line = ""
+					line += character
+				continue
+			var candidate := line + (" " if not line.is_empty() else "") + word
+			if not line.is_empty() and font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > details.size.x - 4:
+				lines.append(line)
+				line = word
+			else: line = candidate
+		lines.append(line)
+	_detail_pages.clear()
+	for start: int in range(0, lines.size(), max_lines):
+		_detail_pages.append("\n".join(lines.slice(start, mini(start + max_lines, lines.size()))))
+	_detail_page = clampi(_detail_page, 0, maxi(0, _detail_pages.size() - 1))
+	_show_details_page()
+
+func _show_details_page() -> void:
+	if _detail_pages.is_empty(): return
+	details.text = _detail_pages[_detail_page]
+	_page_label.text = "%d / %d" % [_detail_page + 1, _detail_pages.size()]
+	_page_previous.disabled = _detail_page == 0
+	_page_next.disabled = _detail_page + 1 >= _detail_pages.size()
+	_focus_loop()
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -36,7 +87,17 @@ func _ready() -> void:
 	details.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	details.add_theme_font_size_override("normal_font_size", 24)
 	details.focus_mode = Control.FOCUS_ALL
+	details.scroll_active = false
 	box.add_child(details)
+	details.resized.connect(_paginate_details)
+	var pages := HBoxContainer.new()
+	box.add_child(pages)
+	_page_previous = _button(pages, "PREVIOUS", func(): _detail_page -= 1; _show_details_page())
+	_page_label = Label.new()
+	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pages.add_child(_page_label)
+	_page_next = _button(pages, "NEXT", func(): _detail_page += 1; _show_details_page())
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 18)
 	box.add_child(actions)
@@ -61,15 +122,15 @@ func open(profile: Node) -> void:
 	_return_focus = get_viewport().gui_get_focus_owner()
 	_review.clear()
 	show()
-	_show_status()
+	_show_status("; ".join(profile.errors))
 	close_button.grab_focus()
 
 func _show_status(message := "") -> void:
 	var recovery := LoadoutStore.new(_profile.save_path).inspect_recovery()
-	details.text = message + ("\n\n" if not message.is_empty() else "") + \
+	_set_details(message + ("\n\n" if not message.is_empty() else "") + \
 		"Reload reads the latest saved builds from this computer. Edited and new drafts stay in the garage as unsaved copies, with Undo/Redo retained. Rename a retained copy before saving if its name already exists.\n\n" + \
 		"A backup can be restored only when the main file is missing or unreadable. Review it before confirming; the existing file will be preserved separately.\n\n" + \
-		("Backup available for review." if recovery.available else "No restorable backup: " + "; ".join(recovery.errors))
+		("Backup available for review." if recovery.available else "No restorable backup: " + "; ".join(recovery.errors)))
 	review_button.disabled = not recovery.available
 	review_button.show()
 	reload_button.show()
@@ -90,12 +151,13 @@ func _show_review() -> void:
 	if not _review.available:
 		_show_status("The backup is no longer available. No files were changed.")
 		return
-	details.text = "RESTORE THIS BACKUP?\n\nThis replaces the missing or unreadable main file with the reviewed backup. The backup is kept unchanged; an existing main file is preserved separately. Local edited drafts and Undo/Redo are retained.\n\nBackup contains %d saved build(s):\n" % _review.loadouts.size()
+	var text := "RESTORE THIS BACKUP?\n\nThis replaces the missing or unreadable main file with the reviewed backup. The backup is kept unchanged; an existing main file is preserved separately. Local edited drafts and Undo/Redo are retained.\n\nBackup contains %d saved build(s):\n" % _review.loadouts.size()
 	for draft: Variant in _review.loadouts:
 		var title := str(draft.get("name", "Unnamed build")).left(48) if draft is Dictionary else "Malformed entry"
 		var valid: bool = draft is Dictionary and _profile.registry.validate(draft).valid
-		details.text += "• %s — %s\n" % [title, "valid" if valid else "needs repair (preserved)"]
-	details.text += "\nCancel leaves both files unchanged."
+		text += "• %s — %s\n" % [title, "valid" if valid else "needs repair (preserved)"]
+	text += "\nCancel leaves both files unchanged."
+	_set_details(text)
 	reload_button.hide()
 	review_button.hide()
 	restore_button.show()
@@ -105,8 +167,8 @@ func _show_review() -> void:
 
 func _focus_loop() -> void:
 	var controls: Array[Control] = [details]
-	for button: Button in [reload_button, review_button, restore_button, close_button]:
-		if button.visible and not button.disabled: controls.append(button)
+	for button: Button in [_page_previous, _page_next, reload_button, review_button, restore_button, close_button]:
+		if is_instance_valid(button) and button.visible and not button.disabled: controls.append(button)
 	for index: int in controls.size():
 		controls[index].focus_next = controls[index].get_path_to(controls[(index + 1) % controls.size()])
 		controls[index].focus_previous = controls[index].get_path_to(controls[(index - 1 + controls.size()) % controls.size()])

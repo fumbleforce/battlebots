@@ -40,6 +40,14 @@ func _ready() -> void:
 	$Center/Panel/Margin.add_child(input_panel)
 	input_panel.finished.connect(_close_controls)
 	input_panel.applied.connect(_apply_inputs)
+	for key: String in ["Sensitivity", "SensitivityY", "Strength"]:
+		var label: Label = form.get_node(key + "Label")
+		var inline_label := Label.new()
+		inline_label.text = label.text
+		inline_label.custom_minimum_size.x = 340
+		form.get_node(key).add_child(inline_label)
+		form.get_node(key).move_child(inline_label, 0)
+		label.hide()
 	resized.connect(_layout_panel)
 	apply_text_scale(_text_scale)
 
@@ -52,18 +60,8 @@ func apply_text_scale(factor: float) -> void:
 	_layout_panel()
 
 func _layout_panel() -> void:
-	# The stable Form path also contains the general settings navigation.
 	$Center/Panel.custom_minimum_size = Vector2(
-		minf(540.0 * _text_scale, maxf(0.0, size.x - 48.0)),
-		minf(670.0 * _text_scale, maxf(0.0, size.y - 48.0)))
-	_keep_focus_visible.call_deferred()
-
-func _keep_focus_visible() -> void:
-	await get_tree().process_frame
-	if not is_inside_tree() or not is_visible_in_tree(): return
-	var focus := get_viewport().gui_get_focus_owner()
-	if is_instance_valid(focus) and is_ancestor_of(focus):
-		$Center/Panel/Margin.ensure_control_visible(focus)
+		minf(1050.0, maxf(0.0, size.x - 48.0)), 0.0)
 
 func configure_inputs(preferences: InputPreferences, path: String, notice: String = "") -> void:
 	_input_preferences = preferences

@@ -61,9 +61,11 @@ do not block the active 1v1 scope.
 B's latest menu accessibility work is documented in
 [the B handoff](DEVELOPER_B_HANDOFF.md#b-menu-text-accessibility--20-september-2026).
 Garage/Customize/catalogue/recovery and camera/input settings consume the shared
-100/125/150% text preference with wrapping and keyboard scrolling. One documented
-menu_game call propagates to the B settings panel; stable form paths preserve A's
-injected navigation. Independent scenes, composed preference preview/save/cancel,
+100/125/150% text preference with wrapping and keyboard-accessible pages instead
+of scrolling, incorporating the newer user feedback from A's fe9f2f0. Documented
+menu_game integration propagates text scale and leaves physical window layout to
+B's responsive settings panel; stable APIs integrate with A's hub. Independent
+scenes, composed preference preview/save/cancel,
 rendered 720p layouts, baseline and affected regressions pass. See
 [text evidence](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
 

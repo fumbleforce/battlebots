@@ -3,6 +3,9 @@ extends MenuScreen
 const TABS := ["upgrades", "parts", "cosmetics"]
 var _tab := "upgrades"
 var _text_factor := 1.0
+var _page := 0
+var _pager: HBoxContainer
+var _page_label: Label
 func _ready() -> void:
 	super()
 	var group := ButtonGroup.new()
@@ -17,30 +20,22 @@ func _ready() -> void:
 	%Play.pressed.connect(MenuRouter.goto.bind("garage", false))
 	%BotChips.hide()
 	%Deals.get_parent().get_parent().hide()
-	var items: GridContainer = %ItemsView
-	var parent := items.get_parent()
-	parent.remove_child(items)
-	var scroll := ScrollContainer.new()
-	scroll.name = "CatalogueScroll"
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.follow_focus = true
-	scroll.focus_mode = Control.FOCUS_ALL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	parent.add_child(scroll)
-	scroll.add_child(items)
-	items.owner = self
-	items.unique_name_in_owner = true
-	items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var rules: Control = %UpgradesView
-	var rules_scroll := ScrollContainer.new()
-	rules_scroll.name = "RulesScroll"
-	rules_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rules_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	rules_scroll.follow_focus = true
-	rules_scroll.focus_mode = Control.FOCUS_ALL
-	parent.add_child(rules_scroll)
-	rules.reparent(rules_scroll)
-	rules.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	%ItemsView.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	%ItemsView.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_pager = HBoxContainer.new()
+	%ItemsView.get_parent().add_child(_pager)
+	var previous := Button.new()
+	previous.text = "PREVIOUS"
+	previous.pressed.connect(_page_items.bind(-1))
+	_pager.add_child(previous)
+	_page_label = Label.new()
+	_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pager.add_child(_page_label)
+	var next := Button.new()
+	next.text = "NEXT"
+	next.pressed.connect(_page_items.bind(1))
+	_pager.add_child(next)
 	$Layout/Header/Row/Tabs.reparent($Layout)
 	$Layout.move_child($Layout/Tabs, 2)
 	$Layout/Tabs/Row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -57,13 +52,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		[%TabUpgrades,%TabParts,%TabCosmetics][index].button_pressed = true
 		_set_tab(TABS[index])
 func _set_tab(tab: String) -> void:
+	_page = 0
 	_tab = tab
 	for index: int in TABS.size():
 		[%TabUpgrades,%TabParts,%TabCosmetics][index].button_pressed = TABS[index] == tab
 	%UpgradesView.visible = tab == "upgrades"
-	%UpgradesView.get_parent().visible = tab == "upgrades"
 	%ItemsView.visible = tab != "upgrades"
-	%ItemsView.get_parent().visible = tab != "upgrades"
 	clear_children(%UpgradeGrid)
 	clear_children(%ItemsView)
 	if tab == "upgrades":
@@ -88,6 +82,7 @@ func _set_tab(tab: String) -> void:
 				card.get_node("%Buy").text = "AVAILABLE IN CUSTOMIZE"
 				card.get_node("%Buy").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				card.get_node("%Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_update_page()
 	apply_text_scale(_text_factor)
 
 func _entry(parent: Node, title: String, description: String, art: Texture2D = null) -> void:
@@ -125,4 +120,23 @@ func _entry(parent: Node, title: String, description: String, art: Texture2D = n
 func apply_text_scale(factor: float) -> void:
 	_text_factor = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
 	MenuTextScale.apply(self, _text_factor)
-	%ItemsView.columns = 2 if _text_factor > 1.0 else 3
+	%ItemsView.columns = 2
+
+
+func _page_items(direction: int) -> void:
+	_page += direction
+	_update_page()
+	var next_focus: Button = _pager.get_child(2 if direction > 0 else 0)
+	if next_focus.disabled: next_focus = _pager.get_child(0 if direction > 0 else 2)
+	if not next_focus.disabled: next_focus.grab_focus()
+
+
+func _update_page() -> void:
+	var grid: GridContainer = %UpgradeGrid if _tab == "upgrades" else %ItemsView
+	var count := grid.get_child_count()
+	_page = clampi(_page, 0, maxi(0, (count - 1) / 2))
+	for i: int in count:
+		grid.get_child(i).visible = i / 2 == _page
+	_page_label.text = "PAGE %d / %d" % [_page + 1, ceili(count / 2.0)]
+	_pager.get_child(0).disabled = _page == 0
+	_pager.get_child(2).disabled = (_page + 1) * 2 >= count

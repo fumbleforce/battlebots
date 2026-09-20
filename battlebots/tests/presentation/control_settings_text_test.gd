@@ -56,13 +56,21 @@ func _ready() -> void:
 			check(controls.draft.label_for(&"drive_forward") == "I", "Binding capture remains functional")
 			controls.save_button.grab_focus()
 			await settle()
-			var scroll: ScrollContainer = panel.get_node("Center/Panel/Margin")
-			check(scroll.get_global_rect().encloses(controls.save_button.get_global_rect()), "Focus scroll reveals input save")
-			var last_binding: Button = controls.binding_buttons[InputPreferences.ACTIONS[-1]]
-			last_binding.grab_focus()
-			await settle()
-			check(controls._scroll.get_global_rect().encloses(last_binding.get_global_rect()),
-				"Keyboard focus reveals the last binding")
+			check(panel.find_children("*", "ScrollContainer", true, false).is_empty(), "Settings navigation has no scroll containers")
+			for group: int in range(controls.GROUPS.size()):
+				controls.show_page(group)
+				await settle()
+				check(Rect2(Vector2.ZERO, Vector2(dimensions)).encloses(panel.get_node("Center/Panel").get_global_rect()), "Every binding page fits viewport")
+				for action: StringName in controls.GROUPS[group]:
+					var binding: Button = controls.binding_buttons[action]
+					check(binding.is_visible_in_tree(), "Every grouped action remains available")
+					check(panel.get_global_rect().encloses(binding.get_global_rect()), "Binding is onscreen without scrolling")
+			check(controls.draft.label_for(&"drive_forward") == "I", "Page changes preserve binding draft")
+			controls.begin_capture(&"scoreboard")
+			controls.show_page(0)
+			check(controls.capture_action.is_empty() and controls.draft.label_for(&"scoreboard") == "Tab",
+				"Changing group cancels pending capture without changing its binding")
+			controls.show_page(2)
 			controls.save_button.grab_focus()
 			await settle()
 			if "--capture" in OS.get_cmdline_user_args() and dimensions.x == 1280 and factor == 1.5:
@@ -72,7 +80,7 @@ func _ready() -> void:
 			check(panel.form.visible and not controls.visible, "Controls save returns to camera")
 			panel.form.get_node("Buttons/Save").grab_focus()
 			await settle()
-			check(scroll.get_global_rect().encloses(panel.form.get_node("Buttons/Save").get_global_rect()), "Focus scroll reveals camera save")
+			check(panel.get_global_rect().encloses(panel.form.get_node("Buttons/Save").get_global_rect()), "Camera save visible without scrolling")
 			if "--capture" in OS.get_cmdline_user_args() and dimensions.x == 1280 and factor == 1.5:
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP") + "/camera-text-150.png")

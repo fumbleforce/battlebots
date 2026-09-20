@@ -11,6 +11,8 @@ var title: Label
 var budgets: GridContainer
 var details: GridContainer
 var _text_scale := 1.0
+var page := 0
+var page_label: Label
 
 func apply_text_scale(factor: float) -> void:
 	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
@@ -27,14 +29,27 @@ func _ready() -> void:
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(title)
 	budgets = _grid(self)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 125
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.focus_mode = Control.FOCUS_ALL
-	scroll.follow_focus = true
-	add_child(scroll)
-	details = _grid(scroll)
+	details = _grid(self)
+	details.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var pages := HBoxContainer.new()
+	add_child(pages)
+	var previous := Button.new()
+	previous.text = "PREVIOUS"
+	previous.pressed.connect(func(): page = 1 - page; _show_page())
+	pages.add_child(previous)
+	page_label = Label.new()
+	page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pages.add_child(page_label)
+	var next := Button.new()
+	next.text = "NEXT"
+	next.pressed.connect(func(): page = 1 - page; _show_page())
+	pages.add_child(next)
+
+func _show_page() -> void:
+	for index: int in details.get_child_count():
+		details.get_child(index).visible = index / 16 == page
+	page_label.text = "DETAILS %d / 2" % (page + 1)
 
 func _grid(parent: Node) -> GridContainer:
 	var grid := GridContainer.new()
@@ -57,6 +72,7 @@ func render(comparison: Dictionary, candidate: String, proposed := true) -> void
 	_row(budgets, "Power ( / 100)", before.get("power"), after.get("power"), 1, 100)
 	for field: Array in FIELDS:
 		_row(details, field[0], before.get(field[1]), after.get(field[1]), field[2])
+	_show_page()
 	apply_text_scale(_text_scale)
 
 func _clear(grid: GridContainer) -> void:
