@@ -94,8 +94,19 @@ func run() -> void:
 	service.message = "Could not connect. Try again."
 	service.changed.emit()
 	check(screen.actions.visible and not screen.create_button.disabled and not screen.copy_button.visible, "Clean failure restores retry actions and removes stale code")
-	check(not screen.quick_button.disabled and screen.quick_button.has_focus(), "Failure returns keyboard focus to enabled Quick Play")
+	check(not screen.quick_button.disabled and screen.status_label.has_focus(), "Failure focuses its reason while keeping Quick Play enabled")
 	check(screen.status_label.text == service.message, "Failure reason comes from the service")
+	for resolution: Vector2i in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
+		root.size = resolution
+		for text_scale in [1.0, 1.5]:
+			screen.apply_text_scale(text_scale)
+			service.message = "This game build does not match the online service. Install the current game build."
+			service.changed.emit()
+			await frames()
+			var scroll: Node = screen.status_label.get_parent()
+			while not scroll is ScrollContainer:
+				scroll = scroll.get_parent()
+			check(scroll.get_global_rect().encloses(screen.status_label.get_global_rect()), "Compatibility failure remains inside the visible scroll area at %s/%s" % [resolution, text_scale])
 	service.endpoint = ""
 	service.state = "idle"
 	service.changed.emit()

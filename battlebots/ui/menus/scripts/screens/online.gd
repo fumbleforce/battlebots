@@ -94,12 +94,14 @@ func _ready() -> void:
 	join_button = button(join_row, "JOIN GAME", join_room)
 	join_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var status_panel := panel(body, &"PanelGlass")
+	body.move_child(status_panel, actions.get_index())
 	status_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var status_col := VBoxContainer.new()
 	status_col.add_theme_constant_override("separation", 15)
 	status_panel.add_child(status_col)
 	state_heading = label(status_col, "", 24, &"EyebrowAmber")
 	status_label = label(status_col, "", 29)
+	status_label.focus_mode = Control.FOCUS_ALL
 	status_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	region_label = label(status_col, "", 22, &"Muted")
 	var code_row := HBoxContainer.new()
@@ -195,7 +197,9 @@ func refresh() -> void:
 	cancel_button.visible = service.can_cancel() or service.state == "canceling"
 	cancel_button.disabled = service.state == "canceling"
 	var focused := get_viewport().gui_get_focus_owner()
-	if actions.visible and not actions_were_visible and available:
+	if service.state == "failed":
+		status_label.grab_focus()
+	elif actions.visible and not actions_were_visible and available:
 		quick_button.grab_focus()
 	elif focused == null or not focused.is_visible_in_tree() or (focused is BaseButton and focused.disabled):
 		(cancel_button if cancel_button.visible and not cancel_button.disabled else back_button).grab_focus()

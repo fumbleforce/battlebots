@@ -528,3 +528,6 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
 - B user-requested HUD handoff: fixed green/red health bars under player identities,
   isolated BotWorldMarkers change coordinated with the other developer. Scope and
   acceptance: [player health bars](coordination/B_PLAYER_HEALTH_BARS.md).
+
+## A coordination — Quick Play service sync, 20 September 2026
+A is updating the existing hosted server to current main catalogue revision 6 and fixing online error visibility. Scope: online.gd, online panel checks, deployment evidence. No B implementation or shared protocol edits. See coordination/A_QUICK_PLAY_SERVICE_SYNC.md.
