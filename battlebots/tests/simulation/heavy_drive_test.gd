@@ -95,10 +95,13 @@ func run() -> void:
 	check(bot.body.scale.is_equal_approx(Vector3.ONE), "Jolt body transform is unscaled")
 	check(bot.body.get_node("Collision").shape.size.is_equal_approx(Vector3(4.8, 1.5, 6.0)), "Physical collider uses the larger hull")
 	await reset_bot()
-	await drive(120, 1)
-	var speed_two := -bot.body.linear_velocity.z
-	check(speed_two > 6.5 and speed_two < 8.6, "Motor builds momentum gradually instead of reaching full speed in2s")
-	await drive(120, 1)
+	await drive(60, 1)
+	var speed_one := -bot.body.linear_velocity.z
+	check(speed_one > 7.5 and speed_one < 9.6, "Strong motors deliver a decisive launch while momentum still builds during the first second")
+	await drive(24, 1)
+	var speed_launch := -bot.body.linear_velocity.z
+	check(speed_launch > 9.7 and speed_launch < 10.2, "Powerful chassis reaches its 10m/s cruising speed within 1.4 seconds")
+	await drive(156, 1)
 	check(absf(bot.body.linear_velocity.length() - 10.0) < 0.2, "Standard drive retains its10m/s cruising speed")
 	await drive(60)
 	var coast_speed := -bot.body.linear_velocity.z
@@ -108,21 +111,22 @@ func run() -> void:
 	var before_brake := bot.body.global_position
 	await drive(120, 1, 1, true)
 	var brake_distance := bot.body.global_position.distance_to(before_brake)
-	check(brake_distance > 6.0 and brake_distance < 9.5, "Deliberate braking carries weight but stops within arena space")
+	check(brake_distance > 4.5 and brake_distance < 6.5, "Strong brakes stop from 10m/s in about one hull length while retaining real stopping distance")
 	check(bot.body.linear_velocity.length() < 0.15 and bot.body.angular_velocity.length() < 0.15, "Brakes override drive and steering")
 	await reset_bot()
-	await drive(60, 0, -1)
+	await drive(45, 0, -1)
 	var yaw := bot.body.angular_velocity.y
-	check(yaw > 0.55 and yaw < 1.1, "Heavy chassis turns gradually while remaining controllable at rest")
+	check(yaw > 1.3 and yaw < 1.8, "Strong steering torque reaches a decisive pivot within three quarters of a second")
 	# The authored rear pack offsets the center of mass, so the body origin
 	# follows a small arc around it even with no translational propulsion.
 	check(bot.body.linear_velocity.length() < 0.1, "Pivot turning adds no forward propulsion")
 	await reset_bot()
 	await drive(180, 1)
 	await drive(30, -1)
-	check(-bot.body.linear_velocity.z > 5.0, "Reverse intent cannot instantly reverse established momentum")
-	await drive(300, -1)
-	check(bot.body.linear_velocity.z > 8.5, "Sustained reverse eventually drives backward")
+	var reverse_speed_half := -bot.body.linear_velocity.z
+	check(reverse_speed_half > 1.0 and reverse_speed_half < 8.0, "Half a second of reverse noticeably slows forward travel without instantly reversing momentum")
+	await drive(150, -1)
+	check(bot.body.linear_velocity.z > 9.3, "Strong reverse torque reaches backward cruising speed within three seconds")
 	await drive(150, 0, 0, false, false)
 	check(bot.body.linear_velocity.length() < 0.15, "Missing commands still trigger the brake failsafe")
 	await reset_bot()
@@ -163,8 +167,8 @@ func run() -> void:
 	await get_tree().process_frame
 	check(bot.body.global_basis.y.dot(Vector3.UP) > 0.5, "Scaled recovery torque rights the enlarged chassis")
 	await replay_collision_cases()
-	print("HEAVY DRIVE measured: speed2s=%.3f coast1s=%.3f brake=%.3fm pivot1s=%.3frad/s replay=%.4fm/%.3fdeg" %
-		[speed_two, coast_speed, brake_distance, yaw, position_error, rotation_error])
+	print("HEAVY DRIVE measured: speed1s=%.3f speed1.4s=%.3f coast1s=%.3f brake=%.3fm pivot.75s=%.3frad/s reverse.5s=%.3fm/s replay=%.4fm/%.3fdeg" %
+		[speed_one, speed_launch, coast_speed, brake_distance, yaw, reverse_speed_half, position_error, rotation_error])
 	bot.free()
 	ground.free()
 	for failure: String in failures: push_error(failure)

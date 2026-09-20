@@ -8,8 +8,9 @@ collision transforms unscaled. `BotScale.from_size(size)` maps the canonical hul
 height back to the original 0.5m authoring dimensions. Authored Sawblade dimensions
 already follow size and must not be scaled twice. Catalogue revision seven rejects
 incompatible servers and migrates known revision-six saves without part changes.
-Installed mass/power budgets and drive-package top speeds remain design stats;
-heavier feel comes from acceleration, steering response, coast/braking and inertia.
+Installed mass/power budgets and drive-package top speeds remain design stats.
+The user clarified that these are extremely powerful machines with strong torque;
+hard acceleration and decisive turns accompany physical inertia and neutral coast.
 
 B owns catalogue/migration, physical drive and replay, collision/weapon geometry,
 walker support, camera, bot visuals/garage framing and regression fixtures. Narrow
@@ -156,18 +157,24 @@ certification or hosted-release acceptance.
 
 ## Handling, combat and complete duel evidence
 
-Live drive and replay share 3.8m/s² reference acceleration (scaled by installed
-mass), 1.6/s throttle and 1.8/s steering response, 1.05rad/s low-speed yaw target,
-1.8rad/s² yaw acceleration, 1.1m/s² neutral coast and 6m/s² braking. Grip and
-drive-package top speeds remain canonical. Enlarged Jolt inertia and proportionate
-torque preserve deliberate turning and paid self-righting. Ground-probe depth
+Live drive and replay share 8m/s² reference acceleration (scaled by installed
+mass), 4/s throttle and steering response, 1.65rad/s low-speed yaw target,
+4.5rad/s² yaw acceleration, 1.1m/s² neutral coast and 9m/s² braking. Grip and
+drive-package top speeds remain canonical. The motor torque cap grows with the
+square of geometry scale, matching the enlarged Jolt inertia so the actual body
+can deliver the strong requested pivot acceleration. Recovery torque remains
+proportionate to inertia too. Ground-probe depth
 uses half hull height plus an absolute 0.07m contact tolerance.
 
 - `heavy_drive_test.tscn`: actual unscaled Jolt body/collider, acceleration, coast,
   braking, pivot, reversing, missing-command failsafe, 250ms live/replay agreement
-  and recovery pass. Measured 8.171m/s after 2s acceleration, 7.056m/s after 1s
-  coasting from 10m/s, 8.417m stopping distance and 0.833rad/s after 1s pivot.
-  Maximum replay error was 0.0380m / 0.097 degrees.
+  and recovery pass. Final powerful calibration measured 8.529m/s after 1s
+  acceleration and 10m/s at 1.4s, 7.151m/s after 1s coasting from 10m/s, 5.639m
+  stopping distance and 1.543rad/s after 0.75s pivot. After 0.5s reverse intent the
+  bot still travels forward at 5.934m/s, reaching backward cruise within 3s.
+  Maximum live/replay steering error was 0.0394m / 0.493 degrees, within the
+  unchanged 0.08m / 2-degree acceptance. This supersedes the initially slower
+  handling calibration, following the user's explicit powerful-machine direction.
   Independent real-Jolt replay queries additionally verify descent while righting
   a tipped hull, preserved downward velocity while above the floor, actual floor
   clamping and full-hull wall-sweep protection after the orientation correction.
@@ -184,7 +191,9 @@ uses half hull height plus an absolute 0.07m contact tolerance.
 - `tools/check-gameplay.ps1`: NATURAL DUEL PASS in 89.4s with 16 actual hammer
   hits, two round wins, results and an active rematch. Scripted approach/attack
   distances follow the enlarged hull/weapon envelope; normal commands, health,
-  cooldowns, damage and match rules remain in force.
+  cooldowns, damage and match rules remain in force. Repeated after the final
+  powerful-drive/torque changes with the same full outcome; evidence is
+  `%TEMP%/battlebots-powerful-natural.log`.
 - General `session_smoke.gd` profile80 passes with 0.0855m p95 correction;
   airborne_replay passes with zero position/velocity error and 0.040 degrees
   angular error. App integration and ten-body headless stress pass (0.874ms p95

@@ -6,7 +6,8 @@ Catalogue revision 7 grows all three canonical hull dimensions by three. The
 balanced hull is now Vector3(4.8, 1.5, 6.0). `BotScale.from_size(size)` supplies
 the linear authoring multiplier; Jolt body transforms remain unit scale. Weapon
 queries, authored/primitive meshes, walker support and recovery follow that size.
-DriveModel and live DriveBody share slower response, coast/brake and yaw tuning.
+DriveModel and live DriveBody share powerful acceleration, coast/brake and yaw
+tuning; motor torque scales with enlarged inertia so size does not make turns weak.
 The static replay sweep uses the extrapolated hull orientation, allowing a tipped
 chassis to descend while rotating upright without bypassing wall translation
 checks. No command/view wire fields or damage/cadence values change.

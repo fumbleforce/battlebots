@@ -194,7 +194,7 @@ Before a match, the server rebuilds every loadout from allowed part IDs and vali
 
 ### Movement and contact
 
-Robots use rigid-body chassis with suspension/contact probes and applied tire forces. Wheels are animated from contact speed rather than simulated as four networked rigid bodies. The enlarged machines use gradual throttle and steering response, lower acceleration and turning rates, and coast when the throttle is released. Braking remains deliberate and stops a standard 10 m/s machine in roughly eight meters; unchanged drive-package top speeds preserve arena traversal. Steering torque decreases at high forward speed to avoid weightless cornering. Brake force is limited by grip.
+Robots use rigid-body chassis with suspension/contact probes and applied tire forces. Wheels are animated from contact speed rather than simulated as four networked rigid bodies. **User clarification, 20 September 2026:** these are extremely powerful battle machines with strong torque, not slow construction equipment. Motors deliver hard acceleration and decisive pivot turns, while actual inertia, finite stopping distance and neutral coasting convey their weight. The standard drive reaches 10 m/s in roughly 1.4 seconds and brakes in roughly one hull length. Drive-package top speeds remain unchanged. Steering torque decreases at high forward speed to avoid weightless cornering. Brake force is limited by grip.
 
 Bots can push, climb low wedges, flip, and tumble. Prevent permanent nose-balancing with authored collision shapes and sensible centers of mass. Use convex chassis colliders and simplified wall geometry. Mechanical mechanisms have bounded travel; a spinning visual mesh does not require thousands of collision contacts per second.
 

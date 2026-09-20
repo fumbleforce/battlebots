@@ -89,9 +89,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var yaw_acceleration: float = response.yaw_acceleration
 	var inverse_yaw_inertia := normal.dot(state.inverse_inertia_tensor * normal)
 	if inverse_yaw_inertia > 0.0:
+		# Motor torque grows with hull inertia so enlarged machines retain the
+		# power to pivot sharply; the response model still bounds angular buildup.
+		var torque_scale := geometry_scale * geometry_scale
 		var torque := clampf(yaw_acceleration / inverse_yaw_inertia,
-			-mass * grip_acceleration * 0.65 * geometry_scale * steering_multiplier,
-			mass * grip_acceleration * 0.65 * geometry_scale * steering_multiplier)
+			-mass * grip_acceleration * 0.65 * torque_scale * steering_multiplier,
+			mass * grip_acceleration * 0.65 * torque_scale * steering_multiplier)
 		state.apply_torque(normal * torque)
 
 func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:

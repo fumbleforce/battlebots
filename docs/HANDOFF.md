@@ -33,9 +33,10 @@ no hosted release is claimed. See [scope and validation](coordination/A_BATTLE_M
 
 ## Three-times-larger heavy machines — 20 September 2026
 
-B enlarged physical hulls, weapons and drive assemblies by three. Slower throttle,
-steering and acceleration, neutral coasting and longer braking give them weight;
-drive-package top speeds and construction budgets remain. Camera, garage framing,
+B enlarged physical hulls, weapons and drive assemblies by three. Following the
+user's torque clarification, strong motors deliver hard acceleration and decisive
+turning; inertia, neutral coasting and finite braking give them weight. Drive-package
+top speeds and construction budgets remain. Camera, garage framing,
 effects, terrain/wall spawn clearance and practice spacing follow the new size.
 Known revision-six saves retain their parts and appearance when migrated.
 

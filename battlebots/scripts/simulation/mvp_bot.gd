@@ -45,15 +45,15 @@ func _ready() -> void:
 	body.top_speed = stats.speed
 	body.walker = loadout.parts.drive == "walker"
 	body.grip_acceleration = stats.grip
-	body.drive_acceleration = 3.8 * 103.0 / body.mass
-	body.brake_acceleration = 6.0
+	body.drive_acceleration = 8.0 * 103.0 / body.mass
+	body.brake_acceleration = 9.0
 	body.coast_acceleration = 1.1
-	body.turn_speed = 1.05
-	body.throttle_response = 1.6
-	body.steering_response = 1.8
-	body.yaw_response = 0.4
-	body.yaw_acceleration_limit = 1.8
-	body.lateral_response = 0.28
+	body.turn_speed = 1.65
+	body.throttle_response = 4.0
+	body.steering_response = 4.0
+	body.yaw_response = 0.2
+	body.yaw_acceleration_limit = 4.5
+	body.lateral_response = 0.24
 	# Enlarge the hull reach, not the contact tolerance: a bigger robot must not
 	# continue applying tire forces during a shallow airborne weapon launch.
 	body.probe_depth = stats.size.y * 0.5 + 0.07
