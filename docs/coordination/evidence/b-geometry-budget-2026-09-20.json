@@ -1,0 +1,2315 @@
+{
+	"combinations": [
+		{
+			"cosmetics": "default",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 458,
+				"coarsest_lod_triangle_bound": 9414,
+				"mesh_instances": 452,
+				"surfaces": 458,
+				"surfaces_with_lods": 357,
+				"surfaces_with_two_lods": 271,
+				"triangles": 30196
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@4",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 154,
+				"coarsest_lod_triangle_bound": 2546,
+				"mesh_instances": 159,
+				"surfaces": 159,
+				"surfaces_with_lods": 140,
+				"surfaces_with_two_lods": 123,
+				"triangles": 9264,
+				"unique_material_resources": 7
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 458,
+				"coarsest_lod_triangle_bound": 9414,
+				"mesh_instances": 452,
+				"surfaces": 458,
+				"surfaces_with_lods": 357,
+				"surfaces_with_two_lods": 271,
+				"triangles": 30196
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@12",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 154,
+				"coarsest_lod_triangle_bound": 2678,
+				"mesh_instances": 158,
+				"surfaces": 158,
+				"surfaces_with_lods": 140,
+				"surfaces_with_two_lods": 123,
+				"triangles": 9396,
+				"unique_material_resources": 7
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 306,
+				"coarsest_lod_triangle_bound": 5684,
+				"mesh_instances": 301,
+				"surfaces": 306,
+				"surfaces_with_lods": 229,
+				"surfaces_with_two_lods": 187,
+				"triangles": 17292
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 306,
+				"coarsest_lod_triangle_bound": 5988,
+				"mesh_instances": 305,
+				"surfaces": 306,
+				"surfaces_with_lods": 268,
+				"surfaces_with_two_lods": 207,
+				"triangles": 21880,
+				"unique_material_resources": 8
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 409,
+				"coarsest_lod_triangle_bound": 8270,
+				"mesh_instances": 403,
+				"surfaces": 409,
+				"surfaces_with_lods": 308,
+				"surfaces_with_two_lods": 243,
+				"triangles": 25728
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pivot shaft_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "All terrain tire_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 203,
+				"coarsest_lod_triangle_bound": 3402,
+				"mesh_instances": 203,
+				"surfaces": 203,
+				"surfaces_with_lods": 189,
+				"surfaces_with_two_lods": 151,
+				"triangles": 13444,
+				"unique_material_resources": 6
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 446,
+				"coarsest_lod_triangle_bound": 9230,
+				"mesh_instances": 440,
+				"surfaces": 446,
+				"surfaces_with_lods": 345,
+				"surfaces_with_two_lods": 260,
+				"triangles": 29368
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 166,
+				"coarsest_lod_triangle_bound": 2442,
+				"mesh_instances": 166,
+				"surfaces": 166,
+				"surfaces_with_lods": 152,
+				"surfaces_with_two_lods": 134,
+				"triangles": 9804,
+				"unique_material_resources": 5
+			},
+			"weapon": "lifter"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 458,
+				"coarsest_lod_triangle_bound": 9414,
+				"mesh_instances": 452,
+				"surfaces": 458,
+				"surfaces_with_lods": 357,
+				"surfaces_with_two_lods": 271,
+				"triangles": 30196
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@25",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 154,
+				"coarsest_lod_triangle_bound": 2546,
+				"mesh_instances": 159,
+				"surfaces": 159,
+				"surfaces_with_lods": 140,
+				"surfaces_with_two_lods": 123,
+				"triangles": 9264,
+				"unique_material_resources": 7
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 458,
+				"coarsest_lod_triangle_bound": 9414,
+				"mesh_instances": 452,
+				"surfaces": 458,
+				"surfaces_with_lods": 357,
+				"surfaces_with_two_lods": 271,
+				"triangles": 30196
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@33",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 154,
+				"coarsest_lod_triangle_bound": 2678,
+				"mesh_instances": 158,
+				"surfaces": 158,
+				"surfaces_with_lods": 140,
+				"surfaces_with_two_lods": 123,
+				"triangles": 9396,
+				"unique_material_resources": 7
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 306,
+				"coarsest_lod_triangle_bound": 5684,
+				"mesh_instances": 301,
+				"surfaces": 306,
+				"surfaces_with_lods": 229,
+				"surfaces_with_two_lods": 187,
+				"triangles": 17292
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 306,
+				"coarsest_lod_triangle_bound": 5988,
+				"mesh_instances": 305,
+				"surfaces": 306,
+				"surfaces_with_lods": 268,
+				"surfaces_with_two_lods": 207,
+				"triangles": 21880,
+				"unique_material_resources": 8
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 409,
+				"coarsest_lod_triangle_bound": 8270,
+				"mesh_instances": 403,
+				"surfaces": 409,
+				"surfaces_with_lods": 308,
+				"surfaces_with_two_lods": 243,
+				"triangles": 25728
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pivot shaft_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "All terrain tire_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 203,
+				"coarsest_lod_triangle_bound": 3402,
+				"mesh_instances": 203,
+				"surfaces": 203,
+				"surfaces_with_lods": 189,
+				"surfaces_with_two_lods": 151,
+				"triangles": 13444,
+				"unique_material_resources": 6
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 446,
+				"coarsest_lod_triangle_bound": 9230,
+				"mesh_instances": 440,
+				"surfaces": 446,
+				"surfaces_with_lods": 345,
+				"surfaces_with_two_lods": 260,
+				"triangles": 29368
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 166,
+				"coarsest_lod_triangle_bound": 2442,
+				"mesh_instances": 166,
+				"surfaces": 166,
+				"surfaces_with_lods": 152,
+				"surfaces_with_two_lods": 134,
+				"triangles": 9804,
+				"unique_material_resources": 5
+			},
+			"weapon": "lifter"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 360,
+				"coarsest_lod_triangle_bound": 7756,
+				"mesh_instances": 354,
+				"surfaces": 360,
+				"surfaces_with_lods": 331,
+				"surfaces_with_two_lods": 245,
+				"triangles": 27868
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@46",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 252,
+				"coarsest_lod_triangle_bound": 4204,
+				"mesh_instances": 257,
+				"surfaces": 257,
+				"surfaces_with_lods": 166,
+				"surfaces_with_two_lods": 149,
+				"triangles": 11592,
+				"unique_material_resources": 7
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 360,
+				"coarsest_lod_triangle_bound": 7756,
+				"mesh_instances": 354,
+				"surfaces": 360,
+				"surfaces_with_lods": 331,
+				"surfaces_with_two_lods": 245,
+				"triangles": 27868
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@54",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 252,
+				"coarsest_lod_triangle_bound": 4336,
+				"mesh_instances": 256,
+				"surfaces": 256,
+				"surfaces_with_lods": 166,
+				"surfaces_with_two_lods": 149,
+				"triangles": 11724,
+				"unique_material_resources": 7
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 208,
+				"coarsest_lod_triangle_bound": 4026,
+				"mesh_instances": 203,
+				"surfaces": 208,
+				"surfaces_with_lods": 203,
+				"surfaces_with_two_lods": 161,
+				"triangles": 14964
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 404,
+				"coarsest_lod_triangle_bound": 7646,
+				"mesh_instances": 403,
+				"surfaces": 404,
+				"surfaces_with_lods": 294,
+				"surfaces_with_two_lods": 233,
+				"triangles": 24208,
+				"unique_material_resources": 8
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 311,
+				"coarsest_lod_triangle_bound": 6612,
+				"mesh_instances": 305,
+				"surfaces": 311,
+				"surfaces_with_lods": 282,
+				"surfaces_with_two_lods": 217,
+				"triangles": 23400
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pivot shaft_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 301,
+				"coarsest_lod_triangle_bound": 5060,
+				"mesh_instances": 301,
+				"surfaces": 301,
+				"surfaces_with_lods": 215,
+				"surfaces_with_two_lods": 177,
+				"triangles": 15772,
+				"unique_material_resources": 6
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 348,
+				"coarsest_lod_triangle_bound": 7572,
+				"mesh_instances": 342,
+				"surfaces": 348,
+				"surfaces_with_lods": 319,
+				"surfaces_with_two_lods": 234,
+				"triangles": 27040
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 264,
+				"coarsest_lod_triangle_bound": 4100,
+				"mesh_instances": 264,
+				"surfaces": 264,
+				"surfaces_with_lods": 178,
+				"surfaces_with_two_lods": 160,
+				"triangles": 12132,
+				"unique_material_resources": 5
+			},
+			"weapon": "lifter"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 538,
+				"coarsest_lod_triangle_bound": 10342,
+				"mesh_instances": 532,
+				"surfaces": 538,
+				"surfaces_with_lods": 437,
+				"surfaces_with_two_lods": 351,
+				"triangles": 34804
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@67",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 98,
+				"coarsest_lod_triangle_bound": 21250,
+				"mesh_instances": 255,
+				"surfaces": 255,
+				"surfaces_with_lods": 60,
+				"surfaces_with_two_lods": 43,
+				"triangles": 24288,
+				"unique_material_resources": 10
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 538,
+				"coarsest_lod_triangle_bound": 10342,
+				"mesh_instances": 532,
+				"surfaces": 538,
+				"surfaces_with_lods": 437,
+				"surfaces_with_two_lods": 351,
+				"triangles": 34804
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@268",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 98,
+				"coarsest_lod_triangle_bound": 21382,
+				"mesh_instances": 254,
+				"surfaces": 254,
+				"surfaces_with_lods": 60,
+				"surfaces_with_two_lods": 43,
+				"triangles": 24420,
+				"unique_material_resources": 10
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 386,
+				"coarsest_lod_triangle_bound": 6612,
+				"mesh_instances": 381,
+				"surfaces": 386,
+				"surfaces_with_lods": 309,
+				"surfaces_with_two_lods": 267,
+				"triangles": 21900
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 250,
+				"coarsest_lod_triangle_bound": 24692,
+				"mesh_instances": 401,
+				"surfaces": 402,
+				"surfaces_with_lods": 188,
+				"surfaces_with_two_lods": 127,
+				"triangles": 36904,
+				"unique_material_resources": 12
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 489,
+				"coarsest_lod_triangle_bound": 9198,
+				"mesh_instances": 483,
+				"surfaces": 489,
+				"surfaces_with_lods": 388,
+				"surfaces_with_two_lods": 323,
+				"triangles": 30336
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 147,
+				"coarsest_lod_triangle_bound": 22106,
+				"mesh_instances": 299,
+				"surfaces": 299,
+				"surfaces_with_lods": 109,
+				"surfaces_with_two_lods": 71,
+				"triangles": 28468,
+				"unique_material_resources": 10
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "default",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 526,
+				"coarsest_lod_triangle_bound": 10158,
+				"mesh_instances": 520,
+				"surfaces": 526,
+				"surfaces_with_lods": 425,
+				"surfaces_with_two_lods": 340,
+				"triangles": 33976
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Ramp hinge axle_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 110,
+				"coarsest_lod_triangle_bound": 21146,
+				"mesh_instances": 262,
+				"surfaces": 262,
+				"surfaces_with_lods": 72,
+				"surfaces_with_two_lods": 54,
+				"triangles": 24828,
+				"unique_material_resources": 8
+			},
+			"weapon": "lifter"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 430,
+				"coarsest_lod_triangle_bound": 8590,
+				"mesh_instances": 426,
+				"surfaces": 430,
+				"surfaces_with_lods": 331,
+				"surfaces_with_two_lods": 257,
+				"triangles": 28044
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1053",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "All terrain tire_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 182,
+				"coarsest_lod_triangle_bound": 3370,
+				"mesh_instances": 185,
+				"surfaces": 187,
+				"surfaces_with_lods": 166,
+				"surfaces_with_two_lods": 137,
+				"triangles": 11416,
+				"unique_material_resources": 7
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 430,
+				"coarsest_lod_triangle_bound": 8590,
+				"mesh_instances": 426,
+				"surfaces": 430,
+				"surfaces_with_lods": 331,
+				"surfaces_with_two_lods": 257,
+				"triangles": 28044
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1061",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "All terrain tire_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 182,
+				"coarsest_lod_triangle_bound": 3502,
+				"mesh_instances": 184,
+				"surfaces": 186,
+				"surfaces_with_lods": 166,
+				"surfaces_with_two_lods": 137,
+				"triangles": 11548,
+				"unique_material_resources": 7
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 278,
+				"coarsest_lod_triangle_bound": 4860,
+				"mesh_instances": 275,
+				"surfaces": 278,
+				"surfaces_with_lods": 203,
+				"surfaces_with_two_lods": 173,
+				"triangles": 15140
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 334,
+				"coarsest_lod_triangle_bound": 6812,
+				"mesh_instances": 331,
+				"surfaces": 334,
+				"surfaces_with_lods": 294,
+				"surfaces_with_two_lods": 221,
+				"triangles": 24032,
+				"unique_material_resources": 8
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 381,
+				"coarsest_lod_triangle_bound": 7446,
+				"mesh_instances": 377,
+				"surfaces": 381,
+				"surfaces_with_lods": 282,
+				"surfaces_with_two_lods": 229,
+				"triangles": 23576
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 231,
+				"coarsest_lod_triangle_bound": 4226,
+				"mesh_instances": 229,
+				"surfaces": 231,
+				"surfaces_with_lods": 215,
+				"surfaces_with_two_lods": 165,
+				"triangles": 15596,
+				"unique_material_resources": 6
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "standard_wheels",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 418,
+				"coarsest_lod_triangle_bound": 8406,
+				"mesh_instances": 414,
+				"surfaces": 418,
+				"surfaces_with_lods": 319,
+				"surfaces_with_two_lods": 246,
+				"triangles": 27216
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 194,
+				"coarsest_lod_triangle_bound": 3266,
+				"mesh_instances": 192,
+				"surfaces": 194,
+				"surfaces_with_lods": 178,
+				"surfaces_with_two_lods": 148,
+				"triangles": 11956,
+				"unique_material_resources": 5
+			},
+			"weapon": "lifter"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 430,
+				"coarsest_lod_triangle_bound": 8590,
+				"mesh_instances": 426,
+				"surfaces": 430,
+				"surfaces_with_lods": 331,
+				"surfaces_with_two_lods": 257,
+				"triangles": 28044
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1074",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "All terrain tire_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 182,
+				"coarsest_lod_triangle_bound": 3370,
+				"mesh_instances": 185,
+				"surfaces": 187,
+				"surfaces_with_lods": 166,
+				"surfaces_with_two_lods": 137,
+				"triangles": 11416,
+				"unique_material_resources": 7
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 430,
+				"coarsest_lod_triangle_bound": 8590,
+				"mesh_instances": 426,
+				"surfaces": 430,
+				"surfaces_with_lods": 331,
+				"surfaces_with_two_lods": 257,
+				"triangles": 28044
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1082",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "All terrain tire_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 182,
+				"coarsest_lod_triangle_bound": 3502,
+				"mesh_instances": 184,
+				"surfaces": 186,
+				"surfaces_with_lods": 166,
+				"surfaces_with_two_lods": 137,
+				"triangles": 11548,
+				"unique_material_resources": 7
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 278,
+				"coarsest_lod_triangle_bound": 4860,
+				"mesh_instances": 275,
+				"surfaces": 278,
+				"surfaces_with_lods": 203,
+				"surfaces_with_two_lods": 173,
+				"triangles": 15140
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 334,
+				"coarsest_lod_triangle_bound": 6812,
+				"mesh_instances": 331,
+				"surfaces": 334,
+				"surfaces_with_lods": 294,
+				"surfaces_with_two_lods": 221,
+				"triangles": 24032,
+				"unique_material_resources": 8
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 381,
+				"coarsest_lod_triangle_bound": 7446,
+				"mesh_instances": 377,
+				"surfaces": 381,
+				"surfaces_with_lods": 282,
+				"surfaces_with_two_lods": 229,
+				"triangles": 23576
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 231,
+				"coarsest_lod_triangle_bound": 4226,
+				"mesh_instances": 229,
+				"surfaces": 231,
+				"surfaces_with_lods": 215,
+				"surfaces_with_two_lods": 165,
+				"triangles": 15596,
+				"unique_material_resources": 6
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "agile",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 418,
+				"coarsest_lod_triangle_bound": 8406,
+				"mesh_instances": 414,
+				"surfaces": 418,
+				"surfaces_with_lods": 319,
+				"surfaces_with_two_lods": 246,
+				"triangles": 27216
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 194,
+				"coarsest_lod_triangle_bound": 3266,
+				"mesh_instances": 192,
+				"surfaces": 194,
+				"surfaces_with_lods": 178,
+				"surfaces_with_two_lods": 148,
+				"triangles": 11956,
+				"unique_material_resources": 5
+			},
+			"weapon": "lifter"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 332,
+				"coarsest_lod_triangle_bound": 6932,
+				"mesh_instances": 328,
+				"surfaces": 332,
+				"surfaces_with_lods": 305,
+				"surfaces_with_two_lods": 231,
+				"triangles": 25716
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1095",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 280,
+				"coarsest_lod_triangle_bound": 5028,
+				"mesh_instances": 283,
+				"surfaces": 285,
+				"surfaces_with_lods": 192,
+				"surfaces_with_two_lods": 163,
+				"triangles": 13744,
+				"unique_material_resources": 7
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 332,
+				"coarsest_lod_triangle_bound": 6932,
+				"mesh_instances": 328,
+				"surfaces": 332,
+				"surfaces_with_lods": 305,
+				"surfaces_with_two_lods": 231,
+				"triangles": 25716
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1103",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 280,
+				"coarsest_lod_triangle_bound": 5160,
+				"mesh_instances": 282,
+				"surfaces": 284,
+				"surfaces_with_lods": 192,
+				"surfaces_with_two_lods": 163,
+				"triangles": 13876,
+				"unique_material_resources": 7
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 180,
+				"coarsest_lod_triangle_bound": 3202,
+				"mesh_instances": 177,
+				"surfaces": 180,
+				"surfaces_with_lods": 177,
+				"surfaces_with_two_lods": 147,
+				"triangles": 12812
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 432,
+				"coarsest_lod_triangle_bound": 8470,
+				"mesh_instances": 429,
+				"surfaces": 432,
+				"surfaces_with_lods": 320,
+				"surfaces_with_two_lods": 247,
+				"triangles": 26360,
+				"unique_material_resources": 8
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 283,
+				"coarsest_lod_triangle_bound": 5788,
+				"mesh_instances": 279,
+				"surfaces": 283,
+				"surfaces_with_lods": 256,
+				"surfaces_with_two_lods": 203,
+				"triangles": 21248
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 329,
+				"coarsest_lod_triangle_bound": 5884,
+				"mesh_instances": 327,
+				"surfaces": 329,
+				"surfaces_with_lods": 241,
+				"surfaces_with_two_lods": 191,
+				"triangles": 17924,
+				"unique_material_resources": 6
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "traction",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 320,
+				"coarsest_lod_triangle_bound": 6748,
+				"mesh_instances": 316,
+				"surfaces": 320,
+				"surfaces_with_lods": 293,
+				"surfaces_with_two_lods": 220,
+				"triangles": 24888
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Ramp hinge axle_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 292,
+				"coarsest_lod_triangle_bound": 4924,
+				"mesh_instances": 290,
+				"surfaces": 292,
+				"surfaces_with_lods": 204,
+				"surfaces_with_two_lods": 174,
+				"triangles": 14284,
+				"unique_material_resources": 5
+			},
+			"weapon": "lifter"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 510,
+				"coarsest_lod_triangle_bound": 9518,
+				"mesh_instances": 506,
+				"surfaces": 510,
+				"surfaces_with_lods": 411,
+				"surfaces_with_two_lods": 337,
+				"triangles": 32652
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1116",
+					"surfaces": 1,
+					"triangles": 240
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Exposed drive motor_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 126,
+				"coarsest_lod_triangle_bound": 22074,
+				"mesh_instances": 281,
+				"surfaces": 283,
+				"surfaces_with_lods": 86,
+				"surfaces_with_two_lods": 57,
+				"triangles": 26440,
+				"unique_material_resources": 10
+			},
+			"weapon": "vertical_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 510,
+				"coarsest_lod_triangle_bound": 9518,
+				"mesh_instances": 506,
+				"surfaces": 510,
+				"surfaces_with_lods": 411,
+				"surfaces_with_two_lods": 337,
+				"triangles": 32652
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "CylinderMesh",
+					"name": "@MeshInstance3D@1317",
+					"surfaces": 1,
+					"triangles": 384
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_001_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_002_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 126,
+				"coarsest_lod_triangle_bound": 22206,
+				"mesh_instances": 280,
+				"surfaces": 282,
+				"surfaces_with_lods": 86,
+				"surfaces_with_two_lods": 57,
+				"triangles": 26572,
+				"unique_material_resources": 10
+			},
+			"weapon": "horizontal_spinner"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 358,
+				"coarsest_lod_triangle_bound": 5788,
+				"mesh_instances": 355,
+				"surfaces": 358,
+				"surfaces_with_lods": 283,
+				"surfaces_with_two_lods": 253,
+				"triangles": 19748
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw disc | sharpened bevel_runtime",
+					"surfaces": 2,
+					"triangles": 768
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw upper flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Saw lower flexible supply_001_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 278,
+				"coarsest_lod_triangle_bound": 25516,
+				"mesh_instances": 427,
+				"surfaces": 430,
+				"surfaces_with_lods": 214,
+				"surfaces_with_two_lods": 141,
+				"triangles": 39056,
+				"unique_material_resources": 12
+			},
+			"weapon": "saw"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 461,
+				"coarsest_lod_triangle_bound": 8374,
+				"mesh_instances": 457,
+				"surfaces": 461,
+				"surfaces_with_lods": 362,
+				"surfaces_with_two_lods": 309,
+				"triangles": 28184
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose L_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Hammer pressure hose R_runtime",
+					"surfaces": 1,
+					"triangles": 432
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 175,
+				"coarsest_lod_triangle_bound": 22930,
+				"mesh_instances": 325,
+				"surfaces": 327,
+				"surfaces_with_lods": 135,
+				"surfaces_with_two_lods": 85,
+				"triangles": 30620,
+				"unique_material_resources": 10
+			},
+			"weapon": "hammer"
+		},
+		{
+			"cosmetics": "all_optional_modules",
+			"drive": "walker",
+			"hidden_unequipped": {
+				"array_mesh_surfaces": 498,
+				"coarsest_lod_triangle_bound": 9334,
+				"mesh_instances": 494,
+				"surfaces": 498,
+				"surfaces_with_lods": 399,
+				"surfaces_with_two_lods": 326,
+				"triangles": 31824
+			},
+			"largest_visible_meshes": [
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_001_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Horizontal hollow exhaust large_runtime",
+					"surfaces": 2,
+					"triangles": 192
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_004_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				},
+				{
+					"mesh_class": "ArrayMesh",
+					"name": "Motor cooling flange_003_runtime",
+					"surfaces": 1,
+					"triangles": 188
+				}
+			],
+			"visible_equipped": {
+				"array_mesh_surfaces": 138,
+				"coarsest_lod_triangle_bound": 21970,
+				"mesh_instances": 288,
+				"surfaces": 290,
+				"surfaces_with_lods": 98,
+				"surfaces_with_two_lods": 68,
+				"triangles": 26980,
+				"unique_material_resources": 8
+			},
+			"weapon": "lifter"
+		}
+	],
+	"engine": "4.7.2-stable (official)",
+	"import_settings": {
+		"_subresources": {},
+		"array_mesh/deduplicate_surfaces": true,
+		"meshes/create_shadow_meshes": true,
+		"meshes/force_disable_compression": false,
+		"meshes/generate_lods": true
+	},
+	"lod_note": "Coarsest LOD triangle bound sums the smallest available index buffers per surface. It is not an observed camera-distance LOD selection or frame-time measurement.",
+	"maximum_visible": {
+		"cosmetics": "all_optional_modules",
+		"drive": "walker",
+		"hidden_unequipped": {
+			"array_mesh_surfaces": 358,
+			"coarsest_lod_triangle_bound": 5788,
+			"mesh_instances": 355,
+			"surfaces": 358,
+			"surfaces_with_lods": 283,
+			"surfaces_with_two_lods": 253,
+			"triangles": 19748
+		},
+		"largest_visible_meshes": [
+			{
+				"mesh_class": "ArrayMesh",
+				"name": "Saw disc | sharpened bevel_runtime",
+				"surfaces": 2,
+				"triangles": 768
+			},
+			{
+				"mesh_class": "ArrayMesh",
+				"name": "Saw upper flexible supply_001_runtime",
+				"surfaces": 1,
+				"triangles": 432
+			},
+			{
+				"mesh_class": "ArrayMesh",
+				"name": "Saw upper flexible supply_runtime",
+				"surfaces": 1,
+				"triangles": 432
+			},
+			{
+				"mesh_class": "ArrayMesh",
+				"name": "Saw lower flexible supply_runtime",
+				"surfaces": 1,
+				"triangles": 432
+			},
+			{
+				"mesh_class": "ArrayMesh",
+				"name": "Saw lower flexible supply_001_runtime",
+				"surfaces": 1,
+				"triangles": 432
+			}
+		],
+		"visible_equipped": {
+			"array_mesh_surfaces": 278,
+			"coarsest_lod_triangle_bound": 25516,
+			"mesh_instances": 427,
+			"surfaces": 430,
+			"surfaces_with_lods": 214,
+			"surfaces_with_two_lods": 141,
+			"triangles": 39056,
+			"unique_material_resources": 12
+		},
+		"weapon": "saw"
+	},
+	"provisional_target_enforced": false,
+	"provisional_triangle_target": [
+		20000,
+		40000
+	],
+	"scope": "Authored body, all four drives and five weapons; default and all optional cosmetics. Base geometry only, excludes damage overlays/particles, shadows, arenas and other render passes."
+}

@@ -1,5 +1,13 @@
 # Current A/B handoff
 
+## Bot visual budget audit — 20 September 2026
+
+Independent geometry/LOD inventory and two/ten-bot native Foundry measurements are
+recorded in [the audit](coordination/B_VISUAL_BUDGET.md). The largest of 40 sampled
+assemblies has 39,056 triangles; mesh counts and incomplete procedural LODs remain
+optimization leads. Resource caps pass; the short RTX 4080 run is not full-game or
+low-end performance acceptance. User requested pause after this audit.
+
 ## Quick Play service synchronization — 20 September 2026
 
 The existing Fly server now uses main's catalogue revision 6. Its stale catalogue

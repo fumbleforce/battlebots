@@ -1,0 +1,63 @@
+{
+	"adapter": "NVIDIA GeForce RTX 4080",
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"resolution": [
+		1920,
+		1080
+	],
+	"sample_frames": 240,
+	"samples": [
+		{
+			"bots": 2,
+			"damaged_and_impacts": false,
+			"mean_draw_calls": 2526.0,
+			"mean_frame_ms": 1.94096666666667,
+			"mean_primitives": 338920.0,
+			"median_frame_ms": 1.792,
+			"p95_frame_ms": 2.854,
+			"peak_fragments": 0,
+			"peak_sparks": 0,
+			"smoke_capacity": 0
+		},
+		{
+			"bots": 2,
+			"damaged_and_impacts": true,
+			"mean_draw_calls": 2993.0,
+			"mean_frame_ms": 2.62719166666667,
+			"mean_primitives": 426792.0,
+			"median_frame_ms": 2.473,
+			"p95_frame_ms": 3.772,
+			"peak_fragments": 20,
+			"peak_sparks": 64,
+			"smoke_capacity": 36
+		},
+		{
+			"bots": 10,
+			"damaged_and_impacts": false,
+			"mean_draw_calls": 9951.0,
+			"mean_frame_ms": 5.5679625,
+			"mean_primitives": 780336.0,
+			"median_frame_ms": 5.399,
+			"p95_frame_ms": 6.644,
+			"peak_fragments": 0,
+			"peak_sparks": 0,
+			"smoke_capacity": 0
+		},
+		{
+			"bots": 10,
+			"damaged_and_impacts": true,
+			"mean_draw_calls": 11713.0,
+			"mean_frame_ms": 6.67839583333333,
+			"mean_primitives": 1204168.0,
+			"median_frame_ms": 6.533,
+			"p95_frame_ms": 7.638,
+			"peak_fragments": 20,
+			"peak_sparks": 64,
+			"smoke_capacity": 180
+		}
+	],
+	"scope": "Foundry render only; frozen physics, no networking or HUD; wall frame time includes OS/other-process contention",
+	"vsync": false,
+	"warm_frames": 120
+}

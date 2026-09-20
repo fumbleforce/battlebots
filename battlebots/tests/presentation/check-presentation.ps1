@@ -107,6 +107,8 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/combat_impact_visual_test.tscn', '--quit-after', '10000') -Marker 'COMBAT IMPACT VISUAL PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/bot_geometry_budget_test.tscn', '--quit-after', '10000') -Marker 'BOT GEOMETRY BUDGET PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     '--max-fps', '60', 'res://tests/presentation/combat_impact_game_test.tscn', '--quit-after', '3000') -Marker 'COMBAT IMPACT GAME PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_unlocked_options_test.tscn', '--quit-after', '10000') -Marker 'GARAGE UNLOCKED OPTIONS PASS'

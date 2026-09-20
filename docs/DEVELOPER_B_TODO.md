@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-impact-feedback`, from main `6c1eb0e`.
-**Latest increment:** Confirmed-hit sparks and bounded fragments, with session/round replay guards and independent native contact checks. See [scope and evidence](coordination/B_IMPACT_FEEDBACK.md). Player health bars are merged on main `6c1eb0e`.
+**Latest B task:** `codex/b-visual-budget`, from main `e9dd2b7`.
+**Latest increment:** Measured geometry/LOD and two/ten-bot native visual load; [evidence and limits](coordination/B_VISUAL_BUDGET.md). User requested pause after the audit. Impact feedback is merged on main `e9dd2b7`.
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -535,3 +535,6 @@ A is updating the existing hosted server to current main catalogue revision 6 an
 - B impact feedback resumed on `codex/b-impact-feedback`: confirmed-event sparks
   and bounded cosmetic fragments, independent rendering/event lifecycle scenes and
   narrow menu-game signal wiring. See [scope](coordination/B_IMPACT_FEEDBACK.md).
+
+- B visual budget audit on `codex/b-visual-budget`: two/ten bot native load and all
+  authored combination geometry/LOD inventory. See [scope](coordination/B_VISUAL_BUDGET.md).
