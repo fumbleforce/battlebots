@@ -56,10 +56,20 @@ func assemble(size: Vector3, paint: Material, config: Dictionary) -> void:
 		_joint(hip_joint, Vector3.ZERO, 0.16, 0.30, _dark)
 		_joint(hip_joint, Vector3(side * 0.17, 0, 0), 0.11, 0.035, _paint)
 		legs.append({"hip":hip,"neutral":neutral,"side":side,"pair":0 if index in [0, 3] else 1,
-			"upper":upper,"lower":lower,"foot_mesh":foot,"foot":Vector3.ZERO,
+			"upper":upper,"lower":lower,"foot_mesh":foot,"hip_joint":hip_joint,"foot":Vector3.ZERO,
 			"start":Vector3.ZERO,"target":Vector3.ZERO,"normal":Vector3.UP,"time":1.0,
 			"collider":null,"local_contact":Vector3.ZERO,"local_normal":Vector3.UP})
 	reset_feet()
+
+## Presentation references only; leg ownership is stable while feet cross terrain.
+func component_meshes() -> Dictionary:
+	var result := {"weapon": [], "drive_left": [], "drive_right": []}
+	for leg: Dictionary in legs:
+		var group: Array = result.drive_left if leg.side < 0 else result.drive_right
+		for key: String in ["upper", "lower", "foot_mesh", "hip_joint"]:
+			for mesh: MeshInstance3D in leg[key].find_children("*", "MeshInstance3D", true, false):
+				group.append(mesh)
+	return result
 
 func _color(rgba: Array) -> Color:
 	return Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb()

@@ -21,6 +21,7 @@ var presentation: Node3D
 var visual_error := Vector3.ZERO
 var weapon_visual: MvpWeaponVisual
 var sawblade_visual: SawbladeVisual
+var damage_visual: BotDamageVisual
 
 static func create(id: int, side: int, build: Dictionary, registry: ContentRegistry) -> MvpBot:
 	var validation := registry.validate(build)
@@ -90,6 +91,8 @@ func _ready() -> void:
 			presentation.add_child(legs)
 			legs.exclusions = [body.get_rid()]
 			legs.assemble(stats.size, material, SawbladeConfig.defaults())
+	if DisplayServer.get_name() != "headless":
+		_create_damage_visual(stats.size)
 	previous_pose = body.global_transform
 	last_floor = body.global_position
 	body.freeze = not simulated
@@ -106,10 +109,54 @@ func _process(delta: float) -> void:
 	# small driving corrections gentle. Large divergences still snap on receipt.
 	var decay := 30.0 if visual_error.length_squared() > 0.25 * 0.25 else 20.0
 	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * decay))
+	var view: BotView
+	if weapon_visual != null or sawblade_visual != null or damage_visual != null:
+		view = read_view()
 	if weapon_visual != null:
-		weapon_visual.show_state(read_view(), delta)
+		weapon_visual.show_state(view, delta)
 	if sawblade_visual != null:
-		sawblade_visual.show_state(read_view(), delta)
+		sawblade_visual.show_state(view, delta)
+	if damage_visual != null:
+		damage_visual.show_state(view)
+
+func _create_damage_visual(size: Vector3) -> void:
+	var groups: Dictionary
+	if sawblade_visual != null:
+		groups = sawblade_visual.component_meshes()
+	else:
+		groups = {"weapon": weapon_visual.find_children("*", "MeshInstance3D", true, false),
+			"drive_left": [], "drive_right": []}
+		var legs: WalkerLegs
+		for child: Node in presentation.get_children():
+			if child is WalkerLegs: legs = child
+		if legs != null:
+			var walking := legs.component_meshes()
+			groups.drive_left = walking.drive_left
+			groups.drive_right = walking.drive_right
+		else:
+			# Give the legacy box bot visible, independently readable drive housings.
+			for side: int in [-1, 1]:
+				var pod := MeshInstance3D.new()
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(0.16, 0.26, size.z * 0.75)
+				pod.mesh = mesh
+				pod.position = Vector3(side * size.x * 0.5, -0.08, 0)
+				var material := StandardMaterial3D.new()
+				material.albedo_color = Color(0.25, 0.28, 0.3)
+				material.metallic = 0.6
+				pod.material_override = material
+				presentation.add_child(pod)
+				groups["drive_left" if side < 0 else "drive_right"].append(pod)
+	damage_visual = BotDamageVisual.new()
+	presentation.add_child(damage_visual)
+	for zone: String in groups:
+		var anchor := Node3D.new()
+		anchor.name = "DamageAnchor_" + zone
+		presentation.add_child(anchor)
+		anchor.position = Vector3(0, size.y * 0.5, -size.z * 0.5) if zone == "weapon" else Vector3(
+			-size.x * 0.5 if zone == "drive_left" else size.x * 0.5, size.y * 0.5, 0)
+		damage_visual.bind_component(zone, groups[zone], anchor)
+	damage_visual.show_state(read_view())
 
 func submit_command(intent: BotCommand) -> void:
 	if intent == null or not intent.is_valid() or intent.sequence <= last_sequence:

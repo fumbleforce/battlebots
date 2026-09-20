@@ -97,6 +97,10 @@ foreach ($check in $checks) {
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/all_body_weapons_test.tscn', '--quit-after', '10000') -Marker 'ALL BODY WEAPONS PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/component_mesh_mapping_test.tscn', '--quit-after', '10000') -Marker 'COMPONENT MESH MAPPING PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/component_damage_test.tscn', '--quit-after', '10000') -Marker 'COMPONENT DAMAGE PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_unlocked_options_test.tscn', '--quit-after', '10000') -Marker 'GARAGE UNLOCKED OPTIONS PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_pagination_test.tscn', '--quit-after', '10000') -Marker 'GARAGE PAGINATION PASS'

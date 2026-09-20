@@ -1,5 +1,14 @@
 # Developer B — combat, bots, customisation and controls
 
+## Component damage presentation — 20 September 2026
+
+Weapons and individual drive sides now show snapshot-driven cracked/scorched and
+smoking disabled states. Original appearance returns on repair/reset. Authored and
+legacy assemblies are covered without physics, health or wire changes. Independent
+mapping/state/native runtime checks and baseline pass; follow-distance captures
+reviewed. Sparks/fragments, larger-scene budgets and human acceptance remain open.
+See [scope and evidence](coordination/B_COMPONENT_DAMAGE.md).
+
 ## Garage options — 20 September 2026 user update
 
 Garage/Customize now fill available height before paging. All existing options are

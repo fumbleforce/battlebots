@@ -91,6 +91,38 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		walker_legs.assemble(size, primary, config)
 	set_hammer_frame(1)
 
+## Only equipped mechanisms; armor skirts, body panels and exhaust stay separate.
+func component_meshes() -> Dictionary:
+	var result := {"weapon": [], "drive_left": [], "drive_right": []}
+	var weapon_root: Node3D = fallback_weapon
+	if weapon_root == null and SawbladeConfig.WEAPONS.has(kind):
+		weapon_root = nodes.get("Module_weapon_" + SawbladeConfig.WEAPONS[kind])
+	if weapon_root != null:
+		_collect_component_meshes(weapon_root, result.weapon)
+	if walker_legs != null:
+		var walking := walker_legs.component_meshes()
+		result.drive_left = walking.drive_left
+		result.drive_right = walking.drive_right
+	else:
+		var drive_root: Node3D = nodes.get("Module_drive_tracks" if _tracks else "Module_drive_wheels")
+		var meshes: Array = []
+		if drive_root != null: _collect_component_meshes(drive_root, meshes)
+		for mesh: MeshInstance3D in meshes:
+			# Mesh origins can sit at a common socket; use the actual bounds center.
+			var center := mesh.get_aabb().get_center()
+			var ancestor: Node3D = mesh
+			while ancestor != self:
+				center = ancestor.transform * center
+				ancestor = ancestor.get_parent() as Node3D
+			result["drive_left" if center.x < 0 else "drive_right"].append(mesh)
+	return result
+
+func _collect_component_meshes(root: Node3D, result: Array) -> void:
+	if not root.visible: return
+	if root is MeshInstance3D: result.append(root)
+	for child: Node in root.get_children():
+		if child is Node3D: _collect_component_meshes(child, result)
+
 func set_hammer_frame(frame: float) -> void:
 	hammer_frame = clampf(frame, 1, 33)
 	var sample := (hammer_frame - 1.0) * 4.0
