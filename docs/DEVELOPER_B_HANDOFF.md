@@ -1,5 +1,24 @@
 # Developer B — combat, bots, customisation and controls
 
+## Saved-file recovery — 20 September 2026
+
+`codex/b-garage-recovery` starts from main `e24ab02`. Garage and Customize now
+offer Saved File: reload disk builds without losing edited/new drafts or history,
+and review/confirm a readable backup when primary is missing or unreadable.
+Retained copies cannot overwrite refreshed slots; existing duplicate-name and
+capacity checks apply. Restore binds confirmation to exact source bytes, keeps
+the backup, and archives an unreadable primary to the displayed unique path.
+Cancel does not write. Without a usable backup, files remain untouched.
+
+Intent was published to A before implementation. Local APIs are in CONTRACTS.md;
+no A runtime or wire changes. Subagents implemented isolated store tests and
+reviewed the profile/modal. That review caught and resolved modal directional
+focus escape, initial garage focus and redo-at-baseline loss. Storage and actual
+garage/customize recovery scenes pass headless; rendered D3D12 review/result
+screens fit 1280x720. Baseline and profile/history/repair/comparison/customization
+regressions pass. See [recovery evidence](coordination/B_GARAGE_RECOVERY.md).
+Text scaling, authored bot art and full 1v1 gameplay acceptance remain open.
+
 ## Saved-build repair — 20 September 2026
 
 `codex/b-garage-repair` starts from main `331e073`. Save now replaces/appends one
@@ -12,10 +31,8 @@ selected part IDs and paint, supports Undo and writes nothing until Save.
 A: additive local LoadoutStore API is documented in CONTRACTS.md; strict full-list
 save, gameplay validation and wire schema are unchanged. Subagent implemented
 storage and its independent scene; primary integrated actual Customize repair.
-See [repair evidence](coordination/B_GARAGE_REPAIR.md). Corrupt-envelope/backup
-recovery and stale-file reload still require a dedicated user-facing workflow;
-this increment deliberately refuses ambiguous overwrites. Text scaling, authored
-bot art and broader gameplay acceptance remain open.
+See [repair evidence](coordination/B_GARAGE_REPAIR.md). Saved-file recovery now
+has the explicit workflow described above; ambiguous overwrites remain refused.
 
 ## Garage comparisons — 20 September 2026
 
@@ -30,8 +47,8 @@ The 3D preview remains the equipped draft; highlighting a candidate never equips
 A: no catalogue, wire, schema, network, general-menu or combat changes. Scope was
 published in [the comparison record](coordination/B_GARAGE_COMPARISON.md) before
 implementation. A subagent supplied the pure model and independent acceptance
-scenes; the primary integrated/reviewed the screen. Full repair/save UX, text
-scaling and authored bot-art integration remain B work.
+scenes; the primary integrated/reviewed the screen. Repair and recovery follow in
+the increments above; text scaling and authored bot art remain B work.
 
 ## Live garage preview — 20 September 2026
 
@@ -46,19 +63,19 @@ A: no router, session, world, audio, input map, content hash or shared-schema
 changes. B intent was published before implementation. The new automated scene
 is in the presentation runner; `scenes/dev/b_garage_preview.tscn` is an independent
 manual F6 sandbox. See [scope and evidence](coordination/B_GARAGE_PREVIEW.md).
-Older concept-image-only descriptions below are historical. Authored bot art,
-detailed stat comparisons, full repair UX and garage text scaling remain open.
+Older concept-image-only descriptions below are historical. Comparisons and
+repair/recovery are implemented above; authored bot art and text scaling remain.
 
 ## Garage history — 20 September 2026
 
 `codex/b-garage-history` starts at main `2b42812`. Parts, paint and committed name
 edits now have per-build undo/redo in Customize, including keyboard shortcuts.
 History survives menu navigation and Save; undo changes the draft only. Invalid
-drafts remain repairable and profile reload clears history. No shared schema or
+drafts remain repairable. Raw startup reload clears history; the user-facing
+Saved File reload now preserves it as described above. No shared schema or
 A-owned runtime changes. Baseline, independent history, profile and customization
 checks passed; rendered 720p layout inspected. See
-[scope and evidence](coordination/B_GARAGE_HISTORY.md). Next garage work: live
-3D preview, comparisons, full repair UX and text scaling. The full 1v1 acceptance
+[scope and evidence](coordination/B_GARAGE_HISTORY.md). The full 1v1 acceptance
 and current A deployment/menu work remain tracked separately.
 
 ## Current user-defined ownership

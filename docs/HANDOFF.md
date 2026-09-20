@@ -56,6 +56,16 @@ LAN/playtest and 1v1/2v2 priority statements below are historical and superseded
 Existing modes/tests remain; larger-mode expansion, optimization and soak work
 do not block the active 1v1 scope.
 
+## Current Developer B increment
+
+B's latest garage recovery work is documented in
+[the B handoff](DEVELOPER_B_HANDOFF.md#saved-file-recovery--20-september-2026).
+Garage/Customize provide explicit disk reload with retained drafts/history and
+reviewed backup restore with archived primary bytes. These are additive local
+profile/store APIs; no session, general-menu or wire changes. Independent storage
+and actual-screen scenes plus baseline/garage regressions pass. See
+[recovery evidence](coordination/B_GARAGE_RECOVERY.md).
+
 ## Current Developer A increment
 
 `codex/a-fly-duel-live` follows `2b42812`. The user approved hosting costs; one

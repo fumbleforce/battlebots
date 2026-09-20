@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-garage-repair`, based on main `331e073`.
-**Latest increment:** Independent repair saves preserve invalid siblings; explicit undoable format revalidation. See [repair evidence](coordination/B_GARAGE_REPAIR.md).
+**Latest B task:** `codex/b-garage-recovery`, based on main `e24ab02`.
+**Latest increment:** Explicit disk reload retains drafts/history; reviewed backup recovery preserves original files. See [recovery evidence](coordination/B_GARAGE_RECOVERY.md).
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -41,11 +41,10 @@ and audio. Historical labels below describe authorship, not current ownership.
 
 ## Active and next — B-owned
 
-**B intent to A:** `codex/b-garage-repair` starts at main `331e073`. B reserves
-targeted local save/repair behavior, Customize repair controls and independent
-fixtures. No general menus, sessions, world, audio or wire schema changes. See
-[repair scope](coordination/B_GARAGE_REPAIR.md). Subagent owns store/tests;
-primary owns profile/UI.
+**B handoff to A:** `codex/b-garage-recovery` starts at main `e24ab02`. Garage
+reload and backup review consume additive local APIs; no general-menu, session,
+world, audio or wire changes. Store/tests and independent review were delegated;
+primary integrated profile/UI and checks. See [recovery scope](coordination/B_GARAGE_RECOVERY.md).
 
 User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
 2v2, FFA and other multiplayer modes, plus all tutorial work, until then. A owns
@@ -65,7 +64,7 @@ these newly requested presentation tasks.
 - [ ] **Controls and camera:** Player input/driving, camera and spectator control
   behavior, including control-specific settings. Consume A's match phase and
   spectator sources; do not calculate local winners or ready state.
-- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live primitive 3D preview, comparisons and individual invalid-build repair are implemented. Remaining: corrupt-file/backup recovery and stale-file reload UX, text scaling and authored bot-art integration. APIs: ContentRegistry.validate/starter and
+- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live primitive 3D preview, comparisons, individual invalid-build repair and explicit disk/backup recovery are implemented. Remaining: text scaling and authored bot-art integration. APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 

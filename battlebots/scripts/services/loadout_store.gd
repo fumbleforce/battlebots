@@ -118,6 +118,95 @@ func load_saved() -> Dictionary:
 			"restored_backup": candidate.ends_with(".bak")}
 	return {"loadouts": [], "invalid": {}, "errors": errors, "restored_backup": false}
 
+## Inspection never writes. The token binds confirmation to the exact files shown.
+func inspect_recovery() -> Dictionary:
+	var primary := _recovery_source(path)
+	var backup := _recovery_source(path + ".bak")
+	var errors: PackedStringArray = []
+	if primary.error != OK or backup.error != OK:
+		errors.append("Cannot read save files safely")
+	elif primary.exists and _recovery_envelope(primary.bytes).valid:
+		errors.append("The primary save is readable; backup recovery is not needed")
+	elif not backup.exists or not _recovery_envelope(backup.bytes).valid:
+		errors.append("No readable backup is available")
+	if not errors.is_empty():
+		return {"available": false, "token": {}, "loadouts": [], "errors": errors}
+	return {"available": true, "token": {"path": path, "primary": primary, "backup": backup},
+		"loadouts": _recovery_envelope(backup.bytes).loadouts, "errors": errors}
+
+## Explicit confirmation only. Keep backup bytes and archive any unreadable primary.
+func restore_backup(token: Dictionary) -> Dictionary:
+	var rejected := {"error": ERR_BUSY, "preserved_path": ""}
+	var inspected := inspect_recovery()
+	if token.is_empty() or token != inspected.token:
+		return rejected
+	if not inspected.available:
+		return {"error": ERR_INVALID_DATA, "preserved_path": ""}
+	var temporary := _recovery_unique_path(".recovery-tmp-")
+	var file := FileAccess.open(temporary, FileAccess.WRITE)
+	if file == null:
+		return {"error": FileAccess.get_open_error(), "preserved_path": ""}
+	file.store_buffer(token.backup.bytes)
+	file.flush()
+	var write_error := file.get_error()
+	file.close()
+	if write_error != OK:
+		DirAccess.remove_absolute(temporary)
+		return {"error": write_error, "preserved_path": ""}
+	# Check again after staging, before renaming either source.
+	if token != inspect_recovery().token:
+		DirAccess.remove_absolute(temporary)
+		return rejected
+	var archive := ""
+	if token.primary.exists:
+		archive = _recovery_unique_path(".unreadable-")
+		var archive_error := DirAccess.rename_absolute(path, archive)
+		if archive_error != OK:
+			DirAccess.remove_absolute(temporary)
+			return {"error": archive_error, "preserved_path": ""}
+	var restore_error := DirAccess.rename_absolute(temporary, path)
+	if restore_error != OK:
+		DirAccess.remove_absolute(temporary)
+		# Roll back when possible; never overwrite a concurrently created primary.
+		if not archive.is_empty() and not FileAccess.file_exists(path):
+			if DirAccess.rename_absolute(archive, path) == OK:
+				archive = ""
+	return {"error": restore_error, "preserved_path": archive}
+
+func _recovery_unique_path(suffix: String) -> String:
+	var candidate := path + suffix + str(Time.get_unix_time_from_system()) + "-" + str(Time.get_ticks_usec())
+	while FileAccess.file_exists(candidate) or DirAccess.dir_exists_absolute(candidate):
+		candidate += "-1"
+	return candidate
+
+func _recovery_source(source_path: String) -> Dictionary:
+	if DirAccess.dir_exists_absolute(source_path):
+		return {"exists": true, "bytes": PackedByteArray(), "error": ERR_FILE_CANT_READ}
+	if not FileAccess.file_exists(source_path):
+		return {"exists": false, "bytes": PackedByteArray(), "error": OK}
+	var file := FileAccess.open(source_path, FileAccess.READ)
+	if file == null:
+		return {"exists": true, "bytes": PackedByteArray(), "error": FileAccess.get_open_error()}
+	var expected := file.get_length()
+	var bytes := file.get_buffer(expected)
+	var read_error := file.get_error()
+	file.close()
+	if bytes.size() != expected and read_error == OK:
+		read_error = ERR_FILE_CANT_READ
+	return {"exists": true, "bytes": bytes, "error": read_error}
+
+func _recovery_envelope(bytes: PackedByteArray) -> Dictionary:
+	var invalid := {"valid": false, "loadouts": []}
+	if bytes.size() > MAX_SAVE_BYTES:
+		return invalid
+	var parser := JSON.new()
+	if parser.parse(bytes.get_string_from_utf8()) != OK or not parser.data is Dictionary:
+		return invalid
+	var envelope := migrate(parser.data)
+	if envelope.get("schema_version") != 1 or not envelope.get("loadouts") is Array or envelope.loadouts.size() > 12:
+		return invalid
+	return {"valid": true, "loadouts": envelope.loadouts}
+
 func migrate(data: Dictionary) -> Dictionary:
 	# Schema 0 used a `builds` envelope; part IDs/stats are never silently replaced.
 	var copy := data.duplicate(true)

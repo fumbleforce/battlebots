@@ -268,6 +268,24 @@ wire validation, content identity or the JSON schema. Explicit garage Revalidate
 updates draft format/catalogue metadata only, retains part IDs/paint, supports
 Undo and does not persist until Save. See coordination/B_GARAGE_REPAIR.md.
 
+Local recovery adds `LoadoutStore.inspect_recovery()` (read-only availability,
+reviewed loadouts and an opaque confirmation token) and `restore_backup(token)`
+(error and preserved_path). Recovery is offered only for a missing/unreadable
+primary with a readable backup envelope; invalid individual records remain.
+Changed primary/backup sources reject the confirmation. Successful restore copies
+exact backup bytes to primary, keeps the backup and archives any old primary to
+a unique `.unreadable-*` sibling. The UI displays that archive path. Opening or
+cancelling review writes nothing. No valid backup means no reset/overwrite action.
+
+`PlayerProfile.reload_retaining_drafts()` refreshes saved slots, detaches edited
+or new drafts as unsaved copies and preserves their Undo/Redo. Unchanged records
+keep history where an exact disk match exists; otherwise history travels with a
+detached copy. Detached drafts can only append on Save, so external edits are not
+overwritten by stale slot indices. Duplicate-name and twelve-save limits still
+apply. `restore_reviewed_backup(token)` reloads this way after successful restore.
+Raw `reload()` remains the startup/test reset API. Garage and Customize expose
+these actions under Saved File. See coordination/B_GARAGE_RECOVERY.md.
+
 `CombatState.snapshot()` carries detached health zones, resources, weapon/recovery
 timers, elimination/failure details and combat counters. `MatchState.snapshot()`
 carries match/event IDs, phase, seconds remaining, round, scores, round results and

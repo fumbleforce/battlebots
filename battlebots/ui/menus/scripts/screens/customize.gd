@@ -1,5 +1,5 @@
 extends MenuScreen
-## Parts / Paint / Decals customization. Selection is local; equip/buy goes through PlayerProfile.
+## Canonical parts and paint editing; draft history and saves belong to PlayerProfile.
 
 const CATEGORY_ROW := preload("res://ui/menus/components/category_row.tscn")
 const ITEM_TILE := preload("res://ui/menus/components/item_tile.tscn")
@@ -16,6 +16,8 @@ var redo_button: Button
 var build_preview: GarageBotPreview
 var comparison_panel: GarageComparisonPanel
 var revalidate_button: Button
+var recovery_panel: GarageRecoveryPanel
+var recovery_button: Button
 
 
 func _ready() -> void:
@@ -85,9 +87,22 @@ func _ready() -> void:
 	PlayerProfile.inventory_changed.connect(_refresh)
 	_refocus = "item"
 	_refresh()
+	recovery_panel = GarageRecoveryPanel.new()
+	add_child(recovery_panel)
+	recovery_button = Button.new()
+	recovery_button.text = "SAVED FILE"
+	recovery_button.add_theme_font_size_override("font_size", 20)
+	recovery_button.tooltip_text = "Reload saved builds without losing drafts, or review a recovery backup."
+	recovery_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	%Save.get_parent().add_child(recovery_button)
+	$Layout/Footer/Row/Hint0.hide()
+	recovery_button.pressed.connect(func():
+		_commit_name()
+		recovery_panel.open(PlayerProfile))
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(recovery_panel) and recovery_panel.visible: return
 	if event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed \
 		and not event.alt_pressed and not event.meta_pressed:
 		var focus := get_viewport().gui_get_focus_owner()
@@ -121,6 +136,7 @@ func _refresh() -> void:
 	redo_button.disabled = not PlayerProfile.can_redo()
 	revalidate_button.visible = PlayerProfile.needs_revalidation()
 	%Eyebrow.text = current.name + " · " + ("EQUIPPED DRAFT" if current.valid else "REPAIR REQUIRED")
+	if current.get("retained", false): %Eyebrow.text += " · UNSAVED COPY"
 	%Save.disabled = not current.valid
 	var cats: Array = PlayerProfile.catalogue[_tab]
 	var ci: int = _cat[_tab]
@@ -207,8 +223,6 @@ func _on_action() -> void:
 	_refocus = "item"
 	match PlayerProfile.item_state(_tab, cat, cur):
 		"own":
-			PlayerProfile.equip(_tab, cat, cur)
-		"buy":
 			PlayerProfile.equip(_tab, cat, cur)
 
 

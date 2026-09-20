@@ -2,6 +2,9 @@ extends MenuScreen
 
 const BOT_ROW := preload("res://ui/menus/components/bot_row.tscn")
 var build_preview: GarageBotPreview
+var recovery_panel: GarageRecoveryPanel
+var recovery_button: Button
+var notice: Label
 
 
 func _ready() -> void:
@@ -14,22 +17,9 @@ func _ready() -> void:
 	for control: Node in find_children("Rotate","Button",true,false):
 		control.tooltip_text = "Reset build preview view"
 		control.pressed.connect(build_preview.reset_view)
-	var group := ButtonGroup.new()
-	for i in PlayerProfile.bots.size():
-		var row := BOT_ROW.instantiate()
-		%BotList.add_child(row)
-		row.setup(PlayerProfile.bots[i])
-		row.button_group = group
-		row.pressed.connect(_select.bind(i))
-		if i == PlayerProfile.active_bot:
-			row.button_pressed = true
-			row.grab_focus.call_deferred()
-	%Bays.text = "%d builds · 12 saved max" % PlayerProfile.bots.size()
-	if not PlayerProfile.errors.is_empty():
-		var notice := Label.new()
-		notice.text = "; ".join(PlayerProfile.errors)
-		notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		%BotList.get_parent().add_child(notice)
+	notice = Label.new()
+	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%BotList.get_parent().add_child(notice)
 	%Customize.pressed.connect(MenuRouter.goto.bind("customize"))
 	%Upgrade.pressed.connect(MenuRouter.goto.bind("shop"))
 	%NewBot.pressed.connect(func(): PlayerProfile.new_build(); MenuRouter.goto("customize"))
@@ -52,6 +42,40 @@ func _ready() -> void:
 	list.owner = self
 	list.unique_name_in_owner = true
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	recovery_panel = GarageRecoveryPanel.new()
+	add_child(recovery_panel)
+	recovery_button = Button.new()
+	recovery_button.text = "SAVED FILE"
+	recovery_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	%Next.get_parent().add_child(recovery_button)
+	recovery_button.pressed.connect(func(): recovery_panel.open(PlayerProfile))
+	PlayerProfile.inventory_changed.connect(_refresh_builds)
+	_refresh_builds()
+	_focus_selected.call_deferred()
+
+func _focus_selected() -> void:
+	if not is_inside_tree() or recovery_panel.visible: return
+	var rows := %BotList.get_children()
+	if PlayerProfile.active_bot < rows.size(): rows[PlayerProfile.active_bot].grab_focus()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(recovery_panel) and recovery_panel.visible: return
+	super(event)
+
+func _refresh_builds() -> void:
+	clear_children(%BotList)
+	var group := ButtonGroup.new()
+	for i in PlayerProfile.bots.size():
+		var row := BOT_ROW.instantiate()
+		%BotList.add_child(row)
+		row.setup(PlayerProfile.bots[i])
+		row.button_group = group
+		row.pressed.connect(_select.bind(i))
+		row.button_pressed = i == PlayerProfile.active_bot
+	%Bays.text = "%d builds · 12 saved max" % PlayerProfile.bots.size()
+	notice.text = "; ".join(PlayerProfile.errors)
+	notice.visible = not notice.text.is_empty()
+	_select(PlayerProfile.active_bot)
 
 
 func _select(i: int) -> void:
@@ -61,6 +85,7 @@ func _select(i: int) -> void:
 	build_preview.show_loadout(PlayerProfile.loadouts[i])
 	%BotImage.texture = b.image
 	%BotClass.text = "VALID BUILD · 3D PREVIEW" if b.valid else b.cls
+	if b.get("retained", false): %BotClass.text = b.cls
 	%BotName.text = b.name
 	%BotHp.text = "%s core HP" % MenuData.fmt_int(b.hp) if b.valid else "Stats unavailable"
 	%Pips.get_parent().hide()

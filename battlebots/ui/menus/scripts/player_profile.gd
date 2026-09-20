@@ -19,26 +19,86 @@ var _read_errors := false
 const HISTORY_LIMIT := 100
 var _undo_history: Dictionary = {}
 var _redo_history: Dictionary = {}
+var _draft_baseline: Array = []
+var _retained_drafts: Dictionary = {}
 
 func _ready() -> void:
 	reload()
 
 func reload() -> void:
+	_retained_drafts.clear()
 	_undo_history.clear()
 	_redo_history.clear()
 	catalogue = MenuData.catalogue(registry)
 	var loaded := LoadoutStore.new(save_path).load_saved()
 	errors = loaded.errors
-	_read_errors = not errors.is_empty()
+	_read_errors = not errors.is_empty() or loaded.restored_backup
 	_saved = loaded.loadouts.duplicate(true)
 	loadouts = [registry.starter(),registry.starter(true),registry.duelist()]
 	_save_indices = [-1,-1,-1]
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)
-	if loaded.restored_backup: errors.append("Recovered backup. Review builds before saving.")
+	if loaded.restored_backup: errors.append("Backup loaded for review. Open Saved File to restore it before saving.")
 	active_bot = clampi(active_bot,0,loadouts.size()-1)
+	_draft_baseline = loadouts.duplicate(true)
 	_refresh_bots()
+
+## Refresh disk slots without losing local work or linking old drafts to new slots.
+func reload_retaining_drafts() -> int:
+	var retained: Array = []
+	var previous_active := active_bot
+	var previous_draft: Dictionary = loadouts[active_bot].duplicate(true)
+	for index: int in loadouts.size():
+		var changed := index >= _draft_baseline.size() or \
+			JSON.stringify(loadouts[index]) != JSON.stringify(_draft_baseline[index])
+		var needs_copy: bool = changed or (index >= 3 and _save_indices[index] < 0)
+		if needs_copy or not _undo_history.get(index, []).is_empty() or not _redo_history.get(index, []).is_empty():
+			retained.append({"draft":loadouts[index].duplicate(true), "index":index,
+				"copy":needs_copy, "saved":_save_indices[index] >= 0,
+				"undo":_undo_history.get(index, []).duplicate(true),
+				"redo":_redo_history.get(index, []).duplicate(true)})
+	reload()
+	# Prefer the exact unchanged build if disk order changed.
+	active_bot = 0
+	for index: int in loadouts.size():
+		if JSON.stringify(loadouts[index]) == JSON.stringify(previous_draft):
+			active_bot = index
+			break
+	var retained_count := 0
+	for entry: Dictionary in retained:
+		var history_target := -1
+		if not entry.copy:
+			# Keep history on an unchanged disk build, including redo at baseline.
+			for candidate: int in loadouts.size():
+				if (_save_indices[candidate] >= 0) != entry.saved: continue
+				if _undo_history.has(candidate) or _redo_history.has(candidate): continue
+				if JSON.stringify(loadouts[candidate]) == JSON.stringify(entry.draft):
+					history_target = candidate
+					break
+		if history_target >= 0:
+			_undo_history[history_target] = entry.undo
+			_redo_history[history_target] = entry.redo
+			if entry.index == previous_active: active_bot = history_target
+			continue
+		var index := loadouts.size()
+		loadouts.append(entry.draft)
+		_save_indices.append(-1)
+		_draft_baseline.append(entry.draft.duplicate(true))
+		_undo_history[index] = entry.undo
+		_redo_history[index] = entry.redo
+		_retained_drafts[index] = true
+		if entry.index == previous_active: active_bot = index
+		retained_count += 1
+	_refresh_bots()
+	inventory_changed.emit()
+	return retained_count
+
+func restore_reviewed_backup(token: Dictionary) -> Dictionary:
+	var result := LoadoutStore.new(save_path).restore_backup(token)
+	if result.error == OK:
+		result["retained"] = reload_retaining_drafts()
+	return result
 
 func active_loadout() -> Dictionary:
 	if active_bot < 0 or active_bot >= loadouts.size(): return {}
@@ -48,7 +108,7 @@ func active_loadout() -> Dictionary:
 func save_active(name: String) -> Error:
 	errors.clear()
 	if _read_errors:
-		errors.append("Save file could not be read safely. Resolve the existing file before overwriting it.")
+		errors.append("Save file could not be read safely. Open Saved File to review a backup or reload; your draft is retained.")
 		return ERR_FILE_CORRUPT
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
 	draft.name = name.strip_edges()
@@ -73,6 +133,9 @@ func save_active(name: String) -> Error:
 	if index < 0: _save_indices[active_bot] = next.size()-1
 	_record_edit(validation.loadout)
 	loadouts[active_bot] = validation.loadout.duplicate(true)
+	while _draft_baseline.size() < loadouts.size(): _draft_baseline.append({})
+	_draft_baseline[active_bot] = validation.loadout.duplicate(true)
+	_retained_drafts.erase(active_bot)
 	_refresh_bots()
 	inventory_changed.emit()
 	return OK
@@ -181,4 +244,6 @@ func _refresh_bots() -> void:
 		var validation := registry.validate(draft)
 		var parts: Dictionary = draft.get("parts",{}) if draft.get("parts") is Dictionary else {}
 		var stats: Dictionary = validation.stats
-		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD · CONCEPT ART" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg"),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":"Brake · Space","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
+		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg"),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":"Brake · Space","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
+		bots[-1]["retained"] = _retained_drafts.has(index)
+		if _retained_drafts.has(index): bots[-1].cls = "UNSAVED COPY" + (" · REPAIR REQUIRED" if not validation.valid else "")
