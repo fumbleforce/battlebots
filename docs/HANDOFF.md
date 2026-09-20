@@ -54,6 +54,17 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-linux-hosted-runtime` follows `4cf0a99`. A new independent Linux job
+builds and starts the production Docker image as its default unprivileged user,
+then runs two host-side clients through its real allocated UDP release server,
+results and rematch. Linux run35501573901 at8686c24 passes with inspected artifacts.
+Windows run35501573844 on the same source failed after DRIVE PASS with the known
+native0xC0000005 shutdown issue; full Windows CI is not claimed green. No B runtime
+was changed and no failure gate was relaxed. See [runtime evidence](coordination/A_LINUX_HOSTED_RUNTIME.md).
+External Fly routing/human play and hosting-cost confirmation remain outstanding.
+
+### Preceding HUD accessibility increment
+
 `codex/a-hud-accessibility` follows `bd1dd3f`. General Settings now offers HUD
 text at 100/125/150%, four color palettes and opaque high-contrast panels with a
 visible sample, save and cancel. Combat/round HUD fonts enlarge independently

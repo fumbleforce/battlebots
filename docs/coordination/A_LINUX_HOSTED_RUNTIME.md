@@ -28,3 +28,23 @@ Host clients use the real container HTTP allocator and assigned UDP workers.
 `--endpoint` retains external HTTPS/public-IP requirements. Both release only the
 test's own memberships. The runner stops only its named container and uploads
 selected logs/reports, never temporary admission files.
+
+## Verified evidence
+
+- Local separately started service + Windows release worker: PASS. Two clients
+  drove 11.54 m, agreed on two rounds/0-2 scores/winner and entered one new rematch.
+  Syntax and invalid argument checks passed; owned service/tickets cleaned up.
+- [Linux run 35501573901](https://github.com/fumbleforce/battlebots/actions/runs/35501573901)
+  at `8686c24`: PASS. Production image default command runs as `node`; real Linux
+  release worker allocated by its HTTP service. Both host clients received 1512
+  snapshots, drove 11.54 m, agreed on 0-2 scores and entered the same active rematch.
+  Container log confirms its worker stopped by expected SIGTERM after membership
+  cleanup. Downloaded report and logs inspected, not just workflow conclusion.
+- [Windows run 35501573844](https://github.com/fumbleforce/battlebots/actions/runs/35501573844)
+  on the same commit failed after `DRIVE PASS` with `0xC0000005`. This job never
+  reached hosted checks. It reproduces the documented native shutdown issue in
+  unchanged drive/runtime files; the Linux feature does not fix or mask it.
+
+Linux packaging/lifecycle acceptance is now proven. Fly public UDP routing,
+external human play and the Windows shutdown defect remain open. The relevant
+new Linux check passes; do not describe the full Windows CI pipeline as green.

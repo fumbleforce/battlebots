@@ -26,6 +26,11 @@ active expansion or acceptance work.
   [external duel harness](coordination/A_HOSTED_DUEL_DEPLOYMENT.md) now checks
   authoritative results and rematch as well as assigned connectivity; local
   validation does not close this deployment task.
+- [x] Run private 1v1 through the production Linux container's real release worker,
+  including results/rematch. [Linux CI evidence](coordination/A_LINUX_HOSTED_RUNTIME.md)
+  closes the runtime packaging gap, not external deployment.
+- [ ] Resolve the intermittent Windows native shutdown crash. Latest CI reproduced
+  `0xC0000005` after DRIVE PASS; strict gates remain and full Windows CI is not green.
 - [x] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
   state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
   B's authoritative combat/bot interfaces. Core HUD, raw component diagram,

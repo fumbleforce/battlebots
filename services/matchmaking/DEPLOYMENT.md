@@ -40,6 +40,8 @@ The image's bind/public-address overrides are local test configuration only;
 Fly uses the deployed configuration below. CI artifacts retain redacted peer logs,
 the non-secret result report, image service logs and release hashes. Success proves
 Linux runtime packaging, not internet/Fly routing or human combat acceptance.
+The first production-container run passed at `8686c24`; see
+[recorded Linux evidence](../../docs/coordination/A_LINUX_HOSTED_RUNTIME.md).
 
 ## Provision and deploy
 
