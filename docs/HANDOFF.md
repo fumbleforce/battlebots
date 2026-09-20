@@ -1,5 +1,15 @@
 # Current A/B handoff
 
+## Godot Moon atmosphere — 20 September 2026
+
+The user returned to Godot. Moon now uses reduced cool ambient/sun illumination,
+lower-angle shadows and warm arena floodlights so the mountains recede while the
+floor remains readable. Identical 1440p comparisons, rendered two-bot effects,
+baseline, lunar physics/assets and ENet reconnect checks pass. The known renderer
+texture-RID shutdown warning remains. No gameplay, B paths or Foundry changes.
+See [scope and evidence](coordination/A_LUNAR_ATMOSPHERE.md). Unreal and the older
+unfinished lunar geometry/material branch remain separate experiments.
+
 ## Bot visual budget audit — 20 September 2026
 
 Independent geometry/LOD inventory and two/ten-bot native Foundry measurements are

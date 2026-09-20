@@ -541,3 +541,8 @@ A is updating the existing hosted server to current main catalogue revision 6 an
 - **A cinematic Moon:** codex/a-lunar-cinematic reserves Moon visual scripts,
   environmental assets/materials and arena tests. Physical terrain, bots, controls
   and network state stay unchanged. See coordination/A_LUNAR_CINEMATIC.md.
+
+- **A Moon atmosphere:** `codex/a-lunar-atmosphere` adjusts only lunar sun,
+  ambient fill and tower light tint in `moon_visuals.gd`, with an offline review
+  tool. No bot, control, physics or network edits. See
+  [scope and evidence](coordination/A_LUNAR_ATMOSPHERE.md).

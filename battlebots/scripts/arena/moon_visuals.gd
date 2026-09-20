@@ -283,7 +283,8 @@ func _tower(x: float, side: int) -> void:
 	add_child(light)
 	light.position = _side*Vector3(x,11,-25.3)
 	light.look_at(_side*Vector3(x*0.3,0,-9))
-	light.light_color = Color("d3e8ff")
+	# Warm practical pools separate the inhabited base from the cool crater rim.
+	light.light_color = Color("ffe1b6")
 	light.light_energy = 3.0
 	light.light_volumetric_fog_energy = 8.0
 	light.spot_angle = 47
@@ -352,8 +353,9 @@ func _lunar_lighting(arena: Node) -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("adbace")
-	env.ambient_light_energy = 0.15
+	# Keep shadowed ridges dark; local lamps, rather than broad fill, lead the eye.
+	env.ambient_light_color = Color("9baecb")
+	env.ambient_light_energy = 0.04
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.ssao_enabled = true
 	env.ssao_radius = 1.2
@@ -366,9 +368,9 @@ func _lunar_lighting(arena: Node) -> void:
 	env.volumetric_fog_sky_affect = 0.0
 	(arena.get_node("WorldEnvironment") as WorldEnvironment).environment = env
 	var sun := arena.get_node("Sun") as DirectionalLight3D
-	sun.rotation_degrees = Vector3(-28,-38,0)
-	sun.light_color = Color("ffebd5")
-	sun.light_energy = 1.25
-	sun.light_volumetric_fog_energy = .15
+	sun.rotation_degrees = Vector3(-16,-65,0)
+	sun.light_color = Color("c3d1e5")
+	sun.light_energy = 0.55
+	sun.light_volumetric_fog_energy = .04
 	sun.directional_shadow_max_distance = 140
 	sun.shadow_enabled = true
