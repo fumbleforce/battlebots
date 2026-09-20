@@ -10,7 +10,7 @@ and audio. Historical labels below describe authorship, not current ownership.
 
 **Latest published B branch:** `codex/b-results-followup`, based on integrated A `3f0e80f`.
 **Latest increment:** Detailed final/per-round results, FFA placements and rematch in the default menu shell. See [results follow-up](coordination/B_RESULTS_FOLLOWUP.md).
-**Next:** Combat/bot/control feel and remaining garage/customisation work. A now owns general menu/results/world/audio follow-up. Current base includes protocol-4 networking and all five weapons.
+**Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
 
@@ -41,6 +41,11 @@ and audio. Historical labels below describe authorship, not current ownership.
 
 ## Active and next — B-owned
 
+User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
+2v2, FFA and other multiplayer modes, plus all tutorial work, until then. A owns
+the raised HUD priority and external matchmaker/server deployment; B supplies
+combat/bot state and feedback through the shared interfaces.
+
 - [ ] **Combat and bots:** Maintain damage/resources/recovery, weapon mechanics
   and visuals, bot assembly/catalogue and model integration. Investigate combat
   defects handed off by A's network/match-flow checks.
@@ -61,11 +66,14 @@ and audio. Historical labels below describe authorship, not current ownership.
 - [ ] **B-11:** Control accessibility/controller behavior and bot-customisation
   polish. A owns general tutorial/menu presentation and audio.
 - [ ] **B-12:** Optional first-person camera after third-person feel is accepted.
-- [ ] **AB-02:** Two-computer LAN and human contact/camera/lifter/recovery playtest.
-  Automated localhost/impairment coverage is not evidence for this acceptance gate.
-- [ ] **Gameplay acceptance:** Playable 1v1/2v2 combat, clear weapon/damage feedback,
-  complete round/results/rematch flow and a human playtest. The user's current
-  priority is actual gameplay, not larger player counts.
+- [x] **AB-02 human multiplayer:** User reports successful multiplayer through a
+  tunnel on 2026-09-20. This does not certify external hosting or specific measured
+  contact/camera/recovery thresholds.
+- [ ] **Gameplay acceptance:** Fully working 1v1 combat with clear weapon/damage
+  feedback and complete hosted round/results/rematch flow. Human tunnel play has
+  succeeded; externally hosted play remains outstanding.
+- [ ] **Deferred tutorial:** B's control exercises/progression and A's menu entry
+  wait until the 1v1 game is fully working, alongside 2v2 and other modes.
 
 ## Editing and branch boundaries
 

@@ -24,12 +24,24 @@ demonstrated combat/control defects are handed to B rather than changed by A.
 
 ## Current user priority
 
-The user has removed ten-player support and testing from active todos and asked
-for actual gameplay instead. Stop ten-player bandwidth/soak/expansion work; focus
-on playable 1v1/2v2 combat and the complete online round/results/rematch flow.
-The proposed snapshot-bandwidth increment was cancelled before code changes.
-Existing modes, tests and historical measurements remain, but old ten-player
-acceptance targets below do not create current work or block this gameplay scope.
+Updated by the user on 2026-09-20: finish a fully working 1v1 game first. External
+matchmaker/dedicated-server deployment remains outstanding and HUD work is raised
+in priority. Deliver the full hosted duel loop through combat, rounds, results
+and rematch. Defer 2v2, FFA and all other multiplayer modes until the 1v1 game is
+fully working. The tutorial is also deferred until then, with B retaining control
+exercise ownership and A retaining menu integration.
+
+The user reports human multiplayer was conducted successfully through a tunnel.
+Record that gate as completed human-play evidence; do not keep describing human
+multiplayer as untested. No specific measurements were supplied, and this does
+not establish external-hosting reachability or release acceptance. Older human
+LAN/playtest and 1v1/2v2 priority statements below are historical and superseded.
+Existing modes/tests remain; larger-mode expansion, optimization and soak work
+do not block the active 1v1 scope.
+
+Board update validation: documentation-only priority/status reconciliation across
+the A/B trackers and workflow; no runtime, scenes or contracts changed. Hosting,
+HUD implementation and the remaining game work are still outstanding.
 
 ## Current Developer A increment
 

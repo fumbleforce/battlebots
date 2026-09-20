@@ -3,14 +3,32 @@
 Owner: A — menus, networking, game rules, game world and audio. B owns combat,
 bot models/weapons, bot-customisation menus and player controls. Earlier playable
 checkpoint: `codex/a-b-integration` at `bdb42ef`.
-Current shared baseline: `7feb900` on main, including hosted matchmaking, B's
-results menu, natural-duel validation and gameplay audio. Completed increments
+Current shared baseline: `6ff5c89` on main, including hosted matchmaking source,
+B's results menu, natural-duel validation, gameplay audio, practice and Foundry. Completed increments
 push main directly.
-User priority: actual playable 1v1/2v2 gameplay. Ten-player support, optimization
-and acceptance are removed from the active todos. Existing implementation and
-historical evidence remain; they do not create further ten-player work.
+User priority (2026-09-20): finish a fully working 1v1 game first. Defer 2v2,
+FFA and all other multiplayer modes until that is done. Defer the tutorial too.
+Existing mode implementations and historical evidence remain, but do not create
+active expansion or acceptance work.
 
-Acceptance: executable 2v2 authority/session, spinner/lifter combat, resources,
+## Highest-priority active work
+
+- [ ] Complete the end-to-end 1v1 game: online entry, combat, round completion,
+  results and rematch, with clear feedback and reliable recovery/reconnect.
+- [ ] Deploy the externally hosted matchmaker and dedicated game server for 1v1;
+  verify external connectivity and complete a real hosted duel through rematch.
+  Existing private-duel support is the starting point; the current 2v2 queue is
+  not the active delivery target. Public hosting remains outstanding.
+- [ ] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
+  state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
+  B's authoritative combat/bot interfaces.
+- [x] Human multiplayer playtest through a tunnel succeeded, as reported by the
+  user on 2026-09-20. This records human play evidence, not external-hosting
+  acceptance or measured camera/contact/network thresholds.
+
+## Implemented foundation and remaining validation
+
+Active acceptance: executable 1v1 authority/session, combat, resources,
 recovery/elimination/judging, reconnect/rematch, canonical loadouts and persistence,
 client prediction/snapshots, and documented APIs for B. Primitive bot visuals and
 isolated A test fixtures are intentional. Prioritize combat, weapon feedback,
@@ -28,11 +46,10 @@ round completion, rematch and easy online play over population scaling.
 - [x] Reliable match transitions and one-second state recovery under total unreliable-snapshot loss; independent actual-ENet regression.
 - [ ] Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
 - [ ] Diagnose intermittent CI observer convergence failure (FFA damage in 35466215676) when relevant to gameplay work. Existing strict tests remain.
-- [ ] Joint two-computer LAN/camera/control-feel acceptance (requires B's machine).
 
-The final LAN and human-feel gate cannot be replaced by localhost tests. Record
-actual measured outcomes and remaining gates in HANDOFF.md; do not mark them passed
-without running them.
+Human multiplayer is no longer an unperformed gate: the user reports successful
+tunnel play. Specific unmeasured feel/transport checks remain separate; hosted
+internet acceptance must still be performed after deployment.
 
 ## Additional implemented gameplay and remaining services
 
@@ -40,11 +57,8 @@ without running them.
 - [x] User-supplied menu melody integrated and included in playtest exports.
 - [x] Arena/world integration, spawn lifecycle and authoritative match rules.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; historical implemented mode.
-- [ ] General menu/HUD/tutorial polish and arena readability for playable small matches.
+- [ ] General menu polish and arena readability for 1v1; HUD is prioritized above.
 - [x] Practice target damage/knockout readout and direct restart with both bots repaired.
-- [ ] Integrate B's supplied tutorial into general menus when ready. Control
-  exercises and their progression belong to B; A's unfinished tutorial was removed
-  following the user's ownership correction.
 - [x] First-pass impact/round/warning/recovery audio from authoritative events,
   with captions and saved master/music/effects/announcement volume and mute.
 - [ ] Drive/skid/spin/arena sound layers, spatial mix and human listening polish.
@@ -54,7 +68,14 @@ without running them.
   accounts/results, parties, region/skill matching and release acceptance remain open.
 
 Apply the user's current gameplay priority when ordering this work. Historical
-ten-player targets in the original spec/handoffs are outside the active backlog.
+multi-mode targets in the original spec/handoffs are outside the active backlog.
 Combat, drive/ground physics, bot assembly/catalogue, all five weapon families and
 loadout persistence were implemented earlier; their maintenance now belongs to B.
 A retains network prediction/integration and consumes B's public bot interfaces.
+
+## Deferred until the 1v1 game is fully working
+
+- [ ] 2v2, FFA and other multiplayer-mode development and acceptance, including
+  the existing 2v2 matchmaking queue. Ten-player optimization/soak stays deferred.
+- [ ] Tutorial: B owns control exercises and progression; A integrates its menu
+  entry when this deferred work resumes.

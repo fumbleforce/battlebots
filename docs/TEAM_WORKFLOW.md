@@ -55,8 +55,10 @@ project.godot input actions and shared scene wiring require a documented handoff
 ## Coordination and branches
 
 1. Read GAME_SPEC.md, CONTRACTS.md, HANDOFF.md and current shared task notes.
-   The current user priority is playable 1v1/2v2; ten-player work is removed from
-   active todos even though its original rules and implementation remain.
+   The current user priority (2026-09-20) is a fully working 1v1 game, with external
+   matchmaking/server deployment and HUD prioritized. Human tunnel multiplayer
+   succeeded per the user. Defer 2v2, other modes and tutorial work until 1v1 is
+   fully working; existing implementations remain without creating active scope.
 2. Use a separate local checkout and codex/a-* or codex/b-* task branch. Do not
    change the other developer's checkout or assume sessions share memory.
 3. Record intent, owner, allowed paths and acceptance in docs/coordination/ and
