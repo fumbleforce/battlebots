@@ -15,6 +15,10 @@ active expansion or acceptance work.
 
 - [ ] Complete the end-to-end 1v1 game: online entry, combat, round completion,
   results and rematch, with clear feedback and reliable recovery/reconnect.
+- [x] Expose same-session reconnect in the game menus, with bounded retry,
+  damage/identity retention, results recovery and explicit leave. Independent
+  ENet and composed-game checks pass; see [recovery evidence](coordination/A_RECONNECT_FLOW.md).
+  External hosting and human recovery acceptance remain open.
 - [ ] Deploy the externally hosted matchmaker and dedicated game server for 1v1;
   verify external connectivity and complete a real hosted duel through rematch.
   Existing private-duel support is the starting point; the current 2v2 queue is

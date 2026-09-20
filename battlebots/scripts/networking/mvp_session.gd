@@ -52,18 +52,24 @@ var player_capacity := 4
 var match_mode := "teams"
 var hosted_admission: HostedAdmission
 var hosted_config_refresh: Callable
+var _join_address := ""
+var _join_port := 0
+var _reconnect_deadline := 0
+var _reconnecting := false
+var _tearing_down := false
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
 	multiplayer.peer_disconnected.connect(_peer_disconnected)
 	multiplayer.connected_to_server.connect(_connected)
-	multiplayer.connection_failed.connect(func() -> void: _fail("Connection failed"))
-	multiplayer.server_disconnected.connect(func() -> void: _fail("Server disconnected; match incomplete"))
+	multiplayer.connection_failed.connect(func() -> void: _transport_failed("Connection failed"))
+	multiplayer.server_disconnected.connect(func() -> void: _transport_failed("Server disconnected"))
 	multiplayer.allow_object_decoding = false
 
 func host(port := 24567, listen := true, player_count := 4, mode := "teams", bind_address := "*") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
+	_clear_reconnect()
 	if (mode == "teams" and player_count not in [2, 4, 10]) or (mode == "ffa" and (player_count < 4 or player_count > 8)) or mode not in ["teams", "ffa"]:
 		session_event.emit("error", {"message":"Choose 2, 4 or 10 team players, or an FFA limit of 4–8"})
 		return ERR_INVALID_PARAMETER
@@ -102,10 +108,16 @@ func host(port := 24567, listen := true, player_count := 4, mode := "teams", bin
 func join(address: String, port := 24567, token := "", admission_ticket := "") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
+	_clear_reconnect()
+	return _join(address, port, token, admission_ticket)
+
+func _join(address: String, port: int, token: String, admission_ticket: String) -> Error:
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_client(address, port, 3)
 	if error != OK:
 		return error
+	_join_address = address
+	_join_port = port
 	_hello_data = {"protocol":WireCodec.PROTOCOL, "build":WireCodec.BUILD, "content":registry.content_hash,
 		"token":token, "admission_ticket":admission_ticket}
 	_server = false
@@ -114,9 +126,36 @@ func join(address: String, port := 24567, token := "", admission_ticket := "") -
 	_make_world()
 	return OK
 
+func can_reconnect() -> bool:
+	return connection_state == "offline" and not reconnect_token.is_empty() and reconnect_seconds_remaining() > 0.0
+
+func reconnect_seconds_remaining() -> float:
+	return maxf(0.0, float(_reconnect_deadline - Time.get_ticks_msec()) / 1000.0) if _reconnect_deadline > 0 else 0.0
+
+func is_reconnecting() -> bool:
+	return _reconnecting
+
+func reconnect() -> Error:
+	if not can_reconnect():
+		return ERR_UNAVAILABLE
+	_reconnecting = true
+	var error := _join(_join_address, _join_port, reconnect_token, "")
+	if error != OK:
+		_reconnecting = false
+		session_event.emit("error", {"message":"Could not reconnect", "code":error, "reconnect_available":can_reconnect()})
+	return error
+
+func _clear_reconnect() -> void:
+	reconnect_token = ""
+	_join_address = ""
+	_join_port = 0
+	_reconnect_deadline = 0
+	_reconnecting = false
+
 func practice(draft: Dictionary = {}) -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
+	_clear_reconnect()
 	var build := registry.starter() if draft.is_empty() else draft
 	if not registry.validate(build).valid:
 		return ERR_INVALID_DATA
@@ -169,6 +208,13 @@ func restart_practice() -> Error:
 	return OK
 
 func leave() -> void:
+	_clear_reconnect()
+	_disconnect()
+
+func _disconnect() -> void:
+	if _tearing_down:
+		return
+	_tearing_down = true
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
@@ -208,7 +254,9 @@ func leave() -> void:
 	if is_instance_valid(world):
 		world.queue_free()
 		world = null
-	session_event.emit("left", {})
+	_hello_data.clear()
+	session_event.emit("left", {"reconnect_available":can_reconnect()})
+	_tearing_down = false
 
 func _make_world() -> void:
 	world = AuthorityWorld.new()
@@ -233,7 +281,18 @@ func refresh_hosted_admission() -> void:
 
 func _fail(message: String) -> void:
 	leave()
-	session_event.emit("error", {"message":message})
+	session_event.emit("error", {"message":message, "reconnect_available":false})
+
+func _transport_failed(message: String) -> void:
+	if _tearing_down or connection_state == "offline":
+		return
+	if not _server and connection_state == "connected" and not reconnect_token.is_empty():
+		_reconnect_deadline = Time.get_ticks_msec() + 20000
+	elif not _reconnecting:
+		_clear_reconnect()
+	_reconnecting = false
+	_disconnect()
+	session_event.emit("error", {"message":message, "reconnect_available":can_reconnect()})
 
 func _connected() -> void:
 	_hello.rpc_id(1, WireCodec.json_packet(_hello_data))
@@ -330,11 +389,18 @@ func _rejected(message: String) -> void:
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _welcome(id: int, token: String) -> void:
+	if _reconnecting and reconnect_seconds_remaining() <= 0.0:
+		_fail("Reconnect window expired; match incomplete")
+		return
+	var reconnected := _reconnecting or not str(_hello_data.get("token", "")).is_empty()
+	_reconnecting = false
+	_reconnect_deadline = 0
 	local_entity = id
 	reconnect_token = token
 	connection_state = "connected"
 	_client_sequence = 0
-	session_event.emit("joined", {"entity_id":id})
+	_hello_data.clear()
+	session_event.emit("joined", {"entity_id":id, "reconnected":reconnected})
 
 func set_ready(ready: bool) -> void:
 	_request_local({"kind":"ready", "value":ready})
@@ -440,8 +506,15 @@ func _publish_lobby() -> void:
 	lobby_view = _public_lobby()
 	lobby_changed.emit(lobby_view.duplicate(true))
 	for peer: int in peer_entities:
-		if peer != 1:
+		if peer != 1 and _peer_can_receive(peer):
 			_lobby.rpc_id(peer, var_to_bytes(lobby_view))
+
+func _peer_can_receive(peer: int) -> bool:
+	var transport := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if transport == null or not peer_entities.has(peer):
+		return false
+	var remote := transport.get_peer(peer)
+	return remote != null and remote.get_state() == ENetPacketPeer.STATE_CONNECTED
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _lobby(packet: PackedByteArray) -> void:
@@ -472,7 +545,7 @@ func _start() -> void:
 		if p.peer == 1:
 			_loaded[id] = true
 	for peer: int in peer_entities:
-		if peer != 1:
+		if peer != 1 and _peer_can_receive(peer):
 			_send_baseline(peer)
 	_publish_lobby()
 
@@ -637,7 +710,7 @@ func _physics_process(delta: float) -> void:
 			event["match_id"] = match_state.match_id
 			combat_event.emit(event.duplicate(true))
 			for peer: int in peer_entities:
-				if peer != 1:
+				if peer != 1 and _peer_can_receive(peer):
 					_effect.rpc_id(peer, var_to_bytes(event))
 	var old_phase := match_state.phase
 	var teams := {}
@@ -699,7 +772,7 @@ func _physics_process(delta: float) -> void:
 		var checkpoint := var_to_bytes({"view":match_view, "results":_results if publish_results else {},
 			"bots":_bot_snapshots() if include_bots else {}})
 		for peer: int in peer_entities:
-			if peer != 1:
+			if peer != 1 and _peer_can_receive(peer):
 				_match.rpc_id(peer, checkpoint)
 	if world.tick % 3 == 0:
 		for id: int in world.bots:
@@ -712,7 +785,9 @@ func _physics_process(delta: float) -> void:
 			for peer: int in peer_entities:
 				if peer != 1:
 					network_simulation.send(func() -> void:
-						if peer_entities.has(peer):
+						# ENet begins closing before SceneMultiplayer reports peer_disconnected.
+						# A delayed snapshot must not target that channel-less transport.
+						if _peer_can_receive(peer):
 							_snapshot.rpc_id(peer, packet))
 
 @rpc("authority", "call_remote", "reliable", 0)
@@ -814,6 +889,8 @@ func _snapshot(packet: PackedByteArray) -> void:
 	bot_updated.emit(bot.entity_id, bot.read_view())
 
 func _process(_delta: float) -> void:
+	if _reconnect_deadline > 0 and reconnect_seconds_remaining() <= 0.0:
+		_fail("Reconnect window expired; match incomplete")
 	if _server or not is_instance_valid(world):
 		return
 	var degraded := false

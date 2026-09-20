@@ -225,7 +225,27 @@ A change to an existing field's meaning is a breaking change; coordinate it befo
 editing. WireCodec.PROTOCOL below is the actual transport compatibility version;
 do not infer wire support from a baseline configuration constant.
 
-## Session API — protocol 4, build mvp-ab-6 (A horizontal spinner branch)
+## Session API — protocol 4, build mvp-ab-11
+
+### Client recovery (current local API)
+
+After an established client unexpectedly loses transport, `can_reconnect()`
+reports whether a same-session retry is available. `reconnect()` uses only the
+remembered endpoint and private rotated token; it never falls back to fresh
+admission. `is_reconnecting()` reports an in-flight attempt and
+`reconnect_seconds_remaining()` gives the remaining local retry budget, up to
+20 seconds from detection. This is not a guarantee of server eligibility: the
+server's disconnect deadline, membership and token validation remain authoritative.
+The connection-state enum and wire format are unchanged.
+
+`left`/`error` details include `reconnect_available`; unexpected transport loss
+preserves recovery, while explicit `leave()`, new join/host/practice, rejection
+and expiry clear it. Tokens and endpoint are memory-only. A successful `joined`
+event includes `reconnected: true` for token-based recovery; wait for baseline
+before returning to play and do not submit a fresh build. The general menu keeps
+hosted membership while recovering and releases it only on explicit leave.
+
+### Historical session baseline
 
 The playable a-b-integration checkpoint is still mvp-ab-2/protocol 3. Both peers
 must use the same build. Private clock/baseline and snapshot epoch semantics

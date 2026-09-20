@@ -39,6 +39,7 @@ $checks = @(
     @('online_panel_test.gd', 'ONLINE PANEL PASS'),
     @('results_panels_test.gd', 'RESULTS PANELS PASS'),
     @('lobby_panel_layout_test.gd', 'LOBBY PANEL LAYOUT PASS'),
+    @('reconnect_panel_test.gd', 'RECONNECT PANEL PASS'),
     @('match_results_test.gd', 'MATCH RESULTS PASS'),
     @('camera_arena_test.gd', 'PRESENTATION PASS'),
     @('foundry_arena_test.gd', 'FOUNDRY PASS'),
@@ -67,6 +68,7 @@ foreach ($check in $checks) {
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
 foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
     @('combat_hud_session_test.gd', 'COMBAT HUD SESSION PASS'),
+    @('game_reconnect_test.gd', 'GAME RECONNECT PASS'),
     @('menu_mode_guard_test.gd', 'MENU MODE GUARD PASS'),
     @('lobby_session_test.gd', 'LOBBY SESSION PASS'),
     @('lobby_game_network_test.gd', 'LOBBY GAME NETWORK PASS'),

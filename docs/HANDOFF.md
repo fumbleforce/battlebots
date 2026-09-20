@@ -54,6 +54,19 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-reconnect-flow` follows `50f3a63`. The general game now offers manual
+same-session recovery after unexpected transport loss, with bounded status,
+retry/leave and original-menu styling. It retains hosted membership, restores
+the damaged bot or result screen from the authoritative baseline, and clears
+private credentials on leave/rejection/expiry. A local session API addition is
+documented in CONTRACTS.md; no B implementation or wire schema changes.
+Independent network, composed-game, rendered panel and existing regressions pass;
+see [reconnect evidence](coordination/A_RECONNECT_FLOW.md). Rebuild deployment
+artifacts from updated main before external provisioning. Billable hosting still
+awaits confirmation and no external reachability is claimed.
+
+### Preceding hosted acceptance increment
+
 `codex/a-hosted-duel-deployment` prepares external 1v1 acceptance after `bca152c`.
 The hosted harness can target an HTTPS allocator without starting a local server,
 and verifies assigned ENet play through two forfeit-driven rounds, agreed scores,

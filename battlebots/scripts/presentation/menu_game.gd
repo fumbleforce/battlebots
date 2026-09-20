@@ -29,6 +29,10 @@ var _restart_practice: Button
 var _practice_knockout_handled := false
 var game_menu_page: Control
 var combat_hud: CombatHud
+var reconnect_panel: Control
+var _recovering := false
+var _resume_after_reconnect := false
+var _reconnect_message := ""
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -62,6 +66,14 @@ func _ready() -> void:
 	results_layer.add_child(results_panel)
 	results_panel.rematch_requested.connect(_request_rematch)
 	results_panel.leave_requested.connect(return_to_main)
+	var recovery_layer := CanvasLayer.new()
+	recovery_layer.layer = 10
+	add_child(recovery_layer)
+	reconnect_panel = preload("res://scripts/ui/reconnect_panel.gd").new()
+	recovery_layer.add_child(reconnect_panel)
+	reconnect_panel.retry_requested.connect(_retry_connection)
+	reconnect_panel.leave_requested.connect(return_to_main)
+	reconnect_panel.hide()
 	_add_gameplay_audio()
 	_add_practice_hud()
 	combat_hud = CombatHud.new()
@@ -238,7 +250,7 @@ func _sync_menu_music() -> void:
 
 func gameplay_input_allowed() -> bool:
 	var bot := session.local_source()
-	return not _cli_handoff and not menu_host.visible and preview.controls_enabled \
+	return not _cli_handoff and not _recovering and not menu_host.visible and preview.controls_enabled \
 		and not _audio_overlay.visible \
 		and not preview.settings_panel.visible and get_window().has_focus() \
 		and bot != null and not bot.read_view().eliminated \
@@ -249,6 +261,29 @@ func _process(_delta: float) -> void:
 		return
 	var phase := str(session.match_view.get("phase", "lobby"))
 	var bot := session.local_source()
+	if _resume_after_reconnect and not session.match_view.is_empty() and (bot != null or phase == "lobby"):
+		_resume_after_reconnect = false
+		_recovering = false
+		reconnect_panel.hide()
+		_last_phase = ""
+		if phase in ["countdown", "active", "overtime", "intermission"]:
+			resume_gameplay()
+		elif phase == "lobby":
+			MenuRouter.goto("lobby", false)
+	if _recovering:
+		preview.release_controls(false)
+		preview.pause_menu.hide()
+		menu_host.hide()
+		results_panel.hide()
+		match_hud.hide()
+		combat_hud.hide()
+		practice_hud.hide()
+		preview.get_node("CanvasLayer").hide()
+		preview.get_node("DiagnosticsLayer").hide()
+		preview.network_diagnostics.hide()
+		_audio_caption.hide()
+		reconnect_panel.render(session.can_reconnect(), session.is_reconnecting(), session.reconnect_seconds_remaining(), _reconnect_message)
+		return
 	gameplay_audio.observe_match(session.match_view, session.connection_state == "practice")
 	if bot != null:
 		gameplay_audio.observe_bot(bot.read_view())
@@ -356,6 +391,9 @@ func resume_gameplay() -> void:
 	preview.capture_controls()
 
 func return_to_main() -> void:
+	_recovering = false
+	_resume_after_reconnect = false
+	reconnect_panel.hide()
 	preview.release_controls(false)
 	if is_instance_valid(public_service) and (MenuRouter.lobby_intent == "online" or public_service.can_cancel()):
 		cancel_online()
@@ -386,6 +424,9 @@ func _settings_closed(_saved: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if _cli_handoff or not event.is_action_pressed("pause"):
 		return
+	if _recovering:
+		get_viewport().set_input_as_handled()
+		return
 	if _audio_overlay.visible:
 		get_viewport().set_input_as_handled()
 		audio_settings.cancel()
@@ -415,17 +456,41 @@ func _session_event(kind: String, details: Dictionary) -> void:
 		results_panel.accept_record(details, str(session.match_view.get("match_id", "")))
 	elif kind == "error":
 		MenuRouter.session_notice = str(details.get("message", "Session error"))
+		if _recovering or session.can_reconnect():
+			_reconnect_message = MenuRouter.session_notice
+			if not _recovering:
+				_recovering = true
+				gameplay_audio.reset()
+				if _audio_overlay.visible:
+					audio_settings.cancel()
+				if preview.settings_panel.visible:
+					preview.settings_panel.cancel()
+				reconnect_panel.show()
+				reconnect_panel.render(session.can_reconnect(), session.is_reconnecting(), session.reconnect_seconds_remaining(), _reconnect_message)
+				reconnect_panel.retry.grab_focus()
+			return
 		if _online_joining or (MenuRouter.lobby_intent == "online" and session.connection_state == "offline" and public_service.state in ["ready", "connected"]):
 			_online_joining = false
 			public_service.game_failed()
 			MenuRouter.goto("online", false)
 	elif kind in ["left", "hosted", "joined", "practice"]:
 		MenuRouter.session_notice = ""
+		if kind == "joined" and bool(details.get("reconnected", false)):
+			_resume_after_reconnect = true
+			return
 		if kind == "joined" and _online_joining:
 			_online_joining = false
 			public_service.game_connected()
 			session.set_loadout(PlayerProfile.active_loadout())
 			MenuRouter.goto("lobby", false)
+
+func _retry_connection() -> void:
+	if not _recovering or not session.can_reconnect() or session.is_reconnecting():
+		return
+	_reconnect_message = ""
+	var error := session.reconnect()
+	if error != OK:
+		_reconnect_message = "Could not reconnect. You can leave this match or retry while recovery is available."
 
 func _online_assignment(assignment: Dictionary) -> void:
 	if MenuRouter.lobby_intent != "online" or MenuRouter.current != "online" or public_service.state != "ready" or session.connection_state != "offline":

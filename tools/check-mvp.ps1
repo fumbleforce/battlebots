@@ -18,6 +18,7 @@ function Invoke-MvpTest {
 Invoke-MvpTest 'res://tests/simulation/content_smoke.gd' 'CONTENT PASS'
 Invoke-MvpTest 'res://tests/services/hosted_admission_test.gd' 'HOSTED ADMISSION PASS'
 Invoke-MvpTest 'res://tests/network/hosted_admission_session.tscn' 'HOSTED ADMISSION SESSION PASS' -Scene -RealTime
+Invoke-MvpTest 'res://tests/network/reconnect_session.gd' 'RECONNECT SESSION PASS' -RealTime
 Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_state.gd' 'HORIZONTAL SPINNER STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_visual.gd' 'HORIZONTAL VISUAL PASS'
 Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_physics.tscn' 'HORIZONTAL SPINNER PHYSICS PASS' -Scene
