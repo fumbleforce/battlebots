@@ -483,3 +483,13 @@ Starting goals: most 2v2 rounds finish in 90–180 seconds; at least two distinc
 | Schedule/team capacity | Two developers, each assisted by ChatGPT; available hours unspecified | Estimate from phases 0–1 measurements |
 
 The immediate implementation milestone is a graybox 50 × 50 arena with two remotely controlled rigid-body bots, a stable third-person camera, and one authoritative weapon. It must establish that contact feels good online before the project commits to its complete content catalogue.
+
+## Implemented arena increment — Lunar Outpost (20 September 2026)
+
+An optional Moon arena is implemented for practice and LAN hosting. It uses the
+50 m octagonal boundary, gently uneven regolith with flat spawn pads, a few small
+edge rocks, and 1.62 m/s² bot gravity. Crater ridges, outposts, flood towers, Earth,
+shadows, surface shading, decorative pebbles and ballistic dust form the visual
+setting. Online arena selection is server-authoritative; current public hosting
+remains Foundry. This does not imply all proposed arenas or hazards are complete.
+See [Moon handoff](coordination/A_MOON_ARENA.md).

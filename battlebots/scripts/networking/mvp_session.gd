@@ -50,6 +50,7 @@ var _effect_ids: Dictionary = {}
 var network_simulation := NetworkSimulator.new()
 var player_capacity := 4
 var match_mode := "teams"
+var arena_id := "foundry"
 var hosted_admission: HostedAdmission
 var hosted_config_refresh: Callable
 var _join_address := ""
@@ -66,9 +67,12 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(func() -> void: _transport_failed("Server disconnected"))
 	multiplayer.allow_object_decoding = false
 
-func host(port := 24567, listen := true, player_count := 4, mode := "teams", bind_address := "*") -> Error:
+func host(port := 24567, listen := true, player_count := 4, mode := "teams", bind_address := "*", selected_arena := "foundry") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
+	if selected_arena not in ["foundry", "moon"]:
+		return ERR_INVALID_PARAMETER
+	arena_id = selected_arena
 	_clear_reconnect()
 	if (mode == "teams" and player_count not in [2, 4, 10]) or (mode == "ffa" and (player_count < 4 or player_count > 8)) or mode not in ["teams", "ffa"]:
 		session_event.emit("error", {"message":"Choose 2, 4 or 10 team players, or an FFA limit of 4–8"})
@@ -123,9 +127,10 @@ func _join(address: String, port: int, token: String, admission_ticket: String) 
 	_join_address = address
 	_join_port = port
 	_hello_data = {"protocol":WireCodec.PROTOCOL, "build":WireCodec.BUILD, "content":registry.content_hash,
-		"token":token, "admission_ticket":admission_ticket}
+		"token":token, "admission_ticket":admission_ticket, "arena_rules":1}
 	_server = false
 	connection_state = "connecting"
+	arena_id = "foundry" # The server's validated baseline chooses the actual world.
 	multiplayer.multiplayer_peer = peer
 	_make_world()
 	return OK
@@ -156,15 +161,18 @@ func _clear_reconnect() -> void:
 	_reconnect_deadline = 0
 	_reconnecting = false
 
-func practice(draft: Dictionary = {}) -> Error:
+func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
 	_clear_reconnect()
 	var build := registry.starter() if draft.is_empty() else draft
+	if selected_arena not in ["foundry", "moon"]:
+		return ERR_INVALID_PARAMETER
 	if not registry.validate(build).valid:
 		return ERR_INVALID_DATA
 	_server = true
 	connection_state = "practice"
+	arena_id = selected_arena
 	_make_world()
 	local_entity = _admit(1, build)
 	var bot := world.spawn(local_entity, 0, 0, build)
@@ -264,6 +272,7 @@ func _disconnect() -> void:
 
 func _make_world() -> void:
 	world = AuthorityWorld.new()
+	world.arena_id = arena_id
 	world.name = "World"
 	add_child(world)
 
@@ -343,6 +352,9 @@ func _hello(packet: PackedByteArray) -> void:
 	var data := WireCodec.read_json(packet, 1024)
 	if data.get("protocol") != WireCodec.PROTOCOL or data.get("build") != WireCodec.BUILD or data.get("content") != registry.content_hash:
 		_rejected.rpc_id(peer, "Protocol, build or content version mismatch")
+		return
+	if arena_id == "moon" and data.get("arena_rules", 0) != 1:
+		_rejected.rpc_id(peer, "Update the game to join the Moon arena")
 		return
 	if hosted_admission != null and hosted_config_refresh.is_valid() and not hosted_config_refresh.call():
 		return
@@ -496,7 +508,7 @@ func _public_lobby() -> Dictionary:
 		slots.append({"entity_id":id, "peer":p.peer, "team":p.team, "ready":p.ready,
 			"connected":p.peer != 0, "loadout":p.loadout.duplicate(true)})
 	return {"slots":slots, "capacity":player_capacity, "mode":match_state.mode,
-		"minimum_players":4 if match_mode == "ffa" else player_capacity, "phase":match_state.phase}
+		"minimum_players":4 if match_mode == "ffa" else player_capacity, "phase":match_state.phase, "arena":arena_id}
 
 func _public_match() -> Dictionary:
 	# Frequent timer/phase updates carry round summaries. Detailed participant
@@ -555,7 +567,7 @@ func _start() -> void:
 
 func _send_baseline(peer: int) -> void:
 	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":_public_match(), "bots":_bot_snapshots(),
-		"server_tick":world.tick, "results":_results}))
+		"server_tick":world.tick, "results":_results, "arena":arena_id}))
 
 func _bot_snapshots() -> Dictionary:
 	var states := {}
@@ -568,6 +580,13 @@ func _baseline(packet: PackedByteArray) -> void:
 	if packet.size() > MAX_CONTROL_STATE_BYTES:
 		return
 	var data: Dictionary = bytes_to_var(packet)
+	var selected: Variant = data.get("arena", "foundry")
+	if not selected is String or selected not in ["foundry", "moon"]:
+		session_event.emit("error", {"message":"Unsupported arena from server"})
+		leave()
+		return
+	arena_id = selected
+	world.set_arena(arena_id)
 	lobby_view = data.lobby
 	player_capacity = int(lobby_view.capacity)
 	match_mode = "ffa" if lobby_view.mode == "ffa" else "teams"

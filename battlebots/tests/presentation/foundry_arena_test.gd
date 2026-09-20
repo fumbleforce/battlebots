@@ -40,7 +40,7 @@ func _run() -> void:
 	if DisplayServer.get_name() == "headless":
 		check(art.get_child_count() == 0, "Headless arena constructed presentation")
 	else:
-		check(art.get_child_count() > 30, "Foundry art did not build")
+		check(art.find_children("*", "Node3D", true, false).size() > 30, "Foundry art did not build")
 		if "--capture" in OS.get_cmdline_user_args():
 			await _capture(arena)
 	arena.queue_free()

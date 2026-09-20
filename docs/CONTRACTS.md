@@ -529,3 +529,20 @@ MVP app. SessionBotSource has an optional `input_allowed: Callable`; returning f
 submits brake+secondary cancellation. No gate retains the previous forwarding API.
 The app uses this to keep B's unmodified input collector safe during modal/focus
 suppression, countdown and elimination. B can later own this gate in its final UI.
+
+## Lunar Outpost arena contract (A, 20 September 2026)
+
+Practice and LAN hosting select `foundry` (default) or `moon` via a final optional
+`MvpSession.host(..., selected_arena)` parameter or `practice(draft, selected_arena)`.
+Hello advertises optional `arena_rules: 1`. A Moon host rejects peers without that
+capability before slot admission. Lobby and baseline add `arena`; absent baseline
+arena means Foundry, unknown/non-string values disconnect. RPC signatures, build12
+and protocol4 stay unchanged, preserving the deployed Foundry transport.
+
+`AuthorityWorld.arena_id` determines physical terrain and bot gravity_scale.
+Moon uses deterministic heightfield collision, four small rock colliders, existing
+18 spawn markers and octagonal boundaries, and gravity_scale `1.62/9.8`.
+Existing `DriveBody.model_config()` propagates gravity into replay. No BotCommand,
+BotView, drive/camera/control implementation or combat contract changes.
+Decorative meshes and particles remain client-only. See
+[Moon handoff](coordination/A_MOON_ARENA.md) for compatibility and evidence.

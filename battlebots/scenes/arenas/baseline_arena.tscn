@@ -1,6 +1,6 @@
 [gd_scene load_steps=53 format=3]
 
-[ext_resource type="Script" path="res://scripts/arena/foundry_visuals.gd" id="1_foundry"]
+[ext_resource type="Script" path="res://scripts/arena/arena_environment.gd" id="1_foundry"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.13, 0.17, 0.20, 1)

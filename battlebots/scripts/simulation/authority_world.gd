@@ -7,9 +7,24 @@ var weapons := CombatWorld.new()
 var tick := 0
 var credited: Dictionary = {}
 var arena: Node3D
+var arena_id := "foundry"
 
 func _ready() -> void:
-	arena = preload("res://scenes/arenas/baseline_arena.tscn").instantiate()
+	_build_arena()
+
+func set_arena(id: String) -> void:
+	assert(id in ["foundry", "moon"])
+	if id == arena_id:
+		return
+	clear_bots()
+	arena_id = id
+	if is_instance_valid(arena):
+		remove_child(arena)
+		arena.free()
+	_build_arena()
+
+func _build_arena() -> void:
+	arena = (preload("res://scenes/arenas/moon_arena.tscn") if arena_id == "moon" else preload("res://scenes/arenas/baseline_arena.tscn")).instantiate()
 	arena.name = "Arena"
 	if DisplayServer.get_name() == "headless":
 		_strip_presentation(arena)
@@ -48,6 +63,8 @@ func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 
 		return null
 	bot.name = "Bot%d" % id
 	add_child(bot)
+	# B's published DriveBody replay_config already includes gravity_scale.
+	bot.body.gravity_scale = 1.62 / 9.8 if arena_id == "moon" else 1.0
 	var marker_index := slot + 1 if team_size == 5 else (2 if slot == 0 else 4)
 	var marker_path := "SpawnPoints/FFA_%d" % (slot + 1) if mode == "ffa" else "SpawnPoints/Team%d_%d" % [team + 1, marker_index]
 	var marker := arena.get_node(marker_path) as Node3D

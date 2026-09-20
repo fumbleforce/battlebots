@@ -609,3 +609,14 @@ controls; A owns general menus, world and audio under the revised division.
 
 Earlier measurements and incremental handoffs are retained in
 [the dated archive](archive/A_HANDOFF_2026-09-19.md); that archive is historical.
+
+## A — Lunar Outpost arena, 20 September 2026
+
+`codex/a-moon-arena` adds an octagonal Moon battlefield with sculpted terrain,
+regolith shading, pebbles, low-gravity dust, floodlights/shadows, outposts and Earth.
+Main menu ARENA selects Moon for practice and LAN hosting; online follows the
+server, with deployed hosting still Foundry. Moon changes physical terrain and bot
+gravity to 1.62 m/s². Existing body gravity-scale/replay support is consumed without
+B implementation edits. Baseline arena selection and capability negotiation keep
+older Foundry hosting compatible. See [implementation and validation](coordination/A_MOON_ARENA.md).
+Human lunar handling/balance and low-end performance remain playtest work.

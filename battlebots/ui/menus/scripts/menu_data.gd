@@ -18,7 +18,10 @@ const MODES := [
 	{"id":"5v5","big":"5V5","tag":"PLAYTEST","title":"LARGE TEAMS","desc":"Two teams of five in a private match.","meta1":"First to 2","meta2":"10 players","tint":Color("#3A4452"),"rules":"5v5 · Four-minute rounds · First to two · Five-round cap","enabled":true},
 	{"id":"ffa","big":"FFA","tag":"PLAYTEST","title":"FREE FOR ALL","desc":"Every bot for itself. Start with 4–8 players.","meta1":"One round","meta2":"4–8 players","tint":Color("#3A4452"),"rules":"Free-for-all · One five-minute round · No overtime","enabled":true},
 ]
-const ARENAS := [{"name":"THE FOUNDRY","sub":"50 × 50 metres · No hazards","size":"50 × 50 m ARENA","image":preload("res://ui/menus/art/arena_foundry.jpg"),"hazards":["Flat arena with perimeter walls","No active arena hazards","Concept art; playable arena is a graybox"],"enabled":true}]
+const ARENAS := [
+	{"name":"THE FOUNDRY","sub":"Industrial octagon · Standard gravity","size":"50 m ACROSS · 9.8 m/s²","image":preload("res://ui/menus/art/arena_foundry.jpg"),"hazards":["Flat steel combat floor","Standard gravity · No active hazards","Armored cage and spectator galleries"],"enabled":true},
+	{"name":"LUNAR OUTPOST","sub":"Moon surface · Low gravity","size":"50 m ACROSS · 1.62 m/s²","image":preload("res://ui/menus/art/arena_moon.png"),"art":"LUNAR OUTPOST","hazards":["Uneven regolith and small edge rocks","Lunar gravity · Longer airtime","Ballistic dust, floodlights and Earth overhead"],"enabled":true}
+]
 
 static func catalogue(registry: ContentRegistry) -> Dictionary:
 	var categories: Array = []

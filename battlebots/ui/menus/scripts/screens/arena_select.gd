@@ -3,11 +3,12 @@ extends MenuScreen
 const ARENA_TILE := preload("res://ui/menus/components/arena_tile.tscn")
 const HAZARD_TEX := preload("res://ui/menus/art/hazard_stripe.png")
 var _text_scale := 1.0
+const CHOICE = preload("res://scripts/arena/arena_scenery.gd")
 
 func apply_text_scale(factor: float) -> void:
 	_text_scale = factor
 	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
-	%Tiles.columns = 2 if factor > 1.0 else 3
+	%Tiles.columns = 2
 	%DetailName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Layout/Header/Row/TitleBox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -23,9 +24,14 @@ func _ready() -> void:
 		body_style.set("content_margin_" + side, $Layout/Body.get_theme_constant("margin_" + side))
 	$Layout/Body.add_theme_stylebox_override("panel", body_style)
 	super()
-	set_step(3)
-	var bot: Dictionary = PlayerProfile.bots[MenuRouter.match_setup.bot]
-	%Eyebrow.text = "STEP 3 OF 4 · %s · %s" % [MenuData.mode_by_id(MenuRouter.match_setup.mode).title, bot.name]
+	%Steps.hide()
+	$Layout/Footer/Row/Note2.hide()
+	$Layout/Body/Row/Details/Col/Text/Col/HazardsBlock/Label.text = "ENVIRONMENT"
+	$Layout/Header/Row/Sep.hide()
+	$Layout/Header/Row/TitleBox/Title.text = "CHOOSE ARENA"
+	%Eyebrow.text = "PRACTICE & LAN HOSTING · ONLINE USES THE SERVER'S ARENA"
+	MenuRouter.match_setup.arena = CHOICE.IDS.find(CHOICE.load_choice())
+	%Tiles.columns = 2
 	var group := ButtonGroup.new()
 	for i in MenuData.ARENAS.size():
 		var tile := ARENA_TILE.instantiate()
@@ -37,7 +43,7 @@ func _ready() -> void:
 			tile.button_pressed = true
 			tile.grab_focus.call_deferred()
 	_select(MenuRouter.match_setup.arena)
-	%Next.text = "START PRACTICE" if MenuRouter.match_setup.mode == "training" else "CONTINUE TO LOBBY"
+	%Next.text = "USE THIS ARENA"
 	%Next.pressed.connect(_next)
 
 
@@ -74,7 +80,8 @@ func _select(i: int) -> void:
 	preload("res://scripts/ui/menu_text_scale.gd").apply(%Hazards, _text_scale)
 
 func _next() -> void:
-	if MenuRouter.match_setup.mode == "training":
-		MenuRouter.start_practice()
-	else:
-		MenuRouter.goto("lobby")
+	var error := CHOICE.save_choice(CHOICE.IDS[MenuRouter.match_setup.arena])
+	if error != OK:
+		%Eyebrow.text = "Could not save arena: " + error_string(error)
+		return
+	MenuRouter.goto("main")

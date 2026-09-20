@@ -124,6 +124,12 @@ Main now contains the integrated game; begin the next task from updated origin/m
 
 ## Developer A — current coordination
 
+- **A Moon arena:** isolated `codex/a-moon-arena` adds Lunar Outpost terrain, low gravity
+  and general-menu selection, preserving octagonal bounds/spawns
+  and Foundry wire compatibility. Moon uses existing body gravity_scale and replay. Reserves arena scripts/materials/scenes, selector menu
+  files and tests. No B assets, controls or combat edits. See
+  [Moon coordination](coordination/A_MOON_ARENA.md).
+
 - **1v1 core HUD implemented:** `codex/a-duel-hud` adds read-only resources,
   component diagram, weapon/recovery state, immobilization, heading and duel bot
   status plus original-theme round presentation. B-owned combat/control/camera/

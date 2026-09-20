@@ -8,6 +8,7 @@ const STEEL_SCAN = preload("res://assets/textures/arena/foundry_steel_albedo.png
 var _batches: Dictionary = {}
 var _materials: Dictionary = {}
 var _side := Transform3D.IDENTITY
+@export var arena_path: NodePath = NodePath("..")
 
 func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
@@ -81,7 +82,7 @@ func _build() -> void:
 	_material("amber", Color("ff9b37"), 2.3)
 	_material("cyan", Color("52bfd5"), 1.5)
 	_material("redlight", Color("ff3d22"), 2.0)
-	var arena := get_parent()
+	var arena := get_node(arena_path)
 	var floor_mesh := arena.get_node_or_null("Floor/Mesh") as MeshInstance3D
 	if floor_mesh:
 		var floor_mat := ShaderMaterial.new()

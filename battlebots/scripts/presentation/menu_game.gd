@@ -673,7 +673,7 @@ func start_practice() -> void:
 	if draft.is_empty() or not session.registry.validate(draft).valid:
 		show_notice("Repair and select a valid build in the garage before starting practice.")
 		return
-	var error := session.practice(draft)
+	var error := session.practice(draft, preload("res://scripts/arena/arena_scenery.gd").load_choice())
 	if error == OK:
 		resume_gameplay()
 	else:

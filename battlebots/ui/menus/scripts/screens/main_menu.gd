@@ -91,6 +91,16 @@ func _ready() -> void:
 	resized.connect(_layout_navigation)
 	_layout_navigation()
 	online.grab_focus()
+	var arenas := Button.new()
+	arenas.name = "ArenaChoice"
+	arenas.text = "ARENA  /  " + ("LUNAR OUTPOST" if preload("res://scripts/arena/arena_scenery.gd").load_choice() == "moon" else "THE FOUNDRY")
+	arenas.theme_type_variation = &"GhostButton"
+	arenas.custom_minimum_size.y = 54
+	arenas.add_theme_font_size_override("font_size",24)
+	arenas.pressed.connect(MenuRouter.goto.bind("arena_select"))
+	$Layout/Columns/Right.add_child(arenas)
+	arenas.owner = self
+	arenas.unique_name_in_owner = true
 
 func _soft_hover(button: Button) -> void:
 	var hover := StyleBoxFlat.new()

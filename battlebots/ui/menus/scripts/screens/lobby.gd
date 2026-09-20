@@ -274,7 +274,7 @@ func host_session() -> void:
 		return
 	_host_port = int(port.value)
 	var count := _configured_capacity()
-	var error := session.host(_host_port, true, count, "ffa" if MenuRouter.match_setup.mode == "ffa" else "teams")
+	var error := session.host(_host_port, true, count, "ffa" if MenuRouter.match_setup.mode == "ffa" else "teams", "*", preload("res://scripts/arena/arena_scenery.gd").load_choice())
 	if error == OK:
 		session.set_loadout(draft)
 		_notice = "Share your LAN address and port %d, or your tunnel's public address and UDP port." % _host_port
@@ -394,6 +394,12 @@ func refresh() -> void:
 	var mode := str(session.lobby_view.get("mode", "ffa" if MenuRouter.match_setup.mode == "ffa" else ("1v1" if capacity == 2 else ("5v5" if capacity == 10 else "2v2")))) if valid else ""
 	var ffa := mode == "ffa"
 	var connected := state in ["hosting", "connected"]
+	var arena_id: String = session.lobby_view.get("arena", "foundry") if connected else (preload("res://scripts/arena/arena_scenery.gd").load_choice() if MenuRouter.lobby_intent == "host" else "foundry")
+	var arena_data: Dictionary = MenuData.ARENAS[1 if arena_id == "moon" else 0]
+	%ArenaName.text = arena_data.name
+	%ArenaImage.texture = arena_data.image
+	$Layout/Body/Row/Match/ArenaCard/Caption/Row/Vote.text = "LUNAR GRAVITY" if arena_id == "moon" else "STANDARD GRAVITY"
+	$Layout/Body/Row/Match/Rules/Hazards/Col/Value.text = "Uneven ground" if arena_id == "moon" else "None"
 	var known := connected and session.lobby_view.has("mode")
 	var per_team := ceili(capacity / 2.0)
 	var teams: Array = [[], []]
