@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-camera-round-lifecycle`, rebased onto main `7ce48ab`.
-**Latest increment:** Independent practice/source-replacement and real ENet duel camera/input lifecycle checks pass. See [evidence and shutdown limitation](coordination/B_CAMERA_ROUND_LIFECYCLE.md).
+**Latest B task:** `codex/b-garage-options`, from main `cffc860`.
+**Latest increment:** Height-filling garage pages, unlocked options and a single offered authored body; other parts persist through body edits. See [behavior, compatibility and validation](coordination/B_GARAGE_OPTIONS.md).
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).

@@ -85,6 +85,11 @@ func _ready() -> void:
 		weapon_visual.name = "Weapon"
 		presentation.add_child(weapon_visual)
 		weapon_visual.assemble(stats.weapon, stats.size)
+		if body.walker:
+			var legs := WalkerLegs.new()
+			presentation.add_child(legs)
+			legs.exclusions = [body.get_rid()]
+			legs.assemble(stats.size, material, SawbladeConfig.defaults())
 	previous_pose = body.global_transform
 	last_floor = body.global_position
 	body.freeze = not simulated

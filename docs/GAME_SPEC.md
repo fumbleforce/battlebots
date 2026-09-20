@@ -146,6 +146,8 @@ Target body footprint is 1.5–2.2 meters long and 1.2–1.8 meters wide. These 
 
 ### Initial part catalogue
 
+**User revision, 20 September 2026:** the garage offers only the authored Sawblade body; Compact and size/model variants are removed from selection. Body changes preserve other selected parts and appearance. All existing options are selectable; mass/power validation remains. Garage pages fill available vertical space before overflowing to another page. The original chassis seeds below remain historical/legacy compatibility data. See [current implementation](coordination/B_GARAGE_OPTIONS.md).
+
 All statistics in these tables are authoring seeds, subject to the balancing process in section 16.
 
 | Category | Part | Mass kg | Installed power | Identity |

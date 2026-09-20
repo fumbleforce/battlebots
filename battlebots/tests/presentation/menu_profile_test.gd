@@ -26,11 +26,11 @@ func run() -> void:
 	check(profile.bots.size() == 4 and profile.bots[3].name == "Office Striker","Three starters and saved build loaded")
 	profile.active_bot = 3
 	var chassis: Dictionary = profile.catalogue.parts[0]
-	profile.equip("parts",chassis,chassis.items[2])
+	profile.equip("parts",chassis,chassis.items[0])
 	var drive: Dictionary = profile.catalogue.parts[1]
 	profile.equip("parts",drive,drive.items[3])
 	var weapon: Dictionary = profile.catalogue.parts[2]
-	profile.equip("parts",weapon,weapon.items[2])
+	profile.equip("parts",weapon,weapon.items[1])
 	var armor: Dictionary = profile.catalogue.parts[3]
 	profile.equip("parts",armor,armor.items[2])
 	check(profile.active_loadout().is_empty() and not profile.bots[3].valid,"Overweight combination retained but cannot play")
@@ -41,7 +41,7 @@ func run() -> void:
 	check(profile.save_active("Repaired") == OK,"Repaired build saves")
 	var detached: Dictionary = profile.active_loadout()
 	detached.parts.weapon = "bogus"
-	check(profile.active_loadout().parts.weapon == "hammer","Returned draft is detached")
+	check(profile.active_loadout().parts.weapon == "horizontal_spinner","Returned draft is detached")
 	var file := FileAccess.open(path,FileAccess.WRITE)
 	file.store_string(JSON.stringify({"schema_version":1,"loadouts":[{"name":"Broken"}]}))
 	file.close()

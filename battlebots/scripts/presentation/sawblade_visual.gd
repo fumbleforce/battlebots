@@ -16,6 +16,7 @@ var _previous_pose := Transform3D.IDENTITY
 var _have_pose := false
 var _tracks := true
 var walker_legs: WalkerLegs
+var fallback_weapon: MvpWeaponVisual
 
 func assemble(draft: Dictionary, size: Vector3) -> void:
 	if hammer_samples.is_empty():
@@ -34,7 +35,14 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	_tracks = draft.parts.drive == "traction"
 	var config: Dictionary = draft.cosmetics.sawblade
 	for weapon: String in ["saw", "hammer", "ramp"]:
-		nodes["Module_weapon_" + weapon].visible = weapon == SawbladeConfig.WEAPONS[kind]
+		nodes["Module_weapon_" + weapon].visible = weapon == SawbladeConfig.WEAPONS.get(kind, "")
+	if not SawbladeConfig.WEAPONS.has(kind):
+		fallback_weapon = MvpWeaponVisual.new()
+		add_child(fallback_weapon)
+		# Canonical weapon geometry uses body meters, outside the authored art scale.
+		fallback_weapon.scale = Vector3.ONE / scale
+		fallback_weapon.position.y = size.y * 0.5 / scale.y
+		fallback_weapon.assemble(kind, size)
 	nodes.Module_drive_tracks.visible = _tracks
 	nodes.Module_drive_wheels.visible = draft.parts.drive in ["standard_wheels", "agile"]
 	nodes.Module_armor_side_reference.visible = config.armor_side == 1
@@ -97,6 +105,8 @@ func set_hammer_frame(frame: float) -> void:
 		nodes[key].transform = Transform3D(Basis(rotation).scaled(stretch), origin)
 
 func show_state(view: BotView, delta: float) -> void:
+	if fallback_weapon != null:
+		fallback_weapon.show_state(view, delta)
 	var disabled := view.eliminated or view.weapon_state == "disabled"
 	if kind == "hammer":
 		var frame := 1.0

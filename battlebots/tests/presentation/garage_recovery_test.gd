@@ -122,7 +122,7 @@ func run() -> void:
 	check(page_text(panel).contains("Backup restored"), "Reviewed restore succeeds")
 	check(FileAccess.get_file_as_string(path) == backup and FileAccess.get_file_as_string(path + ".bak") == backup, "Recovery restores exact backup and retains backup")
 	check(profile.loadouts[profile.active_bot].name == "Recovered local edit" and profile.can_undo(), "Backup recovery retains dirty draft and Undo")
-	check(screen.get_node("%Bays").text.contains(str(profile.loadouts.size())) and screen.get_node("%BotList").get_child_count() <= 2, "Garage count and active build page refresh after retained recovery")
+	check(screen.get_node("%Bays").text.contains(str(profile.loadouts.size())) and screen.get_node("%BotList").get_children().any(func(row): return row.visible and row.button_pressed), "Garage count and active build page refresh after retained recovery")
 	check(profile.save_active("Recovered local edit") == OK, "Successful recovery unblocks save despite invalid sibling")
 	check(store.load_saved().loadouts[1] == "malformed sibling", "Post-recovery save retains malformed sibling")
 	for _frame: int in 3: await get_tree().process_frame

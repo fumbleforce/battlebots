@@ -25,7 +25,7 @@ func starter(controller := false) -> Dictionary:
 func duelist() -> Dictionary:
 	var draft := starter()
 	draft.name = "Duelist"
-	draft.parts = {"chassis":"compact", "drive":"agile", "weapon":"hammer",
+	draft.parts = {"chassis":"balanced", "drive":"agile", "weapon":"hammer",
 		"armor":"standard_armor", "utility":"cooling_pack"}
 	return draft
 
@@ -65,10 +65,6 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 	elif cosmetics.size() == 2:
 		if not SawbladeConfig.valid(cosmetics.get("sawblade")):
 			result.reasons.append("Invalid Sawblade Tank appearance")
-		elif selected.get("weapon") not in SawbladeConfig.WEAPONS:
-			result.reasons.append("Sawblade Tank supports Saw, Hammer or Ramp (lifter)")
-	if selected.get("drive") == "walker" and (not cosmetics is Dictionary or not cosmetics.has("sawblade")):
-		result.reasons.append("Walking legs require the Sawblade Tank vehicle")
 	if not result.reasons.is_empty():
 		return result
 	var chassis: Dictionary = parts[selected.chassis]

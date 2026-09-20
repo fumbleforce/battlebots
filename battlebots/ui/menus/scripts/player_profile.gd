@@ -35,10 +35,16 @@ func reload() -> void:
 	_read_errors = not errors.is_empty() or loaded.restored_backup
 	_saved = loaded.loadouts.duplicate(true)
 	loadouts = [SawbladeConfig.starter(registry),registry.starter(true),registry.duelist()]
+	for preset: Dictionary in loadouts:
+		preset.parts.chassis = "balanced"
+		_ensure_body(preset)
 	_save_indices = [-1,-1,-1]
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)
+	# Retained legacy part IDs remain readable; only the offered body appearance changes.
+	for draft: Dictionary in loadouts:
+		if registry.validate(draft).valid: _ensure_body(draft)
 	if loaded.restored_backup: errors.append("Backup loaded for review. Open Saved File to restore it before saving.")
 	active_bot = clampi(active_bot,0,loadouts.size()-1)
 	_draft_baseline = loadouts.duplicate(true)
@@ -50,8 +56,8 @@ func reload_retaining_drafts() -> int:
 	var previous_active := active_bot
 	var previous_draft: Dictionary = loadouts[active_bot].duplicate(true)
 	for index: int in loadouts.size():
-		var changed := index >= _draft_baseline.size() or \
-			JSON.stringify(loadouts[index]) != JSON.stringify(_draft_baseline[index])
+		var changed: bool = index >= _draft_baseline.size() or \
+			not _same_draft(loadouts[index], _draft_baseline[index])
 		var needs_copy: bool = changed or (index >= 3 and _save_indices[index] < 0)
 		if needs_copy or not _undo_history.get(index, []).is_empty() or not _redo_history.get(index, []).is_empty():
 			retained.append({"draft":loadouts[index].duplicate(true), "index":index,
@@ -62,7 +68,7 @@ func reload_retaining_drafts() -> int:
 	# Prefer the exact unchanged build if disk order changed.
 	active_bot = 0
 	for index: int in loadouts.size():
-		if JSON.stringify(loadouts[index]) == JSON.stringify(previous_draft):
+		if _same_draft(loadouts[index], previous_draft):
 			active_bot = index
 			break
 	var retained_count := 0
@@ -73,7 +79,7 @@ func reload_retaining_drafts() -> int:
 			for candidate: int in loadouts.size():
 				if (_save_indices[candidate] >= 0) != entry.saved: continue
 				if _undo_history.has(candidate) or _redo_history.has(candidate): continue
-				if JSON.stringify(loadouts[candidate]) == JSON.stringify(entry.draft):
+				if _same_draft(loadouts[candidate], entry.draft):
 					history_target = candidate
 					break
 		if history_target >= 0:
@@ -163,16 +169,16 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 		selected = str(raw.get("paint" if tab == "paint" else cat.slot,""))
 	for item: Dictionary in cat.items:
 		if item.id == selected: return item.name
+	if tab == "parts" and cat.slot == "chassis" and registry.parts.has(selected) and registry.parts[selected].category == "chassis":
+		return "Legacy body"
 	return "Unavailable" if tab == "decals" else "Missing / invalid"
 
 func item_state(tab: String, cat: Dictionary, item: Dictionary) -> String:
-	var model_enabled := SawbladeConfig.enabled(loadouts[active_bot])
-	if tab == "parts" and cat.slot == "weapon" and model_enabled and item.id not in SawbladeConfig.WEAPONS: return "lock"
-	if tab == "parts" and cat.slot == "drive" and item.id == "walker" and not model_enabled: return "lock"
-	if tab == "paint" and cat.slot == "paint" and model_enabled: return "lock"
-	if (tab == "decals" and cat.slot != "model") or (tab == "paint" and cat.slot != "paint"):
-		if not SawbladeConfig.enabled(loadouts[active_bot]): return "lock"
-	return "eq" if equipped_name(tab,cat) == item.name else "own"
+	return "eq" if equipped_name(tab, cat) == item.name else "own"
+
+func _ensure_body(draft: Dictionary) -> void:
+	if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {"paint":"cyan"}
+	if not SawbladeConfig.enabled(draft): draft.cosmetics["sawblade"] = SawbladeConfig.defaults()
 
 func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 	if tab not in ["parts","paint","decals"]: return
@@ -183,20 +189,25 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 		draft.parts[cat.slot] = item.id
 	elif tab == "decals":
 		if cat.slot == "model":
-			if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {"paint":"cyan"}
-			if item.id == "sawblade":
-				draft.cosmetics["sawblade"] = SawbladeConfig.defaults()
-				if not draft.get("parts") is Dictionary: draft.parts = {}
-				if draft.parts.get("weapon") not in SawbladeConfig.WEAPONS: draft.parts.weapon = "saw"
-			else: draft.cosmetics.erase("sawblade")
-		elif SawbladeConfig.enabled(draft): draft.cosmetics.sawblade[cat.slot] = int(item.id)
+			if item.id != "sawblade": return
+			_ensure_body(draft)
+		elif cat.slot in SawbladeConfig.OPTIONS:
+			_ensure_body(draft)
+			draft.cosmetics.sawblade[cat.slot] = int(item.id)
 	elif cat.slot != "paint":
-		if not SawbladeConfig.enabled(draft): return
+		if cat.slot not in SawbladeConfig.COLORS: return
+		_ensure_body(draft)
 		draft.cosmetics.sawblade[cat.slot] = item.rgba.duplicate()
 	else:
 		if item.id not in ["cyan","orange","white","red"]: return
-		if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {}
+		_ensure_body(draft)
 		draft.cosmetics.paint = item.id
+		var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
+		var color := Color(colors[item.id]).srgb_to_linear()
+		for channel: String in ["paint_primary", "paint_secondary"]:
+			draft.cosmetics.sawblade[channel] = [color.r, color.g, color.b, 1.0]
+	if tab == "parts" and cat.slot == "chassis": _ensure_body(draft)
+
 	# Preserve invalid combinations for repair; never silently replace selected parts.
 	if not _record_edit(draft): return
 	loadouts[active_bot] = draft
@@ -207,7 +218,7 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 func set_sawblade_color(channel: String, color: Color) -> void:
 	if channel not in SawbladeConfig.COLORS: return
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
-	if not SawbladeConfig.enabled(draft): return
+	_ensure_body(draft)
 	var linear := color.srgb_to_linear()
 	draft.cosmetics.sawblade[channel] = [linear.r, linear.g, linear.b, 1.0]
 	if not _record_edit(draft): return
@@ -281,3 +292,8 @@ func _refresh_bots() -> void:
 		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg"),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":"Brake · Space","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
 		bots[-1]["retained"] = _retained_drafts.has(index)
 		if _retained_drafts.has(index): bots[-1].cls = "UNSAVED COPY" + (" · REPAIR REQUIRED" if not validation.valid else "")
+
+func _same_draft(a: Dictionary, b: Dictionary) -> bool:
+	# JSON disk reads turn integer module choices into floats. Compare the persisted
+	# representation so a saved build does not become another retained draft.
+	return JSON.stringify(JSON.parse_string(JSON.stringify(a))) == JSON.stringify(JSON.parse_string(JSON.stringify(b)))

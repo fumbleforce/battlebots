@@ -29,14 +29,14 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		var items: Array = []
 		for id: String in registry.parts:
 			var part: Dictionary = registry.parts[id]
-			if part.category == slot:
+			if part.category == slot and (slot != "chassis" or id == "balanced"):
 				items.append({"id":id,"name":id.capitalize(),"default":"own","desc":"%s · %.0f kg · %.0f installed power. All functional parts are available." % [id.capitalize(),part.mass,part.power],"d":{}})
 		categories.append({"label":slot.to_upper(),"slot":slot,"items":items})
 	var paints: Array = []
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 	for id: String in colors:
-		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Classic bot paint. For Sawblade Tank, select Primary, Secondary, Metal or Rubber. Paint has no performance effect."})
-	var paint_categories: Array = [{"label":"CLASSIC PAINT","slot":"paint","items":paints}]
+		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Apply this paint to the body and secondary panels. Individual channels can be adjusted separately; paint has no performance effect."})
+	var paint_categories: Array = [{"label":"OVERALL PAINT","slot":"paint","items":paints}]
 	for channel: String in SawbladeConfig.COLORS:
 		var choices: Array = []
 		var original: Array = SawbladeConfig.defaults()[channel]
@@ -47,9 +47,7 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 			choices.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],
 				"rgba":[color.r,color.g,color.b,1.0],"desc":"Tint this channel across all Sawblade Tank modules."})
 		paint_categories.append({"label":channel.trim_prefix("paint_").to_upper(),"slot":channel,"items":choices})
-	var vehicle: Array = [{"label":"VEHICLE", "slot":"model", "items":[
-		{"id":"sawblade","name":"Sawblade Tank","default":"own","desc":"Modular Blender vehicle. Equips the saw if the current weapon is incompatible. Tracks use Traction; other drive packages use four wheels."},
-		{"id":"classic","name":"Classic bot","default":"own","desc":"Original primitive chassis; supports all five weapons."}]}]
+	var vehicle: Array = []
 	for slot: String in SawbladeConfig.OPTIONS:
 		var choices: Array = []
 		for index: int in SawbladeConfig.OPTIONS[slot].size():
@@ -58,14 +56,17 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		vehicle.append({"label":slot.replace("_", " ").to_upper(),"slot":slot,"items":choices})
 	for category: Dictionary in categories:
 		for item: Dictionary in category.items:
-			if item.id == "traction": item.name = "Tracks · Traction"
+			if item.id == "balanced":
+				item.name = "Sawblade body"
+				item.desc = "Authored chassis body. Changing the body preserves all other selected parts and appearance options."
+			elif item.id == "traction": item.name = "Tracks · Traction"
 			elif item.id == "standard_wheels": item.name = "Four wheels · Standard"
 			elif item.id == "agile": item.name = "Four wheels · Agile"
 			elif item.id == "lifter": item.name = "Ramp · Lifter"
 			elif item.id == "walker":
 				item.name = "Four walking legs"
 				item.desc = "Sawblade Tank articulated legs · 32 kg · 35 power · 4 m/s. Ray-supported stance climbs steps up to 0.45 m; feet adapt to ground and slopes."
-			if item.id in ["vertical_spinner", "horizontal_spinner"]: item.desc += " Classic bot only."
+
 	return {"parts":categories,"paint":paint_categories,"decals":vehicle}
 
 static func mode_by_id(id: String) -> Dictionary:

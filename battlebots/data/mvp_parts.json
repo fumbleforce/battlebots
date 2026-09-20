@@ -1,5 +1,5 @@
 {
-  "revision": 5,
+  "revision": 6,
   "parts": [
     {"id":"compact","category":"chassis","mass":25,"power":0,"core":220,"size":[1.2,0.5,1.5]},
     {"id":"balanced","category":"chassis","mass":30,"power":0,"core":260,"size":[1.6,0.5,2.0]},

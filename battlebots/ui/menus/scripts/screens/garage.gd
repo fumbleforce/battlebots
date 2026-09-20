@@ -7,6 +7,9 @@ var recovery_button: Button
 var notice: Label
 var _text_factor := 1.0
 var _build_page := 0
+var _initial_focus_pending := true
+var _build_capacity := 2
+var _build_ranges: Array[Vector2i] = [Vector2i(0, 2)]
 var _displayed_active := -1
 var _build_pager: HBoxContainer
 var _page_label: Label
@@ -42,7 +45,7 @@ func _ready() -> void:
 	recovery_button.pressed.connect(func(): recovery_panel.open(PlayerProfile))
 	PlayerProfile.inventory_changed.connect(_refresh_builds)
 	_prepare_text_layout()
-	_build_page = PlayerProfile.active_bot / 2
+	_build_page = _page_for_item(_build_ranges, PlayerProfile.active_bot)
 	_refresh_builds()
 	apply_text_scale(_text_factor)
 	_focus_selected.call_deferred()
@@ -58,14 +61,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	super(event)
 
 func _refresh_builds() -> void:
-	if _displayed_active != PlayerProfile.active_bot: _build_page = PlayerProfile.active_bot / 2
+	if _displayed_active != PlayerProfile.active_bot: _build_page = _page_for_item(_build_ranges, PlayerProfile.active_bot)
 	clear_children(%BotList)
 	var group := ButtonGroup.new()
-	_build_page = clampi(_build_page, 0, (PlayerProfile.bots.size() - 1) / 2)
-	for i in range(_build_page * 2, mini(_build_page * 2 + 2, PlayerProfile.bots.size())):
+	_build_page = clampi(_build_page, 0, _build_ranges.size() - 1)
+	for i in PlayerProfile.bots.size():
 		var row := BOT_ROW.instantiate()
 		%BotList.add_child(row)
 		row.setup(PlayerProfile.bots[i])
+		row.visible = i >= _build_ranges[_build_page].x and i < _build_ranges[_build_page].y
 		var pad: Control = row.get_node("Pad")
 		pad.minimum_size_changed.connect(_fit_button_content.bind(row, pad))
 		row.button_group = group
@@ -74,9 +78,9 @@ func _refresh_builds() -> void:
 	%Bays.text = "%d builds · 12 saved max" % PlayerProfile.bots.size()
 	notice.text = "Build/file needs attention. Inspect SAVED FILE or customize the selected build." if not PlayerProfile.errors.is_empty() else ""
 	notice.visible = not notice.text.is_empty()
-	_page_label.text = "%d / %d" % [_build_page + 1, ceili(PlayerProfile.bots.size() / 2.0)]
+	_page_label.text = "%d / %d" % [_build_page + 1, _build_ranges.size()]
 	_build_pager.get_child(0).disabled = _build_page == 0
-	_build_pager.get_child(2).disabled = (_build_page + 1) * 2 >= PlayerProfile.bots.size()
+	_build_pager.get_child(2).disabled = _build_page + 1 >= _build_ranges.size()
 	_select(PlayerProfile.active_bot)
 	apply_text_scale(_text_factor)
 
@@ -167,10 +171,11 @@ func _prepare_text_layout() -> void:
 func _page_builds(direction: int) -> void:
 	_build_page += direction
 	_refresh_builds()
-	%BotList.get_child(0).grab_focus()
+	%BotList.get_child(_build_ranges[_build_page].x).grab_focus()
 
 
 func apply_text_scale(factor: float) -> void:
+	_pagination_frames = 4
 	_text_factor = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
 	MenuTextScale.apply(self, _text_factor)
 	if not is_instance_valid(build_preview) or not is_instance_valid(recovery_panel): return
@@ -190,3 +195,96 @@ func apply_text_scale(factor: float) -> void:
 func _fit_button_content(button: Control, pad: Control) -> void:
 	if is_instance_valid(button) and is_instance_valid(pad):
 		button.custom_minimum_size.y = maxf(106, pad.get_combined_minimum_size().y)
+
+var _pagination_frames := 4
+var _pagination_geometry: Array = []
+
+func _process(_delta: float) -> void:
+	if not is_instance_valid(_build_pager) or not is_visible_in_tree(): return
+	var geometry: Array = [size, $Layout/Header.size, $Layout/Footer.size, %BotList.size.x]
+	if geometry != _pagination_geometry:
+		_pagination_geometry = geometry
+		_pagination_frames = 4
+	if _pagination_frames <= 0: return
+	_pagination_frames -= 1
+	var heights: Array[float] = []
+	for row: Control in %BotList.get_children():
+		var was_visible := row.visible
+		row.show()
+		row.size.x = %BotList.size.x
+		row.get_node("Pad").size.x = row.size.x
+		_measure_hidden_content(row.get_node("Pad"))
+		row.visible = was_visible
+		_fit_button_content(row, row.get_node("Pad"))
+		heights.append(row.get_combined_minimum_size().y)
+	var body: MarginContainer = $Layout/Body
+	var available: float = size.y - $Layout/Header.size.y - $Layout/Footer.size.y
+	available -= body.get_theme_constant("margin_top") + body.get_theme_constant("margin_bottom")
+	var column: VBoxContainer = %BotList.get_parent()
+	var siblings := 0
+	for sibling: Control in column.get_children():
+		if sibling == %BotList or sibling == _build_pager or not sibling.visible: continue
+		available -= sibling.get_combined_minimum_size().y
+		siblings += 1
+	var separation := column.get_theme_constant("separation")
+	available -= siblings * separation
+	var gap: int = %BotList.get_theme_constant("separation")
+	var previous_focus := get_viewport().gui_get_focus_owner()
+	var restore_list_focus := previous_focus != null and %BotList.is_ancestor_of(previous_focus)
+	var ranges := _pack_pages(heights, available, available - _build_pager.get_combined_minimum_size().y - separation, gap, 1)
+	if ranges != _build_ranges:
+		_build_ranges = ranges
+		_build_page = _page_for_item(ranges, PlayerProfile.active_bot)
+	_build_page = clampi(_build_page, 0, ranges.size() - 1)
+	var page_range := ranges[_build_page]
+	_build_capacity = page_range.y - page_range.x
+	for i in %BotList.get_child_count(): %BotList.get_child(i).visible = i >= page_range.x and i < page_range.y
+	_build_pager.visible = ranges.size() > 1
+	_page_label.text = "%d / %d" % [_build_page + 1, ranges.size()]
+	_build_pager.get_child(0).disabled = _build_page == 0
+	_build_pager.get_child(2).disabled = _build_page + 1 >= ranges.size()
+	if _initial_focus_pending:
+		var selected: Control = %BotList.get_child(PlayerProfile.active_bot)
+		if selected.has_focus(): _initial_focus_pending = false
+		elif previous_focus == null or restore_list_focus: _focus_selected.call_deferred()
+		else: _initial_focus_pending = false
+	elif restore_list_focus and get_viewport().gui_get_focus_owner() == null:
+		_focus_selected.call_deferred()
+
+
+
+func _measure_hidden_content(control: Control) -> void:
+	# Hidden pages also need their actual column width before wrapped-text measurement.
+	if control is Container: control.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	for child in control.get_children():
+		if child is Control: _measure_hidden_content(child)
+	control.update_minimum_size()
+
+
+func _pack_pages(heights: Array[float], full_budget: float, paged_budget: float, gap: float, columns: int) -> Array[Vector2i]:
+	var total := 0.0
+	for start in range(0, heights.size(), columns):
+		var height := 0.0
+		for i in range(start, mini(start + columns, heights.size())): height = maxf(height, heights[i])
+		total += height + (gap if start > 0 else 0.0)
+	if total <= full_budget: return [Vector2i(0, heights.size())]
+	var pages: Array[Vector2i] = []
+	var first := 0
+	var used := 0.0
+	for start in range(0, heights.size(), columns):
+		var height := 0.0
+		for i in range(start, mini(start + columns, heights.size())): height = maxf(height, heights[i])
+		var needed := height + (gap if start > first else 0.0)
+		if start > first and used + needed > paged_budget:
+			pages.append(Vector2i(first, start))
+			first = start
+			used = height
+		else: used += needed
+	pages.append(Vector2i(first, heights.size()))
+	return pages
+
+
+func _page_for_item(pages: Array[Vector2i], index: int) -> int:
+	for page in pages.size():
+		if index >= pages[page].x and index < pages[page].y: return page
+	return maxi(0, pages.size() - 1)

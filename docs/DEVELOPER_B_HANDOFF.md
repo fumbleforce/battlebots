@@ -1,5 +1,14 @@
 # Developer B — combat, bots, customisation and controls
 
+## Garage options — 20 September 2026 user update
+
+Garage/Customize now fill available height before paging. All existing options are
+selectable; the sole offered chassis is the authored Sawblade body. Body edits
+preserve the other parts and appearance; unsupported-model selection locks and
+weapon substitution are removed. Canonical spinners render with the authored body.
+Legacy saves retain their IDs/equipment; catalogue revision 6 requires matching
+hosted content. See [behavior, migration and validation](coordination/B_GARAGE_OPTIONS.md).
+
 ## Camera/input lifecycle acceptance — 20 September 2026
 
 Independent practice/source replacement and real ENet duel scenes verify current

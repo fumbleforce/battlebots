@@ -26,9 +26,15 @@ var _show_details := false
 var _category_page := {"parts": 0, "paint": 0, "decals": 0}
 var _category_pager: HBoxContainer
 var _category_page_label: Label
+var _category_capacity := 3
+var _choice_capacity := 2
+var _choice_layout_capacity: Dictionary = {}
+var _category_ranges: Array[Vector2i] = [Vector2i(0, 3)]
+var _choice_ranges: Array[Vector2i] = [Vector2i(0, 2)]
 var _color_picker: ColorPickerButton
 
 func apply_text_scale(factor: float) -> void:
+	_pagination_frames = 4
 	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
 	MenuTextScale.apply(self, _text_scale)
 	$Layout/Header.custom_minimum_size.y = 115 if _text_scale == 1.0 else 160
@@ -47,14 +53,13 @@ func apply_text_scale(factor: float) -> void:
 
 func _change_choice_page(direction: int) -> void:
 	var key := "%s:%d" % [_tab, _cat[_tab]]
-	var count: int = PlayerProfile.catalogue[_tab][_cat[_tab]].items.size()
-	_choice_pages[key] = wrapi(int(_choice_pages.get(key, 0)) + direction, 0, ceili(count / 2.0))
+	_choice_pages[key] = wrapi(int(_choice_pages.get(key, 0)) + direction, 0, maxi(1, _choice_ranges.size()))
 	_refresh()
 
 func _show_choice_details(value: bool) -> void:
 	_show_details = value
 	%Items.visible = not value
-	_choice_pager.visible = not value
+	_choice_pager.visible = not value and _choice_ranges.size() > 1
 	%SelDesc.get_parent().visible = value
 
 func _show_preview_stats(value: bool) -> void:
@@ -65,6 +70,7 @@ func _show_preview_stats(value: bool) -> void:
 func _ready() -> void:
 	super()
 	%TabDecals.text = "VEHICLE"
+	%Categories.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_category_pager = HBoxContainer.new()
 	%Categories.get_parent().add_child(_category_pager)
 	%Categories.get_parent().move_child(_category_pager, %Categories.get_index() + 1)
@@ -73,8 +79,8 @@ func _ready() -> void:
 		button.text = "PREV" if direction < 0 else "NEXT"
 		_category_pager.add_child(button)
 		button.pressed.connect(func():
-			_category_page[_tab] = wrapi(_category_page[_tab] + direction, 0, ceili(PlayerProfile.catalogue[_tab].size() / 3.0))
-			_cat[_tab] = _category_page[_tab] * 3
+			_category_page[_tab] = wrapi(_category_page[_tab] + direction, 0, maxi(1, _category_ranges.size()))
+			_cat[_tab] = _category_ranges[_category_page[_tab]].x
 			_refresh())
 		if direction < 0:
 			_category_page_label = Label.new()
@@ -263,7 +269,7 @@ func _refresh() -> void:
 	var cats: Array = PlayerProfile.catalogue[_tab]
 	var ci: int = _cat[_tab]
 	var cat: Dictionary = cats[ci]
-	_category_page_label.text = "%d / %d" % [_category_page[_tab] + 1, ceili(cats.size() / 3.0)]
+	_category_page_label.text = "%d / %d" % [_category_page[_tab] + 1, _category_ranges.size()]
 	_color_picker.visible = _tab == "paint" and cat.slot != "paint" and SawbladeConfig.enabled(PlayerProfile.loadouts[PlayerProfile.active_bot])
 	if _color_picker.visible:
 		var rgba: Array = PlayerProfile.loadouts[PlayerProfile.active_bot].cosmetics.sawblade[cat.slot]
@@ -271,7 +277,7 @@ func _refresh() -> void:
 	var key := "%s:%d" % [_tab, ci]
 	var ii: int = _item.get(key, 0)
 	var choice_page: int = _choice_pages.get(key, 0)
-	_choice_page_label.text = "%d / %d" % [choice_page + 1, ceili(cat.items.size() / 2.0)]
+	_choice_page_label.text = "%d / %d" % [choice_page + 1, _choice_ranges.size()]
 	%SlotHeading.text = SLOT_HEADINGS[_tab]
 
 	clear_children(%Categories)
@@ -282,7 +288,8 @@ func _refresh() -> void:
 		row.setup(cats[i].label, PlayerProfile.equipped_name(_tab, cats[i]))
 		row.button_group = cg
 		row.button_pressed = i == ci
-		row.visible = i / 3 == _category_page[_tab]
+		var shown_categories := _category_ranges[clampi(_category_page[_tab], 0, _category_ranges.size() - 1)]
+		row.visible = i >= shown_categories.x and i < shown_categories.y
 		row.pressed.connect(func():
 			_cat[_tab] = i
 			_refocus = "cat"
@@ -303,10 +310,11 @@ func _refresh() -> void:
 		tile.setup(it, st)
 		tile.button_group = ig
 		tile.button_pressed = i == ii
-		tile.visible = i / 2 == choice_page
+		var shown_choices := _choice_ranges[clampi(choice_page, 0, _choice_ranges.size() - 1)]
+		tile.visible = i >= shown_choices.x and i < shown_choices.y
 		tile.pressed.connect(func():
 			_item[key] = i
-			_choice_pages[key] = i / 2
+			_choice_pages[key] = _page_for_item(_choice_ranges, i)
 			_refocus = "item"
 			_refresh())
 		if _refocus == "item" and i == ii:
@@ -376,3 +384,113 @@ func _commit_name() -> void:
 func _focus_control(control: Control) -> void:
 	if is_instance_valid(control) and control.is_inside_tree() and control.is_visible_in_tree():
 		control.grab_focus()
+
+var _pagination_frames := 4
+var _pagination_geometry: Array = []
+
+func _process(_delta: float) -> void:
+	if not is_instance_valid(_choice_pager) or not is_visible_in_tree(): return
+	var geometry: Array = [size, $Layout/Header.size, $Layout/Footer.size, %Categories.size.x, %Items.size.x, _show_details]
+	if geometry != _pagination_geometry:
+		_pagination_geometry = geometry
+		_pagination_frames = 4
+	if _pagination_frames <= 0: return
+	_pagination_frames -= 1
+	var category_heights: Array[float] = []
+	for row: Control in %Categories.get_children():
+		var was_visible := row.visible
+		row.show()
+		row.size.x = %Categories.size.x
+		row.get_node("Pad").size.x = row.size.x
+		_measure_hidden_content(row.get_node("Pad"))
+		row.visible = was_visible
+		row.custom_minimum_size.y = maxf(ceilf(82 * _text_scale), row.get_node("Pad").get_combined_minimum_size().y)
+		category_heights.append(row.get_combined_minimum_size().y)
+	var choice_heights: Array[float] = []
+	for tile: Control in %Items.get_children():
+		var was_visible := tile.visible
+		tile.show()
+		tile.size.x = (%Items.size.x - %Items.get_theme_constant("h_separation")) / %Items.columns
+		tile.get_node("Inner").size.x = tile.size.x
+		_measure_hidden_content(tile.get_node("Inner"))
+		tile.visible = was_visible
+		tile.custom_minimum_size.y = maxf(ceilf(150 * _text_scale), tile.get_node("Inner").get_combined_minimum_size().y)
+		tile.get_node("Inner").size.y = tile.custom_minimum_size.y
+		choice_heights.append(tile.get_combined_minimum_size().y)
+	_category_ranges = _pack_pages(category_heights, _page_budget(%Categories, _category_pager, false), _page_budget(%Categories, _category_pager, true), %Categories.get_theme_constant("separation"), 1)
+	_choice_ranges = _pack_pages(choice_heights, _page_budget(%Items, _choice_pager, false), _page_budget(%Items, _choice_pager, true), %Items.get_theme_constant("v_separation"), %Items.columns)
+	_category_page[_tab] = _page_for_item(_category_ranges, int(_cat[_tab]))
+	var choice_key := "%s:%d" % [_tab, _cat[_tab]]
+	if _choice_layout_capacity.get(choice_key, []) != _choice_ranges:
+		_choice_layout_capacity[choice_key] = _choice_ranges.duplicate()
+		_choice_pages[choice_key] = _page_for_item(_choice_ranges, int(_item.get(choice_key, 0)))
+	var category_page: int = _category_page[_tab]
+	var category_range := _category_ranges[category_page]
+	_category_capacity = category_range.y - category_range.x
+	for i in %Categories.get_child_count(): %Categories.get_child(i).visible = i >= category_range.x and i < category_range.y
+	_category_pager.visible = _category_ranges.size() > 1
+	_category_page_label.text = "%d / %d" % [category_page + 1, _category_ranges.size()]
+	var page := clampi(int(_choice_pages.get(choice_key, 0)), 0, _choice_ranges.size() - 1)
+	_choice_pages[choice_key] = page
+	var choice_range := _choice_ranges[page]
+	_choice_capacity = choice_range.y - choice_range.x
+	for i in %Items.get_child_count(): %Items.get_child(i).visible = i >= choice_range.x and i < choice_range.y
+	_choice_pager.visible = not _show_details and _choice_ranges.size() > 1
+	_choice_page_label.text = "%d / %d" % [page + 1, _choice_ranges.size()]
+
+
+func _page_budget(list: Container, pager: Control, with_pager: bool) -> float:
+	# The screen bounds the budget; a list's expanding minimum must not feed it back.
+	var body: MarginContainer = $Layout/Body
+	var available: float = size.y - $Layout/Header.size.y - $Layout/Footer.size.y
+	available -= body.get_theme_constant("margin_top") + body.get_theme_constant("margin_bottom")
+	var column := list.get_parent() as VBoxContainer
+	if column.get_parent() is PanelContainer:
+		available -= column.get_parent().get_theme_stylebox("panel").get_minimum_size().y
+	var siblings := 0
+	for sibling: Control in column.get_children():
+		if sibling == list or sibling == pager or not sibling.visible: continue
+		if sibling == %SelDesc.get_parent(): continue
+		available -= sibling.get_combined_minimum_size().y
+		siblings += 1
+	var separation := column.get_theme_constant("separation")
+	available -= siblings * separation
+	if with_pager: available -= pager.get_combined_minimum_size().y + separation
+	return available
+
+
+func _measure_hidden_content(control: Control) -> void:
+	# Hidden pages also need their actual column width before wrapped-text measurement.
+	if control is Container: control.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	for child in control.get_children():
+		if child is Control: _measure_hidden_content(child)
+	control.update_minimum_size()
+
+
+func _pack_pages(heights: Array[float], full_budget: float, paged_budget: float, gap: float, columns: int) -> Array[Vector2i]:
+	var total := 0.0
+	for start in range(0, heights.size(), columns):
+		var height := 0.0
+		for i in range(start, mini(start + columns, heights.size())): height = maxf(height, heights[i])
+		total += height + (gap if start > 0 else 0.0)
+	if total <= full_budget: return [Vector2i(0, heights.size())]
+	var pages: Array[Vector2i] = []
+	var first := 0
+	var used := 0.0
+	for start in range(0, heights.size(), columns):
+		var height := 0.0
+		for i in range(start, mini(start + columns, heights.size())): height = maxf(height, heights[i])
+		var needed := height + (gap if start > first else 0.0)
+		if start > first and used + needed > paged_budget:
+			pages.append(Vector2i(first, start))
+			first = start
+			used = height
+		else: used += needed
+	pages.append(Vector2i(first, heights.size()))
+	return pages
+
+
+func _page_for_item(pages: Array[Vector2i], index: int) -> int:
+	for page in pages.size():
+		if index >= pages[page].x and index < pages[page].y: return page
+	return maxi(0, pages.size() - 1)

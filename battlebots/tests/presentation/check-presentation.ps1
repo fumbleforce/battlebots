@@ -95,6 +95,12 @@ foreach ($check in $checks) {
         '--quit-after', '10000') -Marker $check[1]
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/all_body_weapons_test.tscn', '--quit-after', '10000') -Marker 'ALL BODY WEAPONS PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/garage_unlocked_options_test.tscn', '--quit-after', '10000') -Marker 'GARAGE UNLOCKED OPTIONS PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/garage_pagination_test.tscn', '--quit-after', '10000') -Marker 'GARAGE PAGINATION PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     '--max-fps', '60', 'res://tests/presentation/camera_round_lifecycle_test.tscn', '--quit-after', '6000') -Marker 'CAMERA ROUND LIFECYCLE PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     '--max-fps', '60', 'res://tests/presentation/camera_duel_lifecycle_test.tscn', '--quit-after', '6000') -Marker 'CAMERA DUEL LIFECYCLE PASS'

@@ -220,6 +220,12 @@ func show_loadout(draft: Dictionary) -> void:
 	weapon_visual.name = "Weapon"
 	model.add_child(weapon_visual)
 	weapon_visual.assemble(validation.stats.weapon, size)
+	if draft.parts.drive == "walker":
+		model.position.y = WalkerDrive.RIDE_HEIGHT - 0.12
+		var legs := WalkerLegs.new()
+		model.add_child(legs)
+		legs.terrain = false
+		legs.assemble(size, null, SawbladeConfig.defaults())
 	_valid_status()
 
 func _mesh(parent: Node3D, mesh: Mesh, position: Vector3, color: Color) -> MeshInstance3D:
