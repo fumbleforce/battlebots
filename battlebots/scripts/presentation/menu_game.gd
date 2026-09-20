@@ -38,6 +38,10 @@ var _audio_caption: Label
 var practice_hud: PracticeHud
 var _restart_practice: Button
 var _practice_knockout_handled := false
+var _practice_return_screen := ""
+var _default_return_text := ""
+var _test_drive_entry: GarageTestDriveEntry
+var _test_drive_screen := ""
 var game_menu_page: Control
 var combat_hud: CombatHud
 var world_markers: BotWorldMarkers
@@ -79,6 +83,7 @@ func _ready() -> void:
 	_add_match_actions()
 	game_menu_page = preload("res://scripts/ui/game_menu_page.gd").new()
 	game_menu_page.configure(preview.pause_menu)
+	_default_return_text = preview.return_button.text
 	preview.network_diagnostics.interaction_started.connect(_network_details_interaction)
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
@@ -147,6 +152,11 @@ func show_screen(key: String) -> void:
 	menu_host.add_child(screen)
 	menu_host.show()
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_test_drive_screen = key if key in ["garage", "customize"] else ""
+	_test_drive_entry = null
+	if not _test_drive_screen.is_empty():
+		_test_drive_entry = GarageTestDriveEntry.install(screen, start_practice.bind(key))
+		_update_test_drive_entry()
 	if screen.has_method("apply_text_scale"):
 		screen.apply_text_scale(_menu_text_scale)
 	_sync_menu_music()
@@ -537,6 +547,7 @@ func scoreboard_allowed() -> bool:
 func _process(_delta: float) -> void:
 	if _cli_handoff:
 		return
+	_update_test_drive_entry()
 	var phase := str(session.match_view.get("phase", "lobby"))
 	var bot := session.local_source()
 	if _resume_after_reconnect and not session.match_view.is_empty() and (bot != null or phase == "lobby"):
@@ -666,7 +677,26 @@ func _network_details_interaction() -> void:
 	if not menu_host.visible and not results_panel.visible and not preview.settings_panel.visible and not _general_settings_open():
 		preview.pause_menu.hide()
 
-func start_practice() -> void:
+func _test_drive_allowed() -> bool:
+	if _test_drive_screen.is_empty() or not is_instance_valid(screen) or not menu_host.visible:
+		return false
+	if session.connection_state != "offline" or _general_settings_open() or preview.settings_panel.visible:
+		return false
+	if is_instance_valid(public_service) and public_service.can_cancel(): return false
+	for child: Node in get_children():
+		if child is Window and child.visible: return false
+	var recovery: Variant = screen.get("recovery_panel")
+	return not (recovery is Control and recovery.is_visible_in_tree())
+
+func _update_test_drive_entry() -> void:
+	if not is_instance_valid(_test_drive_entry): return
+	var index: int = PlayerProfile.active_bot
+	var draft: Dictionary = PlayerProfile.loadouts[index] if index >= 0 and index < PlayerProfile.loadouts.size() else {}
+	_test_drive_entry.render(draft, _test_drive_allowed())
+
+func start_practice(return_screen: String = "") -> void:
+	if not return_screen.is_empty() and (return_screen != _test_drive_screen or not _test_drive_allowed()):
+		return
 	if session.connection_state != "offline":
 		return
 	var draft: Dictionary = PlayerProfile.active_loadout()
@@ -675,6 +705,8 @@ func start_practice() -> void:
 		return
 	var error := session.practice(draft, preload("res://scripts/arena/arena_scenery.gd").load_choice())
 	if error == OK:
+		_practice_return_screen = return_screen
+		preview.return_button.text = "BACK TO BUILD" if not return_screen.is_empty() else _default_return_text
 		resume_gameplay()
 	else:
 		show_notice("Cannot start practice: %s" % error_string(error))
@@ -691,10 +723,16 @@ func resume_gameplay() -> void:
 	if session.match_view.get("phase") not in ["countdown", "active", "overtime", "intermission", "results"]:
 		return
 	menu_host.hide()
+	# Hidden workshop shortcuts must not edit the draft behind a running test drive.
+	if is_instance_valid(screen): screen.process_mode = Node.PROCESS_MODE_DISABLED
 	_sync_menu_music()
 	preview.capture_controls()
 
+## Ordinary sessions leave to main; workshop practice restores its build screen.
 func return_to_main() -> void:
+	var destination := _practice_return_screen if session.connection_state == "practice" and not _practice_return_screen.is_empty() else "main"
+	_practice_return_screen = ""
+	preview.return_button.text = _default_return_text
 	_dismiss_settings()
 	duel_scoreboard.suppress(Input.is_action_pressed("scoreboard"))
 	_recovering = false
@@ -710,7 +748,7 @@ func return_to_main() -> void:
 	_vote_match = ""
 	results_panel.hide()
 	results_panel.clear_record()
-	MenuRouter.goto("main", false)
+	MenuRouter.goto(destination, false)
 
 func open_settings() -> void:
 	if _settings_session_open:
@@ -771,6 +809,9 @@ func _input(event: InputEvent) -> void:
 			resume_gameplay()
 
 func _session_event(kind: String, details: Dictionary) -> void:
+	if kind in ["left", "hosted", "joined"]:
+		_practice_return_screen = ""
+		preview.return_button.text = _default_return_text
 	if kind in ["practice", "practice_restarted", "left"]:
 		_practice_knockout_handled = false
 	if kind == "practice_restarted":

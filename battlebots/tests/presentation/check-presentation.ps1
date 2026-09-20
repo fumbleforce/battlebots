@@ -103,6 +103,10 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     '--max-fps', '60', 'res://tests/presentation/featured_vehicle_menu_test.tscn', '--quit-after', '6000') -Marker 'FEATURED VEHICLE MENU PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/garage_test_drive_entry_test.tscn', '--quit-after', '10000') -Marker 'GARAGE TEST DRIVE ENTRY PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', 'res://tests/presentation/garage_test_drive_game_test.tscn', '--quit-after', '6000') -Marker 'GARAGE TEST DRIVE GAME PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_comparison_test.tscn', '--quit-after', '10000') -Marker 'GARAGE COMPARISON PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_comparison_panel_test.tscn', '--quit-after', '10000') -Marker 'GARAGE COMPARISON PANEL PASS'

@@ -30,6 +30,23 @@ and invalid builds remove the model and rotation action. Assembly stays isolated
 and cosmetic, using canonical primitive chassis/weapon geometry, not final bot art.
 See [featured vehicle handoff](coordination/B_FEATURED_VEHICLE.md).
 
+## Workshop test drive
+
+`GarageTestDriveEntry.install(screen, callback)` adds a B-owned footer entry to a
+Garage/Customize screen. `render(draft, allowed)` caches validation of detached
+drafts and guards disabled/invalid/hidden activation. The menu owner installs it
+before applying the shared text factor; the component never persists or starts a
+session itself.
+
+`menu_game.start_practice(return_screen="")` retains existing main-menu behavior
+for the default argument. Its internal Garage/Customize callers supply their
+origin, require the visible workshop with no existing session or modal, and pass
+the validated active draft to existing practice authority. Restart preserves that
+admitted build. The pause return action uses BACK TO BUILD and restores origin;
+ordinary practice returns to main. Profile state and saved bytes are untouched.
+Hidden screen processing stops while driving to prevent background edit shortcuts;
+return creates an active screen again. No session/wire/input/save schema changes.
+
 ## Transport compatibility
 
 Current transport build is `mvp-ab-12`, protocol 4. Every MvpSession host and

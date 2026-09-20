@@ -58,6 +58,15 @@ do not block the active 1v1 scope.
 
 ## Current Developer B increment
 
+B's direct TEST DRIVE entry now opens real practice from Garage/Customize with
+the unsaved build and selected arena. BACK TO BUILD restores the originating
+screen without saving, reloading or losing edit history. Independent entry/game
+scenes cover validation, hidden shortcuts, settings, restart and session guards;
+native layouts and affected regressions pass. See
+[test-drive handoff](coordination/B_GARAGE_TEST_DRIVE.md). The separate active
+Sawblade/physical-legs task retains model, registry, drive and Customize source
+ownership; this increment avoids those files.
+
 B's featured vehicle increment replaces the main static image and lobby dropdown
 with shared selection and an isolated rotating chassis/weapon preview. Lobby
 selection remains a draft until Apply is host-confirmed; paint-only confirmation

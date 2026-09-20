@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-menu-text-accessibility`, based on main `d6e154e`.
-**Latest increment:** Shared 100/125/150% text preference reaches B garage/customisation/catalogue/recovery and camera/input settings. See [text evidence](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
+**Latest B task:** `codex/b-garage-test-drive`, based on main `e0ce7c4`.
+**Latest increment:** Garage/Customize Test Drive uses the unsaved build and returns without saving or losing undo history. See [test-drive evidence](coordination/B_GARAGE_TEST_DRIVE.md). The preceding featured selector/rotating preview is merged at `e0ce7c4`.
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -41,12 +41,12 @@ and audio. Historical labels below describe authorship, not current ownership.
 
 ## Active and next — B-owned
 
-**B handoff to A:** `codex/b-menu-text-accessibility` starts at main `d6e154e`.
-B panels consume the existing MenuTextScale helper with keyboard-accessible
-pages/grouped bindings, incorporating A's fe9f2f0 no-scroll feedback. Coordinated
-menu_game integration leaves responsive settings layout to B while preserving
-form paths and A's hub transactions. Garage/catalogue and controls were delegated. No
-wire/input-action/preference-schema changes. See [text scope](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
+**B handoff to A:** `codex/b-garage-test-drive` adds a separate B entry through
+menu_game's Garage/Customize composition. Existing practice authority and selected
+arena remain; Back to Build restores the originating screen and in-memory history.
+Hidden workshop processing is disabled while driving. No wire, physics or save
+schema changes. The active Sawblade/physical-legs task owns model/registry/drive
+and Customize source changes separately. See [test-drive scope](coordination/B_GARAGE_TEST_DRIVE.md).
 
 User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
 2v2, FFA and other multiplayer modes, plus all tutorial work, until then. A owns
@@ -66,7 +66,7 @@ these newly requested presentation tasks.
 - [ ] **Controls and camera:** Player input/driving, camera and spectator control
   behavior, including control-specific settings. Consume A's match phase and
   spectator sources; do not calculate local winners or ready state.
-- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live primitive 3D preview, comparisons, individual invalid-build repair, explicit disk/backup recovery and 150% text are implemented. Remaining: authored bot-art integration and a direct unsaved-build test-drive entry. APIs: ContentRegistry.validate/starter and
+- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live 3D preview, comparisons, individual invalid-build repair, explicit disk/backup recovery, 150% text and direct unsaved-build Test Drive are implemented. Remaining: authored bot-art integration (active Sawblade task). APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 

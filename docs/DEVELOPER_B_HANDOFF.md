@@ -1,5 +1,21 @@
 # Developer B — combat, bots, customisation and controls
 
+## Unsaved-build test drive — 20 September 2026
+
+`codex/b-garage-test-drive`, from `e0ce7c4`, adds TEST DRIVE to Garage and Customize
+through B's separate GarageTestDriveEntry. The menu owner installs it before text
+scaling, avoiding concurrent edits to the active Sawblade task's customization
+source. The existing real practice authority consumes a detached validated draft
+and current arena selection. Restart keeps that build; BACK TO BUILD restores the
+originating screen. No save/reload or undo-history change occurs.
+
+Entry rejects invalid builds, existing sessions and settings/recovery modals.
+The hidden workshop is disabled during gameplay so undo/navigation shortcuts
+cannot edit drafts or navigate behind the test. Normal Practice still returns to
+main. Independent component and real-game scenes, native 720p views through150%
+text, baseline, practice-menu and real lobby/navigation regressions pass. See
+[scope and evidence](coordination/B_GARAGE_TEST_DRIVE.md).
+
 ## Featured vehicle selection — 20 September 2026
 
 `codex/b-featured-vehicle` starts from `9e54dcc` and integrates A's lunar arena
