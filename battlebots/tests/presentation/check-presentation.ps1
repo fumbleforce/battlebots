@@ -103,6 +103,12 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/player_health_bars_test.tscn', '--quit-after', '10000') -Marker 'PLAYER HEALTH BARS PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/combat_impact_feedback_test.tscn', '--quit-after', '10000') -Marker 'COMBAT IMPACT FEEDBACK PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/combat_impact_visual_test.tscn', '--quit-after', '10000') -Marker 'COMBAT IMPACT VISUAL PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', 'res://tests/presentation/combat_impact_game_test.tscn', '--quit-after', '3000') -Marker 'COMBAT IMPACT GAME PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_unlocked_options_test.tscn', '--quit-after', '10000') -Marker 'GARAGE UNLOCKED OPTIONS PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_pagination_test.tscn', '--quit-after', '10000') -Marker 'GARAGE PAGINATION PASS'

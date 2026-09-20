@@ -531,3 +531,7 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
 
 ## A coordination — Quick Play service sync, 20 September 2026
 A is updating the existing hosted server to current main catalogue revision 6 and fixing online error visibility. Scope: online.gd, online panel checks, deployment evidence. No B implementation or shared protocol edits. See coordination/A_QUICK_PLAY_SERVICE_SYNC.md.
+
+- B impact feedback resumed on `codex/b-impact-feedback`: confirmed-event sparks
+  and bounded cosmetic fragments, independent rendering/event lifecycle scenes and
+  narrow menu-game signal wiring. See [scope](coordination/B_IMPACT_FEEDBACK.md).

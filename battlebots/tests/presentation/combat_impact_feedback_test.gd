@@ -1,0 +1,81 @@
+extends Node3D
+var failures: Array[String] = []
+func _ready() -> void: run.call_deferred()
+func check(ok: bool, message: String) -> void:
+	if not ok: failures.append(message)
+func match_view(id := "match-a", round_index := 1, phase := "active", event_id := 1) -> Dictionary:
+	return {"match_id": id, "round": round_index, "phase": phase, "event_id": event_id}
+func hit(id := 1, round_index := 1, match_id := "match-a") -> Dictionary:
+	return {"match_id":match_id, "round":round_index, "event_id":id, "tick":60,
+		"attacker":1, "target":2, "damage":18.0, "kind":"hammer",
+		"position":Vector3(2,1,3), "normal":Vector3.UP}
+func run() -> void:
+	var feedback := CombatImpactFeedback.new()
+	add_child(feedback)
+	feedback.combat_event(hit())
+	check(feedback.visual.spark_count() == 0, "No context cannot invent impacts")
+	feedback.observe_match(match_view())
+	var original := hit()
+	var detached := original.duplicate(true)
+	feedback.combat_event(original)
+	var count := feedback.visual.spark_count()
+	check(count > 0 and original == detached, "Confirmed hit emits without mutating event")
+	feedback.combat_event(original)
+	check(feedback.visual.spark_count() == count, "Repeated event emits once")
+	feedback.visual.clear_effects()
+	for field: String in ["event_id", "round", "tick", "attacker", "target", "damage", "kind", "position", "normal"]:
+		var invalid := hit(2)
+		invalid.erase(field)
+		feedback.combat_event(invalid)
+	for invalid_damage: Variant in [-1.0, NAN, INF, "18", true]:
+		var invalid := hit(2)
+		invalid.damage = invalid_damage
+		feedback.combat_event(invalid)
+	for invalid in [hit(2,2),hit(2,1,"old")]: feedback.combat_event(invalid)
+	check(feedback.visual.spark_count() == 0, "Malformed and wrong-context events emit nothing")
+	feedback.combat_event(hit(2))
+	check(feedback.visual.spark_count() > 0, "Rejected events do not consume valid event ID")
+	feedback.observe_match(match_view("match-a",1,"intermission",2))
+	check(feedback.visual.spark_count() == 0 and feedback.visual.fragment_count() == 0, "Phase boundary clears live effects")
+	feedback.combat_event(hit(3))
+	feedback.observe_match(match_view())
+	feedback.combat_event(hit(3))
+	check(feedback.visual.spark_count() == 0, "Intermission and stale active context cannot emit")
+	feedback.observe_match(match_view("match-a",2,"active",3))
+	feedback.combat_event(hit(1,2))
+	check(feedback.visual.spark_count() > 0, "New round can start event IDs again")
+	feedback.reset()
+	feedback.observe_match(match_view("match-a",2,"active",3))
+	feedback.combat_event(hit(1,2))
+	check(feedback.visual.spark_count() == 0, "Network reconnect retains replay watermark")
+	feedback.combat_event(hit(2,2))
+	check(feedback.visual.spark_count() > 0, "New reconnect event remains visible")
+	feedback.observe_match(match_view("match-b"))
+	feedback.observe_match(match_view("match-a",2,"active",3))
+	feedback.combat_event(hit(3,2))
+	check(feedback.visual.spark_count() == 0, "Retired match cannot regain active context")
+	feedback.combat_event(hit(1,1,"match-b"))
+	check(feedback.visual.spark_count() > 0, "Current new match emits")
+	feedback.reset()
+	feedback.observe_match(match_view("practice"),true)
+	var practice_hit := hit()
+	practice_hit.erase("match_id")
+	feedback.combat_event(practice_hit)
+	check(feedback.visual.spark_count() > 0, "Practice accepts authoritative event without network token")
+	feedback.reset()
+	feedback.observe_match(match_view("practice"),true)
+	feedback.combat_event(practice_hit)
+	check(feedback.visual.spark_count() > 0, "Practice restart begins fresh event epoch")
+	feedback.observe_match({})
+	feedback.combat_event(practice_hit)
+	check(feedback.visual.spark_count() == 0, "Missing context hides stale effects")
+	for index: int in 40:
+		var id := "bounded-%d" % index
+		feedback.observe_match(match_view(id))
+		feedback.combat_event(hit(1,1,id))
+	check(feedback._contexts.size() <= 16 and feedback._watermarks.size() <= 16 \
+		and feedback._retired.size() <= 16, "Replay history stays bounded across matches")
+	feedback.free()
+	for failure: String in failures: push_error(failure)
+	if failures.is_empty(): print("COMBAT IMPACT FEEDBACK PASS")
+	get_tree().quit(0 if failures.is_empty() else 1)

@@ -45,6 +45,7 @@ var _test_drive_screen := ""
 var game_menu_page: Control
 var combat_hud: CombatHud
 var world_markers: BotWorldMarkers
+var impact_feedback: CombatImpactFeedback
 var reconnect_panel: Control
 var _recovering := false
 var _resume_after_reconnect := false
@@ -113,6 +114,10 @@ func _ready() -> void:
 	world_markers.name = "WorldMarkers"
 	add_child(world_markers)
 	world_markers.hide()
+	impact_feedback = CombatImpactFeedback.new()
+	impact_feedback.name = "ImpactFeedback"
+	add_child(impact_feedback)
+	impact_feedback.bind_session(session)
 	practice_hud.reparent(combat_hud.canvas, false)
 	preview.network_diagnostics.reparent(combat_hud.canvas, false)
 	var caption_layer := _audio_caption.get_parent()
