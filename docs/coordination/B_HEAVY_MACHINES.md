@@ -194,7 +194,8 @@ uses half hull height plus an absolute 0.07m contact tolerance.
   cooldowns, damage and match rules remain in force. Repeated after the final
   powerful-drive/torque changes with the same full outcome; evidence is
   `%TEMP%/battlebots-powerful-natural.log`.
-- General `session_smoke.gd` profile80 passes with 0.0855m p95 correction;
+- General `session_smoke.gd` profile80 passes with 0.166667m p95 correction for
+  the final powerful motor/torque calibration (unchanged 0.25m gate);
   airborne_replay passes with zero position/velocity error and 0.040 degrees
   angular error. App integration and ten-body headless stress pass (0.874ms p95
   frame wall time; this is not rendered performance acceptance).
@@ -202,6 +203,16 @@ uses half hull height plus an absolute 0.07m contact tolerance.
   New heavy-drive, spawn, scaled-combat and heavy-visual fixtures are registered
   in their existing gate scripts. These are focused checks; the full aggregate
   MVP suite was not run for this increment.
+
+Final powerful-drive contact150 also passes: worst settling 183.3ms, spinner
+150ms and ram 133.3ms, against the unchanged 250ms / 0.25m / 10-degree gates.
+Wall80 retains 121 physical contact samples per wall, 0ms release settling and
+0.007m north / 0.010m chamfer peak error. Final evidence is
+`%TEMP%/battlebots-powerful-finaltorque-contact-150.log`,
+`battlebots-powerful-finaltorque-session-80.log` and
+`battlebots-powerful-wall-80.log`. Strong yaw torque is independently compared
+against live Jolt in heavy_drive_test; session_smoke's straight-line driving
+phase separately covers acceleration/replay.
 
 ## Hosted release handoff to A
 
@@ -223,9 +234,12 @@ external online acceptance is claimed.
 
 ## Integration verification
 
-Implementation commit `b979a89` rebases onto `ac2bda4` with the completed battle
-soundtrack included. Only the two coordination-document insertions conflicted;
-both A and B entries were retained. After rebase, `tools/check-drive.ps1` passes
-its editor import, baseline, original drive and enlarged Jolt/replay regressions.
-Source diff whitespace validation passes. The separate working checkout's
-in-progress menu/audio work and unrelated project/import edits remain untouched.
+The initial rebase included battle soundtrack `ac2bda4`. The final source at
+`f77dd58` also includes completed sampled audio `a972308` and main-menu cleanup
+`deebff3`. Documentation insertions were combined, retaining both owners' entries.
+GarageBotPreview's new compact APIs and physical-size normalization compose
+without conflict. After this final rebase, `tools/check-drive.ps1` passes editor
+import, baseline, original drive and powerful enlarged Jolt/replay regressions.
+Main-menu fit, featured vehicle, garage showcase/preview and heavy visual scale
+checks all pass on the combined source. Source diff whitespace validation passes.
+The separate working checkout's unrelated project/import edits remain untouched.
