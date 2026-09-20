@@ -143,5 +143,3 @@ func capture(world: AuthorityWorld, bot: MvpBot) -> void:
 	check(world.arena.get_node("FoundryVisuals/EnvironmentArt")._dust[1].emitting,"Physical driving emits lunar dust")
 	await RenderingServer.frame_post_draw
 	check(root.get_texture().get_image().save_png(output+"/moon-dust.png")==OK,"Dust capture failed")
-
-

@@ -63,3 +63,8 @@ Rendered evidence is local ignored output `battlebots/exports/moon-review/`:
 `selector-1.0.png`, `selector-1.5.png`. Reviewed on RTX 3080, D3D12 Forward+.
 Menu preview `ui/menus/art/arena_moon.png` is an actual in-engine capture.
 No low-end GPU performance or cross-machine human lunar playtest is claimed.
+
+Final result: `check-moon.ps1 -Capture` passed all checks above, including physical
+traversal over rolling ground. Rebasing onto B's published menu updates `9e54dcc`
+was conflict-free. Post-rebase baseline, practice-menu and B menu text-game
+integration checks passed; B's menu changes were retained. Git diff checked.
