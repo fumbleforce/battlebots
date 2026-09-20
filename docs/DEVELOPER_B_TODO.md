@@ -41,11 +41,11 @@ and audio. Historical labels below describe authorship, not current ownership.
 
 ## Active and next — B-owned
 
-**B intent to A:** `codex/b-garage-comparison` starts at main `682824b`. B reserves
-part-comparison helpers, Customize composition and independent B fixtures.
-No general menus, sessions, world, audio or schema changes. See
-[comparison scope](coordination/B_GARAGE_COMPARISON.md). A subagent owns the pure
-model/tests while the primary integrates the display.
+**B intent to A:** `codex/b-garage-repair` starts at main `331e073`. B reserves
+targeted local save/repair behavior, Customize repair controls and independent
+fixtures. No general menus, sessions, world, audio or wire schema changes. See
+[repair scope](coordination/B_GARAGE_REPAIR.md). Subagent owns store/tests;
+primary owns profile/UI.
 
 User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
 2v2, FFA and other multiplayer modes, plus all tutorial work, until then. A owns
