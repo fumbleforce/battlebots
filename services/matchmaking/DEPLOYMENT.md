@@ -31,6 +31,16 @@ under `battlebots/exports/hosted-server/`. The existing menu/music playtest ZIP 
 preserved. The Docker context excludes unrelated repository files, private local
 configuration and other exports. The runtime runs as an unprivileged user.
 
+The **Linux hosted duel runtime** CI job prepares the Linux release, builds this
+Dockerfile and starts its default command as `node`. Two independent host-side
+Godot clients then use `--local-service http://127.0.0.1:18080` to test the real
+container allocator and its release workers through results/rematch. That option
+is restricted to literal HTTP loopback and does not launch a replacement service.
+The image's bind/public-address overrides are local test configuration only;
+Fly uses the deployed configuration below. CI artifacts retain redacted peer logs,
+the non-secret result report, image service logs and release hashes. Success proves
+Linux runtime packaging, not internet/Fly routing or human combat acceptance.
+
 ## Provision and deploy
 
 The checked-in app name is `battlebots-fumbleforce`; change both `app` and

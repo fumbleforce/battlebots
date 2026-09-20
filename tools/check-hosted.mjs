@@ -22,13 +22,24 @@ const godot = option('--godot');
 if (!godot) throw new Error('Required: --godot <Godot 4.7.2 executable>');
 const serverBinary = option('--server-binary');
 const endpoint = option('--endpoint');
-const duelOnly = Boolean(endpoint) || args.includes('--duel-only');
+const localService = option('--local-service');
+assert.ok(!args.includes('--endpoint') || endpoint, '--endpoint requires an HTTPS origin');
+assert.ok(!args.includes('--local-service') || localService, '--local-service requires an HTTP loopback origin');
+assert.ok(!(endpoint && localService), '--endpoint and --local-service are mutually exclusive');
+const managedService = Boolean(endpoint || localService);
+assert.ok(!managedService || !serverBinary, '--server-binary applies only when this check starts the service');
+const duelOnly = managedService || args.includes('--duel-only');
+if (localService) {
+  assert.match(localService, /^http:\/\/127\.0\.0\.1:[0-9]+\/?$/,
+    'Local service must use http://127.0.0.1:<port> without credentials or a path');
+  const url = new URL(localService);
+  assert.ok(Number(url.port || 80) > 0, 'Local service port must be positive');
+}
 if (endpoint) {
   const url = new URL(endpoint);
   assert.equal(url.protocol, 'https:', 'External endpoint must use HTTPS');
   assert.ok(!url.username && !url.password && !url.search && !url.hash && url.pathname === '/',
     'External endpoint must be an HTTPS origin without credentials');
-  assert.ok(!serverBinary, '--server-binary applies only to local service checks');
 }
 const run = await mkdtemp(path.join(os.tmpdir(), 'battlebots-hosted-'));
 const children = [];
@@ -120,7 +131,7 @@ const port = await new Promise(resolve => {
     probe.close(() => resolve(chosen));
   });
 });
-const base = endpoint ? new URL(endpoint).origin : `http://127.0.0.1:${port}`;
+const base = managedService ? new URL(endpoint || localService).origin : `http://127.0.0.1:${port}`;
 async function request(route, guest, method = 'GET', body) {
   const response = await fetch(base + route, { method, redirect: 'error', signal: AbortSignal.timeout(5000),
     headers: { 'Content-Type': 'application/json', ...(guest ? { Authorization: `Bearer ${guest.access_token}` } : {}) },
@@ -136,7 +147,7 @@ try {
   const compatibility = JSON.parse(await readFile(manifest, 'utf8'));
   const stateDirectory = path.join(run, 'state');
   await mkdir(stateDirectory);
-  const service = endpoint ? null : launch('service', process.execPath, ['services/matchmaking/index.mjs'], {
+  const service = managedService ? null : launch('service', process.execPath, ['services/matchmaking/index.mjs'], {
     ...process.env, HOST: '127.0.0.1', PORT: String(port), PUBLIC_ADDRESS: '127.0.0.1',
     BIND_ADDRESS: '127.0.0.1', REGION: 'local-test', STATE_DIRECTORY: stateDirectory,
     GODOT_PATH: serverBinary || godot, GODOT_PROJECT_PATH: serverBinary ? '' : path.join(root, 'battlebots'),
@@ -225,7 +236,8 @@ try {
   }
   const evidence = { private: await exercise('private', 2),
     ...(duelOnly ? {} : { queue: await exercise('queue', 4) }),
-    build: compatibility.build, exported_server: Boolean(serverBinary), external_endpoint: endpoint ? base : null };
+    build: compatibility.build, exported_server: managedService ? null : Boolean(serverBinary),
+    service_origin: base, managed_service: managedService, external_endpoint: endpoint ? base : null };
   await writeFile(path.join(run, 'report.json'), JSON.stringify(evidence, null, 2));
   assert.equal(service?.crashSignature, undefined, `Service diagnostic: ${service?.crashSignature}; logs: ${run}`);
   console.log(`HOSTED END TO END PASS: ${run}`);
@@ -239,9 +251,9 @@ try {
     }
     await Promise.race([child.completed, delay(3000, undefined, { ref: false })]);
   }
-  // A failed external check must release its own reservations too. Never print
+  // A failed check against a separately managed service must release its own reservations too. Never print
   // bearer tokens or keep admission files with the non-secret evidence bundle.
-  if (endpoint) {
+  if (managedService) {
     const cleanup = await Promise.allSettled(ownedGuests.map(member => request('/v1/membership', member, 'DELETE')));
     if (cleanup.some(result => result.status === 'rejected')) console.warn('Some test memberships could not be released; service leases will expire.');
   }
