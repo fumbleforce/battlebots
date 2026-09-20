@@ -16,11 +16,16 @@ var catalogue: Dictionary = {}
 var _saved: Array = []
 var _save_indices: Array[int] = []
 var _read_errors := false
+const HISTORY_LIMIT := 100
+var _undo_history: Dictionary = {}
+var _redo_history: Dictionary = {}
 
 func _ready() -> void:
 	reload()
 
 func reload() -> void:
+	_undo_history.clear()
+	_redo_history.clear()
 	catalogue = MenuData.catalogue(registry)
 	var loaded := LoadoutStore.new(save_path).load_saved()
 	errors = loaded.errors
@@ -66,6 +71,7 @@ func save_active(name: String) -> Error:
 		return result
 	_saved = next
 	if index < 0: _save_indices[active_bot] = next.size()-1
+	_record_edit(validation.loadout)
 	loadouts[active_bot] = validation.loadout.duplicate(true)
 	_refresh_bots()
 	inventory_changed.emit()
@@ -105,8 +111,51 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 		if item.id not in ["cyan","orange","white","red"]: return
 		draft.cosmetics = {"paint":item.id}
 	# Preserve invalid combinations for repair; never silently replace selected parts.
+	if not _record_edit(draft): return
 	loadouts[active_bot] = draft
 	errors = registry.validate(draft).reasons
+	_refresh_bots()
+	inventory_changed.emit()
+
+func rename_draft(value: String) -> void:
+	var draft: Dictionary = loadouts[active_bot].duplicate(true)
+	draft.name = value.strip_edges()
+	if not _record_edit(draft): return
+	loadouts[active_bot] = draft
+	_draft_changed()
+
+func can_undo() -> bool:
+	return not _undo_history.get(active_bot, []).is_empty()
+
+func can_redo() -> bool:
+	return not _redo_history.get(active_bot, []).is_empty()
+
+func undo_edit() -> void:
+	_restore_history(_undo_history, _redo_history)
+
+func redo_edit() -> void:
+	_restore_history(_redo_history, _undo_history)
+
+func _record_edit(next: Dictionary) -> bool:
+	if loadouts[active_bot] == next: return false
+	_push_history(_undo_history, loadouts[active_bot])
+	_redo_history.erase(active_bot)
+	return true
+
+func _push_history(history: Dictionary, draft: Dictionary) -> void:
+	if not history.has(active_bot): history[active_bot] = []
+	history[active_bot].append(draft.duplicate(true))
+	if history[active_bot].size() > HISTORY_LIMIT:
+		history[active_bot].pop_front()
+
+func _restore_history(source: Dictionary, destination: Dictionary) -> void:
+	if source.get(active_bot, []).is_empty(): return
+	_push_history(destination, loadouts[active_bot])
+	loadouts[active_bot] = source[active_bot].pop_back().duplicate(true)
+	_draft_changed()
+
+func _draft_changed() -> void:
+	errors = registry.validate(loadouts[active_bot]).reasons
 	_refresh_bots()
 	inventory_changed.emit()
 

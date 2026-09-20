@@ -1,5 +1,17 @@
 # Developer B — combat, bots, customisation and controls
 
+## Garage history — 20 September 2026
+
+`codex/b-garage-history` starts at main `2b42812`. Parts, paint and committed name
+edits now have per-build undo/redo in Customize, including keyboard shortcuts.
+History survives menu navigation and Save; undo changes the draft only. Invalid
+drafts remain repairable and profile reload clears history. No shared schema or
+A-owned runtime changes. Baseline, independent history, profile and customization
+checks passed; rendered 720p layout inspected. See
+[scope and evidence](coordination/B_GARAGE_HISTORY.md). Next garage work: live
+3D preview, comparisons, full repair UX and text scaling. The full 1v1 acceptance
+and current A deployment/menu work remain tracked separately.
+
 ## Current user-defined ownership
 
 B owns combat, bot models/weapons, bot-customisation menus and player controls.

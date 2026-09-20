@@ -10,13 +10,16 @@ var _tab := "parts"
 var _cat := {"parts": 0, "paint": 0, "decals": 0}
 var _item := {}
 var _refocus := ""
+var name_edit: LineEdit
+var undo_button: Button
+var redo_button: Button
 
 
 func _ready() -> void:
 	super()
 	$Layout/Footer/Row/Hint1.hide()
 	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
-	var name_edit := LineEdit.new()
+	name_edit = LineEdit.new()
 	name_edit.name = "BuildName"
 	name_edit.text = bot.name
 	name_edit.placeholder_text = "Build name (1–48 characters)"
@@ -26,6 +29,24 @@ func _ready() -> void:
 	name_edit.tooltip_text = "Saved build name"
 	name_edit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	name_edit.custom_minimum_size.y = 48
+	name_edit.tooltip_text = "Enter a name, then press Enter or leave this field to apply it to the draft. Save writes it to this computer."
+	name_edit.text_submitted.connect(func(_value: String) -> void: _commit_name())
+	name_edit.focus_exited.connect(_commit_name)
+	var history := HBoxContainer.new()
+	history.add_theme_constant_override("separation", 12)
+	$Layout/Body/Row/Preview/Col.add_child(history)
+	undo_button = Button.new()
+	undo_button.text = "UNDO"
+	undo_button.tooltip_text = "Undo build edit (Ctrl+Z). Saved files change only when you Save."
+	undo_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	history.add_child(undo_button)
+	undo_button.pressed.connect(PlayerProfile.undo_edit)
+	redo_button = Button.new()
+	redo_button.text = "REDO"
+	redo_button.tooltip_text = "Redo build edit (Ctrl+Y or Ctrl+Shift+Z)."
+	redo_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	history.add_child(redo_button)
+	redo_button.pressed.connect(PlayerProfile.redo_edit)
 	for control: Node in find_children("Rotate","Button",true,false):
 		control.disabled = true
 	%Eyebrow.text = "%s · %s" % [bot.name, bot.cls]
@@ -45,6 +66,18 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed \
+		and not event.alt_pressed and not event.meta_pressed:
+		var focus := get_viewport().gui_get_focus_owner()
+		if not focus is LineEdit and not focus is TextEdit:
+			var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+			if code in [KEY_Z, KEY_Y]:
+				if code == KEY_Y or event.shift_pressed:
+					PlayerProfile.redo_edit()
+				else:
+					PlayerProfile.undo_edit()
+				get_viewport().set_input_as_handled()
+				return
 	super(event)
 	var dir := tab_input(event)
 	if dir != 0:
@@ -60,6 +93,9 @@ func _set_tab(t: String) -> void:
 
 func _refresh() -> void:
 	var current: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
+	if not name_edit.has_focus(): name_edit.text = current.name
+	undo_button.disabled = not PlayerProfile.can_undo()
+	redo_button.disabled = not PlayerProfile.can_redo()
 	%Eyebrow.text = current.name + " · " + current.cls
 	%Save.disabled = not current.valid
 	var cats: Array = PlayerProfile.catalogue[_tab]
@@ -152,8 +188,13 @@ func _on_action() -> void:
 
 
 func _save_build() -> void:
+	_commit_name()
 	var result: Error = PlayerProfile.save_active(%Save.get_parent().get_node("BuildName").text)
 	if result == OK:
 		%SelDesc.text = "Build saved to this computer."
 	else:
 		%SelDesc.text = "; ".join(PlayerProfile.errors)
+
+func _commit_name() -> void:
+	if is_inside_tree():
+		PlayerProfile.rename_draft(name_edit.text)
