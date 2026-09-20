@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-garage-recovery`, based on main `e24ab02`.
-**Latest increment:** Explicit disk reload retains drafts/history; reviewed backup recovery preserves original files. See [recovery evidence](coordination/B_GARAGE_RECOVERY.md).
+**Latest B task:** `codex/b-menu-text-accessibility`, based on main `d6e154e`.
+**Latest increment:** Shared 100/125/150% text preference reaches B garage/customisation/catalogue/recovery and camera/input settings. See [text evidence](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -41,10 +41,11 @@ and audio. Historical labels below describe authorship, not current ownership.
 
 ## Active and next — B-owned
 
-**B handoff to A:** `codex/b-garage-recovery` starts at main `e24ab02`. Garage
-reload and backup review consume additive local APIs; no general-menu, session,
-world, audio or wire changes. Store/tests and independent review were delegated;
-primary integrated profile/UI and checks. See [recovery scope](coordination/B_GARAGE_RECOVERY.md).
+**B handoff to A:** `codex/b-menu-text-accessibility` starts at main `d6e154e`.
+B panels consume the existing MenuTextScale helper; the coordinated menu_game
+call also scales preview.settings_panel. Its form path remains stable for general
+setting entries. Garage/catalogue and controls were delegated in parallel. No
+wire/input-action/preference-schema changes. See [text scope](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
 
 User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
 2v2, FFA and other multiplayer modes, plus all tutorial work, until then. A owns
@@ -64,7 +65,7 @@ these newly requested presentation tasks.
 - [ ] **Controls and camera:** Player input/driving, camera and spectator control
   behavior, including control-specific settings. Consume A's match phase and
   spectator sources; do not calculate local winners or ready state.
-- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live primitive 3D preview, comparisons, individual invalid-build repair and explicit disk/backup recovery are implemented. Remaining: text scaling and authored bot-art integration. APIs: ContentRegistry.validate/starter and
+- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live primitive 3D preview, comparisons, individual invalid-build repair, explicit disk/backup recovery and 150% text are implemented. Remaining: authored bot-art integration and a direct unsaved-build test-drive entry. APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 

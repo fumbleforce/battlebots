@@ -106,9 +106,11 @@ See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK
 - [x] Add 1v1/practice world identification with distinct symbols/text, OUT state,
   color presets and high contrast. Depth-tested badges follow published poses
   and hide with menus/recovery; see [marker evidence](coordination/A_DUEL_WORLD_MARKERS.md).
-- [ ] Remaining accessibility and communication: B-owned garage/customisation/
-  control-settings text scaling to complete coverage throughout all menus,
-  human world/team marker recognition and color-vision acceptance; ping
+- [x] B garage/customisation/catalogue/recovery and camera/input settings consume
+  the shared text scale with reflow and keyboard scrolling; independent/composed
+  checks and rendered 720p evidence are in [B text accessibility](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
+- [ ] Remaining accessibility and communication: human world/team marker
+  recognition and color-vision acceptance; ping
   presentation after the coordinated input/network interfaces exist.
 - [x] Refine the general menus, especially multiplayer/networking screens (A).
   User feedback (2026-09-20): these screens are poorly integrated into the

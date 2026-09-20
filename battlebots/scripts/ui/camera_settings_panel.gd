@@ -20,6 +20,7 @@ var controls_button: Button
 var _input_preferences: InputPreferences
 var _input_path: String
 var _input_notice: String
+var _text_scale: float = 1.0
 
 func _ready() -> void:
 	sensitivity.value_changed.connect(_on_value_changed)
@@ -39,6 +40,30 @@ func _ready() -> void:
 	$Center/Panel/Margin.add_child(input_panel)
 	input_panel.finished.connect(_close_controls)
 	input_panel.applied.connect(_apply_inputs)
+	resized.connect(_layout_panel)
+	apply_text_scale(_text_scale)
+
+func apply_text_scale(factor: float) -> void:
+	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	if not is_node_ready():
+		return
+	MenuTextScale.apply(self, _text_scale)
+	input_panel.apply_text_scale(_text_scale)
+	_layout_panel()
+
+func _layout_panel() -> void:
+	# The stable Form path also contains the general settings navigation.
+	$Center/Panel.custom_minimum_size = Vector2(
+		minf(540.0 * _text_scale, maxf(0.0, size.x - 48.0)),
+		minf(670.0 * _text_scale, maxf(0.0, size.y - 48.0)))
+	_keep_focus_visible.call_deferred()
+
+func _keep_focus_visible() -> void:
+	await get_tree().process_frame
+	if not is_inside_tree() or not is_visible_in_tree(): return
+	var focus := get_viewport().gui_get_focus_owner()
+	if is_instance_valid(focus) and is_ancestor_of(focus):
+		$Center/Panel/Margin.ensure_control_visible(focus)
 
 func configure_inputs(preferences: InputPreferences, path: String, notice: String = "") -> void:
 	_input_preferences = preferences
@@ -107,6 +132,9 @@ func _refresh_labels() -> void:
 		navigation.append(strength)
 	navigation.append_array([form.get_node("Buttons/Defaults"),
 		form.get_node("Buttons/Cancel"), form.get_node("Buttons/Save"), controls_button])
+	for child: Node in form.get_children():
+		if child is BaseButton and child not in navigation and child.visible and not child.disabled:
+			navigation.append(child)
 	for index: int in range(navigation.size()):
 		var control := navigation[index]
 		var previous := navigation[posmod(index - 1, navigation.size())]

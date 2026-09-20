@@ -255,7 +255,7 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_type_variation = &"IconButton"
 icon = ExtResource("6_rotatesv")
-tooltip_text = "Concept art; not a live build preview"
+tooltip_text = "Reset build preview view"
 
 [node name="Stats" type="GridContainer" parent="Layout/Body/Row/Preview/Col"]
 layout_mode = 2

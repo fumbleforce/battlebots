@@ -18,10 +18,61 @@ var comparison_panel: GarageComparisonPanel
 var revalidate_button: Button
 var recovery_panel: GarageRecoveryPanel
 var recovery_button: Button
+var _text_scale := 1.0
+var _items_scroll: ScrollContainer
+
+func apply_text_scale(factor: float) -> void:
+	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	MenuTextScale.apply(self, _text_scale)
+	if not is_instance_valid(build_preview): return
+	build_preview.apply_text_scale(_text_scale)
+	comparison_panel.apply_text_scale(_text_scale)
+	if is_instance_valid(recovery_panel): recovery_panel.apply_text_scale(_text_scale)
+	%BotImage.get_parent().custom_minimum_size.y = 300 if _text_scale == 1.0 else 220
+	_items_scroll.custom_minimum_size.y = 180 if _text_scale == 1.0 else 300
+	for row: Control in %Categories.get_children():
+		row.custom_minimum_size.y = ceilf(82 * _text_scale)
+		row.get_node("%Current").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for tile: Control in %Items.get_children():
+		tile.custom_minimum_size.y = ceilf(190 * _text_scale)
+		tile.get_node("%Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+func _scroll_content(content: Control, minimum: float, expand := true) -> ScrollContainer:
+	var parent := content.get_parent()
+	var index := content.get_index()
+	var owned: Array[Node] = [content]
+	for node: Node in content.find_children("*", "", true, false):
+		if node.owner == self: owned.append(node)
+	parent.remove_child(content)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.custom_minimum_size.y = minimum
+	if expand: scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	parent.add_child(scroll)
+	parent.move_child(scroll, index)
+	scroll.add_child(content)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_FILL
+	for node: Node in owned: node.owner = self
+	return scroll
 
 
 func _ready() -> void:
 	super()
+	_scroll_content(%Categories, 100)
+	_items_scroll = _scroll_content(%Items, 180)
+	_scroll_content(%SelDesc.get_parent(), 130)
+	%SelName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%CatLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%CatLabel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%Eyebrow.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	$Layout/Header/Row/SpacerL.size_flags_horizontal = Control.SIZE_FILL
+	$Layout/Header/Row/SpacerR.hide()
+	$Layout/Header/Row/Sep.hide()
+	$Layout/Header/Row/Scrap.hide()
 	build_preview = GarageBotPreview.new()
 	var frame := %BotImage.get_parent()
 	%BotImage.hide()
@@ -99,6 +150,7 @@ func _ready() -> void:
 	recovery_button.pressed.connect(func():
 		_commit_name()
 		recovery_panel.open(PlayerProfile))
+	apply_text_scale(_text_scale)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -215,6 +267,7 @@ func _refresh() -> void:
 
 	%Stats.hide()
 	%CosmeticNote.hide()
+	apply_text_scale(_text_scale)
 
 
 func _on_action() -> void:

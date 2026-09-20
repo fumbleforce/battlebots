@@ -474,7 +474,8 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	duel_scoreboard.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	world_markers.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	_menu_text_scale = value.text_scale
-	# These entries are A-owned; B's control-settings widgets retain their layout.
+	# The shared text preference also reaches B's camera and input settings.
+	preview.settings_panel.apply_text_scale(_menu_text_scale)
 	for entry: Button in [audio_settings_button, hud_settings_button]:
 		if is_instance_valid(entry):
 			MenuTextScale.apply(entry, _menu_text_scale)

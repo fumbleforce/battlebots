@@ -211,7 +211,7 @@ layout_mode = 2
 theme_override_constants/separation = 12
 custom_minimum_size = Vector2(360, 0)
 
-[node name="Head" type="HBoxContainer" parent="Layout/Body/Row/BotsCol"]
+[node name="Head" type="VBoxContainer" parent="Layout/Body/Row/BotsCol"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
@@ -310,9 +310,9 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_type_variation = &"IconButton"
 icon = ExtResource("9_rotatesv")
-tooltip_text = "Concept art; not a live build preview"
+tooltip_text = "Reset build preview view"
 
-[node name="Info" type="HBoxContainer" parent="Layout/Body/Row/Preview/Col"]
+[node name="Info" type="VBoxContainer" parent="Layout/Body/Row/Preview/Col"]
 layout_mode = 2
 theme_override_constants/separation = 10
 

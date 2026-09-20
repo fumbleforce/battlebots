@@ -10,17 +10,29 @@ const FIELDS := [
 var title: Label
 var budgets: GridContainer
 var details: GridContainer
+var _text_scale := 1.0
+
+func apply_text_scale(factor: float) -> void:
+	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	MenuTextScale.apply(self, _text_scale)
+	for grid: GridContainer in [budgets, details]:
+		if not is_instance_valid(grid): continue
+		for index: int in grid.get_child_count():
+			grid.get_child(index).custom_minimum_size.x = (250 if _text_scale > 1.0 else 280) if index % 4 == 0 else (160 if _text_scale > 1.0 else 115)
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 8)
 	title = Label.new()
 	title.add_theme_font_size_override("font_size", 20)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(title)
 	budgets = _grid(self)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size.y = 125
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.follow_focus = true
 	add_child(scroll)
 	details = _grid(scroll)
 
@@ -45,6 +57,7 @@ func render(comparison: Dictionary, candidate: String, proposed := true) -> void
 	_row(budgets, "Power ( / 100)", before.get("power"), after.get("power"), 1, 100)
 	for field: Array in FIELDS:
 		_row(details, field[0], before.get(field[1]), after.get(field[1]), field[2])
+	apply_text_scale(_text_scale)
 
 func _clear(grid: GridContainer) -> void:
 	for child: Node in grid.get_children():
@@ -56,6 +69,7 @@ func _cell(grid: GridContainer, value: String, name_cell := false) -> Label:
 	label.text = value
 	label.add_theme_font_size_override("font_size", 21)
 	label.custom_minimum_size.x = 280 if name_cell else 115
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if name_cell: label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_child(label)
 	return label

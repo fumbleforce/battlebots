@@ -3,6 +3,10 @@
 [ext_resource type="Script" path="res://scripts/ui/camera_settings_panel.gd" id="1"]
 
 [sub_resource type="StyleBoxFlat" id="Panel"]
+content_margin_left = 24.0
+content_margin_right = 24.0
+content_margin_top = 20.0
+content_margin_bottom = 20.0
 bg_color = Color(0.025, 0.04, 0.06, 1)
 border_width_top = 3
 border_color = Color(0.2, 0.8, 0.9, 1)
@@ -48,15 +52,14 @@ layout_mode = 2
 custom_minimum_size = Vector2(540, 0)
 theme_override_styles/panel = SubResource("Panel")
 
-[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+[node name="Margin" type="ScrollContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_bottom = 24
+follow_focus = true
+horizontal_scroll_mode = 0
 
 [node name="Form" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/Form"]
@@ -67,6 +70,7 @@ text = "Camera settings"
 
 [node name="Description" type="Label" parent="Center/Panel/Margin/Form"]
 layout_mode = 2
+autowrap_mode = 3
 theme_override_font_sizes/font_size = 15
 text = "Changes apply immediately. Save to keep them.
 The match continues while your input is disabled."

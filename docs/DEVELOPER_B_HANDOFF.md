@@ -1,5 +1,31 @@
 # Developer B — combat, bots, customisation and controls
 
+## B menu text accessibility — 20 September 2026
+
+`codex/b-menu-text-accessibility` starts from main `d6e154e`. The saved shared
+100/125/150% text setting now reaches Garage, Customize, catalogue, preview/stat
+comparisons, file recovery and camera/input settings. Fonts retain the requested
+factor across rebuilt rows, repeated application and returning to 100%; wrapping
+and keyboard-accessible scrolling keep controls reachable at 720p through 4K.
+Garage actions sit outside its model viewport; Customize keeps mass/power and
+Save visible while detailed comparisons and choices scroll. Camera/input drafts,
+binding capture, Cancel and Save retain their existing behavior.
+
+A handoff: the only runtime integration change outside B ownership is the
+previously documented call to `preview.settings_panel.apply_text_scale` in
+menu_game. Existing form paths and injected general-setting buttons remain valid.
+The form's Margin is now a ScrollContainer; resizing keeps the focused control
+visible after layout. No wire, input-action or preference-schema changes.
+
+Independent Customize, Garage/catalogue, controls and composed-game scenes pass;
+rendered 150% screens inspected at 720p, with layout checks through 4K. Composed
+checks verify live preview, Cancel, persistence and newly opened screens. Baseline
+and affected existing garage/control/general-settings checks pass. Subagents
+implemented Garage/catalogue and controls in parallel. See
+[scope and evidence](coordination/B_MENU_TEXT_ACCESSIBILITY.md). Remaining garage
+work includes authored bot art and a direct unsaved-build test-drive entry; full
+combat/control and human 1v1 acceptance remain open.
+
 ## Saved-file recovery — 20 September 2026
 
 `codex/b-garage-recovery` starts from main `e24ab02`. Garage and Customize now
@@ -17,7 +43,7 @@ focus escape, initial garage focus and redo-at-baseline loss. Storage and actual
 garage/customize recovery scenes pass headless; rendered D3D12 review/result
 screens fit 1280x720. Baseline and profile/history/repair/comparison/customization
 regressions pass. See [recovery evidence](coordination/B_GARAGE_RECOVERY.md).
-Text scaling, authored bot art and full 1v1 gameplay acceptance remain open.
+Text scaling is delivered above; authored bot art and full 1v1 acceptance remain.
 
 ## Saved-build repair — 20 September 2026
 
@@ -48,7 +74,7 @@ A: no catalogue, wire, schema, network, general-menu or combat changes. Scope wa
 published in [the comparison record](coordination/B_GARAGE_COMPARISON.md) before
 implementation. A subagent supplied the pure model and independent acceptance
 scenes; the primary integrated/reviewed the screen. Repair and recovery follow in
-the increments above; text scaling and authored bot art remain B work.
+the increments above; authored bot art remains B work.
 
 ## Live garage preview — 20 September 2026
 
@@ -64,7 +90,7 @@ changes. B intent was published before implementation. The new automated scene
 is in the presentation runner; `scenes/dev/b_garage_preview.tscn` is an independent
 manual F6 sandbox. See [scope and evidence](coordination/B_GARAGE_PREVIEW.md).
 Older concept-image-only descriptions below are historical. Comparisons and
-repair/recovery are implemented above; authored bot art and text scaling remain.
+repair/recovery and text scaling are implemented above; authored bot art remains.
 
 ## Garage history — 20 September 2026
 

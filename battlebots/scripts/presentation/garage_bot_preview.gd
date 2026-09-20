@@ -14,6 +14,12 @@ var distance := 5.4
 var _stage: Node3D
 var _registry := ContentRegistry.new()
 var _draft: Dictionary = {}
+var _status_scroll: ScrollContainer
+
+func apply_text_scale(factor: float) -> void:
+	var value := clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	MenuTextScale.apply(self, value)
+	if is_instance_valid(_status_scroll): _status_scroll.offset_top = -84 * value
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -61,18 +67,23 @@ func _ready() -> void:
 	camera.near = 0.05
 	_stage.add_child(camera)
 	camera.current = true
+	_status_scroll = ScrollContainer.new()
+	_status_scroll.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_status_scroll.offset_top = -84
+	_status_scroll.offset_left = 12
+	_status_scroll.offset_right = -84
+	_status_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_status_scroll.focus_mode = Control.FOCUS_ALL
+	add_child(_status_scroll)
 	status = Label.new()
-	status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	status.offset_top = -84
-	status.offset_left = 12
-	status.offset_right = -84
+	status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status.add_theme_font_size_override("font_size", 18)
 	status.add_theme_color_override("font_shadow_color", Color.BLACK)
 	status.add_theme_constant_override("shadow_offset_x", 1)
 	status.add_theme_constant_override("shadow_offset_y", 1)
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(status)
+	_status_scroll.add_child(status)
 	reset_view()
 	show_loadout(_draft)
 

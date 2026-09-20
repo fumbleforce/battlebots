@@ -2,6 +2,7 @@ extends MenuScreen
 ## Browse available functional parts. Gameplay power is never sold.
 const TABS := ["upgrades", "parts", "cosmetics"]
 var _tab := "upgrades"
+var _text_factor := 1.0
 func _ready() -> void:
 	super()
 	var group := ButtonGroup.new()
@@ -23,12 +24,30 @@ func _ready() -> void:
 	scroll.name = "CatalogueScroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.follow_focus = true
+	scroll.focus_mode = Control.FOCUS_ALL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	parent.add_child(scroll)
 	scroll.add_child(items)
 	items.owner = self
 	items.unique_name_in_owner = true
 	items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var rules: Control = %UpgradesView
+	var rules_scroll := ScrollContainer.new()
+	rules_scroll.name = "RulesScroll"
+	rules_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rules_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rules_scroll.follow_focus = true
+	rules_scroll.focus_mode = Control.FOCUS_ALL
+	parent.add_child(rules_scroll)
+	rules.reparent(rules_scroll)
+	rules.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	$Layout/Header/Row/Tabs.reparent($Layout)
+	$Layout.move_child($Layout/Tabs, 2)
+	$Layout/Tabs/Row.alignment = BoxContainer.ALIGNMENT_CENTER
+	$Layout/Header/Row/SpacerL.hide()
+	$Layout/Header/Row/SpacerR.hide()
+	%Title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%Title.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_set_tab("upgrades")
 func _unhandled_input(event: InputEvent) -> void:
 	super(event)
@@ -42,6 +61,7 @@ func _set_tab(tab: String) -> void:
 	for index: int in TABS.size():
 		[%TabUpgrades,%TabParts,%TabCosmetics][index].button_pressed = TABS[index] == tab
 	%UpgradesView.visible = tab == "upgrades"
+	%UpgradesView.get_parent().visible = tab == "upgrades"
 	%ItemsView.visible = tab != "upgrades"
 	%ItemsView.get_parent().visible = tab != "upgrades"
 	clear_children(%UpgradeGrid)
@@ -66,6 +86,9 @@ func _set_tab(tab: String) -> void:
 				if item.has("swatch"): data.swatch = item.swatch
 				card.setup(data,true,false)
 				card.get_node("%Buy").text = "AVAILABLE IN CUSTOMIZE"
+				card.get_node("%Buy").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				card.get_node("%Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	apply_text_scale(_text_factor)
 
 func _entry(parent: Node, title: String, description: String, art: Texture2D = null) -> void:
 	var panel := PanelContainer.new()
@@ -78,6 +101,7 @@ func _entry(parent: Node, title: String, description: String, art: Texture2D = n
 	panel.add_child(box)
 	var heading := Label.new()
 	heading.text = title
+	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	heading.theme_type_variation = &"Heading"
 	heading.add_theme_font_size_override("font_size",30)
 	box.add_child(heading)
@@ -96,3 +120,9 @@ func _entry(parent: Node, title: String, description: String, art: Texture2D = n
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.custom_minimum_size.x = 220
 	box.add_child(body)
+
+
+func apply_text_scale(factor: float) -> void:
+	_text_factor = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	MenuTextScale.apply(self, _text_factor)
+	%ItemsView.columns = 2 if _text_factor > 1.0 else 3

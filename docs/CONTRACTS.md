@@ -93,8 +93,15 @@ panels expose `apply_text_scale(factor)` and own wrapping and scroll behavior.
 The game owner propagates live drafts to current panels and newly opened screens,
 restores the saved value on Cancel/reconnect cancellation, and loads the same
 version-one HUD preference at startup. Existing files need no migration.
-B's garage/customisation/control-settings layouts are unchanged; B may consume
-this helper and adapt those layouts separately before whole-menu acceptance.
+B's Garage, Customize, catalogue, preview/comparison/recovery and camera/input
+settings now expose `apply_text_scale(factor)` too. The existing screen dispatch
+covers B menus; one explicit call in menu_game propagates to CameraSettingsPanel,
+which also scales InputSettingsPanel. Rebuilt rows retain the current factor.
+Keyboard-following scroll areas and wrapping preserve full 100/125/150% fonts.
+The camera form NodePath stays stable for A's injected audio/accessibility entries;
+its enclosing Margin is now a ScrollContainer. Window resizing keeps focused
+settings controls visible after layout. No preference schema changes. See
+[B text evidence](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
 
 `MvpSession.bot_views() -> Array[BotView]` returns fresh detached views for the
 current world. Server/practice views read the real bot state; clients omit bots

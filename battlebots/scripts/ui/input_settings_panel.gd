@@ -11,8 +11,10 @@ var message: Label
 var save_button: Button
 var _path: String
 var _scroll: ScrollContainer
+var _text_scale: float = 1.0
 
 func _ready() -> void:
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 12)
 	var title := Label.new()
 	title.text = "Controls"
@@ -21,6 +23,7 @@ func _ready() -> void:
 	var help := Label.new()
 	help.text = "Select a binding, then press a key or mouse button.\nEscape cancels capture. Duplicate bindings are rejected."
 	help.add_theme_font_size_override("font_size", 14)
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(help)
 	_scroll = ScrollContainer.new()
 	_scroll.custom_minimum_size = Vector2(484, 300)
@@ -49,6 +52,7 @@ func _ready() -> void:
 	var explanation := Label.new()
 	explanation.text = "Toggle: press to activate, press again to release/fire.\nSecondary, menus and focus loss cancel activation."
 	explanation.add_theme_font_size_override("font_size", 14)
+	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(explanation)
 	message = Label.new()
 	message.custom_minimum_size = Vector2(0, 42)
@@ -79,7 +83,17 @@ func _ready() -> void:
 		control.focus_next = control.get_path_to(navigation[(index + 1) % navigation.size()])
 		control.focus_previous = control.get_path_to(navigation[posmod(index - 1, navigation.size())])
 	get_window().focus_exited.connect(cancel_capture)
+	apply_text_scale(_text_scale)
 	hide()
+
+func apply_text_scale(factor: float) -> void:
+	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
+	if not is_node_ready():
+		return
+	MenuTextScale.apply(self, _text_scale)
+	_scroll.custom_minimum_size = Vector2(0, 240.0)
+	for button: Button in binding_buttons.values():
+		button.custom_minimum_size = Vector2(200.0 * _text_scale, 34.0 * _text_scale)
 
 func open_for(preferences: InputPreferences, path: String, notice: String = "") -> void:
 	draft = preferences.clone()

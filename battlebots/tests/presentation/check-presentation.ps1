@@ -108,6 +108,14 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/loadout_recovery_test.tscn', '--quit-after', '10000') -Marker 'LOADOUT RECOVERY PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_recovery_test.tscn', '--quit-after', '10000') -Marker 'GARAGE RECOVERY PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/customize_text_test.tscn', '--quit-after', '10000') -Marker 'CUSTOMIZE TEXT PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/garage_catalogue_text_test.tscn', '--quit-after', '10000') -Marker 'GARAGE CATALOGUE TEXT PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/control_settings_text_test.tscn', '--quit-after', '10000') -Marker 'CONTROL SETTINGS TEXT PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/b_menu_text_game_test.tscn', '--quit-after', '10000') -Marker 'B MENU TEXT GAME PASS'
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
 foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
     @('combat_hud_session_test.gd', 'COMBAT HUD SESSION PASS'),
