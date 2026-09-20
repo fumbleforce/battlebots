@@ -1,88 +1,138 @@
 extends MenuScreen
-## Online intent selection; no fabricated roster or local readiness decisions.
+## The public service owns membership, admission and cleanup; this panel shows its state.
+var service_override: PublicServiceClient
 var service: PublicServiceClient
-var quick_button: Button
 var create_button: Button
 var join_button: Button
 var cancel_button: Button
 var back_button: Button
 var copy_button: Button
-var mode_choice: OptionButton
 var code_input: LineEdit
 var status_label: Label
 var region_label: Label
 var code_label: Label
 var actions: VBoxContainer
+var state_heading: Label
 
 func _ready() -> void:
 	allow_back = false
 	super()
-	service = MenuRouter.host.public_service
-	var background := ColorRect.new()
-	background.color = Color("111824")
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background)
-	var margins := MarginContainer.new()
-	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side: String in ["left", "right", "top", "bottom"]:
-		margins.add_theme_constant_override("margin_" + side, 80)
-	add_child(margins)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 22)
-	margins.add_child(col)
-	label(col, "PLAY ONLINE", 56)
-	label(col, "Hosted games — no router setup or tunnel needed.", 28)
-	region_label = label(col, "", 24)
+	service = service_override if is_instance_valid(service_override) else MenuRouter.host.public_service
+	var layout := VBoxContainer.new()
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layout.add_theme_constant_override("separation", 0)
+	add_child(layout)
+	var header := panel(layout, &"HeaderBar")
+	header.custom_minimum_size.y = 130
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 32)
+	header.add_child(header_row)
+	back_button = button(header_row, "BACK", back)
+	back_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var title := VBoxContainer.new()
+	title.custom_minimum_size.x = 620
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header_row.add_child(title)
+	label(title, "MULTIPLAYER · PRIVATE DUEL", 18, &"EyebrowAmber")
+	label(title, "PLAY ONLINE", 53, &"Heading")
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_child(spacer)
+	var badge := label(header_row, "1V1 / FIRST TO TWO", 24, &"Subheading")
+	badge.custom_minimum_size.x = 300
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var margin := MarginContainer.new()
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	for side: String in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 90)
+	for side: String in ["top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 38)
+	layout.add_child(margin)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 24)
+	margin.add_child(body)
+	label(body, "ONE ARENA. TWO BOTS.", 42, &"HeadingItalic")
+	label(body, "Create a duel and share your code, or join a friend’s game.", 27, &"Muted")
 	actions = VBoxContainer.new()
 	actions.add_theme_constant_override("separation", 18)
-	col.add_child(actions)
-	quick_button = button(actions, "QUICK PLAY · 2V2 · 4 PLAYERS", service.quick_play)
-	label(actions, "OR CREATE A PRIVATE GAME", 25)
-	var private_row := HBoxContainer.new()
-	private_row.add_theme_constant_override("separation", 20)
-	actions.add_child(private_row)
-	mode_choice = OptionButton.new()
-	mode_choice.custom_minimum_size = Vector2(580, 64)
-	mode_choice.add_item("1v1 · 2 players", 2)
-	mode_choice.add_item("2v2 · 4 players", 4)
-	mode_choice.add_item("5v5 · 10 players", 10)
-	for count: int in range(4, 9):
-		mode_choice.add_item("Free for all · up to %d players" % count, 100 + count)
-	private_row.add_child(mode_choice)
-	create_button = button(private_row, "CREATE PRIVATE GAME", create_room)
-	label(actions, "OR JOIN A FRIEND", 25)
+	body.add_child(actions)
+	var cards := HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 28)
+	actions.add_child(cards)
+	var host_col := card(cards, "01 / CREATE", "CHALLENGE A FRIEND", "Start a private 1v1 game. Share the code to invite your opponent.")
+	create_button = button(host_col, "CREATE 1V1 GAME", create_room)
+	create_button.theme_type_variation = &"PrimaryButton"
+	var join_col := card(cards, "02 / JOIN", "ENTER THE ARENA", "Have an invite? Enter the eight-character code your friend shared.")
 	var join_row := HBoxContainer.new()
-	join_row.add_theme_constant_override("separation", 20)
-	actions.add_child(join_row)
+	join_row.add_theme_constant_override("separation", 16)
+	join_col.add_child(join_row)
 	code_input = LineEdit.new()
-	code_input.placeholder_text = "8-character game code"
+	code_input.placeholder_text = "GAME CODE"
+	code_input.tooltip_text = "Eight-character game code"
 	code_input.max_length = 8
-	code_input.custom_minimum_size = Vector2(580, 64)
+	code_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	code_input.custom_minimum_size.x = 220
 	code_input.text_submitted.connect(func(_text: String) -> void: join_room())
 	join_row.add_child(code_input)
 	join_button = button(join_row, "JOIN GAME", join_room)
-	status_label = label(col, "", 30)
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	join_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var status_panel := panel(body, &"PanelGlass")
+	status_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var status_col := VBoxContainer.new()
+	status_col.add_theme_constant_override("separation", 15)
+	status_panel.add_child(status_col)
+	state_heading = label(status_col, "", 24, &"EyebrowAmber")
+	status_label = label(status_col, "", 29)
 	status_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	region_label = label(status_col, "", 22, &"Muted")
 	var code_row := HBoxContainer.new()
-	col.add_child(code_row)
-	code_label = label(code_row, "", 40)
+	code_row.add_theme_constant_override("separation", 24)
+	status_col.add_child(code_row)
+	code_label = label(code_row, "", 40, &"Heading")
 	code_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy_button = button(code_row, "COPY CODE", func() -> void: DisplayServer.clipboard_set(str(service.membership.get("code", ""))))
-	var footer := HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 20)
-	col.add_child(footer)
-	cancel_button = button(footer, "CANCEL", cancel_online)
-	back_button = button(footer, "BACK", back)
+	copy_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var footer := panel(layout, &"FooterBar")
+	footer.custom_minimum_size.y = 108
+	var footer_row := HBoxContainer.new()
+	footer_row.add_theme_constant_override("separation", 24)
+	footer.add_child(footer_row)
+	var hint := label(footer_row, "Choose your bot and ready up in the lobby.", 24, &"Muted")
+	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cancel_button = button(footer_row, "CANCEL", cancel_online)
+	cancel_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	cancel_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	service.changed.connect(refresh)
 	refresh()
-	quick_button.grab_focus()
+	(create_button if not create_button.disabled else back_button).grab_focus()
 
-func label(parent: Node, text: String, font_size: int) -> Label:
+func panel(parent: Node, variation: StringName) -> PanelContainer:
+	var item := PanelContainer.new()
+	item.theme_type_variation = variation
+	parent.add_child(item)
+	return item
+
+func card(parent: Node, eyebrow: String, heading: String, description: String) -> VBoxContainer:
+	var item := panel(parent, &"PanelBox")
+	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 16)
+	item.add_child(col)
+	label(col, eyebrow, 18, &"EyebrowAmber")
+	label(col, heading, 38, &"Heading")
+	var detail := label(col, description, 25, &"Muted")
+	detail.custom_minimum_size.y = 74
+	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	return col
+
+func label(parent: Node, text: String, font_size: int, variation: StringName = &"Body") -> Label:
 	var item := Label.new()
 	item.text = text
+	item.theme_type_variation = variation
 	item.add_theme_font_size_override("font_size", font_size)
+	item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	parent.add_child(item)
 	return item
 
@@ -97,37 +147,46 @@ func button(parent: Node, text: String, action: Callable) -> Button:
 	return item
 
 func create_room() -> void:
-	var id := mode_choice.get_selected_id()
-	service.create_private("ffa" if id >= 100 else "teams", id - 100 if id >= 100 else id)
+	service.create_private("teams", 2)
 
 func join_room() -> void:
-	service.join_code(code_input.text)
+	if service.can_start():
+		service.join_code(code_input.text)
 
 func refresh() -> void:
 	status_label.text = service.message
-	region_label.text = "Region: " + (service.region if not service.region.is_empty() else "Shown when the service responds")
+	if service.state == "idle" and service.available():
+		status_label.text = "Create a private duel or enter a friend’s code to get started."
+	state_heading.text = {"idle": "READY TO PLAY" if service.available() else "ONLINE UNAVAILABLE", "failed": "CONNECTION NEEDS ATTENTION", "requesting": "CONTACTING ONLINE SERVICE", "waiting": "WAITING FOR YOUR OPPONENT", "starting": "PREPARING THE ARENA", "ready": "CONNECTING TO YOUR GAME", "connected": "GAME CONNECTED", "canceling": "LEAVING GAME"}.get(service.state, "ONLINE STATUS")
+	region_label.text = "REGION · " + (service.region if not service.region.is_empty() else "Assigned by the online service")
 	var available := service.can_start()
-	quick_button.disabled = not available
 	create_button.disabled = not available
 	join_button.disabled = not available
-	mode_choice.disabled = not available
 	code_input.editable = available
 	actions.visible = service.state in ["idle", "failed"] and not service.can_cancel()
 	var code := str(service.membership.get("code", ""))
 	code_label.text = "FRIEND CODE: " + code if not code.is_empty() else ""
+	code_label.visible = not code.is_empty()
 	copy_button.visible = not code.is_empty()
 	cancel_button.visible = service.can_cancel() or service.state == "canceling"
 	cancel_button.disabled = service.state == "canceling"
-	back_button.text = "BACK TO MAIN MENU"
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused == null or not focused.is_visible_in_tree() or (focused is BaseButton and focused.disabled):
+		(cancel_button if cancel_button.visible and not cancel_button.disabled else back_button).grab_focus()
 
 func cancel_online() -> void:
-	MenuRouter.host.cancel_online()
+	if is_instance_valid(service_override):
+		service.cancel()
+	else:
+		MenuRouter.host.cancel_online()
 
 func back() -> void:
-	MenuRouter.host.cancel_online()
+	cancel_online()
 	MenuRouter.goto("main", false)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		back()
+	else:
+		super(event)

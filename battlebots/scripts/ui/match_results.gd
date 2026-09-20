@@ -16,52 +16,119 @@ var _view: Dictionary = {}
 var _local_id := 0
 var _requested := false
 
+var overview: VBoxContainer
+var scores_page: VBoxContainer
+var score: Label
+var outcome: Label
+var round_summary: Label
+var overview_tab: Button
+var scores_tab: Button
+var _local_team := -1
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	theme = preload("res://ui/menus/theme/menu_theme.tres")
 	var background := StyleBoxFlat.new()
-	background.bg_color = Color("111923")
-	background.content_margin_left = 32
-	background.content_margin_right = 32
-	background.content_margin_top = 24
-	background.content_margin_bottom = 24
+	background.bg_color = Color("0e1217")
 	add_theme_stylebox_override("panel", background)
-	add_theme_font_size_override("font_size", 20)
+	var backdrop := TextureRect.new()
+	backdrop.texture = preload("res://ui/menus/art/bg_arena_blur.jpg")
+	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	backdrop.modulate.a = 0.22
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(backdrop)
+	var margin := MarginContainer.new()
+	for edge: String in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + edge, 28)
+	add_child(margin)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 14)
-	add_child(column)
+	margin.add_child(column)
+	_label("THE FOUNDRY  /  MATCH RESULTS", column).theme_type_variation = &"EyebrowAmber"
 	heading = _label("MATCH COMPLETE", column)
+	heading.theme_type_variation = &"Heading"
+	heading.add_theme_font_size_override("font_size", 36)
 	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	heading.add_theme_font_size_override("font_size", 30)
-	timer = _label("", column)
+	var tabs := HBoxContainer.new()
+	column.add_child(tabs)
+	overview_tab = _button("OVERVIEW", tabs, &"Tab")
+	scores_tab = _button("SCORE DETAILS", tabs, &"Tab")
+	overview_tab.pressed.connect(func() -> void: show_scores(false))
+	scores_tab.pressed.connect(func() -> void: show_scores(true))
+	var body := PanelContainer.new()
+	body.theme_type_variation = &"PanelGlass"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(body)
+	overview = VBoxContainer.new()
+	overview.add_theme_constant_override("separation", 12)
+	body.add_child(overview)
+	outcome = _label("MATCH COMPLETE", overview)
+	outcome.theme_type_variation = &"HeadingItalic"
+	outcome.add_theme_font_size_override("font_size", 48)
+	outcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score = _label("", overview)
+	score.theme_type_variation = &"HeadingWide"
+	score.add_theme_font_size_override("font_size", 50)
+	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var score_caption := _label("FINAL RESULT", overview)
+	score_caption.theme_type_variation = &"Eyebrow"
+	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var round_scroll := ScrollContainer.new()
+	round_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	overview.add_child(round_scroll)
+	round_summary = _label("", round_scroll)
+	round_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	round_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	round_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	scores_page = VBoxContainer.new()
+	scores_page.add_theme_constant_override("separation", 12)
+	body.add_child(scores_page)
 	scope = OptionButton.new()
 	scope.add_item("Match totals")
-	column.add_child(scope)
+	scope.custom_minimum_size.y = 44
+	scores_page.add_child(scope)
 	scope.item_selected.connect(func(_index: int) -> void: _render_table())
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(scroll)
+	scores_page.add_child(scroll)
 	table = GridContainer.new()
 	table.columns = 6
 	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	table.add_theme_constant_override("h_separation", 24)
-	table.add_theme_constant_override("v_separation", 12)
+	table.add_theme_constant_override("h_separation", 36)
+	table.add_theme_constant_override("v_separation", 16)
 	scroll.add_child(table)
+	timer = _label("", column)
+	timer.theme_type_variation = &"Strong"
 	status = _label("Waiting for the final match record.", column)
+	status.theme_type_variation = &"Muted"
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.add_theme_font_size_override("font_size", 16)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 16)
 	column.add_child(actions)
-	rematch = Button.new()
-	rematch.text = "Request rematch"
-	rematch.custom_minimum_size = Vector2(220, 48)
-	actions.add_child(rematch)
+	rematch = _button("Request rematch", actions, &"PrimaryButton")
 	rematch.pressed.connect(func() -> void: rematch_requested.emit())
-	leave = Button.new()
-	leave.text = "Leave to main menu"
-	leave.custom_minimum_size = Vector2(240, 48)
-	actions.add_child(leave)
+	leave = _button("Leave to main menu", actions, &"GhostButton")
 	leave.pressed.connect(func() -> void: leave_requested.emit())
+	show_scores(false)
 	hide()
+
+func _button(value: String, parent: Node, variation: StringName) -> Button:
+	var button := Button.new()
+	button.text = value
+	button.theme_type_variation = variation
+	button.custom_minimum_size = Vector2(210, 48)
+	parent.add_child(button)
+	return button
+
+func show_scores(enabled: bool) -> void:
+	overview.visible = not enabled
+	scores_page.visible = enabled
+	overview_tab.toggle_mode = true
+	scores_tab.toggle_mode = true
+	overview_tab.set_pressed_no_signal(not enabled)
+	scores_tab.set_pressed_no_signal(enabled)
 
 func _label(value: String, parent: Node) -> Label:
 	var label := Label.new()
@@ -87,15 +154,20 @@ func accept_record(details: Dictionary, current_match: String) -> void:
 				scope.set_item_metadata(scope.item_count - 1, round_data)
 	scope.select(0)
 	_render_table()
+	_render_overview(_view)
 
 func clear_record() -> void:
 	record.clear()
+	show_scores(false)
 	_requested = false
 	scope.clear()
 	scope.add_item("Match totals")
 	_render_table()
 
-func render(view: Dictionary, local_id: int) -> void:
+func render(view: Dictionary, local_id: int, local_team: int = -1) -> void:
+	_local_team = local_team
+	if not _view.is_empty() and _view.get("match_id") != view.get("match_id"):
+		clear_record()
 	_view = view.duplicate(true)
 	if not record.is_empty() and record.get("match", {}).get("match_id") != view.get("match_id"):
 		clear_record()
@@ -105,6 +177,7 @@ func render(view: Dictionary, local_id: int) -> void:
 	var active: bool = view.get("phase") == "results"
 	rematch.disabled = not active or _requested
 	rematch.text = "Rematch requested" if _requested else "Request rematch"
+	_render_overview(view)
 	heading.text = "MATCH COMPLETE — " + _outcome(view)
 	var remaining: Variant = view.get("remaining")
 	timer.text = "Waiting for server" if not _number(remaining) or remaining < 0 else "Return to lobby in %d s" % ceili(remaining)
@@ -114,8 +187,36 @@ func render(view: Dictionary, local_id: int) -> void:
 
 func mark_requested() -> void:
 	_requested = true
-	render(_view, _local_id)
+	render(_view, _local_id, _local_team)
 	leave.grab_focus()
+
+func _render_overview(view: Dictionary) -> void:
+	outcome.text = "MATCH COMPLETE"
+	var winner: Variant = view.get("winner")
+	if view.get("mode") == "ffa":
+		var winners: Variant = view.get("winners", [])
+		if winners is Array and _local_id in winners:
+			outcome.text = "VICTORY" if winners.size() == 1 else "SHARED VICTORY"
+		score.text = "FREE FOR ALL"
+	else:
+		if _integer(winner, -1, 1):
+			if winner == -1:
+				outcome.text = "DRAW"
+			elif _local_team in [0, 1]:
+				outcome.text = "VICTORY" if winner == _local_team else "DEFEAT"
+		var scores: Variant = view.get("scores")
+		score.text = "Score unavailable"
+		if scores is Array and scores.size() == 2 and _integer(scores[0], 0, 5) and _integer(scores[1], 0, 5):
+			score.text = "TEAM A   %d  :  %d   TEAM B" % [int(scores[0]), int(scores[1])]
+	var lines := PackedStringArray()
+	var rounds: Variant = view.get("rounds", [])
+	if rounds is Array:
+		for round_data: Variant in rounds.slice(0, 5):
+			if round_data is Dictionary and _integer(round_data.get("round"), 1, 5):
+				lines.append("ROUND %d  ·  %s" % [int(round_data.round), _outcome(round_data)])
+	if view.get("mode") == "ffa":
+		lines = PackedStringArray([_outcome(view), "Open score details for placements and combat statistics."])
+	round_summary.text = "\n".join(lines) if not lines.is_empty() else "Round breakdown unavailable."
 
 func _outcome(view: Dictionary) -> String:
 	if view.get("mode") == "ffa":

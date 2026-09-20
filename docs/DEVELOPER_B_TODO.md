@@ -117,6 +117,13 @@ integration base, not the still-old main branch.
 
 ## Developer A — current coordination
 
+- **1v1 menu panels implemented:** A refined online/direct-connect/lobby panels,
+  added win/score tabs and composed an original-theme in-game menu on
+  `codex/a-duel-menu-panels`. B combat/control/camera/garage paths are untouched.
+  Baseline, detached/rendered panels, real HTTP/ENet online lobby and real two-peer
+  results/rematch pass. The four new fixtures are registered in the presentation
+  runner. See [evidence and integration](coordination/A_DUEL_MENU_PANELS.md).
+
 - **A Foundry arena complete:** `codex/a-foundry-arena`, rebased onto audio/practice.
   User-requested regular octagon, eight industrial cage/gallery bays, worn steel,
   radial roof and staged overhead/perimeter lighting. Spawn transforms retained.

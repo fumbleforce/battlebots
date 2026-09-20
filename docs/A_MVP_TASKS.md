@@ -22,16 +22,19 @@ active expansion or acceptance work.
 - [ ] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
   state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
   B's authoritative combat/bot interfaces.
-- [ ] Refine the general menus, especially multiplayer/networking screens (A).
+- [x] Refine the general menus, especially multiplayer/networking screens (A).
   User feedback (2026-09-20): these screens are poorly integrated into the
   original menu system. Make online entry, host/join, connection progress,
   errors/retry/cancel and lobby transitions consistent with its visual design,
   layout and navigation. Treat this as high-priority 1v1 completion work alongside
-  hosting and HUD, and review the complete player flow in the rendered menus.
-- [ ] Add finished win and score screens for 1v1 (A), using authoritative match
+  hosting and HUD. Original-theme online/private-duel, labelled direct host/join
+  and connected lobby now pass rendered and real-session checks; see
+  [menu-panel evidence](coordination/A_DUEL_MENU_PANELS.md). Human design review
+  remains welcome and does not certify hosted deployment.
+- [x] Add finished win and score screens for 1v1 (A), using authoritative match
   outcomes and scores with clear rematch/return actions. Existing results code
   is a foundation, not completion of these user-requested screens.
-- [ ] Add an in-game menu page consistent with the design of the other panels
+- [x] Add an in-game menu page consistent with the design of the other panels
   (A), including coherent layout, styling and navigation. Validate it alongside
   the win/score screens as part of the complete 1v1 flow.
 - [x] Human multiplayer playtest through a tunnel succeeded, as reported by the

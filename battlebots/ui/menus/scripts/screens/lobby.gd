@@ -10,6 +10,10 @@ var team_choice: OptionButton
 var build_button: Button
 var build_choice: OptionButton
 var _connection_panel: PanelContainer
+var _address_field: VBoxContainer
+var _connection_title: Label
+var _port_label: Label
+var _connection_help: Label
 var _roster_cards: Array = []
 var _notice := "Host a game or enter the host's LAN address."
 var _pending := ""
@@ -54,27 +58,48 @@ func _build_connection_controls() -> void:
 	_connection_panel = panel
 	panel.theme_type_variation = &"PanelGlass"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 9)
+	col.add_theme_constant_override("separation", 20)
 	panel.add_child(col)
+	_connection_title = _label("PRIVATE MATCH", "Heading", 42)
+	col.add_child(_connection_title)
+	_connection_help = _label("", "Body", 21)
+	_connection_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(_connection_help)
 	var endpoint := HBoxContainer.new()
+	endpoint.add_theme_constant_override("separation", 20)
+	_address_field = VBoxContainer.new()
+	_address_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_address_field.add_theme_constant_override("separation", 10)
+	_address_field.add_child(_label("HOST ADDRESS", "Eyebrow", 16))
+	endpoint.add_child(_address_field)
 	address = LineEdit.new()
 	address.placeholder_text = "Host name or IP address"
 	address.max_length = 253
 	address.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	address.add_theme_font_size_override("font_size", 19)
-	endpoint.add_child(address)
+	address.add_theme_font_size_override("font_size", 24)
+	address.custom_minimum_size.y = 62
+	_address_field.add_child(address)
+	var port_field := VBoxContainer.new()
+	port_field.add_theme_constant_override("separation", 10)
+	_port_label = _label("UDP PORT", "Eyebrow", 16)
+	port_field.add_child(_port_label)
+	endpoint.add_child(port_field)
 	port = SpinBox.new()
 	port.min_value = 1024
 	port.max_value = 65535
 	port.value = 24567
 	port.tooltip_text = "Joining: use the host's public tunnel UDP port. Hosting: local listen port, usually 24567. These may differ."
-	port.custom_minimum_size.x = 135
-	port.add_theme_font_size_override("font_size", 19)
-	endpoint.add_child(port)
+	port.custom_minimum_size = Vector2(220, 62)
+	port.get_line_edit().add_theme_font_size_override("font_size", 24)
+	port_field.add_child(port)
 	col.add_child(endpoint)
 	var buttons := HBoxContainer.new()
 	host_button = _button("HOST GAME", host_session)
 	join_button = _button("JOIN HOST", join_session)
+	host_button.theme_type_variation = &"PrimaryButton"
+	join_button.theme_type_variation = &"PrimaryButton"
+	host_button.custom_minimum_size.y = 70
+	join_button.custom_minimum_size.y = 70
 	buttons.add_child(host_button)
 	buttons.add_child(join_button)
 	col.add_child(buttons)
@@ -110,6 +135,13 @@ func _build_connection_controls() -> void:
 	$Layout/Footer/Row.add_child(build_button)
 	$Layout/Footer/Row.move_child(build_button, 2)
 	$Layout/Footer/Row.add_theme_constant_override("separation", 20)
+
+func _label(value: String, variation: String, font_size: int) -> Label:
+	var label := Label.new()
+	label.text = value
+	label.theme_type_variation = StringName(variation)
+	label.add_theme_font_size_override("font_size", font_size)
+	return label
 
 func _build_roster() -> void:
 	var existing := [[%You, %Mate], [%Opp1, %Opp2]]
@@ -281,7 +313,7 @@ func refresh() -> void:
 	var mode := str(session.lobby_view.get("mode", "ffa" if MenuRouter.match_setup.mode == "ffa" else ("1v1" if capacity == 2 else ("5v5" if capacity == 10 else "2v2")))) if valid else ""
 	var ffa := mode == "ffa"
 	var connected := state in ["hosting", "connected"]
-	var known := (connected and session.lobby_view.has("mode")) or (state == "offline" and MenuRouter.lobby_intent == "host")
+	var known := connected and session.lobby_view.has("mode")
 	var per_team := ceili(capacity / 2.0)
 	var teams: Array = [[], []]
 	var ready_counts := [0, 0]
@@ -321,11 +353,19 @@ func refresh() -> void:
 	$Layout/Body/Row/Red.visible = known
 	$Layout/Body/Row/Match/ArenaCard.visible = known
 	$Layout/Body/Row/Match/Rules.visible = known
-	var mode_title := "FREE FOR ALL" if ffa else mode.to_upper()
-	%Eyebrow.text = "%s · LOBBY" % mode_title if known else "JOIN GAME"
+	var match_column := $Layout/Body/Row/Match as VBoxContainer
+	$Layout/Body/Row.alignment = BoxContainer.ALIGNMENT_CENTER
+	match_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL if known else Control.SIZE_SHRINK_CENTER
+	match_column.custom_minimum_size.x = 0.0 if known else 960.0
+	match_column.alignment = BoxContainer.ALIGNMENT_BEGIN if known else BoxContainer.ALIGNMENT_CENTER
+	$Layout/Body/Row/Match/Status.size_flags_vertical = Control.SIZE_EXPAND_FILL if known else Control.SIZE_FILL
+	$Layout/Body/Row/Match/Status.custom_minimum_size.y = 0.0 if known else 180.0
+	var mode_title := "FREE FOR ALL" if ffa else ("1V1" if capacity == 2 else mode.to_upper())
+	%Eyebrow.text = "%s · LOBBY" % mode_title if known else "PRIVATE MATCH · DIRECT CONNECTION"
+	%Title.text = "MATCH LOBBY" if known else ("ONLINE MATCH" if MenuRouter.lobby_intent == "online" else ("JOIN A MATCH" if MenuRouter.lobby_intent == "join" else "HOST A MATCH"))
 	$Layout/Body/Row/Match/Rules/Win/Col/Value.text = "Last bot" if ffa else "First to 2"
 	$Layout/Body/Row/Match/Rules/Clock/Col/Value.text = "5:00" if ffa else ("4:00" if capacity == 10 else "3:00")
-	%StatusEyebrow.text = "MINIMUM 4 · EVERYONE READY" if ffa and connected else state.to_upper()
+	%StatusEyebrow.text = "MINIMUM 4 · EVERYONE READY" if ffa and connected else (("READY CHECK" if slots.size() >= capacity else "WAITING FOR OPPONENT" if capacity == 2 else "WAITING FOR PLAYERS") if connected else "CONNECTION STATUS")
 	%StatusBig.text = "%d/%d PLAYERS" % [slots.size(), capacity] if connected and known else ("CONNECTING…" if state == "connecting" else ("JOIN A HOST" if MenuRouter.lobby_intent == "join" else "HOST A GAME"))
 	%StatusSub.text = _notice
 	if MenuRouter.lobby_intent == "online" and is_instance_valid(MenuRouter.host):
@@ -343,7 +383,11 @@ func refresh() -> void:
 	_connection_panel.visible = state == "offline" and MenuRouter.lobby_intent != "online"
 	host_button.visible = MenuRouter.lobby_intent == "host"
 	join_button.visible = MenuRouter.lobby_intent == "join"
+	_address_field.visible = MenuRouter.lobby_intent == "join"
 	address.visible = MenuRouter.lobby_intent == "join"
+	_connection_title.text = "CONNECT TO YOUR OPPONENT" if MenuRouter.lobby_intent == "join" else "OPEN YOUR MATCH"
+	_port_label.text = "HOST UDP PORT" if MenuRouter.lobby_intent == "join" else "LISTEN UDP PORT"
+	_connection_help.text = "Enter the address and UDP port shared by the host. For a tunnel, use its public endpoint." if MenuRouter.lobby_intent == "join" else "Start a private match on this computer, then share your address and UDP port with your opponent."
 	host_button.disabled = state != "offline"
 	join_button.disabled = state != "offline"
 	address.editable = state == "offline"

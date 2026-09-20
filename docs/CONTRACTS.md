@@ -8,6 +8,19 @@ coordinated producer-consumer interfaces, not blanket A ownership of scripts/cor
 The current split in TEAM_WORKFLOW.md supersedes historical authorship below.
 Paths below are relative to the Godot project.
 
+## General game menu and result presentation
+
+A composes the preview's existing pause panel into `scripts/ui/game_menu_page.gd`.
+Existing resume/settings/return button references and control cancellation remain
+intact; no B preview/input/camera implementation changes are required. General
+game-menu and results pages hide arena HUD overlays while open.
+
+`MatchResults.render(view, local_id, local_team = -1)` accepts the authoritative
+local BotView team to distinguish victory from defeat. Unknown team keeps a
+neutral outcome; never infer team from entity ID. Overview and score-detail tabs
+read server-published results and retain the existing rematch/leave signals.
+No wire, BotCommand or BotView schema change accompanies these menu refinements.
+
 ## Gameplay audio presentation
 
 A's `scripts/audio/gameplay_audio.gd` consumes existing `MvpSession.combat_event`,

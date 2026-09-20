@@ -32,6 +32,10 @@ foreach ($check in @(@('gameplay_audio_test.gd', 'GAMEPLAY AUDIO PASS'),
         '--quit-after', '6000') -Marker $check[1]
 }
 $checks = @(
+    @('game_menu_page_test.gd', 'GAME MENU PAGE PASS'),
+    @('online_panel_test.gd', 'ONLINE PANEL PASS'),
+    @('results_panels_test.gd', 'RESULTS PANELS PASS'),
+    @('lobby_panel_layout_test.gd', 'LOBBY PANEL LAYOUT PASS'),
     @('match_results_test.gd', 'MATCH RESULTS PASS'),
     @('camera_arena_test.gd', 'PRESENTATION PASS'),
     @('foundry_arena_test.gd', 'FOUNDRY PASS'),

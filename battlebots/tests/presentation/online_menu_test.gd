@@ -40,7 +40,7 @@ func run() -> void:
 	server_root.add_child(server)
 	var port := 38000 + OS.get_process_id() % 7000
 	check(server.host(port, false, 2) == OK, "Independent real ENet server binds")
-	api.assignment_port = port
+	api.assignment_port = 0
 	var game = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.get_node("Preview").settings_path = ""
 	root.add_child(game)
@@ -68,15 +68,16 @@ func run() -> void:
 	check(router.current == "online" and router.lobby_intent == "online", "Actual main-menu click opens online flow")
 	if router.current == "online":
 		var screen: Control = game.screen
-		for action: Control in [screen.quick_button, screen.create_button, screen.join_button, screen.back_button]:
+		for action: Control in [screen.create_button, screen.join_button, screen.back_button]:
 			check(bounds.encloses(action.get_global_rect()), "Online action fits viewport: " + action.text)
-		check(screen.quick_button.text.contains("4 PLAYERS") and not screen.cancel_button.visible, "Idle Quick Play clearly requires four players and has no Cancel action")
-		screen.quick_button.pressed.emit()
-		check(await until(func() -> bool: return game.public_service.state == "waiting"), "Quick Play reaches real HTTP waiting membership")
-		check(screen.cancel_button.visible and screen.region_label.text.contains("test-region") and screen.status_label.text.contains("1 / 4"), "Waiting UI shows region, actual count and Cancel")
+		check(screen.create_button.text.contains("1V1") and not screen.cancel_button.visible, "Idle screen prioritizes private duel and has no Cancel action")
+		screen.create_button.pressed.emit()
+		check(await until(func() -> bool: return game.public_service.state == "waiting"), "Private duel reaches real HTTP waiting membership")
+		check(api.last_payload.get("capacity") == 2, "Private duel requests exactly two players")
+		check(screen.cancel_button.visible and screen.region_label.text.contains("test-region") and screen.status_label.text.contains("1 / 2"), "Waiting UI shows region, actual count and Cancel")
 		screen.cancel_button.pressed.emit()
-		check(await until(func() -> bool: return game.public_service.state == "idle"), "Cancel clears queue without entering gameplay")
-		screen.mode_choice.select(screen.mode_choice.get_item_index(2))
+		check(await until(func() -> bool: return game.public_service.state == "idle"), "Cancel clears private room without entering gameplay")
+		api.assignment_port = port
 		screen.create_button.pressed.emit()
 		var joined := await until(func() -> bool: return router.current == "lobby" and game.session.connection_state == "connected")
 		check(joined, "HTTP assignment enters existing lobby only after actual ENet welcome")

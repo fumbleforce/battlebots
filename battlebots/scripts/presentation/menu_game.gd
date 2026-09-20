@@ -27,6 +27,7 @@ var _audio_caption: Label
 var practice_hud: PracticeHud
 var _restart_practice: Button
 var _practice_knockout_handled := false
+var game_menu_page: Control
 
 func _ready() -> void:
 	var args := Array(OS.get_cmdline_user_args())
@@ -50,6 +51,9 @@ func _ready() -> void:
 	preview.settings_button.text = "Settings"
 	preview.settings_panel.closed.connect(_settings_closed)
 	_add_match_actions()
+	game_menu_page = preload("res://scripts/ui/game_menu_page.gd").new()
+	game_menu_page.configure(preview.pause_menu)
+	preview.network_diagnostics.interaction_started.connect(_network_details_interaction)
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
 	add_child(results_layer)
@@ -175,8 +179,8 @@ func _update_practice(bot: BotSource) -> void:
 		_restart_practice.grab_focus()
 		_practice_knockout_handled = true
 	preview.resume_button.disabled = knocked_out or bot == null
-	practice_hud.visible = practice and not modal and not preview.network_diagnostics.expanded
-	if practice_hud.visible:
+	practice_hud.visible = practice and not modal and not preview.pause_menu.visible and not preview.network_diagnostics.expanded
+	if practice:
 		var target := session.practice_target()
 		practice_hud.render(view, target.read_view() if target != null else null)
 
@@ -245,12 +249,15 @@ func _process(_delta: float) -> void:
 		elif prior == "results":
 			results_panel.hide()
 			results_panel.clear_record()
-	results_panel.render(session.match_view, session.local_entity)
+	results_panel.render(session.match_view, session.local_entity, bot.read_view().team if bot != null else -1)
+	game_menu_page.render(session.match_view, session.connection_state == "practice")
 	var menu_open := menu_host.visible
+	var game_menu_open: bool = preview.pause_menu.visible or results_panel.visible or _audio_overlay.visible
 	preview.get_node("CanvasLayer").visible = not menu_open and not preview.settings_panel.visible
-	preview.get_node("DiagnosticsLayer").visible = not menu_open and not preview.settings_panel.visible
-	preview.hud.visible = bot != null
-	match_hud.visible = bot != null and not menu_open and not preview.settings_panel.visible
+	preview.get_node("DiagnosticsLayer").visible = not menu_open and not game_menu_open and not preview.settings_panel.visible
+	preview.hud.visible = bot != null and not game_menu_open
+	preview.hint.visible = not menu_open and not game_menu_open
+	match_hud.visible = bot != null and not menu_open and not game_menu_open and not preview.settings_panel.visible
 	match_hud.render(session.match_view, session.connection_state == "practice")
 	_update_practice(bot)
 	if menu_open:
@@ -276,6 +283,12 @@ func _sync_pause_focus() -> void:
 		button.focus_neighbor_bottom = next
 		button.focus_previous = previous
 		button.focus_neighbor_top = previous
+
+func _network_details_interaction() -> void:
+	# The preview releases controls on button-down. Keep the clicked panel visible
+	# until release so its Details button can complete the interaction.
+	if not menu_host.visible and not results_panel.visible and not preview.settings_panel.visible and not _audio_overlay.visible:
+		preview.pause_menu.hide()
 
 func start_practice() -> void:
 	if session.connection_state != "offline":

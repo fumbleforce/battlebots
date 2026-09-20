@@ -52,11 +52,27 @@ LAN/playtest and 1v1/2v2 priority statements below are historical and superseded
 Existing modes/tests remain; larger-mode expansion, optimization and soak work
 do not block the active 1v1 scope.
 
-Board update validation: documentation-only priority/status reconciliation across
-the A/B trackers and workflow; no runtime, scenes or contracts changed. Hosting,
-HUD implementation and the remaining game work are still outstanding.
-
 ## Current Developer A increment
+
+`codex/a-duel-menu-panels` implements the requested general menu refinement from
+`1a56c38`. Online entry now focuses on private 1v1 create/join with original menu
+art/theme, service status and cancellation. Direct host/join uses labelled,
+centered connection panels and the connected lobby retains the roster/build flow.
+Win overview and score-detail tabs read authoritative records; local BotView team
+determines victory/defeat. The in-game menu shares the original panel styling,
+preserves resume/settings/restart/leave actions and prevents HUD overlap.
+
+Baseline and all four new independent panel checks pass, with rendered 720p and
+1080p review. Real HTTP/ENet private-duel cancellation/join/leave and two-peer
+round/results/rematch pass; the latter asserts local defeat and score navigation.
+Practice, audio, menu flow/music and existing results checks also pass. Review
+caught and fixed a diagnostics button-down visibility regression, now tested.
+Some checks still report the known two-object shutdown warning; no native crash
+occurred in these runs and the historical intermittent engine issue stays open.
+See [full evidence](coordination/A_DUEL_MENU_PANELS.md). External deployment and
+HUD expansion remain outstanding; this increment does not provision hosting.
+
+### Preceding Foundry increment
 
 `codex/a-foundry-arena` follows practice `c83d266` with the user-requested regular
 octagonal Foundry (50 m across faces), eight cage/gallery bays, radial trusses,
@@ -388,8 +404,9 @@ from Godot import until a portable runtime export exists.
 B controls, diagnostics, match HUD and menu kit are merged. Small integration
 changes add the advanced-mode route and guard, consume rebound control labels,
 and return to the configured main menu. SessionBotSource's input gate remains.
-Both developers' contract/TODO additions are preserved. Detailed results frontend
-work on `codex/b-match-results` remains an intent document, not completed UI.
+Both developers' contract/TODO additions are preserved. The historical
+`codex/b-match-results` intent was superseded by the merged results follow-up;
+current win/score presentation is described in the latest increment above.
 
 ## Remaining delivery scope
 
