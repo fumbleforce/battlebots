@@ -70,8 +70,10 @@ and actual-screen scenes plus baseline/garage regressions pass. See
 
 `codex/a-live-duel-refinement` now addresses the user's manual hosted menu
 feedback: oversized scrolling navigation, unused screen margins, competing
-yellow actions, hidden private code and inconsistent settings. The current
-implementation is being validated; do not treat it as published before merge.
+yellow actions, hidden private code and inconsistent settings. Full presentation
+and network-flow checks pass. Integration includes B's published live garage
+preview, part comparisons and saved-build repair through `e24ab02`; the shared
+baseline and ten affected garage/profile/menu/settings checks pass after rebase.
 All requested items, including B's vehicle selection and rotating 3D showcase,
 are tracked in [the menu feedback handoff](coordination/A_PLAYTEST_MENU_FEEDBACK.md).
 A owns the settings hub/video integration; B retains controls/camera behavior.

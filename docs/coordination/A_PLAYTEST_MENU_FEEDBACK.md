@@ -61,3 +61,12 @@ pause, authoritative results and rematch. The first combined run exposed old
 fixtures closing the former camera-only settings entry; those now exercise the
 new hub's Back action and the full runner passes. Existing ObjectDB cleanup
 warnings remain; no native crash occurred in this validation.
+
+Rebased onto B's shared main through `e24ab02`, retaining live garage preview,
+part comparisons and saved-build repair. Post-rebase baseline and ten affected
+garage/profile/main-menu/settings checks pass. No wire/content identity changed;
+the existing Fly worker remains compatible and was not redeployed.
+
+A second fetch integrated B's `d6e154e` save recovery. The shared coordination
+note conflict retains both developers' entries. Baseline, both new recovery
+scenes and affected customization/menu-kit/actual host-fit checks pass.
