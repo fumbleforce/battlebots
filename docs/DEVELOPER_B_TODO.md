@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-player-health-bars`, from main `7026da6`.
-**Latest increment:** Component damage stages merged on main. Current user request adds fixed-size green/red health bars beneath player identities through a coordinated HUD change. See [scope](coordination/B_PLAYER_HEALTH_BARS.md).
+**Latest B task:** `codex/b-impact-feedback`, from main `6c1eb0e`.
+**Latest increment:** Confirmed-hit sparks and bounded fragments, with session/round replay guards and independent native contact checks. See [scope and evidence](coordination/B_IMPACT_FEEDBACK.md). Player health bars are merged on main `6c1eb0e`.
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -72,7 +72,7 @@ these newly requested presentation tasks.
 ## Later B scope and acceptance still open
 
 - [ ] **B-10:** Weapon animation/VFX from authoritative state/events. A owns audio.
-  Authored Sawblade weapon animations and drive variants are integrated on main `7ce48ab`; snapshot-driven damaged/disabled component stages are integrated on `7026da6`. Sparks/fragments, larger-scene budgets and human readability acceptance remain. Coordinate shared content identity and network-state changes with A.
+  Authored Sawblade weapon animations and drive variants are integrated on main `7ce48ab`; snapshot-driven damaged/disabled component stages are integrated on `7026da6`. Confirmed impact sparks/fragments now have bounded pools and lifecycle checks. Larger-scene budgets, human readability and legacy CLI mounting remain open. Coordinate shared content identity and network-state changes with A.
 - [ ] **B-11:** Control accessibility/controller behavior and bot-customisation
   polish. A owns general tutorial/menu presentation and audio.
 - [ ] **B-12:** Optional first-person camera after third-person feel is accepted.

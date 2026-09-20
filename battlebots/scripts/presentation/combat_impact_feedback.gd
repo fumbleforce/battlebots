@@ -6,6 +6,7 @@ const KINDS := ["hammer", "saw", "lifter", "vertical_spinner", "horizontal_spinn
 const CONTEXT_LIMIT := 16
 var visual: CombatImpactVisual
 var session: MvpSession
+var _bound := false
 var _match := ""
 var _round := 0
 var _phase := ""
@@ -26,13 +27,18 @@ func bind_session(value: MvpSession) -> void:
 		session.session_event.disconnect(_session_changed)
 	reset()
 	session = value
+	_bound = is_instance_valid(session)
 	if is_instance_valid(session):
 		session.combat_event.connect(_session_impact)
 		session.session_event.connect(_session_changed)
 
 func _process(_delta: float) -> void:
-	if not is_instance_valid(session): return
-	if session.connection_state in ["offline", "reconnecting"]:
+	if not is_instance_valid(session):
+		if _bound:
+			reset()
+			_bound = false
+		return
+	if session.connection_state not in ["hosting", "connected", "practice"]:
 		if not _match.is_empty(): reset()
 		return
 	observe_match(session.match_view, session.connection_state == "practice")
@@ -41,6 +47,9 @@ func _session_changed(kind: String, _details: Dictionary) -> void:
 	if kind in ["practice", "practice_restarted", "left"]: reset()
 
 func _session_impact(event: Dictionary) -> void:
+	if not is_instance_valid(session) or session.connection_state not in ["hosting", "connected", "practice"]:
+		reset()
+		return
 	observe_match(session.match_view, session.connection_state == "practice")
 	combat_event(event)
 

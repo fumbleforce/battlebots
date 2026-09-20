@@ -8,6 +8,16 @@ actions and receive focus so the failure explanation remains visible. Build and
 protocol gates remain intact; no B implementation changes. See
 [deployment and validation](coordination/A_QUICK_PLAY_SERVICE_SYNC.md).
 
+## Confirmed impact feedback — 20 September 2026
+
+The normal menu game now consumes confirmed hit events for localized sparks and
+short-lived metal fragments, capped at 64 sparks and 20 fragments per client.
+Duplicate/stale events and offline/connecting sessions cannot replay effects;
+phase changes, practice restart and leave clear them. No collision or damage is
+added. Independent rendering/session/native contact checks pass. Human readability,
+larger-scene budgets and legacy CLI mounting remain open. See
+[scope and evidence](coordination/B_IMPACT_FEEDBACK.md).
+
 ## Player health bars — 20 September 2026 user request
 
 Player world labels now include a fixed-size health bar beneath the text. Green
@@ -21,7 +31,7 @@ Weapons and individual drive sides now show snapshot-driven cracked/scorched and
 smoking disabled states. Original appearance returns on repair/reset. Authored and
 legacy assemblies are covered without physics, health or wire changes. Independent
 mapping/state/native runtime checks and baseline pass; follow-distance captures
-reviewed. Sparks/fragments, larger-scene budgets and human acceptance remain open.
+reviewed. Impact sparks/fragments are covered by the newer increment above; larger-scene budgets and human acceptance remain open.
 See [scope and evidence](coordination/B_COMPONENT_DAMAGE.md).
 
 ## Garage options — 20 September 2026 user update

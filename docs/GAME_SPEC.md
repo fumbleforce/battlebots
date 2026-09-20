@@ -276,7 +276,12 @@ Use grounded stylized industrial art: believable metal construction with simplif
 
 Damage uses staged meshes/materials, sparks, smoke, and limited detached fragments. Intact, damaged, and disabled states must be recognizable for drive pods and weapons. There is no gameplay mesh fracturing. Cosmetic fragments have short lifetimes, no damage, and no collision with bots.
 
-Initial content inventory: one arena and lighting setup; three chassis; three drive packages; five weapon families; three armor sets fitted to each chassis; three utility visuals; three starter presets; approximately 12 paint colors and six decal shapes; complete HUD/menu icon set; effects and audio for each weapon and damage state.
+The current user-defined vehicle inventory supersedes the original three-chassis
+plan: offer only the authored Sawblade body, with four drive packages and five
+weapon families. Keep legacy chassis IDs readable for existing builds. Body changes
+preserve selected parts. Armor, utilities, paint and cosmetic modules remain
+selectable, with complete HUD/menu icons and effects/audio for each weapon and
+damage state as content targets.
 
 Art targets: approximately 20k–40k triangles per assembled bot at highest detail, two lower LODs, shared materials and texture atlases where practical, and no more than 20 cosmetic debris pieces alive per client. These are provisional budgets, validated with ten bots in view. Mounts, forward axes, collision envelopes, and animation limits must be documented alongside each asset.
 

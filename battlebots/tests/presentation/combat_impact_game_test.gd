@@ -22,7 +22,7 @@ func contact_hit() -> bool:
 		bot.body.linear_velocity = Vector3.ZERO
 		bot.body.angular_velocity = Vector3.ZERO
 	attacker.body.global_transform = Transform3D(Basis.IDENTITY, Vector3(0, 1, 0))
-	target.body.global_transform = Transform3D(Basis.IDENTITY, Vector3(0, 1, -2.6))
+	target.body.global_transform = Transform3D(Basis.IDENTITY, Vector3(0, 1, -2.3))
 	for tick: int in 3: await get_tree().physics_frame
 	attacker.previous_pose = attacker.body.global_transform
 	target.previous_pose = target.body.global_transform
@@ -50,7 +50,7 @@ func run() -> void:
 	var profile := get_node("/root/PlayerProfile")
 	var profile_index: int = profile.active_bot
 	var previous_draft: Dictionary = profile.loadouts[profile_index].duplicate(true)
-	var draft := ContentRegistry.new().starter()
+	var draft := SawbladeConfig.starter(ContentRegistry.new())
 	draft.parts.weapon = "saw"
 	profile.loadouts[profile.active_bot] = draft
 	game.start_practice()
@@ -68,7 +68,7 @@ func run() -> void:
 		game.session.combat_event.emit(impacts.back().duplicate(true))
 		check(visual.spark_count() + visual.fragment_count() == count, "Duplicate real event does not duplicate decoration")
 		if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
-			await get_tree().create_timer(0.08).timeout
+			await get_tree().create_timer(0.16).timeout
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("combat-impact-game.png"))
 		await get_tree().create_timer(1.6).timeout
