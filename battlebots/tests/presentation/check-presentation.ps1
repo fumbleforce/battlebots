@@ -87,6 +87,8 @@ foreach ($check in $checks) {
         '--fixed-fps', '60', '--script', "res://tests/presentation/$($check[0])",
         '--quit-after', '10000') -Marker $check[1]
 }
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/garage_preview_test.tscn', '--quit-after', '10000') -Marker 'GARAGE PREVIEW PASS'
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
 foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
     @('combat_hud_session_test.gd', 'COMBAT HUD SESSION PASS'),

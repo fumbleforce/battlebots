@@ -13,10 +13,17 @@ var _refocus := ""
 var name_edit: LineEdit
 var undo_button: Button
 var redo_button: Button
+var build_preview: GarageBotPreview
 
 
 func _ready() -> void:
 	super()
+	build_preview = GarageBotPreview.new()
+	var frame := %BotImage.get_parent()
+	%BotImage.hide()
+	frame.add_child(build_preview)
+	frame.move_child(build_preview, 1)
+	frame.get_node("PreviewChip").hide()
 	$Layout/Footer/Row/Hint1.hide()
 	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
 	name_edit = LineEdit.new()
@@ -48,7 +55,8 @@ func _ready() -> void:
 	history.add_child(redo_button)
 	redo_button.pressed.connect(PlayerProfile.redo_edit)
 	for control: Node in find_children("Rotate","Button",true,false):
-		control.disabled = true
+		control.tooltip_text = "Reset build preview view"
+		control.pressed.connect(build_preview.reset_view)
 	%Eyebrow.text = "%s · %s" % [bot.name, bot.cls]
 	%BotImage.texture = bot.image
 	var group := ButtonGroup.new()
@@ -93,10 +101,11 @@ func _set_tab(t: String) -> void:
 
 func _refresh() -> void:
 	var current: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
+	build_preview.show_loadout(PlayerProfile.loadouts[PlayerProfile.active_bot])
 	if not name_edit.has_focus(): name_edit.text = current.name
 	undo_button.disabled = not PlayerProfile.can_undo()
 	redo_button.disabled = not PlayerProfile.can_redo()
-	%Eyebrow.text = current.name + " · " + current.cls
+	%Eyebrow.text = current.name + " · " + ("EQUIPPED DRAFT" if current.valid else "REPAIR REQUIRED")
 	%Save.disabled = not current.valid
 	var cats: Array = PlayerProfile.catalogue[_tab]
 	var ci: int = _cat[_tab]

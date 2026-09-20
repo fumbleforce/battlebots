@@ -1,5 +1,21 @@
 # Developer B — combat, bots, customisation and controls
 
+## Live garage preview — 20 September 2026
+
+Branch `codex/b-garage-preview`, from main `2a9e70a`, adds a lit cosmetic viewport
+to Garage and Customize. It renders the equipped draft, not the highlighted
+catalogue candidate. All five weapons reuse existing primitive presentation;
+chassis dimensions and paint follow the validated draft. Invalid builds clear the
+previous model and show reasons. Drag/arrows rotate, wheel/+/- zoom, Home or the
+reset button restores the view. There is no combat/physics/session in the preview.
+
+A: no router, session, world, audio, input map, content hash or shared-schema
+changes. B intent was published before implementation. The new automated scene
+is in the presentation runner; `scenes/dev/b_garage_preview.tscn` is an independent
+manual F6 sandbox. See [scope and evidence](coordination/B_GARAGE_PREVIEW.md).
+Older concept-image-only descriptions below are historical. Authored bot art,
+detailed stat comparisons, full repair UX and garage text scaling remain open.
+
 ## Garage history — 20 September 2026
 
 `codex/b-garage-history` starts at main `2b42812`. Parts, paint and committed name

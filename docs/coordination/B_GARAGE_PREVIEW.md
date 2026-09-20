@@ -17,3 +17,24 @@ Acceptance: independent scene exercises every weapon, chassis/paint changes,
 invalid/stale clearing, bounded controls and absence of collision/simulation.
 Review rendered preview and actual Garage/Customize at 1280x720. Run baseline,
 existing garage/profile/history checks and register the new independent scene.
+
+Implemented: `GarageBotPreview.show_loadout(Dictionary)` renders only valid
+equipped drafts and owns a separate World3D; camera operations never mutate the
+draft. `reset_view`, `rotate_view` and `zoom_view` serve mouse, keyboard and reset
+button controls. Source scenes share the existing weapon visual, without creating
+MvpBot or DriveBody. The old preview-chip text was removed because highlighting a
+catalogue candidate does not equip it. Concept thumbnails remain labelled.
+
+Validation: Godot 4.7.2 baseline, independent preview scene (headless and D3D12),
+garage history, profile, customization screens, menu kit and menu flow passed.
+The independent scene covers all 15 chassis/weapon combinations, selected paint,
+pre-tree draft loading, replacement/freeing, invalid clearing, bounded camera,
+caller immutability and separate preview worlds without collision nodes.
+Rendered Garage and Customize were inspected at 1280x720. Menu flow emitted the
+already-tracked two-ObjectDB shutdown warning; no crash occurred in these checks.
+Persistent manual sandbox: `res://scenes/dev/b_garage_preview.tscn` (F6), independent
+of saved builds, sessions and authoritative physics.
+
+Next B work: proposed-part stat comparisons, repair UX and garage text scaling;
+authored model integration remains separate. This increment does not claim final
+bot art, combat-feel acceptance or completion of the whole 1v1 game.

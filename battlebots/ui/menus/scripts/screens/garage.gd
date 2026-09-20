@@ -1,12 +1,19 @@
 extends MenuScreen
 
 const BOT_ROW := preload("res://ui/menus/components/bot_row.tscn")
+var build_preview: GarageBotPreview
 
 
 func _ready() -> void:
 	super()
+	build_preview = GarageBotPreview.new()
+	var frame := %BotImage.get_parent()
+	%BotImage.hide()
+	frame.add_child(build_preview)
+	frame.move_child(build_preview, 1)
 	for control: Node in find_children("Rotate","Button",true,false):
-		control.disabled = true
+		control.tooltip_text = "Reset build preview view"
+		control.pressed.connect(build_preview.reset_view)
 	var group := ButtonGroup.new()
 	for i in PlayerProfile.bots.size():
 		var row := BOT_ROW.instantiate()
@@ -51,8 +58,9 @@ func _select(i: int) -> void:
 	PlayerProfile.active_bot = i
 	MenuRouter.match_setup.bot = i
 	var b: Dictionary = PlayerProfile.bots[i]
+	build_preview.show_loadout(PlayerProfile.loadouts[i])
 	%BotImage.texture = b.image
-	%BotClass.text = b.cls
+	%BotClass.text = "VALID BUILD · 3D PREVIEW" if b.valid else b.cls
 	%BotName.text = b.name
 	%BotHp.text = "%s core HP" % MenuData.fmt_int(b.hp) if b.valid else "Stats unavailable"
 	%Pips.get_parent().hide()

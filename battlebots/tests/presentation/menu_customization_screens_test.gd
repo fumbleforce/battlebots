@@ -16,9 +16,18 @@ func run() -> void:
 		root.add_child(screen)
 		for _frame in 5: await process_frame
 		if name == "garage":
+			check(screen.build_preview.model != null, "Garage shows live selected build")
 			check(screen.get_node("%BotName").text == "Striker","Garage canonical starter")
 			check(screen.get_node("%BotHp").text == "260 core HP","Garage core HP")
 		if name == "customize":
+			check(screen.build_preview.weapon_visual.kind == "vertical_spinner", "Customization shows equipped weapon")
+			var paint: Dictionary = profile.catalogue.paint[0]
+			profile.equip("paint", paint, paint.items[1])
+			var chassis: MeshInstance3D = screen.build_preview.model.get_node("Chassis")
+			check(chassis.material_override.albedo_color.is_equal_approx(GarageBotPreview.PAINTS.orange), "Unsaved paint updates live preview")
+			profile.undo_edit()
+			chassis = screen.build_preview.model.get_node("Chassis")
+			check(chassis.material_override.albedo_color.is_equal_approx(GarageBotPreview.PAINTS.cyan), "Undo refreshes live preview")
 			check(screen.get_node("%Categories").get_child_count() == 5,"Five canonical categories")
 			screen._set_tab("paint")
 			check(screen.get_node("%Items").get_child_count() == 4,"Four canonical paints")
