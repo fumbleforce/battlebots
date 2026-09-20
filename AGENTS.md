@@ -24,6 +24,34 @@ Read docs/GAME_SPEC.md, docs/TEAM_WORKFLOW.md, docs/CONTRACTS.md and docs/HANDOF
 - When a task branch is complete, merge it locally into the shared main branch after its required checks and conflict validation, then push main directly. No PRs. Pushing a finished feature branch alone is not completion: do not leave the latest game scattered across unmerged branches.
 - After merging, fetch and base the next task on updated origin/main. Integrate completed dependency branches as part of the merge; leave genuinely in-progress work separate and identify it in the handoff. Never force-push main. If a required check or branch protection blocks a merge, state the concrete blocker rather than claim the branch is finished.
 
+## Coordinated client and hosted-server releases
+- Treat the client and hosted server as one release: build both from the same
+  tested commit. Catalogue, gameplay, networking or compatibility changes must
+  include a matching server release before declaring hosted play ready. B must
+  hand server-affecting changes to A explicitly; merging them alone does not
+  establish that the live service is updated.
+- Use one release workflow: run required checks, prepare matching client/server
+  artifacts, deploy the server, compare live compatibility information, and run
+  the external private/Quick Play duel check through results and rematch before
+  marking the client release ready. Record commit, image and verification evidence
+  in the handoff. Until this workflow is automated, perform these steps explicitly;
+  passing build CI alone is not proof of a matching live deployment.
+- On requests to get or launch the latest game, compare the local build ID,
+  protocol and generated catalogue hash with the configured service's `/healthz`
+  before presenting online play as ready. Report mismatches or an unreachable
+  service immediately; a successful local launch does not verify Quick Play.
+- Keep compatibility rejection intact. Never bypass it or update only the health
+  manifest to disguise stale game workers. Errors must remain visible and explain
+  the version mismatch; identify whether the client or server needs updating when
+  release evidence establishes which is stale.
+- Deploy updates to the existing single-Machine service during a playtest break:
+  restarting it ends active matches. Until match draining exists, establish that
+  the break is in effect before restarting. Retain the previous release for
+  rollback, and report failed deployment/acceptance as an incomplete release.
+- See services/matchmaking/DEPLOYMENT.md and tools/prepare-hosted.ps1. Verify the
+  live service with tools/check-hosted.mjs --endpoint <configured HTTPS origin>
+  --duel-only --godot <pinned Godot executable>.
+
 ## Baseline and validation
 - Pin Godot to 4.7.2 stable. Preserve Jolt, 60 Hz physics, meter scale, Y up, and -Z forward.
 - Keep authoritative logic free of camera/UI dependencies. Mocks are development-only.
