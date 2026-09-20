@@ -42,8 +42,8 @@ func run() -> void:
 	check(not api.requests.has("POST /v1/queue"), "New action cannot race membership cleanup")
 	api.room_delay_ms = 0
 	client.quick_play()
-	check(await until(func() -> bool: return client.state == "waiting"), "Quick Play waits for four-player matchmaking")
-	check(client.membership.capacity == 4 and client.region == "test-region", "Quick Play displays four slots and region")
+	check(await until(func() -> bool: return client.state == "waiting"), "Quick Play waits for a duel opponent")
+	check(client.membership.get("capacity") == 2 and api.last_payload.size() == 1 and api.last_payload.get("capacity") == 2 and client.region == "test-region", "Quick Play explicitly requests two slots and displays region")
 	check(await until(func() -> bool: return api.requests.has("GET /v1/membership"), 2.5), "Waiting membership polls through actual HTTP")
 	client.cancel()
 	check(await until(func() -> bool: return client.state == "idle"), "Queue cancellation clears actual membership")

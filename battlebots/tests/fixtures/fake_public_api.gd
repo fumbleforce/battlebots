@@ -14,6 +14,8 @@ var last_payload := {}
 var health_build := WireCodec.BUILD
 var fail_next_action := false
 var oversize_health := false
+var queue_capacities: Variant = [2, 4]
+var unauthorized_route := ""
 
 func start(requested_port := 0) -> Error:
 	# Keep the bound socket: no probe/close/rebind race or PID-derived port range.
@@ -75,7 +77,7 @@ func respond(item: Dictionary, route: String, data: Dictionary) -> void:
 	var delay := 1
 	match route:
 		"GET /healthz":
-			response = {"build":health_build, "protocol":WireCodec.PROTOCOL, "content_hash":ContentRegistry.new().content_hash, "region":"test-region"}
+			response = {"build":health_build, "protocol":WireCodec.PROTOCOL, "content_hash":ContentRegistry.new().content_hash, "region":"test-region", "queue_capacities":queue_capacities}
 			if oversize_health:
 				response["padding"] = "x".repeat(70000)
 			delay = maxi(1, health_delay_ms)
@@ -96,6 +98,8 @@ func respond(item: Dictionary, route: String, data: Dictionary) -> void:
 				response = {"error":{"code":"room_full", "message":"This game is full. Try another code."}}
 			else:
 				membership = {"state":"waiting", "room_id":"fixture-room", "code":"ABCD1234", "mode":data.get("mode", "teams"), "capacity":data.get("capacity", 4), "players":1, "region":"test-region"}
+				if route == "POST /v1/queue":
+					membership.code = ""
 				if assignment_port > 0 and route != "POST /v1/queue":
 					membership.state = "ready"
 					membership["assignment"] = {"address":"127.0.0.1", "port":assignment_port, "admission_ticket":"fixture-ticket", "room_id":"fixture-room"}
@@ -104,6 +108,11 @@ func respond(item: Dictionary, route: String, data: Dictionary) -> void:
 		_:
 			code = 404
 			response = {"error":{"message":"Unknown fixture route"}}
+	if route == unauthorized_route:
+		unauthorized_route = ""
+		membership = {"state":"none", "region":"test-region", "players":0}
+		code = 401
+		response = {"error":{"code":"unauthorized", "message":"Sign in again to continue."}}
 	var body := JSON.stringify(response)
 	item.reply = "HTTP/1.1 %d OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s" % [code, body.to_utf8_buffer().size(), body]
 	item.at = Time.get_ticks_msec() + delay

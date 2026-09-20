@@ -19,6 +19,10 @@ remain deferred. Coordinate all deployment evidence and remaining acceptance her
 
 ## Preparation evidence
 
+The subsequent [1v1 Quick Play increment](A_DUEL_QUICK_PLAY.md) extends every
+`--duel-only`/external run to both private and queued two-player matches. Evidence
+below records the earlier private-only preparation.
+
 - Service unit/integration tests: all 19 passed.
 - Fly configuration validation: passed; authenticated account inventory confirms
   there is no Battlebots app yet. Existing unrelated apps were not modified.

@@ -232,6 +232,13 @@ internal, outside public lobby and BotView data.
 
 `PublicServiceClient` owns HTTPS guest/room/queue requests and emits a ready endpoint
 assignment. It does not mark a game connected; only the ENet welcome does that.
+Quick Play sends `POST /v1/queue` with `{capacity:2}` after health advertises
+`queue_capacities` containing numeric two. The service isolates two/four-player
+queues; omitted capacity retains legacy four. Other capacities/keys are rejected.
+Older health responses still support private games. Authenticated HTTP 401
+clears expired credentials, membership and cleanup locks; the player chooses a
+new action, with no automatic allocation replay. Cancel still takes precedence
+over late replies. See [duel queue coordination](coordination/A_DUEL_QUICK_PLAY.md).
 The menu shares the existing lobby/Ready flow after successful admission. See
 [hosted coordination](coordination/A_HOSTED_MATCHMAKING.md) for control routes,
 worker lifecycle and the current single-Machine playtest boundaries.

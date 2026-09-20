@@ -57,7 +57,7 @@ func can_cancel() -> bool:
 	return _cleanup_required or not _flight.is_empty() or state in ["requesting", "waiting", "starting", "ready", "connected"]
 
 func quick_play() -> void:
-	begin("queue", {})
+	begin("queue", {"capacity":2})
 
 func create_private(mode: String, capacity: int) -> void:
 	if (mode == "teams" and capacity in [2, 4, 10]) or (mode == "ffa" and capacity in range(4, 9)):
@@ -158,6 +158,7 @@ func _completed(result: int, code: int, _headers: PackedStringArray, body: Packe
 		if ok or code == 401:
 			if code == 401:
 				_token = ""
+				_expires_at = 0.0
 			_cancelled()
 		else:
 			_cancel_requested = false
@@ -174,6 +175,12 @@ func _completed(result: int, code: int, _headers: PackedStringArray, body: Packe
 				detail = detail.replace(_token, "[hidden]")
 		if code == 401:
 			_token = ""
+			_expires_at = 0.0
+			_cleanup_required = false
+			_assignment_delivered = false
+			membership.clear()
+			_fail("Your online session expired. Choose Quick Play or create/join a new game.")
+			return
 		_fail(detail if not detail.is_empty() else ("Online request failed. Check your connection and try again." if code == 0 else ("Online service is busy. Please try again shortly." if code == 429 else "Online request failed (HTTP %d). Check the code or try again." % code)))
 		return
 	var data: Dictionary = parsed
@@ -183,6 +190,17 @@ func _completed(result: int, code: int, _headers: PackedStringArray, body: Packe
 			_fail("This game build does not match the online service. Install the current game build.")
 			return
 		region = str(data.get("region", "")).left(80)
+		if _action == "queue":
+			var capacities: Variant = data.get("queue_capacities")
+			var supports_duel := false
+			if capacities is Array:
+				for capacity: Variant in capacities:
+					# JSON numbers arrive as floats; Array.has uses strict types.
+					if (capacity is int or capacity is float) and capacity == 2:
+						supports_duel = true
+			if not supports_duel:
+				_fail("1v1 Quick Play is unavailable on this service. Try a private game instead.")
+				return
 		if _token.is_empty() or _expires_at <= Time.get_unix_time_from_system() + 30:
 			_token = ""
 			_request("guest", "/v1/guests", HTTPClient.METHOD_POST, {"build":WireCodec.BUILD, "protocol":WireCodec.PROTOCOL, "content_hash":registry.content_hash})
@@ -212,7 +230,8 @@ func _accept_membership(data: Dictionary) -> void:
 		"none":
 			_cleanup_required = false
 			_fail("No online game is reserved. Choose a game to try again.")
-		"waiting": message = "Waiting for players… %d / %d" % [int(data.get("players", 0)), int(data.get("capacity", 4))]
+		"waiting":
+			message = "Finding an opponent…" if _action == "queue" else "Waiting for players… %d / %d" % [int(data.get("players", 0)), int(data.get("capacity", 4))]
 		"starting": message = "Starting your game server…"
 		"failed": message = "The game server could not start. Cancel to leave this room and try again."
 		"ready":

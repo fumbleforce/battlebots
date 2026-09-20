@@ -153,24 +153,26 @@ try {
     GODOT_PATH: serverBinary || godot, GODOT_PROJECT_PATH: serverBinary ? '' : path.join(root, 'battlebots'),
     BUILD_MANIFEST_PATH: manifest,
   });
-  await until(async () => {
+  const health = await until(async () => {
     if (service && service.exitCode !== null) throw new Error(`Service exited; logs: ${run}`);
     try { return await request('/healthz'); } catch { return null; }
   });
+  assert.ok(Array.isArray(health.queue_capacities) && health.queue_capacities.includes(2),
+    'Hosted service must advertise two-player Quick Play');
   async function guest() {
     const created = await request('/v1/guests', null, 'POST', compatibility);
     ownedGuests.push(created);
     return created;
   }
-  async function exercise(label, count) {
+  async function exercise(label, count, privateRoom = false) {
     const guests = [];
     for (let index = 0; index < count; index++) guests.push(await guest());
-    if (label === 'private') {
+    if (privateRoom) {
       const created = await request('/v1/rooms', guests[0], 'POST', { mode: 'teams', capacity: count });
       assert.match(created.code, /^[A-Z0-9]{8}$/);
       for (const member of guests.slice(1)) await request('/v1/rooms/join', member, 'POST', { code: created.code });
     } else {
-      for (const member of guests) await request('/v1/queue', member, 'POST', {});
+      for (const member of guests) await request('/v1/queue', member, 'POST', { capacity: count });
     }
     const assignments = [];
     for (const member of guests) {
@@ -234,8 +236,9 @@ try {
     console.log(`HOSTED ${label.toUpperCase()} PASS: ${count} independent clients reached active and drove${count === 2 ? '; two public forfeit votes resolved rounds, results agreed and rematch became active (not natural combat acceptance)' : ''}`);
     return evidence;
   }
-  const evidence = { private: await exercise('private', 2),
-    ...(duelOnly ? {} : { queue: await exercise('queue', 4) }),
+  const evidence = { private: await exercise('private-duel', 2, true),
+    quick_duel: await exercise('quick-duel', 2),
+    ...(duelOnly ? {} : { queue: await exercise('queue-four', 4) }),
     build: compatibility.build, exported_server: managedService ? null : Boolean(serverBinary),
     service_origin: base, managed_service: managedService, external_endpoint: endpoint ? base : null };
   await writeFile(path.join(run, 'report.json'), JSON.stringify(evidence, null, 2));

@@ -394,7 +394,13 @@ After 250 ms without valid input, set throttle to zero, brake, and stop weapon a
 
 Release needs a small HTTPS control service for guest/account identity, region selection, lobby listing, queue tickets, server allocation, and result receipts. Use short-lived join tokens binding player, match, slot, expiry, and build version. Hosting provider and account platform are implementation selections, not assumed engine features.
 
-Start public quick play with one 2v2 queue to avoid splitting a small population. Match parties of up to two, prefer nearby regions and comparable recent performance, and broaden skill range before accepting higher latency. Target under 120 ms RTT; show region and ping before joining a distant server. Custom 5v5 and FFA remain available without separate public queues.
+Current delivery priority starts public Quick Play with a 1v1 queue. Two-player
+allocation is implemented; external hosting and human acceptance remain open.
+After the complete 1v1 game, the broader design is a single 2v2 public queue,
+parties of up to two, nearby regions and comparable recent performance, broadening
+skill range before accepting higher latency. Target under 120 ms RTT and show
+region/ping before joining a distant server. Custom 5v5 and FFA are future scope
+without separate public queues.
 
 Validate sender-to-bot ownership, command sequence/rate, action eligibility, and loadout IDs. Bound packet sizes, reject malformed values and non-finite vectors, and rate-limit lobby operations. Accept no remote script/resource paths or arbitrary object deserialization. Servers issue final results; clients cannot submit progression awards. Use sanitized names, mute/report controls for names and ping abuse, and no text chat in the first release.
 

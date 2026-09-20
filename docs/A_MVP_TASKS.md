@@ -28,11 +28,15 @@ active expansion or acceptance work.
   External hosting and human recovery acceptance remain open.
 - [ ] Deploy the externally hosted matchmaker and dedicated game server for 1v1;
   verify external connectivity and complete a real hosted duel through rematch.
-  Existing private-duel support is the starting point; the current 2v2 queue is
-  not the active delivery target. Public hosting remains outstanding. The
+  Private duels and two-player Quick Play are implemented; the retained legacy
+  2v2 queue is not the active delivery target. Public hosting remains outstanding. The
   [external duel harness](coordination/A_HOSTED_DUEL_DEPLOYMENT.md) now checks
   authoritative results and rematch as well as assigned connectivity; local
   validation does not close this deployment task.
+- [x] Add 1v1 Quick Play, isolated from the legacy four-player queue, with
+  coherent online-menu waiting/cancel states and expired-session retry.
+  See [duel queue evidence](coordination/A_DUEL_QUICK_PLAY.md). External hosted
+  and human acceptance remain outstanding.
 - [x] Run private 1v1 through the production Linux container's real release worker,
   including results/rematch. [Linux CI evidence](coordination/A_LINUX_HOSTED_RUNTIME.md)
   closes the runtime packaging gap, not external deployment.

@@ -75,9 +75,18 @@ func run() -> void:
 	check(router.current == "online" and router.lobby_intent == "online", "Actual main-menu click opens online flow")
 	if router.current == "online":
 		var screen: Control = game.screen
-		for action: Control in [screen.create_button, screen.join_button, screen.back_button]:
+		for action: Control in [screen.quick_button, screen.create_button, screen.join_button, screen.back_button]:
+			action.grab_focus()
+			await frames()
 			check(bounds.encloses(action.get_global_rect()), "Online action fits viewport: " + action.text)
-		check(screen.create_button.text.contains("1V1") and not screen.cancel_button.visible, "Idle screen prioritizes private duel and has no Cancel action")
+		check(screen.quick_button.text.contains("1V1") and screen.create_button.text.contains("1V1") and not screen.cancel_button.visible, "Idle screen offers quick and private duels with no Cancel action")
+		screen.quick_button.pressed.emit()
+		check(await until(func() -> bool: return game.public_service.state == "waiting"), "Quick Play reaches actual HTTP queue")
+		check(api.last_payload.get("capacity") == 2 and screen.cancel_button.visible and not screen.copy_button.visible and screen.state_heading.text.contains("FINDING"), "Duel queue shows opponent search and cancellation without a private code")
+		api.unauthorized_route = "GET /v1/membership"
+		game.public_service._next_poll = 0
+		check(await until(func() -> bool: return game.public_service.state == "failed"), "Expired queue session reaches recovery UI")
+		check(screen.actions.visible and not screen.quick_button.disabled and not screen.cancel_button.visible and screen.status_label.text.contains("expired"), "Expired queue restores usable actions without mandatory Cancel")
 		screen.create_button.pressed.emit()
 		check(await until(func() -> bool: return game.public_service.state == "waiting"), "Private duel reaches real HTTP waiting membership")
 		check(api.last_payload.get("capacity") == 2, "Private duel requests exactly two players")

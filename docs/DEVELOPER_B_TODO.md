@@ -448,3 +448,10 @@ integration base, not the still-old main branch.
   producer fields or material tags were added. Material-specific variation and
   human listening remain open. The separate HTTP fixture repair affects only
   A test infrastructure; production networking is unchanged.
+
+- **A 1v1 Quick Play intent (2026-09-20):** reserves public service/client,
+  original-theme online panel and independent/hosted fixtures on
+  `codex/a-duel-quick-play`. Add isolated two-player queue with advertised
+  capability; active client requests 1v1 explicitly. Expired guest state becomes
+  cleanly retryable. No B runtime, controls, garage or wire changes. See
+  [Quick Play coordination](coordination/A_DUEL_QUICK_PLAY.md).

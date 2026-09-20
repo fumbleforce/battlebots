@@ -45,7 +45,7 @@ async function fixture(t, options = {}) {
 
 test('health and guest enforce exact release identity and bounded authentication', async t => {
   const f = await fixture(t, { guestTtl: 30 });
-  assert.deepEqual((await f.request('/healthz')).body, { ...manifest, region: 'arn' });
+  assert.deepEqual((await f.request('/healthz')).body, { ...manifest, region: 'arn', queue_capacities: [2, 4] });
   for (const change of [{ build: 'old' }, { protocol: 3 }, { content_hash: 'b'.repeat(64) }]) {
     const bad = await f.request('/v1/guests', 'POST', { ...manifest, ...change });
     assert.equal(bad.status, 409); assert.equal(bad.body.error.code, 'version_mismatch');
@@ -130,6 +130,137 @@ test('solo queue needs four, cancellation refills same pre-match worker, second 
   for (const i of [0, 1, 6, 7]) await f.request('/v1/queue', 'POST', {}, guests[i].access_token);
   assert.equal(f.workers.length, 2);
   assert.notEqual(f.workers[0].config.port, f.workers[1].config.port);
+});
+
+test('duel queue allocates one two-slot worker and shares its ready assignment', async t => {
+  const f = await fixture(t);
+  const [a, b] = await Promise.all([f.guest(), f.guest()]);
+  const waiting = await f.request('/v1/queue', 'POST', { capacity: 2 }, a.access_token);
+  assert.equal(waiting.status, 200);
+  assert.equal(waiting.body.state, 'waiting');
+  assert.equal(waiting.body.capacity, 2);
+  assert.equal(waiting.body.players, 1);
+  assert.equal(waiting.body.assignment, undefined);
+  assert.equal(f.workers.length, 0);
+  const allocated = await f.request('/v1/queue', 'POST', { capacity: 2 }, b.access_token);
+  assert.equal(allocated.status, 200);
+  assert.equal(allocated.body.room_id, waiting.body.room_id);
+  assert.equal(allocated.body.state, 'starting');
+  assert.equal(allocated.body.code, '');
+  assert.equal(f.workers.length, 1);
+  const worker = f.workers[0];
+  assert.equal(worker.config.capacity, 2);
+  assert.equal(worker.config.mode, 'teams');
+  assert.deepEqual(worker.config.slots.map(slot => slot.player_id).sort(), [a.player_id, b.player_id].sort());
+  assert.deepEqual(worker.config.slots.map(slot => slot.slot), [0, 1]);
+  worker.ready = true;
+  const assignments = await Promise.all([a, b].map(guest => f.request('/v1/membership', 'GET', undefined, guest.access_token)));
+  for (const result of assignments) {
+    assert.equal(result.body.state, 'ready');
+    assert.equal(result.body.assignment.room_id, waiting.body.room_id);
+    assert.equal(result.body.assignment.port, worker.config.port);
+  }
+  assert.notEqual(assignments[0].body.assignment.admission_ticket, assignments[1].body.assignment.admission_ticket);
+  await f.service.maintenance();
+  assert.equal(f.workers.length, 1);
+});
+
+test('duel, explicit four and legacy queues stay isolated by capacity', async t => {
+  const f = await fixture(t);
+  const guests = await Promise.all(Array.from({ length: 6 }, () => f.guest()));
+  const duel = (await f.request('/v1/queue', 'POST', { capacity: 2 }, guests[0].access_token)).body;
+  const four = (await f.request('/v1/queue', 'POST', { capacity: 4 }, guests[1].access_token)).body;
+  const legacy = (await f.request('/v1/queue', 'POST', {}, guests[2].access_token)).body;
+  assert.notEqual(duel.room_id, four.room_id);
+  assert.equal(legacy.room_id, four.room_id);
+  assert.equal(legacy.players, 2);
+  assert.equal(f.workers.length, 0);
+  const fullDuel = (await f.request('/v1/queue', 'POST', { capacity: 2 }, guests[3].access_token)).body;
+  assert.equal(fullDuel.room_id, duel.room_id);
+  assert.equal(f.workers.length, 1);
+  assert.equal(f.workers[0].config.capacity, 2);
+  for (const guest of guests.slice(4)) await f.request('/v1/queue', 'POST', {}, guest.access_token);
+  assert.equal(f.workers.length, 2);
+  assert.equal(f.workers[1].config.capacity, 4);
+  assert.equal(f.workers[1].config.slots.length, 4);
+  assert.equal(f.workers[1].config.slots.some(slot => [guests[0].player_id, guests[3].player_id].includes(slot.player_id)), false);
+});
+
+test('concurrent duel joins fill disjoint pairs without duplicate allocation or port reuse', async t => {
+  const f = await fixture(t, { portCount: 3 });
+  const guests = await Promise.all(Array.from({ length: 7 }, () => f.guest()));
+  const responses = await Promise.all(guests.map(guest => f.request('/v1/queue', 'POST', { capacity: 2 }, guest.access_token)));
+  assert.equal(responses.every(response => response.status === 200), true);
+  assert.equal(f.workers.length, 3);
+  assert.equal(new Set(f.workers.map(worker => worker.config.port)).size, 3);
+  assert.equal(new Set(f.workers.flatMap(worker => worker.config.slots.map(slot => slot.player_id))).size, 6);
+  assert.equal(f.workers.every(worker => worker.config.capacity === 2 && worker.config.slots.length === 2), true);
+  const rooms = new Map();
+  for (const { body } of responses) rooms.set(body.room_id, (rooms.get(body.room_id) ?? 0) + 1);
+  assert.deepEqual([...rooms.values()].sort(), [1, 2, 2, 2]);
+  await f.service.maintenance();
+  assert.equal(f.workers.length, 3);
+});
+
+test('invalid duel queue parameters cannot allocate or create membership', async t => {
+  const f = await fixture(t);
+  const a = await f.guest();
+  for (const body of [null, [], { capacity: null }, { capacity: 2.5 }, { capacity: 3 }, { capacity: 10 },
+    { capacity: '2' }, { capacity: true }, { capacity: 0 }, { capacity: 2, mode: 'teams' }, { unknown: 2 }]) {
+    const result = await f.request('/v1/queue', 'POST', body, a.access_token);
+    assert.equal(result.status, 400, JSON.stringify(body));
+    assert.equal((await f.request('/v1/membership', 'GET', undefined, a.access_token)).body.state, 'none');
+    assert.equal(f.workers.length, 0);
+  }
+  const valid = await f.request('/v1/queue', 'POST', { capacity: 2 }, a.access_token);
+  assert.equal(valid.status, 200);
+  assert.equal(valid.body.players, 1);
+});
+
+test('a full duel waiting for a worker acquires the released port during maintenance', async t => {
+  const f = await fixture(t, { portCount: 1 });
+  const [owner, a, b] = await Promise.all([f.guest(), f.guest(), f.guest()]);
+  await f.request('/v1/rooms', 'POST', { mode: 'teams', capacity: 2 }, owner.access_token);
+  for (const guest of [a, b]) await f.request('/v1/queue', 'POST', { capacity: 2 }, guest.access_token);
+  assert.equal(f.workers.length, 1);
+  const waiting = (await f.request('/v1/membership', 'GET', undefined, a.access_token)).body;
+  assert.equal(waiting.state, 'waiting');
+  assert.equal(waiting.players, 2);
+  assert.equal(waiting.assignment, undefined);
+  await f.request('/v1/membership', 'DELETE', undefined, owner.access_token);
+  await f.service.maintenance();
+  assert.equal(f.workers[0].stopped, true);
+  assert.equal(f.workers.length, 2);
+  assert.equal(f.workers[1].config.port, f.workers[0].config.port);
+  assert.equal(f.workers[1].config.capacity, 2);
+  assert.equal(f.workers[1].config.slots.length, 2);
+  assert.equal((await f.request('/v1/membership', 'GET', undefined, b.access_token)).body.room_id, waiting.room_id);
+});
+
+test('duel cancellation replaces pre-match slots but never admits into a started match', async t => {
+  const f = await fixture(t);
+  const [a, b, c, d] = await Promise.all([f.guest(), f.guest(), f.guest(), f.guest()]);
+  const first = (await f.request('/v1/queue', 'POST', { capacity: 2 }, a.access_token)).body;
+  await f.request('/v1/queue', 'POST', { capacity: 2 }, b.access_token);
+  const worker = f.workers[0];
+  const original = worker.config.slots.find(slot => slot.player_id === a.player_id);
+  await f.request('/v1/membership', 'DELETE', undefined, a.access_token);
+  const replacement = (await f.request('/v1/queue', 'POST', { capacity: 2 }, c.access_token)).body;
+  assert.equal(replacement.room_id, first.room_id);
+  assert.equal(f.workers.length, 1);
+  const next = worker.config.slots.find(slot => slot.player_id === c.player_id);
+  assert.equal(next.slot, original.slot);
+  assert.notEqual(next.reservation_id, original.reservation_id);
+  await f.request('/v1/membership', 'DELETE', undefined, c.access_token);
+  worker.ready = true; worker.state = 'active'; worker.phase = 'active';
+  const newQueue = (await f.request('/v1/queue', 'POST', { capacity: 2 }, d.access_token)).body;
+  assert.notEqual(newQueue.room_id, first.room_id);
+  assert.equal(newQueue.state, 'waiting');
+  assert.equal(worker.config.slots.some(slot => slot.player_id === d.player_id), false);
+  await f.request('/v1/membership', 'DELETE', undefined, b.access_token);
+  assert.equal(worker.stopped, true);
+  await f.request('/v1/membership', 'DELETE', undefined, d.access_token);
+  assert.equal((await f.request('/v1/membership', 'GET', undefined, d.access_token)).body.state, 'none');
 });
 
 test('full worker pool never overallocates; waiting queue acquires released port', async t => {

@@ -228,7 +228,7 @@ export function createService(options, { workerFactory, clock = () => Date.now()
       if (room.worker && now - room.lastLease >= config.leaseRefresh) {
         try { await refreshConfig(room); } catch { await failRoom(room, 'server_unavailable'); }
       }
-      if (room.isQueue && room.state === 'waiting' && room.members.size === 4) await allocate(room);
+      if (room.isQueue && room.state === 'waiting' && room.members.size === room.capacity) await allocate(room);
     }
     for (const [key, rate] of rates) if (now >= rate.reset) rates.delete(key);
   };
@@ -243,7 +243,7 @@ export function createService(options, { workerFactory, clock = () => Date.now()
   const route = async (req, body, pathname) => {
     if (closed) reject(503, 'unavailable', 'Service is shutting down.');
     const method = req.method;
-    if (method === 'GET' && pathname === '/healthz') return { ...config.manifest, region: config.region };
+    if (method === 'GET' && pathname === '/healthz') return { ...config.manifest, region: config.region, queue_capacities: [2, 4] };
     // Enable only behind Fly's trusted HTTP proxy. Never honor arbitrary X-Forwarded-For.
     const flyAddress = req.headers['fly-client-ip'];
     const address = config.trustFlyProxy === true && typeof flyAddress === 'string' && isIP(flyAddress)
@@ -288,14 +288,17 @@ export function createService(options, { workerFactory, clock = () => Date.now()
       await addMember(room, guest);
       return membership(guest);
     }
-    exactKeys(body, []);
-    let room = [...rooms.values()].find(candidate => candidate.isQueue && roomJoinable(candidate) && candidate.members.size < 4);
-    if (!room) room = makeRoom('teams', 4, true);
+    exactKeys(body, ['capacity']);
+    const capacity = Object.hasOwn(body, 'capacity') ? body.capacity : 4;
+    if (!Number.isInteger(capacity) || ![2, 4].includes(capacity)) reject(400, 'invalid_queue', 'Choose a supported queue size.');
+    let room = [...rooms.values()].find(candidate => candidate.isQueue && candidate.capacity === capacity
+      && roomJoinable(candidate) && candidate.members.size < candidate.capacity);
+    if (!room) room = makeRoom('teams', capacity, true);
     await inspectWorker(room);
     // A status refresh can reveal a match started since the previous request.
-    if (!roomJoinable(room)) room = makeRoom('teams', 4, true);
+    if (!roomJoinable(room)) room = makeRoom('teams', capacity, true);
     await addMember(room, guest);
-    if (room.members.size === 4) await allocate(room);
+    if (room.members.size === room.capacity) await allocate(room);
     return membership(guest);
   };
   const server = http.createServer(async (req, res) => {

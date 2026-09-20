@@ -106,4 +106,7 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     '--max-fps', '60', '--script', 'res://tests/services/public_service_client_test.gd',
     '--quit-after', '6000') -Marker 'PUBLIC SERVICE CLIENT PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', '--script', 'res://tests/services/duel_quick_play_client_test.gd',
+    '--quit-after', '6000') -Marker 'DUEL QUICK PLAY CLIENT PASS'
 Write-Host 'B PRESENTATION CHECKS PASS'

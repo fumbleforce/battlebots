@@ -2,6 +2,7 @@ extends MenuScreen
 ## The public service owns membership, admission and cleanup; this panel shows its state.
 var service_override: PublicServiceClient
 var service: PublicServiceClient
+var quick_button: Button
 var create_button: Button
 var join_button: Button
 var cancel_button: Button
@@ -13,9 +14,12 @@ var region_label: Label
 var code_label: Label
 var actions: VBoxContainer
 var state_heading: Label
+var header_panel: PanelContainer
 
 func apply_text_scale(factor: float) -> void:
 	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
+	if is_instance_valid(header_panel):
+		header_panel.custom_minimum_size.y = 180 if factor > 1.0 else 130
 
 func _ready() -> void:
 	allow_back = false
@@ -26,6 +30,7 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation", 0)
 	add_child(layout)
 	var header := panel(layout, &"HeaderBar")
+	header_panel = header
 	header.custom_minimum_size.y = 130
 	var header_row := HBoxContainer.new()
 	header_row.add_theme_constant_override("separation", 32)
@@ -37,7 +42,7 @@ func _ready() -> void:
 	title.custom_minimum_size.x = 620
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header_row.add_child(title)
-	label(title, "MULTIPLAYER · PRIVATE DUEL", 18, &"EyebrowAmber")
+	label(title, "MULTIPLAYER · 1V1 DUELS", 18, &"EyebrowAmber")
 	label(title, "PLAY ONLINE", 53, &"Heading")
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -61,16 +66,19 @@ func _ready() -> void:
 	body.add_theme_constant_override("separation", 24)
 	scroll.add_child(body)
 	label(body, "ONE ARENA. TWO BOTS.", 42, &"HeadingItalic")
-	label(body, "Create a duel and share your code, or join a friend’s game.", 27, &"Muted")
+	label(body, "Find an opponent, challenge a friend, or join with an invite code.", 27, &"Muted")
 	actions = VBoxContainer.new()
 	actions.add_theme_constant_override("separation", 18)
 	body.add_child(actions)
+	var quick_col := card(actions, "QUICK PLAY / 1V1", "FIND YOUR NEXT OPPONENT", "Join the queue for a 1v1 duel. Choose your bot and ready up when an opponent joins.")
+	quick_button = button(quick_col, "QUICK PLAY · 1V1", quick_play)
+	quick_button.theme_type_variation = &"PrimaryButton"
 	var cards := HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 28)
 	actions.add_child(cards)
 	var host_col := card(cards, "01 / CREATE", "CHALLENGE A FRIEND", "Start a private 1v1 game. Share the code to invite your opponent.")
 	create_button = button(host_col, "CREATE 1V1 GAME", create_room)
-	create_button.theme_type_variation = &"PrimaryButton"
+	create_button.theme_type_variation = &"GhostButton"
 	var join_col := card(cards, "02 / JOIN", "ENTER THE ARENA", "Have an invite? Enter the eight-character code your friend shared.")
 	var join_row := HBoxContainer.new()
 	join_row.add_theme_constant_override("separation", 16)
@@ -114,7 +122,7 @@ func _ready() -> void:
 	cancel_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	service.changed.connect(refresh)
 	refresh()
-	(create_button if not create_button.disabled else back_button).grab_focus()
+	(quick_button if not quick_button.disabled else back_button).grab_focus()
 
 func panel(parent: Node, variation: StringName) -> PanelContainer:
 	var item := PanelContainer.new()
@@ -154,6 +162,10 @@ func button(parent: Node, text: String, action: Callable) -> Button:
 	parent.add_child(item)
 	return item
 
+func quick_play() -> void:
+	if service.can_start():
+		service.quick_play()
+
 func create_room() -> void:
 	service.create_private("teams", 2)
 
@@ -164,22 +176,28 @@ func join_room() -> void:
 func refresh() -> void:
 	status_label.text = service.message
 	if service.state == "idle" and service.available():
-		status_label.text = "Create a private duel or enter a friend’s code to get started."
+		status_label.text = "Quick Play finds an opponent. You can also create a private duel or enter a friend's code."
 	state_heading.text = {"idle": "READY TO PLAY" if service.available() else "ONLINE UNAVAILABLE", "failed": "CONNECTION NEEDS ATTENTION", "requesting": "CONTACTING ONLINE SERVICE", "waiting": "WAITING FOR YOUR OPPONENT", "starting": "PREPARING THE ARENA", "ready": "CONNECTING TO YOUR GAME", "connected": "GAME CONNECTED", "canceling": "LEAVING GAME"}.get(service.state, "ONLINE STATUS")
 	region_label.text = "REGION · " + (service.region if not service.region.is_empty() else "Assigned by the online service")
 	var available := service.can_start()
+	quick_button.disabled = not available
 	create_button.disabled = not available
 	join_button.disabled = not available
 	code_input.editable = available
+	var actions_were_visible := actions.visible
 	actions.visible = service.state in ["idle", "failed"] and not service.can_cancel()
 	var code := str(service.membership.get("code", ""))
+	if service.state == "waiting" and code.is_empty():
+		state_heading.text = "FINDING YOUR OPPONENT"
 	code_label.text = "FRIEND CODE: " + code if not code.is_empty() else ""
 	code_label.visible = not code.is_empty()
 	copy_button.visible = not code.is_empty()
 	cancel_button.visible = service.can_cancel() or service.state == "canceling"
 	cancel_button.disabled = service.state == "canceling"
 	var focused := get_viewport().gui_get_focus_owner()
-	if focused == null or not focused.is_visible_in_tree() or (focused is BaseButton and focused.disabled):
+	if actions.visible and not actions_were_visible and available:
+		quick_button.grab_focus()
+	elif focused == null or not focused.is_visible_in_tree() or (focused is BaseButton and focused.disabled):
 		(cancel_button if cancel_button.visible and not cancel_button.disabled else back_button).grab_focus()
 
 func cancel_online() -> void:

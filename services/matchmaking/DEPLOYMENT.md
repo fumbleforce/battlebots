@@ -19,12 +19,15 @@ node tools/check-hosted.mjs --godot $GodotPath --server-binary (Resolve-Path bat
 fly config validate -c services/matchmaking/fly.toml
 ```
 
-For the current 1v1 priority, add `--duel-only` to either hosted check. It uses
-two independent clients and public forfeit votes to verify two rounds, matching
+For the current 1v1 priority, add `--duel-only` to either hosted check. It checks
+both a private duel and two-player Quick Play, each using two independent clients
+and public forfeit votes to verify two rounds, matching
 authoritative scores/results and an active rematch. This is lifecycle acceptance,
 not natural combat or human-feel acceptance. Omitting the flag retains the older
 four-client queue regression too when running locally; external endpoint mode
-always selects the duel check. Queue regression is not required for deployment.
+always selects these duel checks. Legacy four-player regression is not required
+for deployment. Health must advertise `queue_capacities` containing two; the
+current client never silently falls back to the legacy four-player queue.
 
 The prepare command creates a fresh Linux binary, PCK and compatibility manifest
 under `battlebots/exports/hosted-server/`. The existing menu/music playtest ZIP is

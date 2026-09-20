@@ -57,6 +57,17 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-duel-quick-play` follows `5015c7e`. Quick Play explicitly queues two
+players, with isolated legacy four-player support and advertised capability.
+The original-theme panel offers Quick Play alongside private create/code join.
+Expired online credentials clear stale membership so a new explicit action can
+retry. The hosted harness exercises both private and queued duels through
+results/rematch. B source and Godot wire contracts remain unchanged; see
+[duel queue evidence](coordination/A_DUEL_QUICK_PLAY.md). External deployment,
+human design acceptance and the intermittent native shutdown crash remain open.
+
+### Preceding impact/crowd audio increment
+
 `codex/a-impact-crowd-audio` follows `0023ad9`. A spatializes the four impact
 voices using accepted event world positions and adds one bounded crowd voice
 for real round/match outcomes. Initial/rejoined/practice state stays quiet;
