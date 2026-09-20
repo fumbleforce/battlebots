@@ -515,3 +515,5 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
   720p/1080p/ultrawide through 150%; baseline and affected menu/preview regressions
   pass. See coordination/B_FEATURED_VEHICLE.md. Authored assets, unsaved-build test
   drive and remaining combat/control/hosted-1v1 acceptance remain open.
+
+- 2026-09-20 B intent: direct unsaved-build Test Drive on codex/b-garage-test-drive from e0ce7c4; separate entry/menu_game integration avoids the active Sawblade/legs task. See coordination/B_GARAGE_TEST_DRIVE.md.
