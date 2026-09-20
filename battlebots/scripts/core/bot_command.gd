@@ -9,6 +9,8 @@ var brake: bool = false
 var primary_held: bool = false
 var primary_pressed: bool = false
 var secondary_held: bool = false
+## Explicit auxiliary trigger; synthetic secondary cancellation must never fire it.
+var auxiliary_held: bool = false
 var recovery_pressed: bool = false
 
 func is_valid() -> bool:

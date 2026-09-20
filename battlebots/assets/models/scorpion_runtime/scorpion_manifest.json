@@ -1,0 +1,233 @@
+{
+  "generator": "tools/build-scorpion.py",
+  "authoring": "Godot metres, Y up, -Z forward; multiply BotScale exactly once",
+  "body_envelope": [
+    1.6,
+    0.5,
+    2.0
+  ],
+  "hierarchy": {
+    "Scorpion": {
+      "parent": null,
+      "position": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "Body": {
+      "parent": "Scorpion",
+      "position": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "TailBase": {
+      "parent": "Scorpion",
+      "position": [
+        0.0,
+        0.22,
+        0.68
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "TailUpper": {
+      "parent": "TailBase",
+      "position": [
+        0.0,
+        0.76,
+        0.27
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "TailFore": {
+      "parent": "TailUpper",
+      "position": [
+        0.0,
+        0.75,
+        -0.67
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "HammerHead": {
+      "parent": "TailExtension",
+      "position": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "GunMount": {
+      "parent": "Scorpion",
+      "position": [
+        0.66,
+        0.265521,
+        -0.419047
+      ],
+      "rest_rotation": [
+        -0.035,
+        0,
+        0
+      ]
+    },
+    "GunRotor": {
+      "parent": "GunMount",
+      "position": [
+        0.0,
+        0.05,
+        -0.53
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "TailExtension": {
+      "parent": "TailFore",
+      "position": [
+        0.0,
+        -0.22,
+        -1.16
+      ],
+      "rest_rotation": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "hammer_center": [
+    0.0,
+    1.25,
+    -1.1200000047683716
+  ],
+  "hammer_size": [
+    0.62,
+    0.76,
+    0.5
+  ],
+  "minigun_muzzle": [
+    0.66,
+    0.27,
+    -1.72
+  ],
+  "minigun_spin_axis": "local Z",
+  "legs": {
+    "upper_length": 0.45,
+    "lower_length": 0.73,
+    "segment_axis": "+Y",
+    "hinge_axis": "local X tangent to radial stance",
+    "foot_origin": "ground contact",
+    "ankle_height": 0.18
+  },
+  "triangles": {
+    "body_tail_gun": 84730,
+    "leg_upper": 4484,
+    "leg_lower": 6548,
+    "leg_foot": 2908,
+    "assembled_six_legs": 168370
+  },
+  "materials": "Original authored shared 1024px base color / metallic-roughness / tangent normal maps referenced by all GLBs; metallic surfaces reflect scene lighting.",
+  "tail_extension": {
+    "node": "TailExtension",
+    "axis": [
+      0.0,
+      -0.18633367121219635,
+      -0.9824864864349365
+    ],
+    "travel": 0.22,
+    "law": "smoothstep(0.15,0.85,hammer_fraction)",
+    "parent": "TailFore",
+    "head_parent": "TailExtension"
+  },
+  "hammer_angles": [
+    -0.9,
+    -0.15,
+    0.5,
+    0.55
+  ],
+  "hammer_surface": "Continuous skew-crown octagonal forging, patchy metallic edge wear, integral impact face and 45-degree inset hazard bands",
+  "gun_detail": {
+    "barrels": 6,
+    "bore_radius": 0.0192,
+    "bore_depth": 0.48,
+    "scalloped_perforated_plates": 3,
+    "muzzle": [
+      0.66,
+      0.27,
+      -1.72
+    ],
+    "receiver": "angular parkerized steel with raised optic and side feeder"
+  },
+  "body_collider": {
+    "profile_xz": [
+      [
+        -0.4,
+        -0.82
+      ],
+      [
+        0.4,
+        -0.82
+      ],
+      [
+        0.8,
+        0
+      ],
+      [
+        0.4,
+        0.82
+      ],
+      [
+        -0.4,
+        0.82
+      ],
+      [
+        -0.8,
+        0
+      ]
+    ],
+    "rings_y_scale": [
+      [
+        -0.25,
+        0.92
+      ],
+      [
+        -0.16,
+        1.0
+      ],
+      [
+        0.25,
+        0.7
+      ]
+    ]
+  }
+}

@@ -43,7 +43,7 @@ func render(views: Array[BotView], local_id: int, practice: bool, duel: bool) ->
 			if not _valid(view) or retained.has(view.entity_id):
 				continue
 			var own := view.entity_id == local_id
-			if not own and (rival_count != 1 or view.team == local.team):
+			if not own and ((not practice and rival_count != 1) or view.team == local.team):
 				continue
 			retained.append(view.entity_id)
 			if not markers.has(view.entity_id):

@@ -1,0 +1,17 @@
+# Orange modular Scorpion — B, active implementation
+
+Branch codex/b-scorpion in C:/Users/jorge/battlebots-scorpion, based on ac2bda4 plus completed heavy-machine dependency a0efbef. User explicitly requests the reference orange hexagonal scorpion, interchangeable hammer and working minigun, detailed reflective materials, mechanical walking, authored practice NPCs and explosive destruction. This request supersedes the original ranged-weapon exclusion for these new canonical parts.
+
+B owns Blender source/runtime bot assets, Scorpion assembly/leg presentation, catalogue and garage, minigun combat and destruction. Reserved shared integration is limited to optional authoritative minigun snapshot fields, MvpBot assembly, and practice NPC lifecycle/spawning in MvpSession. Existing command secondary_held operates the auxiliary minigun; canonical utility minigun_pod is removable/swappable, alongside primary hammer/minigun weapon choices. No client-provided hits or damage. Existing legacy records remain supported; catalogue revision changes require matching hosted workers.
+
+Art authoring units are the original 1.6 x 0.5 x 2.0 hull; runtime applies BotScale once. Six legs use planted feet and alternating tripod gait. Source assets are generated in Blender with exported portable GLB/material maps. NPC assets are separate authored machines with cosmetic detachable parts. Practice stays offline; NPC commands and respawn are server-authoritative and bounded. The original practice_target accessor continues to identify a stable first target.
+
+Validation: actual native renders, live Jolt movement, hammer and minigun hits/occlusion/resource limits, module swaps, practice spawn/destruction/reset, affected existing checks and baseline. Preserve all unrelated edits in the main checkout. No hosted restart without an established playtest break; hand A matching release requirements and do not claim online acceptance from local tests.
+
+Narrow A-world reservation: FoundryVisuals receives one static box-projected reflection probe covering the existing combat floor, fulfilling the requested arena reflections without changing lights, geometry or collision. The explicit auxiliary input bit distinguishes real secondary fire from existing synthetic cancellation; wire protocol5/build mvp-ab-13 with accepted shot endpoints. Six physical support probes accompany the Scorpion's six rendered feet.
+
+Render integration also enables 4x MSAA for arena and separate workshop viewport to keep bevels, hydraulics and gun barrels smooth. Preserve the original checkout's unrelated project settings during integration. The native visual uses production lighting and renderer rather than screenshot-only enhancement.
+
+## Reference correction in progress
+
+The user rejected the first mesh's shallow body taper, parallel leg rows, crate-shaped hammer and sparse minigun detail. The revised multi-view reference drives a substantial Blender rebuild: six tapered armor sectors around a strongly inset roof; radial fore/aft leg sockets and outward-facing feet; an articulated telescoping final arm; an integral chamfered forging for the hammer; and machined receiver, barrel cage and feed details on the minigun. The six physical support probes and collision hull now follow the revised radial stance and tapered body. The workshop camera targets the full tall assembly. Completion requires inspection of the rebuilt exported geometry and renewed native combat/walking checks.

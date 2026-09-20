@@ -7,6 +7,7 @@ var level := 0
 var level_progress := 0.0
 var scrap := 0
 var active_bot := 0
+const PRESET_COUNT := 4
 var bots: Array = []
 var registry := ContentRegistry.new()
 var save_path := "user://loadouts.json"
@@ -38,7 +39,8 @@ func reload() -> void:
 	for preset: Dictionary in loadouts:
 		preset.parts.chassis = "balanced"
 		_ensure_body(preset)
-	_save_indices = [-1,-1,-1]
+	loadouts.append(registry.scorpion())
+	_save_indices = [-1,-1,-1,-1]
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)
@@ -58,7 +60,7 @@ func reload_retaining_drafts() -> int:
 	for index: int in loadouts.size():
 		var changed: bool = index >= _draft_baseline.size() or \
 			not _same_draft(loadouts[index], _draft_baseline[index])
-		var needs_copy: bool = changed or (index >= 3 and _save_indices[index] < 0)
+		var needs_copy: bool = changed or (index >= PRESET_COUNT and _save_indices[index] < 0)
 		if needs_copy or not _undo_history.get(index, []).is_empty() or not _redo_history.get(index, []).is_empty():
 			retained.append({"draft":loadouts[index].duplicate(true), "index":index,
 				"copy":needs_copy, "saved":_save_indices[index] >= 0,
@@ -289,7 +291,7 @@ func _refresh_bots() -> void:
 		var validation := registry.validate(draft)
 		var parts: Dictionary = draft.get("parts",{}) if draft.get("parts") is Dictionary else {}
 		var stats: Dictionary = validation.stats
-		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg"),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":"Brake · Space","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
+		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":"Brake · Space","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
 		bots[-1]["retained"] = _retained_drafts.has(index)
 		if _retained_drafts.has(index): bots[-1].cls = "UNSAVED COPY" + (" · REPAIR REQUIRED" if not validation.valid else "")
 

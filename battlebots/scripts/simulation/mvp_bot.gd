@@ -21,6 +21,8 @@ var presentation: Node3D
 var visual_error := Vector3.ZERO
 var weapon_visual: MvpWeaponVisual
 var sawblade_visual: SawbladeVisual
+var scorpion_visual: ScorpionVisual
+var practice_npc_visual: PracticeNpcVisual
 var damage_visual: BotDamageVisual
 var destruction_visual: BotDestructionVisual
 
@@ -44,6 +46,7 @@ func _ready() -> void:
 	body.mass = stats.mass
 	body.top_speed = stats.speed
 	body.walker = loadout.parts.drive == "walker"
+	body.walker_rows = 3 if ScorpionGeometry.enabled(loadout) else 2
 	body.grip_acceleration = stats.grip
 	body.drive_acceleration = 8.0 * 103.0 / body.mass
 	body.brake_acceleration = 9.0
@@ -64,7 +67,11 @@ func _ready() -> void:
 	var shape := BoxShape3D.new()
 	shape.size = stats.size
 	$Body/Collision.shape = shape
-	if SawbladeConfig.enabled(loadout):
+	if ScorpionGeometry.enabled(loadout):
+		var hull := ConvexPolygonShape3D.new()
+		hull.points = ScorpionStance.collision_points(body.geometry_scale)
+		$Body/Collision.shape = hull
+	if SawbladeConfig.enabled(loadout) and not ScorpionGeometry.enabled(loadout) and not has_meta("practice_variant"):
 		var rear := CollisionShape3D.new()
 		rear.name = "RearPackCollision"
 		var rear_shape := BoxShape3D.new()
@@ -92,7 +99,20 @@ func _ready() -> void:
 	for path: String in ["Visual", "ForwardStripe", "CameraAnchor"]:
 		body.get_node(path).reparent(presentation, false)
 	presentation.global_transform = body.global_transform
-	if DisplayServer.get_name() != "headless" and SawbladeConfig.enabled(loadout):
+	if DisplayServer.get_name() != "headless" and has_meta("practice_variant"):
+		presentation.get_node("Visual").hide()
+		presentation.get_node("ForwardStripe").hide()
+		practice_npc_visual = PracticeNpcVisual.new()
+		presentation.add_child(practice_npc_visual)
+		practice_npc_visual.assemble(str(get_meta("practice_variant")), stats.size)
+	elif DisplayServer.get_name() != "headless" and ScorpionVisual.enabled(loadout):
+		presentation.get_node("Visual").hide()
+		presentation.get_node("ForwardStripe").hide()
+		scorpion_visual = ScorpionVisual.new()
+		presentation.add_child(scorpion_visual)
+		scorpion_visual.assemble(loadout, stats.size)
+		scorpion_visual.walker_legs.exclusions = [body.get_rid()]
+	elif DisplayServer.get_name() != "headless" and SawbladeConfig.enabled(loadout):
 		presentation.get_node("Visual").hide()
 		presentation.get_node("ForwardStripe").hide()
 		sawblade_visual = SawbladeVisual.new()
@@ -135,12 +155,16 @@ func _process(delta: float) -> void:
 	var decay := 30.0 if visual_error.length_squared() > 0.25 * 0.25 else 20.0
 	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * decay))
 	var view: BotView
-	if weapon_visual != null or sawblade_visual != null or damage_visual != null:
+	if weapon_visual != null or sawblade_visual != null or scorpion_visual != null or practice_npc_visual != null or damage_visual != null:
 		view = read_view()
 	if weapon_visual != null:
 		weapon_visual.show_state(view, delta)
 	if sawblade_visual != null:
 		sawblade_visual.show_state(view, delta)
+	if scorpion_visual != null:
+		scorpion_visual.show_state(view, delta)
+	if practice_npc_visual != null:
+		practice_npc_visual.show_state(view, delta)
 	if damage_visual != null:
 		damage_visual.show_state(view)
 	# A newly spawned remote bot has default healthy combat until its baseline is
@@ -150,7 +174,11 @@ func _process(delta: float) -> void:
 
 func _create_damage_visual(size: Vector3) -> void:
 	var groups: Dictionary
-	if sawblade_visual != null:
+	if practice_npc_visual != null:
+		groups = practice_npc_visual.component_meshes()
+	elif scorpion_visual != null:
+		groups = scorpion_visual.component_meshes()
+	elif sawblade_visual != null:
 		groups = sawblade_visual.component_meshes()
 	else:
 		groups = {"weapon": weapon_visual.find_children("*", "MeshInstance3D", true, false),
@@ -193,7 +221,7 @@ func submit_command(intent: BotCommand) -> void:
 		return
 	last_sequence = intent.sequence
 	command = BotCommand.new()
-	for field: String in ["sequence", "throttle", "steering", "brake", "primary_held", "primary_pressed", "secondary_held", "recovery_pressed"]:
+	for field: String in ["sequence", "throttle", "steering", "brake", "primary_held", "primary_pressed", "secondary_held", "auxiliary_held", "recovery_pressed"]:
 		command.set(field, intent.get(field))
 	input_age = 0
 
@@ -286,6 +314,14 @@ func read_view() -> BotView:
 	view.recovery_available = data.recovery_available
 	view.eliminated = data.eliminated
 	view.failure_reason = data.failure
+	view.has_auxiliary_weapon = combat.stats.get("secondary_weapon", "") == "minigun"
+	view.secondary_charge = data.get("secondary_charge", 0.0)
+	view.secondary_active = data.get("secondary_active", false)
+	view.shot_sequence = data.get("shot_sequence", 0)
+	view.last_shot_from = data.get("last_shot_from", Vector3.ZERO)
+	view.last_shot_to = data.get("last_shot_to", Vector3.ZERO)
+	view.last_shot_tick = data.get("last_shot_tick", -1)
+	view.gun_pitch = data.get("gun_pitch", 0.0)
 	return view
 
 func camera_anchor() -> Node3D:

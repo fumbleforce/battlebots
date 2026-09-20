@@ -25,9 +25,11 @@ func _ready() -> void:
 	for suffix: String in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(profile.save_path + suffix)
 	add_child(profile)
 	var body := category("chassis")
-	check(body.items.size() == 1 and body.items[0].id == "balanced", "Only authored body offered")
+	var body_ids: Array = []
+	for item: Dictionary in body.items: body_ids.append(item.id)
+	check(body_ids == ["balanced", "scorpion_hex"], "Both authored bodies offered without legacy placeholders")
 	for draft: Dictionary in profile.loadouts:
-		check(SawbladeConfig.enabled(draft), "Every starter has authored body")
+		check(ScorpionVisual.enabled(draft) or SawbladeConfig.enabled(draft), "Every starter has authored body")
 	for tab: String in profile.catalogue:
 		for cat: Dictionary in profile.catalogue[tab]:
 			for item: Dictionary in cat.items:
@@ -46,11 +48,11 @@ func _ready() -> void:
 	check(profile.loadouts[0] == before, "Undo restores exact previous body and selections")
 	profile.redo_edit()
 	for drive: String in ["agile", "standard_wheels", "traction", "walker"]:
-		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
+		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner", "minigun"]:
 			equip_part("drive", drive)
 			equip_part("weapon", weapon)
 			check(profile.loadouts[0].parts.drive == drive and profile.loadouts[0].parts.weapon == weapon, "All drive/weapon choices persist")
-			check(profile.registry.validate(profile.loadouts[0]).valid, "All twenty combinations legal with light armor")
+			check(profile.registry.validate(profile.loadouts[0]).valid, "All twenty-four combinations legal with light armor")
 	for tab: String in ["decals", "paint"]:
 		for cat: Dictionary in profile.catalogue[tab]:
 			for item: Dictionary in cat.items:
@@ -75,9 +77,9 @@ func _ready() -> void:
 	file.store_string(JSON.stringify({"schema_version":1, "loadouts":[saved_legacy]}))
 	file.close()
 	profile.reload()
-	check(profile.loadouts.size() == 4, "Existing saved build remains available")
-	if profile.loadouts.size() == 4:
-		var restored: Dictionary = profile.loadouts[3]
+	check(profile.loadouts.size() == profile.PRESET_COUNT + 1, "Existing saved build remains available")
+	if profile.loadouts.size() == profile.PRESET_COUNT + 1:
+		var restored: Dictionary = profile.loadouts[profile.PRESET_COUNT]
 		check(restored.parts == saved_legacy.parts, "Profile reload preserves all legacy selected parts")
 		check(restored.cosmetics.paint == "red", "Profile reload retains saved paint")
 		check(SawbladeConfig.enabled(restored), "Legacy garage draft receives offered authored appearance")

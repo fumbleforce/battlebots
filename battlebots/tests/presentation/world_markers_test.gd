@@ -93,6 +93,8 @@ func run() -> void:
 	check(badges.markers.size() == 1, "Removed opponent leaves no stale badge")
 	badges.render([local,rival,bot(10,8,Vector3.ZERO)], 29, false, true)
 	check(badges.markers.size() == 1, "Ambiguous multi-opponent data does not invent a duel rival")
+	badges.render([local,rival,bot(10,8,Vector3.ZERO)], 29, true, false)
+	check(badges.markers.size() == 3, "Practice explicitly supports multiple visible hostile target markers")
 	rival.pose.basis = Basis(Vector3.ZERO,Vector3.ZERO,Vector3.ZERO)
 	badges.render(views, 29, false, true)
 	check(badges.markers.size() == 1, "Degenerate pose is ignored")

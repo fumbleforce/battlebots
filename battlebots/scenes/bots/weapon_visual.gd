@@ -3,6 +3,7 @@ extends Node3D
 ## Primitive cosmetic placeholder. Never adds collision or awards hits.
 var kind := ""
 var mechanism: Node3D
+var gun_effects: MinigunEffects
 var metal := StandardMaterial3D.new()
 var accent := StandardMaterial3D.new()
 
@@ -21,7 +22,21 @@ func assemble(weapon: String, size: Vector3) -> void:
 	mechanism = Node3D.new()
 	mechanism.name = "Mechanism"
 	add_child(mechanism)
-	if kind == "vertical_spinner":
+	if kind == "minigun":
+		var donor: Node3D = load("res://assets/models/scorpion_runtime/scorpion.glb").instantiate()
+		var mount: Node3D = donor.find_child("GunMount", true, false)
+		mount.owner = null
+		for child: Node in mount.find_children("*", "", true, false): child.owner = null
+		mount.reparent(mechanism, false)
+		var rotor: Node3D = mount.find_child("GunRotor", true, false)
+		donor.free()
+		var muzzle := Node3D.new()
+		add_child(muzzle)
+		muzzle.position = ScorpionGeometry.GUN_MUZZLE
+		gun_effects = MinigunEffects.new()
+		add_child(gun_effects)
+		gun_effects.configure(rotor, muzzle, geometry_scale, mount)
+	elif kind == "vertical_spinner":
 		mechanism.position = Vector3(0, 0.14, -size.z * 0.5 - 0.1)
 		var disc := CylinderMesh.new()
 		disc.top_radius = 0.36
@@ -89,6 +104,7 @@ func _mesh(parent: Node3D, mesh: Mesh, at: Vector3, material: Material) -> MeshI
 	return visual
 
 func show_state(view: BotView, delta: float) -> void:
+	if gun_effects != null: gun_effects.show_state(view, delta, true)
 	var disabled := view.eliminated or view.weapon_state == "disabled"
 	accent.albedo_color = Color(0.2, 0.22, 0.24) if disabled else Color(1.0, 0.73, 0.15)
 	if kind == "vertical_spinner":

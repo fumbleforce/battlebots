@@ -4,7 +4,7 @@ extends RefCounted
 
 const DEFAULT_PATH := "user://presentation_input.cfg"
 const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake", &"primary", &"secondary", &"recover", &"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"ping", &"scoreboard"]
-const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"primary": "Primary weapon", &"secondary": "Lower / cancel weapon", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard"}
+const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"primary": "Primary weapon", &"secondary": "Lower / auxiliary gun", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard"}
 const KEYS := {&"drive_forward": KEY_W, &"drive_reverse": KEY_S, &"steer_left": KEY_A, &"steer_right": KEY_D, &"brake": KEY_SPACE, &"recover": KEY_R, &"camera_toggle": KEY_C, &"ping": KEY_Q, &"scoreboard": KEY_TAB}
 const MOUSE := {&"primary": MOUSE_BUTTON_LEFT, &"secondary": MOUSE_BUTTON_RIGHT, &"camera_recenter": MOUSE_BUTTON_MIDDLE, &"camera_zoom_in": MOUSE_BUTTON_WHEEL_UP, &"camera_zoom_out": MOUSE_BUTTON_WHEEL_DOWN}
 var bindings: Dictionary = {}

@@ -29,9 +29,10 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		var items: Array = []
 		for id: String in registry.parts:
 			var part: Dictionary = registry.parts[id]
-			if part.category == slot and (slot != "chassis" or id == "balanced"):
+			if part.category == slot and (slot != "chassis" or id in ["balanced", "scorpion_hex"]):
 				items.append({"id":id,"name":id.capitalize(),"default":"own","desc":"%s · %.0f kg · %.0f installed power. All functional parts are available." % [id.capitalize(),part.mass,part.power],"d":{}})
 		categories.append({"label":slot.to_upper(),"slot":slot,"items":items})
+		if slot == "utility": categories.back().label = "AUXILIARY / UTILITY"
 	var paints: Array = []
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 	for id: String in colors:
@@ -64,8 +65,17 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 			elif item.id == "agile": item.name = "Four wheels · Agile"
 			elif item.id == "lifter": item.name = "Ramp · Lifter"
 			elif item.id == "walker":
-				item.name = "Four walking legs"
-				item.desc = "Sawblade Tank articulated legs · 32 kg · 35 power · 4 m/s. Ray-supported stance climbs steps up to 0.45 m; feet adapt to ground and slopes."
+				item.name = "Articulated walking legs"
+				item.desc = "Six legs on Scorpion, four on Sawblade · 32 kg · 35 power · 4 m/s. Planted feet adapt to terrain and smooth alternating steps."
+			elif item.id == "scorpion_hex":
+				item.name = "Scorpion hex body"
+				item.desc = "Orange six-legged combat machine. Hexagonal armor, interchangeable dorsal weapon and minigun socket. Requires walking drive; preserves your other selected parts."
+			elif item.id == "minigun_pod":
+				item.name = "Minigun • Auxiliary"
+				item.desc = "Scorpion gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Uses battery and builds heat. Swap for another utility to remove."
+			elif item.id == "minigun":
+				item.name = "Minigun • Primary"
+				item.desc = "Scorpion gun socket · 24 kg · 35 power. Hold primary fire for sustained ranged fire. Replaces the dorsal hammer; choose a separate utility."
 
 	return {"parts":categories,"paint":paint_categories,"decals":vehicle}
 

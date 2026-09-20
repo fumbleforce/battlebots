@@ -4,6 +4,7 @@ extends RefCounted
 const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse",
 	&"steer_left", &"steer_right", &"brake", &"primary", &"secondary", &"recover"]
 var _blocked: Dictionary = {}
+var auxiliary_weapon := false
 var toggle_primary: bool = false:
 	set(value):
 		if toggle_primary != value:
@@ -43,10 +44,11 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 	_primary_was_down = primary_down
 	# Suppressed release of a charged lifter must cancel, never launch.
 	var secondary_down := _strength(strengths, &"secondary") > 0.0
+	command.auxiliary_held = secondary_down and auxiliary_weapon
 	command.secondary_held = _cancel_pending or _blocked.has(&"primary") or secondary_down
 	_cancel_pending = false
 	if toggle_primary:
-		if command.secondary_held:
+		if command.secondary_held and not command.auxiliary_held:
 			_primary_latched = false
 			if secondary_down and primary_down:
 				_blocked[&"primary"] = true

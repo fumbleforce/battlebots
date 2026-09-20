@@ -120,6 +120,10 @@ func _select(i: int) -> void:
 	%Weapon.text = b.weapon
 	%Ability.text = b.ability
 	%Boost.text = b.boost
+	var has_auxiliary: bool = PlayerProfile.loadouts[i].get("parts", {}).get("utility") == "minigun_pod"
+	var auxiliary_key: Label = %AbilitySlot.get_node("Pad/Row/Key/L")
+	auxiliary_key.text = InputPreferences.load_file().label_for(&"secondary") if has_auxiliary else "—"
+	%AbilitySlot.get_node("Pad/Row/Text/Label").text = "AUXILIARY GUN" if has_auxiliary else "UTILITY"
 	for child in %Stats.get_children():
 		%Stats.remove_child(child)
 		child.queue_free()

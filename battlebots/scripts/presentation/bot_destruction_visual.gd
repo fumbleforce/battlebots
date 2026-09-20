@@ -32,6 +32,10 @@ var _sparks: MultiMeshInstance3D
 var _panels: MultiMeshInstance3D
 var _spark_paths: Array[Dictionary] = []
 var _panel_paths: Array[Dictionary] = []
+var _detachable: Array[MeshInstance3D] = []
+var _detached_sources: Array[MeshInstance3D] = []
+var _chunks: Array[MeshInstance3D] = []
+var _chunk_paths: Array[Dictionary] = []
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -40,6 +44,7 @@ func _ready() -> void:
 func configure(visual_root: Node3D, size: Vector3, excluded_meshes: Array = []) -> void:
 	reset_observation()
 	_surfaces.clear()
+	_detachable.clear()
 	_geometry_scale = BotScale.from_size(size)
 	_size = size / _geometry_scale
 	if is_instance_valid(_flash):
@@ -48,8 +53,16 @@ func configure(visual_root: Node3D, size: Vector3, excluded_meshes: Array = []) 
 	_wreck_material = ShaderMaterial.new()
 	_wreck_material.shader = WRECK
 	for mesh: MeshInstance3D in visual_root.find_children("*", "MeshInstance3D", true, false):
+		if mesh.is_visible_in_tree() and str(mesh.name).begins_with("Detach_"):
+			_detachable.append(mesh)
 		if mesh.is_visible_in_tree() and mesh not in excluded_meshes and not is_ancestor_of(mesh):
 			_surfaces.append({"mesh": mesh, "original": mesh.material_overlay})
+	# Authored weapon and drive assemblies are the most recognizable flying pieces.
+	_detachable.sort_custom(func(a: MeshInstance3D, b: MeshInstance3D) -> bool:
+		return _chunk_priority(a.name) < _chunk_priority(b.name))
+
+func _chunk_priority(label: String) -> int:
+	return 0 if label.begins_with("Detach_Weapon") else (1 if label.begins_with("Detach_Drive") else 2)
 
 func observe(view: BotView) -> void:
 	if view == null:
@@ -73,6 +86,10 @@ func reset_observation() -> void:
 func _set_wreck(enabled: bool) -> void:
 	if _wrecked == enabled: return
 	_wrecked = enabled
+	if not enabled:
+		for source: MeshInstance3D in _detached_sources:
+			if is_instance_valid(source): source.show()
+		_detached_sources.clear()
 	for surface: Dictionary in _surfaces:
 		if is_instance_valid(surface.mesh):
 			surface.mesh.material_overlay = _wreck_material if enabled else surface.original
@@ -114,7 +131,8 @@ func _explode(origin: Vector3, identity: int) -> void:
 		_spark_paths.append({"velocity": direction * random.randf_range(5.0, 13.0),
 			"life": random.randf_range(0.45, 1.35)})
 	_panel_paths.clear()
-	for index: int in PANELS:
+	_launch_authored_chunks(origin, random)
+	for index: int in PANELS - _chunk_paths.size():
 		var angle := TAU * float(index) / PANELS + random.randf_range(-0.2, 0.2)
 		_panel_paths.append({"origin": Vector3(cos(angle) * _size.x * 0.35, 0.1, sin(angle) * _size.z * 0.35),
 			"velocity": Vector3(cos(angle) * random.randf_range(3.0, 5.0), random.randf_range(3.5, 6.5), sin(angle) * random.randf_range(3.0, 5.0)),
@@ -170,6 +188,35 @@ func _build_burst() -> void:
 	metal.roughness = 0.45
 	metal.vertex_color_use_as_albedo = true
 	_panels = _multimesh(PANELS, metal)
+	for index: int in PANELS:
+		var chunk := MeshInstance3D.new()
+		chunk.name = "DetachedAssembly%d" % index
+		chunk.hide()
+		burst_root.add_child(chunk)
+		_chunks.append(chunk)
+
+func _launch_authored_chunks(origin: Vector3, random: RandomNumberGenerator) -> void:
+	_chunk_paths.clear()
+	for chunk: MeshInstance3D in _chunks: chunk.hide()
+	for source: MeshInstance3D in _detachable:
+		if _chunk_paths.size() >= PANELS: break
+		if not is_instance_valid(source) or not source.is_visible_in_tree(): continue
+		var chunk := _chunks[_chunk_paths.size()]
+		chunk.mesh = source.mesh
+		chunk.material_override = source.material_override
+		chunk.material_overlay = _wreck_material
+		for surface: int in source.mesh.get_surface_count():
+			chunk.set_surface_override_material(surface, source.get_surface_override_material(surface))
+		var pose := source.global_transform
+		pose.origin -= origin
+		var outward := Vector3(pose.origin.x, 0, pose.origin.z).normalized()
+		if outward.length_squared() < 0.1: outward = Vector3.FORWARD.rotated(Vector3.UP, random.randf_range(0, TAU))
+		_chunk_paths.append({"pose":pose, "velocity":(outward * random.randf_range(1.3, 2.5) + Vector3.UP * random.randf_range(2.5, 4.0)) * _geometry_scale,
+			"spin":Vector3(random.randf_range(-3,3), random.randf_range(-3,3), random.randf_range(-3,3))})
+		chunk.show()
+		source.hide()
+		_detached_sources.append(source)
+	_panels.multimesh.visible_instance_count = PANELS - _chunk_paths.size()
 
 func _cloud(material: Material) -> MeshInstance3D:
 	var puff := MeshInstance3D.new()
@@ -249,3 +296,14 @@ func _update_burst() -> void:
 		var basis := Basis.from_euler(path.spin * t).scaled(path.scale * maxf(fade, 0.0001) * _geometry_scale)
 		_panels.multimesh.set_instance_transform(index, Transform3D(basis, location * _geometry_scale))
 		_panels.multimesh.set_instance_color(index, Color(1.0, 0.6 + t * 0.2, 0.4 + t * 0.25))
+	for index: int in _chunk_paths.size():
+		var chunk := _chunks[index]
+		chunk.visible = t < 3.5
+		if not chunk.visible: continue
+		var path: Dictionary = _chunk_paths[index]
+		var pose: Transform3D = path.pose
+		pose.origin += path.velocity * t + Vector3.DOWN * 4.9 * t * t
+		# Keep imported material, scale and exact world orientation at the break.
+		pose.basis = Basis.from_euler(path.spin * t) * pose.basis
+		pose.basis = pose.basis.scaled(Vector3.ONE * maxf(0.0001, 1.0 - smoothstep(2.7, 3.5, t)))
+		chunk.transform = pose

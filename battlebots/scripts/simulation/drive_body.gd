@@ -25,6 +25,7 @@ const PROBES: Array[Vector3] = [
 
 var grounded: bool = false
 var walker := false
+var walker_rows := 2
 var walker_contacts: Array[Dictionary] = []
 var drive_multiplier: float = 1.0
 var steering_multiplier: float = 1.0

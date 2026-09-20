@@ -30,6 +30,19 @@ var recent_attackers: Dictionary = {}
 var _previous_held := false
 var _inactive := 0.0
 var _hammer_windup := 0.0
+const MINIGUN_SPINUP := 0.6
+const MINIGUN_CADENCE := 1.0 / 12.0
+const MINIGUN_SHOT_COST := 0.8
+const MINIGUN_SHOT_HEAT := 1.4
+var secondary_charge := 0.0
+var secondary_active := false
+var gun_shot := false
+var shot_sequence := 0
+var last_shot_from := Vector3.ZERO
+var last_shot_to := Vector3.ZERO
+var last_shot_tick := -1
+var gun_pitch := 0.0
+var _gun_cooldown := 0.0
 
 func _init(derived: Dictionary) -> void:
 	stats = derived.duplicate(true)
@@ -47,6 +60,28 @@ func can_recover() -> bool:
 	return not eliminated and inverted_seconds >= 2.0 and recovery_cooldown <= 0.0 and battery >= 30.0
 
 func tick(delta: float, command: BotCommand, active: bool) -> void:
+	gun_shot = false
+	secondary_active = false
+	var previous_heat := heat
+	var previous_battery := battery
+	_tick_primary(delta, command, active)
+	if not active or eliminated:
+		secondary_charge = 0.0
+		_gun_cooldown = 0.0
+		return
+	if stats.get("secondary_weapon", "") == "minigun":
+		# The primary's idle branch cannot cool/recharge while the gun is powered.
+		# Preserve its genuine activation costs/heat, then pay the gun separately.
+		if command.auxiliary_held and zones.weapon > 0 and not overheated \
+				and minf(battery, previous_battery) >= 2.0 * delta:
+			battery = minf(battery, previous_battery)
+			heat = maxf(heat, previous_heat)
+		_tick_minigun(delta, command.auxiliary_held, true, false)
+
+func _secondary_brake(command: BotCommand) -> bool:
+	return command.secondary_held and not (stats.get("secondary_weapon", "") == "minigun" and command.auxiliary_held)
+
+func _tick_primary(delta: float, command: BotCommand, active: bool) -> void:
 	launch = false
 	strike = false
 	failure_reason = ""
@@ -72,6 +107,9 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 			failure_reason = "recovery_unavailable"
 	if overheated and heat <= 50:
 		overheated = false
+	if stats.weapon == "minigun":
+		_tick_minigun(delta, command.primary_held and not _secondary_brake(command), false, recovery_was_active)
+		return
 	if stats.weapon == "hammer":
 		if recovery_remaining < 0.000001:
 			recovery_remaining = 0.0
@@ -83,7 +121,7 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 		_tick_saw(delta, command, recovery_was_active)
 		return
 	var eligible: bool = zones.weapon > 0 and not overheated and cooldown <= 0
-	var powered: bool = eligible and command.primary_held and not command.secondary_held
+	var powered: bool = eligible and command.primary_held and not _secondary_brake(command)
 	var spinner: bool = stats.weapon in ["vertical_spinner", "horizontal_spinner"]
 	var cost := 10.0 if spinner else 6.0
 	var heat_rate := 12.0 if spinner else 4.0
@@ -106,7 +144,7 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 			_inactive += delta
 			if _inactive >= 1.0:
 				battery = minf(stats.battery, battery + 8 * delta)
-	if stats.weapon == "lifter" and _previous_held and not command.primary_held and not command.secondary_held and eligible and charge >= 1.0:
+	if stats.weapon == "lifter" and _previous_held and not command.primary_held and not _secondary_brake(command) and eligible and charge >= 1.0:
 		if battery >= 20:
 			battery -= 20
 			heat = minf(100, heat + 18)
@@ -117,7 +155,7 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 		else:
 			failure_reason = "battery_empty"
 	if not powered:
-		charge = move_toward(charge, 0.0, delta * (4.0 if command.secondary_held else 1.0))
+		charge = move_toward(charge, 0.0, delta * (4.0 if _secondary_brake(command) else 1.0))
 	if heat >= 100:
 		overheated = true
 		charge = 0.0
@@ -129,7 +167,7 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 
 func _tick_saw(delta: float, command: BotCommand, recovery_was_active: bool) -> void:
 	var eligible: bool = zones.weapon > 0.0 and not overheated and cooldown <= 0.0
-	var powered := eligible and command.primary_held and not command.secondary_held
+	var powered := eligible and command.primary_held and not _secondary_brake(command)
 	if command.primary_held and not eligible:
 		failure_reason = "disabled" if zones.weapon <= 0.0 else ("overheated" if overheated else "cooldown")
 	if powered and (battery <= 0.0 or battery < 9.0 * delta):
@@ -171,7 +209,7 @@ func _tick_hammer(delta: float, command: BotCommand, recovery_was_active: bool) 
 		charge = 0.0
 		if command.primary_pressed:
 			failure_reason = "disabled"
-	elif _hammer_windup <= 0.0 and command.primary_pressed and not command.secondary_held:
+	elif _hammer_windup <= 0.0 and command.primary_pressed and not _secondary_brake(command):
 		if recovering or overheated:
 			failure_reason = "overheated" if overheated else "cooldown"
 		elif battery < 16.0:
@@ -204,6 +242,58 @@ func _tick_hammer(delta: float, command: BotCommand, recovery_was_active: bool) 
 			battery = minf(stats.battery, battery + 8.0 * recharge_seconds)
 	weapon_phase = "disabled" if zones.weapon <= 0 else ("strike" if strike else (
 		"windup" if _hammer_windup > 0.0 else ("overheated" if overheated else ("cooldown" if cooldown > 0.0 else "idle"))))
+
+func _tick_minigun(delta: float, held: bool, auxiliary: bool, recovery_was_active: bool) -> void:
+	var spool := secondary_charge if auxiliary else charge
+	var eligible: bool = zones.weapon > 0.0 and not overheated
+	var powered := held and eligible
+	var motor_cost := 2.0 * delta
+	_gun_cooldown = maxf(0.0, _gun_cooldown - delta)
+	if powered and battery < motor_cost:
+		powered = false
+		failure_reason = "battery_empty"
+	if held and not eligible:
+		failure_reason = "disabled" if zones.weapon <= 0.0 else "overheated"
+	if powered:
+		battery = maxf(0.0, battery - motor_cost)
+		heat = minf(100.0, heat + 3.0 * delta)
+		spool = minf(1.0, spool + delta / MINIGUN_SPINUP)
+		_inactive = 0.0
+		if heat >= 100.0:
+			overheated = true
+			powered = false
+		elif spool >= 1.0 - 0.000001 and _gun_cooldown <= 0.000001:
+			if battery >= MINIGUN_SHOT_COST:
+				battery -= MINIGUN_SHOT_COST
+				heat = minf(100.0, heat + MINIGUN_SHOT_HEAT)
+				gun_shot = true
+				shot_sequence += 1
+				_gun_cooldown = MINIGUN_CADENCE
+				overheated = heat >= 100.0
+			else:
+				powered = false
+				failure_reason = "battery_empty"
+	else:
+		if not auxiliary:
+			heat = maxf(0.0, heat - float(stats.cooling) * delta)
+			if recovery_was_active or recovery_remaining > 0.0:
+				_inactive = 0.0
+			else:
+				var previous := _inactive
+				_inactive += delta
+				var recharge_seconds := maxf(0.0, _inactive - 1.0) - maxf(0.0, previous - 1.0)
+				battery = minf(stats.battery, battery + 8.0 * recharge_seconds)
+	if not powered:
+		spool = move_toward(spool, 0.0, delta * 2.0)
+	if zones.weapon <= 0.0 or overheated:
+		spool = 0.0
+	if auxiliary:
+		secondary_charge = spool
+		secondary_active = powered and not overheated and spool >= 1.0 - 0.000001
+	else:
+		charge = spool
+		weapon_phase = "disabled" if zones.weapon <= 0 else ("overheated" if overheated else (
+			"active" if powered and spool >= 1.0 - 0.000001 else ("spooling" if powered else "idle")))
 
 func mobility(delta: float, wheel_contact: bool, upside_down: bool, self_driven_distance: float) -> void:
 	if eliminated:
@@ -250,12 +340,21 @@ func eliminate(reason: String) -> void:
 	strike = false
 	_hammer_windup = 0.0
 	charge = 0
+	secondary_charge = 0.0
+	secondary_active = false
+	gun_shot = false
+	_gun_cooldown = 0.0
+	gun_pitch = 0.0
 	weapon_phase = "disabled"
 
 func snapshot() -> Dictionary:
 	return {"core":core, "core_max":stats.core, "zones":zones.duplicate(),
 		"plate_max":stats.plate_integrity, "battery":battery, "battery_max":stats.battery,
 		"heat":heat, "charge":charge, "weapon":stats.weapon, "weapon_state":weapon_phase,
+		"secondary_charge":secondary_charge, "secondary_active":secondary_active,
+		"shot_sequence":shot_sequence, "last_shot_from":last_shot_from,
+		"last_shot_to":last_shot_to, "last_shot_tick":last_shot_tick,
+		"gun_pitch":gun_pitch,
 		"cooldown":cooldown, "recovery_available":can_recover(), "recovery_remaining":recovery_remaining,
 		"recovery_cooldown":recovery_cooldown, "immobilized_remaining":maxf(0, 10 - immobilized_seconds) if immobilized_seconds > 0 else 0.0,
 		"eliminated":eliminated, "elimination_reason":elimination_reason, "failure":failure_reason,

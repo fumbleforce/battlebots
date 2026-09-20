@@ -121,9 +121,7 @@ func check_reset(session: MvpSession, original_world: AuthorityWorld, originals:
 
 func playable_hit(session: MvpSession) -> void:
 	var bot: MvpBot = session.world.bots[session.local_entity]
-	var target: MvpBot
-	for candidate: MvpBot in session.world.bots.values():
-		if candidate != bot: target = candidate
+	var target := session.practice_target() as MvpBot
 	var initial_core := target.combat.core
 	var start := bot.body.global_position
 	var contact_distance: float = (bot.combat.stats.size.z + target.combat.stats.size.z) * 0.5 + 0.15 * BotScale.FACTOR

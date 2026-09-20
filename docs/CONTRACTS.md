@@ -1,5 +1,52 @@
 # Shared contracts — local records and current MVP session API
 
+## Scorpion and practice NPCs — catalogue 8, protocol 5, build mvp-ab-13
+
+`ContentRegistry.scorpion()` supplies the legal 118 kg / 95 power HX-6 preset:
+`scorpion_hex`, `walker`, `hammer`, `standard_armor`, `minigun_pod`. The hexagonal
+chassis uses six physical suspension samples and six authored limbs in alternating
+tripods. Other walkers retain their four supports. The existing primary weapon
+slot swaps the hammer for other weapons; utility `minigun_pod` independently adds
+the auxiliary gun. Primary `minigun` is also available; one physical gun socket
+cannot accept both minigun selections. Parts still use loadout schema 1. Known
+revision-seven saves migrate without changing selections; stale online peers reject.
+
+BotCommand adds `auxiliary_held` in flag bit 5. Input gating sets it only for a
+real, released-and-rearmed secondary trigger on an auxiliary-equipped bot.
+Synthetic `secondary_held` cancellation on pause/focus/reconnect is preserved and
+cannot fire the gun. Existing primary/secondary controls retain their semantics
+on other builds. A new wire build/protocol separates incompatible readers.
+
+BotView/accepted bot snapshots add `secondary_charge`, `secondary_active`,
+`shot_sequence`, `last_shot_from`, `last_shot_to`, `last_shot_tick`, and `gun_pitch`.
+Gun pitch is an additional local X rotation about ScorpionGeometry.GUN_PIVOT,
+above the imported two-degree-down rest pose. The server adjusts elevation within
+bounded mechanical travel to a hostile hull intersecting the chassis-forward
+horizontal firing line. Steering remains the horizontal aim. The first actual
+world/body obstruction blocks the ray, including allies; clients provide no
+target, direction or damage. Misses publish endpoints too. First/reconnect
+baselines establish silent visual state rather than replaying earlier fire.
+
+The minigun spools for 0.6 seconds, fires up to 12 shots/second over 24 meters,
+and deals 6 raw damage per shot through existing zone/armor rules. Motor and
+shot costs share battery/heat with the primary weapon. Both modules currently
+share the canonical `weapon` integrity zone. ScorpionGeometry defines the exact
+articulated hammer arc for both rendered joints and authoritative sweeps.
+
+Offline `MvpSession.practice()` installs PracticeBotDirector with stationary
+Bulwark and mobile Rammer/Watchdog NPCs. `practice_target()` retains the stable
+first target. Six-second respawn waits until its space is clear, resets that
+bot's normal combat state, and never respawns the player. Practice restart
+repairs/repositions all four bots, clears queued intent, and preserves identities.
+No NPC director is installed in PvP. Practice world markers now support every NPC;
+existing online ambiguous-rival suppression remains. Destruction substitutes
+real detachable armor/wheels/weapons into the existing eight-piece explosion
+budget, restores them on repair, and never adds gameplay collision.
+
+See [Scorpion scope and release handoff](coordination/B_SCORPION.md). This source
+increment requires matching exported hosted workers before online readiness;
+no compatibility bypass or live health-manifest-only update is permitted.
+
 ## Three-times-larger heavy machines — 20 September 2026
 
 Catalogue revision 7 grows all three canonical hull dimensions by three. The

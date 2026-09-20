@@ -29,6 +29,14 @@ func duelist() -> Dictionary:
 		"armor":"standard_armor", "utility":"cooling_pack"}
 	return draft
 
+func scorpion() -> Dictionary:
+	var draft := starter()
+	draft.name = "SCORPION • HX-6"
+	draft.parts = {"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer",
+		"armor":"standard_armor", "utility":"minigun_pod"}
+	draft.cosmetics = {"paint":"orange", "sawblade":SawbladeConfig.defaults()}
+	return draft
+
 func validate(draft: Dictionary) -> LoadoutValidation:
 	var result := LoadoutValidation.new()
 	if draft.size() != 5 or draft.get("schema_version") != SCHEMA:
@@ -59,6 +67,13 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Mass exceeds 120 kg")
 	if power > 100.0:
 		result.reasons.append("Installed power exceeds 100")
+	if selected.get("chassis") == "scorpion_hex" and selected.get("drive") != "walker":
+		result.reasons.append("Scorpion hex body requires the articulated walking drive")
+	if selected.get("weapon") == "minigun" or selected.get("utility") == "minigun_pod":
+		if selected.get("utility") == "minigun_pod" and selected.get("chassis") != "scorpion_hex":
+			result.reasons.append("Auxiliary minigun requires the Scorpion hex body's gun socket")
+		if selected.get("weapon") == "minigun" and selected.get("utility") == "minigun_pod":
+			result.reasons.append("One minigun fits the gun socket; select another auxiliary part")
 	var cosmetics: Variant = draft.get("cosmetics")
 	if not cosmetics is Dictionary or cosmetics.size() not in [1, 2] or cosmetics.get("paint") not in ["cyan", "orange", "white", "red"]:
 		result.reasons.append("Unknown cosmetic selection")
@@ -74,7 +89,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		"size": Vector3(chassis.size[0], chassis.size[1], chassis.size[2]),
 		"speed": float(drive.speed), "grip": float(drive.grip),
 		"plate_integrity": float(armor.integrity), "reduction": float(armor.reduction),
-		"weapon": selected.weapon, "battery": 125.0 if selected.utility == "battery_pack" else 100.0,
+		"weapon": selected.weapon, "secondary_weapon": "minigun" if selected.utility == "minigun_pod" else "",
+		"battery": 125.0 if selected.utility == "battery_pack" else 100.0,
 		"cooling": 15.0 if selected.utility == "cooling_pack" else 12.0,
 		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0}
 	result.loadout = draft.duplicate(true)

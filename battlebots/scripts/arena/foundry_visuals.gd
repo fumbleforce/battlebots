@@ -107,6 +107,18 @@ func _build() -> void:
 	_roof()
 	_floor_identity()
 	_flush()
+	# Capture actual arena lighting for lacquer and bare-metal bot reflections.
+	# Static architecture uses a single bounded capture; combat lights stay direct.
+	var probe := ReflectionProbe.new()
+	probe.name = "CombatFloorReflections"
+	probe.position = Vector3(0, 5, 0)
+	probe.size = Vector3(54, 16, 54)
+	probe.origin_offset = Vector3(0, 2, 0)
+	probe.max_distance = 80
+	probe.interior = true
+	probe.box_projection = true
+	probe.intensity = 0.8
+	add_child(probe)
 
 func _wall(side: int) -> void:
 	const HALF_SIDE := 10.355339

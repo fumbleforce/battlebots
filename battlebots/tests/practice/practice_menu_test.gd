@@ -56,6 +56,7 @@ func run() -> void:
 	check(not game.practice_hud.visible and game._restart_practice.visible, "Practice keeps the duplicate target panel hidden and exposes pause restart")
 	var target_marker: Label3D = game.world_markers.markers.get(target.read_view().entity_id)
 	check(target_marker != null and target_marker.is_visible_in_tree() and target_marker.get_node("HealthBar").is_visible_in_tree(), "Practice target retains visible in-world identity and health feedback")
+	check(game.world_markers.markers.size() == 4, "Player and all three practice NPCs retain visible health markers")
 	check(game.practice_hud.target_label.text.contains("100"), "Retained practice readout receives fresh target health")
 	check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(game.practice_hud.get_global_rect()), "Target HUD fits 720p: %s within %s" % [game.practice_hud.get_global_rect(), root.size])
 	game.preview.release_controls()

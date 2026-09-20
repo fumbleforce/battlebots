@@ -17,6 +17,7 @@ func page_text(panel: GarageRecoveryPanel) -> String:
 
 func run() -> void:
 	var profile: Node = get_node("/root/PlayerProfile")
+	var saved_start: int = profile.PRESET_COUNT
 	var path := "user://garage-recovery-test-%d.json" % Time.get_ticks_usec()
 	profile.save_path = path
 	var store := LoadoutStore.new(path)
@@ -24,7 +25,7 @@ func run() -> void:
 	original.name = "Saved bot"
 	check(store.save([original]) == OK, "Seed saved file")
 	profile.reload()
-	profile.active_bot = 3
+	profile.active_bot = saved_start
 	profile.rename_draft("My local edit")
 	var external := original.duplicate(true)
 	external.cosmetics.paint = "white"
@@ -57,12 +58,12 @@ func run() -> void:
 			Input.parse_input_event(event)
 			check(panel.is_ancestor_of(get_viewport().gui_get_focus_owner()), "Modal focus contains " + direction)
 	panel.reload_button.pressed.emit()
-	check(profile.loadouts.size() == 5 and profile.active_bot == 4, "Reload retains local edit as active unsaved copy")
-	check(profile.loadouts[3].cosmetics.paint == "white" and profile.loadouts[4].cosmetics.paint == "cyan", "Disk refresh and retained draft remain separate")
-	check(profile.can_undo() and profile.bots[4].retained, "Retained copy identified and keeps Undo")
+	check(profile.loadouts.size() == saved_start + 2 and profile.active_bot == saved_start + 1, "Reload retains local edit as active unsaved copy")
+	check(profile.loadouts[saved_start].cosmetics.paint == "white" and profile.loadouts[saved_start + 1].cosmetics.paint == "cyan", "Disk refresh and retained draft remain separate")
+	check(profile.can_undo() and profile.bots[saved_start + 1].retained, "Retained copy identified and keeps Undo")
 	check(FileAccess.get_file_as_string(path) == before, "Reload never writes")
 	profile.undo_edit()
-	check(profile.loadouts[4].name == "Saved bot", "Retained undo restores original draft")
+	check(profile.loadouts[saved_start + 1].name == "Saved bot", "Retained undo restores original draft")
 	check(profile.save_active("Saved bot") == ERR_INVALID_DATA, "Retained draft cannot overwrite externally refreshed slot")
 	profile.redo_edit()
 	check(profile.save_active("My local edit") == OK, "Explicit distinct-name save appends retained draft")
@@ -76,9 +77,9 @@ func run() -> void:
 	check(screen.recovery_button.has_focus(), "Closing returns keyboard focus")
 	profile.new_build()
 	var count: int = profile.reload_retaining_drafts()
-	check(count == 1 and profile.loadouts.size() == 6, "Unedited new build retained; saved draft not duplicated")
-	check(profile.reload_retaining_drafts() == 1 and profile.loadouts.size() == 6, "Repeated reload does not multiply unsaved copies")
-	profile.active_bot = 3
+	check(count == 1 and profile.loadouts.size() == saved_start + 3, "Unedited new build retained; saved draft not duplicated")
+	check(profile.reload_retaining_drafts() == 1 and profile.loadouts.size() == saved_start + 3, "Repeated reload does not multiply unsaved copies")
+	profile.active_bot = saved_start
 	profile.rename_draft("Pending redo")
 	profile.undo_edit()
 	profile.reload_retaining_drafts()
@@ -92,7 +93,7 @@ func run() -> void:
 	put(path + ".bak", backup)
 	put(path, "broken primary bytes")
 	profile.reload()
-	profile.active_bot = 3
+	profile.active_bot = saved_start
 	profile.rename_draft("Recovered local edit")
 	screen = load("res://ui/menus/screens/garage.tscn").instantiate()
 	add_child(screen)

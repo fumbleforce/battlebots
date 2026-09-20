@@ -15,6 +15,14 @@ is fully working. See [the current board](A_MVP_TASKS.md) for implementation sta
 
 ## 1. Product definition
 
+**User revision — modular Scorpion (20 September 2026):** add the orange hexagonal
+Scorpion HX-6 with six articulated walking legs, interchangeable primary hammer
+and auxiliary minigun. Ranged miniguns are now explicitly in scope despite the
+historical exclusion below. The garage retains Sawblade and adds Scorpion;
+practice includes three authored NPC machines and repeatable destructive combat.
+See [Scorpion implementation](coordination/B_SCORPION.md) for current behavior,
+validation and coordinated client/server compatibility requirements.
+
 A competitive 3D robot-combat game in which players build a compact fighting machine, drive it directly into an enclosed arena, and win through positioning, weapon timing, and teamwork. Machines should feel heavy and mechanically understandable while remaining responsive enough for online competition.
 
 The signature encounter is a teammate lifting an opponent, exposing its underside for a partner's spinning weapon, followed by a desperate self-right and counterattack. A good build creates opportunities; driving and coordination decide whether those opportunities become victories.

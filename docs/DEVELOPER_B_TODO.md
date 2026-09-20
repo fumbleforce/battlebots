@@ -581,3 +581,5 @@ Scope and validation: [garage layout](coordination/B_GARAGE_LAYOUT.md). Isolated
 branch preserves concurrent main-menu/audio edits. No shared API changes.
 
 - **B heavy machines:** codex/b-heavy-machines reserves 3x canonical bot scale, heavier drive/replay, weapon/walker geometry, camera/preview and narrow documented spawn/practice/marker integration. See [scope](coordination/B_HEAVY_MACHINES.md).
+
+- 2026-09-20 B reserves Scorpion bot assets/combat/garage and narrowly documented minigun snapshot/practice lifecycle consumers. See coordination/B_SCORPION.md; isolated codex/b-scorpion includes completed heavy-machine dependency.

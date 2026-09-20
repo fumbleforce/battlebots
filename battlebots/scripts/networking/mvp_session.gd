@@ -58,6 +58,7 @@ var _join_port := 0
 var _reconnect_deadline := 0
 var _reconnecting := false
 var _tearing_down := false
+var practice_director: PracticeBotDirector
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
@@ -177,16 +178,8 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	local_entity = _admit(1, build)
 	var bot := world.spawn(local_entity, 0, 0, build)
 	bot.owner_id = 1
-	var target := world.spawn(_next_entity, 1, 0, registry.starter(true))
-	var separation: float = (bot.combat.stats.size.z + target.combat.stats.size.z) * 0.5 + 2.0 * BotScale.FACTOR
-	bot.spawn_pose = world.clear_spawn_pose(bot, Transform3D(Basis.IDENTITY, Vector3(0, 0, separation * 0.5)))
-	bot.body.reset_pose = bot.spawn_pose
-	bot.previous_pose = bot.spawn_pose
-	bot.last_floor = bot.spawn_pose.origin
-	target.spawn_pose = world.clear_spawn_pose(target, Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0, -separation * 0.5)))
-	target.body.reset_pose = target.spawn_pose
-	target.previous_pose = target.spawn_pose
-	target.last_floor = target.spawn_pose.origin
+	practice_director = PracticeBotDirector.new()
+	_next_entity = practice_director.configure(world, local_entity, _next_entity)
 	match_state.match_id = "practice"
 	match_state.round_index = 1
 	match_state.transition("active", 0)
@@ -197,9 +190,8 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 func practice_target() -> BotSource:
 	if connection_state != "practice" or not is_instance_valid(world):
 		return null
-	for id: int in world.bots:
-		if id != local_entity:
-			return world.bots[id]
+	if practice_director != null:
+		return world.bots.get(practice_director.target_id)
 	return null
 
 func restart_practice() -> Error:
@@ -210,6 +202,7 @@ func restart_practice() -> Error:
 	_local_commands.clear()
 	_input_budget.clear()
 	world.reset_round()
+	if practice_director != null: practice_director.restart()
 	# Keep command sequence high-water marks: bot identities survive this reset.
 	var neutral := BotCommand.new()
 	neutral.brake = true
@@ -234,6 +227,7 @@ func _disconnect() -> void:
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	connection_state = "offline"
+	practice_director = null
 	_server = false
 	local_entity = 0
 	players.clear()
@@ -713,6 +707,8 @@ func _physics_process(delta: float) -> void:
 		if world.bots.has(id) and _input_queue.has(id) and not _input_queue[id].is_empty():
 			world.bots[id].submit_command(_input_queue[id].pop_front())
 	var active := match_state.phase in ["active", "overtime"]
+	if connection_state == "practice" and practice_director != null:
+		practice_director.step(delta)
 	world.step(delta, active, match_state.round_index)
 	if connection_state == "practice":
 		for event: Dictionary in world.weapons.events:
@@ -850,7 +846,7 @@ func _snapshot(packet: PackedByteArray) -> void:
 	if packet.size() > 1200:
 		return
 	var values: Variant = bytes_to_var(packet)
-	if not values is Array or values.size() != 29 or not world.bots.has(values[2]):
+	if not values is Array or values.size() != WireCodec.SNAPSHOT_FIELDS or not world.bots.has(values[2]):
 		return
 	var bot: MvpBot = world.bots[values[2]]
 	var state := WireCodec.decode_bot(packet, bot.combat.stats)

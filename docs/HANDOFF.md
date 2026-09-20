@@ -1,5 +1,21 @@
 # Current A/B handoff
 
+## Orange Scorpion HX-6 and practice NPCs — B, 20 September 2026
+
+Reference-based Blender source and portable PBR runtime assets now assemble a
+hexagonal six-legged orange Scorpion with swappable hammer and minigun. Normal
+commands drive physical support/steps, articulated hammer attacks and authoritative
+gun fire with elevation tracking, heat/battery and actual world occlusion. Three
+authored practice NPCs pilot normal combat commands, break into real module pieces
+on confirmed core destruction, and respawn safely for repeated testing. The garage
+adds the HX-6 preset and retains existing bodies/builds. Foundry reflections and
+4x MSAA improve the metal/material presentation.
+
+Current local validation and release status are recorded in
+[B Scorpion handoff](coordination/B_SCORPION.md). Catalogue 8 / protocol 5 /
+`mvp-ab-13` require A to release matching hosted workers before online acceptance.
+No live deployment is claimed by this B increment.
+
 ## Supplied combat recordings — 20 September 2026
 
 A adapted the supplied heavy metal collision, hammer crash and continuous saw

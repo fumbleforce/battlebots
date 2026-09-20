@@ -8,6 +8,7 @@ var camera: Camera3D
 var model: Node3D
 var weapon_visual: MvpWeaponVisual
 var sawblade_visual: SawbladeVisual
+var scorpion_visual: ScorpionVisual
 var status: Label
 var yaw := 0.6
 var pitch := 0.45
@@ -103,7 +104,9 @@ func _layout_status() -> void:
 	if is_instance_valid(_status_next): _status_next.offset_top = -36 * value
 
 func _valid_status() -> void:
+	_update_camera()
 	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
+	if scorpion_visual != null: assembly = "SCORPION HX-6 · equipped modules"
 	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
 	status.visible = not _compact
 	_update_rotation_control()
@@ -141,6 +144,7 @@ func _ready() -> void:
 	add_child(container)
 	viewport = SubViewport.new()
 	viewport.own_world_3d = true
+	viewport.msaa_3d = Viewport.MSAA_4X
 	viewport.gui_disable_input = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	container.add_child(viewport)
@@ -231,6 +235,7 @@ func show_loadout(draft: Dictionary) -> void:
 	model = null
 	weapon_visual = null
 	sawblade_visual = null
+	scorpion_visual = null
 	var validation := _registry.validate(draft)
 	if not validation.valid:
 		_invalid_status("; ".join(validation.reasons))
@@ -245,6 +250,15 @@ func show_loadout(draft: Dictionary) -> void:
 	_turntable.add_child(model)
 	# This isolated workshop keeps its original framing regardless of arena scale.
 	var size: Vector3 = validation.stats.size / BotScale.FACTOR
+	if ScorpionVisual.enabled(draft):
+		model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
+		scorpion_visual = ScorpionVisual.new()
+		model.add_child(scorpion_visual)
+		scorpion_visual.assemble(draft, size)
+		scorpion_visual.walker_legs.terrain = false
+		scorpion_visual.walker_legs.reset_feet()
+		_valid_status()
+		return
 	if SawbladeConfig.enabled(draft):
 		if draft.parts.drive == "walker": model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
 		sawblade_visual = SawbladeVisual.new()
@@ -305,7 +319,11 @@ func zoom_view(amount: float) -> void:
 func _update_camera() -> void:
 	if not is_instance_valid(camera): return
 	var target := Vector3(0, 0.4, -0.35)
-	camera.position = target + Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)) * distance
+	var orbit_distance := distance
+	if scorpion_visual != null:
+		target = Vector3(0, 1.10, -0.10)
+		orbit_distance += 0.8
+	camera.position = target + Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)) * orbit_distance
 	camera.look_at(target)
 
 func _gui_input(event: InputEvent) -> void:

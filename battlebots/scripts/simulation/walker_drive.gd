@@ -15,8 +15,15 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 	var lead := forward * clampf(body._drive_input, -1.0, 1.0) * 0.45 * body.geometry_scale
 	var normal_sum := Vector3.ZERO
 	var floor_height := -INF
-	for probe: Vector3 in DriveBody.PROBES:
-		var hip := state.transform * Vector3(signf(probe.x) * (body.probe_half_width + FOOT_SPREAD * scale_ratio), 0, signf(probe.z) * body.probe_half_length)
+	var probes: Array[Vector3] = DriveBody.PROBES
+	if body.walker_rows == 3:
+		probes = [Vector3(-1,0,-1), Vector3(1,0,-1), Vector3(-1,0,0), Vector3(1,0,0), Vector3(-1,0,1), Vector3(1,0,1)]
+	for probe: Vector3 in probes:
+		var local_support := Vector3(signf(probe.x) * (body.probe_half_width + FOOT_SPREAD * scale_ratio), 0, signf(probe.z) * body.probe_half_length)
+		if body.walker_rows == 3:
+			local_support = ScorpionStance.foot(int(probe.z) + 1, int(probe.x)) * body.geometry_scale
+			local_support.y = 0.0
+		var hip := state.transform * local_support
 		var foot := hip + lead
 		var start := Vector3(foot.x, state.transform.origin.y - (RIDE_HEIGHT - MAX_STEP) * scale_ratio + 0.08 * body.geometry_scale, foot.z)
 		var end := Vector3(foot.x, state.transform.origin.y - REACH * scale_ratio, foot.z)

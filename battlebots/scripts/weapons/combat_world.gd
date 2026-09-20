@@ -13,6 +13,8 @@ var _hammer_hits: Dictionary = {}
 var _saw_contacts: Dictionary = {}
 var _saw_last_tick := -1
 var _saw_round := -1
+const MINIGUN_RANGE := 24.0
+const MINIGUN_DAMAGE := 6.0
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
@@ -36,6 +38,15 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		if attacker.combat.eliminated:
 			continue
 		var state := attacker.combat
+		if state.stats.weapon == "minigun" or state.stats.get("secondary_weapon", "") == "minigun":
+			_update_gun_aim(attacker, bots, delta)
+		if state.gun_shot:
+			# Paid cadence pulses resolve once, including a last shot that reaches
+			# the shared heat ceiling. A second world step cannot replay a bullet.
+			state.gun_shot = false
+			_minigun_shot(attacker, bots, tick, round_index)
+		if state.stats.weapon == "minigun":
+			continue
 		# A committed strike may reach the heat limit on its impact tick. The
 		# resulting lockout prevents the next activation, not this paid strike.
 		if state.zones.weapon <= 0 or (state.overheated and not state.strike):
@@ -145,7 +156,7 @@ func _sweep(bot: MvpBot) -> Array:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
-	if SawbladeConfig.enabled(bot.loadout) and bot.combat.stats.weapon == "lifter":
+	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout) and bot.combat.stats.weapon == "lifter":
 		var size: Vector3 = bot.combat.stats.size
 		var angle := bot.combat.charge * deg_to_rad(40)
 		if bot.combat.launch or bot.combat.cooldown > 2.7: angle = deg_to_rad(75)
@@ -203,7 +214,7 @@ func _saw_sweep(bot: MvpBot) -> Array:
 	shape.radius = 0.32 * linear_scale
 	shape.height = 0.16 * linear_scale
 	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, 0.1 * linear_scale, -bot.combat.stats.size.z * 0.5 - 0.4 * linear_scale))
-	if SawbladeConfig.enabled(bot.loadout):
+	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout):
 		var size: Vector3 = bot.combat.stats.size
 		var scale := SawbladeGeometry.scale_for(size)
 		shape.radius = 0.678 * scale.z
@@ -228,6 +239,7 @@ func _saw_sweep(bot: MvpBot) -> Array:
 	return found
 
 func _hammer_sweep(bot: MvpBot) -> Array:
+	if ScorpionGeometry.enabled(bot.loadout): return _scorpion_hammer_sweep(bot)
 	if SawbladeConfig.enabled(bot.loadout): return _sawblade_hammer_sweep(bot)
 	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := SphereShape3D.new()
@@ -291,6 +303,107 @@ func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 				_sweep_origins[hit.collider_id] = query.transform.origin
 	return found
 
+func _scorpion_hammer_sweep(bot: MvpBot) -> Array:
+	var size: Vector3 = bot.combat.stats.size
+	var shape := BoxShape3D.new()
+	shape.size = ScorpionGeometry.HEAD_SIZE * BotScale.from_size(size)
+	var start := bot.previous_pose
+	var finish := bot.body.global_transform
+	var body_angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
+	# Conservative bound for four articulated joints, telescopic travel and body motion.
+	var travel := start.origin.distance_to(finish.origin) \
+		+ body_angle * 4.0 * BotScale.from_size(size) + (4.0 + ScorpionGeometry.HAMMER_EXTENSION) * BotScale.from_size(size)
+	var steps := maxi(24, ceili(travel / 0.08) + 1)
+	var found: Array = []
+	for index: int in steps:
+		var fraction := float(index) / (steps - 1)
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = shape
+		query.transform = start.interpolate_with(finish, fraction) * ScorpionGeometry.hammer_transform(size, fraction)
+		query.collision_mask = BaselineConfig.BOT_LAYER
+		query.exclude = [bot.body.get_rid()]
+		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
+			if not found.has(hit.collider_id):
+				found.append(hit.collider_id)
+				_sweep_origins[hit.collider_id] = query.transform.origin
+	return found
+
+func _update_gun_aim(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
+	var state := attacker.combat
+	var pivot := ScorpionGeometry.GUN_PIVOT * BotScale.from_size(state.stats.size)
+	var origin := attacker.body.global_transform * pivot
+	var forward := -attacker.body.global_basis.z
+	var desired := 0.0
+	var nearest := MINIGUN_RANGE + 1.5 * BotScale.from_size(state.stats.size)
+	for id: int in bots:
+		var candidate: MvpBot = bots[id]
+		if candidate == attacker or candidate.team == attacker.team or candidate.combat.eliminated:
+			continue
+		# Vertical servo only. Test the exact forward ray against each projected
+		# hull footprint, not a camera aim point or a client-supplied target.
+		var local_origin := candidate.body.global_transform.affine_inverse() * origin
+		var local_forward := candidate.body.global_basis.inverse() * forward
+		var half: Vector3 = candidate.combat.stats.size * 0.5
+		var entry := 0.0
+		var exit_distance := nearest
+		for axis: int in [0, 2]:
+			if absf(local_forward[axis]) < 0.000001:
+				if absf(local_origin[axis]) > half[axis]:
+					exit_distance = -1.0
+					break
+			else:
+				var a := (-half[axis] - local_origin[axis]) / local_forward[axis]
+				var b := (half[axis] - local_origin[axis]) / local_forward[axis]
+				entry = maxf(entry, minf(a, b))
+				exit_distance = minf(exit_distance, maxf(a, b))
+		if entry > exit_distance or exit_distance <= 0.0 or entry >= nearest:
+			continue
+		var target := attacker.body.global_transform.affine_inverse() * candidate.body.global_position
+		if target.z >= pivot.z:
+			continue
+		nearest = entry
+		# Rotating the authored mount moves the muzzle. Refine the elevation
+		# using that rotated position so close low targets remain hittable.
+		desired = state.gun_pitch
+		for iteration: int in 3:
+			var muzzle := ScorpionGeometry.gun_muzzle(state.stats.size, desired)
+			var absolute_pitch := atan2(target.y - muzzle.y, maxf(0.1, muzzle.z - target.z))
+			desired = clampf(absolute_pitch, deg_to_rad(-35.0), deg_to_rad(20.0)) - ScorpionGeometry.GUN_REST_PITCH
+	state.gun_pitch = move_toward(state.gun_pitch, desired, maxf(0.0, delta) * 3.0)
+
+func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: int) -> void:
+	var state := attacker.combat
+	if state.zones.weapon <= 0 or state.eliminated:
+		return
+	var muzzle := ScorpionGeometry.gun_muzzle(state.stats.size, state.gun_pitch)
+	var breech := ScorpionGeometry.gun_breech(state.stats.size, state.gun_pitch)
+	var local_direction := ScorpionGeometry.gun_direction(state.gun_pitch)
+	var from := attacker.body.global_transform * muzzle
+	var origin := attacker.body.global_transform * breech
+	var direction := (attacker.body.global_basis * local_direction).normalized()
+	var end := from + direction * MINIGUN_RANGE
+	# Start at the breech so a protruding barrel cannot shoot through a wall.
+	# The first body always occludes: allies block fire without receiving damage.
+	var query := PhysicsRayQueryParameters3D.create(origin, end,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid()])
+	query.hit_from_inside = true
+	var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
+	state.last_shot_from = from
+	state.last_shot_to = end if result.is_empty() else result.position
+	state.last_shot_tick = tick
+	if result.is_empty():
+		return
+	if origin.distance_squared_to(result.position) < origin.distance_squared_to(from):
+		state.last_shot_from = origin
+	for id: int in bots:
+		var victim: MvpBot = bots[id]
+		if victim.body.get_instance_id() != result.collider_id:
+			continue
+		if victim.team != attacker.team and not victim.combat.eliminated:
+			_hit(attacker, victim, result.position, MINIGUN_DAMAGE,
+				direction * victim.body.mass * 0.035, tick, round_index, 0.08, "minigun")
+		return
+
 func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "") -> void:
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
 		attacker.combat.stats.weapon if kind.is_empty() else kind])
@@ -312,6 +425,6 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:
 		attacker.combat.attack_id += 1
 	events.append({"event_id":event_id, "round":round_index, "tick":tick, "kind":kind,
-		"attack_id":attacker.combat.attack_id, "attacker":attacker.entity_id,
+		"attack_id":attacker.combat.shot_sequence if kind == "minigun" else attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,
 		"normal":(point - victim.body.global_position).normalized()})

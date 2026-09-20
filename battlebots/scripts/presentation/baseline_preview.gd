@@ -162,6 +162,7 @@ func _physics_process(_delta: float) -> void:
 	# Clear toggle intent during A's countdown/elimination/lifecycle suppression too.
 	if source is SessionBotSource and source.input_allowed.is_valid():
 		enabled = enabled and bool(source.input_allowed.call())
+	input_gate.auxiliary_weapon = source.read_view().has_auxiliary_weapon
 	var command := input_gate.sample(strengths, edges, enabled)
 	command.sequence = sequence
 	sequence += 1
@@ -186,6 +187,9 @@ func _process(_delta: float) -> void:
 		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),
 		input_preferences.label_for(&"camera_recenter")] \
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
+	if controls_enabled and is_instance_valid(source) and source.read_view().has_auxiliary_weapon:
+		hint.text = "%s  Primary weapon  |  %s  Minigun  |  Mouse  Orbit  |  Esc  Menu" % [
+			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary")]
 
 func refresh_diagnostics() -> void:
 	if not is_instance_valid(source) or not source is SessionBotSource \

@@ -99,7 +99,7 @@ func run() -> void:
 	check(count == 100, "History memory is bounded")
 	profile.reload()
 	check(not profile.can_undo() and not profile.can_redo(), "Reload starts fresh history")
-	check(profile.loadouts[3].name == "History test", "Saved state survives unsaved undo/redo session")
+	check(profile.loadouts[profile.PRESET_COUNT].name == "History test", "Saved state survives unsaved undo/redo session")
 	for suffix: String in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(path + suffix): DirAccess.remove_absolute(path + suffix)
 	if failures.is_empty(): print("GARAGE HISTORY PASS")
