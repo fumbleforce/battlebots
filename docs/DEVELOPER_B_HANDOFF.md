@@ -1,5 +1,23 @@
 # Developer B — combat, bots, customisation and controls
 
+## Featured vehicle selection — 20 September 2026
+
+`codex/b-featured-vehicle` starts from `9e54dcc`. Main and lobby consume B's
+session-free FeaturedVehicle control: named local builds, Previous/Next, live
+canonical chassis/weapon preview, and optional rotating pedestal with Pause/Resume.
+The old main image/info and lobby dropdown/arena card are removed. The Foundry
+rules remain in the lobby; general session/navigation ownership stays with A.
+
+Selection updates the local profile only. Lobby Apply submits through the existing
+session API; status distinguishes drafts from host-confirmed builds and existing
+phase/pending locks guard callbacks. Paint-only acknowledgement now compares paint,
+not just name/parts. Invalid choices remain visible for repair without fabricating
+a model or submitting a legal build. No wire or persistence schema changes.
+
+See [intent, API and validation](coordination/B_FEATURED_VEHICLE.md). Canonical
+primitive visuals remain a developing-game asset limitation; this feature does
+not claim authored bot art or human hosted-1v1 acceptance.
+
 ## B menu text accessibility — 20 September 2026
 
 `codex/b-menu-text-accessibility` starts from `d6e154e`, rebased onto A's

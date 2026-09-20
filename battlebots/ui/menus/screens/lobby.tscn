@@ -218,58 +218,6 @@ layout_mode = 2
 theme_override_constants/separation = 19
 size_flags_horizontal = 3
 
-[node name="ArenaCard" type="Control" parent="Layout/Body/Row/Match"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 300)
-clip_contents = true
-
-[node name="ArenaImage" type="TextureRect" parent="Layout/Body/Row/Match/ArenaCard"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("7_arenafou")
-expand_mode = 1
-stretch_mode = 6
-unique_name_in_owner = true
-mouse_filter = 2
-
-[node name="Caption" type="PanelContainer" parent="Layout/Body/Row/Match/ArenaCard"]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -79.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_type_variation = &"Caption"
-
-[node name="Row" type="VBoxContainer" parent="Layout/Body/Row/Match/ArenaCard/Caption"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="ArenaName" type="Label" parent="Layout/Body/Row/Match/ArenaCard/Caption/Row"]
-layout_mode = 2
-text = "THE FOUNDRY"
-theme_type_variation = &"HeadingItalic"
-theme_override_font_sizes/font_size = 46
-unique_name_in_owner = true
-
-[node name="Spacer" type="Control" parent="Layout/Body/Row/Match/ArenaCard/Caption/Row"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
-[node name="Vote" type="Label" parent="Layout/Body/Row/Match/ArenaCard/Caption/Row"]
-layout_mode = 2
-text = "ARENA VOTE WON"
-theme_type_variation = &"EyebrowAmber"
-theme_override_font_sizes/font_size = 17
-size_flags_vertical = 4
-
 [node name="Rules" type="GridContainer" parent="Layout/Body/Row/Match"]
 layout_mode = 2
 columns = 3

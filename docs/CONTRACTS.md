@@ -8,6 +8,28 @@ coordinated producer-consumer interfaces, not blanket A ownership of scripts/cor
 The current split in TEAM_WORKFLOW.md supersedes historical authorship below.
 Paths below are relative to the Godot project.
 
+## Featured vehicle selection
+
+`FeaturedVehicle.render(loadouts, selected, editable=true, message="")` accepts
+detached local choices and caller-owned selection/status. Its
+`selection_requested(index, draft)` signal is intent only: it cannot save a build,
+change PlayerProfile or send session requests. Disabled selection is guarded in
+the callback as well as the buttons. `apply_text_scale(factor)` preserves full
+100/125/150% text; raw invalid records retain preview validation feedback.
+
+Main accepts the signal into `PlayerProfile.active_bot`. Lobby keeps local choice
+separate from APPLY BUILD and host confirmation, with existing pending/phase
+locks. Paint is included in acknowledgement comparisons. Accepted loadout changes
+still clear readiness through the existing server rule. Profile inventory edits
+refresh both consumers; selection does not write a save file.
+
+`GarageBotPreview.set_auto_rotate(enabled)` opts into slow shared pedestal/model
+rotation. Default Garage/Customize remains manual. Pause/Resume is keyboard
+accessible; manual inspection pauses motion, hidden/focused previews suspend it,
+and invalid builds remove the model and rotation action. Assembly stays isolated
+and cosmetic, using canonical primitive chassis/weapon geometry, not final bot art.
+See [featured vehicle handoff](coordination/B_FEATURED_VEHICLE.md).
+
 ## Transport compatibility
 
 Current transport build is `mvp-ab-12`, protocol 4. Every MvpSession host and

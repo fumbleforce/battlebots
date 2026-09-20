@@ -1,10 +1,12 @@
 extends MenuScreen
 
 var _text_factor := 1.0
+var featured_vehicle: FeaturedVehicle
 
 func apply_text_scale(factor: float) -> void:
 	_text_factor = clampf(factor, 1.0, 1.5)
 	preload("res://scripts/ui/menu_text_scale.gd").apply(self, _text_factor)
+	if is_instance_valid(featured_vehicle): featured_vehicle.apply_text_scale(_text_factor)
 	_layout_navigation()
 
 func _layout_navigation() -> void:
@@ -54,12 +56,12 @@ func _ready() -> void:
 	%ProfileLevel.text = "LOCAL PILOT"
 	%XpBar.hide()
 	%GarageCaption.text = "%d bots · Customize" % PlayerProfile.bots.size()
-	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
-	%BotImage.texture = bot.image
-	%BotName.text = bot.name
-	%BotClass.text = bot.cls
-	%BotWeapon.text = bot.weapon
-	%BotHull.text = "%s HP" % MenuData.fmt_int(bot.hp)
+	featured_vehicle = FeaturedVehicle.new()
+	featured_vehicle.name = "FeaturedVehicle"
+	$Layout/Columns/Right/BotRow/ActiveBot/Col.add_child(featured_vehicle)
+	featured_vehicle.selection_requested.connect(_select_vehicle)
+	PlayerProfile.inventory_changed.connect(_refresh_vehicle)
+	_refresh_vehicle()
 	# The main menu is a fixed composition: all actions remain visible at 150%.
 	$Layout.add_theme_constant_override("margin_top", 48)
 	$Layout.add_theme_constant_override("margin_bottom", 32)
@@ -83,11 +85,6 @@ func _ready() -> void:
 		_soft_hover(item)
 	_soft_hover(%Play)
 	online.add_theme_font_size_override("font_size", 40)
-	%BotName.add_theme_font_size_override("font_size", 40)
-	%BotName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	%BotClass.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	%BotWeapon.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	%BotImage.custom_minimum_size.y = 220
 	resized.connect(_layout_navigation)
 	_layout_navigation()
 	online.grab_focus()
@@ -111,3 +108,13 @@ func _soft_hover(button: Button) -> void:
 	hover.content_margin_bottom = 8
 	for state: String in ["hover", "pressed", "hover_pressed"]:
 		button.add_theme_stylebox_override(state, hover)
+
+func _select_vehicle(index: int, _draft: Dictionary) -> void:
+	if index < 0 or index >= PlayerProfile.loadouts.size(): return
+	PlayerProfile.active_bot = index
+	_refresh_vehicle()
+
+func _refresh_vehicle() -> void:
+	if not is_instance_valid(featured_vehicle): return
+	featured_vehicle.render(PlayerProfile.loadouts, PlayerProfile.active_bot, true, "Selected for your next game")
+	%GarageCaption.text = "%d bots · Customize" % PlayerProfile.bots.size()

@@ -507,3 +507,11 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
 
 
 - 2026-09-20 B: starting featured vehicle selection/rotating showcase on codex/b-featured-vehicle from 9e54dcc; see coordination/B_FEATURED_VEHICLE.md for component API, main/lobby boundary and checks.
+
+- 2026-09-20 B delivery: FeaturedVehicle now serves main/lobby with named selection,
+  canonical rotating assembly and Pause/Resume. Explicit lobby Apply, complete
+  paint acknowledgement and phase/pending locks preserve authority. Static card
+  and dropdown are removed. Independent/native long/invalid-build checks pass at
+  720p/1080p/ultrawide through 150%; baseline and affected menu/preview regressions
+  pass. See coordination/B_FEATURED_VEHICLE.md. Authored assets, unsaved-build test
+  drive and remaining combat/control/hosted-1v1 acceptance remain open.

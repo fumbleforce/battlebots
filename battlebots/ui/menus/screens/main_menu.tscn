@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
 
@@ -12,7 +12,6 @@
 
 [ext_resource type="Texture2D" path="res://ui/menus/icons/play.svg" id="6_playsvg"]
 
-[ext_resource type="Texture2D" path="res://ui/menus/art/bot_chevron.jpg" id="7_botchevr"]
 
 [sub_resource type="Gradient" id="Gradient_1"]
 offsets = PackedFloat32Array(0, 0.34, 0.7, 1)
@@ -537,97 +536,6 @@ theme_override_font_sizes/font_size = 22
 
 [node name="Line" type="HSeparator" parent="Layout/Columns/Right/BotRow/ActiveBot/Col"]
 layout_mode = 2
-
-[node name="BotImage" type="TextureRect" parent="Layout/Columns/Right/BotRow/ActiveBot/Col"]
-layout_mode = 2
-texture = ExtResource("7_botchevr")
-expand_mode = 1
-stretch_mode = 6
-custom_minimum_size = Vector2(0, 276)
-unique_name_in_owner = true
-mouse_filter = 2
-
-[node name="Info" type="MarginContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col"]
-layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 19
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
-
-[node name="Col" type="VBoxContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info"]
-layout_mode = 2
-theme_override_constants/separation = 14
-
-[node name="NameRow" type="VBoxContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="BotName" type="Label" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/NameRow"]
-layout_mode = 2
-text = "CHEVRON"
-theme_type_variation = &"Heading"
-theme_override_font_sizes/font_size = 48
-unique_name_in_owner = true
-
-[node name="Spacer" type="Control" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/NameRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
-[node name="BotClass" type="Label" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/NameRow"]
-layout_mode = 2
-text = "TANK CLASS"
-theme_type_variation = &"Strong"
-theme_override_font_sizes/font_size = 17
-theme_override_colors/font_color = Color(0.6039, 0.651, 0.7098, 1)
-size_flags_vertical = 4
-unique_name_in_owner = true
-
-[node name="Specs" type="HBoxContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="WeaponBox" type="PanelContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs"]
-layout_mode = 2
-theme_type_variation = &"PanelSoft"
-size_flags_horizontal = 3
-
-[node name="Col" type="VBoxContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs/WeaponBox"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs/WeaponBox/Col"]
-layout_mode = 2
-text = "WEAPON"
-theme_type_variation = &"Eyebrow"
-theme_override_font_sizes/font_size = 14
-
-[node name="BotWeapon" type="Label" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs/WeaponBox/Col"]
-layout_mode = 2
-text = "Spin Blade"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 26
-unique_name_in_owner = true
-
-[node name="HullBox" type="PanelContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs"]
-layout_mode = 2
-theme_type_variation = &"PanelSoft"
-size_flags_horizontal = 3
-
-[node name="Col" type="VBoxContainer" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs/HullBox"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs/HullBox/Col"]
-layout_mode = 2
-text = "HULL"
-theme_type_variation = &"Eyebrow"
-theme_override_font_sizes/font_size = 14
-
-[node name="BotHull" type="Label" parent="Layout/Columns/Right/BotRow/ActiveBot/Col/Info/Col/Specs/HullBox/Col"]
-layout_mode = 2
-text = "1,000 HP"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 26
-unique_name_in_owner = true
 
 [node name="VersionRow" type="HBoxContainer" parent="Layout/Columns/Right"]
 layout_mode = 2

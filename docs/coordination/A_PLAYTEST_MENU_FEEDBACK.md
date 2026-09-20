@@ -47,13 +47,15 @@ V-Sync, with a 15-second Keep/Revert transaction. Separate physical-state captur
 preserves window position, size, mode, borderless flag and V-Sync for rollback.
 Headless adapter tests prove persistence/rollback; native render-only checks
 prove 720p layout at 100/150%, including confirmation. These do not prove physical
-display-mode switching on the user's monitor. B's controls binding editor still
-needs coordinated no-scroll presentation; no B source behavior is changed here.
+display-mode switching on the user's monitor. B's subsequent `9e54dcc` adds
+grouped no-scroll Controls and responsive Camera presentation through this hub.
 
-B has since published GarageBotPreview in `682824b`, providing a validated
-isolated 3D build preview in Garage/Customize. The main/lobby vehicle selector
-and automatically rotating showcase are still open; this existing component can
-be consumed through show_loadout/rotate_view without duplicating bot assembly.
+B published GarageBotPreview in `682824b`, providing a validated isolated 3D build
+preview in Garage/Customize. The subsequent featured-vehicle branch consumes it
+in main/lobby with Previous/Next and optional pedestal rotation. Its coordinated
+consumer changes preserve host-confirmed Apply and existing selection locks. See
+[B implementation/evidence](B_FEATURED_VEHICLE.md); final authored art and human
+presentation acceptance remain separate from this canonical primitive preview.
 
 Full presentation runner passes, including real networked lobby/reconnect,
 private/Quick Play client flows and the held scoreboard during live driving,

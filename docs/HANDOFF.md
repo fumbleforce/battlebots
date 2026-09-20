@@ -58,6 +58,13 @@ do not block the active 1v1 scope.
 
 ## Current Developer B increment
 
+B's featured vehicle increment replaces the main static image and lobby dropdown
+with shared selection and an isolated rotating chassis/weapon preview. Lobby
+selection remains a draft until Apply is host-confirmed; paint-only confirmation
+and phase/pending locks are covered independently. See
+[featured vehicle handoff](coordination/B_FEATURED_VEHICLE.md). The primitive
+models are the current canonical representation; authored assets remain open.
+
 B's latest menu accessibility work is documented in
 [the B handoff](DEVELOPER_B_HANDOFF.md#b-menu-text-accessibility--20-september-2026).
 Garage/Customize/catalogue/recovery and camera/input settings consume the shared

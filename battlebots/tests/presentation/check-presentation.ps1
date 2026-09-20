@@ -97,6 +97,12 @@ foreach ($check in $checks) {
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_preview_test.tscn', '--quit-after', '10000') -Marker 'GARAGE PREVIEW PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/garage_showcase_test.tscn', '--quit-after', '10000') -Marker 'GARAGE SHOWCASE PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/featured_vehicle_test.tscn', '--quit-after', '10000') -Marker 'FEATURED VEHICLE PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    '--max-fps', '60', 'res://tests/presentation/featured_vehicle_menu_test.tscn', '--quit-after', '6000') -Marker 'FEATURED VEHICLE MENU PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_comparison_test.tscn', '--quit-after', '10000') -Marker 'GARAGE COMPARISON PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_comparison_panel_test.tscn', '--quit-after', '10000') -Marker 'GARAGE COMPARISON PANEL PASS'

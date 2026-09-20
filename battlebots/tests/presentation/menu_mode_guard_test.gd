@@ -65,7 +65,7 @@ func run() -> void:
 		await ticks(3)
 		var lobby: Control = game.screen
 		check(lobby.address.is_visible_in_tree() and lobby.join_button.is_visible_in_tree() and not lobby.host_button.is_visible_in_tree(), "Join shows only its connection controls")
-		check(not lobby.get_node("Layout/Body/Row/Blue").visible and not lobby.get_node("Layout/Body/Row/Match/ArenaCard").visible, "Unknown join does not invent a roster or arena")
+		check(not lobby.get_node("Layout/Body/Row/Blue").visible and not lobby.get_node("Layout/Body/Row/Match/Rules").visible, "Unknown join does not invent a roster or arena")
 		check(lobby.get_node("%Back").text == "BACK" and not lobby.get_node("%Steps").visible, "Offline join has a plain Back action")
 		lobby.address.text = "127.0.0.1"
 		lobby.port.value = port

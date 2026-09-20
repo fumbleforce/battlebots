@@ -8,7 +8,7 @@ var host_button: Button
 var join_button: Button
 var team_choice: OptionButton
 var build_button: Button
-var build_choice: OptionButton
+var featured_vehicle: FeaturedVehicle
 var room_code_panel: PanelContainer
 var room_code_label: Label
 var copy_code_button: Button
@@ -44,7 +44,7 @@ func apply_text_scale(factor: float) -> void:
 			card.get_node("Row/Text/Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			card.get_node("Row/Text/Sub").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			card.get_node("Row/Badge").custom_minimum_size.x = 100
-	build_choice.custom_minimum_size.x = 360 if factor > 1.0 else 280
+	if is_instance_valid(featured_vehicle): featured_vehicle.apply_text_scale(factor)
 
 func _ready() -> void:
 	var body_style := StyleBoxEmpty.new()
@@ -68,12 +68,21 @@ func _ready() -> void:
 	_build_roster()
 	%Ready.toggle_mode = false
 	%Ready.pressed.connect(request_ready_state)
-	%ArenaName.text = "THE FOUNDRY"
-	%ArenaImage.texture = MenuData.ARENAS[0].get("image")
-	$Layout/Body/Row/Match/ArenaCard.custom_minimum_size.y = 220
-	$Layout/Body/Row/Match/ArenaCard/Caption/Row/Vote.text = "50 × 50 METERS"
+	featured_vehicle = FeaturedVehicle.new()
+	featured_vehicle.name = "FeaturedVehicle"
+	$Layout/Body/Row/Match.add_child(featured_vehicle)
+	$Layout/Body/Row/Match.move_child(featured_vehicle, 0)
+	featured_vehicle.get_node("PreviewHolder").custom_minimum_size.y = 150
+	featured_vehicle.selection_requested.connect(_select_vehicle)
+	PlayerProfile.inventory_changed.connect(refresh)
 	$Layout/Body/Row/Match/Rules/Win/Col/Value.text = "First to 2"
 	$Layout/Body/Row/Match/Rules/Hazards/Col/Value.text = "None"
+	$Layout/Body/Row/Match.add_theme_constant_override("separation", 8)
+	for panel: PanelContainer in [$Layout/Body/Row/Match/Status, $Layout/Body/Row/Match/Rules/Win, $Layout/Body/Row/Match/Rules/Clock, $Layout/Body/Row/Match/Rules/Hazards]:
+		var style := panel.get_theme_stylebox("panel").duplicate() as StyleBox
+		style.content_margin_top = 8
+		style.content_margin_bottom = 8
+		panel.add_theme_stylebox_override("panel", style)
 	%StatusBig.add_theme_font_size_override("font_size", 36)
 	%StatusSub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if is_instance_valid(session):
@@ -188,25 +197,11 @@ func _build_connection_controls() -> void:
 	team_choice.item_selected.connect(request_team)
 	$Layout/Footer/Row.add_child(team_choice)
 	$Layout/Footer/Row.move_child(team_choice, 0)
-	build_choice = OptionButton.new()
-	build_choice.custom_minimum_size = Vector2(280, 58)
-	build_choice.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	build_choice.fit_to_longest_item = false
-	build_choice.clip_text = true
-	build_choice.tooltip_text = "Choose a saved build for this game"
-	for bot: Dictionary in PlayerProfile.bots:
-		build_choice.add_item(str(bot.name))
-	build_choice.select(PlayerProfile.active_bot)
-	build_choice.item_selected.connect(func(index: int) -> void:
-		PlayerProfile.active_bot = index
-		refresh())
-	$Layout/Footer/Row.add_child(build_choice)
-	$Layout/Footer/Row.move_child(build_choice, 1)
 	build_button = _button("APPLY BUILD", request_build)
 	build_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	build_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	$Layout/Footer/Row.add_child(build_button)
-	$Layout/Footer/Row.move_child(build_button, 2)
+	$Layout/Footer/Row.move_child(build_button, 1)
 	$Layout/Footer/Row.add_theme_constant_override("separation", 20)
 
 func _label(value: String, variation: String, font_size: int) -> Label:
@@ -277,7 +272,7 @@ func host_session() -> void:
 	var error := session.host(_host_port, true, count, "ffa" if MenuRouter.match_setup.mode == "ffa" else "teams", "*", preload("res://scripts/arena/arena_scenery.gd").load_choice())
 	if error == OK:
 		session.set_loadout(draft)
-		_notice = "Share your LAN address and port %d, or your tunnel's public address and UDP port." % _host_port
+		_notice = "Share this LAN endpoint, or your tunnel endpoint."
 	else:
 		_notice = "Host failed: " + error_string(error)
 	refresh()
@@ -341,7 +336,7 @@ func request_build() -> void:
 	var draft: Dictionary = PlayerProfile.active_loadout()
 	var validation := session.registry.validate(draft)
 	if not validation.valid:
-		_notice = "Selected build is invalid: " + "; ".join(validation.reasons)
+		_notice = "Selected build needs repair in Garage."
 		refresh()
 		return
 	_begin("loadout", validation.loadout)
@@ -354,7 +349,7 @@ func _lobby_changed(_view: Dictionary) -> void:
 		var accepted := false
 		if _pending == "loadout":
 			var actual: Dictionary = slot.get("loadout", {})
-			accepted = actual.get("parts") == _expected.get("parts") and actual.get("name") == _expected.get("name")
+			accepted = actual.get("parts") == _expected.get("parts") and actual.get("name") == _expected.get("name") and actual.get("cosmetics") == _expected.get("cosmetics")
 		else:
 			accepted = slot.get(_pending) == _expected
 		if accepted:
@@ -438,8 +433,12 @@ func refresh() -> void:
 	$Layout/Body/Row/Red/TeamHeader/Row/Team.text = "PLAYERS %d–%d" % [per_team + 1, capacity] if ffa else "RED TEAM"
 	$Layout/Body/Row/Blue.visible = known
 	$Layout/Body/Row/Red.visible = known
-	$Layout/Body/Row/Match/ArenaCard.visible = known
-	$Layout/Body/Row/Match/Rules.visible = known
+	var vehicle_parent: Node = $Layout/Body/Row/Match if known else $Layout/Body/Row
+	if featured_vehicle.get_parent() != vehicle_parent:
+		featured_vehicle.reparent(vehicle_parent)
+		vehicle_parent.move_child(featured_vehicle, 0)
+	featured_vehicle.custom_minimum_size.x = 0.0 if known else 600.0
+	featured_vehicle.size_flags_vertical = Control.SIZE_FILL if known else Control.SIZE_SHRINK_CENTER
 	var match_column := $Layout/Body/Row/Match as VBoxContainer
 	$Layout/Body/Row.alignment = BoxContainer.ALIGNMENT_CENTER
 	match_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL if known else Control.SIZE_SHRINK_CENTER
@@ -485,11 +484,21 @@ func refresh() -> void:
 	team_choice.visible = connected and known and not ffa and MenuRouter.lobby_intent != "online"
 	if not ffa:
 		team_choice.select(clampi(int(local.get("team", 0)), 0, 1))
-	build_choice.disabled = state != "offline" and not edit
-	build_choice.select(PlayerProfile.active_bot)
 	var selected: Dictionary = PlayerProfile.active_loadout()
 	var equipped: Dictionary = local.get("loadout", {})
+	$Layout/Body/Row/Match/Rules.visible = known and not selected.is_empty()
+	if known and selected.is_empty(): %StatusSub.text = "Repair draft in Garage; host build unchanged."
 	var differs: bool = selected.get("parts") != equipped.get("parts") or selected.get("name") != equipped.get("name") or selected.get("cosmetics") != equipped.get("cosmetics")
+	var vehicle_message := "Selected for next game"
+	if state != "offline":
+		vehicle_message = "Draft · APPLY BUILD to use" if differs else "Host-confirmed build"
+		if selected.is_empty(): vehicle_message = "Invalid draft · host build unchanged"
+		if not _pending.is_empty(): vehicle_message = "Waiting for host"
+		elif not edit:
+			vehicle_message = "Unapplied draft · selection locked" if differs else "Host build · selection locked"
+			if selected.is_empty(): vehicle_message = "Invalid draft · host unchanged · locked"
+	featured_vehicle.get_node("PreviewHolder").custom_minimum_size.y = 150 if not selected.is_empty() else 230
+	featured_vehicle.render(PlayerProfile.loadouts, PlayerProfile.active_bot, state == "offline" or edit, vehicle_message)
 	build_button.visible = edit and differs
 	build_button.disabled = not edit
 	%Ready.visible = connected and known
@@ -508,3 +517,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		leave_lobby()
+
+func _select_vehicle(index: int, _draft: Dictionary) -> void:
+	if not is_instance_valid(session) or (session.connection_state != "offline" and not _can_edit()):
+		refresh()
+		return
+	if index < 0 or index >= PlayerProfile.loadouts.size(): return
+	PlayerProfile.active_bot = index
+	refresh()

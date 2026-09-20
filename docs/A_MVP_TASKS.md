@@ -40,12 +40,16 @@ layout passes do not close them. Prioritize these alongside the working 1v1 loop
 - [x] **A: Persistent, prominent private friend code.** Keep the code clearly
   visible in the lobby after creation, with an obvious Copy code action. A fleeting
   creation screen is insufficient; Quick Play must not show a private-room code.
-- [ ] **B implementation / A integration: Featured vehicle selection.** Replace
+- [x] **B implementation / A integration: Featured vehicle selection.** Replace
   the small dropdown with a clear selection/switching experience, prominently
-  displaying the active vehicle before joining or readying.
-- [ ] **B implementation / A integration: Live bot showcase.** Replace the static
+  displaying the active vehicle before joining or readying. Shared FeaturedVehicle
+  now serves main/lobby; explicit Apply distinguishes drafts from host confirmation.
+- [x] **B implementation / A integration: Live bot showcase.** Replace the static
   image with the actual active bot in 3D on a rotating pedestal; changes to the
-  selected build must update the preview. Coordinate a reusable preview interface.
+  selected build must update the preview. Shared canonical primitive assembly now
+  rotates with its pedestal and supports Pause/Resume. Independent/native checks
+  cover long/invalid names at 100/150% and 720p/1080p/ultrawide. Final authored art
+  and human presentation acceptance remain open; see B_FEATURED_VEHICLE.md.
 
 See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK.md).
 
