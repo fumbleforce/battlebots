@@ -472,3 +472,8 @@ Main now contains the integrated game; begin the next task from updated origin/m
   packet size. A enables range-coder compression on both session ends and bumps
   build to `mvp-ab-12`; use matching clients/server. No B producers or protocol-4
   bot fields changed. Public validation evidence is tracked in the live handoff.
+
+## B current recovery intent
+
+codex/b-garage-recovery begins from e24ab02: explicit disk reload retains edited drafts; reviewed backup recovery preserves original files. Store/tests delegated; profile/UI owned by primary. See coordination/B_GARAGE_RECOVERY.md.
+
