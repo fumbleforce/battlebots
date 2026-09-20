@@ -236,7 +236,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not controls_enabled:
 		return
 	if event is InputEventMouseMotion:
-		rig.orbit(event.relative)
+		# Captured mouse sensitivity uses screen pixels, independent of viewport stretch.
+		rig.orbit(event.screen_relative)
 	elif event.is_action_pressed("camera_zoom_in"):
 		rig.zoom(-1.0)
 	elif event.is_action_pressed("camera_zoom_out"):

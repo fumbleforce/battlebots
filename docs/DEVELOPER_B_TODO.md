@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-terrain-camera`, based on main `f570bf9`.
-**Latest increment:** Terrain-aware third-person clearance fixes embedded views for inverted bots on raised Moon ground. Independent collision and camera regressions pass; human handling remains open. See [camera evidence](coordination/B_TERRAIN_CAMERA.md). Unsaved-build Test Drive is merged at `f570bf9`.
+**Latest B task:** `codex/b-camera-mouse-scale`, based on main `8978fdf`.
+**Latest increment:** Camera input uses unscaled screen motion for consistent sensitivity under viewport stretching. Independent event-transform/adapter, settings, menu and baseline checks pass. See [camera input evidence](coordination/B_CAMERA_MOUSE_SCALE.md). Terrain clearance is merged at `8978fdf`.
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).

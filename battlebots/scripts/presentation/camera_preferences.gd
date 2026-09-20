@@ -1,6 +1,6 @@
 class_name CameraPreferences
 extends RefCounted
-## B-owned local settings, isolated from A's future player-profile service.
+## Local camera settings persisted separately from bot loadouts.
 const DEFAULT_PATH := "user://presentation_camera.cfg"
 var sensitivity_x: float = 0.003
 var sensitivity_y: float = 0.003

@@ -1,5 +1,14 @@
 # Developer B — combat, bots, customisation and controls
 
+## Camera mouse scaling — 20 September 2026
+
+The B input adapter now uses unscaled screen mouse motion, so viewport stretching
+does not change the selected X/Y orbit sensitivity. Independent engine-transform
+and real-adapter tests reproduce the former half/double sensitivity and verify
+inversion and menu suppression. Camera settings, input/menu and baseline checks
+pass. Existing preference files and shared APIs are unchanged. See
+[scope and evidence](coordination/B_CAMERA_MOUSE_SCALE.md).
+
 ## Terrain camera clearance — 20 September 2026
 
 An inverted bot could be clear of raised Moon terrain while its camera sphere
