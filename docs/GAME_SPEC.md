@@ -261,6 +261,11 @@ The Play screen exposes quick-play 2v2 and custom lobbies. Custom hosts select m
 
 The combat HUD contains core integrity, component diagram, battery, heat, weapon charge/cooldown, team survivors, round score, timer, and a chassis-facing compass marker. A prominent countdown identifies immobilization. Pings expire after 4 seconds and are limited to one per second. Menus expose network status and reconnect progress without covering essential elimination feedback.
 
+User update (20 September 2026): show a simple fixed-size health bar below each
+displayed player name/identity. Green fills the remaining HP from the left; red
+fills missing HP on the right. Damage moves the green boundary toward the left
+without shrinking the bar itself.
+
 Support scalable UI at 1280 × 720 through 4K, text scaling to 150%, color-vision presets, high-contrast markers, subtitles for announcements, independent audio buses, reduced flashing, and complete shake disable. Essential events use visual and audio cues. No information depends only on stereo position.
 
 Audio layers include drive load, wheel skid, weapon spin-up, weapon-ready cues, impact materials, armor breaks, core warning, recovery, crowd response, and round announcements. The pitch of a spinner communicates readiness. Duck ambience during major warnings. Cap concurrent impact voices in 5v5. Captions identify gameplay-relevant announcements.

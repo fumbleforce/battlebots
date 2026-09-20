@@ -8,8 +8,8 @@ entries retain their original validation and do not claim every release gate pas
 menus and player controls. A owns other menus, networking, game rules, game world
 and audio. Historical labels below describe authorship, not current ownership.
 
-**Latest B task:** `codex/b-garage-options`, from main `cffc860`.
-**Latest increment:** Height-filling garage pages, unlocked options and a single offered authored body; other parts persist through body edits. See [behavior, compatibility and validation](coordination/B_GARAGE_OPTIONS.md).
+**Latest B task:** `codex/b-player-health-bars`, from main `7026da6`.
+**Latest increment:** Component damage stages merged on main. Current user request adds fixed-size green/red health bars beneath player identities through a coordinated HUD change. See [scope](coordination/B_PLAYER_HEALTH_BARS.md).
 **Next:** Finish the 1v1 game: combat/bot/control feel and remaining garage/customisation work. A prioritizes external 1v1 hosting and HUD. Current base includes protocol-4 networking and all five weapons.
 **Intent and evidence:** [Supplied menu integration](coordination/B_MENU_KIT.md).
 **Integration guide:** [B handoff](DEVELOPER_B_HANDOFF.md).
@@ -72,7 +72,7 @@ these newly requested presentation tasks.
 ## Later B scope and acceptance still open
 
 - [ ] **B-10:** Weapon animation/VFX from authoritative state/events. A owns audio.
-  Authored Sawblade weapon animations and drive variants are integrated on main `7ce48ab`. Next: recognizable damaged/disabled drive and weapon presentation from authoritative component snapshots. Coordinate shared content identity and network-state changes with A.
+  Authored Sawblade weapon animations and drive variants are integrated on main `7ce48ab`; snapshot-driven damaged/disabled component stages are integrated on `7026da6`. Sparks/fragments, larger-scene budgets and human readability acceptance remain. Coordinate shared content identity and network-state changes with A.
 - [ ] **B-11:** Control accessibility/controller behavior and bot-customisation
   polish. A owns general tutorial/menu presentation and audio.
 - [ ] **B-12:** Optional first-person camera after third-person feel is accepted.
@@ -524,3 +524,7 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
 - **B component damage intent:** localized snapshot-driven weapon/drive damage presentation on codex/b-component-damage rebased onto dfc7dd5. Cosmetic-only paths and independent acceptance in [scope](coordination/B_COMPONENT_DAMAGE.md).
 
 - B component stages implemented: snapshot-driven weapon/drive overlays and bounded smoke; mapping, state and native MvpBot integration checks pass. See coordination/B_COMPONENT_DAMAGE.md. Sparks/fragments and human readability remain open.
+
+- B user-requested HUD handoff: fixed green/red health bars under player identities,
+  isolated BotWorldMarkers change coordinated with the other developer. Scope and
+  acceptance: [player health bars](coordination/B_PLAYER_HEALTH_BARS.md).

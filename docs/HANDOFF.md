@@ -1,5 +1,12 @@
 # Current A/B handoff
 
+## Player health bars — 20 September 2026 user request
+
+Player world labels now include a fixed-size health bar beneath the text. Green
+remaining HP fills from the left, red missing HP fills the right; the full bar
+never shrinks. Existing detached core health drives both players' bars. See
+[coordinated HUD scope and checks](coordination/B_PLAYER_HEALTH_BARS.md).
+
 ## Component damage presentation — 20 September 2026
 
 Weapons and individual drive sides now show snapshot-driven cracked/scorched and

@@ -1,5 +1,11 @@
 # Developer B — combat, bots, customisation and controls
 
+## Player health bars — 20 September 2026 user request
+
+The focused HUD handoff adds fixed-size green/red health bars under the existing
+world identities, using detached core HP and preserving marker lifecycle and
+depth testing. See [scope and checks](coordination/B_PLAYER_HEALTH_BARS.md).
+
 ## Component damage presentation — 20 September 2026
 
 Weapons and individual drive sides now show snapshot-driven cracked/scorched and

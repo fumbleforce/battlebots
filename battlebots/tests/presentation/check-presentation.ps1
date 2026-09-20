@@ -101,6 +101,8 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/component_damage_test.tscn', '--quit-after', '10000') -Marker 'COMPONENT DAMAGE PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/player_health_bars_test.tscn', '--quit-after', '10000') -Marker 'PLAYER HEALTH BARS PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_unlocked_options_test.tscn', '--quit-after', '10000') -Marker 'GARAGE UNLOCKED OPTIONS PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/garage_pagination_test.tscn', '--quit-after', '10000') -Marker 'GARAGE PAGINATION PASS'

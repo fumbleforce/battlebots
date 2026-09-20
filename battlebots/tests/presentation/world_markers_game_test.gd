@@ -14,6 +14,22 @@ func frames(count := 8) -> void:
 	for index: int in range(count):
 		await process_frame
 
+func check_health(game: Node, view: BotView) -> void:
+	var marker: Label3D = game.world_markers.markers[view.entity_id]
+	var bar := marker.get_node("HealthBar") as Sprite3D
+	check(bar != null and bar.is_visible_in_tree(), "Actual practice shows health below each name")
+	if bar == null: return
+	var width := roundi(view.core_fraction * 124)
+	check(bar.fixed_size and bar.offset.y < 0, "Health bar has fixed screen size and sits below name")
+	check(bar.get_meta("green_width") == width, "Green fill matches detached authoritative core fraction")
+	var pixels := bar.texture.get_image()
+	check(pixels.get_size() == Vector2i(128, 12), "Health texture retains its fixed dimensions")
+	# The headless renderer retains the initial texture image after update().
+	# Native readback verifies the rendered colors; both paths verify fill metadata.
+	if DisplayServer.get_name() != "headless":
+		if width > 0: check(pixels.get_pixel(2, 6).is_equal_approx(BotWorldMarkers.HEALTH_GREEN), "Remaining health is green")
+		if width < 124: check(pixels.get_pixel(2 + width, 6).is_equal_approx(BotWorldMarkers.HEALTH_RED), "Lost health is red")
+
 func run() -> void:
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	root.size = Vector2i(1280, 720)
@@ -31,13 +47,18 @@ func run() -> void:
 	var target_id: int = target.read_view().entity_id
 	check(game.world_markers.visible and game.world_markers.markers.size() == 2, "Actual practice supplies both world identities")
 	check(game.world_markers.markers[local_id].text.contains("YOU") and game.world_markers.markers[target_id].text.contains("TARGET"), "Practice target does not need a lobby roster entry")
+	check_health(game, game.session.local_source().read_view())
+	check_health(game, target.read_view())
 	var initial: Vector3 = game.world_markers.markers[local_id].global_position
+	# Isolate fixture commands from the live keyboard adapter's neutral commands.
+	game.preview.set_physics_process(false)
 	for step: int in range(90):
 		var command := BotCommand.new()
 		command.sequence = step
 		command.throttle = -1.0
 		game.session.submit_local(command)
 		await physics_frame
+	game.preview.set_physics_process(true)
 	await frames()
 	game._update_world_markers()
 	var local: BotView = game.session.local_source().read_view()
@@ -52,6 +73,17 @@ func run() -> void:
 	game._apply_hud_preferences(large)
 	await frames()
 	check(badge.font_size == roundi(base_size * 1.5), "HUD accessibility also enlarges world labels")
+	# Exercise the real authoritative producer, then let normal game rendering consume views.
+	var target_bot := target as MvpBot
+	var local_bot := game.session.local_source() as MvpBot
+	check(target_bot != null and local_bot != null, "Practice exposes real combat bots")
+	target_bot.combat.damage("top", target_bot.combat.stats.core * 0.5 / 0.95)
+	local_bot.combat.damage("top", local_bot.combat.stats.core * 0.25 / 0.95)
+	await frames()
+	check(is_equal_approx(target.read_view().core_fraction, 0.5), "Practice target damage reaches detached view")
+	check(is_equal_approx(local_bot.read_view().core_fraction, 0.75), "Local damage reaches detached view")
+	check_health(game, target.read_view())
+	check_health(game, local_bot.read_view())
 	for extent: Vector2i in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
 		root.size = extent
 		await frames()
@@ -68,6 +100,11 @@ func run() -> void:
 	game.restart_practice()
 	await frames()
 	check(game.world_markers.visible, "Resumed practice restores markers")
+	var restored_target: BotView = game.session.practice_target().read_view()
+	var restored_local: BotView = game.session.local_source().read_view()
+	check(restored_target.core_fraction == 1.0 and restored_local.core_fraction == 1.0, "Practice reset restores authoritative health")
+	check_health(game, restored_target)
+	check_health(game, restored_local)
 	game.return_to_main()
 	await frames()
 	check(not game.world_markers.visible and game.world_markers.markers.is_empty(), "Leave removes stale identities")
