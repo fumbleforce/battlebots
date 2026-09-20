@@ -1,5 +1,19 @@
 # Orange modular Scorpion — B implementation and release handoff
 
+## Shutdown checkpoint — user requested stop
+
+Implementation is committed and pushed to main as `8734d2f`. Matching Windows
+client and Linux server were exported from that clean commit; native Windows
+release boot and the merged checkout baseline passed. The user's two unrelated
+working edits in the original checkout were preserved. No live deployment was
+performed. Remaining work is in [Developer B TODO](../DEVELOPER_B_TODO.md).
+
+Ready-to-use artifacts and `release-record.json` are saved at
+`C:/Users/jorge/battlebots/battlebots/exports/scorpion-8734d2f/`:
+`client/battlebots.exe`, matching `server/`, and the final
+`scorpion-practice-review.mp4`. The record includes commit, compatibility and
+artifact hashes. Resume from this checkpoint; do not rebuild the completed bot.
+
 20 September 2026. Branch `codex/b-scorpion` in
 `C:/Users/jorge/battlebots-scorpion`, integrated over main `32341d1` and its
 completed heavy movement, Full HD garage and sampled-audio work. The user

@@ -1,5 +1,34 @@
 # Worker B — shared task list
 
+## Scorpion shutdown checkpoint — 20 September 2026
+
+User requested stopping immediately. Completed implementation is on main
+`8734d2f`: corrected modular Blender model, working hammer/minigun, radial gait,
+diesel smoke, supplied hammer/footfall sounds, three destructive practice NPCs,
+and grounded alternate weapon mounts. Local/native/network validation passed.
+See [complete checkpoint and artifact paths](coordination/B_SCORPION.md).
+
+Remaining work when resumed:
+
+- [ ] **A — matching hosted release.** During an established playtest break,
+  deploy the prepared server from clean commit `8734d2f`, retaining the previous
+  release for rollback. Client/server artifacts and hashes are in
+  `battlebots/exports/scorpion-8734d2f/`. Required compatibility is build
+  `mvp-ab-13`, protocol 5, content hash
+  `bf965dc8fdd5456ccddb23873d40f490885006eb70424a6a7c53c3db1fa4bf73`.
+- [ ] **A — external acceptance.** Compare live `/healthz`, then run private
+  and Quick Play duels through results/rematch using the matching client and
+  `tools/check-hosted.mjs --duel-only`. Hosted readiness remains unverified.
+- [ ] **B — user playtest.** Review the completed bot against the supplied
+  reference in Practice: silhouette, weapon swaps, leg motion, thick diesel
+  smoke and supplied audio levels. Address concrete playtest feedback.
+- [ ] **B — renderer cleanup follow-up.** Investigate the seven Texture RID
+  allocations reported at native full-bot shutdown. Tests exit successfully
+  without script/shader errors; runtime impact has not been established.
+
+No ongoing build or validation needs resuming. The 11.5-second actual gameplay
+clip and playable Windows build are saved with the paired artifacts above.
+
 - **A main-menu cleanup / B compact showcase handoff:** `codex/a-main-menu-cleanup`
   reserves main composition and practice routing; delegated B owns an opt-in compact
   FeaturedVehicle/GarageBotPreview presentation, preserving workshop/lobby defaults.
