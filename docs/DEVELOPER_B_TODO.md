@@ -505,3 +505,5 @@ codex/b-menu-text-accessibility begins from d6e154e: Garage/Customize/catalogue/
 
 The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customize and recovery use pages, Controls uses Driving/Weapons/Camera & HUD groups, and Camera fits an inline form. Existing transactions work through A's themed hub. The Scoreboard label is no longer planned. Featured main/lobby vehicle selection and automatic showcase remain the next separate B implementation/A integration work.
 
+
+- 2026-09-20 B: starting featured vehicle selection/rotating showcase on codex/b-featured-vehicle from 9e54dcc; see coordination/B_FEATURED_VEHICLE.md for component API, main/lobby boundary and checks.
