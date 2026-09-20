@@ -1,6 +1,8 @@
 # Fly.io online playtest deployment
 
 Live since 2026-09-20: `https://battlebots-fumbleforce.fly.dev`, build `mvp-ab-12`.
+Updated on 2026-09-20 to main's catalogue revision 6 after Quick Play correctly
+rejected the older deployed catalogue. See [service synchronization](../../docs/coordination/A_QUICK_PLAY_SERVICE_SYNC.md).
 Private and Quick Play duels passed real external UDP results/rematch checks;
 the current project is configured for this endpoint. See
 [deployment evidence](../../docs/coordination/A_FLY_DUEL_LIVE.md).

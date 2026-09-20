@@ -1,0 +1,115 @@
+{
+  "private": [
+    {
+      "active_frames": 367,
+      "completed_match": "f16941d0ff2a161b5f74e5ca",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 11.4844369888306,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": false,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "00ee5d47efb45431b4bfaed8",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1504,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 367,
+      "completed_match": "f16941d0ff2a161b5f74e5ca",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 11.4844398498535,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": false,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "00ee5d47efb45431b4bfaed8",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1502,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "quick_duel": [
+    {
+      "active_frames": 367,
+      "completed_match": "64e89233320debb5c2c25410",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 11.6031446456909,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": false,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "9b0b0ce02be3df05cb775fba",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 495,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 367,
+      "completed_match": "64e89233320debb5c2c25410",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 11.6623783111572,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": false,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "9b0b0ce02be3df05cb775fba",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1502,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "build": "mvp-ab-12",
+  "exported_server": null,
+  "service_origin": "https://battlebots-fumbleforce.fly.dev",
+  "managed_service": true,
+  "external_endpoint": "https://battlebots-fumbleforce.fly.dev"
+}

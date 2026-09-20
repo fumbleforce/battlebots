@@ -1,5 +1,13 @@
 # Current A/B handoff
 
+## Quick Play service synchronization — 20 September 2026
+
+The existing Fly server now uses main's catalogue revision 6. Its stale catalogue
+was rejecting current clients before queueing. Online errors appear above retry
+actions and receive focus so the failure explanation remains visible. Build and
+protocol gates remain intact; no B implementation changes. See
+[deployment and validation](coordination/A_QUICK_PLAY_SERVICE_SYNC.md).
+
 ## Player health bars — 20 September 2026 user request
 
 Player world labels now include a fixed-size health bar beneath the text. Green
