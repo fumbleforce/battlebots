@@ -520,3 +520,5 @@ The text-accessibility branch now incorporates fe9f2f0: Garage/catalogue/Customi
 
 - 2026-09-20 B: Sawblade Tank runtime/garage integration reserved; optional cosmetics contract and acceptance in coordination/B_SAWBLADE_INTEGRATION.md.
 - **B camera round lifecycle:** independent real-session camera/input continuity and rearming acceptance on codex/b-camera-round-lifecycle; no new spectator behavior or model/drive/weapon edits. See [scope](coordination/B_CAMERA_ROUND_LIFECYCLE.md).
+
+- **B component damage intent:** localized snapshot-driven weapon/drive damage presentation on codex/b-component-damage from cffc860. Cosmetic-only paths and independent acceptance in [scope](coordination/B_COMPONENT_DAMAGE.md).
