@@ -41,7 +41,11 @@ func start() -> void:
 			session.set_loadout(session.registry.starter())
 			session.set_ready(true)
 		elif kind == "error":
-			finish("Session rejected or disconnected")
+			var detail := str(details.get("message", "Session rejected or disconnected"))
+			for credential: String in [str(config.get("admission_ticket", "")), session.reconnect_token]:
+				if not credential.is_empty():
+					detail = detail.replace(credential, "[hidden]")
+			finish(detail.left(240))
 		elif kind == "results" and bool(config.get("duel_lifecycle", false)):
 			result_record = details.duplicate(true)
 			completed_match = str(details.get("match", {}).get("match_id", ""))

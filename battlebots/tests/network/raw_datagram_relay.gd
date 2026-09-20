@@ -91,6 +91,15 @@ func run() -> void:
 	check(relay.stats.uplink.bytes_out == 1200 and relay.stats.downlink.bytes_out == 1200,
 		"Byte counters include both directions")
 	check(relay.start(0, server.get_local_port()) == ERR_ALREADY_IN_USE, "Running relay cannot be restarted accidentally")
+	if restart({"max_datagram_bytes":1350}, {"max_datagram_bytes":1350}):
+		var oversized := payload.duplicate()
+		oversized.resize(1392)
+		send(oversized)
+		oversized.resize(1350)
+		send(oversized)
+		check(await until(func() -> bool: return received.size() == 1), "MTU-boundary packet crosses limited path")
+		check(received.size() == 1 and received[0].bytes.size() == 1350 and relay.stats.uplink.mtu_dropped == 1,
+			"Path MTU drops 1392-byte datagram without altering accepted bytes")
 	await timing_case()
 	await loss_case()
 	await duplicate_case()

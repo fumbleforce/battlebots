@@ -22,7 +22,7 @@ PlayerProfile="*res://ui/menus/scripts/player_profile.gd"
 
 [services]
 
-matchmaking_url=""
+matchmaking_url="https://battlebots-fumbleforce.fly.dev"
 
 [display]
 

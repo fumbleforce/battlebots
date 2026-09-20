@@ -25,8 +25,9 @@ demonstrated combat/control defects are handed to B rather than changed by A.
 ## Current user priority
 
 Updated by the user on 2026-09-20: finish a fully working 1v1 game first. External
-matchmaker/dedicated-server deployment remains outstanding and HUD work is raised
-in priority. Deliver the full hosted duel loop through combat, rounds, results
+matchmaker/dedicated-server deployment is now live on Fly with automated public
+duel acceptance; two-computer human hosted acceptance remains open. HUD work is
+raised in priority. Deliver the full hosted duel loop through combat, rounds, results
 and rematch. Defer 2v2, FFA and all other multiplayer modes until the 1v1 game is
 fully working. The tutorial is also deferred until then, with B retaining control
 exercise ownership and A retaining menu integration.
@@ -56,6 +57,18 @@ Existing modes/tests remain; larger-mode expansion, optimization and soak work
 do not block the active 1v1 scope.
 
 ## Current Developer A increment
+
+`codex/a-fly-duel-live` follows `2b42812`. The user approved hosting costs; one
+Stockholm Machine now serves `https://battlebots-fumbleforce.fly.dev`. Both
+private and queued duels passed actual public UDP gameplay, results and rematch.
+Current clients use that endpoint. A measured packet-size black hole on the Fly
+route and enabled symmetric ENet range-coder compression, requiring matching
+`mvp-ab-12` clients/server. Protocol 4 and B bot records remain unchanged.
+The packet-limit regression also covers reconnect/results/rematch. See
+[live deployment](coordination/A_FLY_DUEL_LIVE.md). Human hosted acceptance and
+the previously observed Windows native shutdown issue remain open.
+
+### Preceding Quick Play increment
 
 `codex/a-duel-quick-play` follows `5015c7e`. Quick Play explicitly queues two
 players, with isolated legacy four-player support and advertised capability.

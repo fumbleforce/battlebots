@@ -22,6 +22,9 @@ func make_relay(seed_offset: int) -> Node:
 	var relay := Relay.new()
 	relay.uplink = {"delay_ms":injected_rtt / 2, "jitter_ms":jitter, "loss":loss, "duplicate":0.02, "seed":7001 + seed_offset}
 	relay.downlink = {"delay_ms":injected_rtt / 2, "jitter_ms":jitter, "loss":loss, "duplicate":0.02, "seed":9001 + seed_offset}
+	var path_mtu := OS.get_environment("BATTLEBOTS_NET_MTU").to_int()
+	relay.uplink["max_datagram_bytes"] = path_mtu
+	relay.downlink["max_datagram_bytes"] = path_mtu
 	add_child(relay)
 	relays.append(relay)
 	if relay.start(0, server_port) != OK:
@@ -174,6 +177,8 @@ func finish() -> void:
 			check(counters.packets_in > 0 and counters.packets_out > 0, "Actual UDP traffic crosses each relay direction")
 			check(counters.queue_dropped == 0 and counters.send_errors == 0 and counters.receive_errors == 0,
 				"Test relay has no overflow or socket errors")
+			if OS.get_environment("BATTLEBOTS_NET_MTU").to_int() > 0:
+				check(counters.mtu_dropped == 0, "Current game traffic stays within the simulated path MTU")
 		print("Whole UDP profile %.0f relay: %s" % [injected_rtt, relay.stats])
 		relay.stop()
 	for child: Node in get_children():

@@ -8,7 +8,8 @@
 1v1 game first, including externally hosted matchmaking/game servers, readable
 HUD, coherent multiplayer menus, win/score screens and an in-game menu matching
 the other panels. Human multiplayer through a tunnel has succeeded per the user;
-external hosting still needs separate acceptance. The broader mode and tutorial
+Fly hosting now passes automated public private/Quick Play duel checks; a
+two-computer human hosted playtest remains open. The broader mode and tutorial
 designs below remain future scope: defer 2v2, other modes and tutorial until 1v1
 is fully working. See [the current board](A_MVP_TASKS.md) for implementation status.
 
@@ -395,7 +396,7 @@ After 250 ms without valid input, set throttle to zero, brake, and stop weapon a
 Release needs a small HTTPS control service for guest/account identity, region selection, lobby listing, queue tickets, server allocation, and result receipts. Use short-lived join tokens binding player, match, slot, expiry, and build version. Hosting provider and account platform are implementation selections, not assumed engine features.
 
 Current delivery priority starts public Quick Play with a 1v1 queue. Two-player
-allocation is implemented; external hosting and human acceptance remain open.
+allocation and external hosting are implemented; human hosted acceptance remains open.
 After the complete 1v1 game, the broader design is a single 2v2 public queue,
 parties of up to two, nearby regions and comparable recent performance, broadening
 skill range before accepting higher latency. Target under 120 ms RTT and show

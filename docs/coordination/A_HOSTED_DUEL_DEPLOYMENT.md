@@ -1,5 +1,9 @@
 # A — external hosted duel acceptance
 
+**Current status:** user approved costs and the subsequent
+[live Fly deployment](A_FLY_DUEL_LIVE.md) passed external private/Quick Play duels.
+The provisioning and pending-approval notes below record the earlier preparation.
+
 Intent 2026-09-20, branch `codex/a-hosted-duel-deployment`, base `bca152c`.
 A owns deployment/service configuration, hosted test harness and independent
 client fixtures. Extend acceptance to an external HTTPS allocator and actual

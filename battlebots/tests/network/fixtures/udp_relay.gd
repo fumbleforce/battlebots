@@ -137,6 +137,12 @@ func _schedule(direction: String, bytes: PackedByteArray, ip: String, port: int)
 		counters.forced_dropped += 1
 		return
 	var profile: Dictionary = uplink if direction == "uplink" else downlink
+	counters.max_datagram_bytes = maxi(counters.max_datagram_bytes, bytes.size())
+	var mtu := int(profile.get("max_datagram_bytes", 0))
+	if mtu > 0 and bytes.size() > mtu:
+		counters.dropped += 1
+		counters.mtu_dropped += 1
+		return
 	var random: RandomNumberGenerator = _random[direction]
 	if random.randf() < float(profile.get("loss", 0.0)):
 		counters.dropped += 1
@@ -165,9 +171,10 @@ func _valid_profile(profile: Dictionary) -> bool:
 			return false
 		if field in ["loss", "duplicate"] and value > 1:
 			return false
-	return profile.get("seed", 0) is int
+	var mtu: Variant = profile.get("max_datagram_bytes", 0)
+	return profile.get("seed", 0) is int and mtu is int and mtu >= 0 and mtu <= 65535
 
 func _empty_stats() -> Dictionary:
 	return {"packets_in":0, "bytes_in":0, "packets_out":0, "bytes_out":0,
-		"dropped":0, "forced_dropped":0, "duplicated":0, "queue_dropped":0,
+		"dropped":0, "forced_dropped":0, "mtu_dropped":0, "max_datagram_bytes":0, "duplicated":0, "queue_dropped":0,
 		"send_errors":0, "receive_errors":0, "unroutable":0, "queued":0}

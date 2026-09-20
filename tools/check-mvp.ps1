@@ -52,7 +52,10 @@ Invoke-MvpTest 'res://tests/network/raw_datagram_relay.tscn' 'RAW DATAGRAM RELAY
 Invoke-MvpTest 'res://tests/network/remote_extrapolation.tscn' 'REMOTE EXTRAPOLATION PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/wall_contact.tscn' 'WALL CONTACT PASS' -Scene -RealTime
 $previousProfile = $env:BATTLEBOTS_NET_PROFILE
+$previousMtu = $env:BATTLEBOTS_NET_MTU
 try {
+    # Reproduce the public Fly path: oversized UDP datagrams are dropped.
+    $env:BATTLEBOTS_NET_MTU = '1350'
     foreach ($profile in @('0', '80', '150')) {
         $env:BATTLEBOTS_NET_PROFILE = $profile
         Invoke-MvpTest 'res://tests/network/session_smoke.gd' 'NETWORK PASS' -RealTime
@@ -66,5 +69,6 @@ try {
     }
 } finally {
     $env:BATTLEBOTS_NET_PROFILE = $previousProfile
+    $env:BATTLEBOTS_NET_MTU = $previousMtu
 }
 Write-Host 'MVP PASS'

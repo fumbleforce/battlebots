@@ -1,0 +1,95 @@
+{
+  "private": [
+    {
+      "active_frames": 366,
+      "completed_match": "e4ba28256399f8fd58f6f7a1",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 11.4844369888306,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "rematch_active": true,
+      "rematch_id": "2dd7469cce3490be6a958dab",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1502,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 366,
+      "completed_match": "e4ba28256399f8fd58f6f7a1",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 11.4844398498535,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "rematch_active": true,
+      "rematch_id": "2dd7469cce3490be6a958dab",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1502,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "quick_duel": [
+    {
+      "active_frames": 365,
+      "completed_match": "831d0a88d7c69165edfb48f5",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 11.6031446456909,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "rematch_active": true,
+      "rematch_id": "e25a0846358f839fa5bf3fe8",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1512,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 365,
+      "completed_match": "831d0a88d7c69165edfb48f5",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 11.6031455993652,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "rematch_active": true,
+      "rematch_id": "e25a0846358f839fa5bf3fe8",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1512,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "build": "mvp-ab-12",
+  "exported_server": null,
+  "service_origin": "https://battlebots-fumbleforce.fly.dev",
+  "managed_service": true,
+  "external_endpoint": "https://battlebots-fumbleforce.fly.dev"
+}

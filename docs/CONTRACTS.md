@@ -8,6 +8,16 @@ coordinated producer-consumer interfaces, not blanket A ownership of scripts/cor
 The current split in TEAM_WORKFLOW.md supersedes historical authorship below.
 Paths below are relative to the Godot project.
 
+## Transport compatibility
+
+Current transport build is `mvp-ab-12`, protocol 4. Every MvpSession host and
+client enables ENet range-coder compression. Older clients must update with the
+server; this symmetric setting reduces current game packets below the measured
+Fly path limit. BotCommand/BotView and authoritative message fields are unchanged.
+The raw transport regression drops datagrams over 1350 bytes and verifies the
+current traffic, results, rematch and reconnect. See
+[live hosting evidence](coordination/A_FLY_DUEL_LIVE.md).
+
 ## Combat and round HUD
 
 `GameplayAudio.observe_bot(view, weapon = "")` consumes a fresh accepted local

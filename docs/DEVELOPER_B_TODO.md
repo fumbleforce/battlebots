@@ -455,3 +455,14 @@ integration base, not the still-old main branch.
   capability; active client requests 1v1 explicitly. Expired guest state becomes
   cleanly retryable. No B runtime, controls, garage or wire changes. See
   [Quick Play coordination](coordination/A_DUEL_QUICK_PLAY.md).
+
+- **A Fly deployment intent (2026-09-20):** user approved the recurring hosting
+  cost. New app `battlebots-fumbleforce` runs one Stockholm Machine with dedicated
+  IPv4. A validates public private/Quick Play duels before enabling the shared
+  `project.godot` matchmaking URL. No input-action or B producer changes. See
+  [live deployment](coordination/A_FLY_DUEL_LIVE.md).
+
+- **A transport compatibility update:** measured Fly path drops at ENet's default
+  packet size. A enables range-coder compression on both session ends and bumps
+  build to `mvp-ab-12`; use matching clients/server. No B producers or protocol-4
+  bot fields changed. Public validation evidence is tracked in the live handoff.

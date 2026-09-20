@@ -1,5 +1,11 @@
 # Fly.io online playtest deployment
 
+Live since 2026-09-20: `https://battlebots-fumbleforce.fly.dev`, build `mvp-ab-12`.
+Private and Quick Play duels passed real external UDP results/rematch checks;
+the current project is configured for this endpoint. See
+[deployment evidence](../../docs/coordination/A_FLY_DUEL_LIVE.md).
+Provisioning commands below describe recreation, not a request to create duplicates.
+
 This deploys the HTTPS matchmaker and a bounded pool of real Godot UDP game
 servers. Players need only the updated game; they do not host a tunnel or forward
 ports. First deployment uses one Machine in Stockholm (`arn`), four worker ports
@@ -56,7 +62,7 @@ billable resources and are deployment instructions, not evidence of deployment.
 ```powershell
 fly apps create battlebots-fumbleforce --org personal
 fly ips allocate-v4 --app battlebots-fumbleforce
-fly deploy --config services/matchmaking/fly.toml --remote-only --ha=false --strategy immediate
+fly deploy . --config services/matchmaking/fly.toml --dockerfile services/matchmaking/Dockerfile --ignorefile .dockerignore --remote-only --ha=false --strategy immediate
 fly scale count 1 --app battlebots-fumbleforce
 fly status --app battlebots-fumbleforce
 ```

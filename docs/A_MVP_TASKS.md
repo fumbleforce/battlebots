@@ -26,13 +26,14 @@ active expansion or acceptance work.
   damage/identity retention, results recovery and explicit leave. Independent
   ENet and composed-game checks pass; see [recovery evidence](coordination/A_RECONNECT_FLOW.md).
   External hosting and human recovery acceptance remain open.
-- [ ] Deploy the externally hosted matchmaker and dedicated game server for 1v1;
-  verify external connectivity and complete a real hosted duel through rematch.
-  Private duels and two-player Quick Play are implemented; the retained legacy
-  2v2 queue is not the active delivery target. Public hosting remains outstanding. The
-  [external duel harness](coordination/A_HOSTED_DUEL_DEPLOYMENT.md) now checks
-  authoritative results and rematch as well as assigned connectivity; local
-  validation does not close this deployment task.
+- [x] Deploy the externally hosted matchmaker and dedicated game server for 1v1.
+  `battlebots-fumbleforce` runs one Stockholm Fly Machine. External private and
+  Quick Play duels passed assigned UDP connectivity, driving, two-round results
+  and rematch; the current game uses its HTTPS endpoint. See
+  [live deployment evidence](coordination/A_FLY_DUEL_LIVE.md).
+- [ ] Conduct a two-computer human duel on the deployed Fly service, including
+  natural combat, results/rematch and recovery. Automated public forfeit-driven
+  lifecycle checks do not replace this human acceptance.
 - [x] Add 1v1 Quick Play, isolated from the legacy four-player queue, with
   coherent online-menu waiting/cancel states and expired-session retry.
   See [duel queue evidence](coordination/A_DUEL_QUICK_PLAY.md). External hosted

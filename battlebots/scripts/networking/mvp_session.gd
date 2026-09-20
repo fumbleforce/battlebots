@@ -91,6 +91,9 @@ func host(port := 24567, listen := true, player_count := 4, mode := "teams", bin
 	if error != OK:
 		session_event.emit("error", {"message":"Cannot bind UDP port", "code":error})
 		return error
+	# Apply on both ends: compressed baselines avoid oversized public-route
+	# datagrams and reduce snapshot bandwidth. Godot exposes no ENet MTU setter.
+	peer.get_host().compress(ENetConnection.COMPRESS_RANGE_CODER)
 	multiplayer.multiplayer_peer = peer
 	player_capacity = player_count
 	match_mode = mode
@@ -116,6 +119,7 @@ func _join(address: String, port: int, token: String, admission_ticket: String) 
 	var error := peer.create_client(address, port, 3)
 	if error != OK:
 		return error
+	peer.get_host().compress(ENetConnection.COMPRESS_RANGE_CODER)
 	_join_address = address
 	_join_port = port
 	_hello_data = {"protocol":WireCodec.PROTOCOL, "build":WireCodec.BUILD, "content":registry.content_hash,

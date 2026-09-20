@@ -1,12 +1,15 @@
 # Only deployment source and the explicitly prepared Linux export enter the image.
 **
 !services/
+services/*
 !services/matchmaking/
 !services/matchmaking/**
 services/matchmaking/node_modules/
 services/matchmaking/.env*
 services/matchmaking/test*/
 !battlebots/
+battlebots/*
 !battlebots/exports/
+battlebots/exports/*
 !battlebots/exports/hosted-server/
 !battlebots/exports/hosted-server/**

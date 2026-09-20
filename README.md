@@ -19,7 +19,7 @@ screens retain the supplied art/theme and use real loadouts and LAN session stat
 Garage/Customize edit canonical free parts and save named builds locally. Settings
 uses the real camera/control preferences. Concept images remain 2D; career,
 ranked play, invites and decals are not implemented. Public room codes and 1v1
-Quick Play are implemented but deployment is pending. Choose **Host LAN Game**
+Quick Play are live on the Fly-hosted playtest service. Choose **Host LAN Game**
 for a local match; **Join LAN Game** accepts the host's mode automatically.
 See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
 
@@ -118,9 +118,9 @@ and Vote rematch only at results. Reconnect is available through the session API
 
 The **Play Online** route supports Quick Play (1v1), private 1v1
 games and eight-character friend codes through an externally hosted dedicated
-server. This branch's service and deployment files are prepared; online hosting
-must be deployed and `services/matchmaking_url` configured before distributing
-the online build. There is no built-in localhost fallback for players.
+server at `https://battlebots-fumbleforce.fly.dev`. Current `mvp-ab-12` clients
+are configured to use it. Older builds must update to match the server's
+transport settings. There is no built-in localhost fallback for players.
 [Deployment instructions](services/matchmaking/DEPLOYMENT.md) describe Fly.io,
 local checks, operating costs and the current single-Machine limits. LAN remains
 available independently through **Host LAN Game** and **Join LAN Game**.
