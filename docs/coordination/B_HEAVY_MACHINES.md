@@ -211,3 +211,12 @@ deploy the actual updated workers, compare live health compatibility and run
 --duel-only --godot <pinned Godot executable>` through results/rematch. No client
 package or hosted deployment was produced by this B source increment, and no
 external online acceptance is claimed.
+
+## Integration verification
+
+Implementation commit `b979a89` rebases onto `ac2bda4` with the completed battle
+soundtrack included. Only the two coordination-document insertions conflicted;
+both A and B entries were retained. After rebase, `tools/check-drive.ps1` passes
+its editor import, baseline, original drive and enlarged Jolt/replay regressions.
+Source diff whitespace validation passes. The separate working checkout's
+in-progress menu/audio work and unrelated project/import edits remain untouched.
