@@ -3,7 +3,7 @@
 ## Current division of labor
 
 The user's revised split supersedes the original phase assignments and historical
-ownership in older handoffs. This session is Developer A.
+ownership in older handoffs. Each session takes the role assigned by the user.
 
 - **A: Menus, networking, game rules, game world, audio.**
 - **B: Combat, bot assets (models and weapons), bot-customisation menus, player controls.**

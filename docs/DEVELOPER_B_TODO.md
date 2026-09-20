@@ -41,6 +41,12 @@ and audio. Historical labels below describe authorship, not current ownership.
 
 ## Active and next — B-owned
 
+**B intent to A:** `codex/b-garage-preview` starts at main `2a9e70a`. B reserves
+garage/customization preview composition and independent preview tests only.
+No changes to general menus/router, sessions, audio or world. See
+[preview scope](coordination/B_GARAGE_PREVIEW.md); a subagent supplies independent
+scene checks while the primary implements the reusable presentation.
+
 User priority update (2026-09-20): a fully working 1v1 game comes first. Defer
 2v2, FFA and other multiplayer modes, plus all tutorial work, until then. A owns
 the raised HUD priority and external matchmaker/server deployment; B supplies
