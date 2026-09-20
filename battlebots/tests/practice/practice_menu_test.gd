@@ -1,6 +1,7 @@
 extends SceneTree
 ## Menu composition only; damaged state is explicit fixture setup, not natural combat.
 var failures := 0
+const ARENA_CHOICE = preload("res://scripts/arena/arena_scenery.gd")
 
 func _initialize() -> void:
 	run.call_deferred()
@@ -18,6 +19,9 @@ func frames(count := 4) -> void:
 func run() -> void:
 	root.size = Vector2i(1280, 720)
 	var original_audio := AudioPreferences.load_file(AudioPreferences.DEFAULT_PATH)
+	var arena_file_existed := FileAccess.file_exists(ARENA_CHOICE.PATH)
+	var arena_file_bytes := FileAccess.get_file_as_bytes(ARENA_CHOICE.PATH) if arena_file_existed else PackedByteArray()
+	var original_arena: String = ARENA_CHOICE.load_choice()
 	var game = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.audio_settings_path = ""
 	game.get_node("Preview").settings_path = ""
@@ -27,8 +31,25 @@ func run() -> void:
 	check(not game._restart_practice.visible and not game.practice_hud.visible, "Main menu has no practice-only controls")
 	game.restart_practice()
 	check(game.session.connection_state == "offline", "Restart cannot create a practice session from main")
-	game.start_practice()
+	var router := root.get_node("MenuRouter")
+	game.screen.get_node("%Practice").pressed.emit()
 	await frames()
+	check(router.current == "arena_select" and game.session.connection_state == "offline", "Practice opens arena setup before starting a session")
+	check(game.screen.get_node("%Title").text == "PRACTICE" and game.screen.get_node("%Next").text == "START PRACTICE", "Practice setup has a clear title and start action")
+	var preview_choice := 0 if original_arena == "moon" else 1
+	game.screen.get_node("%Tiles").get_child(preview_choice).pressed.emit()
+	game.screen.get_node("%Back").pressed.emit()
+	await frames()
+	check(router.current == "main" and game.session.connection_state == "offline", "Back from Practice setup returns to main without starting")
+	check(ARENA_CHOICE.load_choice() == original_arena, "Backing out does not save the previewed arena")
+	game.screen.get_node("%Practice").pressed.emit()
+	await frames()
+	check(router.match_setup.arena == ARENA_CHOICE.IDS.find(original_arena), "Practice setup restores the last saved arena")
+	game.screen.get_node("%Tiles").get_child(0).pressed.emit()
+	game.screen.get_node("%Next").pressed.emit()
+	await frames()
+	check(game.session.connection_state == "practice" and game.session.arena_id == "foundry", "Start Practice enters the selected arena through the actual session")
+	check(ARENA_CHOICE.load_choice() == "foundry", "Confirmed practice arena remains available to LAN hosting and workshop test drive")
 	var bot: MvpBot = game.session.local_source()
 	var target: MvpBot = game.session.practice_target()
 	var world: AuthorityWorld = game.session.world
@@ -84,6 +105,12 @@ func run() -> void:
 	game.return_to_main()
 	game.queue_free()
 	await frames()
+	if arena_file_existed:
+		var arena_file := FileAccess.open(ARENA_CHOICE.PATH, FileAccess.WRITE)
+		arena_file.store_buffer(arena_file_bytes)
+		arena_file.close()
+	else:
+		DirAccess.remove_absolute(ARENA_CHOICE.PATH)
 	original_audio.apply()
 	print("PRACTICE MENU PASS" if failures == 0 else "PRACTICE MENU FAIL")
 	quit(0 if failures == 0 else 1)

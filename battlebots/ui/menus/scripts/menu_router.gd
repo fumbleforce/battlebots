@@ -14,6 +14,7 @@ const SCREENS := {
 }
 var match_setup := {"mode":"duel", "bot":0, "arena":0, "capacity":8}
 var lobby_intent := "host"
+var arena_intent := "select"
 var in_match_flow := false
 var current := "main"
 var session: MvpSession
@@ -29,6 +30,13 @@ func bind(value: Node, active_session: MvpSession) -> void:
 	current = "main"
 	in_match_flow = false
 	lobby_intent = "host"
+	arena_intent = "select"
+
+func open_practice() -> void:
+	arena_intent = "practice"
+	_history.clear()
+	current = "main"
+	goto("arena_select")
 
 func open_host() -> void:
 	lobby_intent = "host"
@@ -51,6 +59,8 @@ func open_join() -> void:
 func goto(screen: String, remember := true) -> void:
 	if not SCREENS.has(screen) or not is_instance_valid(host):
 		return
+	if screen != "arena_select":
+		arena_intent = "select"
 	if screen in _history:
 		_history.resize(_history.find(screen))
 	elif remember and screen != current:

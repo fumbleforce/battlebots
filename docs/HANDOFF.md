@@ -10,6 +10,18 @@ state guards remain in use. Baseline, recorded-source/loop checks, actual spatia
 mix capture and composed audio lifecycle pass. No gameplay/compatibility change
 or hosted release. See [mapping and evidence](coordination/A_SAMPLED_COMBAT_AUDIO.md).
 
+## Main-menu cleanup and Practice setup — 20 September 2026
+
+The main menu now has concise aligned navigation, a larger padded bot card and
+one name/count/arrow row. A compact preview option retains rotation controls,
+keyboard inspection and invalid-build feedback. Practice opens arena setup with
+an explicit Start Practice action; arena selection leaves the main menu.
+Workshop test drive and default lobby presentation retain their existing flow.
+Baseline, menu/practice flow, keyboard/invalid-build checks and native 720p through
+ultrawide main layouts at 100–150% text pass. See
+[scope and evidence](coordination/A_MAIN_MENU_CLEANUP.md). No gameplay,
+catalogue or network changes, and no hosted release is claimed.
+
 ## Battle soundtrack — 20 September 2026
 
 A added the supplied Relentless Action MP3 as a looping battle song on the existing

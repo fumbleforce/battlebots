@@ -83,6 +83,14 @@ Paths below are relative to the Godot project.
 
 ## Featured vehicle selection
 
+`FeaturedVehicle.set_compact(enabled)` and `GarageBotPreview.set_compact(enabled)`
+are opt-in local presentation APIs, valid before or after ready. Main uses the
+compact layout: preview above name/count/previous/next, plus an accessible pause
+icon. Routine inspection instructions move to tooltips; invalid-build reasons
+stay visible. Selection, caller-owned locks, validation and workshop/lobby defaults
+remain unchanged. `MenuRouter.open_practice()` opens arena setup before calling
+the existing direct `start_practice()` entry. Workshop test drive remains direct.
+
 `FeaturedVehicle.render(loadouts, selected, editable=true, message="")` accepts
 detached local choices and caller-owned selection/status. Its
 `selection_requested(index, draft)` signal is intent only: it cannot save a build,

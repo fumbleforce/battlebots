@@ -68,14 +68,14 @@ size_flags_vertical = 4
 
 [node name="Eyebrow" type="Label" parent="Layout/Header/Row/TitleBox"]
 layout_mode = 2
-text = "STEP 3 OF 4 · TEAM BRAWL · CHEVRON"
+text = "CHOOSE YOUR ARENA"
 theme_type_variation = &"Eyebrow"
 theme_override_font_sizes/font_size = 16
 unique_name_in_owner = true
 
 [node name="Title" type="Label" parent="Layout/Header/Row/TitleBox"]
 layout_mode = 2
-text = "SELECT ARENA"
+text = "PRACTICE"
 theme_type_variation = &"Heading"
 theme_override_font_sizes/font_size = 53
 unique_name_in_owner = true
@@ -379,7 +379,7 @@ mouse_filter = 2
 [node name="Next" type="Button" parent="Layout/Footer/Row"]
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
-text = "FIND MATCH"
+text = "START PRACTICE"
 unique_name_in_owner = true
 icon = ExtResource("7_chevronr")
 icon_alignment = 2

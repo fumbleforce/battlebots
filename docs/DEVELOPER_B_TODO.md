@@ -1,5 +1,10 @@
 # Worker B — shared task list
 
+- **A main-menu cleanup / B compact showcase handoff:** `codex/a-main-menu-cleanup`
+  reserves main composition and practice routing; delegated B owns an opt-in compact
+  FeaturedVehicle/GarageBotPreview presentation, preserving workshop/lobby defaults.
+  See [scope](coordination/A_MAIN_MENU_CLEANUP.md). No bot/control/catalogue changes.
+
 B maintains the sections above A's coordination log. Completed task branches
 must now merge into main, which is the shared latest game. Historical branch
 entries retain their original validation and do not claim every release gate passed.

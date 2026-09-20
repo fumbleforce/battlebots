@@ -12,6 +12,7 @@ func apply_text_scale(factor: float) -> void:
 	%DetailName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Layout/Header/Row/TitleBox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	$Layout/Body/Row/Details/Col/ArtBox.custom_minimum_size.y = 180 if factor > 1.0 else 300
 	for tile: Control in %Tiles.get_children():
 		if not tile.has_meta("base_tile_height"):
 			tile.set_meta("base_tile_height", tile.custom_minimum_size.y)
@@ -28,8 +29,9 @@ func _ready() -> void:
 	$Layout/Footer/Row/Note2.hide()
 	$Layout/Body/Row/Details/Col/Text/Col/HazardsBlock/Label.text = "ENVIRONMENT"
 	$Layout/Header/Row/Sep.hide()
-	$Layout/Header/Row/TitleBox/Title.text = "CHOOSE ARENA"
-	%Eyebrow.text = "PRACTICE & LAN HOSTING · ONLINE USES THE SERVER'S ARENA"
+	$Layout/Header/Row/TitleBox/Title.text = "PRACTICE" if MenuRouter.arena_intent == "practice" else "CHOOSE ARENA"
+	%Eyebrow.text = "CHOOSE YOUR ARENA" if MenuRouter.arena_intent == "practice" else "LOCAL ARENA"
+	$Layout/Header/Row/Profile.hide()
 	MenuRouter.match_setup.arena = CHOICE.IDS.find(CHOICE.load_choice())
 	%Tiles.columns = 2
 	var group := ButtonGroup.new()
@@ -43,7 +45,7 @@ func _ready() -> void:
 			tile.button_pressed = true
 			tile.grab_focus.call_deferred()
 	_select(MenuRouter.match_setup.arena)
-	%Next.text = "USE THIS ARENA"
+	%Next.text = "START PRACTICE" if MenuRouter.arena_intent == "practice" else "USE ARENA"
 	%Next.pressed.connect(_next)
 
 
@@ -84,4 +86,7 @@ func _next() -> void:
 	if error != OK:
 		%Eyebrow.text = "Could not save arena: " + error_string(error)
 		return
-	MenuRouter.goto("main")
+	if MenuRouter.arena_intent == "practice":
+		MenuRouter.start_practice()
+	else:
+		MenuRouter.back()

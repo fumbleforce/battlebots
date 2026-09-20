@@ -35,9 +35,17 @@ func run() -> void:
 			check(screen.get_node("%PlayOnline").theme_type_variation == &"MenuItemPrimary", "Online is primary")
 			check(screen.get_node("%PlayOnline").get_theme_font_size("font_size") == roundi(40 * factor), "Accessible text scales without accumulating")
 			check(screen.get_node("%Play").get_theme_stylebox("hover").bg_color.a < 0.1, "Secondary hover remains subtle")
-			if factor == 1.5 and "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
+			check(screen.get_node_or_null("%ArenaChoice") == null, "Arena selection belongs inside Practice")
+			var showcase: Control = screen.get_node("%Showcase")
+			var vehicle: FeaturedVehicle = screen.featured_vehicle
+			check(not vehicle.status_label.visible and not vehicle.preview.status.visible, "Valid main showcase has no redundant status text")
+			check(vehicle.name_label.get_parent() == vehicle.next_button.get_parent(), "Vehicle identity and switching share one row")
+			check(showcase.get_global_rect().encloses(vehicle.get_global_rect()), "Card contains the full showcase with padding")
+			check(not screen.get_node("%Navigation").get_global_rect().intersects(showcase.get_global_rect()), "Navigation and showcase never overlap")
+			check(vehicle.preview.size.y >= 300, "Bot preview gets a prominent display area")
+			if factor in [1.0, 1.5] and "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 				await RenderingServer.frame_post_draw
-				root.get_texture().get_image().save_png("user://main-fit-%dx%d.png" % [resolution.x,resolution.y])
+				root.get_texture().get_image().save_png("user://main-fit-%dx%d-%d.png" % [resolution.x,resolution.y,roundi(factor * 100)])
 	host.queue_free()
 	await frames()
 	print("MAIN MENU FIT PASS" if failures == 0 else "MAIN MENU FIT FAIL %d" % failures)

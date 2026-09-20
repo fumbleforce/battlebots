@@ -24,6 +24,17 @@ var _status_next: Button
 var _status_pages: Array[String] = []
 var _status_page := 0
 var _text_factor := 1.0
+var _compact := false
+var _pause_icon: Texture2D
+var _resume_icon: Texture2D
+
+## Suppress routine instructions for a main-menu showcase; errors remain visible.
+func set_compact(enabled: bool) -> void:
+	_compact = enabled
+	if not is_instance_valid(status): return
+	if is_instance_valid(model): _valid_status()
+	_update_rotation_control()
+	_layout_status()
 
 ## Opt-in showcase animation. Pausing is retained across selected build changes.
 func set_auto_rotate(enabled: bool) -> void:
@@ -35,7 +46,36 @@ func set_auto_rotate(enabled: bool) -> void:
 func _update_rotation_control() -> void:
 	if not is_instance_valid(rotation_button): return
 	rotation_button.visible = _auto_rotate and is_instance_valid(model)
-	rotation_button.text = "RESUME ROTATION" if _rotation_paused else "PAUSE ROTATION"
+	var action := "Resume rotation" if _rotation_paused else "Pause rotation"
+	rotation_button.text = "" if _compact else action.to_upper()
+	rotation_button.icon = (_resume_icon if _rotation_paused else _pause_icon) if _compact else null
+	rotation_button.expand_icon = _compact
+	rotation_button.tooltip_text = action + ". Your choice stays while selecting another vehicle."
+	rotation_button.accessibility_name = action
+	_layout_rotation_control()
+
+func _layout_rotation_control() -> void:
+	if not is_instance_valid(rotation_button): return
+	if _compact:
+		var edge := 40.0 * _text_factor
+		rotation_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		rotation_button.custom_minimum_size = Vector2(edge, edge)
+		rotation_button.offset_left = -12 - edge
+		rotation_button.offset_right = -12
+		rotation_button.offset_top = 12
+		rotation_button.offset_bottom = 12 + edge
+		rotation_button.add_theme_constant_override("icon_max_width", roundi(16 * _text_factor))
+	else:
+		rotation_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		rotation_button.custom_minimum_size = Vector2.ZERO
+		rotation_button.position = Vector2(12, 12)
+		rotation_button.size = Vector2.ZERO
+
+func _rotation_icon(paused: bool) -> Texture2D:
+	var shape := '<path d="M7 4 L20 12 L7 20 Z"/>' if paused else '<path d="M6 4 H10 V20 H6 Z M14 4 H18 V20 H14 Z"/>'
+	var icon_image := Image.new()
+	icon_image.load_svg_from_string('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="#ffffff">' + shape + '</g></svg>')
+	return ImageTexture.create_from_image(icon_image)
 
 func _pause_for_interaction() -> void:
 	if _auto_rotate:
@@ -54,6 +94,7 @@ func apply_text_scale(factor: float) -> void:
 	_layout_status()
 
 func _layout_status() -> void:
+	_layout_rotation_control()
 	var value := _text_factor
 	if is_instance_valid(status):
 		var status_height := 140 if not _status_pages.is_empty() else (36 if _auto_rotate else 84)
@@ -64,6 +105,7 @@ func _layout_status() -> void:
 func _valid_status() -> void:
 	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
 	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
+	status.visible = not _compact
 	_update_rotation_control()
 	_layout_status()
 
@@ -73,6 +115,7 @@ func _show_status_page() -> void:
 	_status_next.visible = _status_pages.size() > 1
 
 func _invalid_status(message: String) -> void:
+	status.show()
 	_status_pages.clear()
 	while not message.is_empty():
 		var split := mini(64, message.length())
@@ -164,7 +207,8 @@ func _ready() -> void:
 	rotation_button.position = Vector2(12, 12)
 	rotation_button.add_theme_font_size_override("font_size", 18)
 	rotation_button.focus_mode = Control.FOCUS_ALL
-	rotation_button.tooltip_text = "Pause automatic motion. Your choice stays while selecting another vehicle."
+	_pause_icon = _rotation_icon(false)
+	_resume_icon = _rotation_icon(true)
 	rotation_button.pressed.connect(func():
 		_rotation_paused = not _rotation_paused
 		_update_rotation_control())
