@@ -57,6 +57,21 @@ do not block the active 1v1 scope.
 
 ## Current Developer A increment
 
+`codex/a-impact-crowd-audio` follows `0023ad9`. A spatializes the four impact
+voices using accepted event world positions and adds one bounded crowd voice
+for real round/match outcomes. Initial/rejoined/practice state stays quiet;
+new rounds and leave clear previous reactions. Captured engine output verifies
+left/right panning and distance attenuation. No B source or wire changes;
+see [impact/crowd evidence](coordination/A_IMPACT_CROWD_AUDIO.md).
+
+A also repairs the separate online-menu HTTP fixture bind failure with an
+OS-assigned loopback endpoint and explicit failure diagnostics. See
+[fixture evidence](coordination/A_ONLINE_FIXTURE_PORT.md). The latest observed
+Windows run35504840930 at0023ad9 still fails with native0xC0000005 after DRIVE
+PASS; neither the audio work nor fixture repair claims to resolve that issue.
+
+### Preceding combat-status audio increment
+
 `codex/a-combat-status-audio` follows `fb3d633`. A adds weapon status and armor
 breach cues with captions from accepted local views; precise wording avoids
 duplicating B's attack eligibility rules. Fresh baselines are silent, invalid

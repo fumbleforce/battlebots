@@ -9,8 +9,11 @@ const CONTEXT_LIMIT := 16
 const CAPTION_SECONDS := 2.0
 const PHASES := ["lobby", "loading", "countdown", "active", "overtime", "intermission", "results"]
 var _bank := GameplaySoundBank.new()
-var _effects: Array[AudioStreamPlayer] = []
+var _effects: Array[AudioStreamPlayer3D] = []
 var _announcements: Array[AudioStreamPlayer] = []
+var _crowd: AudioStreamPlayer
+var _crowd_duck_until := 0.0
+const CROWD_DB := -18.0
 var _effect_cursor := 0
 var _announcement_cursor := 0
 var _clock := 0.0
@@ -36,26 +39,45 @@ var _low_core := false
 var _recovery_cooldown := 0.0
 
 func _ready() -> void:
-	for role: String in ["BBEffects", "BBAnnouncements"]:
-		var voices := EFFECT_VOICES if role == "BBEffects" else ANNOUNCEMENT_VOICES
-		for index: int in range(voices):
-			var player := AudioStreamPlayer.new()
-			player.name = role + str(index)
-			player.bus = role
-			add_child(player)
-			if role == "BBEffects": _effects.append(player)
-			else: _announcements.append(player)
+	for cue: String in ["crowd_round", "crowd_match"]:
+		_bank.stream(cue)
+	for index: int in EFFECT_VOICES:
+		var player := AudioStreamPlayer3D.new()
+		player.name = "Impact" + str(index)
+		player.bus = "BBEffects"
+		player.unit_size = 5.0
+		player.max_distance = 75.0
+		add_child(player)
+		_effects.append(player)
+	for index: int in ANNOUNCEMENT_VOICES:
+		var player := AudioStreamPlayer.new()
+		player.name = "Announcement" + str(index)
+		player.bus = "BBAnnouncements"
+		add_child(player)
+		_announcements.append(player)
+	_crowd = AudioStreamPlayer.new()
+	_crowd.name = "Crowd"
+	_crowd.bus = "BBEffects"
+	_crowd.volume_db = CROWD_DB
+	add_child(_crowd)
 
 func _process(delta: float) -> void:
 	_clock += maxf(0.0, delta)
+	if is_instance_valid(_crowd):
+		_crowd.volume_db = CROWD_DB - (9.0 if _clock < _crowd_duck_until else 0.0)
 	if _caption_priority > 0 and _clock >= _caption_until:
 		_caption_priority = 0
 		_caption_parts.clear()
 		caption_changed.emit("")
 
 func reset() -> void:
-	for player: AudioStreamPlayer in _effects + _announcements:
+	for player: AudioStreamPlayer3D in _effects:
 		player.stop()
+	for player: AudioStreamPlayer in _announcements:
+		player.stop()
+	if is_instance_valid(_crowd):
+		_crowd.stop()
+	_crowd_duck_until = _clock
 	# Practice is a new local world on every visit, with no unique match token.
 	# Network watermarks remain across reconnects; practice starts a fresh epoch.
 	if _practice:
@@ -111,6 +133,7 @@ func observe_match(view: Dictionary, practice := false) -> void:
 		if _retired_matches.size() > CONTEXT_LIMIT: _retired_matches.pop_front()
 	if initial or view.round != _round:
 		_clear_bot()
+		if is_instance_valid(_crowd): _crowd.stop()
 		_countdown = 6
 	_match = new_match
 	_round = view.round
@@ -126,8 +149,12 @@ func observe_match(view: Dictionary, practice := false) -> void:
 		_countdown = mini(_countdown, remaining)
 	elif not initial and old_phase != _phase:
 		if _phase == "active" and old_phase == "countdown": _play("start", "Fight!", true, true)
-		elif _phase == "intermission": _play("round_end", "Round complete", true, true)
-		elif _phase == "results": _play("results", "Match complete", true, true)
+		elif _phase == "intermission":
+			_play("round_end", "Round complete", true, true)
+			_play_crowd("crowd_round")
+		elif _phase == "results":
+			_play("results", "Match complete", true, true)
+			_play_crowd("crowd_match")
 
 func observe_bot(view: BotView, weapon := "") -> void:
 	if view == null or _phase not in ["active", "overtime"] or view.entity_id <= 0 \
@@ -190,28 +217,46 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	var caption := kind.capitalize() + " impact"
 	if event.attacker == local_entity: caption = kind.capitalize() + " hit"
 	elif event.target == local_entity: caption = "Hit by " + kind
-	_play("impact_" + kind, caption, false)
+	_play("impact_" + kind, caption, false, false, false, -1, event.position)
 
-func _play(cue: String, caption: String, announcement: bool, transition := false,
-	merge_caption := false, priority_override := -1) -> void:
-	var pool := _announcements if announcement else _effects
-	# Match changes cannot be retried on a later view refresh. Let them preempt
-	# a bounded announcement voice instead of losing them to warning throttling.
-	if pool.is_empty() or (not transition and _clock < (_next_announcement if announcement else _next_effect)):
+func _play_crowd(cue: String) -> void:
+	if not is_instance_valid(_crowd):
 		return
 	var stream := _bank.stream(cue)
 	if stream == null:
 		return
-	var cursor := _announcement_cursor if announcement else _effect_cursor
-	var player: AudioStreamPlayer = pool[cursor % pool.size()]
-	player.stop()
-	player.stream = stream
-	player.play()
+	_crowd.stop()
+	_crowd.stream = stream
+	_crowd.volume_db = CROWD_DB - (9.0 if _clock < _crowd_duck_until else 0.0)
+	_crowd.play()
+	cue_played.emit(cue)
+
+func _play(cue: String, caption: String, announcement: bool, transition := false,
+	merge_caption := false, priority_override := -1, impact_position := Vector3.ZERO) -> void:
+	var pool_size := _announcements.size() if announcement else _effects.size()
+	# Match changes cannot be retried on a later view refresh. Let them preempt
+	# a bounded announcement voice instead of losing them to warning throttling.
+	if pool_size == 0 or (not transition and _clock < (_next_announcement if announcement else _next_effect)):
+		return
+	var stream := _bank.stream(cue)
+	if stream == null:
+		return
 	if announcement:
+		var player := _announcements[_announcement_cursor % pool_size]
+		player.stop()
+		player.stream = stream
+		player.play()
 		_announcement_cursor += 1
 		if priority_override != 1:
 			_next_announcement = _clock + 0.08
+			_crowd_duck_until = maxf(_crowd_duck_until, _clock + stream.get_length() + 0.1)
+			if is_instance_valid(_crowd): _crowd.volume_db = CROWD_DB - 9.0
 	else:
+		var player := _effects[_effect_cursor % pool_size]
+		player.stop()
+		player.global_position = impact_position
+		player.stream = stream
+		player.play()
 		_effect_cursor += 1
 		_next_effect = _clock + 0.035
 	cue_played.emit(cue)

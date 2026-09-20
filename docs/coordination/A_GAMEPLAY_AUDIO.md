@@ -2,7 +2,8 @@
 
 Historical first increment. Current extensions add
 [continuous spatial layers](A_SPATIAL_GAMEPLAY_AUDIO.md) and
-[weapon/armor status cues](A_COMBAT_STATUS_AUDIO.md), including three fixed
+[weapon/armor status cues](A_COMBAT_STATUS_AUDIO.md), followed by
+[spatial impacts and crowd reactions](A_IMPACT_CROWD_AUDIO.md), including three fixed
 announcement voices for simultaneous critical warnings. The evidence below
 describes the original scope; see the current task board for remaining work.
 

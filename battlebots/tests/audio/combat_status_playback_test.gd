@@ -83,7 +83,7 @@ func run() -> void:
 	audio.observe_bot(view(14, 0.0), "saw")
 	audio.observe_bot(view(15, 1.0), "saw")
 	check(cues.count("weapon_ready") == ready_count + 1, "Later genuine power edge can sound again")
-	check(audio.get_child_count() == 7, "Status cues use fixed four-effect/three-announcement pools")
+	check(audio.get_child_count() == 8, "Status cues use fixed impact/announcement/crowd pools")
 	# Let the real mixer consume the rapid controlled transitions before teardown.
 	await create_timer(0.6).timeout
 	audio.reset()

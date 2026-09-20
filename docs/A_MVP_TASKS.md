@@ -37,10 +37,16 @@ active expansion or acceptance work.
   including results/rematch. [Linux CI evidence](coordination/A_LINUX_HOSTED_RUNTIME.md)
   closes the runtime packaging gap, not external deployment.
 - [ ] Resolve the intermittent Windows native shutdown crash. CI and local runs
-  reproduced `0xC0000005` after DRIVE PASS. Windows run35502338810 at35ef6a6
-  subsequently passed the full workflow; one clean run does not establish a fix.
+  reproduced `0xC0000005` after DRIVE PASS, including run35504840930 at0023ad9.
+  Earlier Windows run35502338810 at35ef6a6 passed the full workflow; a clean run
+  does not establish a fix.
   [Bounded diagnostics](coordination/A_SHUTDOWN_DIAGNOSTICS.md) also reproduce it
   locally; the drive gate rejects native crash text even when the exit code is zero.
+- [x] Repair the separate online-menu HTTP test bind failure from run35503755098:
+  use an OS-assigned loopback port and fail fast with the actual bind error.
+  Independent real HTTP/occupied-port/cleanup checks pass; see
+  [fixture evidence](coordination/A_ONLINE_FIXTURE_PORT.md). This does not fix the
+  native shutdown failure or certify external hosting.
 - [x] Prioritize the 1v1 HUD: readable combat/resource/weapon feedback, round
   state, timer, outcomes and rematch flow. A owns HUD presentation and consumes
   B's authoritative combat/bot interfaces. Core HUD, raw component diagram,
@@ -121,8 +127,11 @@ internet acceptance must still be performed after deployment.
 - [x] First-pass weapon status/armor-break cues with precise captions, accepted
   local baselines, bounded concurrent critical warnings and enlarged caption
   layout. See [status-audio evidence](coordination/A_COMBAT_STATUS_AUDIO.md).
-- [ ] Finish audio coverage and listening polish: crowd cues, spatial impact
-  mix, material variation and human listening acceptance.
+- [x] Spatial impact voices from authoritative contact positions and distinct
+  first-pass round/match crowd reactions, with bounded playback, local ducking
+  and lifecycle/dedup guards. Actual engine audio capture verifies stereo and
+  distance attenuation; see [impact/crowd evidence](coordination/A_IMPACT_CROWD_AUDIO.md).
+- [ ] Finish material-specific impact variation and human listening/mix acceptance.
   Current sliding audio approximates grounded sideways motion; it is not a
   measured tire-slip simulation. Hammer/lifter have no continuous rotor sound.
 - [ ] Public allocation/identity/result services, deployment and verified persistence.

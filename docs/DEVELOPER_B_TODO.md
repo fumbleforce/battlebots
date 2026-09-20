@@ -427,3 +427,24 @@ integration base, not the still-old main branch.
   simultaneous critical warnings use bounded sound/caption pools. A's caption
   layout was extended for combined warnings at enlarged text sizes. No B source,
   controls, combat rules, content IDs or wire schemas changed.
+
+- **A impact/crowd audio intent (2026-09-20):** reserves A audio scripts,
+  menu composition and independent fixtures on `codex/a-impact-crowd-audio`.
+  Reuse existing combat-event world positions and match transitions for four
+  fixed spatial impact voices and a bounded arena reaction. No invented
+  material tags, B source changes or wire additions. See
+  [impact/crowd coordination](coordination/A_IMPACT_CROWD_AUDIO.md).
+
+- **A CI fixture intent (2026-09-20):** failed Windows run35503755098 exposed
+  online-menu test HTTP binding failure, separate from the known native crash.
+  A will repair temporary fixture port allocation and fail-fast diagnostics in
+  its independent online-menu test/helper. No production service or B source
+  changes. Keep native shutdown acceptance separate from this fixture repair.
+
+- **A impact/crowd audio handoff:** accepted combat-event world positions now
+  place four reused spatial impact voices; one additional crowd voice reacts to
+  real round/match transitions. Engine capture verifies panning and distance
+  attenuation. Captions/dedup and user bus settings are retained, and no B
+  producer fields or material tags were added. Material-specific variation and
+  human listening remain open. The separate HTTP fixture repair affects only
+  A test infrastructure; production networking is unchanged.

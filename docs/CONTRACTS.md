@@ -19,9 +19,18 @@ completion. These captions do not assert attack affordability or hit success.
 Repeated/stale ticks and invalid per-field baselines cannot fabricate events.
 Critical core/recovery/armor captions retain the latest of each type together;
 positive readiness is rate limited to 750 ms and suppressed during critical
-captions. Four effect and three announcement players cap concurrent voices,
+captions. Four spatial impact and three announcement players cap concurrent voices,
 including a simultaneous core/recovery/breach warning. The game's caption region
 fits the combined warning at 100–150% text without covering HUD/status panels.
+
+Accepted combat-event positions place the four reused `AudioStreamPlayer3D`
+impact voices in world space; event validation, ordering and captions remain
+unchanged. A single additional non-spatial crowd player reacts to genuine
+round/match transitions, never initial/rejoined results or practice. New rounds,
+new matches and leave stop old reactions. Crowd uses BBEffects at its own gain
+and ducks locally for the duration of major announcements without modifying
+user bus settings. Crowd cues emit `cue_played` but do not replace outcome captions.
+Contact material is not published; these sounds do not invent material identity.
 
 `MvpSession.audio_views() -> Array[Dictionary]` supplies detached audio records
 for current bots: entity_id, tick, position (displayed world position), pose

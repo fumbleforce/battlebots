@@ -100,6 +100,8 @@ func run() -> void:
 			game.results_panel.scores_tab.pressed.emit()
 			check(game.results_panel.scores_page.visible, "Real match results expose the score details page")
 			check(audio_cues.count("round_end") == 1 and audio_cues.count("results") == 1, "Round and match completion cues follow actual session transitions")
+			check(audio_cues.count("crowd_round") == 1 and audio_cues.count("crowd_match") == 1,
+				"Real authoritative round/results transitions each trigger one crowd reaction")
 			check(game.results_panel.record.get("participants", {}).size() == 2, "Results panel receives both authoritative participant records")
 			check(game.results_panel.scope.item_count == 3, "Both completed rounds available")
 			var completed_match: String = game.session.match_view.get("match_id", "")
@@ -110,6 +112,7 @@ func run() -> void:
 			await ticks(3)
 			check(not game.menu_host.visible and game.preview.controls_enabled, "Persistent shell reopens arena after rematch loading")
 			check(not game.results_panel.visible and game.results_panel.record.is_empty(), "Rematch clears previous result UI")
+			check(not game.gameplay_audio._crowd.playing, "New match does not retain previous result crowd sound")
 	Input.action_release("drive_forward")
 	# Drain live world teardown before releasing its isolated physics spaces.
 	# A process_frame signal fires before deferred deletions finish that frame.

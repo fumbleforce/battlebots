@@ -60,14 +60,14 @@ func run() -> void:
 	root.add_child(audio)
 	audio.cue_played.connect(func(cue: String) -> void: cues.append(cue))
 	audio.caption_changed.connect(func(text: String) -> void: captions.append(text))
-	check(audio.get_child_count() == 7, "Fixed four-effect/three-announcement player pools")
-	for child: AudioStreamPlayer in audio.get_children():
-		check(child.bus in [&"BBEffects", &"BBAnnouncements"], "Real player uses configured gameplay bus")
+	check(audio.get_child_count() == 8, "Fixed four-spatial-effect/three-announcement pools and one crowd voice")
+	for child: Node in audio.get_children():
+		check(child.get("bus") in [&"BBEffects", &"BBAnnouncements"], "Real player uses configured gameplay bus")
 	audio.observe_match(match_view())
 	check(cues.is_empty(), "Joining an active match does not announce a fake start")
 	audio.combat_event(hit(), 1)
 	check(cues == ["impact_hammer"] and captions.back() == "Hammer hit", "Authoritative local hit plays and captions")
-	check(audio.get_children().any(func(player: AudioStreamPlayer) -> bool: return player.playing), "Actual AudioStreamPlayer playback started")
+	check(audio._effects.any(func(player: AudioStreamPlayer3D) -> bool: return player.playing), "Actual spatial impact playback started")
 	advance()
 	audio.combat_event(hit(), 1)
 	audio.combat_event(hit(0), 1)
@@ -90,7 +90,7 @@ func run() -> void:
 	audio.observe_match(match_view("intermission", 1, 4, 14.0))
 	audio.observe_match(match_view("active", 1, 3))
 	audio.combat_event(hit(5), 1)
-	check(count("round_end") == 1 and cues.size() == 3, "Refresh/stale phase/hits after round end stay silent")
+	check(count("round_end") == 1 and count("crowd_round") == 1 and cues.size() == 4, "Refresh/stale phase/hits after round end stay silent")
 	audio.observe_match(match_view("countdown", 2, 5, 3.0))
 	advance()
 	audio.observe_match(match_view("countdown", 2, 5, 3.0))
@@ -132,11 +132,11 @@ func run() -> void:
 	for index: int in range(100, 130):
 		advance(0.04)
 		audio.combat_event(hit(index, "vertical_spinner", 2), 1)
-	check(audio.get_child_count() == 7, "Sustained effects reuse bounded voices")
+	check(audio.get_child_count() == 8, "Sustained effects reuse bounded voices")
 	await create_timer(2.2).timeout
 	check(captions.back() == "", "Caption expires through real process frames")
 	audio.reset()
-	check(audio.get_children().all(func(player: AudioStreamPlayer) -> bool: return not player.playing), "Leaving stops every voice")
+	check(audio.get_children().all(func(player: Node) -> bool: return not player.get("playing")), "Leaving stops every voice")
 	before = cues.size()
 	audio.combat_event(hit(130, "saw", 2), 1)
 	audio.observe_match(match_view("active", 2, 6))
@@ -180,7 +180,7 @@ func run() -> void:
 	check(count("start") == starts_before + 2 and count("round_end") == ends_before + 1 \
 		and count("results") == results_before + 1 and captions.back() == "Match complete",
 		"Rapid actual phase changes cannot lose critical cues or final caption to announcement throttle")
-	check(audio.get_child_count() == 7, "Rapid transitions still use the bounded voice pools")
+	check(audio.get_child_count() == 8, "Rapid transitions still use the bounded voice pools")
 	audio.reset()
 	for index: int in range(30):
 		audio.observe_match(match_view("active", 1, 3, 180.0, "bounded-%d" % index))

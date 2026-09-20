@@ -3,9 +3,10 @@ extends RefCounted
 ## Original, deliberately small procedural first-pass sounds. No imported samples.
 const RATE := 16000
 const CUES := ["impact_hammer", "impact_spinner", "impact_lifter", "impact_saw", "impact_ram",
-	"countdown", "start", "round_end", "results", "low_core", "recovery", "weapon_ready", "armor_break"]
-const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34, 0.24, 0.30]
-const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0, 740.0, 730.0]
+	"countdown", "start", "round_end", "results", "low_core", "recovery", "weapon_ready", "armor_break",
+	"crowd_round", "crowd_match"]
+const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34, 0.24, 0.30, 1.0, 1.5]
+const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0, 740.0, 730.0, 165.0, 190.0]
 var _streams: Dictionary = {}
 
 func stream(cue: String) -> AudioStreamWAV:
@@ -20,6 +21,8 @@ func stream(cue: String) -> AudioStreamWAV:
 	var pcm := PackedByteArray()
 	pcm.resize(count * 2)
 	var noise_state := 1259 + index * 877
+	var crowd_low := 0.0
+	var crowd_high := 0.0
 	for sample: int in range(count):
 		var time := sample / float(RATE)
 		var progress := sample / float(count)
@@ -39,6 +42,21 @@ func stream(cue: String) -> AudioStreamWAV:
 			elif cue == "impact_saw":
 				ring = (sin(TAU * pitch * time) + 0.3 * sin(TAU * pitch * 3.0 * time)) * 0.40
 			value = (ring + rasp) * envelope * 0.55
+		elif cue in ["crowd_round", "crowd_match"]:
+			# A nonlinguistic group swell: detuned voices over a breathy noise bed.
+			# Separate low-pass states form a broad band-pass with little bass/DC.
+			crowd_low += (noise - crowd_low) * 0.55
+			crowd_high += (noise - crowd_high) * 0.055
+			var chorus := 0.0
+			for voice: int in range(12):
+				var fundamental := pitch + voice * 11.73
+				var bend := 13.0 * time * time / duration
+				var phase := TAU * (fundamental * time + bend) + voice * 2.39
+				var flutter := 0.65 + 0.35 * sin(TAU * (3.1 + voice * 0.17) * time + voice)
+				chorus += (sin(phase) * 0.5 + sin(phase * 3.0) * 0.3 + sin(phase * 5.0) * 0.2) * flutter / 12.0
+			var swell := smoothstep(0.0, 0.14, progress) * pow(1.0 - progress, 0.85)
+			var breath := (crowd_low - crowd_high) * (0.65 + 0.15 * sin(TAU * 6.7 * time))
+			value = (chorus + breath) * swell * (0.48 if cue == "crowd_match" else 0.40)
 		elif cue == "armor_break":
 			# A short fracture crack followed by irregular metallic resonances.
 			var crack := noise * 0.78 * exp(-time * 65.0)
