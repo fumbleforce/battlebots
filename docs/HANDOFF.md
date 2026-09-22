@@ -1,5 +1,13 @@
 # Current A/B handoff
 
+## Customize footer and header alignment — B, 22 September 2026
+
+The Customize title is vertically centered with Back and the section tabs.
+The Build Name label sits beside a full-height field aligned with Test Drive
+and Save Build. Manage Saves has explicit internal padding. The screen layout
+test checks these positions at 1280/1920/2560 widths and 100%/150% text size;
+the 1920 render was visually reviewed. No gameplay or hosted protocol changes.
+
 ## Customize immediate choices and footer — B, 22 September 2026
 
 Choosing an available part, paint, or vehicle option now edits the in-memory

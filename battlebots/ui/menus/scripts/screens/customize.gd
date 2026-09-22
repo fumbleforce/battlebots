@@ -119,7 +119,7 @@ func _ready() -> void:
 	%CatLabel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	%Eyebrow.hide()
 	%Eyebrow.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	%Eyebrow.get_parent().size_flags_vertical = Control.SIZE_FILL
+	%Eyebrow.get_parent().size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	$Layout/Header/Row/SpacerL.size_flags_horizontal = Control.SIZE_FILL
 	$Layout/Header/Row/SpacerR.hide()
 	$Layout/Header/Row/Sep.hide()
@@ -168,20 +168,21 @@ func _ready() -> void:
 	name_edit.text = bot.name
 	name_edit.placeholder_text = "Build name (1–48 characters)"
 	name_edit.max_length = 48
-	var name_group := VBoxContainer.new()
+	var name_group := HBoxContainer.new()
 	name_group.name = "BuildNameGroup"
-	name_group.add_theme_constant_override("separation", 2)
+	name_group.add_theme_constant_override("separation", 12)
 	%Save.get_parent().add_child(name_group)
 	%Save.get_parent().move_child(name_group, %Save.get_index())
 	var name_label := Label.new()
 	name_label.text = "BUILD NAME"
 	name_label.theme_type_variation = &"Eyebrow"
 	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	name_group.add_child(name_label)
 	name_group.add_child(name_edit)
 	name_edit.custom_minimum_size.x = 240
 	name_edit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	name_edit.custom_minimum_size.y = 48
+	name_edit.custom_minimum_size.y = 77
 	name_edit.tooltip_text = "Enter a name, then press Enter or leave this field to apply it to the draft. Save writes it to this computer."
 	name_edit.text_submitted.connect(func(_value: String) -> void: _commit_name())
 	name_edit.focus_exited.connect(func(): _commit_name.call_deferred())
@@ -226,6 +227,7 @@ func _ready() -> void:
 	recovery_button = Button.new()
 	recovery_button.text = "MANAGE SAVES"
 	_style_utility_button(recovery_button)
+	recovery_button.custom_minimum_size.x = 180
 	recovery_button.tooltip_text = "Reload saved builds without losing drafts, or review a recovery backup."
 	%Save.get_parent().add_child(recovery_button)
 	%Save.get_parent().move_child(recovery_button, $Layout/Footer/Row/Spacer.get_index())
@@ -247,6 +249,10 @@ func _style_utility_button(button: Button) -> void:
 	normal.border_color = Color("#71849a")
 	normal.set_border_width_all(2)
 	normal.set_corner_radius_all(5)
+	normal.content_margin_left = 16
+	normal.content_margin_right = 16
+	normal.content_margin_top = 8
+	normal.content_margin_bottom = 8
 	button.add_theme_stylebox_override("normal", normal)
 	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = Color("#2a3847")

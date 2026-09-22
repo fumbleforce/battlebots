@@ -54,6 +54,12 @@ func run() -> void:
 				if screen_name == "customize":
 					var save: Button = screen.get_node("%Save")
 					check(entry.custom_minimum_size.y == save.custom_minimum_size.y and entry.get_index() + 1 == save.get_index(), "Test Drive matches Save height and Save is rightmost")
+					var name_field: LineEdit = screen.name_edit
+					check(absf(name_field.get_global_rect().position.y - entry.get_global_rect().position.y) <= 2.0 and absf(name_field.get_global_rect().end.y - entry.get_global_rect().end.y) <= 2.0, "Build name field aligns with footer actions")
+					check(screen.recovery_button.get_theme_stylebox("normal").content_margin_left >= 12 and screen.recovery_button.get_theme_stylebox("normal").content_margin_right >= 12, "Manage Saves has horizontal padding")
+					var title: Control = screen.get_node("%Title")
+					var back: Control = screen.get_node("%Back")
+					check(absf(title.get_global_rect().get_center().y - back.get_global_rect().get_center().y) <= 8.0, "Customize title aligns with header actions")
 				var footer: Control = screen.get_node("Layout/Footer/Row")
 				var previous_end := -1.0
 				for child: Control in footer.get_children():
