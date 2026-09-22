@@ -10,6 +10,8 @@ func _ready() -> void:
 func run() -> void:
 	var registry := ContentRegistry.new()
 	var original: Dictionary = registry.atlas()
+	var metadata: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/models/atlas_runtime/atlas_manifest.json"))
+	check(metadata.mounts.size() == 11, "Atlas exports eleven equipment mounts including four supported corner sockets")
 	for weapon: String in ["lifter", "saw", "hammer", "vertical_spinner", "horizontal_spinner", "minigun"]:
 		var draft := original.duplicate(true)
 		draft.parts.weapon = weapon
@@ -20,8 +22,12 @@ func run() -> void:
 		visual.assemble(draft, registry.validate(draft).stats.size)
 		check(visual.nodes.has("Hull") and visual.nodes.has("DriveLeft") and visual.nodes.has("DriveRight"),
 			"Imported Atlas retains independently damageable body and drives")
-		for socket: String in ["MountPrimary", "MountTopFront", "MountTopRear", "MountAuxiliary", "MountRear", "MountSideLeft", "MountSideRight"]:
+		for socket: String in metadata.mounts:
 			check(visual.nodes.has(socket), "Authored modular mount is exported: " + socket)
+			if visual.nodes.has(socket):
+				var coordinate: Array = metadata.mounts[socket]
+				check(visual._relative_transform(visual.nodes[socket]).origin.distance_to(Vector3(coordinate[0], coordinate[1], coordinate[2])) < 0.001,
+					"Imported socket agrees with its published addon transform: " + socket)
 		check(visual._links.size() == 80, "Both tracked drives contain forty independently moving shoes")
 		check(visual._wheels.size() >= 10, "Only wheel pivots animate, never their child meshes")
 		check(visual.primary.kind == weapon, "Equipped primary is the actual rendered mechanism")
@@ -66,6 +72,7 @@ func run() -> void:
 	modules_case(registry)
 	await paint_case(registry)
 	await garage_case(registry)
+	if DisplayServer.get_name() != "headless": await thumbnail_case(registry)
 	if failures.is_empty(): print("ATLAS ASSEMBLY PASS")
 	else:
 		for message: String in failures: push_error(message)
@@ -104,6 +111,7 @@ func paint_case(registry: ContentRegistry) -> void:
 	draft.cosmetics.sawblade.paint_primary = [0.02, 0.55, 0.72, 1.0]
 	cyan.assemble(draft, registry.validate(draft).stats.size)
 	var replaced := 0
+	var checked_roughness := false
 	for mesh: MeshInstance3D in cyan.model.find_children("*", "MeshInstance3D", true, false):
 		for index: int in mesh.mesh.get_surface_count():
 			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
@@ -117,6 +125,12 @@ func paint_case(registry: ContentRegistry) -> void:
 				and painted.get_shader_parameter("surface_orm") == original.metallic_texture
 				and painted.get_shader_parameter("surface_normal") == original.normal_texture,
 				"Repainting preserves imported surface texture, roughness, metal chips and normal detail")
+			if not checked_roughness and original.metallic_texture != null:
+				var finish := original.metallic_texture.get_image()
+				if finish.is_compressed(): finish.decompress()
+				var roughness := finish.get_pixel(finish.get_width() / 2, finish.get_height() / 2).g
+				check(roughness > 0.5, "Custom enamel retains the revised matte roughness texture rather than a glossy fallback")
+				checked_roughness = true
 			replaced += 1
 	check(replaced > 0, "Custom paint reaches real imported materials")
 	for mesh: MeshInstance3D in yellow.model.find_children("*", "MeshInstance3D", true, false):
@@ -135,6 +149,41 @@ func paint_case(registry: ContentRegistry) -> void:
 		camera.free()
 	yellow.free()
 	cyan.free()
+	await get_tree().process_frame
+
+func thumbnail_case(registry: ContentRegistry) -> void:
+	var renderer := GarageBotThumbnailRenderer.new()
+	add_child(renderer)
+	var draft := registry.atlas()
+	var key := GarageBotThumbnailRenderer.visual_key(draft)
+	renderer.sync([draft])
+	for frame: int in 120:
+		if renderer.cached(key) != null: break
+		await get_tree().process_frame
+	var texture := renderer.cached(key)
+	check(texture != null and renderer._preview.atlas_visual != null,
+		"The new garage thumbnail pipeline renders Atlas itself rather than another bot image")
+	if texture != null:
+		var captured := texture.get_image()
+		check(captured.get_size() == Vector2i(256, 160), "Atlas thumbnail uses the bounded reusable viewport")
+		var background := captured.get_pixel(0, 0)
+		var model_pixels := 0
+		for y: int in range(4, 156, 4):
+			for x: int in range(4, 252, 4):
+				var sample := captured.get_pixel(x, y)
+				if Vector3(sample.r - background.r, sample.g - background.g, sample.b - background.b).length() > 0.10:
+					model_pixels += 1
+		check(model_pixels > 100, "The captured Atlas thumbnail contains a visible model")
+		var framed := true
+		for mesh: MeshInstance3D in renderer._preview.model.find_children("*", "MeshInstance3D", true, false):
+			if not mesh.is_visible_in_tree(): continue
+			for corner: int in 8:
+				var point := mesh.global_transform * mesh.get_aabb().get_endpoint(corner)
+				var screen := renderer._preview.camera.unproject_position(point)
+				framed = framed and not renderer._preview.camera.is_position_behind(point)
+				framed = framed and screen.x >= 0 and screen.x <= 256 and screen.y >= 0 and screen.y <= 160
+		check(framed, "Atlas thumbnail keeps the complete tracks, hull and default lifter in frame")
+	renderer.queue_free()
 	await get_tree().process_frame
 
 func garage_case(registry: ContentRegistry) -> void:

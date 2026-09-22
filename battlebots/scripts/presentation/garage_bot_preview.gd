@@ -106,17 +106,17 @@ func _layout_status() -> void:
 
 func _valid_status() -> void:
 	_update_camera()
-	var assembly := "Sawblade Tank Â· equipped modules" if sawblade_visual != null else "Equipped draft Â· primitive geometry"
-	if atlas_visual != null: assembly = "ATLAS MX Â· modular tracked platform"
-	if scorpion_visual != null: assembly = "SCORPION HX-6 Â· equipped modules"
-	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate Â· Wheel to zoom"
+	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
+	if atlas_visual != null: assembly = "ATLAS MX · modular tracked platform"
+	if scorpion_visual != null: assembly = "SCORPION HX-6 · equipped modules"
+	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
 	status.visible = not _compact
 	_update_rotation_control()
 	_layout_status()
 
 func _show_status_page() -> void:
 	if _status_pages.is_empty(): return
-	status.text = "Invalid build Â· %d / %d\n%s" % [_status_page + 1, _status_pages.size(), _status_pages[_status_page]]
+	status.text = "Invalid build · %d / %d\n%s" % [_status_page + 1, _status_pages.size(), _status_pages[_status_page]]
 	_status_next.visible = _status_pages.size() > 1
 
 func _invalid_status(message: String) -> void:
@@ -138,7 +138,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	focus_mode = Control.FOCUS_ALL
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	tooltip_text = "Drag to rotate â€¢ Wheel to zoom â€¢ Arrow keys to rotate â€¢ + / âˆ’ to zoom â€¢ Home to reset"
+	tooltip_text = "Drag to rotate • Wheel to zoom • Arrow keys to rotate • + / − to zoom • Home to reset"
 	var container := SubViewportContainer.new()
 	container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.stretch = true

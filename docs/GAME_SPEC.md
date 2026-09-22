@@ -4,6 +4,13 @@
 
 **Status:** Proposed design and implementation specification. This document does not represent implemented features. Numerical balance values are initial playtest targets unless explicitly stated otherwise.
 
+**User revision — modular tracked chassis, 22 September 2026:** add Atlas MX
+alongside the existing bodies. Match the supplied yellow industrial reference
+with supported mounting points, thick coherent side castings, a useful addon
+deck and matte stylized metal. Fidelity requires explicit user approval; the
+second candidate is under review. See [Atlas implementation](coordination/B_ATLAS_MX.md)
+for exported mounts, actual runtime validation and the hosted-release handoff.
+
 **User revision, 22 September 2026:** Shift activates an equipped Nitro perk.
 Holding Space charges an equipped suspension jump; releasing Space applies the
 stored jump force. Nitro and jump occupy independent loadout slots and may be
@@ -298,8 +305,9 @@ Use grounded stylized industrial art: believable metal construction with simplif
 Damage uses staged meshes/materials, sparks, smoke, and limited detached fragments. Intact, damaged, and disabled states must be recognizable for drive pods and weapons. There is no gameplay mesh fracturing. Cosmetic fragments have short lifetimes, no damage, and no collision with bots.
 
 The current user-defined vehicle inventory supersedes the original three-chassis
-plan: offer only the authored Sawblade body, with four drive packages and five
-weapon families. Keep legacy chassis IDs readable for existing builds. Body changes
+plan: retain the authored Sawblade and Scorpion bodies and add Atlas MX. The six
+current primary weapon families remain available subject to compatibility and
+mass/power limits. Keep legacy chassis IDs readable for existing builds. Body changes
 preserve selected parts. Armor, utilities, paint and cosmetic modules remain
 selectable, with complete HUD/menu icons and effects/audio for each weapon and
 damage state as content targets.

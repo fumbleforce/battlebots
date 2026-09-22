@@ -31,14 +31,34 @@
       1.1
     ],
     "MountSideLeft": [
-      -0.74,
-      0.14,
-      0.1
+      -1.207,
+      -0.02,
+      0
     ],
     "MountSideRight": [
-      0.74,
-      0.14,
-      0.1
+      1.207,
+      -0.02,
+      0
+    ],
+    "MountCornerLeftFront": [
+      -0.944,
+      0.545,
+      -0.96
+    ],
+    "MountCornerLeftRear": [
+      -0.944,
+      0.545,
+      0.96
+    ],
+    "MountCornerRightFront": [
+      0.944,
+      0.545,
+      -0.96
+    ],
+    "MountCornerRightRear": [
+      0.944,
+      0.545,
+      0.96
     ]
   },
   "optional_groups": [
@@ -53,14 +73,14 @@
   ],
   "bounds": {
     "min": [
-      -1.18,
-      -0.56,
-      -1.25
+      -1.2176,
+      -0.578425,
+      -1.256427
     ],
     "max": [
-      1.18,
-      0.55,
-      1.25
+      1.2176,
+      0.559,
+      1.256427
     ]
   },
   "track": {
@@ -74,8 +94,8 @@
     "rotation_axis": "X",
     "name_pattern": "Tread_{L|R}_{00..39}"
   },
-  "triangles_all_options": 81035,
-  "triangles_base": 71455,
+  "triangles_all_options": 83123,
+  "triangles_base": 72071,
   "mesh_instances": 103,
   "material_slots": 14,
   "approval": "Pending user visual approval"

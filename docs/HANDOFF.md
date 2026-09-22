@@ -21,6 +21,28 @@ horizontal model drag follows the pointer. No loadout schema, catalogue,
 network, or hosted-server compatibility change. See
 [scope and validation](coordination/B_CUSTOMIZE_FLOW.md).
 
+## Atlas MX modular chassis — B, 22 September 2026
+
+Atlas MX adds an authored yellow tracked body alongside the existing garage
+bodies. It has eleven named attachment transforms, supported corner sockets,
+thick vented side castings, matte portable PBR materials, animated continuous
+tracks and a matching lifter. The six current primary weapons, armor, utilities,
+Nitro and charged jump use the existing assembly and gameplay systems.
+The first visual candidate was rejected; the second addresses floating sockets,
+misaligned side construction and excessive gloss. **User visual approval remains
+pending.** Source, renders and runtime assets are in `art_source/atlas_mx` and
+`battlebots/assets/models/atlas_runtime`; see [validation and asset contract](coordination/B_ATLAS_MX.md).
+
+A's spawn clearance consumes B's published `MvpBot.collision_bounds()` and
+`ground_clearance()` so this taller body starts above the floor and inside walls.
+Existing walker clearance is preserved. Catalogue revision 10 has hash
+`623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed`;
+schema 2, protocol 6 and build `mvp-ab-14` remain. Published revision-nine saves
+retain their selections during migration. A must build client and server from
+the same tested integration commit, deploy during an established playtest break,
+and verify live compatibility plus private/Quick Play results and rematch.
+No hosted deployment or online readiness is claimed here.
+
 ## Garage list model stills and save status — B, 22 September 2026
 
 Garage bot rows now show a captured still of each valid equipped 3D loadout.

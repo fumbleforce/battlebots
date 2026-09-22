@@ -80,7 +80,7 @@ func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 	# Keep the authored lane and facing; enlarged outer team slots need room at
 	# the octagon's chamfers. These are the existing 50m arena's inner planes.
 	var pose := authored
-	var half: Vector3 = bot.combat.stats.size * 0.5
+	var half: Vector3 = bot.collision_bounds().size * 0.5
 	var extent_x := absf(pose.basis.x.x) * half.x + absf(pose.basis.z.x) * half.z
 	var extent_z := absf(pose.basis.x.z) * half.x + absf(pose.basis.z.z) * half.z
 	const WALL_GAP := 0.25

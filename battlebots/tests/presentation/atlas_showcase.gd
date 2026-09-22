@@ -267,6 +267,11 @@ func run() -> void:
 		["atlas-native-top", Vector3(0, 3, 0), Vector3.FORWARD]]:
 		_frame(bounds, shot[1], shot[2])
 		okay = await _capture(shot[0]) and okay
+	# Low front-quarter crop keeps the front docking cap, its fender seat and
+	# the adjacent side casting in one actual rendered view for mechanical review.
+	var detail_bounds := AABB(Vector3(0.60, 0.20, -1.27), Vector3(0.67, 1.02, 1.73))
+	_frame(detail_bounds, Vector3(2.3, 0.7, -2.8))
+	okay = await _capture("atlas-native-mount-detail") and okay
 	stage.queue_free()
 	for frame: int in 4: await get_tree().process_frame
 	get_viewport().use_taa = false

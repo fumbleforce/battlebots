@@ -1,5 +1,23 @@
 # Shared contracts — local records and current MVP session API
 
+## Atlas MX — catalogue 10, schema 2, protocol 6, build mvp-ab-14
+
+`ContentRegistry.atlas()` adds the `atlas_mx` chassis with traction drive and the
+existing loadout slots. The catalogue hash is
+`623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed`.
+Revision-nine saved builds migrate while retaining their selected perks. No
+command or snapshot fields change. Hosted peers must have the matching catalogue;
+local migration does not relax compatibility rejection.
+
+`MvpBot.collision_bounds()` returns the local physical hull AABB, independently
+of the weapon authoring scale. `MvpBot.ground_clearance()` includes authored drive
+support depth and preserves the existing walking-drive ride height. A consumes
+these in `AuthorityWorld.clear_spawn_pose()` for wall and floor clearance; B uses
+the same physical bounds for damage-zone classification and weapon targeting.
+Atlas source meters have Y up and -Z forward; the shared runtime factor three is
+applied once. Its eleven imported attachment transforms, animation paths and
+portable material contract are recorded in [the B asset handoff](coordination/B_ATLAS_MX.md).
+
 ## Garage navigation — 22 September 2026
 
 `MenuRouter.SCREENS` has no `shop` entry. Garage and Customize remain the

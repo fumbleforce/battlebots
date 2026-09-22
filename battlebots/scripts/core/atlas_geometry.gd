@@ -2,9 +2,9 @@ class_name AtlasGeometry
 extends RefCounted
 ## Atlas source meters. Canonical size.y remains the shared scale reference;
 ## its taller actual collision and support depth are explicit, never art-derived.
-const COLLISION_SIZE := Vector3(2.34, 1.11, 2.60)
-const COLLISION_CENTER_Y := -0.005
-const GROUND_DEPTH := 0.56
+const COLLISION_SIZE := Vector3(2.44, 1.14, 2.60)
+const COLLISION_CENTER_Y := -0.01
+const GROUND_DEPTH := 0.58
 const GUN_OFFSET := Vector3(-0.18, 0.27, 0.42)
 const TRACK_RADIUS := 0.44
 const TRACK_HALF_LENGTH := 0.76
@@ -19,8 +19,8 @@ static func gun_offset(draft: Dictionary, size: Vector3) -> Vector3:
 
 static func paint_defaults() -> Dictionary:
 	var config := SawbladeConfig.defaults()
-	var colors := {"paint_primary":Color(0.93, 0.58, 0.035),
-		"paint_secondary":Color(0.19, 0.225, 0.24), "paint_metal":Color(0.43, 0.46, 0.48),
+	var colors := {"paint_primary":Color(0.92, 0.615, 0.05),
+		"paint_secondary":Color(0.16, 0.183, 0.195), "paint_metal":Color(0.43, 0.46, 0.48),
 		"paint_rubber":Color(0.045, 0.055, 0.06)}
 	for channel: String in colors:
 		var color: Color = colors[channel].srgb_to_linear()

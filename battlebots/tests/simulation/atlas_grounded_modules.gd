@@ -8,6 +8,8 @@ var primary_held := false
 var primary_edge := false
 var auxiliary_held := false
 var throttle := 0.0
+var nitro_held := false
+var jump_held := false
 var hits: Array[Dictionary] = []
 
 func _ready() -> void:
@@ -23,6 +25,8 @@ func _physics_process(delta: float) -> void:
 		command.sequence = bot.last_sequence + 1
 		command.throttle = throttle if bot == attacker else 0.0
 		command.brake = is_zero_approx(command.throttle)
+		command.nitro_held = nitro_held and bot == attacker
+		command.jump_held = jump_held and bot == attacker
 		command.primary_held = primary_held and bot == attacker
 		command.primary_pressed = primary_edge and bot == attacker
 		command.auxiliary_held = auxiliary_held and bot == attacker
@@ -70,7 +74,7 @@ func spawn_case(arena_id: String) -> void:
 		"A real right-track contact damages the drive rather than being mistaken for exposed underside")
 	check(bot.zone_at(bot.body.global_transform * Vector3(-3.51, -1.0, 0)) == "drive_left",
 		"A real left-track contact damages the left drive")
-	check(bot.zone_at(bot.body.global_transform * Vector3(0, -1.68, 0)) == "underside"
+	check(bot.zone_at(bot.body.global_transform * Vector3(0, -1.74, 0)) == "underside"
 		and bot.zone_at(bot.body.global_transform * Vector3(0, 1.65, 0)) == "top",
 		"Atlas top and underside follow the actual tall hull")
 	spawn_world.reset_round()
@@ -112,7 +116,7 @@ func grounded_case(weapon: String, auxiliary := false) -> void:
 	auxiliary_held = false
 	hits.clear()
 	await frames(120)
-	check(absf(attacker.body.global_position.y - 1.68) < 0.08 and attacker.body.grounded,
+	check(absf(attacker.body.global_position.y - 1.74) < 0.08 and attacker.body.grounded,
 		weapon + " real tracks settle against the floor and retain working drive contact")
 	check(victim.body.grounded and victim.body.global_position.y < 0.9,
 		weapon + " attacks a normally grounded wheeled target")
@@ -151,6 +155,20 @@ func handling_case() -> void:
 	throttle = 0.0
 	await frames(90)
 	check(attacker.body.linear_velocity.length() < 0.2, "Finite existing brakes stop the modular chassis")
+	throttle = 1.0
+	nitro_held = true
+	await frames(90)
+	check(attacker.combat.nitro_active and attacker.body.linear_velocity.length() > 8.5,
+		"Equipped Nitro accelerates the real Atlas beyond normal traction speed")
+	nitro_held = false
+	throttle = 0.0
+	await frames(90)
+	jump_held = true
+	await frames(72)
+	jump_held = false
+	await frames(4)
+	check(attacker.body.linear_velocity.y > 5.0 and not attacker.body.grounded,
+		"Equipped charged jump lifts the full-height Atlas through ordinary commands")
 	attacker = null
 	victim = null
 	world.clear_bots()

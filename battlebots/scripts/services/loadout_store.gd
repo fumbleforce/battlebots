@@ -12,6 +12,8 @@ const REVISION_FIVE_HASHES := ["2e559b989e4c9c990ca276bd4a319b707bb23a7b17962424
 const REVISION_SIX_HASHES := ["63b655000dc8129c3cd52cb735ecfaec5cbc7cdb1513b43de024383e7473e8a5"]
 const REVISION_SEVEN_HASHES := ["45bb581a3c4403fd74ce7067150eb480148e70a6e5b8dba9a5977dda95db25be"]
 const REVISION_EIGHT_HASHES := ["bf965dc8fdd5456ccddb23873d40f490885006eb70424a6a7c53c3db1fa4bf73"]
+const REVISION_NINE_HASHES := ["e8d254c8f6d2636fc2c1db7b329a78b04727f5061261a9dd8f437e9021b64bda",
+	"3e3bea8546acfb26cc2ba9db84b4a7d018e582bc9303006b88dba7311df09bdd"]
 const MAX_SAVE_BYTES := 65536
 var registry := ContentRegistry.new()
 var path: String
@@ -220,7 +222,7 @@ func migrate(data: Dictionary) -> Dictionary:
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES:
 				continue
 			# Known catalogues preserve part IDs, names and cosmetics while adopting
 			# current canonical dimensions/handling. No arbitrary old hash is trusted.

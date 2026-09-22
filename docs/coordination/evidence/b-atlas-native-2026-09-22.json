@@ -1,0 +1,58 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3080",
+	"asset": {
+		"bounds_min": "(-1.2176, -0.578425, -1.256427)",
+		"bounds_size": "(2.4352, 1.137425, 2.512855)",
+		"materials": [
+			"Atlas_PaintPrimary",
+			"Atlas_PaintSecondary",
+			"Atlas_Recess",
+			"Atlas_EdgeSteel",
+			"Atlas_Metal",
+			"Atlas_Stencil",
+			"Atlas_Rubber",
+			"Atlas_TrackSteel",
+			"Atlas_Lamp",
+			"Atlas_RearLens",
+			"Atlas_ConnectorBrass"
+		],
+		"path": "res://assets/models/atlas_runtime/atlas_mx.glb",
+		"triangles": 72071,
+		"visible_mesh_instances": 95
+	},
+	"captures": [
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v2-final/atlas-native-hero.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v2-final/atlas-native-rear.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v2-final/atlas-native-side.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v2-final/atlas-native-top.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v2-final/atlas-native-mount-detail.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v2-final/atlas-native-foundry.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v2-final/atlas-native-garage.png"
+	],
+	"engine": "4.7.2-stable (official)",
+	"foundry_frame_sample": {
+		"engine_video_memory_mib": 1861.94140625,
+		"frame_cap": 0,
+		"max_frame_ms": 9.222,
+		"p50_frame_ms": 3.536,
+		"p95_frame_ms": 8.386,
+		"resolution": "(1800, 1350)",
+		"samples": 120,
+		"scope": "Static native Foundry review camera, ordinary Atlas practice plus three NPC bots, 4x MSAA. Frame intervals include engine/render/presentation work. Player brakes with no commanded attacks; NPC behavior remains active. No HUD, networking, or long soak; not a release performance certification.",
+		"shadow_draw_calls": 210,
+		"visible_draw_calls": 203,
+		"visible_objects": 593,
+		"visible_primitives": 386159,
+		"vsync": "disabled",
+		"warmup_frames": 40
+	},
+	"garage": {
+		"clipped_mesh_bounds": [],
+		"preset_index": 4,
+		"preview_size": "(872, 406)",
+		"resolution": "1920x1080",
+		"scope": "Actual garage scene, default Atlas preset and default camera. In-memory selection only; saved loadouts untouched."
+	},
+	"resolution": "(1800, 1350)",
+	"scope": "Actual imported GLB studio views and optionally unmodified production Foundry practice. Visual review only; user approval pending."
+}

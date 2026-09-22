@@ -44,7 +44,8 @@ func atlas() -> Dictionary:
 	var draft := starter()
 	draft.name = "ATLAS MX"
 	draft.parts = {"chassis":"atlas_mx", "drive":"traction", "weapon":"lifter",
-		"armor":"standard_armor", "utility":"recovery_assist"}
+		"armor":"standard_armor", "utility":"recovery_assist",
+		"nitro":"nitro_boost", "suspension":"charged_jump"}
 	draft.cosmetics = {"paint":"orange", "sawblade":AtlasGeometry.paint_defaults()}
 	return draft
 

@@ -35,6 +35,7 @@ def smooth_noise(cells):
     rows=np.array([np.interp(target,grid,row) for row in samples])
     return np.array([np.interp(target,grid,rows[:,i]) for i in range(N)]).T.astype(np.float32)
 wave=smooth_noise(38)*.72+smooth_noise(107)*.28
+broad_finish=smooth_noise(9)
 chips=(edge<(.0006+wave*.013)) & (wave>.655)
 scratch=np.zeros((N,N),bool)
 for _ in range(23):
@@ -46,6 +47,10 @@ for _ in range(72):
     rx,ry=rng.uniform(.001,.008),rng.uniform(.0007,.003)
     island=((u-cx)/rx)**2+((v-cy)/ry)**2
     chips |= (island < (.56+wave*.5))
+steel_scuffs=np.zeros((N,N),bool)
+for _ in range(58):
+    cx,cy=rng.uniform(.03,.97,2);length=rng.uniform(.01,.11)
+    steel_scuffs |= (abs(v-cy-(u-cx)*.06)<rng.uniform(.0005,.0015))&(abs(u-cx)<length)
 
 def img(name,data,noncolor=False):
     im=bpy.data.images.new(name,width=N,height=N,alpha=True)
@@ -63,13 +68,18 @@ def material(name,color,metal=.0,rough=.4,texture=False,emission=0):
     if emission:
         bs.inputs['Emission Color'].default_value=rgba(color);bs.inputs['Emission Strength'].default_value=emission
     if texture:
+        coated='Paint' in name
+        marks=chips if coated else ((chips & (edge<.022)) | steel_scuffs)
         base=np.ones((N,N,3),np.float32)*np.array(color,np.float32)
-        base*=.97+grain[:,:,None]*.025+wave[:,:,None]*.008
-        base[chips]=np.array((.24,.255,.27))*(.8+grain[chips,None]*.4)
-        orm=np.ones((N,N,3),np.float32);orm[:,:,1]=rough+(grain-.5)*.03;orm[:,:,2]=metal
-        orm[chips,1]=.34;orm[chips,2]=.92
+        base*=.95+grain[:,:,None]*.010+broad_finish[:,:,None]*.050
+        base*=1-(np.maximum(0,.022-edge)/.022)[:,:,None]*.035
+        primer=(np.roll(marks,1,0)|np.roll(marks,-1,0)|np.roll(marks,1,1)|np.roll(marks,-1,1)) & ~marks
+        if coated:base[primer]=(.33,.285,.20) if 'Primary' in name else (.205,.215,.22)
+        base[marks]=np.array((.33,.34,.335))*(.86+grain[marks,None]*.23)
+        orm=np.ones((N,N,3),np.float32);orm[:,:,1]=rough+(broad_finish-.5)*.09+(grain-.5)*.014;orm[:,:,2]=metal
+        orm[marks,1]=.39;orm[marks,2]=.92
         # Microtexture remains almost flat, avoiding the molten/plastic appearance.
-        height=(grain-.5)*.008; height[chips]-=.035
+        height=(grain-.5)*.005; height[marks]-=.032
         normal=np.stack([.5+(np.roll(height,1,1)-np.roll(height,-1,1)),.5+(np.roll(height,1,0)-np.roll(height,-1,0)),np.ones_like(grain)],2)
         for data,kind in [(base,'base'),(orm,'orm'),(normal,'normal')]:
             node=m.node_tree.nodes.new('ShaderNodeTexImage');node.image=img(name+'_'+kind,data,kind!='base')
@@ -82,11 +92,11 @@ def material(name,color,metal=.0,rough=.4,texture=False,emission=0):
                 m.node_tree.links.new(node.outputs['Color'],nm.inputs['Color']);m.node_tree.links.new(nm.outputs['Normal'],bs.inputs['Normal'])
     return m
 
-paint=material('Atlas_PaintPrimary',(.93,.58,.035),.16,.43,True)
-secondary=material('Atlas_PaintSecondary',(.19,.225,.24),.68,.4,True)
-track_steel=material('Atlas_TrackSteel',(.15,.16,.155),.74,.53,True)
-steel=material('Atlas_Metal',(.43,.46,.48),.86,.32)
-edge_steel=material('Atlas_EdgeSteel',(.64,.65,.63),.88,.3)
+paint=material('Atlas_PaintPrimary',(.92,.615,.05),.08,.66,True)
+secondary=material('Atlas_PaintSecondary',(.16,.183,.195),.55,.61,True)
+track_steel=material('Atlas_TrackSteel',(.15,.16,.155),.82,.61,True)
+steel=material('Atlas_Metal',(.43,.46,.48),.86,.52)
+edge_steel=material('Atlas_EdgeSteel',(.64,.65,.63),.90,.42)
 rubber=material('Atlas_Rubber',(.045,.055,.06),.06,.73)
 dark=material('Atlas_Recess',(.026,.035,.039),.42,.51)
 brass=material('Atlas_ConnectorBrass',(.61,.40,.15),.8,.3)
@@ -176,7 +186,8 @@ def deck_text(body,at,size,group=hull):
 
 # Central uninterrupted armored silhouette, generous chamfers and separate panels.
 profile=[(-1.08,-.29),(-1.13,.01),(-.67,.42),(.82,.42),(1.09,.20),(1.06,-.30),(.86,-.43),(-.83,-.43)]
-verts=[(side*.72,y,z) for side in [-1,1] for z,y in profile]
+# Leave clearance for the inner track hinge tips throughout the upper strand.
+verts=[(side*.700,y,z) for side in [-1,1] for z,y in profile]
 n=len(profile)
 mesh('Monocoque shadow shell',verts,[tuple(reversed(range(n))),tuple(range(n,2*n))]+[(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)],dark,hull,.038)
 box('Armored lower keel',(0,-.365,0),(1.40,.20,1.85),secondary,b=.052)
@@ -243,21 +254,31 @@ for sx in [-1,1]:
 # Four track guards echo the reference while leaving the tread mechanism visible.
 for side,group in [(-1,left),(1,right)]:
     x=side*.944
-    for z in [-.62,0,.62]:
-        box('Yellow segmented track fender',(x,.431,z),(.391,.079,.55),paint,group,b=.020)
-        box('Fender inset wear strip',(x,.476,z),(.25,.016,.34),secondary,group,b=.012)
+    fender_bottom=.424;fender_top=.500
+    # A real continuous end guard under each docking point, with moving-track
+    # clearance below it. Caps and fasteners derive from that actual top face.
+    for z in [-.70,0,.70]:
+        length=.72 if abs(z)>.5 else .61
+        box('Yellow segmented track fender',(x,(fender_bottom+fender_top)*.5,z),(.391,fender_top-fender_bottom,length),paint,group,b=.014)
+        strip_z=z-math.copysign(.090,z) if abs(z)>.5 else z
+        box('Fender inset wear strip',(x,fender_top+.007,strip_z),(.25,.014,.34),secondary,group,b=.008)
         for sx in [-1,1]:
-            for zz in [-.209,.209]:bolt((x+sx*.144,.478,z+zz),group=group,r=.012)
-        for zz in [-.13,.0,.13]:box('Fender fine channel',(x,.487,z+zz),(.18,.008,.016),dark,group,b=.003)
+            for zz in [-.209,.209]:bolt((x+sx*.144,fender_top+.001,z+zz),group=group,r=.012)
+        for zz in [-.13,.0,.13]:box('Fender fine channel',(x,fender_top+.018,strip_z+zz),(.18,.008,.016),dark,group,b=.003)
         if z<-.5:
-            box('Front fender recessed latch',(x,.487,z-.172),(.17,.014,.046),dark,group,b=.007)
-            box('Front fender steel latch',(x,.495,z-.172),(.102,.012,.022),steel,group,b=.004)
+            box('Front fender recessed latch',(x,fender_top+.018,strip_z-.172),(.17,.014,.046),dark,group,b=.007)
+            box('Front fender steel latch',(x,fender_top+.026,strip_z-.172),(.102,.012,.022),steel,group,b=.004)
         elif z>.5:
-            deck_text('LIFT',(x,.489,z+.095),.045,group)
-            for xx in [-.08,.08]:ring('Rear fender tie-down',(x+xx,.507,z-.12),(1,0,0),.029,.018,.015,secondary,group,12)
+            deck_text('LIFT',(x,fender_top+.020,strip_z+.095),.045,group)
+            for xx in [-.08,.08]:ring('Rear fender tie-down',(x+xx,fender_top+.038,strip_z-.12),(1,0,0),.021,.012,.015,secondary,group,12)
     for z in [-.96,.96]:
-        cylinder('Outer service cap',(x,.395,z),(x,.445,z),.090,secondary,group,24,.005)
-        ring('Service cap highlight',(x,.447,z),(0,1,0),.074,.055,.009,steel,group)
+        cylinder('Docking point armor seat',(x,fender_top-.007,z),(x,fender_top+.008,z),.102,dark,group,32,.002)
+        cylinder('Armor-seated corner socket',(x,fender_top+.006,z),(x,fender_top+.038,z),.088,secondary,group,32,.004)
+        ring('Corner socket machined lip',(x,fender_top+.041,z),(0,1,0),.074,.055,.008,steel,group,32)
+        # The outer end guard attaches to the drive casting through two solid
+        # brackets, rather than hanging over the running track unsupported.
+        box('Inboard fender support',(side*.668,.345,z*.71),(.070,.166,.11),secondary,group,.010)
+        box('Fender cantilever above track',(side*.737,.444,z*.71),(.115,.032,.11),secondary,group,.007)
 
 # Rear service architecture: recessed radiator, inset panel and twin tail lights.
 box('Rear service plate',(0,.025,1.095),(1.31,.55,.049),paint,b=.038)
@@ -287,9 +308,12 @@ for side,label,group in [(-1,'L',left),(1,'R',right)]:
         plate('Suspension swing arm',[(side*1.057,-.21,z-.22),(side*1.057,-.29,z+.07),(side*1.057,-.18,z+.13),(side*1.057,-.11,z-.18)],(1,0,0),.054,secondary,group,.015)
     wheel_specs=[('Front',-.76,-.08,.388),('Rear',.76,-.08,.388)]+[('Roller'+str(i),z,-.30,.145) for i,z in enumerate([-.39,0,.39])]+[('Return',0,.185,.105)]
     for title,z,y,r in wheel_specs:
-        wheel=part('Wheel_'+label+'_'+title,(x,y,z),group)
-        cylinder('Dark wheel carcass',(x-.18,y,z),(x+.18,y,z),r,rubber,wheel,32 if r>.2 else 20,.008)
-        ox=x+side*.186
+        # The upper return roller stays inside the frame, behind the thick side
+        # casting; its bearing must not protrude through the cover's top edge.
+        wx=x-side*.13 if title=='Return' else x
+        wheel=part('Wheel_'+label+'_'+title,(wx,y,z),group)
+        cylinder('Dark wheel carcass',(wx-.18,y,z),(wx+.18,y,z),r,rubber,wheel,32 if r>.2 else 20,.008)
+        ox=wx+side*.186
         ring('Polished wheel rim',(ox,y,z),(1,0,0),r*.955,r*.885,.012,steel,wheel,48 if r>.2 else 20)
         cylinder('Recessed painted wheel face',(ox-side*.003,y,z),(ox+side*.017,y,z),r*.877,paint if r>.2 else secondary,wheel,48 if r>.2 else 20,.006)
         ring('Recessed hub machining line',(ox+side*.018,y,z),(1,0,0),r*.49,r*.47,.003,secondary,wheel,32 if r>.2 else 20)
@@ -299,14 +323,17 @@ for side,label,group in [(-1,'L',left),(1,'R',right)]:
         for i in range(8 if r>.2 else 0):
             a=i*math.tau/8
             bolt((ox+side*.034,y+math.sin(a)*r*.66,z+math.cos(a)*r*.66),(side,0,0),wheel,.016)
-    # Three real inset diagonal apertures cut through a forged trapezoidal plate.
-    sx=side*1.143
-    outline=[(sx,-.055,-.455),(sx,-.20,-.30),(sx,-.20,.30),(sx,-.055,.455),(sx,.18,.34),(sx,.18,-.34)]
-    plate('Side armor gasket',outline,(1,0,0),.035,rubber,group,.018)
-    cover_outline=[(sx+side*.028,-.20,-.30),(sx+side*.028,-.20,.40),(sx+side*.028,.18,.27),(sx+side*.028,.18,-.43)]
-    cover=plate('Slotted forged side cover',cover_outline,(1,0,0),.042,paint,group,0)
+    # One common side-casting profile drives the structural carrier, thin gasket,
+    # thick cast cover and its four inset bolt seats. Nothing can drift off an edge.
+    side_quad=[Vector((-.44,.19)),Vector((.26,.19)),Vector((.44,-.23)),Vector((-.26,-.23))]
+    center=sum(side_quad,Vector((0,0)))*.25
+    def side_outline(x,scale=1.0):
+        return [(side*x,(center+(p-center)*scale).y,(center+(p-center)*scale).x) for p in side_quad]
+    plate('Structural side carrier',side_outline(1.071,1.055),(1,0,0),.095,secondary,group,.012)
+    plate('Inset aligned side gasket',side_outline(1.120,.985),(1,0,0),.014,rubber,group,.005)
+    cover=plate('Thick slotted side casting',side_outline(1.164),(1,0,0),.085,paint,group,0)
     for z in [-.18,-.015,.15]:
-        slot=[(sx,-.115,z-.009),(sx,-.115,z+.039),(sx,.10,z-.041),(sx,.10,z-.089)]
+        slot=[(side*1.164,-.115,z-.009),(side*1.164,-.115,z+.039),(side*1.164,.10,z-.041),(side*1.164,.10,z-.089)]
         cutter=plate('Slot cutting tool',slot,(1,0,0),.30,dark,group,0)
         bpy.context.view_layer.objects.active=cover
         mod=cover.modifiers.new('Actual ventilation aperture','BOOLEAN');mod.operation='DIFFERENCE';mod.object=cutter;mod.solver='EXACT'
@@ -314,8 +341,21 @@ for side,label,group in [(-1,'L',left),(1,'R',right)]:
         groups[group].remove(cutter);bpy.data.objects.remove(cutter,do_unlink=True)
     bevel=cover.modifiers.new('Forged cover chamfer','BEVEL');bevel.width=.008;bevel.segments=2
     normal=cover.modifiers.new('Cover weighted normals','WEIGHTED_NORMAL');normal.keep_sharp=True
-    for z in [-.31,.31]:
-        for y in [-.16,.13]:bolt((sx+side*.049,y,z),(side,0,0),group,.016)
+    cover.data.materials.append(secondary)
+    for face in cover.data.polygons:
+        center_godot=Vector((face.center.x,face.center.z,-face.center.y))
+        # Interior aperture walls have cut steel rather than yellow enamel.
+        if abs(face.normal.x)<.5 and -.14<center_godot.y<.12 and abs(center_godot.z)<.31:
+            face.material_index=len(cover.data.materials)-1
+    for aa,bb in [(.12,.14),(.88,.14),(.88,.86),(.12,.86)]:
+        edge_top=side_quad[0].lerp(side_quad[1],aa)
+        edge_bottom=side_quad[3].lerp(side_quad[2],aa)
+        bolt_point=edge_top.lerp(edge_bottom,bb)
+        for i,p in enumerate(side_quad):
+            q=side_quad[(i+1)%4];edge_vector=q-p
+            clearance=abs(edge_vector.x*(bolt_point.y-p.y)-edge_vector.y*(bolt_point.x-p.x))/edge_vector.length
+            assert clearance>.036, 'Side fastener seat overhangs the cast outline'
+        bolt((side*1.207,bolt_point.y,bolt_point.x),(side,0,0),group,.017)
 
 # A continuous capsule path, shared in the manifest for exact runtime tread motion.
 R=.44;HALF=.76;CY=-.08;COUNT=40;LOOP=4*HALF+math.tau*R
@@ -366,7 +406,9 @@ for label,side,group in [('L',-1,left),('R',1,right)]:
         obj=bpy.data.objects.new('TreadShoe',proto_mesh.data);bpy.context.collection.objects.link(obj);obj.parent=link
 del groups[proto];bpy.data.objects.remove(proto_mesh,do_unlink=True);bpy.data.objects.remove(proto,do_unlink=True)
 
-MOUNTS={'MountPrimary':(0,0,-1.08),'MountTopFront':(0,.49,-.38),'MountTopRear':(0,.49,.40),'MountAuxiliary':(.48,.49,0),'MountRear':(0,.06,1.10),'MountSideLeft':(-.74,.14,.10),'MountSideRight':(.74,.14,.10)}
+MOUNTS={'MountPrimary':(0,0,-1.08),'MountTopFront':(0,.49,-.38),'MountTopRear':(0,.49,.40),'MountAuxiliary':(.48,.49,0),'MountRear':(0,.06,1.10),'MountSideLeft':(-1.207,-.02,0),'MountSideRight':(1.207,-.02,0)}
+for side,label in [(-1,'Left'),(1,'Right')]:
+    for z,end in [(-.96,'Front'),(.96,'Rear')]:MOUNTS['MountCorner'+label+end]=(side*.944,.545,z)
 for name,pos in MOUNTS.items():
     marker=part(name,pos,hull);marker['purpose']='Addon attachment, Godot meters'
 
@@ -376,15 +418,17 @@ optional=[]
 for title,heavy in [('ArmorSideReference',False),('ArmorSideHeavy',True)]:
     group=part(title,parent=hull);optional.append(group)
     for side in [-1,1]:
-        x=side*1.192
+        x=side*(1.257 if heavy else 1.237)
         poly=[(x,-.24,-.54),(x,-.30,-.37),(x,-.30,.39),(x,-.17,.54),(x,.16,.43),(x,.16,-.43)]
         plate('Bolt-on side armor',poly,(1,0,0),.04 if not heavy else .074,paint,group,.022)
         for z in [-.39,.39]:
-            for y in [-.2,.10]:bolt((x+side*(.028 if not heavy else .045),y,z),(side,0,0),group,.018)
+            for y in [-.2,.10]:
+                cylinder('Armor addon standoff',(side*1.20,y,z),(x,y,z),.037,secondary,group,12,.003)
+                bolt((x+side*(.028 if not heavy else .045),y,z),(side,0,0),group,.018)
         for z in [-.23,0,.23]:
             box('Armor insert',(x+side*.04,-.04,z),(.014,.20,.088),secondary,group,.009)
         if heavy:
-            for z in [-.53,.53]:box('Heavy impact rail',(side*1.237,-.05,z),(.092,.36,.13),secondary,group,.024)
+            for z in [-.53,.53]:box('Heavy impact rail',(side*1.302,-.05,z),(.092,.36,.13),secondary,group,.024)
 group=part('ArmorTop',parent=hull);optional.append(group)
 box('Top utility rack gasket',(0,.558,.18),(.82,.068,.80),dark,group,.025)
 box('Top armored addon plate',(0,.599,.18),(.86,.05,.82),paint,group,.03)
@@ -474,7 +518,10 @@ mesh_stats=[]
 for obj in asset_nodes:
     if obj.type=='MESH':
         obj.data.calc_loop_triangles();mesh_stats.append({'name':obj.name,'triangles':len(obj.data.loop_triangles)})
-manifest={'name':'Atlas MX','id':'atlas_mx','authoring':'Godot meters, X right Y up -Z forward, origin hull center','runtime':'atlas_mx.glb','source':'art_source/atlas_mx/atlas_mx.blend','mounts':MOUNTS,'optional_groups':[o.name for o in optional],'bounds':{'min':[-1.18,-.56,-1.25],'max':[1.18,.55,1.25]},'track':{'center_y':CY,'radius':R,'half_straight':HALF,'count_per_side':COUNT,'loop_length':LOOP,'x':.94,'shoe_thickness':.062,'rotation_axis':'X','name_pattern':'Tread_{L|R}_{00..39}'},'triangles_all_options':sum(x['triangles'] for x in mesh_stats),'triangles_base':sum(len(o.data.loop_triangles) for o in asset_nodes if o.type=='MESH' and o.parent not in optional),'mesh_instances':len(mesh_stats),'material_slots':len(bpy.data.materials),'approval':'Pending user visual approval'}
+base_corners=[o.matrix_world@Vector(p) for o in asset_nodes if o.type=='MESH' and o.parent not in optional for p in o.bound_box]
+base_points=[(p.x,p.z,-p.y) for p in base_corners]
+actual_bounds={'min':[round(min(p[i] for p in base_points),6) for i in range(3)],'max':[round(max(p[i] for p in base_points),6) for i in range(3)]}
+manifest={'name':'Atlas MX','id':'atlas_mx','authoring':'Godot meters, X right Y up -Z forward, origin hull center','runtime':'atlas_mx.glb','source':'art_source/atlas_mx/atlas_mx.blend','mounts':MOUNTS,'optional_groups':[o.name for o in optional],'bounds':actual_bounds,'track':{'center_y':CY,'radius':R,'half_straight':HALF,'count_per_side':COUNT,'loop_length':LOOP,'x':.94,'shoe_thickness':.062,'rotation_axis':'X','name_pattern':'Tread_{L|R}_{00..39}'},'triangles_all_options':sum(x['triangles'] for x in mesh_stats),'triangles_base':sum(len(o.data.loop_triangles) for o in asset_nodes if o.type=='MESH' and o.parent not in optional),'mesh_instances':len(mesh_stats),'material_slots':len(bpy.data.materials),'approval':'Pending user visual approval'}
 (RUNTIME/'atlas_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('ATLAS_EXPORT',json.dumps(manifest))
 for group in optional:
@@ -518,4 +565,6 @@ if '--quick' not in sys.argv:
     view('atlas_front',(0,1.3,-5.5),ortho=3.5)
     view('atlas_side',(5.5,.5,0),ortho=3.55)
     view('atlas_top',(0,6,.001),ortho=3.4)
+    view('atlas_mount_detail',(3.7,1.7,-4.8),target=(.7,.40,-.73),ortho=1.5)
+    view('atlas_side_detail',(5.5,.15,0),target=(.94,-.01,0),ortho=1.56)
 print('ATLAS_COMPLETE',str(SOURCE))

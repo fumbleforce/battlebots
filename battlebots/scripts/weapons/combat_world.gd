@@ -347,7 +347,7 @@ func _update_gun_aim(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 		# hull footprint, not a camera aim point or a client-supplied target.
 		var local_origin := candidate.body.global_transform.affine_inverse() * origin
 		var local_forward := candidate.body.global_basis.inverse() * forward
-		var half: Vector3 = candidate.combat.stats.size * 0.5
+		var half: Vector3 = candidate.collision_bounds().size * 0.5
 		var entry := 0.0
 		var exit_distance := nearest
 		for axis: int in [0, 2]:
