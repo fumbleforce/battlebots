@@ -33,6 +33,8 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				items.append({"id":id,"name":id.capitalize(),"default":"own","desc":"%s · %.0f kg · %.0f installed power. All functional parts are available." % [id.capitalize(),part.mass,part.power],"d":{}})
 		categories.append({"label":slot.to_upper(),"slot":slot,"items":items})
 		if slot == "utility": categories.back().label = "AUXILIARY / UTILITY"
+		if slot == "nitro": categories.back().label = "NITRO PERK"
+		if slot == "suspension": categories.back().label = "SUSPENSION PERK"
 	var paints: Array = []
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 	for id: String in colors:
@@ -76,6 +78,18 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 			elif item.id == "minigun":
 				item.name = "Minigun • Primary"
 				item.desc = "Primary weapon module · 24 kg · 35 power. Hold primary fire for sustained ranged fire. On Scorpion it replaces the dorsal hammer; choose a separate utility."
+			elif item.id == "nitro_boost":
+				item.name = "Nitro boost"
+				item.desc = "Hold Shift to accelerate and drive faster. Consumes battery while active; release to conserve energy."
+			elif item.id == "nitro_off":
+				item.name = "No Nitro"
+				item.desc = "Leave the Nitro perk unequipped."
+			elif item.id == "charged_jump":
+				item.name = "Charged suspension jump"
+				item.desc = "Hold Space while grounded to charge, then release to jump. Longer holds launch harder. Costs battery and has a short cooldown."
+			elif item.id == "jump_off":
+				item.name = "No jump"
+				item.desc = "Leave the suspension perk unequipped."
 
 	return {"parts":categories,"paint":paint_categories,"decals":vehicle}
 

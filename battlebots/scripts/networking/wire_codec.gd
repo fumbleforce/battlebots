@@ -1,21 +1,21 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 5
-const BUILD := "mvp-ab-13"
-const SNAPSHOT_FIELDS := 36
+const PROTOCOL := 6
+const BUILD := "mvp-ab-14"
+const SNAPSHOT_FIELDS := 39
 const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
 
 static func snapshot_epoch(match_id: String, round_index: int) -> String:
 	return "%s:%d" % [match_id, round_index]
 
 static func command_to_array(command: BotCommand) -> Array:
-	var flags := int(command.brake) | (int(command.primary_held) << 1) | (int(command.primary_pressed) << 2) | (int(command.secondary_held) << 3) | (int(command.recovery_pressed) << 4) | (int(command.auxiliary_held) << 5)
+	var flags := int(command.brake) | (int(command.primary_held) << 1) | (int(command.primary_pressed) << 2) | (int(command.secondary_held) << 3) | (int(command.recovery_pressed) << 4) | (int(command.auxiliary_held) << 5) | (int(command.nitro_held) << 6) | (int(command.jump_held) << 7) | (int(command.jump_cancel) << 8)
 	return [command.sequence, command.throttle, command.steering, flags]
 
 static func command_from_array(data: Variant) -> BotCommand:
 	if not data is Array or data.size() != 4 or not data[0] is int or data[0] < 0 or data[0] > 2147483647:
 		return null
-	if (not data[1] is float and not data[1] is int) or (not data[2] is float and not data[2] is int) or not data[3] is int or data[3] < 0 or data[3] > 63:
+	if (not data[1] is float and not data[1] is int) or (not data[2] is float and not data[2] is int) or not data[3] is int or data[3] < 0 or data[3] > 511:
 		return null
 	var command := BotCommand.new()
 	command.sequence = data[0]
@@ -27,6 +27,9 @@ static func command_from_array(data: Variant) -> BotCommand:
 	command.secondary_held = (data[3] & 8) != 0
 	command.recovery_pressed = (data[3] & 16) != 0
 	command.auxiliary_held = (data[3] & 32) != 0
+	command.nitro_held = (data[3] & 64) != 0
+	command.jump_held = (data[3] & 128) != 0
+	command.jump_cancel = (data[3] & 256) != 0
 	return command if command.is_valid() else null
 
 static func encode_bot(bot: MvpBot, epoch: String) -> PackedByteArray:
@@ -49,7 +52,8 @@ static func encode_bot(bot: MvpBot, epoch: String) -> PackedByteArray:
 		0.0 if resetting else bot.body._drive_input, 0.0 if resetting else bot.body._turn_input,
 		false if resetting else bot.body.grounded,
 		c.secondary_charge, c.secondary_active, c.shot_sequence,
-		c.last_shot_from, c.last_shot_to, c.last_shot_tick, c.gun_pitch])
+		c.last_shot_from, c.last_shot_to, c.last_shot_tick, c.gun_pitch,
+		c.nitro_active, c.jump_charge, c.jump_cooldown])
 
 static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary:
 	if packet.size() > 1200:
@@ -69,6 +73,10 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		return {}
 	if not (values[35] is float or values[35] is int) or not is_finite(float(values[35])) or absf(values[35]) > 1.0:
 		return {}
+	if not values[36] is bool or not (values[37] is float or values[37] is int) or not is_finite(float(values[37])) or values[37] < 0.0 or values[37] > 1.0:
+		return {}
+	if not (values[38] is float or values[38] is int) or not is_finite(float(values[38])) or values[38] < 0.0 or values[38] > 4.0:
+		return {}
 	var zones := {}
 	if not values[8] is Array or values[8].size() != ZONES.size():
 		return {}
@@ -83,7 +91,8 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		"damage":values[21], "eliminations":values[22], "assists":values[23], "component_disables":values[24], "recoveries":values[25],
 		"drive_input":values[26], "turn_input":values[27], "grounded":values[28],
 		"secondary_charge":values[29], "secondary_active":values[30], "shot_sequence":values[31],
-		"last_shot_from":values[32], "last_shot_to":values[33], "last_shot_tick":values[34], "gun_pitch":values[35]}
+		"last_shot_from":values[32], "last_shot_to":values[33], "last_shot_tick":values[34], "gun_pitch":values[35],
+		"nitro_active":values[36], "jump_charge":values[37], "jump_cooldown":values[38]}
 
 static func read_json(packet: PackedByteArray, limit: int) -> Dictionary:
 	if packet.size() > limit:

@@ -48,6 +48,8 @@ func _ready() -> void:
 	body.walker = loadout.parts.drive == "walker"
 	body.walker_rows = 3 if ScorpionGeometry.enabled(loadout) else 2
 	body.grip_acceleration = stats.grip
+	body.nitro_equipped = stats.nitro
+	body.jump_equipped = stats.charged_jump
 	body.drive_acceleration = 8.0 * 103.0 / body.mass
 	body.brake_acceleration = 9.0
 	body.coast_acceleration = 1.1
@@ -221,7 +223,7 @@ func submit_command(intent: BotCommand) -> void:
 		return
 	last_sequence = intent.sequence
 	command = BotCommand.new()
-	for field: String in ["sequence", "throttle", "steering", "brake", "primary_held", "primary_pressed", "secondary_held", "auxiliary_held", "recovery_pressed"]:
+	for field: String in ["sequence", "throttle", "steering", "brake", "nitro_held", "jump_held", "jump_cancel", "primary_held", "primary_pressed", "secondary_held", "auxiliary_held", "recovery_pressed"]:
 		command.set(field, intent.get(field))
 	input_age = 0
 
@@ -230,13 +232,18 @@ func step(delta: float, active: bool) -> void:
 	if input_age >= 0.25 or not active or combat.eliminated:
 		command = BotCommand.new()
 		command.brake = true
+		command.jump_cancel = true
 		command.secondary_held = true # Timeout/disconnect lowers lifter; never synthesize a release attack.
 	combat.tick(delta, command, active)
+	combat.tick_perks(delta, command, active, body.grounded)
 	command.primary_pressed = false
 	command.recovery_pressed = false
 	body.drive_multiplier = combat.drive_scale()
 	body.steering_multiplier = 0.0 if body.drive_multiplier == 0 else (0.6 if body.drive_multiplier < 1 else 1.0)
 	body.accept_command(command)
+	body.nitro_active = combat.nitro_active
+	if combat.jump_release_speed > 0.0:
+		body.queue_jump(combat.jump_release_speed * sqrt(body.gravity_scale))
 	body.recovery_torque = Vector3.ZERO
 	if active and not combat.eliminated:
 		var forward := -body.global_basis.z
@@ -323,6 +330,9 @@ func read_view() -> BotView:
 	view.last_shot_to = data.get("last_shot_to", Vector3.ZERO)
 	view.last_shot_tick = data.get("last_shot_tick", -1)
 	view.gun_pitch = data.get("gun_pitch", 0.0)
+	view.nitro_active = data.get("nitro_active", false)
+	view.jump_charge_fraction = data.get("jump_charge", 0.0)
+	view.jump_cooldown = data.get("jump_cooldown", 0.0)
 	return view
 
 func camera_anchor() -> Node3D:

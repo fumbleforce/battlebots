@@ -206,6 +206,7 @@ func restart_practice() -> Error:
 	# Keep command sequence high-water marks: bot identities survive this reset.
 	var neutral := BotCommand.new()
 	neutral.brake = true
+	neutral.jump_cancel = true
 	neutral.secondary_held = true
 	for bot: MvpBot in world.bots.values():
 		bot.body.accept_command(neutral)
@@ -625,7 +626,12 @@ func submit_local(command: BotCommand) -> void:
 		if world.bots.has(local_entity) and match_view.get("phase") in ["active", "overtime"]:
 			var bot: MvpBot = world.bots[local_entity]
 			if not bot.remote_state.get("eliminated", true):
-				bot.body.accept_command(WireCodec.command_from_array(data))
+				var predicted := WireCodec.command_from_array(data)
+				bot.body.accept_command(predicted)
+				bot.combat.tick_perks(1.0 / 60.0, predicted, true, bot.body.grounded)
+				bot.body.nitro_active = bot.combat.nitro_active
+				if bot.combat.jump_release_speed > 0.0:
+					bot.body.queue_jump(bot.combat.jump_release_speed * sqrt(bot.body.gravity_scale))
 
 @rpc("any_peer", "call_remote", "unreliable_ordered", 1)
 func _inputs(packet: PackedByteArray) -> void:
@@ -865,6 +871,8 @@ func _snapshot(packet: PackedByteArray) -> void:
 		buffer.pop_front()
 	_remote_buffers[bot.entity_id] = buffer
 	if bot.entity_id == local_entity:
+		bot.combat.battery = state.battery
+		bot.combat.jump_cooldown = state.jump_cooldown
 		while not _local_commands.is_empty() and _local_commands.front()[0] <= state.ack:
 			_local_commands.pop_front()
 		var pods := int(state.zones.drive_left > 0) + int(state.zones.drive_right > 0)
@@ -880,6 +888,7 @@ func _snapshot(packet: PackedByteArray) -> void:
 		while replay.size() < steps:
 			var held := BotCommand.new()
 			held.brake = true
+			held.jump_cancel = true
 			replay.append(replay.back() if not replay.is_empty() else WireCodec.command_to_array(held))
 		var corrected := DriveModel.replay(state, replay, bot.body.model_config())
 		var error: Vector3 = bot.body.global_position - corrected.pose.origin

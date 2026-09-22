@@ -2,7 +2,7 @@ class_name GameplayInputGate
 extends RefCounted
 ## Local intent filtering only. Authority/lifecycle checks remain with the session.
 const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse",
-	&"steer_left", &"steer_right", &"brake", &"primary", &"secondary", &"recover"]
+	&"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover"]
 var _blocked: Dictionary = {}
 var auxiliary_weapon := false
 var toggle_primary: bool = false:
@@ -30,6 +30,7 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 		require_release()
 		command.brake = true
 		command.secondary_held = true
+		command.jump_cancel = true
 		return command
 	for action: StringName in ACTIONS:
 		if float(strengths.get(action, 0.0)) <= 0.0:
@@ -37,6 +38,9 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 	command.throttle = _strength(strengths, &"drive_forward") - _strength(strengths, &"drive_reverse")
 	command.steering = _strength(strengths, &"steer_right") - _strength(strengths, &"steer_left")
 	command.brake = _strength(strengths, &"brake") > 0.0
+	command.nitro_held = _strength(strengths, &"nitro") > 0.0
+	command.jump_held = _strength(strengths, &"jump") > 0.0
+	command.jump_cancel = _cancel_pending or _blocked.has(&"jump")
 	for action: StringName in [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right"]:
 		command.brake = command.brake or _blocked.has(action)
 	var primary_down := float(strengths.get(&"primary", 0.0)) > 0.0

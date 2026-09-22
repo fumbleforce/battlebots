@@ -46,7 +46,7 @@ func catalogue() -> void:
 	var draft := registry.duelist()
 	var result := registry.validate(draft)
 	check(result.valid and draft.name == "Duelist", "Duelist is a legal canonical starter")
-	check(draft.parts == {"chassis":"balanced", "drive":"agile", "weapon":"hammer", "armor":"standard_armor", "utility":"cooling_pack"}, "Duelist uses the offered body and all five specified modules")
+	check(draft.parts == {"chassis":"balanced", "drive":"agile", "weapon":"hammer", "armor":"standard_armor", "utility":"cooling_pack", "nitro":"nitro_boost", "suspension":"charged_jump"}, "Duelist uses the offered body, five combat modules and both perks")
 	near(result.stats.mass, 96, "Duelist mass")
 	near(result.stats.power, 70, "Duelist installed power")
 	draft.parts.weapon = "lifter"

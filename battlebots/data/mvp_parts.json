@@ -1,5 +1,5 @@
 {
-  "revision": 8,
+  "revision": 9,
   "parts": [
     {"id":"compact","category":"chassis","mass":25,"power":0,"core":220,"size":[3.6,1.5,4.5]},
     {"id":"balanced","category":"chassis","mass":30,"power":0,"core":260,"size":[4.8,1.5,6.0]},
@@ -21,6 +21,10 @@
     {"id":"recovery_assist","category":"utility","mass":5,"power":10},
     {"id":"cooling_pack","category":"utility","mass":6,"power":10},
     {"id":"battery_pack","category":"utility","mass":8,"power":5},
-    {"id":"minigun_pod","category":"utility","mass":14,"power":25}
+    {"id":"minigun_pod","category":"utility","mass":14,"power":25},
+    {"id":"nitro_off","category":"nitro","mass":0,"power":0},
+    {"id":"nitro_boost","category":"nitro","mass":0,"power":0},
+    {"id":"jump_off","category":"suspension","mass":0,"power":0},
+    {"id":"charged_jump","category":"suspension","mass":0,"power":0}
   ]
 }

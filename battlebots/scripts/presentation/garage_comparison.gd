@@ -13,7 +13,7 @@ static func compare(registry: ContentRegistry, draft: Dictionary, slot: String, 
 	elif registry.parts[part_id].category != slot:
 		error = "Proposed part is incompatible with " + slot
 	elif not candidate.get("parts") is Dictionary:
-		error = "Exactly one part per chassis, drive, weapon, armor and utility slot is required"
+		error = "Select one part for every chassis, drive, weapon, armor, utility, Nitro and suspension slot"
 	if not error.is_empty():
 		return {"current": current, "proposed": {"valid": false,
 			"reasons": PackedStringArray([error]), "stats": {}}, "draft": candidate, "changed": false}

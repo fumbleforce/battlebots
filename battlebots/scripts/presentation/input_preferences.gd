@@ -3,9 +3,9 @@ extends RefCounted
 ## Local keyboard/mouse preferences. Never writes project settings or controller bindings.
 
 const DEFAULT_PATH := "user://presentation_input.cfg"
-const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake", &"primary", &"secondary", &"recover", &"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"ping", &"scoreboard"]
-const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"primary": "Primary weapon", &"secondary": "Lower / auxiliary gun", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard"}
-const KEYS := {&"drive_forward": KEY_W, &"drive_reverse": KEY_S, &"steer_left": KEY_A, &"steer_right": KEY_D, &"brake": KEY_SPACE, &"recover": KEY_R, &"camera_toggle": KEY_C, &"ping": KEY_Q, &"scoreboard": KEY_TAB}
+const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover", &"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"ping", &"scoreboard"]
+const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"nitro": "Nitro", &"jump": "Charge jump", &"primary": "Primary weapon", &"secondary": "Lower / auxiliary gun", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard"}
+const KEYS := {&"drive_forward": KEY_W, &"drive_reverse": KEY_S, &"steer_left": KEY_A, &"steer_right": KEY_D, &"brake": KEY_B, &"nitro": KEY_SHIFT, &"jump": KEY_SPACE, &"recover": KEY_R, &"camera_toggle": KEY_C, &"ping": KEY_Q, &"scoreboard": KEY_TAB}
 const MOUSE := {&"primary": MOUSE_BUTTON_LEFT, &"secondary": MOUSE_BUTTON_RIGHT, &"camera_recenter": MOUSE_BUTTON_MIDDLE, &"camera_zoom_in": MOUSE_BUTTON_WHEEL_UP, &"camera_zoom_out": MOUSE_BUTTON_WHEEL_DOWN}
 var bindings: Dictionary = {}
 var toggle_primary := false
@@ -54,7 +54,7 @@ func label_for(action: StringName) -> String:
 static func _validate_event(action: StringName, event: InputEvent) -> String:
 	if not (event is InputEventKey or event is InputEventMouseButton):
 		return "Use a keyboard key or mouse button."
-	if event.shift_pressed or event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
+	if (event.shift_pressed and not (action == &"nitro" and event is InputEventKey and event.physical_keycode == KEY_SHIFT)) or event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
 		return "Key combinations are not supported."
 	if event is InputEventKey:
 		if event.echo:
@@ -62,7 +62,7 @@ static func _validate_event(action: StringName, event: InputEvent) -> String:
 		var code: int = event.physical_keycode
 		if code <= 0 or code > KEY_SPECIAL + 255 or (code >= 128 and code < KEY_SPECIAL):
 			return "Use a physical keyboard key."
-		if code in [KEY_ESCAPE, KEY_ENTER, KEY_KP_ENTER, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META, KEY_CAPSLOCK, KEY_NUMLOCK, KEY_SCROLLLOCK] or (code == KEY_TAB and action != &"scoreboard"):
+		if code in [KEY_ESCAPE, KEY_ENTER, KEY_KP_ENTER, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_CTRL, KEY_ALT, KEY_META, KEY_CAPSLOCK, KEY_NUMLOCK, KEY_SCROLLLOCK] or (code == KEY_SHIFT and action != &"nitro") or (code == KEY_TAB and action != &"scoreboard"):
 			return "That key is reserved for menu navigation."
 	else:
 		if event.button_index < MOUSE_BUTTON_LEFT or event.button_index > MOUSE_BUTTON_XBUTTON2:
@@ -98,10 +98,32 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 		result.load_error = ERR_PARSE_ERROR
 		return result
 	var data: Variant = parser.data
-	if not data is Dictionary or data.get("version") != 1 or not data.get("toggle_primary") is bool or not data.get("bindings") is Dictionary:
+	var version: Variant = data.get("version") if data is Dictionary else null
+	if not data is Dictionary or not (version is float or version is int) or int(version) not in [1, 2] or float(version) != float(int(version)) or not data.get("toggle_primary") is bool or not data.get("bindings") is Dictionary:
 		result.load_error = ERR_FILE_UNRECOGNIZED
 		return result
 	var saved: Dictionary = data.bindings
+	if int(version) == 1:
+		# Give Space to Jump without discarding the prior action or other bindings.
+		for old_action: String in saved:
+			var old_binding: Variant = saved[old_action]
+			if old_binding is Dictionary and old_binding.get("kind") == "key" and old_binding.get("code") == KEY_SPACE:
+				var replacement := 0
+				for candidate: int in [KEY_B, KEY_V, KEY_N, KEY_M, KEY_F, KEY_G]:
+					var used := false
+					for existing: Variant in saved.values():
+						if existing is Dictionary and existing.get("kind") == "key" and existing.get("code") == candidate:
+							used = true
+					if not used:
+						replacement = candidate
+						break
+				if replacement == 0:
+					result.load_error = ERR_INVALID_DATA
+					return result
+				saved[old_action] = {"kind":"key", "code":replacement}
+				break
+		saved["nitro"] = {"kind":"key", "code":KEY_SHIFT}
+		saved["jump"] = {"kind":"key", "code":KEY_SPACE}
 	if saved.size() != ACTIONS.size():
 		result.load_error = ERR_INVALID_DATA
 		return result
@@ -109,7 +131,7 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 	var identities := {}
 	for action in ACTIONS:
 		var item: Variant = saved.get(String(action))
-		if not item is Dictionary or item.size() != 2 or not item.get("code") is float or not is_finite(item.code) or item.code != floor(item.code) or item.code <= 0 or item.code > KEY_SPECIAL + 255:
+		if not item is Dictionary or item.size() != 2 or not (item.get("code") is float or item.get("code") is int) or not is_finite(float(item.code)) or item.code != floor(float(item.code)) or item.code <= 0 or item.code > KEY_SPECIAL + 255:
 			result.load_error = ERR_INVALID_DATA
 			return result
 		var event: InputEvent
@@ -134,7 +156,7 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 func save_file(path: String = DEFAULT_PATH) -> Error:
 	if path.is_empty():
 		return ERR_UNCONFIGURED
-	var data := {"version": 1, "toggle_primary": toggle_primary, "bindings": {}}
+	var data := {"version": 2, "toggle_primary": toggle_primary, "bindings": {}}
 	var identities := {}
 	if bindings.size() != ACTIONS.size():
 		return ERR_INVALID_DATA

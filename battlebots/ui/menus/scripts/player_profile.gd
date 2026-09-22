@@ -245,6 +245,10 @@ func revalidate_active() -> void:
 	var repaired := {"schema_version":ContentRegistry.SCHEMA,
 		"content_hash":registry.content_hash, "name":current.get("name", ""),
 		"parts":current.get("parts", {}), "cosmetics":current.get("cosmetics", {})}
+	if repaired.parts is Dictionary and repaired.parts.size() == 5 and current.get("schema_version") == 1:
+		repaired.parts = repaired.parts.duplicate(true)
+		repaired.parts["nitro"] = "nitro_off"
+		repaired.parts["suspension"] = "jump_off"
 	if not _record_edit(repaired): return
 	loadouts[active_bot] = repaired.duplicate(true)
 	_draft_changed()
@@ -291,7 +295,10 @@ func _refresh_bots() -> void:
 		var validation := registry.validate(draft)
 		var parts: Dictionary = draft.get("parts",{}) if draft.get("parts") is Dictionary else {}
 		var stats: Dictionary = validation.stats
-		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":"Brake · Space","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
+		var perk_labels: PackedStringArray = []
+		if parts.get("nitro") == "nitro_boost": perk_labels.append("Nitro · Shift")
+		if parts.get("suspension") == "charged_jump": perk_labels.append("Jump · Space")
+		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":" / ".join(perk_labels) if not perk_labels.is_empty() else "No perks equipped","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
 		bots[-1]["retained"] = _retained_drafts.has(index)
 		if _retained_drafts.has(index): bots[-1].cls = "UNSAVED COPY" + (" · REPAIR REQUIRED" if not validation.valid else "")
 

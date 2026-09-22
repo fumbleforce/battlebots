@@ -26,6 +26,11 @@ var eliminations := 0
 var assists := 0
 var component_disables := 0
 var recovery_count := 0
+var nitro_active := false
+var jump_charge := 0.0
+var jump_cooldown := 0.0
+var jump_release_speed := 0.0
+var _jump_was_held := false
 var recent_attackers: Dictionary = {}
 var _previous_held := false
 var _inactive := 0.0
@@ -55,6 +60,31 @@ func _init(derived: Dictionary) -> void:
 func drive_scale() -> float:
 	var pods := int(zones.drive_left > 0) + int(zones.drive_right > 0)
 	return float(pods) * 0.5
+
+func tick_perks(delta: float, command: BotCommand, active: bool, grounded: bool) -> void:
+	jump_release_speed = 0.0
+	nitro_active = false
+	if not active or eliminated or command.jump_cancel:
+		jump_charge = 0.0
+		_jump_was_held = false
+		return
+	jump_cooldown = maxf(0.0, jump_cooldown - delta)
+	if stats.get("nitro", false) and command.nitro_held and command.throttle > 0.05 and not command.brake and battery >= 14.0 * delta and drive_scale() > 0.0:
+		nitro_active = true
+		battery -= 14.0 * delta
+	if not stats.get("charged_jump", false):
+		return
+	if command.jump_held and grounded and jump_cooldown <= 0.0 and battery >= 20.0:
+		jump_charge = minf(1.0, jump_charge + delta / 1.2)
+	elif not command.jump_held:
+		if _jump_was_held and jump_charge > 0.0 and grounded and battery >= 20.0 and jump_cooldown <= 0.0:
+			battery -= 20.0
+			jump_release_speed = lerpf(3.5, 7.5, jump_charge)
+			jump_cooldown = 4.0
+		jump_charge = 0.0
+	elif not grounded:
+		jump_charge = 0.0
+	_jump_was_held = command.jump_held
 
 func can_recover() -> bool:
 	return not eliminated and inverted_seconds >= 2.0 and recovery_cooldown <= 0.0 and battery >= 30.0
@@ -346,6 +376,9 @@ func eliminate(reason: String) -> void:
 	_gun_cooldown = 0.0
 	gun_pitch = 0.0
 	weapon_phase = "disabled"
+	nitro_active = false
+	jump_charge = 0.0
+	jump_release_speed = 0.0
 
 func snapshot() -> Dictionary:
 	return {"core":core, "core_max":stats.core, "zones":zones.duplicate(),
@@ -355,6 +388,7 @@ func snapshot() -> Dictionary:
 		"shot_sequence":shot_sequence, "last_shot_from":last_shot_from,
 		"last_shot_to":last_shot_to, "last_shot_tick":last_shot_tick,
 		"gun_pitch":gun_pitch,
+		"nitro_active":nitro_active, "jump_charge":jump_charge, "jump_cooldown":jump_cooldown,
 		"cooldown":cooldown, "recovery_available":can_recover(), "recovery_remaining":recovery_remaining,
 		"recovery_cooldown":recovery_cooldown, "immobilized_remaining":maxf(0, 10 - immobilized_seconds) if immobilized_seconds > 0 else 0.0,
 		"eliminated":eliminated, "elimination_reason":elimination_reason, "failure":failure_reason,

@@ -24,7 +24,7 @@ func _ready() -> void:
 	allow_back = false
 	super()
 	%Progress.hide()
-	$Bottom/Col/Row/Tip.text = "[color=#F5B82E][b]TIP[/b][/color] Hold SPACE to brake. Weapons unlock when the server starts the round."
+	$Bottom/Col/Row/Tip.text = "[color=#F5B82E][b]TIP[/b][/color] Hold SPACE to charge a jump, release to launch. Hold SHIFT for Nitro; B brakes. Equipped perks activate when the round starts."
 	$BlueTeam/Row2/Frame/Placeholder.hide()
 	_blue_image2 = TextureRect.new()
 	_blue_image2.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

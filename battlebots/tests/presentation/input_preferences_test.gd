@@ -44,9 +44,30 @@ func run() -> void:
 	check(loaded.load_error == OK and loaded.toggle_primary, "Roundtrip mode")
 	check(loaded.bindings[&"primary"].physical_keycode == KEY_F, "Roundtrip binding")
 	var saved_text := FileAccess.get_file_as_string(PATH)
+	var legacy: Dictionary = JSON.parse_string(saved_text)
+	legacy.version = 1
+	legacy.bindings.erase("nitro")
+	legacy.bindings.erase("jump")
+	legacy.bindings.brake = {"kind":"key", "code":KEY_SPACE}
+	var file := FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(legacy))
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error == OK and loaded.bindings[&"brake"].physical_keycode == KEY_B
+		and loaded.bindings[&"jump"].physical_keycode == KEY_SPACE
+		and loaded.bindings[&"nitro"].physical_keycode == KEY_SHIFT,
+		"Legacy controls migrate brake to B and reserve Space/Shift for perks")
+	legacy.bindings.brake = {"kind":"key", "code":KEY_B}
+	legacy.bindings.primary = {"kind":"key", "code":KEY_SPACE}
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(legacy))
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error == OK and loaded.bindings[&"primary"].physical_keycode == KEY_V,
+		"Legacy custom Space action moves to a free key")
 	var malformed: Dictionary = JSON.parse_string(saved_text)
 	malformed.bindings.drive_forward = malformed.bindings.drive_reverse.duplicate()
-	var file := FileAccess.open(PATH, FileAccess.WRITE)
+	file = FileAccess.open(PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(malformed))
 	file.close()
 	loaded = InputPreferences.load_file(PATH)

@@ -4,6 +4,14 @@
 
 **Status:** Proposed design and implementation specification. This document does not represent implemented features. Numerical balance values are initial playtest targets unless explicitly stated otherwise.
 
+**User revision, 22 September 2026:** Shift activates an equipped Nitro perk.
+Holding Space charges an equipped suspension jump; releasing Space applies the
+stored jump force. Nitro and jump occupy independent loadout slots and may be
+equipped together. Brake defaults to B and remains rebindable. The attached
+armour/weapon sketch is the next design direction, recorded separately in
+[B armour and weapon direction](coordination/B_ARMOUR_WEAPON_DIRECTION.md);
+its proposed plates, weapons and locomotion changes are not yet game rules.
+
 **Delivery priority — user update, 20 September 2026:** complete a fully working
 1v1 game first, including externally hosted matchmaking/game servers, readable
 HUD, coherent multiplayer menus, win/score screens and an in-game menu matching

@@ -1,8 +1,8 @@
 class_name ContentRegistry
 extends RefCounted
 ## Only this server-owned catalogue supplies gameplay stats and assembly dimensions.
-const SLOTS := ["chassis", "drive", "weapon", "armor", "utility"]
-const SCHEMA := 1
+const SLOTS := ["chassis", "drive", "weapon", "armor", "utility", "nitro", "suspension"]
+const SCHEMA := 2
 var parts: Dictionary = {}
 var content_hash: String = ""
 
@@ -19,21 +19,24 @@ func starter(controller := false) -> Dictionary:
 		"parts": {"chassis": "wide" if controller else "balanced",
 		"drive": "traction" if controller else "standard_wheels",
 		"weapon": "lifter" if controller else "vertical_spinner",
-		"armor": "standard_armor", "utility": "recovery_assist"},
+		"armor": "standard_armor", "utility": "recovery_assist",
+		"nitro": "nitro_boost", "suspension": "charged_jump"},
 		"cosmetics": {"paint": "cyan"}, "content_hash": content_hash}
 
 func duelist() -> Dictionary:
 	var draft := starter()
 	draft.name = "Duelist"
 	draft.parts = {"chassis":"balanced", "drive":"agile", "weapon":"hammer",
-		"armor":"standard_armor", "utility":"cooling_pack"}
+		"armor":"standard_armor", "utility":"cooling_pack",
+		"nitro":"nitro_boost", "suspension":"charged_jump"}
 	return draft
 
 func scorpion() -> Dictionary:
 	var draft := starter()
 	draft.name = "SCORPION • HX-6"
 	draft.parts = {"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer",
-		"armor":"standard_armor", "utility":"minigun_pod"}
+		"armor":"standard_armor", "utility":"minigun_pod",
+		"nitro":"nitro_boost", "suspension":"charged_jump"}
 	draft.cosmetics = {"paint":"orange", "sawblade":SawbladeConfig.defaults()}
 	return draft
 
@@ -47,7 +50,7 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Name must contain 1–48 characters")
 	var selected: Variant = draft.get("parts")
 	if not selected is Dictionary or selected.size() != SLOTS.size():
-		result.reasons.append("Exactly one part per chassis, drive, weapon, armor and utility slot is required")
+		result.reasons.append("Select one part for every chassis, drive, weapon, armor, utility, Nitro and suspension slot")
 		return result
 	var seen: Array = []
 	var mass := 0.0
@@ -92,7 +95,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		"weapon": selected.weapon, "secondary_weapon": "minigun" if selected.utility == "minigun_pod" else "",
 		"battery": 125.0 if selected.utility == "battery_pack" else 100.0,
 		"cooling": 15.0 if selected.utility == "cooling_pack" else 12.0,
-		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0}
+		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0,
+		"nitro": selected.nitro == "nitro_boost", "charged_jump": selected.suspension == "charged_jump"}
 	result.loadout = draft.duplicate(true)
 	result.valid = true
 	return result

@@ -30,6 +30,20 @@ checks still report main-menu synthetic-click/flow failures and composed
 small-window bounds failures (`menu_kit_test`, `menu_flow_test`,
 `b_menu_text_game_test`); those checks did not pass in this increment.
 
+## Nitro and charged jump — B, 22 September 2026
+
+The B perk increment adds independent Nitro and suspension loadout slots,
+authoritative Shift boost and hold/release Space jump, battery/cooldown gating,
+local movement prediction, garage choices and input settings migration. Default
+brake is B. Known saved builds retain their prior parts and gain two unequipped
+perk selections. See [perk handoff](coordination/B_NITRO_JUMP.md) for validation,
+shared command/snapshot changes and release requirements.
+
+This is catalogue 9 / protocol 6 / build `mvp-ab-14`; the existing live service
+cannot host the new client until A deploys matching workers during a playtest
+break and verifies a private and Quick Play duel through rematch. A can add the
+published jump charge/cooldown to the match HUD after integration.
+
 ## Orange Scorpion HX-6 and practice NPCs — B, 20 September 2026
 
 Reference-based Blender source and portable PBR runtime assets now assemble a

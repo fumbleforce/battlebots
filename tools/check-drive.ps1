@@ -18,3 +18,9 @@ $lines | ForEach-Object { Write-Host $_ }
 if ($engineExitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:|CrashHandlerException:|Program crashed|END OF C\+\+ BACKTRACE') -or -not ($lines -match '^HEAVY DRIVE PASS$')) {
     throw "Heavy drive validation failed (exit $engineExitCode)"
 }
+$lines = & $GodotPath --headless --path $projectRoot --fixed-fps 60 --script res://tests/simulation/perk_abilities.gd 2>&1
+$engineExitCode = $LASTEXITCODE
+$lines | ForEach-Object { Write-Host $_ }
+if ($engineExitCode -ne 0 -or ($lines -match 'SCRIPT ERROR:|Parse Error:|^ERROR:|CrashHandlerException:|Program crashed|END OF C\+\+ BACKTRACE') -or -not ($lines -match '^PERK ABILITIES PASS$')) {
+    throw "Perk abilities validation failed (exit $engineExitCode)"
+}

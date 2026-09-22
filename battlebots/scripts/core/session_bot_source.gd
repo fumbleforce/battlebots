@@ -9,6 +9,7 @@ func submit_command(command: BotCommand) -> void:
 	if input_allowed.is_valid() and not input_allowed.call():
 		var neutral := BotCommand.new()
 		neutral.brake = true
+		neutral.jump_cancel = true
 		neutral.secondary_held = true
 		session.submit_local(neutral)
 		return

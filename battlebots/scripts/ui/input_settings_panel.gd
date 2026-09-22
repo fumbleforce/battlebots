@@ -10,7 +10,7 @@ var mode: CheckButton
 var message: Label
 var save_button: Button
 var _path: String
-const GROUPS := [[&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake"], [&"primary", &"secondary", &"recover", &"ping"], [&"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"scoreboard"]]
+const GROUPS := [[&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake"], [&"nitro", &"jump"], [&"primary", &"secondary", &"recover", &"ping"], [&"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"scoreboard"]]
 var page_buttons: Array[Button] = []
 var page_index := 0
 var _footer: Array[Control] = []
@@ -30,7 +30,7 @@ func _ready() -> void:
 	add_child(help)
 	var pages := HBoxContainer.new()
 	add_child(pages)
-	for title_text: String in ["Driving", "Weapons", "Camera & HUD"]:
+	for title_text: String in ["Driving", "Perks", "Weapons", "Camera & HUD"]:
 		var page := Button.new()
 		page.text = title_text
 		page.toggle_mode = true

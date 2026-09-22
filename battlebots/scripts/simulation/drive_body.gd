@@ -28,6 +28,10 @@ var walker := false
 var walker_rows := 2
 var walker_contacts: Array[Dictionary] = []
 var drive_multiplier: float = 1.0
+var nitro_equipped := false
+var jump_equipped := false
+var nitro_active := false
+var _jump_queued := 0.0
 var steering_multiplier: float = 1.0
 var recovery_torque: Vector3 = Vector3.ZERO
 var probe_half_width: float = 0.65
@@ -47,9 +51,15 @@ func accept_command(command: BotCommand) -> void:
 	_throttle = command.throttle
 	_steering = command.steering
 	_brake = command.brake
+	if nitro_equipped:
+		nitro_active = command.nitro_held and command.throttle > 0.05 and not command.brake
 	_command_age = 0.0
 	if not is_zero_approx(_throttle) or not is_zero_approx(_steering) or _brake:
 		sleeping = false
+
+func queue_jump(speed: float) -> void:
+	_jump_queued = maxf(_jump_queued, speed)
+	sleeping = false
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if not correction.is_empty():
@@ -68,6 +78,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		reset_pose = null
 		_drive_input = 0
 		_turn_input = 0
+		_jump_queued = 0.0
 	contact_bodies.clear()
 	for index: int in range(state.get_contact_count()):
 		contact_bodies.append(state.get_contact_collider_id(index))
@@ -82,6 +93,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	_turn_input = move_toward(_turn_input, 0.0 if braking else _steering, steering_response * state.step)
 	var normal := WalkerDrive.support(state, self) if walker else _ground_normal(state)
 	grounded = not normal.is_zero_approx()
+	if grounded and _jump_queued > 0.0:
+		state.linear_velocity.y = maxf(state.linear_velocity.y, _jump_queued)
+		_jump_queued = 0.0
+		grounded = false
+		return
+	_jump_queued = 0.0
 	if not grounded:
 		return
 	var response := DriveModel.forces(state.transform.basis, state.linear_velocity, state.angular_velocity,
@@ -150,7 +167,8 @@ func model_config() -> Dictionary:
 		"coast":coast_acceleration, "throttle_response":throttle_response,
 		"steering_response":steering_response, "yaw_response":yaw_response,
 		"yaw_acceleration_limit":yaw_acceleration_limit, "lateral_response":lateral_response,
-		"walker":walker,
+		"walker":walker, "nitro":nitro_active, "nitro_equipped":nitro_equipped,
+		"charged_jump":jump_equipped,
 		"brake":brake_acceleration, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,
 		"gravity":Vector3(ProjectSettings.get_setting("physics/3d/default_gravity_vector", Vector3.DOWN))

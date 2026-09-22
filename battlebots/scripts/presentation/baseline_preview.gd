@@ -162,7 +162,7 @@ func _physics_process(_delta: float) -> void:
 	# Clear toggle intent during A's countdown/elimination/lifecycle suppression too.
 	if source is SessionBotSource and source.input_allowed.is_valid():
 		enabled = enabled and bool(source.input_allowed.call())
-	input_gate.auxiliary_weapon = source.read_view().has_auxiliary_weapon
+	input_gate.auxiliary_weapon = _source_view().has_auxiliary_weapon
 	var command := input_gate.sample(strengths, edges, enabled)
 	command.sequence = sequence
 	sequence += 1
@@ -181,15 +181,25 @@ func _action_strength(action: StringName) -> float:
 	return strength
 
 func _process(_delta: float) -> void:
-	hud.show_view(source.read_view() if is_instance_valid(source) else null)
+	var view := _source_view()
+	hud.show_view(view)
 	refresh_diagnostics()
 	hint.text = "Mouse  Orbit  |  %s / %s  Zoom  |  %s  Recenter  |  Esc  Menu" % [
 		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),
 		input_preferences.label_for(&"camera_recenter")] \
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
-	if controls_enabled and is_instance_valid(source) and source.read_view().has_auxiliary_weapon:
+	if controls_enabled and view != null and view.has_auxiliary_weapon:
 		hint.text = "%s  Primary weapon  |  %s  Minigun  |  Mouse  Orbit  |  Esc  Menu" % [
 			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary")]
+
+func _source_view() -> BotView:
+	if not is_instance_valid(source):
+		return null
+	# The input lifecycle fixture has no MvpSession. Keep its control gate test
+	# independent of a live view while preserving normal SessionBotSource reads.
+	if source is SessionBotSource and not is_instance_valid(source.session):
+		return BotView.new()
+	return source.read_view()
 
 func refresh_diagnostics() -> void:
 	if not is_instance_valid(source) or not source is SessionBotSource \

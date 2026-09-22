@@ -28,3 +28,6 @@ var last_shot_from := Vector3.ZERO
 var last_shot_to := Vector3.ZERO
 var last_shot_tick := -1
 var gun_pitch := 0.0
+var nitro_active := false
+var jump_charge_fraction := 0.0
+var jump_cooldown := 0.0

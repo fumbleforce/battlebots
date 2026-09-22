@@ -7,6 +7,34 @@ player-facing build screens; Customize retains the canonical part choices.
 The removed Part Catalogue scene and its components have no gameplay or
 client/server compatibility role.
 
+## Nitro and charged jump — catalogue 9, protocol 6, build mvp-ab-14
+
+Loadout schema 2 adds independent `nitro` and `suspension` part slots. Each may
+select its active perk or an unequipped option; both active perks may coexist.
+New starter builds equip both. Known schema-1 saves migrate with both unequipped,
+retaining their prior combat selections. Catalogue 9 and the new command/snapshot
+fields require matching client and server builds.
+
+`BotCommand` adds `nitro_held`, `jump_held`, and `jump_cancel` in flag bits 6–8.
+`jump_cancel` clears charge on focus/menu suppression, stale input or inactive
+rounds and never launches. Shift drives Nitro; Space holds the suspension charge
+and release launches. Brake moves to B by default. Saved input preferences use
+version 2; known version-1 bindings are migrated while preserving other controls.
+
+The authoritative combat state spends 14 battery per second for forward Nitro,
+which raises drive speed to 135% and drive force up to 150%. A grounded jump
+charges over 1.2 seconds; release spends 20 battery, launches at 3.5–7.5 m/s
+scaled for arena gravity, then cools down for 4 seconds. `BotView` and bot
+snapshots publish Nitro activity, normalized jump charge and jump cooldown.
+Local prediction uses the same perk state and drive model; authoritative snapshots
+still correct the body. A's match HUD may display the published jump charge and
+cooldown; B's input/physics implementation does not alter A's HUD layout.
+
+`project.godot`, `mvp_session.gd`, `wire_codec.gd` and the loading tip are shared or
+A-owned integration surfaces changed for this B feature. A must use catalogue 9,
+protocol 6, build `mvp-ab-14` for a matching hosted release. Existing live workers
+must continue rejecting incompatible clients until the coordinated deploy.
+
 ## Scorpion and practice NPCs — catalogue 8, protocol 5, build mvp-ab-13
 
 `ContentRegistry.scorpion()` supplies the legal 118 kg / 95 power HX-6 preset:

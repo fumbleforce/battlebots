@@ -8,6 +8,23 @@ footer and bot list. Scope and acceptance are in
 [B_GARAGE_THUMBNAILS.md](coordination/B_GARAGE_THUMBNAILS.md). A owns no paths
 in this increment; no content/network compatibility change is planned.
 
+## Nitro and charged jump — 22 September 2026
+
+B implemented independent loadout perks, authoritative Nitro and charged jump,
+saved-control migration and client prediction in `codex/b-nitro-jump`.
+`tools/check-drive.ps1`, focused garage/input checks and the full MVP suite pass
+on pinned Godot 4.7.2. See [the handoff](coordination/B_NITRO_JUMP.md).
+
+- [ ] **A — hosted release.** During a playtest break, deploy workers and client
+  built from the same tested commit. Required identity is build `mvp-ab-14`,
+  protocol 6, catalogue hash
+  `e8d254c8f6d2636fc2c1db7b329a78b04727f5061261a9dd8f437e9021b64bda`.
+  Compare live `/healthz` and complete private/Quick Play results and rematch.
+- [ ] **A — match HUD.** Consume the published Nitro activity, jump charge and
+  cooldown in the existing match HUD without changing B's input contract.
+- [ ] **B — next design.** Evaluate the supplied armour/weapon/locomotion sketch
+  as the [next direction](coordination/B_ARMOUR_WEAPON_DIRECTION.md).
+
 ## Scorpion shutdown checkpoint — 20 September 2026
 
 User requested stopping immediately. Completed implementation is on main

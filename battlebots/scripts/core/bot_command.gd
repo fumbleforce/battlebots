@@ -6,6 +6,10 @@ var sequence: int = 0
 var throttle: float = 0.0
 var steering: float = 0.0
 var brake: bool = false
+var nitro_held: bool = false
+var jump_held: bool = false
+## Cancels a charged jump on focus loss, menu suppression or input timeout.
+var jump_cancel: bool = false
 var primary_held: bool = false
 var primary_pressed: bool = false
 var secondary_held: bool = false
