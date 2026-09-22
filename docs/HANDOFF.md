@@ -23,19 +23,26 @@ network, or hosted-server compatibility change. See
 
 ## Atlas MX modular chassis — B, 22 September 2026
 
-Atlas MX adds an authored orange tracked body alongside the existing garage
-bodies. It has eleven named attachment transforms, supported corner sockets,
-thick vented side castings, matte portable PBR materials, animated continuous
-tracks and a matching lifter. The six current primary weapons, armor, utilities,
-Nitro and charged jump use the existing assembly and gameplay systems.
-The fourth material checkpoint replaces flat scratch maps with unique UV atlases,
-local contact occlusion, exposed-metal wear and explicit repaint coverage. Rounded
-machined hubs and recessed fasteners are seated physically. Baseline, native
-assembly, packed textures and bounded clearance checks pass. The user has since
-requested a cohesive armor shell with recessed panels and narrow seams, explicitly
-retaining the compact footprint. That further geometry pass remains in progress.
-**User visual approval remains pending.** Source, renders and runtime assets are in `art_source/atlas_mx` and
-`battlebots/assets/models/atlas_runtime`; see [validation and asset contract](coordination/B_ATLAS_MX.md).
+Atlas MX adds an authored tracked body alongside the existing garage bodies.
+The cohesive compact V5 shell joins the sloping nose, shoulder armor, flush side
+access panels and rear closure, with recessed addon rails, cooling grilles and
+supported corner sockets. It retains eleven named attachment transforms,
+animated continuous tracks and a matching lifter. The six current primary
+weapons, armor, utilities, Nitro and charged jump use the existing assembly and
+gameplay systems. Unique UV PBR atlases carry local contact occlusion,
+exposed-metal wear and explicit repaint coverage; machined hubs and recessed
+fasteners retain their metal response.
+
+**The user approved the cohesive compact V5 design on 22 September 2026.**
+The final V5 bake, baseline, native assembly, 6,454 BVH pair checks, all fourteen
+material-map checks and nine native captures passed. A scoped 120-frame,
+four-bot RTX 3080 sample measured median 3.567 ms / p95 4.526 ms, 265 draws and
+2,504.3 MiB engine video memory; this is not release performance certification.
+The final asset is ready for main integration. Reusable techniques, pitfalls and
+checks are recorded in [the industrial asset guide](art/STYLIZED_INDUSTRIAL_ASSETS.md).
+Source, renders and runtime assets are in `art_source/atlas_mx` and
+`battlebots/assets/models/atlas_runtime`; see
+[validation and asset contract](coordination/B_ATLAS_MX.md).
 
 A's spawn clearance consumes B's published `MvpBot.collision_bounds()` and
 `ground_clearance()` so this taller body starts above the floor and inside walls.

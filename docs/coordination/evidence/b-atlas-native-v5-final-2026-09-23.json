@@ -1,0 +1,211 @@
+{
+  "adapter": "NVIDIA GeForce RTX 3080",
+  "approval": "User approved compact cohesive V5 design on 2026-09-22; final validation recorded in docs/coordination/B_ATLAS_MX.md",
+  "asset": {
+    "bounds_min": "(-1.2175, -0.554118, -1.234171)",
+    "bounds_size": "(2.435, 1.099118, 2.468341)",
+    "materials": [
+      "Atlas_PaintSecondary",
+      "Atlas_PaintPrimary",
+      "Atlas_OxidizedMetal",
+      "Atlas_Metal",
+      "Atlas_Recess",
+      "Atlas_TrackConnectingBand",
+      "Atlas_TrackSteel",
+      "Atlas_TrackEdge",
+      "Atlas_Rubber",
+      "Atlas_EdgeSteel",
+      "Atlas_Lamp",
+      "Atlas_Stencil",
+      "Atlas_RearLens",
+      "Atlas_ConnectorBrass"
+    ],
+    "path": "res://assets/models/atlas_runtime/atlas_mx.glb",
+    "triangles": 159877,
+    "visible_mesh_instances": 175
+  },
+  "captures": [
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-hero.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-rear.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-side.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-top.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-mount-detail.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-side-detail.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-foundry.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-foundry-rear.png",
+    "C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v5/atlas-native-garage.png"
+  ],
+  "engine": "4.7.2-stable (official)",
+  "foundry_frame_sample": {
+    "engine_video_memory_mib": 2504.31640625,
+    "frame_cap": 0,
+    "max_frame_ms": 4.729,
+    "p50_frame_ms": 3.567,
+    "p95_frame_ms": 4.526,
+    "resolution": "(1800, 1350)",
+    "samples": 120,
+    "scope": "Static native Foundry review camera, ordinary Atlas practice plus three NPC bots, 4x MSAA. Frame intervals include engine/render/presentation work. Player brakes with no commanded attacks; NPC behavior remains active. No HUD, networking, or long soak; not a release performance certification.",
+    "shadow_draw_calls": 1542,
+    "visible_draw_calls": 265,
+    "visible_objects": 599,
+    "visible_primitives": 401671,
+    "vsync": "disabled",
+    "warmup_frames": 40
+  },
+  "foundry_review_views": {
+    "fov_degrees": 43.0,
+    "front_offset": "(12.5, 10.0, -16.5)",
+    "rear_offset": "(-12.0, 6.5, 15.0)",
+    "scope": "Two review cameras framing the equipped Atlas in ordinary Foundry practice. Production arena lighting is unchanged; the bounded performance sample uses the front view only."
+  },
+  "garage": {
+    "clipped_mesh_bounds": [],
+    "preset_index": 4,
+    "preview_size": "(872, 406)",
+    "resolution": "1920x1080",
+    "scope": "Actual garage scene, default Atlas preset and default camera. In-memory selection only; saved loadouts untouched."
+  },
+  "resolution": "(1800, 1350)",
+  "review_stage": "V5 final corrected compact cohesive shell. User approved the design; final native validation and evidence.",
+  "scope": "Actual imported GLB studio views and optionally unmodified production Foundry practice. Approval status is recorded in the source manifest.",
+  "provenance": {
+    "captured_at_utc": "2026-09-22T22:02:46.7855314Z",
+    "git_head": "35f7fbcc4e9b326b80a40b507b321db0f2ff20c0",
+    "git_scope": "Current worktree context before final integration commit; file hashes identify the actual verified assets.",
+    "files": [
+      {
+        "path": "battlebots/assets/models/atlas_runtime/atlas_mx.glb",
+        "sha256": "6dad9c1928bcfd74290c1ef903463b360173eec1cccc29db654307b5f5c006d9",
+        "bytes": 5980072,
+        "mtime_utc": "2026-09-22T22:00:54.376615Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/atlas_lifter.glb",
+        "sha256": "85f0fe8df296d40bdce1def6ee3f1aab166d88128f42cae082c632bb894d8523",
+        "bytes": 314992,
+        "mtime_utc": "2026-09-22T22:00:54.5433162Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/atlas_manifest.json",
+        "sha256": "e23e5512b4972aaeab640e51f388ba794da4bcd5a5c546586838af284a6d3f5b",
+        "bytes": 7593,
+        "mtime_utc": "2026-09-22T22:02:00.0860892Z"
+      },
+      {
+        "path": "art_source/atlas_mx/atlas_mx.blend",
+        "sha256": "950ba101325d933f41a0ad9575993a802cfc22e56e1873afbb51b716e5fdb66d",
+        "bytes": 64974995,
+        "mtime_utc": "2026-09-22T22:00:54.6132602Z"
+      },
+      {
+        "path": "tools/build-atlas.py",
+        "sha256": "3f9fecc3006984ffb811795727de41b176364f6cd2064967e98d6a08bfc248b3",
+        "bytes": 30851,
+        "mtime_utc": "2026-09-22T19:34:27.7518575Z"
+      },
+      {
+        "path": "tools/atlas_surface_bake.py",
+        "sha256": "9b525c684eca7cca13f09a1f174926b4fa72d1bddd7d969477f80253a1320d63",
+        "bytes": 31272,
+        "mtime_utc": "2026-09-22T19:28:07.285927Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_base.png",
+        "sha256": "136dc95c5b28e19c945179a251348a2db41d464a675de018730894e1eabd3f57",
+        "bytes": 3629399,
+        "mtime_utc": "2026-09-22T22:00:44.4065117Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_normal.png",
+        "sha256": "a575289936fb9d60b1ce460527ab3aa000df364b10a8184aaea5ddeccecfd17c",
+        "bytes": 7202959,
+        "mtime_utc": "2026-09-22T22:00:52.3607834Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_orm.png",
+        "sha256": "3f4f38616c712095986112be11f78ea0a6449491c2fcc9d75e2a64f7e4b8e8ea",
+        "bytes": 7825003,
+        "mtime_utc": "2026-09-22T22:00:47.4298167Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_base.png",
+        "sha256": "6c280c4e6687ca3a22dda00250583a1c7d79d361f1c817516b7da4c3b66bed59",
+        "bytes": 7733860,
+        "mtime_utc": "2026-09-22T22:00:28.3348589Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_coverage.png",
+        "sha256": "54f81097a432d0aa12a1e66332e0d8ee5a7ecf04a78883b1da5e5c7915b71cd2",
+        "bytes": 5910670,
+        "mtime_utc": "2026-09-22T22:00:37.3923466Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_normal.png",
+        "sha256": "090ab640cb96e6c73db979ab8b0378778b38933de6e2ce7e2564629d142578fc",
+        "bytes": 7614454,
+        "mtime_utc": "2026-09-22T22:00:35.6242029Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_orm.png",
+        "sha256": "6b7f3c93631f8c05b003d955177bc8cc81edf8431a15498899ea227102276723",
+        "bytes": 9444002,
+        "mtime_utc": "2026-09-22T22:00:31.116075Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_base.png",
+        "sha256": "03b80488ade094bbfc875a89e4a7ab52c1542a9197b97d249558c3c36b2ac935",
+        "bytes": 2130518,
+        "mtime_utc": "2026-09-22T22:00:38.0806126Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_coverage.png",
+        "sha256": "4324f9c2dbbf5a6bc2a7fba12df131ff905770d5d5a4b7996939989140560463",
+        "bytes": 1981693,
+        "mtime_utc": "2026-09-22T22:00:40.6255403Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_normal.png",
+        "sha256": "b3ac2898cabcabe0bc28280d716ea582028ff8d703a9077c3ac734c14357f2e7",
+        "bytes": 2005465,
+        "mtime_utc": "2026-09-22T22:00:40.0954682Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_orm.png",
+        "sha256": "b7dc41bf5a586c11ef5f162e2a04b5dd2eb3434d609bb95077d1417edc845827",
+        "bytes": 3239620,
+        "mtime_utc": "2026-09-22T22:00:38.9812678Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_base.png",
+        "sha256": "216104b04075bdcbaa0f0f834d33e4cb6853b8d12f53960fc56db205b9f7ea42",
+        "bytes": 844059,
+        "mtime_utc": "2026-09-22T22:00:40.9880036Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_normal.png",
+        "sha256": "7cf13779fa35e61cea7116573acfa0b85bed85f273ef8839f8756ec1654cecea",
+        "bytes": 1972305,
+        "mtime_utc": "2026-09-22T22:00:42.8153839Z"
+      },
+      {
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_orm.png",
+        "sha256": "20aa0861e9c83255c848db6940cf55511cd8d3a1c80e58c8a28c7672d31aa6c3",
+        "bytes": 1419796,
+        "mtime_utc": "2026-09-22T22:00:41.5028087Z"
+      }
+    ],
+    "unchanged_after_capture": true,
+    "verified_after_capture_utc": "2026-09-22T22:05:26.6171878Z"
+  },
+  "validation": {
+    "clean_import": "PASS: follow-up import and baseline editor pass emitted no errors",
+    "initial_import_note": "First import had get_multiple_md5 dependency errors. Preserved initial log; clean follow-up import completed before acceptance.",
+    "mipmap_imports": "PASS: 14 of 14 Surface PNG imports have mipmaps enabled",
+    "baseline": "BASELINE PASS",
+    "native_assembly": "ATLAS ASSEMBLY PASS, including actual GPU enamel/primer/steel coverage checks",
+    "native_showcase": "ATLAS NATIVE REVIEW COMPLETE",
+    "known_shutdown_warning": "7 Texture RIDs leaked on showcase shutdown; no script or shader errors",
+    "log_directory": "battlebots/exports/atlas-v5-validation",
+    "physics_scope": "No collision or gameplay contract changed in V5; prior grounded validation remains historical evidence."
+  }
+}

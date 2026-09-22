@@ -23,9 +23,11 @@ catalogue hash and migration. A must build/deploy matching hosted workers and
 validate external play before this content is described as online-ready. No live
 restart is authorized by this asset task, and compatibility rejection stays.
 
-Status: fourth visual revision in progress. The user accepted the direction of
-the shape but rejected the third candidate's simple/plastic material style.
-Approval and final integration remain pending. No hosted claim.
+Status: the user approved the compact cohesive V5 design on 22 September 2026.
+Final source/material audits, baseline, native assembly and all nine native views
+pass. The asset is ready for main integration; no hosted readiness is claimed.
+The reusable construction and bake lessons are in
+[the industrial asset guide](../art/STYLIZED_INDUSTRIAL_ASSETS.md).
 
 Third-revision scope: slate-grey single-layer tread shoes with visible moving
 connecting bands; darker orange enamel and brighter chamfer edges; correct
@@ -390,3 +392,48 @@ instead of separated raised panels. They explicitly chose to retain the compact
 footprint. The next geometry pass joins nose, deck, shoulders and upper side
 armor with narrow seams, recessed access panels and supported addon interfaces.
 V4 is a verified material/hardware checkpoint, not an approval candidate.
+
+## Fifth candidate: compact cohesive armor
+
+The user explicitly retained the compact footprint and supplied additional
+glacis, skirt and suspension close-ups. The source now builds a continuous
+structural roof, folded shoulders and front/rear closures beneath closely fitted
+armor panels. Four corner sockets remain centered on their flat shoulder armor
+at the published attachment transforms. Recessed longitudinal rails and cooling
+openings replace the raised deck strips. The front lights sit inside protective
+pockets, and the lower folded apron surrounds the existing primary receiver.
+
+The side skirts have flush access hatches, recessed louvers, hinges and actual
+cross-frame brackets. Their central armor supports the unchanged side mount
+origins. Lower rollers and the end-wheel faces remain exposed. Track hinge-pin
+ends were shortened by 3 mm to clear the skirt by 3.5 mm. Optional top armor has
+seated feet; side addon seats now contact the new skirt, and the front addon has
+attachments that reach the folded apron. Track-edge polish is intermittent,
+with slate coating between worn patches and broader sparse face abrasions.
+
+The construction helpers are `tools/atlas_front_shell.py`,
+`tools/atlas_deck_shell.py` and `tools/atlas_armor_shell.py`. Final corrections raise
+the terminal hoods for motion clearance and replace protruding rear support boxes
+with wedges behind the sloping backing plane. Eight shared shoe mesh/UV variants
+remove adjacent copies of the same scratch pattern.
+
+The user approved V5 on 22 September. The
+[final saved-source audit](evidence/b-atlas-v5-clearance-2026-09-22.json) records
+6,454 pair checks across eight belt positions, zero unintended intersections,
+388 narrowly excluded central axle contacts, and fourteen packed maps identical
+to the runtime PNGs. This is sampled surface clearance, not continuous-motion or
+optional-addon proof. Final base geometry is 159,877 triangles.
+
+The [final native evidence](evidence/b-atlas-native-v5-final-2026-09-23.json)
+records clean Godot 4.7.2 import, all fourteen mipmaps, baseline and native assembly
+passes, nine reviewed studio/Foundry/garage views and unchanged hashes for twenty
+source/runtime files before and after review. The short RTX 3080 sample measured
+median 3.567 ms / p95 4.526 ms; it is not release performance certification.
+Seven Texture RID shutdown warnings remain in the showcase fixture; assembly is
+clean. Initial failed imports and rejected renders are not acceptance evidence.
+
+The delivered manifest records approval. Regenerating the model resets approval
+to pending, because a future build must receive its own review. Source construction,
+material techniques, failed approaches and repeatable checks are documented in
+[the industrial asset guide](../art/STYLIZED_INDUSTRIAL_ASSETS.md), with preserved
+concept references and approved native captures.

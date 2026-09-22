@@ -1,0 +1,20 @@
+---
+description: Build and validate cohesive stylized industrial bot assets using the Atlas lessons.
+globs: art_source/**,battlebots/assets/models/**,tools/build-*.py,tools/*_surface_bake.py,tools/*_shell.py
+alwaysApply: false
+---
+
+# Industrial bot assets
+
+Read `docs/art/STYLIZED_INDUSTRIAL_ASSETS.md` before bot modeling, material,
+baking or export work. Use the linked accepted native renders and references.
+
+- Establish a cohesive structural shell and moving clearances before final bakes.
+- Seat mounts, fasteners and addons on actual supporting surfaces.
+- Separate broad corner rounds from thin metal chamfers; use real apertures and hardware.
+- Bake portable PBR maps with physical edge wear, local assembly AO and explicit repaint coverage.
+- Vary shared moving-part wear; preserve connector phases and runtime frames.
+- Keep quick previews isolated; require clean import logs, native material/assembly views,
+  sampled motion checks and exact artifact hashes before handoff.
+- Preserve the user's footprint/contract choices and the A/B ownership split.
+- Technical checks do not substitute for requested user visual approval.

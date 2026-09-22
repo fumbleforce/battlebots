@@ -268,6 +268,12 @@ def _procedural(material, family, ao_image, primary_color, edge_image=None):
     edge_role = "paintprimaryedge" in material.name.lower()
     if edge_role:
         color, metallic, roughness = primary_color, 0.08, 0.66
+    track_edge_role = "trackedge" in material.name.lower()
+    if track_edge_role:
+        # An intact shoe chamfer has the same finish as its face. Intermittent
+        # abrasion below exposes brighter metal; a uniformly silver perimeter
+        # makes each shoe read as a separate decorative trim panel.
+        color, metallic, roughness = _linear((.33, .355, .375)), .62, .64
     # Painted secondary is enamel, not a partially metallic pseudo-material.
     if family in ("Primary", "Secondary"):
         metallic = 0.08
@@ -336,12 +342,17 @@ def _procedural(material, family, ao_image, primary_color, edge_image=None):
         vector = nodes.new("ShaderNodeVectorMath")
         vector.operation = "MULTIPLY"
         links.new(position, vector.inputs[0])
-        vector.inputs[1].default_value = (9.0, 280.0, 170.0)
+        vector.inputs[1].default_value = (12.0, 78.0, 126.0) if family == "Track" else (9.0, 280.0, 170.0)
         scratch = _noise(nodes, links, vector.outputs[0], 1.0, 1.0)
         scratch = _math(nodes, links, "GREATER_THAN", scratch, 0.71)
-        scratch = _math(nodes, links, "MULTIPLY", scratch, 0.23)
+        scratch = _math(nodes, links, "MULTIPLY", scratch, 0.48 if family == "Track" else 0.23)
         base = _mix(nodes, links, scratch, base, _linear((0.66, 0.675, 0.68)))
         rough = _math(nodes, links, "SUBTRACT", rough, _math(nodes, links, "MULTIPLY", scratch, 0.22), True)
+        if track_edge_role:
+            polish = _math(nodes, links, "LESS_THAN", fracture, 0.455)
+            base = _mix(nodes, links, polish, base, _linear((.53,.545,.55)))
+            rough = _mix(nodes, links, polish, rough, (.43,.43,.43,1))
+            metal = _mix(nodes, links, polish, (metallic,metallic,metallic,1), (.87,.87,.87,1))
     base = _mix(nodes, links, dirty, base, _linear((0.125, 0.105, 0.075)))
     rough = _math(nodes, links, "ADD", rough, _math(nodes, links, "MULTIPLY", dirty, 0.16), True)
     height = _math(nodes, links, "MULTIPLY", micro, 0.12)

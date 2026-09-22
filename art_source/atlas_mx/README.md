@@ -19,8 +19,9 @@ textures, runtime chassis and lifter GLBs, and `atlas_manifest.json`.
 4096px primary enamel and hardware, plus 2048px secondary enamel and track steel.
 Each exports base color, packed occlusion/roughness/metallic and tangent normals.
 Both enamel families also export explicit paint coverage masks so garage recolors
-preserve primer and exposed steel. Repeated shoes and connectors share geometry
-and atlas coordinates. No external texture libraries are required.
+preserve primer and exposed steel. Repeated shoes use eight shared geometry/UV
+variants to vary the visible wear; connectors share geometry and atlas coordinates.
+No external texture libraries are required.
 
 Geometry helpers use Godot meters, Y up and -Z forward. Blender export performs
 the axis conversion. Runtime applies the shared factor three once. The chassis
@@ -30,7 +31,7 @@ capsule track path are in the manifest.
 The lifter GLB uses its existing animated mechanism's local frame, preserving
 canonical attack/contact dimensions.
 
-The fourth geometry candidate has 155,467 base triangles, with automatic Godot LOD generation.
+The fifth geometry candidate has 159,877 base triangles, with automatic Godot LOD generation.
 This exceeds the older provisional 20k-40k whole-bot target; do not describe that
 target as met. Individually shared tread geometry reduces asset size but does
 not reduce visible triangle or draw counts. See the coordination record for
@@ -42,17 +43,28 @@ base views hide these options and the separate lifter. All existing bots remain.
 
 Inspect the actual Godot import with `res://tests/presentation/atlas_showcase.tscn`.
 It captures the bare chassis, assembled Foundry practice bot and actual garage.
-Visual acceptance remains subject to explicit user approval.
+The user approved the cohesive compact V5 design on 22 September 2026.
 
-The third review candidate centers each corner socket on a shorter supported
-fender, without black corner overplates. Single-layer slate-grey shoes have two
-visible articulated connecting strips per gap. The side casting, gasket and steel
-carrier share a profile that clears the smaller lower rollers and narrower return
-wheel. The drive backbone and swing arms sit inboard of the tires.
+The compact fifth candidate joins the deck, folded shoulders, front glacis,
+lower apron, side skirts and rear closure into a cohesive armored shell. Narrow
+seams have structural backing. Corner sockets are centered on the shoulders;
+deck rails, service hatches and cooling openings are recessed. Side skirts have
+real frame brackets, hinges and louvers. Single-layer slate-grey shoes have two
+visible articulated connecting strips per gap. The drive backbone and swing
+arms sit inboard of the tires. The source construction lives in
+`atlas_front_shell.py`, `atlas_deck_shell.py` and `atlas_armor_shell.py` beside
+the generator.
 
-The fourth candidate replaces constant bright painted edges and repeated scratch
+The final material system replaces constant bright painted edges and repeated scratch
 maps with geometry-aware enamel wear, exposed metal, primer and local occlusion.
 Thin edge chamfers are independent of larger cast corner rounds. Rounded machined
 hubs and button fasteners have actual recessed hex sockets; washers seat against
 their supporting surfaces. The detail views expose the mounts, running gear and
-side casting. Explicit user visual approval remains outstanding.
+side armor. Track chamfers have intermittent polished patches instead of a
+uniform bright outline. Final baseline, native assembly, material and sampled-motion
+checks pass; see [final evidence](../../docs/coordination/B_ATLAS_MX.md).
+
+The full reusable workflow, failed approaches and implementation lessons are in
+[the industrial asset guide](../../docs/art/STYLIZED_INDUSTRIAL_ASSETS.md).
+[Preserved references and approved captures](references/README.md) anchor future reviews.
+Regeneration resets manifest approval because the new artifact needs its own review.

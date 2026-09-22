@@ -316,7 +316,9 @@ func run() -> void:
 		okay = await _capture_garage() and okay
 	report.merge({"engine": Engine.get_version_info().string,
 		"adapter": RenderingServer.get_video_adapter_name(), "resolution": str(RESOLUTION),
-		"captures": captures, "scope": "Actual imported GLB studio views and optionally unmodified production Foundry practice. Visual review only; user approval pending."})
+		"captures": captures, "scope": "Actual imported GLB studio views and optionally unmodified production Foundry practice. Approval status is recorded in the source manifest."})
+	var metadata: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(MODEL_PATH.get_base_dir().path_join("atlas_manifest.json")))
+	report["approval"] = metadata.get("approval", "Not recorded")
 	var review_stage := OS.get_environment("ATLAS_REVIEW_STAGE")
 	if not review_stage.is_empty(): report["review_stage"] = review_stage
 	var report_file := FileAccess.open(output.path_join("atlas-native-review.json"), FileAccess.WRITE)

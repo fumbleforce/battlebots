@@ -189,108 +189,24 @@ for sx in [-1,1]:
     box('Longitudinal plated sill',(sx*.66,-.24,-.015),(.12,.22,2.01),paint,b=.026)
     for z in [-.77,-.34,.15,.65]:bolt((sx*.721,-.23,z),(sx,0,0),r=.018)
 
-# Sloping yellow front face with a perimeter gasket and embedded headlamps.
-front=[(-.655,.028,-1.15),(.655,.028,-1.15),(.655,.428,-.698),(-.655,.428,-.698)]
-plate('Front armor gasket',front,(0,.75,-.66),.041,rubber,b=.012)
-front=[(-.628,.04,-1.165),(.628,.04,-1.165),(.628,.42,-.728),(-.628,.42,-.728)]
-plate('Forged sloping nose armor',front,(0,.75,-.66),.04,paint,b=.009)
-front_normal=Vector((0,.437,-.38)).normalized()
-front_center=Vector((0,.23,-.9465))
-for sx in [-1,1]:
-    for y,z in [(.372,-.80),(.10,-1.108)]:
-        p=Vector((sx*.562,y,z))
-        p-=front_normal*(p-front_center).dot(front_normal)
-        bolt(p+front_normal*.021,front_normal,r=.022)
-    # Square sealed headlights read from normal game view.
-    base=Vector((sx*.46,.055,-1.176))
-    obj=box('Headlight black bezel',base,(.156,.077,.057),dark,b=.019)
-    box('Headlight machined rim',base+Vector((0,0,-.032)),(.135,.059,.015),edge_steel,b=.012)
-    box('Headlight ivory lens',base+Vector((0,0,-.041)),(.107,.040,.012),lamp,b=.009)
-    box('Front bumper cheek',(sx*.515,-.24,-1.107),(.24,.12,.12),paint,b=.026)
-box('Front tool receiver',(0,-.10,-1.155),(.47,.14,.11),secondary,b=.018)
-box('Front receiver slot',(0,-.10,-1.213),(.31,.06,.012),dark,b=.006)
-for sx in [-1,1]:bolt((sx*.198,-.10,-1.212),(0,0,-1),r=.015)
-
-# Three strong chevrons on the sloping face, flush geometry preserves clean UVs.
-for cx in [-.25,0,.25]:
-    outline=[]
-    for x,t in [(-.062,0),(.02,0),(.11,.50),(.02,1),(-.062,1),(.025,.50)]:
-        yy=.14+t*.19
-        outline.append(tuple(Vector((cx+x,yy,-1.165+(yy-.04)*(.437/.38)))+front_normal*.0217))
-    plate('Inset directional chevron',outline,front_normal,.0025,secondary,b=0)
-
-# Deck gasket, four corner armor segments and two interchangeable bolted plates.
-box('Deck elastomer seam',(0,.418,.06),(1.42,.053,1.50),rubber,b=.037)
-rounded_plate('Flat modular deck',(0,.446,.06),(1.38,.047,1.46),.035,paint,edge=.008)
-for z,l in [(-.385,.40),(.14,.44),(.635,.25)]:
-    box('Recessed interchangeable top plate',(0,.478,z),(.70,.028,l),dark,b=.018)
-    box('Removable top equipment blank',(0,.489,z),(.655,.022,l-.044),secondary,b=.014)
-    panel_bolts(0,.502,z,.64,l-.028)
-    if z==.14:
-        for i in range(7):box('Cooling grille louver',(0,.506,z-.15+i*.046),(.50,.02,.023),edge_steel,b=.005)
-    else:
-        for x in [-.22,.22]:box('Deck anti-slip inset',(x,.503,z),(.06,.003,l-.13),rubber,b=.003)
-deck_text('ATLAS  /  MX',(0,.505,-.385),.059)
-deck_text('SERVICE  04',(0,.505,.635),.036)
-for z in [-.695,.864]:
-    for x in [-.19,.19]:box('Recessed lifting handle foot',(x,.464,z),(.105,.041,.08),dark,b=.012)
-    tube('Forged lifting handle',[(-.19,.475,z),(-.145,.522,z),(.145,.522,z),(.19,.475,z)],.021,secondary)
-
-# Two substantial T-slot rails, repeated slotted recesses and docking collars.
-for sx in [-1,1]:
-    x=sx*.50
-    box('Continuous addon rail foundation',(x,.486,.04),(.205,.055,1.33),dark,b=.016)
-    for z in [-.47,.025,.52]:
-        rounded_plate('Modular rail armor segment',(x,.516,z),(.196,.032,.46),.022,paint,edge=.004)
-        box('Rail center channel',(x,.535,z),(.065,.008,.34),dark,b=.006)
-        for zz in [-.14,.14]:bolt((x,.538,z+zz),r=.014)
-    for z in [-.64,.73]:
-        cylinder('Flush docking collar',(x,.478,z),(x,.505,z),.075,steel,n=24,bevel=.004)
-        cylinder('Docking receiver socket',(x,.505,z),(x,.51,z),.051,dark,n=20,bevel=0)
-        bolt((x,.511,z),r=.022)
-
-# Short end guards expose the curved tread runs. Every socket is centered on its
-# own plain armor plate, with its physical seat and bracket directly beneath it.
+# Folded compact shell: narrow service seams over continuous structural armor.
+sys.path.insert(0,str(ROOT/'tools'))
+from atlas_front_shell import add_front_shell, add_shoulders
+from atlas_armor_shell import add_side_skirts
+add_front_shell(plate=plate,box=box,bolt=bolt,tube=tube,ring=ring,
+                paint=paint,secondary=secondary,steel=steel,
+                edge_steel=edge_steel,dark=dark,lamp=lamp)
+from atlas_deck_shell import add_deck_shell
+add_deck_shell(box=box,rounded_plate=rounded_plate,plate=plate,cylinder=cylinder,
+               tube=tube,bolt=bolt,panel_bolts=panel_bolts,deck_text=deck_text,
+               paint=paint,secondary=secondary,steel=steel,edge_steel=edge_steel,
+               rubber=rubber,dark=dark,red=red,brass=brass)
+# Supported corner sockets keep their published transforms and compact envelope.
 CORNER_X=.93;CORNER_Z=.69
 for side,group in [(-1,left),(1,right)]:
-    x=side*CORNER_X
-    fender_bottom=.424;fender_top=.500
-    for z in [-CORNER_Z,0,CORNER_Z]:
-        is_corner=abs(z)>.5;length=.45 if is_corner else .90
-        rounded_plate('Corner socket armor' if is_corner else 'Central track guard',(x,(fender_bottom+fender_top)*.5,z),(.350,fender_top-fender_bottom,length),.030,paint,group,edge=.008)
-        for sx in [-1,1]:
-            for zz in [-length*.5+.052,length*.5-.052]:bolt((x+sx*.119,fender_top+.001,z+zz),group=group,r=.012)
-        if not is_corner:
-            box('Central guard inset wear strip',(x,fender_top+.006,z),(.23,.012,.65),secondary,group,b=.009)
-            for zz in [-.22,0,.22]:box('Central guard fine channel',(x,fender_top+.014,zz),(.17,.006,.014),dark,group,b=.003)
-    for z in [-CORNER_Z,CORNER_Z]:
-        cylinder('Docking point armor seat',(x,fender_top-.007,z),(x,fender_top+.008,z),.102,dark,group,32,.002)
-        cylinder('Armor-seated corner socket',(x,fender_top+.006,z),(x,fender_top+.038,z),.088,secondary,group,32,.004)
-        ring('Corner socket machined lip',(x,fender_top+.041,z),(0,1,0),.074,.055,.008,steel,group,32)
-        # The outer end guard attaches to the drive casting through two solid
-        # brackets, rather than hanging over the running track unsupported.
-        box('Inboard fender support',(side*.668,.345,z),(.070,.166,.11),secondary,group,.010)
-        box('Fender cantilever above track',(side*.737,.444,z),(.115,.032,.11),secondary,group,.007)
-
-# Rear service architecture: recessed radiator, inset panel and twin tail lights.
-box('Rear service plate',(0,.025,1.095),(1.31,.55,.049),paint,b=.012)
-box('Rear radiator gasket',(0,.193,1.135),(.80,.285,.045),rubber,b=.023)
-box('Deep radiator well',(0,.195,1.163),(.71,.214,.018),dark,b=.018)
-for y in [.123,.169,.215,.261]:box('Rear radiator louver',(0,y,1.181),(.64,.024,.027),secondary,b=.008)
-box('Rear bumper',(0,-.255,1.108),(1.30,.19,.09),secondary,b=.024)
-box('Blank serial plate',(0,-.161,1.164),(.38,.16,.018),dark,b=.008)
-for x in [-.17,.17]:
-    for y in [-.216,-.105]:bolt((x,y,1.176),(0,0,1),r=.009)
-for sx in [-1,1]:
-    p=Vector((sx*.53,-.075,1.157))
-    cylinder('Rear lamp bezel',p,p+Vector((0,0,.031)),.065,dark,n=24)
-    ring('Rear lamp steel rim',p+Vector((0,0,.031)),(0,0,1),.054,.039,.009,steel)
-    cylinder('Recessed red lamp',p+Vector((0,0,.03)),p+Vector((0,0,.04)),.039,red,n=24)
-    for y in [-.24,.27]:bolt((sx*.585,y,1.1205),(0,0,1),r=.02)
-    # Service quick disconnects tucked inside rails, recognizably functional.
-    cylinder('Brass power connector',(sx*.615,.1,1.131),(sx*.615,.1,1.181),.033,brass,n=12)
-    tube('Rear protected harness',[(sx*.62,.10,1.15),(sx*.70,.15,.97),(sx*.71,.29,.75)],.016,rubber)
-
+    add_shoulders(side,group,mesh=mesh,plate=plate,box=box,bolt=bolt,
+                  cylinder=cylinder,ring=ring,paint=paint,secondary=secondary,
+                  steel=steel,dark=dark)
 # Independent drive pods: swingarm frame, two main wheels, three return rollers.
 WHEEL_Y=-.08
 for side,label,group in [(-1,'L',left),(1,'R',right)]:
@@ -320,51 +236,8 @@ for side,label,group in [(-1,'L',left),(1,'R',right)]:
         for i in range(8 if r>.2 else 0):
             a=i*math.tau/8
             bolt((ox+side*.0185,y+math.sin(a)*r*.66,z+math.cos(a)*r*.66),(side,0,0),wheel,.016)
-    # One common side-casting profile drives the structural carrier, thin gasket,
-    # thick cast cover and its four inset bolt seats. Nothing can drift off an edge.
-    side_quad=[Vector((-.36,.19)),Vector((.24,.19)),Vector((.36,-.19)),Vector((-.24,-.19))]
-    center=sum(side_quad,Vector((0,0)))*.25
-    def side_outline(x,scale=1.0):
-        # Cast corner rounds are separate from the narrow perimeter chamfer.
-        # Trim inward, preserving the verified clearance around the rollers.
-        outline=[]
-        for i,p in enumerate(side_quad):
-            a=p+(side_quad[i-1]-p).normalized()*.034
-            b=p+(side_quad[(i+1)%4]-p).normalized()*.034
-            for j in range(7):
-                t=j/6;v=a*(1-t)**2+p*2*t*(1-t)+b*t*t
-                v=center+(v-center)*scale
-                outline.append((side*x,v.y,v.x))
-        return outline
-    plate('Structural side carrier',side_outline(1.071,1.055),(1,0,0),.095,secondary,group,.012)
-    plate('Inset aligned side gasket',side_outline(1.120,.985),(1,0,0),.014,rubber,group,.005)
-    cover=plate('Thick slotted side casting',side_outline(1.164),(1,0,0),.085,paint,group,0)
-    for z in [-.18,-.015,.15]:
-        slot=[(side*1.164,-.090,z-.009),(side*1.164,-.090,z+.039),(side*1.164,.10,z-.041),(side*1.164,.10,z-.089)]
-        cutter=plate('Slot cutting tool',slot,(1,0,0),.30,dark,group,0)
-        bpy.context.view_layer.objects.active=cover
-        mod=cover.modifiers.new('Actual ventilation aperture','BOOLEAN');mod.operation='DIFFERENCE';mod.object=cutter;mod.solver='EXACT'
-        bpy.ops.object.modifier_apply(modifier=mod.name)
-        groups[group].remove(cutter);bpy.data.objects.remove(cutter,do_unlink=True)
-    cover.data.materials.append(paint_edge)
-    bevel=cover.modifiers.new('Forged cover chamfer','BEVEL');bevel.width=.007;bevel.segments=2;bevel.material=len(cover.data.materials)-1
-    normal=cover.modifiers.new('Cover weighted normals','WEIGHTED_NORMAL');normal.keep_sharp=True
-    cover.data.materials.append(secondary)
-    for face in cover.data.polygons:
-        center_godot=Vector((face.center.x,face.center.z,-face.center.y))
-        # Interior aperture walls have cut steel rather than yellow enamel.
-        if abs(face.normal.x)<.5 and -.14<center_godot.y<.12 and abs(center_godot.z)<.31:
-            face.material_index=len(cover.data.materials)-1
-    for aa,bb in [(.12,.14),(.88,.14),(.88,.86),(.12,.86)]:
-        edge_top=side_quad[0].lerp(side_quad[1],aa)
-        edge_bottom=side_quad[3].lerp(side_quad[2],aa)
-        bolt_point=edge_top.lerp(edge_bottom,bb)
-        for i,p in enumerate(side_quad):
-            q=side_quad[(i+1)%4];edge_vector=q-p
-            clearance=abs(edge_vector.x*(bolt_point.y-p.y)-edge_vector.y*(bolt_point.x-p.x))/edge_vector.length
-            assert clearance>.036, 'Side fastener seat overhangs the cast outline'
-        bolt((side*1.207,bolt_point.y,bolt_point.x),(side,0,0),group,.017)
-
+    add_side_skirts(side,group,plate=plate,box=box,bolt=bolt,cylinder=cylinder,
+                    paint=paint,secondary=secondary,steel=steel,dark=dark)
 # A continuous capsule path, shared in the manifest for exact runtime tread motion.
 R=.44;HALF=.76;CY=-.08;COUNT=40;LOOP=4*HALF+math.tau*R
 def path(t):
@@ -386,7 +259,7 @@ box('Single slate track shoe',(0,0,0),(.438,.050,.118),track_steel,proto,b=.007)
 for sx in [-1,1]:
     for z in [-.041,.041]:
         turned('Domed track rivet',(sx*.175,.025,z),(0,1,0),[(0,.0065),(.002,.0065),(.005,.0055),(.006,.003)],steel,proto,12)
-    cylinder('Track hinge pin',(sx*.208,-.020,0),(sx*.229,-.020,0),.012,track_band,proto,12,0)
+    cylinder('Track hinge pin',(sx*.208,-.020,0),(sx*.226,-.020,0),.012,track_band,proto,12,0)
 box('Inner drive engagement tooth',(0,-.039,0),(.068,.027,.050),track_band,proto,b=.005)
 band_proto=part('ConnectorPrototype')
 for sx in [-1,1]:
@@ -408,13 +281,18 @@ def finalize(group):
 
 proto_mesh=finalize(proto)
 band_mesh=finalize(band_proto)
+# Eight shared UV variants retain lightweight repeated geometry while baking
+# different wear at their representative positions. A single shoe texture made
+# each scratch recur visibly on every adjacent link.
+shoe_variants=[proto_mesh.data]+[proto_mesh.data.copy() for _ in range(7)]
+for i,data in enumerate(shoe_variants):data.name='AtlasTreadVariant%02d'%i
 for label,side,group in [('L',-1,left),('R',1,right)]:
     for i in range(COUNT):
         y,z,a=path(i*LOOP/COUNT)
         link=part('Tread_'+label+'_%02d'%i,(side*.94,y,z),group)
         # Godot X rotations are also Blender X rotations after coordinate change.
         link.rotation_euler.x=a
-        obj=bpy.data.objects.new('TreadShoe',proto_mesh.data);bpy.context.collection.objects.link(obj);obj.parent=link
+        obj=bpy.data.objects.new('TreadShoe',shoe_variants[(i+(3 if side>0 else 0))%8]);bpy.context.collection.objects.link(obj);obj.parent=link
         by,bz,ba=path((i+.5)*LOOP/COUNT)
         connector=part('TrackConnector_'+label+'_%02d'%i,(side*.94,by,bz),group)
         connector.rotation_euler.x=ba
@@ -437,20 +315,25 @@ for title,heavy in [('ArmorSideReference',False),('ArmorSideHeavy',True)]:
         x=side*(1.257 if heavy else 1.237)
         poly=[(x,-.24,-.54),(x,-.30,-.37),(x,-.30,.39),(x,-.17,.54),(x,.16,.43),(x,.16,-.43)]
         plate('Bolt-on side armor',poly,(1,0,0),.04 if not heavy else .074,paint,group,.022)
-        for z in [-.39,.39]:
-            for y in [-.2,.10]:
-                cylinder('Armor addon standoff',(side*1.20,y,z),(x,y,z),.037,secondary,group,12,.003)
+        for y,span in [(-.105,.22),(.10,.39)]:
+            for z in [-span,span]:
+                cylinder('Armor addon standoff',(side*1.20,y,z),(x,y,z),.027,secondary,group,16,.003)
                 bolt((x+side*(.0215 if not heavy else .0385),y,z),(side,0,0),group,.018)
         for z in [-.23,0,.23]:
             box('Armor insert',(x+side*.04,-.04,z),(.014,.20,.088),secondary,group,.009)
         if heavy:
             for z in [-.53,.53]:box('Heavy impact rail',(side*1.302,-.05,z),(.092,.36,.13),secondary,group,.024)
 group=part('ArmorTop',parent=hull);optional.append(group)
+for x in [-.365,.365]:
+    for z in [-.15,.50]:
+        cylinder('Utility rack seated foot',(x,.486,z),(x,.531,z),.028,secondary,group,20,.003)
 box('Top utility rack gasket',(0,.558,.18),(.82,.068,.80),dark,group,.025)
 box('Top armored addon plate',(0,.599,.18),(.86,.05,.82),paint,group,.03)
 panel_bolts(0,.6255,.18,.82,.79,group)
 for x in [-.27,.27]:box('Top rack grip',(x,.632,.18),(.065,.018,.56),secondary,group,.008)
 group=part('ArmorFront',parent=hull);optional.append(group)
+for x in [-.52,.52]:
+    box('Front impact beam attachment',(x,-.263,-1.175),(.080,.078,.090),secondary,group,.006)
 box('Front addon impact beam',(0,-.263,-1.267),(1.38,.18,.15),secondary,group,.037)
 for x in [-.5,0,.5]:box('Front beam sacrificial pad',(x,-.26,-1.355),(.32,.15,.035),paint,group,.016)
 group=part('ArmorRear',parent=hull);optional.append(group)

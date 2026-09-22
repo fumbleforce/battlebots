@@ -53,6 +53,11 @@ Read docs/GAME_SPEC.md, docs/TEAM_WORKFLOW.md, docs/CONTRACTS.md and docs/HANDOF
   --duel-only --godot <pinned Godot executable>.
 
 ## Baseline and validation
+- Before bot modeling, material, baking or asset-export work, read
+  docs/art/STYLIZED_INDUSTRIAL_ASSETS.md and its linked accepted native references.
+  It records the Atlas fidelity techniques, failed approaches and required visual/
+  technical checks. Apply the construction principles; do not impose Atlas's exact
+  dimensions, colors or track layout on every model.
 - Pin Godot to 4.7.2 stable. Preserve Jolt, 60 Hz physics, meter scale, Y up, and -Z forward.
 - Keep authoritative logic free of camera/UI dependencies. Mocks are development-only.
 - This is a developing MVP with implemented combat/networking and remaining
