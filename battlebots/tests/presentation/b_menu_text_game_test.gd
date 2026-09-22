@@ -61,7 +61,7 @@ func run() -> void:
 	game.get_node("Preview").settings_path = ""
 	add_child(game)
 	await settle()
-	for screen_name: String in ["garage", "customize", "shop"]:
+	for screen_name: String in ["garage", "customize"]:
 		game.show_screen(screen_name)
 		await settle()
 		check(scaled(game.screen.get_node("%Title"), 1.5), screen_name + " receives saved preference on navigation")

@@ -464,14 +464,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="ShopLink" type="Button" parent="Layout/Footer/Row"]
-layout_mode = 2
-theme_type_variation = &"TextLink"
-text = "PART CATALOGUE"
-unique_name_in_owner = true
-theme_override_font_sizes/font_size = 26
-size_flags_vertical = 4
-
 [node name="Save" type="Button" parent="Layout/Footer/Row"]
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"

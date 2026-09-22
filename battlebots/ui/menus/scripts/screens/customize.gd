@@ -208,7 +208,6 @@ func _ready() -> void:
 	%TabParts.button_pressed = true
 	%Action.pressed.connect(_on_action)
 	%Save.pressed.connect(_save_build)
-	%ShopLink.hide()
 	PlayerProfile.inventory_changed.connect(_refresh)
 	_refocus = "item"
 	_refresh()

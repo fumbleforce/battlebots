@@ -1,5 +1,12 @@
 # Shared contracts — local records and current MVP session API
 
+## Garage navigation — 22 September 2026
+
+`MenuRouter.SCREENS` has no `shop` entry. Garage and Customize remain the
+player-facing build screens; Customize retains the canonical part choices.
+The removed Part Catalogue scene and its components have no gameplay or
+client/server compatibility role.
+
 ## Scorpion and practice NPCs — catalogue 8, protocol 5, build mvp-ab-13
 
 `ContentRegistry.scorpion()` supplies the legal 118 kg / 95 power HX-6 preset:

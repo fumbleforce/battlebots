@@ -36,7 +36,8 @@ func run() -> void:
 	root.push_input(click)
 	await frames()
 	check(router.current == "mode_select", "Scaled supplied Play button receives real mouse clicks")
-	for key: String in ["main","mode_select","garage","arena_select","lobby","loading","customize","shop"]:
+	check(not router.SCREENS.has("shop"), "Removed catalogue screen is not routable")
+	for key: String in ["main","mode_select","garage","arena_select","lobby","loading","customize"]:
 		router.goto(key,false)
 		await frames(6)
 		check(is_instance_valid(game.screen) and game.screen.get_script() != null,"Menu screen loads with script: " + key)

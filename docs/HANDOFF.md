@@ -1,5 +1,21 @@
 # Current A/B handoff
 
+## Garage catalogue navigation cleanup — B, 22 September 2026
+
+The garage already has the expanded 3D preview, reversed horizontal orbit,
+loadout-only side panel, and mass/battery/speed/individual armor values beneath
+the bot name. This follow-up removes the remaining Part Catalogue route, screen,
+and hidden Customize link, along with screen-only cards. Parts remain selectable
+through Customize. The shared menu router no longer accepts `shop`; A should not
+restore that route during menu integration. This changes no loadout, catalogue,
+network, or hosted compatibility data.
+
+Validation with pinned Godot 4.7.2: baseline, garage catalogue/layout,
+customization screens, and Scorpion garage checks pass. Broader presentation
+checks still report main-menu synthetic-click/flow failures and composed
+small-window bounds failures (`menu_kit_test`, `menu_flow_test`,
+`b_menu_text_game_test`); those checks did not pass in this increment.
+
 ## Orange Scorpion HX-6 and practice NPCs — B, 20 September 2026
 
 Reference-based Blender source and portable PBR runtime assets now assemble a
