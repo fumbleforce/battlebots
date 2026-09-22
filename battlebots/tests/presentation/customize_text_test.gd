@@ -67,14 +67,11 @@ func run() -> void:
 	await settle()
 	check(screen.get_node("%Items").get_child(4).get_node("%Name").get_theme_font_size("font_size") == 38, "Rebuilt item labels use 150%")
 	check(screen.comparison_panel.budgets.get_child(0).get_theme_font_size("font_size") == 32, "Rebuilt comparison cells use 150%")
-	for index: int in range(4):
+	for index: int in range(2):
 		check(screen.comparison_panel.budgets.get_child(index).get_line_count() == 1, "Comparison headings remain whole at 150%")
-	check(profile.loadouts[0] == original, "Text scaling and selection do not alter build")
+	check(profile.loadouts[0] != original and profile.can_undo(), "Selecting a choice applies an undoable draft edit")
 	inspect(screen, "weapon comparison")
-	screen._show_choice_details(true)
-	await settle()
-	inspect(screen, "selected details")
-	screen._show_choice_details(false)
+	check(screen.get_node("%Items").visible and screen.get_node("%SelDesc").is_visible_in_tree(), "Choices and details remain visible together")
 	screen.comparison_panel.page = 1
 	screen.comparison_panel._show_page()
 	await settle()

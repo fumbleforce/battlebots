@@ -2,6 +2,10 @@ class_name GarageComparison
 extends RefCounted
 ## Detached, read-only catalogue comparisons. Never equips, saves or joins a session.
 
+static func current(registry: ContentRegistry, draft: Dictionary) -> Dictionary:
+	return _summary(registry, draft)
+
+
 static func compare(registry: ContentRegistry, draft: Dictionary, slot: String, part_id: String) -> Dictionary:
 	var candidate := draft.duplicate(true)
 	var current := _summary(registry, draft)

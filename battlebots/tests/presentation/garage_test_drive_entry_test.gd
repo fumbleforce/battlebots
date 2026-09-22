@@ -26,6 +26,12 @@ func run() -> void:
 		entry.pressed.emit()
 		check(launches == 0, "Unrendered entry cannot launch")
 		entry.render(initial, true)
+		if screen_name == "customize" and "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
+			get_window().size = Vector2i(1920, 1080)
+			screen.apply_text_scale(1.0)
+			await settle()
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("customize-immediate-1920.png"))
 		entry.pressed.emit()
 		check(launches == 1, "Valid enabled entry invokes caller")
 		entry.render(initial, false)
@@ -44,7 +50,10 @@ func run() -> void:
 			for factor: float in [1.0,1.5,1.0]:
 				screen.apply_text_scale(factor)
 				await settle()
-				check(entry.get_theme_font_size("font_size") == roundi(20 * factor), "Full noncompounding test-drive text scale")
+				check(entry.get_theme_font_size("font_size") == roundi((30 if screen_name == "customize" else 20) * factor), "Full noncompounding test-drive text scale")
+				if screen_name == "customize":
+					var save: Button = screen.get_node("%Save")
+					check(entry.custom_minimum_size.y == save.custom_minimum_size.y and entry.get_index() + 1 == save.get_index(), "Test Drive matches Save height and Save is rightmost")
 				var footer: Control = screen.get_node("Layout/Footer/Row")
 				var previous_end := -1.0
 				for child: Control in footer.get_children():

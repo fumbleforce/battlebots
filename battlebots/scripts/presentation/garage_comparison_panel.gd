@@ -13,6 +13,7 @@ var details: GridContainer
 var _text_scale := 1.0
 var page := 0
 var page_label: Label
+var _current_only := false
 
 func apply_text_scale(factor: float) -> void:
 	_text_scale = clampf(factor, 1.0, 1.5) if is_finite(factor) else 1.0
@@ -20,7 +21,10 @@ func apply_text_scale(factor: float) -> void:
 	for grid: GridContainer in [budgets, details]:
 		if not is_instance_valid(grid): continue
 		for index: int in grid.get_child_count():
-			grid.get_child(index).custom_minimum_size.x = (250 if _text_scale > 1.0 else 280) if index % 4 == 0 else (160 if _text_scale > 1.0 else 115)
+			if _current_only:
+				grid.get_child(index).custom_minimum_size.x = (250 if _text_scale > 1.0 else 280) if index % 2 == 0 else 140
+			else:
+				grid.get_child(index).custom_minimum_size.x = (250 if _text_scale > 1.0 else 280) if index % 4 == 0 else (160 if _text_scale > 1.0 else 115)
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 8)
@@ -47,9 +51,10 @@ func _ready() -> void:
 	pages.add_child(next)
 
 func _show_page() -> void:
+	var page_size := 8 if _current_only else 16
 	for index: int in details.get_child_count():
-		details.get_child(index).visible = index / 16 == page
-	page_label.text = "DETAILS %d / 2" % (page + 1)
+		details.get_child(index).visible = index / page_size == page
+	page_label.text = "STATS %d / 2" % (page + 1) if _current_only else "DETAILS %d / 2" % (page + 1)
 
 func _grid(parent: Node) -> GridContainer:
 	var grid := GridContainer.new()
@@ -61,6 +66,9 @@ func _grid(parent: Node) -> GridContainer:
 	return grid
 
 func render(comparison: Dictionary, candidate: String, proposed := true) -> void:
+	_current_only = false
+	budgets.columns = 4
+	details.columns = 4
 	title.text = "EQUIPPED → " + candidate.to_upper() if proposed else "EQUIPPED BUILD · COSMETICS DO NOT CHANGE STATS"
 	_clear(budgets)
 	_clear(details)
@@ -74,6 +82,29 @@ func render(comparison: Dictionary, candidate: String, proposed := true) -> void
 		_row(details, field[0], before.get(field[1]), after.get(field[1]), field[2])
 	_show_page()
 	apply_text_scale(_text_scale)
+
+
+func render_current(summary: Dictionary) -> void:
+	_current_only = true
+	budgets.columns = 2
+	details.columns = 2
+	title.text = "CURRENT BUILD"
+	_clear(budgets)
+	_clear(details)
+	_cell(budgets, "STAT", true).modulate = Color("f5b82e")
+	_cell(budgets, "VALUE").modulate = Color("f5b82e")
+	var stats: Dictionary = summary.stats
+	_current_row(budgets, "Mass (kg / 120)", stats.get("mass"))
+	_current_row(budgets, "Power ( / 100)", stats.get("power"))
+	for field: Array in FIELDS:
+		_current_row(details, field[0], stats.get(field[1]), field[2])
+	_show_page()
+	apply_text_scale(_text_scale)
+
+
+func _current_row(grid: GridContainer, label: String, value: Variant, scale_value := 1.0) -> void:
+	_cell(grid, label, true)
+	_cell(grid, _format(value, scale_value))
 
 func _clear(grid: GridContainer) -> void:
 	for child: Node in grid.get_children():

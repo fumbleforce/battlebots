@@ -1,6 +1,10 @@
 extends MenuScreen
 ## Canonical parts and paint editing; draft history and saves belong to PlayerProfile.
 
+class CustomizePreview extends GarageBotPreview:
+	func rotate_view(delta: Vector2) -> void:
+		super(Vector2(-delta.x, delta.y))
+
 const CATEGORY_ROW := preload("res://ui/menus/components/category_row.tscn")
 const ITEM_TILE := preload("res://ui/menus/components/item_tile.tscn")
 const TABS := ["parts", "paint", "decals"]
@@ -18,11 +22,12 @@ var comparison_panel: GarageComparisonPanel
 var revalidate_button: Button
 var recovery_panel: GarageRecoveryPanel
 var recovery_button: Button
+var stats_button: Button
 var _text_scale := 1.0
 var _choice_pages: Dictionary = {}
 var _choice_page_label: Label
 var _choice_pager: HBoxContainer
-var _show_details := false
+var _showing_stats := false
 var _category_page := {"parts": 0, "paint": 0, "decals": 0}
 var _category_pager: HBoxContainer
 var _category_page_label: Label
@@ -56,15 +61,11 @@ func _change_choice_page(direction: int) -> void:
 	_choice_pages[key] = wrapi(int(_choice_pages.get(key, 0)) + direction, 0, maxi(1, _choice_ranges.size()))
 	_refresh()
 
-func _show_choice_details(value: bool) -> void:
-	_show_details = value
-	%Items.visible = not value
-	_choice_pager.visible = not value and _choice_ranges.size() > 1
-	%SelDesc.get_parent().visible = value
-
 func _show_preview_stats(value: bool) -> void:
+	_showing_stats = value
 	build_preview.get_parent().visible = not value
 	comparison_panel.visible = value
+	stats_button.text = "SHOW MODEL" if value else "SHOW STATS"
 
 
 func _ready() -> void:
@@ -95,15 +96,6 @@ func _ready() -> void:
 		var category: Dictionary = PlayerProfile.catalogue[_tab][_cat[_tab]]
 		if _tab == "paint" and category.slot != "paint": PlayerProfile.set_sawblade_color(category.slot, _color_picker.color))
 	var options := %Items.get_parent()
-	var view_tabs := HBoxContainer.new()
-	options.add_child(view_tabs)
-	options.move_child(view_tabs, %Items.get_index())
-	for caption: String in ["CHOICES", "DETAILS"]:
-		var button := Button.new()
-		button.text = caption
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		view_tabs.add_child(button)
-		button.pressed.connect(_show_choice_details.bind(caption == "DETAILS"))
 	_choice_pager = HBoxContainer.new()
 	options.add_child(_choice_pager)
 	options.move_child(_choice_pager, %Items.get_index() + 1)
@@ -119,20 +111,20 @@ func _ready() -> void:
 	next.text = "NEXT"
 	next.pressed.connect(_change_choice_page.bind(1))
 	_choice_pager.add_child(next)
-	%Items.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	%SelDesc.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
-	options.get_node("Line").hide()
+	%Items.size_flags_vertical = Control.SIZE_FILL
+	%SelDesc.get_parent().size_flags_vertical = Control.SIZE_SHRINK_END
+	options.get_node("Line").show()
 	%SelName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%CatLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%CatLabel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	%Eyebrow.hide()
 	%Eyebrow.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	%Eyebrow.get_parent().size_flags_vertical = Control.SIZE_FILL
 	$Layout/Header/Row/SpacerL.size_flags_horizontal = Control.SIZE_FILL
 	$Layout/Header/Row/SpacerR.hide()
 	$Layout/Header/Row/Sep.hide()
 	$Layout/Header/Row/Scrap.hide()
-	build_preview = GarageBotPreview.new()
+	build_preview = CustomizePreview.new()
 	var frame := %BotImage.get_parent()
 	%BotImage.hide()
 	frame.add_child(build_preview)
@@ -144,19 +136,29 @@ func _ready() -> void:
 	var preview_column := frame.get_parent()
 	preview_column.add_child(comparison_panel)
 	preview_column.move_child(comparison_panel, %Stats.get_index())
-	var preview_tabs := HBoxContainer.new()
-	preview_column.add_child(preview_tabs)
-	preview_column.move_child(preview_tabs, frame.get_index())
-	var preview_group := ButtonGroup.new()
-	for title: String in ["MODEL", "STATS"]:
-		var button := Button.new()
-		button.text = title
-		button.toggle_mode = true
-		button.button_group = preview_group
-		button.button_pressed = title == "MODEL"
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		preview_tabs.add_child(button)
-		button.pressed.connect(_show_preview_stats.bind(title == "STATS"))
+	var preview_toolbar := HBoxContainer.new()
+	preview_toolbar.add_theme_constant_override("separation", 10)
+	preview_column.add_child(preview_toolbar)
+	preview_column.move_child(preview_toolbar, frame.get_index())
+	var toolbar_spacer := Control.new()
+	toolbar_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_toolbar.add_child(toolbar_spacer)
+	stats_button = Button.new()
+	stats_button.text = "SHOW STATS"
+	stats_button.theme_type_variation = &"GhostButton"
+	stats_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	stats_button.custom_minimum_size = Vector2(176, 48)
+	stats_button.add_theme_font_size_override("font_size", 20)
+	preview_toolbar.add_child(stats_button)
+	stats_button.pressed.connect(func(): _show_preview_stats(not _showing_stats))
+	var reset_button := frame.get_node("Rotate") as Button
+	reset_button.reparent(preview_toolbar)
+	reset_button.theme_type_variation = &"GhostButton"
+	reset_button.icon = null
+	reset_button.text = "RESET VIEW"
+	reset_button.custom_minimum_size = Vector2(176, 48)
+	reset_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	reset_button.add_theme_font_size_override("font_size", 20)
 	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	comparison_panel.hide()
 	$Layout/Footer/Row/Hint1.hide()
@@ -166,47 +168,55 @@ func _ready() -> void:
 	name_edit.text = bot.name
 	name_edit.placeholder_text = "Build name (1–48 characters)"
 	name_edit.max_length = 48
-	%Save.get_parent().add_child(name_edit)
+	var name_group := VBoxContainer.new()
+	name_group.name = "BuildNameGroup"
+	name_group.add_theme_constant_override("separation", 2)
+	%Save.get_parent().add_child(name_group)
+	%Save.get_parent().move_child(name_group, %Save.get_index())
+	var name_label := Label.new()
+	name_label.text = "BUILD NAME"
+	name_label.theme_type_variation = &"Eyebrow"
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_group.add_child(name_label)
+	name_group.add_child(name_edit)
 	name_edit.custom_minimum_size.x = 240
-	name_edit.tooltip_text = "Saved build name"
 	name_edit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	name_edit.custom_minimum_size.y = 48
 	name_edit.tooltip_text = "Enter a name, then press Enter or leave this field to apply it to the draft. Save writes it to this computer."
 	name_edit.text_submitted.connect(func(_value: String) -> void: _commit_name())
-	name_edit.focus_exited.connect(_commit_name)
+	name_edit.focus_exited.connect(func(): _commit_name.call_deferred())
 	var history := HBoxContainer.new()
 	history.add_theme_constant_override("separation", 12)
-	$Layout/Body/Row/Preview/Col.add_child(history)
+	$Layout/Footer/Row.add_child(history)
+	$Layout/Footer/Row.move_child(history, $Layout/Footer/Row/Spacer.get_index())
 	undo_button = Button.new()
 	undo_button.text = "UNDO"
 	undo_button.tooltip_text = "Undo build edit (Ctrl+Z). Saved files change only when you Save."
-	undo_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_utility_button(undo_button)
 	history.add_child(undo_button)
 	undo_button.pressed.connect(PlayerProfile.undo_edit)
 	redo_button = Button.new()
 	redo_button.text = "REDO"
 	redo_button.tooltip_text = "Redo build edit (Ctrl+Y or Ctrl+Shift+Z)."
-	redo_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_utility_button(redo_button)
 	history.add_child(redo_button)
 	redo_button.pressed.connect(PlayerProfile.redo_edit)
 	revalidate_button = Button.new()
-	revalidate_button.text = "REVALIDATE"
+	revalidate_button.text = "REPAIR"
 	revalidate_button.tooltip_text = "Use the current loadout format and catalogue with your existing part IDs and paint. No parts are substituted. Undo is available; Save writes the repaired draft."
-	revalidate_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_utility_button(revalidate_button)
 	history.add_child(revalidate_button)
 	revalidate_button.pressed.connect(PlayerProfile.revalidate_active)
 	for control: Node in find_children("Rotate","Button",true,false):
 		control.tooltip_text = "Reset build preview view"
 		control.pressed.connect(build_preview.reset_view)
-	%Eyebrow.text = "%s · %s" % [bot.name, bot.cls]
-	%BotImage.texture = bot.image
+	%BotImage.texture = null
 	var group := ButtonGroup.new()
 	var tab_buttons := [%TabParts, %TabPaint, %TabDecals]
 	for i in TABS.size():
 		tab_buttons[i].button_group = group
 		tab_buttons[i].pressed.connect(_set_tab.bind(TABS[i]))
 	%TabParts.button_pressed = true
-	%Action.pressed.connect(_on_action)
 	%Save.pressed.connect(_save_build)
 	PlayerProfile.inventory_changed.connect(_refresh)
 	_refocus = "item"
@@ -214,16 +224,35 @@ func _ready() -> void:
 	recovery_panel = GarageRecoveryPanel.new()
 	add_child(recovery_panel)
 	recovery_button = Button.new()
-	recovery_button.text = "SAVED FILE"
-	recovery_button.add_theme_font_size_override("font_size", 20)
+	recovery_button.text = "MANAGE SAVES"
+	_style_utility_button(recovery_button)
 	recovery_button.tooltip_text = "Reload saved builds without losing drafts, or review a recovery backup."
-	recovery_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	%Save.get_parent().add_child(recovery_button)
+	%Save.get_parent().move_child(recovery_button, $Layout/Footer/Row/Spacer.get_index())
 	$Layout/Footer/Row/Hint0.hide()
 	recovery_button.pressed.connect(func():
 		_commit_name()
 		recovery_panel.open(PlayerProfile))
 	apply_text_scale(_text_scale)
+
+
+func _style_utility_button(button: Button) -> void:
+	button.theme_type_variation = &"GhostButton"
+	button.custom_minimum_size = Vector2(112, 50)
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_color_override("font_color", Color("#ecf2f8"))
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("#202c39")
+	normal.border_color = Color("#71849a")
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(5)
+	button.add_theme_stylebox_override("normal", normal)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color("#2a3847")
+	hover.border_color = Color("#f5b82e")
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", hover)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -262,8 +291,6 @@ func _refresh() -> void:
 	undo_button.disabled = not PlayerProfile.can_undo()
 	redo_button.disabled = not PlayerProfile.can_redo()
 	revalidate_button.visible = PlayerProfile.needs_revalidation()
-	%Eyebrow.text = current.name + " · " + ("EQUIPPED DRAFT" if current.valid else "REPAIR REQUIRED")
-	if current.get("retained", false): %Eyebrow.text += " · UNSAVED COPY"
 	%Save.disabled = not current.valid
 	var cats: Array = PlayerProfile.catalogue[_tab]
 	var ci: int = _cat[_tab]
@@ -315,7 +342,10 @@ func _refresh() -> void:
 			_item[key] = i
 			_choice_pages[key] = _page_for_item(_choice_ranges, i)
 			_refocus = "item"
-			_refresh())
+			if PlayerProfile.item_state(_tab, cat, it) == "own":
+				PlayerProfile.equip(_tab, cat, it)
+			else:
+				_refresh())
 		if _refocus == "item" and i == ii:
 			_focus_control.call_deferred(tile)
 	_refocus = ""
@@ -323,58 +353,25 @@ func _refresh() -> void:
 	%CatLabel.text = cat.label
 	%Count.text = "%d / %d available" % [owned_count, cat.items.size()]
 	var cur: Dictionary = cat.items[ii]
-	var comparison_slot: String = cat.slot if _tab == "parts" else "chassis"
-	var selected_parts: Variant = PlayerProfile.loadouts[PlayerProfile.active_bot].get("parts", {})
-	var candidate_id := ""
-	if _tab == "parts": candidate_id = str(cur.id)
-	elif selected_parts is Dictionary: candidate_id = str(selected_parts.get("chassis", ""))
-	var comparison := GarageComparison.compare(PlayerProfile.registry, PlayerProfile.loadouts[PlayerProfile.active_bot], comparison_slot, candidate_id)
-	comparison_panel.render(comparison, str(cur.name), _tab == "parts")
-	var state := PlayerProfile.item_state(_tab, cat, cur)
+	comparison_panel.render_current(GarageComparison.current(PlayerProfile.registry, PlayerProfile.loadouts[PlayerProfile.active_bot]))
 	%SelName.text = cur.name
 	%PreviewName.text = cur.name
 	var fallback := ("Applies to the %s layer." if _tab == "paint" else "Decal for the %s.") % cat.label.to_lower()
 	%SelDesc.text = cur.get("desc", fallback)
 	if not current.valid: %SelDesc.text += "\nBuild invalid: " + "; ".join(current.reasons)
-	if _tab == "parts" and not comparison.proposed.valid:
-		%SelDesc.text += "\nProposed build: " + "; ".join(comparison.proposed.reasons)
-	match state:
-		"eq":
-			%Action.text = "EQUIPPED"
-			%Action.disabled = true
-		"lock":
-			%Action.text = "UNAVAILABLE"
-			%Action.disabled = true
-		"own":
-			%Action.text = "EQUIP"
-			%Action.disabled = false
-		_:
-			%Action.text = "UNAVAILABLE"
-			%Action.disabled = true
 
 	%Stats.hide()
 	%CosmeticNote.hide()
-	_show_choice_details(_show_details)
 	apply_text_scale(_text_scale)
-
-
-func _on_action() -> void:
-	var cat: Dictionary = PlayerProfile.catalogue[_tab][_cat[_tab]]
-	var cur: Dictionary = cat.items[_item.get("%s:%d" % [_tab, _cat[_tab]], 0)]
-	_refocus = "item"
-	match PlayerProfile.item_state(_tab, cat, cur):
-		"own":
-			PlayerProfile.equip(_tab, cat, cur)
 
 
 func _save_build() -> void:
 	_commit_name()
-	var result: Error = PlayerProfile.save_active(%Save.get_parent().get_node("BuildName").text)
+	var result: Error = PlayerProfile.save_active(name_edit.text)
 	if result == OK:
 		%SelDesc.text = "Build saved to this computer."
 	else:
 		%SelDesc.text = "; ".join(PlayerProfile.errors)
-	_show_choice_details(true)
 
 func _commit_name() -> void:
 	if is_inside_tree():
@@ -389,7 +386,7 @@ var _pagination_geometry: Array = []
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(_choice_pager) or not is_visible_in_tree(): return
-	var geometry: Array = [size, $Layout/Header.size, $Layout/Footer.size, %Categories.size.x, %Items.size.x, _show_details]
+	var geometry: Array = [size, $Layout/Header.size, $Layout/Footer.size, %Categories.size.x, %Items.size.x]
 	if geometry != _pagination_geometry:
 		_pagination_geometry = geometry
 		_pagination_frames = 4
@@ -434,7 +431,7 @@ func _process(_delta: float) -> void:
 	var choice_range := _choice_ranges[page]
 	_choice_capacity = choice_range.y - choice_range.x
 	for i in %Items.get_child_count(): %Items.get_child(i).visible = i >= choice_range.x and i < choice_range.y
-	_choice_pager.visible = not _show_details and _choice_ranges.size() > 1
+	_choice_pager.visible = _choice_ranges.size() > 1
 	_choice_page_label.text = "%d / %d" % [page + 1, _choice_ranges.size()]
 
 
@@ -449,7 +446,6 @@ func _page_budget(list: Container, pager: Control, with_pager: bool) -> float:
 	var siblings := 0
 	for sibling: Control in column.get_children():
 		if sibling == list or sibling == pager or not sibling.visible: continue
-		if sibling == %SelDesc.get_parent(): continue
 		available -= sibling.get_combined_minimum_size().y
 		siblings += 1
 	var separation := column.get_theme_constant("separation")

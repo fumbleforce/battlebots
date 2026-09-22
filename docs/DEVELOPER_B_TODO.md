@@ -1,5 +1,13 @@
 # Worker B — shared task list
 
+## Customize immediate choices — 22 September 2026
+
+B is updating the isolated Customize interaction and footer layout on
+`codex/b-customize-immediate`, based on main with Nitro and charged jump.
+Atlas MX is active in another B worktree and its single Customize script
+overlap will be reconciled at integration. See
+[B_CUSTOMIZE_FLOW.md](coordination/B_CUSTOMIZE_FLOW.md).
+
 ## Garage model thumbnails and save status — 22 September 2026
 
 B replaced the Garage list's concept-art thumbnails with still captures of

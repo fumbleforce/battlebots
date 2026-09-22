@@ -21,6 +21,15 @@ func run() -> void:
 			check(screen.get_node("%BotHp").text == "260 core HP","Garage core HP")
 		if name == "customize":
 			check(screen.get_node_or_null("%ShopLink") == null, "Customize has no catalogue link")
+			var yaw: float = screen.build_preview.yaw
+			var drag := InputEventMouseMotion.new()
+			drag.button_mask = MOUSE_BUTTON_MASK_LEFT
+			drag.relative = Vector2(20, 0)
+			screen.build_preview._gui_input(drag)
+			check(screen.build_preview.yaw > yaw, "Dragging right turns the model with the pointer")
+			var reset: Button = screen.find_child("Rotate", true, false) as Button
+			reset.pressed.emit()
+			check(is_equal_approx(screen.build_preview.yaw, 0.6), "Reset View works outside the model viewport")
 			check(screen.build_preview.sawblade_visual != null and screen.build_preview.sawblade_visual.kind == profile.loadouts[profile.active_bot].parts.weapon, "Customization shows equipped authored weapon")
 			var paint: Dictionary = profile.catalogue.paint[0]
 			var original_color: Array = profile.loadouts[profile.active_bot].cosmetics.sawblade.paint_primary.duplicate()
@@ -34,7 +43,7 @@ func run() -> void:
 			screen._set_tab("paint")
 			check(screen.get_node("%Items").get_child_count() == 4,"Four canonical paints")
 			screen._set_tab("decals")
-			check(screen.get_node("%Items").get_child_count() > 0 and screen.get_node("%Action").text in ["EQUIPPED", "EQUIP"], "Vehicle options remain available in Customize")
+			check(screen.get_node("%Items").get_child_count() > 0 and screen.get_node_or_null("%Action") == null, "Vehicle choices are available without Equip")
 			screen._set_tab("parts")
 		for _frame in 4: await process_frame
 		var footer: Control = screen.get_node("Layout/Footer")

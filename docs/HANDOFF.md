@@ -1,5 +1,18 @@
 # Current A/B handoff
 
+## Customize immediate choices and footer — B, 22 September 2026
+
+Choosing an available part, paint, or vehicle option now edits the in-memory
+draft immediately; Undo/Redo still work and Save Build explicitly persists
+the edited draft. Customize has no Equip button or Choices/Details tabs. Its model
+uses one Show Stats button, and stats show current values. Footer history and
+save-management controls are distinct from the labeled build-name field;
+Test Drive is full height immediately left of the rightmost Save Build. The
+top debug-like draft label is gone, partial slot borders are square, and the
+horizontal model drag follows the pointer. No loadout schema, catalogue,
+network, or hosted-server compatibility change. See
+[scope and validation](coordination/B_CUSTOMIZE_FLOW.md).
+
 ## Garage list model stills and save status — B, 22 September 2026
 
 Garage bot rows now show a captured still of each valid equipped 3D loadout.

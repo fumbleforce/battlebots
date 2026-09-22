@@ -24,6 +24,18 @@ static func install(screen: Control, callback: Callable) -> GarageTestDriveEntry
 	var footer: HBoxContainer = screen.get_node("Layout/Footer/Row")
 	footer.add_theme_constant_override("separation", 12)
 	footer.add_child(entry)
+	var save_button: Button = screen.get_node_or_null("%Save") as Button
+	if save_button != null:
+		entry.theme_type_variation = &"GhostButton"
+		entry.custom_minimum_size = Vector2(224, save_button.custom_minimum_size.y)
+		entry.add_theme_font_size_override("font_size", 30)
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color("#202c39")
+		normal.border_color = Color("#f5b82e")
+		normal.set_border_width_all(2)
+		normal.set_corner_radius_all(5)
+		entry.add_theme_stylebox_override("normal", normal)
+		footer.move_child(entry, save_button.get_index())
 	return entry
 
 
