@@ -174,11 +174,11 @@ func paint_case(registry: ContentRegistry) -> void:
 	var draft := registry.atlas()
 	yellow.assemble(draft, registry.validate(draft).stats.size)
 	draft.cosmetics.sawblade.paint_primary = [0.02, 0.55, 0.72, 1.0]
+	draft.cosmetics.sawblade.paint_secondary = [0.55, 0.025, 0.02, 1.0]
 	cyan.assemble(draft, registry.validate(draft).stats.size)
 	var replaced := 0
-	var edge_replaced := 0
 	var untouched_steel := 0
-	var checked_roughness := false
+	var checked_masks: Dictionary = {}
 	for mesh: MeshInstance3D in cyan.model.find_children("*", "MeshInstance3D", true, false):
 		for index: int in mesh.mesh.get_surface_count():
 			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
@@ -186,40 +186,48 @@ func paint_case(registry: ContentRegistry) -> void:
 			if "Metal" in original.resource_name:
 				check(mesh.get_surface_override_material(index) == null, "Primary repaint leaves the independently selected steel finish unchanged")
 				untouched_steel += 1
-			if not "PaintPrimary" in original.resource_name: continue
-			if "PaintPrimaryEdge" in original.resource_name:
-				var edge := mesh.get_surface_override_material(index) as StandardMaterial3D
-				check(edge != null, "Painted chamfers keep their clean imported material when repainted")
-				if edge == null: continue
-				check(edge.albedo_color.srgb_to_linear().is_equal_approx(Color(0.048, 0.6575, 0.853)),
-					"Custom cyan chamfers retain the authored brighter enamel contrast")
-				check(is_equal_approx(edge.roughness, original.roughness) and is_equal_approx(edge.metallic, original.metallic),
-					"Custom chamfers preserve their imported matte finish and metal response")
-				edge_replaced += 1
-				continue
+			if not ("PaintPrimary" in original.resource_name or "PaintSecondary" in original.resource_name): continue
+			check(not "PaintPrimaryEdge" in original.resource_name, "Baked painted chamfers belong to the worn primary atlas")
 			var painted := mesh.get_surface_override_material(index) as ShaderMaterial
-			check(painted != null, "Primary paint replaces yellow enamel with the selected custom color")
+			check(painted != null, "Both baked paint families accept their selected custom colors")
 			if painted == null: continue
 			check(original.albedo_texture != null and original.metallic_texture != null and original.normal_texture != null,
 				"Portable imported materials contain real color, metal/roughness and normal maps")
 			check(painted.get_shader_parameter("surface_albedo") == original.albedo_texture
 				and painted.get_shader_parameter("surface_orm") == original.metallic_texture
-				and painted.get_shader_parameter("surface_normal") == original.normal_texture,
-				"Repainting preserves imported surface texture, roughness, metal chips and normal detail")
-			if not checked_roughness and original.metallic_texture != null:
-				var finish := original.metallic_texture.get_image()
-				if finish.is_compressed(): finish.decompress()
-				var roughness := finish.get_pixel(finish.get_width() / 2, finish.get_height() / 2).g
-				check(roughness > 0.5, "Custom enamel retains the revised matte roughness texture rather than a glossy fallback")
-				checked_roughness = true
+				and painted.get_shader_parameter("surface_normal") == original.normal_texture
+				and painted.get_shader_parameter("surface_ao") == original.ao_texture,
+				"Repainting preserves imported color, roughness, normal and actual occlusion maps")
+			check(original.ao_enabled and original.ao_texture != null,
+				"Baked occlusion reaches the imported material, not just an unused ORM channel")
+			check(is_equal_approx(painted.get_shader_parameter("normal_strength"), original.normal_scale),
+				"Repainting retains the authored normal strength")
+			var coverage := painted.get_shader_parameter("surface_coverage") as Texture2D
+			check(coverage != null, "Each paint atlas has an explicit enamel coverage mask")
+			if coverage != null and not checked_masks.has(original.resource_name):
+				checked_masks[original.resource_name] = true
+				var mask := coverage.get_image()
+				if mask.is_compressed(): mask.decompress()
+				var enamel := 0
+				var protected := 0
+				for y: int in range(8, mask.get_height(), 16):
+					for x: int in range(8, mask.get_width(), 16):
+						var value := mask.get_pixel(x, y).r
+						if value > 0.9: enamel += 1
+						if value < 0.1: protected += 1
+				check(enamel > 20 and protected > 20, "Baked mask separates remaining enamel from protected primer and metal")
+				for texture: Texture2D in [original.albedo_texture, original.metallic_texture, original.normal_texture, original.ao_texture, coverage]:
+					check(texture != null and texture.get_image().has_mipmaps(), "Atlas surface maps have mipmaps for stable distant detail")
 			replaced += 1
 	check(replaced > 0, "Custom paint reaches real imported materials")
-	check(edge_replaced > 0 and untouched_steel > 0, "Imported meshes expose separate painted chamfers and independent steel surfaces")
+	check(checked_masks.has("Atlas_PaintPrimary") and checked_masks.has("Atlas_PaintSecondary") and untouched_steel > 0,
+		"Both paint families have coverage while independent steel remains untouched")
 	for mesh: MeshInstance3D in yellow.model.find_children("*", "MeshInstance3D", true, false):
 		for index: int in mesh.mesh.get_surface_count():
 			check(mesh.get_surface_override_material(index) == null,
 				"Changing another build never alters the original authored yellow material")
 	if DisplayServer.get_name() != "headless":
+		await paint_coverage_render_case(cyan)
 		yellow.position.x = -4.0
 		cyan.position.x = 4.0
 		var camera := Camera3D.new()
@@ -232,6 +240,63 @@ func paint_case(registry: ContentRegistry) -> void:
 	yellow.free()
 	cyan.free()
 	await get_tree().process_frame
+
+func paint_coverage_render_case(visual: AtlasVisual) -> void:
+	# Exercise the real production shader with enamel, nonmetal primer and steel.
+	# A metallic-threshold mask would incorrectly recolor the middle swatch.
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(96, 32)
+	viewport.own_world_3d = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(viewport)
+	var environment := WorldEnvironment.new()
+	environment.environment = Environment.new()
+	environment.environment.background_mode = Environment.BG_COLOR
+	environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.environment.ambient_light_color = Color.WHITE
+	environment.environment.ambient_light_energy = 1.0
+	viewport.add_child(environment)
+	var camera := Camera3D.new()
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	camera.size = 2.0
+	camera.position.z = 2.0
+	viewport.add_child(camera)
+	camera.current = true
+	var base := Image.create(12, 4, false, Image.FORMAT_RGBA8)
+	var mask := Image.create(12, 4, false, Image.FORMAT_RGBA8)
+	var orm := Image.create(12, 4, false, Image.FORMAT_RGBA8)
+	for y: int in 4:
+		for x: int in 12:
+			var band := x / 4
+			base.set_pixel(x, y, [Color(0.86, 0.51, 0.055), Color(0.32, 0.23, 0.16), Color(0.5, 0.52, 0.54)][band])
+			mask.set_pixel(x, y, Color.WHITE if band == 0 else Color.BLACK)
+			orm.set_pixel(x, y, Color(1.0, 0.66, 0.92 if band == 2 else 0.08))
+	var original := StandardMaterial3D.new()
+	original.albedo_texture = ImageTexture.create_from_image(base)
+	original.metallic_texture = ImageTexture.create_from_image(orm)
+	original.roughness = 1.0
+	original.metallic = 1.0
+	var authored := Color(0.86, 0.51, 0.055)
+	var material := visual._repaint_material(original, ImageTexture.create_from_image(mask), authored, authored)
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = QuadMesh.new()
+	mesh.mesh.size = Vector2(6.0, 2.0)
+	mesh.material_override = material
+	viewport.add_child(mesh)
+	for frame: int in 3: await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var before := viewport.get_texture().get_image()
+	material.set_shader_parameter("paint", Color(0.03, 0.76, 0.87))
+	for frame: int in 3: await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var after := viewport.get_texture().get_image()
+	for band: int in 3:
+		var a := before.get_pixel(16 + band * 32, 16)
+		var b := after.get_pixel(16 + band * 32, 16)
+		var difference := Vector3(a.r - b.r, a.g - b.g, a.b - b.b).length()
+		check(difference > 0.08 if band == 0 else difference < 0.015,
+			"Rendered recolor changes enamel and preserves nonmetal primer/steel swatch %d" % band)
+	viewport.free()
 
 func thumbnail_case(registry: ContentRegistry) -> void:
 	var renderer := GarageBotThumbnailRenderer.new()

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bm3cv6vu4m813"
-path="res://.godot/imported/Atlas_TrackSteel_orm.png-c4fe09bb416b402c731aeaa622a7723e.ctex"
+uid="uid://bnsmk2gnky81b"
+path="res://.godot/imported/Atlas_SurfaceSecondary_base.png-1a42785c169ecc9d715ce8cf5d8f6a56.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/models/atlas_runtime/Atlas_TrackSteel_orm.png"
-dest_files=["res://.godot/imported/Atlas_TrackSteel_orm.png-c4fe09bb416b402c731aeaa622a7723e.ctex"]
+source_file="res://assets/models/atlas_runtime/Atlas_SurfaceSecondary_base.png"
+dest_files=["res://.godot/imported/Atlas_SurfaceSecondary_base.png-1a42785c169ecc9d715ce8cf5d8f6a56.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

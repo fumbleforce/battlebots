@@ -28,9 +28,12 @@ bodies. It has eleven named attachment transforms, supported corner sockets,
 thick vented side castings, matte portable PBR materials, animated continuous
 tracks and a matching lifter. The six current primary weapons, armor, utilities,
 Nitro and charged jump use the existing assembly and gameplay systems.
-The third candidate follows two visual reviews: slate-grey linked tracks, darker
-orange enamel, bright chamfer edges, clear roller/side-casting geometry and shorter
-guards with centered corner sockets. The four black corner overplates are removed.
+The fourth material checkpoint replaces flat scratch maps with unique UV atlases,
+local contact occlusion, exposed-metal wear and explicit repaint coverage. Rounded
+machined hubs and recessed fasteners are seated physically. Baseline, native
+assembly, packed textures and bounded clearance checks pass. The user has since
+requested a cohesive armor shell with recessed panels and narrow seams, explicitly
+retaining the compact footprint. That further geometry pass remains in progress.
 **User visual approval remains pending.** Source, renders and runtime assets are in `art_source/atlas_mx` and
 `battlebots/assets/models/atlas_runtime`; see [validation and asset contract](coordination/B_ATLAS_MX.md).
 

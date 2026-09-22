@@ -107,26 +107,47 @@ func _apply_paint(config: Dictionary) -> void:
 			if not shared.has(original):
 				var rgba: Array = config[channel]
 				var tint := Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb()
-				if original.albedo_texture != null and channel in ["paint_primary", "paint_secondary"]:
-					var material := ShaderMaterial.new()
-					material.shader = PAINT
-					material.set_shader_parameter("surface_albedo", original.albedo_texture)
-					material.set_shader_parameter("surface_orm", original.metallic_texture)
-					material.set_shader_parameter("surface_normal", original.normal_texture)
-					material.set_shader_parameter("normal_strength", original.normal_scale)
-					material.set_shader_parameter("paint", tint)
+				if original.albedo_texture != null:
+					var coverage: Texture2D
+					if channel in ["paint_primary", "paint_secondary"]:
+						var coverage_path := original.albedo_texture.resource_path.get_basename().trim_suffix("_base") + "_coverage.png"
+						if not ResourceLoader.exists(coverage_path):
+							push_error("Atlas repaint requires its baked enamel coverage mask: " + coverage_path)
+							continue
+						coverage = load(coverage_path)
 					var source: Array = defaults[channel]
-					material.set_shader_parameter("authored_paint", Color(source[0], source[1], source[2], 1).linear_to_srgb())
-					shared[original] = material
+					shared[original] = _repaint_material(original, coverage, tint,
+						Color(source[0], source[1], source[2], 1).linear_to_srgb())
 				else:
 					var material := original.duplicate() as StandardMaterial3D
-					if label == "atlaspaintprimaryedge":
-						# The clean painted chamfer keeps its authored contrast in every color.
-						tint = Color(minf(rgba[0] * 1.15 + 0.025, 1.0),
-							minf(rgba[1] * 1.15 + 0.025, 1.0), minf(rgba[2] * 1.15 + 0.025, 1.0)).linear_to_srgb()
 					material.albedo_color = tint
 					shared[original] = material
 			mesh.set_surface_override_material(index, shared[original])
+
+func _repaint_material(original: StandardMaterial3D, coverage: Texture2D, tint: Color, authored: Color) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = PAINT
+	material.set_shader_parameter("surface_albedo", original.albedo_texture)
+	material.set_shader_parameter("surface_orm", original.metallic_texture)
+	material.set_shader_parameter("surface_coverage", coverage)
+	material.set_shader_parameter("coverage_enabled", coverage != null)
+	material.set_shader_parameter("surface_ao", original.ao_texture)
+	material.set_shader_parameter("surface_normal", original.normal_texture)
+	material.set_shader_parameter("surface_emission", original.emission_texture)
+	material.set_shader_parameter("albedo_tint", original.albedo_color)
+	material.set_shader_parameter("roughness_factor", original.roughness)
+	material.set_shader_parameter("metallic_factor", original.metallic)
+	material.set_shader_parameter("ao_enabled", original.ao_enabled)
+	material.set_shader_parameter("ao_light_affect", original.ao_light_affect)
+	material.set_shader_parameter("normal_strength", original.normal_scale if original.normal_enabled else 0.0)
+	material.set_shader_parameter("emission_enabled", original.emission_enabled)
+	material.set_shader_parameter("emission_texture_enabled", original.emission_texture != null)
+	material.set_shader_parameter("emission_color", original.emission)
+	material.set_shader_parameter("emission_energy", original.emission_energy_multiplier)
+	material.set_shader_parameter("emission_add", original.emission_operator == BaseMaterial3D.EMISSION_OP_ADD)
+	material.set_shader_parameter("paint", tint)
+	material.set_shader_parameter("authored_paint", authored)
+	return material
 
 func _relative_transform(node: Node3D) -> Transform3D:
 	if node == self: return Transform3D.IDENTITY

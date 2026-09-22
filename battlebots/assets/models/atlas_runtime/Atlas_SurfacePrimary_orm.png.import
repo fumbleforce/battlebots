@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d4borph57xhb6"
-path="res://.godot/imported/Atlas_PaintSecondary_normal.png-01b2d1eaef12f454c124a2a6440e7f05.ctex"
+uid="uid://btwblchyp7jh"
+path="res://.godot/imported/Atlas_SurfacePrimary_orm.png-b9b6d1bcaec952beaf1ab4dfded61e52.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/models/atlas_runtime/Atlas_PaintSecondary_normal.png"
-dest_files=["res://.godot/imported/Atlas_PaintSecondary_normal.png-01b2d1eaef12f454c124a2a6440e7f05.ctex"]
+source_file="res://assets/models/atlas_runtime/Atlas_SurfacePrimary_orm.png"
+dest_files=["res://.godot/imported/Atlas_SurfacePrimary_orm.png-b9b6d1bcaec952beaf1ab4dfded61e52.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

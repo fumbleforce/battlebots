@@ -1,0 +1,70 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3080",
+	"asset": {
+		"bounds_min": "(-1.218, -0.554118, -1.234171)",
+		"bounds_size": "(2.436, 1.103118, 2.468341)",
+		"materials": [
+			"Atlas_PaintPrimary",
+			"Atlas_OxidizedMetal",
+			"Atlas_Metal",
+			"Atlas_Recess",
+			"Atlas_PaintSecondary",
+			"Atlas_Rubber",
+			"Atlas_TrackConnectingBand",
+			"Atlas_TrackSteel",
+			"Atlas_TrackEdge",
+			"Atlas_EdgeSteel",
+			"Atlas_Lamp",
+			"Atlas_Stencil",
+			"Atlas_RearLens",
+			"Atlas_ConnectorBrass"
+		],
+		"path": "res://assets/models/atlas_runtime/atlas_mx.glb",
+		"triangles": 155467,
+		"visible_mesh_instances": 175
+	},
+	"captures": [
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-hero.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-rear.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-side.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-top.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-mount-detail.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-side-detail.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-foundry.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-foundry-rear.png",
+		"C:/Users/jorge/.codex/worktrees/b-modular-chassis/battlebots/battlebots/exports/atlas-review-v4/atlas-native-garage.png"
+	],
+	"engine": "4.7.2-stable (official)",
+	"foundry_frame_sample": {
+		"engine_video_memory_mib": 2493.12890625,
+		"frame_cap": 0,
+		"max_frame_ms": 7.362,
+		"p50_frame_ms": 3.649,
+		"p95_frame_ms": 4.579,
+		"resolution": "(1800, 1350)",
+		"samples": 120,
+		"scope": "Static native Foundry review camera, ordinary Atlas practice plus three NPC bots, 4x MSAA. Frame intervals include engine/render/presentation work. Player brakes with no commanded attacks; NPC behavior remains active. No HUD, networking, or long soak; not a release performance certification.",
+		"shadow_draw_calls": 215,
+		"visible_draw_calls": 213,
+		"visible_objects": 602,
+		"visible_primitives": 398419,
+		"vsync": "disabled",
+		"warmup_frames": 40
+	},
+	"foundry_review_views": {
+		"fov_degrees": 43.0,
+		"front_offset": "(12.5, 10.0, -16.5)",
+		"rear_offset": "(-12.0, 6.5, 15.0)",
+		"scope": "Two review cameras framing the equipped Atlas in ordinary Foundry practice. Production arena lighting is unchanged; the bounded performance sample uses the front view only."
+	},
+	"garage": {
+		"clipped_mesh_bounds": [],
+		"preset_index": 4,
+		"preview_size": "(872, 406)",
+		"resolution": "1920x1080",
+		"scope": "Actual garage scene, default Atlas preset and default camera. In-memory selection only; saved loadouts untouched."
+	},
+	"resolution": "(1800, 1350)",
+	"review_stage": "V4 material checkpoint only. Compact cohesive armor-shell revision is pending; this is not a visual approval candidate.",
+	"scope": "Actual imported GLB studio views and optionally unmodified production Foundry practice. Visual review only; user approval pending."
+}

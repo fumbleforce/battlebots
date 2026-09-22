@@ -1,0 +1,552 @@
+{
+  "schema_version": 1,
+  "asset_revision": "V4",
+  "executed_utc": "2026-09-22T19:15:23.925759+00:00",
+  "blender_version": "5.2.1 LTS",
+  "command_powershell": "& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' --background art_source/atlas_mx/atlas_mx.blend --python docs/coordination/evidence/b-atlas-v4-clearance-2026-09-22.py",
+  "working_directory": "repository root",
+  "source_blend": {
+    "path": "art_source/atlas_mx/atlas_mx.blend",
+    "sha256": "2998c2272b73173236ddd4b3ca19c6a19c92ea86835958ec6b2e94a5eea0c76e"
+  },
+  "runtime_model": {
+    "path": "battlebots/assets/models/atlas_runtime/atlas_mx.glb",
+    "sha256": "98bfad6950c3397c26a0d1863293e4316a290db690deedca8c6b456faa318b06"
+  },
+  "script_sha256": "c1ce51548e037316be96cf3cab40cfbbd307489ea72ac0e3174a0a28412d1f00",
+  "method": "World-space triangle BVHTree.overlap on the saved Blender source at its authored rest phase; both sides checked independently.",
+  "geometry_coverage": "Final joined wheel meshes include V4 rounded bearing shoulders, collars, axle caps and socket buttons. Final joined stationary meshes include their V4 rounded cast covers and fasteners. The pair scope and central axle exclusion are unchanged from V3.",
+  "central_axle_exclusion": {
+    "rule": "For each wheel/DriveSurface intersecting triangle pair, exclude only when every vertex of the stationary triangle is within wheel_radius * 0.22 + 0.0001 metres of the wheel X axis. The radial distance uses world Blender Y/Z relative to the wheel pivot.",
+    "radius_multiplier": 0.22,
+    "tolerance_m": 0.0001,
+    "purpose": "Permit the intentional central axle joints; all other stationary-surface intersections remain failures."
+  },
+  "limits": [
+    "Checks surface-triangle intersections, not volumetric containment.",
+    "Authored rest phase only; no continuous-motion sweep or deformation check.",
+    "Connector checks are against wheels only; connector/shoe overlap is outside this bounded check.",
+    "Optional armor, weapons, physics collision shapes, gameplay and renderer materials are outside this check.",
+    "Runtime GLB hash identifies the accompanying export; these BVH counts use the saved Blender source, not a separate GLB reimport."
+  ],
+  "sides": {
+    "L": {
+      "stationary_mesh": "DriveLeftSurface",
+      "wheels": [
+        {
+          "name": "Wheel_L_Front",
+          "radius_m": 0.388,
+          "mesh": "Wheel_L_FrontSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 34,
+          "excluded_axle_triangle_pairs": 34,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Rear",
+          "radius_m": 0.388,
+          "mesh": "Wheel_L_RearSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 34,
+          "excluded_axle_triangle_pairs": 34,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller0",
+          "radius_m": 0.12,
+          "mesh": "Wheel_L_Roller0Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller1",
+          "radius_m": 0.12,
+          "mesh": "Wheel_L_Roller1Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller2",
+          "radius_m": 0.12,
+          "mesh": "Wheel_L_Roller2Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Return",
+          "radius_m": 0.105,
+          "mesh": "Wheel_L_ReturnSurface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ],
+      "wheel_pair_intersections": {
+        "Front/Rear": 0,
+        "Front/Roller0": 0,
+        "Front/Roller1": 0,
+        "Front/Roller2": 0,
+        "Front/Return": 0,
+        "Rear/Roller0": 0,
+        "Rear/Roller1": 0,
+        "Rear/Roller2": 0,
+        "Rear/Return": 0,
+        "Roller0/Roller1": 0,
+        "Roller0/Roller2": 0,
+        "Roller0/Return": 0,
+        "Roller1/Roller2": 0,
+        "Roller1/Return": 0,
+        "Roller2/Return": 0
+      },
+      "connectors": {
+        "node_pattern": "TrackConnector_L_{00..39}",
+        "count": 40,
+        "wheel_pair_checks": 240,
+        "triangle_pairs_by_wheel": {
+          "Front": 0,
+          "Rear": 0,
+          "Roller0": 0,
+          "Roller1": 0,
+          "Roller2": 0,
+          "Return": 0
+        }
+      }
+    },
+    "R": {
+      "stationary_mesh": "DriveRightSurface",
+      "wheels": [
+        {
+          "name": "Wheel_R_Front",
+          "radius_m": 0.388,
+          "mesh": "Wheel_R_FrontSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Rear",
+          "radius_m": 0.388,
+          "mesh": "Wheel_R_RearSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller0",
+          "radius_m": 0.12,
+          "mesh": "Wheel_R_Roller0Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller1",
+          "radius_m": 0.12,
+          "mesh": "Wheel_R_Roller1Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller2",
+          "radius_m": 0.12,
+          "mesh": "Wheel_R_Roller2Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Return",
+          "radius_m": 0.105,
+          "mesh": "Wheel_R_ReturnSurface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ],
+      "wheel_pair_intersections": {
+        "Front/Rear": 0,
+        "Front/Roller0": 0,
+        "Front/Roller1": 0,
+        "Front/Roller2": 0,
+        "Front/Return": 0,
+        "Rear/Roller0": 0,
+        "Rear/Roller1": 0,
+        "Rear/Roller2": 0,
+        "Rear/Return": 0,
+        "Roller0/Roller1": 0,
+        "Roller0/Roller2": 0,
+        "Roller0/Return": 0,
+        "Roller1/Roller2": 0,
+        "Roller1/Return": 0,
+        "Roller2/Return": 0
+      },
+      "connectors": {
+        "node_pattern": "TrackConnector_R_{00..39}",
+        "count": 40,
+        "wheel_pair_checks": 240,
+        "triangle_pairs_by_wheel": {
+          "Front": 0,
+          "Rear": 0,
+          "Roller0": 0,
+          "Roller1": 0,
+          "Roller2": 0,
+          "Return": 0
+        }
+      }
+    }
+  },
+  "material_maps": {
+    "expected_count": 14,
+    "checked_count": 14,
+    "passed": true,
+    "maps": [
+      {
+        "name": "Atlas_SurfacePrimary_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_base.png",
+        "sha256": "020b5ba9898900d526a4c827bac5f50abda3559a77d29a92e5e026dc75bc1cb8",
+        "packed_sha256": "020b5ba9898900d526a4c827bac5f50abda3559a77d29a92e5e026dc75bc1cb8",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfacePrimary_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_normal.png",
+        "sha256": "2c6542cdf2502b2a37b107bd7f7c1a594b8ca0093c7b4f52aef1abaddc95e3ba",
+        "packed_sha256": "2c6542cdf2502b2a37b107bd7f7c1a594b8ca0093c7b4f52aef1abaddc95e3ba",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfacePrimary_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_orm.png",
+        "sha256": "edcfc344f14f5227884947326e2bb46b86f0e84f675391ce6b5d28257d0b21c2",
+        "packed_sha256": "edcfc344f14f5227884947326e2bb46b86f0e84f675391ce6b5d28257d0b21c2",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfacePrimary_coverage",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_coverage.png",
+        "sha256": "acd3ed3b7321e7d2ecf3a30f9da09760dd8231add504296936a21eed622c3a51",
+        "packed_sha256": "acd3ed3b7321e7d2ecf3a30f9da09760dd8231add504296936a21eed622c3a51",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_base.png",
+        "sha256": "16a4cb87e99a6a8beb86122fa4a806ee2b1858676962f7ad6f905cd97a6def32",
+        "packed_sha256": "16a4cb87e99a6a8beb86122fa4a806ee2b1858676962f7ad6f905cd97a6def32",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_normal.png",
+        "sha256": "358b5fb5bda2172f9d68f24c9ddeee1d89ed1b73998f646ba522225336b015c6",
+        "packed_sha256": "358b5fb5bda2172f9d68f24c9ddeee1d89ed1b73998f646ba522225336b015c6",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_orm.png",
+        "sha256": "379ae721174e6cf2590395495d6c342cacf08a687f3e9557e73c581070feda30",
+        "packed_sha256": "379ae721174e6cf2590395495d6c342cacf08a687f3e9557e73c581070feda30",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_coverage",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_coverage.png",
+        "sha256": "7f11e6b8c7e38153bcf36d62ad6e746678958c74004044fa28c8b0c5cdcfac55",
+        "packed_sha256": "7f11e6b8c7e38153bcf36d62ad6e746678958c74004044fa28c8b0c5cdcfac55",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceTrack_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_base.png",
+        "sha256": "b8f3c84357b156d3f41388c7252d930f1815a1d1387d49ed8262507072126565",
+        "packed_sha256": "b8f3c84357b156d3f41388c7252d930f1815a1d1387d49ed8262507072126565",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceTrack_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_normal.png",
+        "sha256": "edd30a708a80c6b3a8f50068113813f0803b824db372878214da0f8fa5897197",
+        "packed_sha256": "edd30a708a80c6b3a8f50068113813f0803b824db372878214da0f8fa5897197",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceTrack_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_orm.png",
+        "sha256": "96153d44a392d81b9fa1dc772666eed0707955fbcd70ffd3b62216863d3fcee7",
+        "packed_sha256": "96153d44a392d81b9fa1dc772666eed0707955fbcd70ffd3b62216863d3fcee7",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceHardware_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_base.png",
+        "sha256": "3cfa08b57f03aecbd286f889d8c44f5e5112ae471d64b26a045ef242f3eae299",
+        "packed_sha256": "3cfa08b57f03aecbd286f889d8c44f5e5112ae471d64b26a045ef242f3eae299",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceHardware_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_normal.png",
+        "sha256": "7cf4a9c124ccf73a9d58f1ad9a9d279085f8c440d7566c89a72b288ef5df5bf1",
+        "packed_sha256": "7cf4a9c124ccf73a9d58f1ad9a9d279085f8c440d7566c89a72b288ef5df5bf1",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceHardware_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_orm.png",
+        "sha256": "cce942d118b66459ea2a61421d4b707de713c6d2626c3ecc210b57f5febfefcc",
+        "packed_sha256": "cce942d118b66459ea2a61421d4b707de713c6d2626c3ecc210b57f5febfefcc",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      }
+    ]
+  },
+  "totals": {
+    "wheel_drive_pairs": 12,
+    "wheel_hull_pairs": 12,
+    "wheel_wheel_pairs": 30,
+    "connector_wheel_pairs": 480,
+    "unexpected_stationary_triangle_pairs": 0,
+    "hull_triangle_pairs": 0,
+    "wheel_wheel_triangle_pairs": 0,
+    "connector_wheel_triangle_pairs": 0,
+    "excluded_axle_triangle_pairs": 388
+  },
+  "geometry_passed": true,
+  "passed": true
+}

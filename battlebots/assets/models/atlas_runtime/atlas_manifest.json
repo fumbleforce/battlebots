@@ -73,13 +73,13 @@
   ],
   "bounds": {
     "min": [
-      -1.2176,
+      -1.218,
       -0.554118,
       -1.234171
     ],
     "max": [
-      1.2176,
-      0.5486,
+      1.218,
+      0.549,
       1.234171
     ]
   },
@@ -102,9 +102,205 @@
     "lower": 0.12,
     "return": 0.105
   },
-  "triangles_all_options": 81667,
-  "triangles_base": 70615,
+  "triangles_all_options": 174967,
+  "triangles_base": 155467,
   "mesh_instances": 183,
-  "material_slots": 17,
-  "approval": "Pending user visual approval"
+  "material_slots": 18,
+  "approval": "Pending user visual approval",
+  "surface_atlases": {
+    "version": 1,
+    "uv": "TEXCOORD_0",
+    "unique_meshes": 26,
+    "mesh_instances": 184,
+    "families": {
+      "Primary": {
+        "resolution": 4096,
+        "faces": 3916,
+        "images": {
+          "base": "Atlas_SurfacePrimary_base.png",
+          "orm": "Atlas_SurfacePrimary_orm.png",
+          "normal": "Atlas_SurfacePrimary_normal.png",
+          "coverage": "Atlas_SurfacePrimary_coverage.png"
+        },
+        "occupied_fraction": 0.7149,
+        "ao_min": 0.0,
+        "ao_mean": 0.63322,
+        "roughness_min": 0.37,
+        "roughness_max": 0.8308
+      },
+      "Secondary": {
+        "resolution": 2048,
+        "faces": 4892,
+        "images": {
+          "base": "Atlas_SurfaceSecondary_base.png",
+          "orm": "Atlas_SurfaceSecondary_orm.png",
+          "normal": "Atlas_SurfaceSecondary_normal.png",
+          "coverage": "Atlas_SurfaceSecondary_coverage.png"
+        },
+        "occupied_fraction": 0.76704,
+        "ao_min": 0.0,
+        "ao_mean": 0.78396,
+        "roughness_min": 0.37,
+        "roughness_max": 0.8308
+      },
+      "Track": {
+        "resolution": 2048,
+        "faces": 132,
+        "images": {
+          "base": "Atlas_SurfaceTrack_base.png",
+          "orm": "Atlas_SurfaceTrack_orm.png",
+          "normal": "Atlas_SurfaceTrack_normal.png"
+        },
+        "occupied_fraction": 0.87406,
+        "ao_min": 0.0,
+        "ao_mean": 0.9297,
+        "roughness_min": 0.49069,
+        "roughness_max": 0.72424
+      },
+      "Hardware": {
+        "resolution": 4096,
+        "faces": 47584,
+        "images": {
+          "base": "Atlas_SurfaceHardware_base.png",
+          "orm": "Atlas_SurfaceHardware_orm.png",
+          "normal": "Atlas_SurfaceHardware_normal.png"
+        },
+        "occupied_fraction": 0.69446,
+        "ao_min": 0.0,
+        "ao_mean": 0.49181,
+        "roughness_min": 0.25928,
+        "roughness_max": 0.93632
+      }
+    },
+    "paint_coverage": {
+      "Primary": "Atlas_SurfacePrimary_coverage.png",
+      "Secondary": "Atlas_SurfaceSecondary_coverage.png"
+    },
+    "occlusion": {
+      "method": "ray_traced_local_assembly",
+      "distance_metres": 0.06
+    },
+    "material_references": {
+      "Atlas_PaintPrimaryEdge": {
+        "linear_color": [
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.66
+      },
+      "Atlas_Rubber": {
+        "linear_color": [
+          0.0035010159481316805,
+          0.004400849808007479,
+          0.004896310158073902,
+          1.0
+        ],
+        "metallic": 0.0,
+        "roughness": 0.8399999737739563
+      },
+      "Atlas_TrackEdge": {
+        "linear_color": [
+          0.19599418342113495,
+          0.21404114365577698,
+          0.22341398894786835,
+          1.0
+        ],
+        "metallic": 0.7799999713897705,
+        "roughness": 0.550000011920929
+      },
+      "Atlas_OxidizedMetal": {
+        "linear_color": [
+          0.09462962299585342,
+          0.08088690787553787,
+          0.059253521263599396,
+          1.0
+        ],
+        "metallic": 0.800000011920929,
+        "roughness": 0.5699999928474426
+      },
+      "Atlas_TrackConnectingBand": {
+        "linear_color": [
+          0.13286831974983215,
+          0.15106821060180664,
+          0.16661807894706726,
+          1.0
+        ],
+        "metallic": 0.7200000286102295,
+        "roughness": 0.5799999833106995
+      },
+      "Atlas_ConnectorBrass": {
+        "linear_color": [
+          0.33034372329711914,
+          0.13286831974983215,
+          0.01960664801299572,
+          1.0
+        ],
+        "metallic": 0.800000011920929,
+        "roughness": 0.30000001192092896
+      },
+      "Atlas_TrackSteel": {
+        "linear_color": [
+          0.0889815241098404,
+          0.10348451137542725,
+          0.11601613461971283,
+          1.0
+        ],
+        "metallic": 0.6200000047683716,
+        "roughness": 0.6399999856948853
+      },
+      "Atlas_PaintSecondary": {
+        "linear_color": [
+          0.03468407690525055,
+          0.04143557697534561,
+          0.0450764074921608,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6100000143051147
+      },
+      "Atlas_Metal": {
+        "linear_color": [
+          0.23302200436592102,
+          0.2632734179496765,
+          0.27383843064308167,
+          1.0
+        ],
+        "metallic": 0.9200000166893005,
+        "roughness": 0.36000001430511475
+      },
+      "Atlas_PaintPrimary": {
+        "linear_color": [
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6600000262260437
+      },
+      "Atlas_EdgeSteel": {
+        "linear_color": [
+          0.36724647879600525,
+          0.38005632162094116,
+          0.3546920716762543,
+          1.0
+        ],
+        "metallic": 0.949999988079071,
+        "roughness": 0.30000001192092896
+      },
+      "Atlas_Recess": {
+        "linear_color": [
+          0.0020123838912695646,
+          0.0027089782524853945,
+          0.0030185759533196688,
+          1.0
+        ],
+        "metallic": 0.41999998688697815,
+        "roughness": 0.5099999904632568
+      }
+    }
+  }
 }

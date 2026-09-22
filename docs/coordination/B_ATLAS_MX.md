@@ -23,8 +23,9 @@ catalogue hash and migration. A must build/deploy matching hosted workers and
 validate external play before this content is described as online-ready. No live
 restart is authorized by this asset task, and compatibility rejection stays.
 
-Status: third visual revision in progress after detailed user rejection of the
-second candidate. Approval and final integration remain pending. No hosted claim.
+Status: fourth visual revision in progress. The user accepted the direction of
+the shape but rejected the third candidate's simple/plastic material style.
+Approval and final integration remain pending. No hosted claim.
 
 Third-revision scope: slate-grey single-layer tread shoes with visible moving
 connecting bands; darker orange enamel and brighter chamfer edges; correct
@@ -336,3 +337,56 @@ repeated face-mapped scratches with localized exposed-metal wear, primer, varied
 physical metal surfaces and contact occlusion. Rounded machined fasteners and
 roller surfaces are also required by the supplied close-up comparison. This
 checkpoint is not visual acceptance; geometry alone does not satisfy the goal.
+
+## Fourth candidate: physical surfaces and hardware
+
+The source now separates thin metal edge chamfers from larger cast corner rounds.
+Wheel rims, dished bearings and axle caps use curved lathed profiles. Button-head
+fasteners have actual six-sided recessed sockets, and their washers sit against
+the armor or wheel faces. Lower rollers use oxidized steel dishes. The isolated
+geometry preview measures 155,467 base triangles and bounds
+`[-1.218,-0.554118,-1.234171]` to `[1.218,0.549,1.234171]`; existing collision and
+ground-clearance contracts still contain these bounds.
+
+The new `tools/atlas_surface_bake.py` produces unique UV atlases with portable
+base color, occlusion/roughness/metallic and tangent normals. Primary enamel and
+hardware use 4096px maps; secondary enamel and track steel use 2048px. Physical
+edge masks measure distance from actual bevel seams, placing irregular exposed
+steel chips and a narrow primer rim onto adjoining faces. Explicit enamel
+coverage maps preserve both primer and steel during garage recoloring. The old
+constant bright-edge material and repeated per-face scratch maps are removed.
+
+AO traces finite 6cm contacts within each finalized mesh assembly. This avoids
+stamping a stationary guard's shadow onto every shared moving track shoe or a
+rotating wheel. Runtime lighting supplies shadows between separate assemblies.
+Preview generation now writes to an isolated ignored export directory rather
+than replacing production textures with reduced-resolution maps.
+
+Bounded helper checks confirmed manifold rounded plates, outward-facing caps,
+and six flat socket walls for both wheel axes, deck fasteners and the sloping
+nose. The full production bake completed successfully. Standard 8-bit maps retain
+encoded values within 0.001969 of the original 16-bit bake, reducing map storage
+from 346.60 MB to 61.45 MB. The compressed source is 63.38 MB and is tracked with
+Git LFS. Its fourteen maps remain packed, including both coverage masks.
+
+V4 passed the clean Godot 4.7.2 import, baseline and native assembly checks,
+including rendered enamel/primer/steel recolor swatches. All fourteen runtime
+maps have mipmaps. The [clearance report](evidence/b-atlas-v4-clearance-2026-09-22.json)
+records 534 mesh-pair checks, zero unintended intersections and the same 388
+intentional central axle contacts as V3. Packed material bytes match runtime
+textures. The [native material checkpoint](evidence/b-atlas-native-v4-material-checkpoint-2026-09-22.json)
+includes nine views under `battlebots/exports/atlas-review-v4`, including a lower
+rear-quarter camera in the unmodified production Foundry. Garage bounds fit.
+The scoped front-view sample measured median 3.649 ms / p95 4.579 ms, 213 draws
+and 2,493.1 MiB engine video memory; it is not release performance certification.
+
+Initial import failures were rejected: the generated quick preview needed
+`.gdignore`, and stale texture UIDs needed reconciliation after replacing the old
+maps. Logs are preserved under ignored `exports/atlas-v4-validation`; the accepted
+subsequent imports were clean. The generator now creates the preview exclusion.
+
+The user supplied a new armored shell reference and requested cohesive armor
+instead of separated raised panels. They explicitly chose to retain the compact
+footprint. The next geometry pass joins nose, deck, shoulders and upper side
+armor with narrow seams, recessed access panels and supported addon interfaces.
+V4 is a verified material/hardware checkpoint, not an approval candidate.

@@ -20,7 +20,7 @@ static func gun_offset(draft: Dictionary, size: Vector3) -> Vector3:
 static func paint_defaults() -> Dictionary:
 	var config := SawbladeConfig.defaults()
 	var colors := {"paint_primary":Color(0.86, 0.51, 0.055),
-		"paint_secondary":Color(0.205, 0.225, 0.235), "paint_metal":Color(0.43, 0.46, 0.48),
+		"paint_secondary":Color(0.205, 0.225, 0.235), "paint_metal":Color(0.52, 0.55, 0.56),
 		"paint_rubber":Color(0.045, 0.055, 0.06)}
 	for channel: String in colors:
 		var color: Color = colors[channel].srgb_to_linear()

@@ -302,6 +302,14 @@ func run() -> void:
 		camera.look_at(center + Vector3(0, 0.4, -0.7))
 		await _measure_foundry()
 		okay = await _capture("atlas-native-foundry") and okay
+		# Lower rear-quarter review camera; production arena lighting is unchanged.
+		center = bot.body.global_position
+		camera.position = center + Vector3(-12.0, 6.5, 15.0)
+		camera.look_at(center + Vector3(0, 0.4, -0.7))
+		okay = await _capture("atlas-native-foundry-rear") and okay
+		report["foundry_review_views"] = {"fov_degrees": camera.fov,
+			"front_offset": "(12.5, 10.0, -16.5)", "rear_offset": "(-12.0, 6.5, 15.0)",
+			"scope": "Two review cameras framing the equipped Atlas in ordinary Foundry practice. Production arena lighting is unchanged; the bounded performance sample uses the front view only."}
 		session.leave()
 		session.queue_free()
 		for frame: int in 5: await get_tree().process_frame
@@ -309,6 +317,8 @@ func run() -> void:
 	report.merge({"engine": Engine.get_version_info().string,
 		"adapter": RenderingServer.get_video_adapter_name(), "resolution": str(RESOLUTION),
 		"captures": captures, "scope": "Actual imported GLB studio views and optionally unmodified production Foundry practice. Visual review only; user approval pending."})
+	var review_stage := OS.get_environment("ATLAS_REVIEW_STAGE")
+	if not review_stage.is_empty(): report["review_stage"] = review_stage
 	var report_file := FileAccess.open(output.path_join("atlas-native-review.json"), FileAccess.WRITE)
 	if report_file == null:
 		push_error("Cannot write Atlas review metadata.")
