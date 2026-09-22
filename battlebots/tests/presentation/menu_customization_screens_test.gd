@@ -30,7 +30,7 @@ func run() -> void:
 			var painted_model: Node3D = screen.build_preview.model
 			profile.undo_edit()
 			check(profile.loadouts[profile.active_bot].cosmetics.sawblade.paint_primary == original_color and screen.build_preview.model != painted_model, "Undo restores authored preview paint")
-			check(screen.get_node("%Categories").get_child_count() == 5,"Five canonical categories")
+			check(screen.get_node("%Categories").get_child_count() == ContentRegistry.SLOTS.size(),"Every canonical category is available")
 			screen._set_tab("paint")
 			check(screen.get_node("%Items").get_child_count() == 4,"Four canonical paints")
 			screen._set_tab("decals")
