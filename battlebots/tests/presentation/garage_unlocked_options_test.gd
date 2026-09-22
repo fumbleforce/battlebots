@@ -27,7 +27,7 @@ func _ready() -> void:
 	var body := category("chassis")
 	var body_ids: Array = []
 	for item: Dictionary in body.items: body_ids.append(item.id)
-	check(body_ids == ["balanced", "scorpion_hex"], "Both authored bodies offered without legacy placeholders")
+	check(body_ids == ["balanced", "scorpion_hex", "atlas_mx"], "All authored bodies offered without legacy placeholders")
 	for draft: Dictionary in profile.loadouts:
 		check(ScorpionVisual.enabled(draft) or SawbladeConfig.enabled(draft), "Every starter has authored body")
 	for tab: String in profile.catalogue:

@@ -95,13 +95,13 @@ func run() -> void:
 	profile.save_path = path
 	profile.active_bot = 0
 	profile.reload()
-	check(profile.PRESET_COUNT == 4 and profile.loadouts.size() == 4, "Fresh garage contains the three existing presets and fourth Scorpion")
+	check(profile.PRESET_COUNT == 5 and profile.loadouts.size() == 5, "Fresh garage retains previous presets and adds Atlas MX")
 	check(profile.active_bot == 0, "Adding Scorpion preserves the existing initial selection")
 	var original_presets: Array = profile.loadouts.slice(0, 3).duplicate(true)
 	check(profile.loadouts[3].parts.chassis == "scorpion_hex" and profile.bots[3].valid, "Fourth Scorpion preset is usable")
 	var body_choices: Array = []
 	for item: Dictionary in category("chassis").items: body_choices.append(item.id)
-	check(body_choices == ["balanced", "scorpion_hex"], "Garage offers both authored body choices")
+	check(body_choices == ["balanced", "scorpion_hex", "atlas_mx"], "Garage retains existing body choices and adds Atlas MX")
 	var garage: Control = load("res://ui/menus/screens/garage.tscn").instantiate()
 	add_child(garage)
 	await frames()
@@ -181,7 +181,7 @@ func run() -> void:
 	customize.queue_free()
 	await frames(1)
 	profile.reload()
-	check(profile.loadouts.size() == profile.PRESET_COUNT + 1, "Saved Scorpion appears after all four presets")
+	check(profile.loadouts.size() == profile.PRESET_COUNT + 1, "Saved Scorpion appears after the built-in presets")
 	check(profile.loadouts[profile.PRESET_COUNT] == saved, "Save and reload preserve Scorpion modules and appearance exactly")
 	var store := LoadoutStore.new(path)
 	var legacy := SawbladeConfig.starter(profile.registry)

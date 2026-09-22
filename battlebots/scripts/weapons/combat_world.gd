@@ -78,8 +78,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 			if state.stats.weapon in ["horizontal_spinner", "hammer", "saw"]:
 				contact_origin = _sweep_origins.get(victim.body.get_instance_id(), attacker.body.global_position)
 			var local_point := victim.body.global_transform.affine_inverse() * contact_origin
-			var half: Vector3 = victim.combat.stats.size * 0.5
-			local_point = local_point.clamp(-half, half)
+			var bounds := victim.collision_bounds()
+			local_point = local_point.clamp(bounds.position, bounds.end)
 			var point := victim.body.global_transform * local_point
 			if state.stats.weapon == "saw":
 				var contact_seconds := float(_saw_contacts.get(key, 0.0)) + delta
@@ -157,7 +157,7 @@ func _sweep(bot: MvpBot) -> Array:
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
-	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout) and bot.combat.stats.weapon == "lifter":
+	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout) and bot.combat.stats.weapon == "lifter":
 		var size: Vector3 = bot.combat.stats.size
 		var angle := bot.combat.charge * deg_to_rad(40)
 		if bot.combat.launch or bot.combat.cooldown > 2.7: angle = deg_to_rad(75)
@@ -217,7 +217,7 @@ func _saw_sweep(bot: MvpBot) -> Array:
 	shape.height = 0.16 * linear_scale
 	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, 0.1 * linear_scale, -bot.combat.stats.size.z * 0.5 - 0.4 * linear_scale))
 	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
-	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout):
+	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout):
 		var size: Vector3 = bot.combat.stats.size
 		var scale := SawbladeGeometry.scale_for(size)
 		shape.radius = 0.678 * scale.z
@@ -243,7 +243,7 @@ func _saw_sweep(bot: MvpBot) -> Array:
 
 func _hammer_sweep(bot: MvpBot) -> Array:
 	if ScorpionGeometry.enabled(bot.loadout): return _scorpion_hammer_sweep(bot)
-	if SawbladeConfig.enabled(bot.loadout): return _sawblade_hammer_sweep(bot)
+	if SawbladeConfig.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout): return _sawblade_hammer_sweep(bot)
 	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := SphereShape3D.new()
 	shape.radius = 0.2 * linear_scale
@@ -333,7 +333,8 @@ func _scorpion_hammer_sweep(bot: MvpBot) -> Array:
 
 func _update_gun_aim(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 	var state := attacker.combat
-	var pivot := ScorpionGeometry.GUN_PIVOT * BotScale.from_size(state.stats.size)
+	var gun_offset := AtlasGeometry.gun_offset(attacker.loadout, state.stats.size)
+	var pivot := ScorpionGeometry.GUN_PIVOT * BotScale.from_size(state.stats.size) + gun_offset
 	var origin := attacker.body.global_transform * pivot
 	var forward := -attacker.body.global_basis.z
 	var desired := 0.0
@@ -369,7 +370,7 @@ func _update_gun_aim(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 		# using that rotated position so close low targets remain hittable.
 		desired = state.gun_pitch
 		for iteration: int in 3:
-			var muzzle := ScorpionGeometry.gun_muzzle(state.stats.size, desired)
+			var muzzle := ScorpionGeometry.gun_muzzle(state.stats.size, desired) + gun_offset
 			var absolute_pitch := atan2(target.y - muzzle.y, maxf(0.1, muzzle.z - target.z))
 			desired = clampf(absolute_pitch, deg_to_rad(-35.0), deg_to_rad(20.0)) - ScorpionGeometry.GUN_REST_PITCH
 	state.gun_pitch = move_toward(state.gun_pitch, desired, maxf(0.0, delta) * 3.0)
@@ -378,8 +379,9 @@ func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: i
 	var state := attacker.combat
 	if state.zones.weapon <= 0 or state.eliminated:
 		return
-	var muzzle := ScorpionGeometry.gun_muzzle(state.stats.size, state.gun_pitch)
-	var breech := ScorpionGeometry.gun_breech(state.stats.size, state.gun_pitch)
+	var gun_offset := AtlasGeometry.gun_offset(attacker.loadout, state.stats.size)
+	var muzzle := ScorpionGeometry.gun_muzzle(state.stats.size, state.gun_pitch) + gun_offset
+	var breech := ScorpionGeometry.gun_breech(state.stats.size, state.gun_pitch) + gun_offset
 	var local_direction := ScorpionGeometry.gun_direction(state.gun_pitch)
 	var from := attacker.body.global_transform * muzzle
 	var origin := attacker.body.global_transform * breech

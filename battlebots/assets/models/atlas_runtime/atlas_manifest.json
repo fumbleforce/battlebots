@@ -1,0 +1,82 @@
+{
+  "name": "Atlas MX",
+  "id": "atlas_mx",
+  "authoring": "Godot meters, X right Y up -Z forward, origin hull center",
+  "runtime": "atlas_mx.glb",
+  "source": "art_source/atlas_mx/atlas_mx.blend",
+  "mounts": {
+    "MountPrimary": [
+      0,
+      0,
+      -1.08
+    ],
+    "MountTopFront": [
+      0,
+      0.49,
+      -0.38
+    ],
+    "MountTopRear": [
+      0,
+      0.49,
+      0.4
+    ],
+    "MountAuxiliary": [
+      0.48,
+      0.49,
+      0
+    ],
+    "MountRear": [
+      0,
+      0.06,
+      1.1
+    ],
+    "MountSideLeft": [
+      -0.74,
+      0.14,
+      0.1
+    ],
+    "MountSideRight": [
+      0.74,
+      0.14,
+      0.1
+    ]
+  },
+  "optional_groups": [
+    "ArmorSideReference",
+    "ArmorSideHeavy",
+    "ArmorTop",
+    "ArmorFront",
+    "ArmorRear",
+    "ExhaustSmall",
+    "ExhaustMedium",
+    "ExhaustLarge"
+  ],
+  "bounds": {
+    "min": [
+      -1.18,
+      -0.56,
+      -1.25
+    ],
+    "max": [
+      1.18,
+      0.55,
+      1.25
+    ]
+  },
+  "track": {
+    "center_y": -0.08,
+    "radius": 0.44,
+    "half_straight": 0.76,
+    "count_per_side": 40,
+    "loop_length": 5.8046015351590174,
+    "x": 0.94,
+    "shoe_thickness": 0.062,
+    "rotation_axis": "X",
+    "name_pattern": "Tread_{L|R}_{00..39}"
+  },
+  "triangles_all_options": 81035,
+  "triangles_base": 71455,
+  "mesh_instances": 103,
+  "material_slots": 14,
+  "approval": "Pending user visual approval"
+}

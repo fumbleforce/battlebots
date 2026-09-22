@@ -645,3 +645,5 @@ branch preserves concurrent main-menu/audio edits. No shared API changes.
 - **B heavy machines:** codex/b-heavy-machines reserves 3x canonical bot scale, heavier drive/replay, weapon/walker geometry, camera/preview and narrow documented spawn/practice/marker integration. See [scope](coordination/B_HEAVY_MACHINES.md).
 
 - 2026-09-20 B reserves Scorpion bot assets/combat/garage and narrowly documented minigun snapshot/practice lifecycle consumers. See coordination/B_SCORPION.md; isolated codex/b-scorpion includes completed heavy-machine dependency.
+
+- 2026-09-22 B reserves the Atlas MX modular chassis asset, catalogue/assembly/garage integration and focused checks on codex/b-modular-chassis. Explicit visual approval required. See coordination/B_ATLAS_MX.md.

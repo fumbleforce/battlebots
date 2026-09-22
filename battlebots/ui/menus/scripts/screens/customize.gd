@@ -333,7 +333,7 @@ func _refresh() -> void:
 	var ig := ButtonGroup.new()
 	var owned_count := 0
 	for i in cat.items.size():
-		var it: Dictionary = cat.items[i]
+		var it: Dictionary = PlayerProfile.resolved_item(_tab, cat, cat.items[i])
 		var st := PlayerProfile.item_state(_tab, cat, it)
 		if st == "eq" or st == "own":
 			owned_count += 1

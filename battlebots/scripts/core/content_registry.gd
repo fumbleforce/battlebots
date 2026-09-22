@@ -40,6 +40,14 @@ func scorpion() -> Dictionary:
 	draft.cosmetics = {"paint":"orange", "sawblade":SawbladeConfig.defaults()}
 	return draft
 
+func atlas() -> Dictionary:
+	var draft := starter()
+	draft.name = "ATLAS MX"
+	draft.parts = {"chassis":"atlas_mx", "drive":"traction", "weapon":"lifter",
+		"armor":"standard_armor", "utility":"recovery_assist"}
+	draft.cosmetics = {"paint":"orange", "sawblade":AtlasGeometry.paint_defaults()}
+	return draft
+
 func validate(draft: Dictionary) -> LoadoutValidation:
 	var result := LoadoutValidation.new()
 	if draft.size() != 5 or draft.get("schema_version") != SCHEMA:
@@ -72,9 +80,11 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Installed power exceeds 100")
 	if selected.get("chassis") == "scorpion_hex" and selected.get("drive") != "walker":
 		result.reasons.append("Scorpion hex body requires the articulated walking drive")
+	if selected.get("chassis") == "atlas_mx" and selected.get("drive") != "traction":
+		result.reasons.append("Atlas MX requires its tracked traction drive")
 	if selected.get("weapon") == "minigun" or selected.get("utility") == "minigun_pod":
-		if selected.get("utility") == "minigun_pod" and selected.get("chassis") != "scorpion_hex":
-			result.reasons.append("Auxiliary minigun requires the Scorpion hex body's gun socket")
+		if selected.get("utility") == "minigun_pod" and selected.get("chassis") not in ["scorpion_hex", "atlas_mx"]:
+			result.reasons.append("Auxiliary minigun requires a Scorpion or Atlas MX gun socket")
 		if selected.get("weapon") == "minigun" and selected.get("utility") == "minigun_pod":
 			result.reasons.append("One minigun fits the gun socket; select another auxiliary part")
 	var cosmetics: Variant = draft.get("cosmetics")

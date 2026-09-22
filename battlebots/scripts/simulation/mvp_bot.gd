@@ -22,6 +22,7 @@ var visual_error := Vector3.ZERO
 var weapon_visual: MvpWeaponVisual
 var sawblade_visual: SawbladeVisual
 var scorpion_visual: ScorpionVisual
+var atlas_visual: AtlasVisual
 var practice_npc_visual: PracticeNpcVisual
 var damage_visual: BotDamageVisual
 var destruction_visual: BotDestructionVisual
@@ -69,11 +70,15 @@ func _ready() -> void:
 	var shape := BoxShape3D.new()
 	shape.size = stats.size
 	$Body/Collision.shape = shape
+	if AtlasGeometry.enabled(loadout):
+		shape.size = AtlasGeometry.COLLISION_SIZE * body.geometry_scale
+		$Body/Collision.position.y = AtlasGeometry.COLLISION_CENTER_Y * body.geometry_scale
+		body.probe_depth = AtlasGeometry.GROUND_DEPTH * body.geometry_scale + 0.07
 	if ScorpionGeometry.enabled(loadout):
 		var hull := ConvexPolygonShape3D.new()
 		hull.points = ScorpionStance.collision_points(body.geometry_scale)
 		$Body/Collision.shape = hull
-	if SawbladeConfig.enabled(loadout) and not ScorpionGeometry.enabled(loadout) and not has_meta("practice_variant"):
+	if SawbladeConfig.enabled(loadout) and not ScorpionGeometry.enabled(loadout) and not AtlasGeometry.enabled(loadout) and not has_meta("practice_variant"):
 		var rear := CollisionShape3D.new()
 		rear.name = "RearPackCollision"
 		var rear_shape := BoxShape3D.new()
@@ -107,6 +112,12 @@ func _ready() -> void:
 		practice_npc_visual = PracticeNpcVisual.new()
 		presentation.add_child(practice_npc_visual)
 		practice_npc_visual.assemble(str(get_meta("practice_variant")), stats.size)
+	elif DisplayServer.get_name() != "headless" and AtlasGeometry.enabled(loadout):
+		presentation.get_node("Visual").hide()
+		presentation.get_node("ForwardStripe").hide()
+		atlas_visual = AtlasVisual.new()
+		presentation.add_child(atlas_visual)
+		atlas_visual.assemble(loadout, stats.size)
 	elif DisplayServer.get_name() != "headless" and ScorpionVisual.enabled(loadout):
 		presentation.get_node("Visual").hide()
 		presentation.get_node("ForwardStripe").hide()
@@ -157,7 +168,7 @@ func _process(delta: float) -> void:
 	var decay := 30.0 if visual_error.length_squared() > 0.25 * 0.25 else 20.0
 	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * decay))
 	var view: BotView
-	if weapon_visual != null or sawblade_visual != null or scorpion_visual != null or practice_npc_visual != null or damage_visual != null:
+	if weapon_visual != null or sawblade_visual != null or scorpion_visual != null or atlas_visual != null or practice_npc_visual != null or damage_visual != null:
 		view = read_view()
 	if weapon_visual != null:
 		weapon_visual.show_state(view, delta)
@@ -165,6 +176,8 @@ func _process(delta: float) -> void:
 		sawblade_visual.show_state(view, delta)
 	if scorpion_visual != null:
 		scorpion_visual.show_state(view, delta)
+	if atlas_visual != null:
+		atlas_visual.show_state(view, delta)
 	if practice_npc_visual != null:
 		practice_npc_visual.show_state(view, delta)
 	if damage_visual != null:
@@ -178,6 +191,8 @@ func _create_damage_visual(size: Vector3) -> void:
 	var groups: Dictionary
 	if practice_npc_visual != null:
 		groups = practice_npc_visual.component_meshes()
+	elif atlas_visual != null:
+		groups = atlas_visual.component_meshes()
 	elif scorpion_visual != null:
 		groups = scorpion_visual.component_meshes()
 	elif sawblade_visual != null:
@@ -276,6 +291,7 @@ func step(delta: float, active: bool) -> void:
 func reset_round() -> void:
 	if destruction_visual != null: destruction_visual.reset_observation()
 	if scorpion_visual != null: scorpion_visual.reset_observation()
+	if atlas_visual != null: atlas_visual.reset_observation()
 	combat = CombatState.new(combat.stats)
 	command = BotCommand.new()
 	input_age = 1
@@ -287,9 +303,24 @@ func reset_round() -> void:
 	previous_pose = spawn_pose
 	last_floor = spawn_pose.origin
 
+## B assembly publishes actual collision bounds to A's spawn-clearance consumer.
+## Canonical size retains the shared weapon/scale frame for older authored bots.
+func collision_bounds() -> AABB:
+	if AtlasGeometry.enabled(loadout):
+		var size := AtlasGeometry.COLLISION_SIZE * body.geometry_scale
+		return AABB(-size * 0.5 + Vector3.UP * AtlasGeometry.COLLISION_CENTER_Y * body.geometry_scale, size)
+	return AABB(-combat.stats.size * 0.5, combat.stats.size)
+
+func ground_clearance() -> float:
+	if body.walker:
+		return WalkerDrive.RIDE_HEIGHT * body.geometry_scale / BotScale.FACTOR
+	return -collision_bounds().position.y
+
 func zone_at(world_point: Vector3) -> String:
 	var point := body.global_transform.affine_inverse() * world_point
-	var half: Vector3 = combat.stats.size * 0.5
+	var bounds := collision_bounds()
+	point -= bounds.get_center()
+	var half := bounds.size * 0.5
 	if point.y > half.y * 0.8:
 		return "top"
 	if point.y < -half.y * 0.8:

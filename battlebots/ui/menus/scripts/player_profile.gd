@@ -7,7 +7,7 @@ var level := 0
 var level_progress := 0.0
 var scrap := 0
 var active_bot := 0
-const PRESET_COUNT := 4
+const PRESET_COUNT := 5
 var bots: Array = []
 var registry := ContentRegistry.new()
 var save_path := "user://loadouts.json"
@@ -40,7 +40,8 @@ func reload() -> void:
 		preset.parts.chassis = "balanced"
 		_ensure_body(preset)
 	loadouts.append(registry.scorpion())
-	_save_indices = [-1,-1,-1,-1]
+	loadouts.append(registry.atlas())
+	_save_indices = [-1,-1,-1,-1,-1]
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)
@@ -178,6 +179,15 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 func item_state(tab: String, cat: Dictionary, item: Dictionary) -> String:
 	return "eq" if equipped_name(tab, cat) == item.name else "own"
 
+func resolved_item(tab: String, cat: Dictionary, item: Dictionary) -> Dictionary:
+	if tab != "paint" or cat.slot not in SawbladeConfig.COLORS or item.id != "original": return item
+	if not AtlasGeometry.enabled(loadouts[active_bot]): return item
+	var choice := item.duplicate(true)
+	choice.rgba = AtlasGeometry.paint_defaults()[cat.slot]
+	var rgba: Array = choice.rgba
+	choice.swatch = Color(rgba[0], rgba[1], rgba[2]).linear_to_srgb().to_html()
+	return choice
+
 func _ensure_body(draft: Dictionary) -> void:
 	if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {"paint":"cyan"}
 	if not SawbladeConfig.enabled(draft): draft.cosmetics["sawblade"] = SawbladeConfig.defaults()
@@ -199,7 +209,7 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 	elif cat.slot != "paint":
 		if cat.slot not in SawbladeConfig.COLORS: return
 		_ensure_body(draft)
-		draft.cosmetics.sawblade[cat.slot] = item.rgba.duplicate()
+		draft.cosmetics.sawblade[cat.slot] = resolved_item(tab, cat, item).rgba.duplicate()
 	else:
 		if item.id not in ["cyan","orange","white","red"]: return
 		_ensure_body(draft)

@@ -112,7 +112,7 @@ func run() -> void:
 	profile.redo_edit()
 	check(profile.save_active("Painted sawblade") == OK, "Profile saves model appearance")
 	profile.reload()
-	check(profile.loadouts[3].cosmetics.sawblade.paint_primary[0] == 1, "Profile reload preserves custom paint")
+	check(profile.loadouts[profile.PRESET_COUNT].cosmetics.sawblade.paint_primary[0] == 1, "Profile reload preserves custom paint")
 	var screen: Control = load("res://ui/menus/screens/customize.tscn").instantiate()
 	get_window().content_scale_size = Vector2i(1920, 1080)
 	get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS

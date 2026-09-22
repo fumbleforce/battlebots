@@ -9,6 +9,7 @@ var model: Node3D
 var weapon_visual: MvpWeaponVisual
 var sawblade_visual: SawbladeVisual
 var scorpion_visual: ScorpionVisual
+var atlas_visual: AtlasVisual
 var status: Label
 var yaw := 0.6
 var pitch := 0.45
@@ -105,16 +106,17 @@ func _layout_status() -> void:
 
 func _valid_status() -> void:
 	_update_camera()
-	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
-	if scorpion_visual != null: assembly = "SCORPION HX-6 · equipped modules"
-	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
+	var assembly := "Sawblade Tank Â· equipped modules" if sawblade_visual != null else "Equipped draft Â· primitive geometry"
+	if atlas_visual != null: assembly = "ATLAS MX Â· modular tracked platform"
+	if scorpion_visual != null: assembly = "SCORPION HX-6 Â· equipped modules"
+	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate Â· Wheel to zoom"
 	status.visible = not _compact
 	_update_rotation_control()
 	_layout_status()
 
 func _show_status_page() -> void:
 	if _status_pages.is_empty(): return
-	status.text = "Invalid build · %d / %d\n%s" % [_status_page + 1, _status_pages.size(), _status_pages[_status_page]]
+	status.text = "Invalid build Â· %d / %d\n%s" % [_status_page + 1, _status_pages.size(), _status_pages[_status_page]]
 	_status_next.visible = _status_pages.size() > 1
 
 func _invalid_status(message: String) -> void:
@@ -136,7 +138,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	focus_mode = Control.FOCUS_ALL
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	tooltip_text = "Drag to rotate • Wheel to zoom • Arrow keys to rotate • + / − to zoom • Home to reset"
+	tooltip_text = "Drag to rotate â€¢ Wheel to zoom â€¢ Arrow keys to rotate â€¢ + / âˆ’ to zoom â€¢ Home to reset"
 	var container := SubViewportContainer.new()
 	container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.stretch = true
@@ -236,6 +238,7 @@ func show_loadout(draft: Dictionary) -> void:
 	weapon_visual = null
 	sawblade_visual = null
 	scorpion_visual = null
+	atlas_visual = null
 	var validation := _registry.validate(draft)
 	if not validation.valid:
 		_invalid_status("; ".join(validation.reasons))
@@ -250,6 +253,13 @@ func show_loadout(draft: Dictionary) -> void:
 	_turntable.add_child(model)
 	# This isolated workshop keeps its original framing regardless of arena scale.
 	var size: Vector3 = validation.stats.size / BotScale.FACTOR
+	if AtlasGeometry.enabled(draft):
+		model.position.y = AtlasGeometry.GROUND_DEPTH - 0.12
+		atlas_visual = AtlasVisual.new()
+		model.add_child(atlas_visual)
+		atlas_visual.assemble(draft, size)
+		_valid_status()
+		return
 	if ScorpionVisual.enabled(draft):
 		model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
 		scorpion_visual = ScorpionVisual.new()
@@ -320,6 +330,9 @@ func _update_camera() -> void:
 	if not is_instance_valid(camera): return
 	var target := Vector3(0, 0.4, -0.35)
 	var orbit_distance := distance
+	if atlas_visual != null:
+		target = Vector3(0, 0.5, -0.30)
+		orbit_distance += 1.3 if _auto_rotate else -0.9
 	if scorpion_visual != null:
 		target = Vector3(0, 1.10, -0.10)
 		# FeaturedVehicle starts closer for the low wheeled hulls. Keep the tall

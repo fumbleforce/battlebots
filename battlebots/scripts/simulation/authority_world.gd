@@ -105,7 +105,9 @@ func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 		for x: int in range(low_x, high_x + 1):
 			for z: int in range(low_z, high_z + 1):
 				floor_y = maxf(floor_y, SURFACE.height_at(x * SURFACE.STEP - 25.0, z * SURFACE.STEP - 25.0))
-	var clearance := WalkerDrive.RIDE_HEIGHT * BotScale.from_size(bot.combat.stats.size) / BotScale.FACTOR if bot.body.walker else half.y
+	# B publishes actual support clearance; tall modular hulls retain the common
+	# authoring scale height in stats. See coordination/B_ATLAS_MX.md.
+	var clearance := bot.ground_clearance()
 	pose.origin.y = floor_y + clearance + 0.05
 	return pose
 

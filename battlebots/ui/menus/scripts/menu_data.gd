@@ -29,7 +29,7 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		var items: Array = []
 		for id: String in registry.parts:
 			var part: Dictionary = registry.parts[id]
-			if part.category == slot and (slot != "chassis" or id in ["balanced", "scorpion_hex"]):
+			if part.category == slot and (slot != "chassis" or id in ["balanced", "scorpion_hex", "atlas_mx"]):
 				items.append({"id":id,"name":id.capitalize(),"default":"own","desc":"%s · %.0f kg · %.0f installed power. All functional parts are available." % [id.capitalize(),part.mass,part.power],"d":{}})
 		categories.append({"label":slot.to_upper(),"slot":slot,"items":items})
 		if slot == "utility": categories.back().label = "AUXILIARY / UTILITY"
@@ -44,24 +44,27 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		var choices: Array = []
 		var original: Array = SawbladeConfig.defaults()[channel]
 		choices.append({"id":"original", "name":"Original", "default":"own", "rgba":original,
-			"swatch":Color(original[0], original[1], original[2]).linear_to_srgb().to_html(), "desc":"Authored Sawblade Tank color. Use CUSTOM COLOR for any color."})
+			"swatch":Color(original[0], original[1], original[2]).linear_to_srgb().to_html(), "desc":"Authored module color. Use CUSTOM COLOR for any color."})
 		for id: String in colors:
 			var color := Color(colors[id]).srgb_to_linear()
 			choices.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],
-				"rgba":[color.r,color.g,color.b,1.0],"desc":"Tint this channel across all Sawblade Tank modules."})
+				"rgba":[color.r,color.g,color.b,1.0],"desc":"Tint this channel across compatible painted modules."})
 		paint_categories.append({"label":channel.trim_prefix("paint_").to_upper(),"slot":channel,"items":choices})
 	var vehicle: Array = []
 	for slot: String in SawbladeConfig.OPTIONS:
 		var choices: Array = []
 		for index: int in SawbladeConfig.OPTIONS[slot].size():
 			choices.append({"id":str(index),"name":SawbladeConfig.OPTIONS[slot][index],"default":"own",
-				"desc":"Sawblade Tank appearance. Armor protection and weight come from PARTS > ARMOR; exhaust has no performance effect."})
+				"desc":"Modular body appearance. Armor protection and weight come from PARTS > ARMOR; exhaust has no performance effect."})
 		vehicle.append({"label":slot.replace("_", " ").to_upper(),"slot":slot,"items":choices})
 	for category: Dictionary in categories:
 		for item: Dictionary in category.items:
 			if item.id == "balanced":
 				item.name = "Sawblade body"
 				item.desc = "Authored chassis body. Changing the body preserves all other selected parts and appearance options."
+			elif item.id == "atlas_mx":
+				item.name = "Atlas MX modular chassis"
+				item.desc = "Wide tracked platform with an open equipment deck, front tool coupler, roof rails and auxiliary gun socket. Requires Tracks · Traction. All primary weapons and utilities fit within normal build budgets."
 			elif item.id == "traction": item.name = "Tracks · Traction"
 			elif item.id == "standard_wheels": item.name = "Four wheels · Standard"
 			elif item.id == "agile": item.name = "Four wheels · Agile"
@@ -74,7 +77,7 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Orange diesel-powered six-legged combat machine. Tapered hexagonal armor, interchangeable dorsal weapon and minigun socket. Requires walking drive; preserves your other selected parts."
 			elif item.id == "minigun_pod":
 				item.name = "Minigun • Auxiliary"
-				item.desc = "Scorpion gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Uses battery and builds heat. Swap for another utility to remove."
+				item.desc = "Scorpion / Atlas MX gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Uses battery and builds heat. Swap for another utility to remove."
 			elif item.id == "minigun":
 				item.name = "Minigun • Primary"
 				item.desc = "Primary weapon module · 24 kg · 35 power. Hold primary fire for sustained ranged fire. On Scorpion it replaces the dorsal hammer; choose a separate utility."
