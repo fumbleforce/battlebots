@@ -1,5 +1,19 @@
 # Current A/B handoff
 
+## Garage list model stills and save status — B, 22 September 2026
+
+Garage bot rows now show a captured still of each valid equipped 3D loadout.
+One small offscreen renderer reuses captures for unchanged parts and cosmetics;
+weapon and paint edits replace the image, and invalid drafts no longer display
+unrelated concept art. The main interactive preview is unchanged. Saved File
+is now a backgroundless footer link left of Done; amber status appears for
+unsaved edits, new builds, and retained copies, and red warns when the file
+needs review. Clean builds have no status label. This is client presentation
+only: no catalogue, loadout, network, or hosted service compatibility change.
+Active B chassis and Nitro sessions also edit PlayerProfile, so this change
+keeps save-state presentation in the isolated Garage screen. See
+[scope and validation](coordination/B_GARAGE_THUMBNAILS.md).
+
 ## Garage catalogue navigation cleanup — B, 22 September 2026
 
 The garage already has the expanded 3D preview, reversed horizontal orbit,

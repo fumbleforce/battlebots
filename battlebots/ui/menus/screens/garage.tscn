@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
 
@@ -9,8 +9,6 @@
 [ext_resource type="Texture2D" path="res://ui/menus/art/hazard_stripe.png" id="4_hazardst"]
 
 [ext_resource type="Texture2D" path="res://ui/menus/icons/plus.svg" id="5_plussvg"]
-
-[ext_resource type="Texture2D" path="res://ui/menus/art/bot_chevron.jpg" id="6_botchevr"]
 
 [ext_resource type="Texture2D" path="res://ui/menus/icons/wrench.svg" id="7_wrenchsv"]
 
@@ -267,7 +265,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("6_botchevr")
 expand_mode = 1
 stretch_mode = 6
 unique_name_in_owner = true

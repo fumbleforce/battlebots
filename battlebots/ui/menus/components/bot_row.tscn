@@ -1,10 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
 
 [ext_resource type="Script" path="res://ui/menus/scripts/components/bot_row.gd" id="2_botrowgd"]
-
-[ext_resource type="Texture2D" path="res://ui/menus/art/bot_chevron.jpg" id="3_botchevr"]
 
 [node name="BotRow" type="Button"]
 custom_minimum_size = Vector2(0, 106)
@@ -34,7 +32,6 @@ mouse_filter = 2
 
 [node name="Thumb" type="TextureRect" parent="Pad/Row"]
 layout_mode = 2
-texture = ExtResource("3_botchevr")
 expand_mode = 1
 stretch_mode = 6
 custom_minimum_size = Vector2(115, 77)

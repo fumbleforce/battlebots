@@ -5,6 +5,14 @@ func check(ok: bool, message: String) -> void:
 	if not ok: failures.append(message)
 func settle() -> void:
 	for _frame: int in 8: await get_tree().process_frame
+func wait_for_thumbnails(screen: Control) -> void:
+	for _frame: int in 40:
+		var ready := true
+		for row: Button in screen.get_node("%BotList").get_children():
+			if row.get_meta("thumbnail_key", "") != "" and row.get_node("%Thumb").texture == null:
+				ready = false
+		if ready: return
+		await get_tree().process_frame
 func run() -> void:
 	get_window().size = Vector2i(1920,1080)
 	get_window().content_scale_size = Vector2i(1920,1080)
@@ -15,6 +23,45 @@ func run() -> void:
 	var overview: Control = load("res://ui/menus/screens/garage.tscn").instantiate()
 	add_child(overview)
 	await settle()
+	check(overview.recovery_button.get_index() < overview.get_node("%Next").get_index(), "Saved File sits left of Done")
+	check(overview.recovery_button.get_theme_stylebox("normal") is StyleBoxEmpty, "Saved File has no background")
+	check(not overview.save_status.visible, "Clean preset has no save warning")
+	check(overview.get_node("%BotList").get_child(0).get_node("%Thumb").texture != profile.bots[0].image, "Garage rows never use concept art")
+	if DisplayServer.get_name() != "headless":
+		await wait_for_thumbnails(overview)
+		var rows: Array[Node] = overview.get_node("%BotList").get_children()
+		for index: int in profile.bots.size():
+			if profile.bots[index].valid:
+				check(rows[index].get_node("%Thumb").texture is ImageTexture, "Captured model thumbnail for build " + str(index))
+		var saw_image: Texture2D = rows[0].get_node("%Thumb").texture
+		var scorpion_image: Texture2D = rows[3].get_node("%Thumb").texture
+		if saw_image != null and scorpion_image != null:
+			check(saw_image.get_image().get_data() != scorpion_image.get_image().get_data(), "Sawblade and Scorpion captures differ")
+		overview._refresh_builds()
+		check(overview.get_node("%BotList").get_child(0).get_node("%Thumb").texture == saw_image, "Unchanged build reuses its captured image")
+		var reopened: Control = load("res://ui/menus/screens/garage.tscn").instantiate()
+		add_child(reopened)
+		check(reopened.get_node("%BotList").get_child(0).get_node("%Thumb").texture == saw_image, "Returning to Garage reuses the still")
+		reopened.queue_free()
+		await get_tree().process_frame
+		var original: Dictionary = profile.loadouts[0].duplicate(true)
+		profile.loadouts[0].parts.weapon = "hammer"
+		profile._draft_changed()
+		check(overview.save_status.text == "UNSAVED CHANGES", "Edited build shows unsaved state")
+		check(overview.get_node("%BotList").get_child(0).get_node("%Class").text == "UNSAVED CHANGES", "List marks edited build")
+		await wait_for_thumbnails(overview)
+		await capture("garage-unsaved")
+		var edited_image: Texture2D = overview.get_node("%BotList").get_child(0).get_node("%Thumb").texture
+		check(edited_image != null and edited_image.get_image().get_data() != saw_image.get_image().get_data(), "Weapon edit captures the changed model")
+		profile.loadouts[0] = original.duplicate(true)
+		profile.equip("paint", profile.catalogue.paint[0], profile.catalogue.paint[0].items[1])
+		await wait_for_thumbnails(overview)
+		var painted_image: Texture2D = overview.get_node("%BotList").get_child(0).get_node("%Thumb").texture
+		check(painted_image != null and painted_image.get_image().get_data() != saw_image.get_image().get_data(), "Paint edit captures the changed model")
+		profile.loadouts[0] = original
+		profile._draft_changed()
+		check(not overview.save_status.visible, "Reverted build clears unsaved state")
+		await wait_for_thumbnails(overview)
 	check(not MenuRouter.SCREENS.has("shop"), "Removed catalogue screen cannot be opened")
 	check(overview.get_node_or_null("%Upgrade") == null, "Catalogue entry removed")
 	check(overview.get_node("Layout/Body/Row/RightCol").get_child_count() == 1, "Right column reserved for loadout")
@@ -45,6 +92,13 @@ func run() -> void:
 	overview.queue_free()
 	await get_tree().process_frame
 	profile.new_build()
+	var status_screen: Control = load("res://ui/menus/screens/garage.tscn").instantiate()
+	add_child(status_screen)
+	check(status_screen.save_status.text == "NEW · NOT SAVED", "New build shows save state")
+	check(profile.save_active("Garage status saved") == OK, "New build saves to test file")
+	check(not status_screen.save_status.visible, "Saved build clears save warning")
+	status_screen.queue_free()
+	await get_tree().process_frame
 	profile.rename_draft("A very long experimental robot name")
 	profile.new_build()
 	profile.rename_draft("Another very long experimental robot")
@@ -73,6 +127,7 @@ func run() -> void:
 			profile._draft_changed()
 			await settle()
 			check(not screen.get_node("%Stats").visible,"Invalid build hides unavailable stats")
+			check(screen.get_node("%BotList").get_child(profile.active_bot).get_node("%Thumb").texture == null, "Invalid build has no unrelated artwork")
 			check(not screen.build_preview.status.visible, "No text inside invalid preview")
 			check("Unknown or missing part" in screen.get_node("%BotHp").text, "Invalid reason lives in description")
 			await capture("garage-invalid")

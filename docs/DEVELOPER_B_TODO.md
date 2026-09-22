@@ -1,5 +1,13 @@
 # Worker B — shared task list
 
+## Garage model thumbnails and save status — 22 September 2026
+
+B replaced the Garage list's concept-art thumbnails with still captures of
+each valid loadout's actual 3D model, and clarified unsaved state in the
+footer and bot list. Scope and acceptance are in
+[B_GARAGE_THUMBNAILS.md](coordination/B_GARAGE_THUMBNAILS.md). A owns no paths
+in this increment; no content/network compatibility change is planned.
+
 ## Scorpion shutdown checkpoint — 20 September 2026
 
 User requested stopping immediately. Completed implementation is on main

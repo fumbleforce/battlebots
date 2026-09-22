@@ -15,9 +15,12 @@ class GaragePreview extends GarageBotPreview:
 		super(Vector2(-delta.x, delta.y))
 
 const BOT_ROW := preload("res://ui/menus/components/bot_row.tscn")
+const THUMBNAIL_RENDERER := preload("res://scripts/presentation/garage_bot_thumbnail_renderer.gd")
 var build_preview: GarageBotPreview
+var thumbnail_renderer: GarageBotThumbnailRenderer
 var recovery_panel: GarageRecoveryPanel
 var recovery_button: Button
+var save_status: Label
 var notice: Label
 var _text_factor := 1.0
 var _build_page := 0
@@ -36,6 +39,9 @@ func _ready() -> void:
 	%BotImage.hide()
 	frame.add_child(build_preview)
 	frame.move_child(build_preview, 1)
+	thumbnail_renderer = THUMBNAIL_RENDERER.new()
+	add_child(thumbnail_renderer)
+	thumbnail_renderer.thumbnail_ready.connect(_thumbnail_ready)
 	for control: Node in find_children("Rotate","Button",true,false):
 		control.tooltip_text = "Reset build preview view"
 		control.pressed.connect(build_preview.reset_view)
@@ -48,13 +54,23 @@ func _ready() -> void:
 	%Eyebrow.text = "YOUR BOTS · SELECT OR CUSTOMIZE"
 	%Next.text = "DONE"
 	%Next.pressed.connect(MenuRouter.goto.bind("main", false))
-	_select(PlayerProfile.active_bot)
 	recovery_panel = GarageRecoveryPanel.new()
 	add_child(recovery_panel)
+	save_status = Label.new()
+	save_status.theme_type_variation = &"Muted"
+	save_status.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	save_status.mouse_filter = Control.MOUSE_FILTER_PASS
+	%Next.get_parent().add_child(save_status)
+	%Next.get_parent().move_child(save_status, %Next.get_index())
 	recovery_button = Button.new()
 	recovery_button.text = "SAVED FILE"
+	recovery_button.theme_type_variation = &"TextLink"
+	recovery_button.add_theme_font_size_override("font_size", 18)
+	recovery_button.add_theme_color_override("font_color", Color("#9aa6b5"))
+	recovery_button.tooltip_text = "Review saved builds and recover a backup"
 	recovery_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	%Next.get_parent().add_child(recovery_button)
+	%Next.get_parent().move_child(recovery_button, %Next.get_index())
 	recovery_button.pressed.connect(func(): recovery_panel.open(PlayerProfile))
 	PlayerProfile.inventory_changed.connect(_refresh_builds)
 	_prepare_text_layout()
@@ -82,12 +98,25 @@ func _refresh_builds() -> void:
 		var row := BOT_ROW.instantiate()
 		%BotList.add_child(row)
 		row.setup(PlayerProfile.bots[i])
+		var state := _save_state(i)
+		if state != "" and PlayerProfile.bots[i].valid:
+			row.get_node("%Class").text = state
+			row.get_node("%Class").add_theme_color_override("font_color", Color("#f5b82e"))
+		if PlayerProfile.bots[i].valid:
+			var key := GarageBotThumbnailRenderer.visual_key(PlayerProfile.loadouts[i])
+			row.set_meta("thumbnail_key", key)
+			var cached := thumbnail_renderer.cached(key)
+			if cached != null: row.set_thumbnail(cached)
 		row.visible = i >= _build_ranges[_build_page].x and i < _build_ranges[_build_page].y
 		var pad: Control = row.get_node("Pad")
 		pad.minimum_size_changed.connect(_fit_button_content.bind(row, pad))
 		row.button_group = group
 		row.pressed.connect(_select.bind(i))
 		row.button_pressed = i == PlayerProfile.active_bot
+	var valid_drafts: Array = []
+	for i in PlayerProfile.bots.size():
+		if PlayerProfile.bots[i].valid: valid_drafts.append(PlayerProfile.loadouts[i])
+	thumbnail_renderer.sync(valid_drafts)
 	%Bays.text = "%d builds · 12 saved max" % PlayerProfile.bots.size()
 	notice.text = "Build/file needs attention. Inspect SAVED FILE or customize the selected build." if not PlayerProfile.errors.is_empty() else ""
 	notice.visible = not notice.text.is_empty()
@@ -98,13 +127,17 @@ func _refresh_builds() -> void:
 	apply_text_scale(_text_factor)
 
 
+func _thumbnail_ready(key: String, texture: Texture2D) -> void:
+	for row: Button in %BotList.get_children():
+		if row.get_meta("thumbnail_key", "") == key: row.set_thumbnail(texture)
+
+
 func _select(i: int) -> void:
 	PlayerProfile.active_bot = i
 	_displayed_active = i
 	MenuRouter.match_setup.bot = i
 	var b: Dictionary = PlayerProfile.bots[i]
 	build_preview.show_loadout(PlayerProfile.loadouts[i])
-	%BotImage.texture = b.image
 	%BotClass.text = "VALID BUILD · 3D PREVIEW" if b.valid else b.cls
 	if b.get("retained", false): %BotClass.text = b.cls
 	%BotName.text = b.name
@@ -113,6 +146,7 @@ func _select(i: int) -> void:
 	%Next.disabled = false
 	%Stats.visible = b.valid
 	%Bays.tooltip_text = "; ".join(PlayerProfile.errors)
+	_update_save_status(i)
 	var j := 0
 	for pip in %Pips.get_children():
 		pip.theme_type_variation = &"PipOn" if j < b.shields else &"Pip"
@@ -144,6 +178,29 @@ func _select(i: int) -> void:
 			label.add_theme_font_size_override("font_size", 20)
 			%Stats.add_child(label)
 		MenuTextScale.apply(%Stats, _text_factor)
+
+
+func _save_state(index: int) -> String:
+	if PlayerProfile.bots[index].get("retained", false): return "UNSAVED COPY"
+	if index >= PlayerProfile._save_indices.size(): return "NEW · NOT SAVED"
+	if PlayerProfile._save_indices[index] < 0 and index >= PlayerProfile.PRESET_COUNT:
+		return "NEW · NOT SAVED"
+	if index < PlayerProfile._draft_baseline.size() and not PlayerProfile._same_draft(PlayerProfile.loadouts[index], PlayerProfile._draft_baseline[index]):
+		return "UNSAVED CHANGES"
+	return ""
+
+
+func _update_save_status(index: int) -> void:
+	if not is_instance_valid(save_status): return
+	var state := _save_state(index)
+	if PlayerProfile._read_errors:
+		state = "SAVED FILE NEEDS REVIEW"
+		save_status.add_theme_color_override("font_color", Color("#f08375"))
+	else:
+		save_status.add_theme_color_override("font_color", Color("#f5b82e"))
+	save_status.text = state
+	save_status.visible = not state.is_empty()
+	save_status.tooltip_text = "Open Saved File to review the file before saving." if PlayerProfile._read_errors else "Use Customize → Save Build to store this build locally. Done returns to the menu."
 
 
 func _prepare_text_layout() -> void:
