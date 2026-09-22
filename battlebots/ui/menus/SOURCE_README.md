@@ -35,8 +35,8 @@ If you set up neither, the loading screen prints a warning and returns to the ma
 
 | Path | What it is |
 |---|---|
-| `screens/` | `main_menu`, `mode_select`, `garage`, `arena_select`, `lobby`, `loading`, `customize`, `upgrade_shop` |
-| `components/` | Pieces the screens create repeatedly at runtime: mode card, bot row/chip, arena tile, stat bar, category row, item tile, upgrade card, shop item card, deal row, player slot |
+| `screens/` | `main_menu`, `mode_select`, `garage`, `arena_select`, `lobby`, `loading`, `customize` |
+| `components/` | Pieces the screens create repeatedly at runtime: mode card, bot row/chip, arena tile, stat bar, category row, item tile, deal row, player slot |
 | `theme/menu_theme.tres` | All colours, fonts and styleboxes, stored as **type variations** |
 | `scripts/menu_router.gd` | Screen navigation, the Back history and `match_setup` |
 | `scripts/player_profile.gd` | Placeholder save state (scrap, level, owned and equipped items, upgrade levels). Replace it with your own save system. |

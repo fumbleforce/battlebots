@@ -10,7 +10,6 @@ const SCREENS := {
 	"lobby":"res://ui/menus/screens/lobby.tscn",
 	"loading":"res://ui/menus/screens/loading.tscn",
 	"customize":"res://ui/menus/screens/customize.tscn",
-	"shop":"res://ui/menus/screens/upgrade_shop.tscn",
 }
 var match_setup := {"mode":"duel", "bot":0, "arena":0, "capacity":8}
 var lobby_intent := "host"
