@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "executed_utc": "2026-09-22T18:26:17.805609+00:00",
+  "blender_version": "5.2.1 LTS",
+  "command_powershell": "& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' --background art_source/atlas_mx/atlas_mx.blend --python docs/coordination/evidence/b-atlas-v3-clearance-2026-09-22.py",
+  "working_directory": "repository root",
+  "source_blend": {
+    "path": "art_source/atlas_mx/atlas_mx.blend",
+    "sha256": "c4abccdbd5a4b1539bd6d906f786fc2725ce734ffd7106275bd41b53492f2d96"
+  },
+  "runtime_model": {
+    "path": "battlebots/assets/models/atlas_runtime/atlas_mx.glb",
+    "sha256": "8d6dcf6645bf78708a37f0cc2f63f9629e86ac9c408fe652153e6a7c506fe256"
+  },
+  "script_sha256": "b817cd056545a4446cb78609d5e9d9f3945b045772121a8581f4829df4c0b190",
+  "method": "World-space triangle BVHTree.overlap on the saved Blender source at its authored rest phase; both sides checked independently.",
+  "central_axle_exclusion": {
+    "rule": "For each wheel/DriveSurface intersecting triangle pair, exclude only when every vertex of the stationary triangle is within wheel_radius * 0.22 + 0.0001 metres of the wheel X axis. The radial distance uses world Blender Y/Z relative to the wheel pivot.",
+    "radius_multiplier": 0.22,
+    "tolerance_m": 0.0001,
+    "purpose": "Permit the intentional central axle joints; all other stationary-surface intersections remain failures."
+  },
+  "limits": [
+    "Checks surface-triangle intersections, not volumetric containment.",
+    "Authored rest phase only; no continuous-motion sweep or deformation check.",
+    "Connector checks are against wheels only; connector/shoe overlap is outside this bounded check.",
+    "Optional armor, weapons, physics collision shapes, gameplay and renderer materials are outside this check.",
+    "Runtime GLB hash identifies the accompanying export; these BVH counts use the saved Blender source, not a separate GLB reimport."
+  ],
+  "sides": {
+    "L": {
+      "stationary_mesh": "DriveLeftSurface",
+      "wheels": [
+        {
+          "name": "Wheel_L_Front",
+          "radius_m": 0.388,
+          "drive_triangle_pairs": 34,
+          "excluded_axle_triangle_pairs": 34,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Rear",
+          "radius_m": 0.388,
+          "drive_triangle_pairs": 34,
+          "excluded_axle_triangle_pairs": 34,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller0",
+          "radius_m": 0.12,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller1",
+          "radius_m": 0.12,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller2",
+          "radius_m": 0.12,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Return",
+          "radius_m": 0.105,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ],
+      "wheel_pair_intersections": {
+        "Front/Rear": 0,
+        "Front/Roller0": 0,
+        "Front/Roller1": 0,
+        "Front/Roller2": 0,
+        "Front/Return": 0,
+        "Rear/Roller0": 0,
+        "Rear/Roller1": 0,
+        "Rear/Roller2": 0,
+        "Rear/Return": 0,
+        "Roller0/Roller1": 0,
+        "Roller0/Roller2": 0,
+        "Roller0/Return": 0,
+        "Roller1/Roller2": 0,
+        "Roller1/Return": 0,
+        "Roller2/Return": 0
+      },
+      "connectors": {
+        "node_pattern": "TrackConnector_L_{00..39}",
+        "count": 40,
+        "wheel_pair_checks": 240,
+        "triangle_pairs_by_wheel": {
+          "Front": 0,
+          "Rear": 0,
+          "Roller0": 0,
+          "Roller1": 0,
+          "Roller2": 0,
+          "Return": 0
+        }
+      }
+    },
+    "R": {
+      "stationary_mesh": "DriveRightSurface",
+      "wheels": [
+        {
+          "name": "Wheel_R_Front",
+          "radius_m": 0.388,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Rear",
+          "radius_m": 0.388,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller0",
+          "radius_m": 0.12,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller1",
+          "radius_m": 0.12,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller2",
+          "radius_m": 0.12,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Return",
+          "radius_m": 0.105,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ],
+      "wheel_pair_intersections": {
+        "Front/Rear": 0,
+        "Front/Roller0": 0,
+        "Front/Roller1": 0,
+        "Front/Roller2": 0,
+        "Front/Return": 0,
+        "Rear/Roller0": 0,
+        "Rear/Roller1": 0,
+        "Rear/Roller2": 0,
+        "Rear/Return": 0,
+        "Roller0/Roller1": 0,
+        "Roller0/Roller2": 0,
+        "Roller0/Return": 0,
+        "Roller1/Roller2": 0,
+        "Roller1/Return": 0,
+        "Roller2/Return": 0
+      },
+      "connectors": {
+        "node_pattern": "TrackConnector_R_{00..39}",
+        "count": 40,
+        "wheel_pair_checks": 240,
+        "triangle_pairs_by_wheel": {
+          "Front": 0,
+          "Rear": 0,
+          "Roller0": 0,
+          "Roller1": 0,
+          "Roller2": 0,
+          "Return": 0
+        }
+      }
+    }
+  },
+  "totals": {
+    "wheel_drive_pairs": 12,
+    "wheel_hull_pairs": 12,
+    "wheel_wheel_pairs": 30,
+    "connector_wheel_pairs": 480,
+    "unexpected_stationary_triangle_pairs": 0,
+    "hull_triangle_pairs": 0,
+    "wheel_wheel_triangle_pairs": 0,
+    "connector_wheel_triangle_pairs": 0,
+    "excluded_axle_triangle_pairs": 388
+  },
+  "passed": true
+}

@@ -8,7 +8,9 @@
 alongside the existing bodies. Match the supplied yellow industrial reference
 with supported mounting points, thick coherent side castings, a useful addon
 deck and matte stylized metal. Fidelity requires explicit user approval; the
-second candidate is under review. See [Atlas implementation](coordination/B_ATLAS_MX.md)
+third candidate is under review after requests for slate-grey linked tracks,
+darker orange, brighter chamfers, corrected roller clearance and shorter guards
+with centered sockets. See [Atlas implementation](coordination/B_ATLAS_MX.md)
 for exported mounts, actual runtime validation and the hosted-release handoff.
 
 **User revision, 22 September 2026:** Shift activates an equipped Nitro perk.

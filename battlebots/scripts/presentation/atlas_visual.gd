@@ -11,6 +11,7 @@ var primary: MvpWeaponVisual
 var auxiliary: MvpWeaponVisual
 var _wheels: Array[Dictionary] = []
 var _links: Array[Dictionary] = []
+var _connectors: Array[Dictionary] = []
 var _travel := [0.0, 0.0]
 var _previous_pose := Transform3D.IDENTITY
 var _have_pose := false
@@ -26,13 +27,11 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		var label := str(node.name)
 		if not node is MeshInstance3D and (label.begins_with("Wheel_L_") or label.begins_with("Wheel_R_")):
 			_wheels.append({"node":node, "basis":node.basis, "side":0 if label.begins_with("Wheel_L_") else 1,
-				"radius":0.388 if "Front" in label or "Rear" in label else (0.105 if "Return" in label else 0.145)})
-		elif label.begins_with("Tread_L_") or label.begins_with("Tread_R_"):
-			var rest := _relative_transform(node)
-			var distance := AtlasGeometry.track_distance(rest.origin)
-			var frame := AtlasGeometry.track_transform(distance, rest.origin.x)
-			_links.append({"node":node, "side":0 if label.begins_with("Tread_L_") else 1,
-				"distance":distance, "x":rest.origin.x, "basis":frame.basis.inverse() * rest.basis})
+				"radius":0.388 if "Front" in label or "Rear" in label else (0.105 if "Return" in label else 0.120)})
+		elif not node is MeshInstance3D and (label.begins_with("Tread_L_") or label.begins_with("Tread_R_")):
+			_links.append(_track_part(node, 0 if label.begins_with("Tread_L_") else 1))
+		elif not node is MeshInstance3D and (label.begins_with("TrackConnector_L_") or label.begins_with("TrackConnector_R_")):
+			_connectors.append(_track_part(node, 0 if label.begins_with("TrackConnector_L_") else 1))
 	_apply_modules(draft.cosmetics.get("sawblade", AtlasGeometry.paint_defaults()))
 	primary = _weapon(draft.parts.weapon)
 	if draft.parts.weapon == "lifter" and ResourceLoader.exists(LIFTER):
@@ -48,6 +47,13 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		auxiliary = _weapon("minigun")
 		auxiliary.position = AtlasGeometry.GUN_OFFSET
 	_apply_paint(draft.cosmetics.get("sawblade", AtlasGeometry.paint_defaults()))
+
+func _track_part(node: Node3D, side: int) -> Dictionary:
+	var rest := _relative_transform(node)
+	var distance := AtlasGeometry.track_distance(rest.origin)
+	var frame := AtlasGeometry.track_transform(distance, rest.origin.x)
+	return {"node":node, "side":side, "distance":distance, "x":rest.origin.x,
+		"basis":frame.basis.inverse() * rest.basis}
 
 func _weapon(kind: String) -> MvpWeaponVisual:
 	var visual := MvpWeaponVisual.new()
@@ -114,6 +120,10 @@ func _apply_paint(config: Dictionary) -> void:
 					shared[original] = material
 				else:
 					var material := original.duplicate() as StandardMaterial3D
+					if label == "atlaspaintprimaryedge":
+						# The clean painted chamfer keeps its authored contrast in every color.
+						tint = Color(minf(rgba[0] * 1.15 + 0.025, 1.0),
+							minf(rgba[1] * 1.15 + 0.025, 1.0), minf(rgba[2] * 1.15 + 0.025, 1.0)).linear_to_srgb()
 					material.albedo_color = tint
 					shared[original] = material
 			mesh.set_surface_override_material(index, shared[original])
@@ -132,7 +142,11 @@ func advance_drive(left: float, right: float) -> void:
 	_travel[1] += right
 	for wheel: Dictionary in _wheels:
 		wheel.node.basis = wheel.basis * Basis(Vector3.RIGHT, -_travel[wheel.side] / wheel.radius)
-	for link: Dictionary in _links:
+	_advance_track_parts(_links)
+	_advance_track_parts(_connectors)
+
+func _advance_track_parts(parts: Array[Dictionary]) -> void:
+	for link: Dictionary in parts:
 		var frame := AtlasGeometry.track_transform(link.distance - _travel[link.side], link.x)
 		frame.basis *= link.basis
 		var parent: Node3D = link.node.get_parent()

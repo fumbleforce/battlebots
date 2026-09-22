@@ -23,14 +23,15 @@ network, or hosted-server compatibility change. See
 
 ## Atlas MX modular chassis — B, 22 September 2026
 
-Atlas MX adds an authored yellow tracked body alongside the existing garage
+Atlas MX adds an authored orange tracked body alongside the existing garage
 bodies. It has eleven named attachment transforms, supported corner sockets,
 thick vented side castings, matte portable PBR materials, animated continuous
 tracks and a matching lifter. The six current primary weapons, armor, utilities,
 Nitro and charged jump use the existing assembly and gameplay systems.
-The first visual candidate was rejected; the second addresses floating sockets,
-misaligned side construction and excessive gloss. **User visual approval remains
-pending.** Source, renders and runtime assets are in `art_source/atlas_mx` and
+The third candidate follows two visual reviews: slate-grey linked tracks, darker
+orange enamel, bright chamfer edges, clear roller/side-casting geometry and shorter
+guards with centered corner sockets. The four black corner overplates are removed.
+**User visual approval remains pending.** Source, renders and runtime assets are in `art_source/atlas_mx` and
 `battlebots/assets/models/atlas_runtime`; see [validation and asset contract](coordination/B_ATLAS_MX.md).
 
 A's spawn clearance consumes B's published `MvpBot.collision_bounds()` and

@@ -74,8 +74,8 @@ func spawn_case(arena_id: String) -> void:
 		"A real right-track contact damages the drive rather than being mistaken for exposed underside")
 	check(bot.zone_at(bot.body.global_transform * Vector3(-3.51, -1.0, 0)) == "drive_left",
 		"A real left-track contact damages the left drive")
-	check(bot.zone_at(bot.body.global_transform * Vector3(0, -1.74, 0)) == "underside"
-		and bot.zone_at(bot.body.global_transform * Vector3(0, 1.65, 0)) == "top",
+	check(bot.zone_at(bot.body.global_transform * Vector3(0, -1.665, 0)) == "underside"
+		and bot.zone_at(bot.body.global_transform * Vector3(0, 1.665, 0)) == "top",
 		"Atlas top and underside follow the actual tall hull")
 	spawn_world.reset_round()
 	check(bot.body.reset_pose == bot.spawn_pose, arena_id + " rematch restores the verified clear spawn")
@@ -116,7 +116,7 @@ func grounded_case(weapon: String, auxiliary := false) -> void:
 	auxiliary_held = false
 	hits.clear()
 	await frames(120)
-	check(absf(attacker.body.global_position.y - 1.74) < 0.08 and attacker.body.grounded,
+	check(absf(attacker.body.global_position.y - 1.665) < 0.08 and attacker.body.grounded,
 		weapon + " real tracks settle against the floor and retain working drive contact")
 	check(victim.body.grounded and victim.body.global_position.y < 0.9,
 		weapon + " attacks a normally grounded wheeled target")

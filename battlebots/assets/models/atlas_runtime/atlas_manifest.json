@@ -41,24 +41,24 @@
       0
     ],
     "MountCornerLeftFront": [
-      -0.944,
+      -0.93,
       0.545,
-      -0.96
+      -0.69
     ],
     "MountCornerLeftRear": [
-      -0.944,
+      -0.93,
       0.545,
-      0.96
+      0.69
     ],
     "MountCornerRightFront": [
-      0.944,
+      0.93,
       0.545,
-      -0.96
+      -0.69
     ],
     "MountCornerRightRear": [
-      0.944,
+      0.93,
       0.545,
-      0.96
+      0.69
     ]
   },
   "optional_groups": [
@@ -74,13 +74,13 @@
   "bounds": {
     "min": [
       -1.2176,
-      -0.578425,
-      -1.256427
+      -0.554118,
+      -1.234171
     ],
     "max": [
       1.2176,
-      0.559,
-      1.256427
+      0.5486,
+      1.234171
     ]
   },
   "track": {
@@ -90,13 +90,21 @@
     "count_per_side": 40,
     "loop_length": 5.8046015351590174,
     "x": 0.94,
-    "shoe_thickness": 0.062,
+    "shoe_thickness": 0.05,
     "rotation_axis": "X",
-    "name_pattern": "Tread_{L|R}_{00..39}"
+    "name_pattern": "Tread_{L|R}_{00..39}",
+    "connecting_strips_per_gap": 2,
+    "connector_pattern": "TrackConnector_{L|R}_{00..39}",
+    "connector_phase_offset": 0.07255751918948772
   },
-  "triangles_all_options": 83123,
-  "triangles_base": 72071,
-  "mesh_instances": 103,
-  "material_slots": 14,
+  "wheel_radii": {
+    "main": 0.388,
+    "lower": 0.12,
+    "return": 0.105
+  },
+  "triangles_all_options": 81667,
+  "triangles_base": 70615,
+  "mesh_instances": 183,
+  "material_slots": 17,
   "approval": "Pending user visual approval"
 }

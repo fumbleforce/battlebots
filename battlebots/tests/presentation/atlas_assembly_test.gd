@@ -29,11 +29,13 @@ func run() -> void:
 				check(visual._relative_transform(visual.nodes[socket]).origin.distance_to(Vector3(coordinate[0], coordinate[1], coordinate[2])) < 0.001,
 					"Imported socket agrees with its published addon transform: " + socket)
 		check(visual._links.size() == 80, "Both tracked drives contain forty independently moving shoes")
+		check(visual._connectors.size() == 80, "Both tracked drives have independently moving straps between all neighboring shoes")
 		check(visual._wheels.size() >= 10, "Only wheel pivots animate, never their child meshes")
 		check(visual.primary.kind == weapon, "Equipped primary is the actual rendered mechanism")
 		if weapon == "lifter":
 			check(visual.primary.mechanism.get_node_or_null("AtlasLifterAttachment") != null,
 				"The default front lifter uses the high-quality authored attachment")
+			connectors_case(visual)
 		check((visual.auxiliary != null) == (weapon != "minigun"), "Auxiliary socket follows the installed part")
 		var gun := visual.primary if weapon == "minigun" else visual.auxiliary
 		var muzzle: Vector3 = gun.gun_effects.muzzle.global_position
@@ -78,6 +80,69 @@ func run() -> void:
 		for message: String in failures: push_error(message)
 	get_tree().quit(0 if failures.is_empty() else 1)
 
+func connectors_case(visual: AtlasVisual) -> void:
+	var rest: Dictionary = {}
+	var mesh_bounds: Dictionary = {}
+	for connector: Dictionary in visual._connectors:
+		rest[str(connector.node.name)] = connector.node.transform
+		check(not connector.node.find_children("ConnectingStraps*", "MeshInstance3D", true, false).is_empty(),
+			"Every connector carries the authored pair of slate straps")
+		mesh_bounds[str(connector.node.name)] = part_mesh_bounds(connector.node)
+	for link: Dictionary in visual._links:
+		# The central inward engagement tooth is deeper than the shoe plate;
+		# only the slate shoe surface is adjacent to the two outside straps.
+		mesh_bounds[str(link.node.name)] = part_mesh_bounds(link.node, "Atlas_TrackSteel")
+	# Sample forward/reverse travel across straight/arc boundaries and both wraps.
+	for travel: float in [0.0, 0.033, 0.61, 1.84, 5.83]:
+		visual.advance_drive(travel, -travel)
+		for side: String in ["L", "R"]:
+			for index: int in 40:
+				var label := "TrackConnector_%s_%02d" % [side, index]
+				if not visual.nodes.has(label):
+					check(false, "Authored track connector is exported: " + label)
+					continue
+				var connector := visual._relative_transform(visual.nodes[label])
+				var first := visual._relative_transform(visual.nodes["Tread_%s_%02d" % [side, index]])
+				var second := visual._relative_transform(visual.nodes["Tread_%s_%02d" % [side, (index + 1) % 40]])
+				var a := connector.origin.distance_to(first.origin)
+				var b := connector.origin.distance_to(second.origin)
+				check(a > 0.071 and a < 0.074 and b > 0.071 and b < 0.074 and absf(a - b) < 0.001,
+					"Moving connector stays between its two actual adjacent shoes: " + label)
+				check(connector.basis.z.normalized().dot((second.origin - first.origin).normalized()) > 0.995,
+					"Connector straps follow the neighboring shoe gap around each return wheel: " + label)
+				var first_bounds: AABB = mesh_bounds["Tread_%s_%02d" % [side, index]]
+				var second_bounds: AABB = mesh_bounds["Tread_%s_%02d" % [side, (index + 1) % 40]]
+				var straps: AABB = mesh_bounds[label]
+				# Check actual imported strap spans against both shoe inner edges;
+				# 8 mm allows the chamfer and arc's midpoint chord offset.
+				for x: float in [-0.156, 0.156]:
+					var contact_a := connector.affine_inverse() * (first * Vector3(x, first_bounds.position.y, first_bounds.end.z))
+					var contact_b := connector.affine_inverse() * (second * Vector3(x, second_bounds.position.y, second_bounds.position.z))
+					check(straps.grow(0.008).has_point(contact_a) and straps.grow(0.008).has_point(contact_b),
+						"Actual connector mesh covers the open gap between moving shoe edges: " + label)
+		visual.advance_drive(-travel, travel)
+	for connector: Dictionary in visual._connectors:
+		check(rest[str(connector.node.name)].is_equal_approx(connector.node.transform),
+			"Connector travel returns exactly to its imported resting pose")
+
+func part_mesh_bounds(part: Node3D, material_name := "") -> AABB:
+	var bounds := AABB()
+	var initialized := false
+	for mesh: MeshInstance3D in part.find_children("*", "MeshInstance3D", true, false):
+		var local := part.global_transform.affine_inverse() * mesh.global_transform
+		for index: int in mesh.mesh.get_surface_count():
+			var material := mesh.mesh.surface_get_material(index)
+			if not material_name.is_empty() and (material == null or material.resource_name != material_name): continue
+			var vertices: PackedVector3Array = mesh.mesh.surface_get_arrays(index)[Mesh.ARRAY_VERTEX]
+			for vertex: Vector3 in vertices:
+				var point := local * vertex
+				if initialized: bounds = bounds.expand(point)
+				else:
+					bounds = AABB(point, Vector3.ZERO)
+					initialized = true
+	check(initialized, "Imported moving part has inspectable surface geometry: " + str(part.name))
+	return bounds
+
 func modules_case(registry: ContentRegistry) -> void:
 	for selection: int in 4:
 		var draft := registry.atlas()
@@ -111,11 +176,27 @@ func paint_case(registry: ContentRegistry) -> void:
 	draft.cosmetics.sawblade.paint_primary = [0.02, 0.55, 0.72, 1.0]
 	cyan.assemble(draft, registry.validate(draft).stats.size)
 	var replaced := 0
+	var edge_replaced := 0
+	var untouched_steel := 0
 	var checked_roughness := false
 	for mesh: MeshInstance3D in cyan.model.find_children("*", "MeshInstance3D", true, false):
 		for index: int in mesh.mesh.get_surface_count():
 			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
-			if original == null or not "PaintPrimary" in original.resource_name: continue
+			if original == null: continue
+			if "Metal" in original.resource_name:
+				check(mesh.get_surface_override_material(index) == null, "Primary repaint leaves the independently selected steel finish unchanged")
+				untouched_steel += 1
+			if not "PaintPrimary" in original.resource_name: continue
+			if "PaintPrimaryEdge" in original.resource_name:
+				var edge := mesh.get_surface_override_material(index) as StandardMaterial3D
+				check(edge != null, "Painted chamfers keep their clean imported material when repainted")
+				if edge == null: continue
+				check(edge.albedo_color.srgb_to_linear().is_equal_approx(Color(0.048, 0.6575, 0.853)),
+					"Custom cyan chamfers retain the authored brighter enamel contrast")
+				check(is_equal_approx(edge.roughness, original.roughness) and is_equal_approx(edge.metallic, original.metallic),
+					"Custom chamfers preserve their imported matte finish and metal response")
+				edge_replaced += 1
+				continue
 			var painted := mesh.get_surface_override_material(index) as ShaderMaterial
 			check(painted != null, "Primary paint replaces yellow enamel with the selected custom color")
 			if painted == null: continue
@@ -133,6 +214,7 @@ func paint_case(registry: ContentRegistry) -> void:
 				checked_roughness = true
 			replaced += 1
 	check(replaced > 0, "Custom paint reaches real imported materials")
+	check(edge_replaced > 0 and untouched_steel > 0, "Imported meshes expose separate painted chamfers and independent steel surfaces")
 	for mesh: MeshInstance3D in yellow.model.find_children("*", "MeshInstance3D", true, false):
 		for index: int in mesh.mesh.get_surface_count():
 			check(mesh.get_surface_override_material(index) == null,

@@ -272,6 +272,11 @@ func run() -> void:
 	var detail_bounds := AABB(Vector3(0.60, 0.20, -1.27), Vector3(0.67, 1.02, 1.73))
 	_frame(detail_bounds, Vector3(2.3, 0.7, -2.8))
 	okay = await _capture("atlas-native-mount-detail") and okay
+	# Orthographic side close-up exposes all three lower rollers and their gap to
+	# the slotted casting. Studio grounding is already derived from mesh bounds.
+	var side_detail_bounds := AABB(Vector3(0.72, 0.03, -0.63), Vector3(0.55, 0.88, 1.26))
+	_frame(side_detail_bounds, Vector3.RIGHT * 2.5)
+	okay = await _capture("atlas-native-side-detail") and okay
 	stage.queue_free()
 	for frame: int in 4: await get_tree().process_frame
 	get_viewport().use_taa = false

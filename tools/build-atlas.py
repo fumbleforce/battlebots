@@ -19,6 +19,7 @@ random.seed(29022)
 
 def gv(p): return Vector((p[0], -p[2], p[1]))
 def linear(v): return v / 12.92 if v <= .04045 else ((v+.055)/1.055)**2.4
+def srgb(v): return v*12.92 if v <= .0031308 else 1.055*v**(1/2.4)-.055
 def rgba(c): return tuple(linear(v) for v in c) + (1,)
 
 # Face-mapped original enamel/steel finishes: broad clean paint, irregular sparse
@@ -75,9 +76,10 @@ def material(name,color,metal=.0,rough=.4,texture=False,emission=0):
         base*=1-(np.maximum(0,.022-edge)/.022)[:,:,None]*.035
         primer=(np.roll(marks,1,0)|np.roll(marks,-1,0)|np.roll(marks,1,1)|np.roll(marks,-1,1)) & ~marks
         if coated:base[primer]=(.33,.285,.20) if 'Primary' in name else (.205,.215,.22)
-        base[marks]=np.array((.33,.34,.335))*(.86+grain[marks,None]*.23)
+        exposed_color=(.33,.34,.335) if coated else (.57,.59,.60)
+        base[marks]=np.array(exposed_color)*(.86+grain[marks,None]*.23)
         orm=np.ones((N,N,3),np.float32);orm[:,:,1]=rough+(broad_finish-.5)*.09+(grain-.5)*.014;orm[:,:,2]=metal
-        orm[marks,1]=.39;orm[marks,2]=.92
+        orm[marks,1]=.39 if coated else .47;orm[marks,2]=.92
         # Microtexture remains almost flat, avoiding the molten/plastic appearance.
         height=(grain-.5)*.005; height[marks]-=.032
         normal=np.stack([.5+(np.roll(height,1,1)-np.roll(height,-1,1)),.5+(np.roll(height,1,0)-np.roll(height,-1,0)),np.ones_like(grain)],2)
@@ -92,9 +94,15 @@ def material(name,color,metal=.0,rough=.4,texture=False,emission=0):
                 m.node_tree.links.new(node.outputs['Color'],nm.inputs['Color']);m.node_tree.links.new(nm.outputs['Normal'],bs.inputs['Normal'])
     return m
 
-paint=material('Atlas_PaintPrimary',(.92,.615,.05),.08,.66,True)
-secondary=material('Atlas_PaintSecondary',(.16,.183,.195),.55,.61,True)
-track_steel=material('Atlas_TrackSteel',(.15,.16,.155),.82,.61,True)
+PRIMARY=(.86,.51,.055)
+paint=material('Atlas_PaintPrimary',PRIMARY,.08,.66,True)
+# Narrow chamfers carry a brighter painted-metal catch, independent of lighting.
+# The runtime repaint path applies this same linear lift to custom enamel.
+paint_edge=material('Atlas_PaintPrimaryEdge',tuple(srgb(min(1,linear(c)*1.15+.025)) for c in PRIMARY),.18,.57)
+secondary=material('Atlas_PaintSecondary',(.205,.225,.235),.55,.61,True)
+track_steel=material('Atlas_TrackSteel',(.33,.355,.375),.62,.64,True)
+track_edge=material('Atlas_TrackEdge',(.48,.50,.51),.78,.55)
+track_band=material('Atlas_TrackConnectingBand',(.40,.425,.445),.72,.58)
 steel=material('Atlas_Metal',(.43,.46,.48),.86,.52)
 edge_steel=material('Atlas_EdgeSteel',(.64,.65,.63),.90,.42)
 rubber=material('Atlas_Rubber',(.045,.055,.06),.06,.73)
@@ -131,6 +139,9 @@ def mesh(name,verts,faces,mat,group,bevel=0):
         poly.use_smooth=bool(bevel)
     if bevel:
         mod=obj.modifiers.new('Forged edge radii','BEVEL');mod.width=bevel;mod.segments=3 if bevel>=.018 else 1;mod.limit_method='ANGLE';mod.angle_limit=.58
+        if mat==paint or mat==track_steel:
+            data.materials.append(paint_edge if mat==paint else track_edge)
+            mod.material=len(data.materials)-1
         mod.harden_normals=True
         mod=obj.modifiers.new('Weighted machining normals','WEIGHTED_NORMAL');mod.keep_sharp=True;mod.weight=40
     groups[group].append(obj);return obj
@@ -251,34 +262,28 @@ for sx in [-1,1]:
         cylinder('Docking receiver socket',(x,.505,z),(x,.51,z),.051,dark,n=20,bevel=0)
         bolt((x,.514,z),r=.022)
 
-# Four track guards echo the reference while leaving the tread mechanism visible.
+# Short end guards expose the curved tread runs. Every socket is centered on its
+# own plain armor plate, with its physical seat and bracket directly beneath it.
+CORNER_X=.93;CORNER_Z=.69
 for side,group in [(-1,left),(1,right)]:
-    x=side*.944
+    x=side*CORNER_X
     fender_bottom=.424;fender_top=.500
-    # A real continuous end guard under each docking point, with moving-track
-    # clearance below it. Caps and fasteners derive from that actual top face.
-    for z in [-.70,0,.70]:
-        length=.72 if abs(z)>.5 else .61
-        box('Yellow segmented track fender',(x,(fender_bottom+fender_top)*.5,z),(.391,fender_top-fender_bottom,length),paint,group,b=.014)
-        strip_z=z-math.copysign(.090,z) if abs(z)>.5 else z
-        box('Fender inset wear strip',(x,fender_top+.007,strip_z),(.25,.014,.34),secondary,group,b=.008)
+    for z in [-CORNER_Z,0,CORNER_Z]:
+        is_corner=abs(z)>.5;length=.45 if is_corner else .90
+        box('Corner socket armor' if is_corner else 'Central track guard',(x,(fender_bottom+fender_top)*.5,z),(.350,fender_top-fender_bottom,length),paint,group,b=.021)
         for sx in [-1,1]:
-            for zz in [-.209,.209]:bolt((x+sx*.144,fender_top+.001,z+zz),group=group,r=.012)
-        for zz in [-.13,.0,.13]:box('Fender fine channel',(x,fender_top+.018,strip_z+zz),(.18,.008,.016),dark,group,b=.003)
-        if z<-.5:
-            box('Front fender recessed latch',(x,fender_top+.018,strip_z-.172),(.17,.014,.046),dark,group,b=.007)
-            box('Front fender steel latch',(x,fender_top+.026,strip_z-.172),(.102,.012,.022),steel,group,b=.004)
-        elif z>.5:
-            deck_text('LIFT',(x,fender_top+.020,strip_z+.095),.045,group)
-            for xx in [-.08,.08]:ring('Rear fender tie-down',(x+xx,fender_top+.038,strip_z-.12),(1,0,0),.021,.012,.015,secondary,group,12)
-    for z in [-.96,.96]:
+            for zz in [-length*.5+.052,length*.5-.052]:bolt((x+sx*.119,fender_top+.001,z+zz),group=group,r=.012)
+        if not is_corner:
+            box('Central guard inset wear strip',(x,fender_top+.006,z),(.23,.012,.65),secondary,group,b=.009)
+            for zz in [-.22,0,.22]:box('Central guard fine channel',(x,fender_top+.014,zz),(.17,.006,.014),dark,group,b=.003)
+    for z in [-CORNER_Z,CORNER_Z]:
         cylinder('Docking point armor seat',(x,fender_top-.007,z),(x,fender_top+.008,z),.102,dark,group,32,.002)
         cylinder('Armor-seated corner socket',(x,fender_top+.006,z),(x,fender_top+.038,z),.088,secondary,group,32,.004)
         ring('Corner socket machined lip',(x,fender_top+.041,z),(0,1,0),.074,.055,.008,steel,group,32)
         # The outer end guard attaches to the drive casting through two solid
         # brackets, rather than hanging over the running track unsupported.
-        box('Inboard fender support',(side*.668,.345,z*.71),(.070,.166,.11),secondary,group,.010)
-        box('Fender cantilever above track',(side*.737,.444,z*.71),(.115,.032,.11),secondary,group,.007)
+        box('Inboard fender support',(side*.668,.345,z),(.070,.166,.11),secondary,group,.010)
+        box('Fender cantilever above track',(side*.737,.444,z),(.115,.032,.11),secondary,group,.007)
 
 # Rear service architecture: recessed radiator, inset panel and twin tail lights.
 box('Rear service plate',(0,.025,1.095),(1.31,.55,.049),paint,b=.038)
@@ -303,17 +308,21 @@ for sx in [-1,1]:
 WHEEL_Y=-.08
 for side,label,group in [(-1,'L',left),(1,'R',right)]:
     x=side*.94
-    box('Drive pod inner structure',(x,-.08,0),(.32,.36,1.72),dark,group,b=.075)
-    for z in [-.47,.0,.47]:
-        plate('Suspension swing arm',[(side*1.057,-.21,z-.22),(side*1.057,-.29,z+.07),(side*1.057,-.18,z+.13),(side*1.057,-.11,z-.18)],(1,0,0),.054,secondary,group,.015)
-    wheel_specs=[('Front',-.76,-.08,.388),('Rear',.76,-.08,.388)]+[('Roller'+str(i),z,-.30,.145) for i,z in enumerate([-.39,0,.39])]+[('Return',0,.185,.105)]
+    # Stationary frame and arms live inboard of rotating tire drums; axles bridge
+    # the gap through their centers instead of broad panels cutting tire edges.
+    box('Inboard drive backbone',(side*.720,-.08,0),(.050,.36,1.72),secondary,group,b=.012)
+    for z in [-.29,.0,.29]:
+        plate('Inboard suspension swing arm',[(side*.738,-.13,z-.10),(side*.738,-.35,z-.026),(side*.738,-.35,z+.030),(side*.738,-.12,z+.065)],(1,0,0),.020,secondary,group,.007)
+    wheel_specs=[('Front',-.76,-.08,.388),('Rear',.76,-.08,.388)]+[('Roller'+str(i),z,-.330,.120) for i,z in enumerate([-.29,0,.29])]+[('Return',0,.185,.105)]
     for title,z,y,r in wheel_specs:
         # The upper return roller stays inside the frame, behind the thick side
         # casting; its bearing must not protrude through the cover's top edge.
-        wx=x-side*.13 if title=='Return' else x
+        wx=side*.850 if title=='Return' else x
+        half_width=.070 if title=='Return' else .180
+        cylinder('Recessed wheel axle',(side*.729,y,z),(wx,y,z),r*.22,secondary,group,16,.002)
         wheel=part('Wheel_'+label+'_'+title,(wx,y,z),group)
-        cylinder('Dark wheel carcass',(wx-.18,y,z),(wx+.18,y,z),r,rubber,wheel,32 if r>.2 else 20,.008)
-        ox=wx+side*.186
+        cylinder('Dark wheel carcass',(wx-half_width,y,z),(wx+half_width,y,z),r,rubber,wheel,32 if r>.2 else 20,.008)
+        ox=wx+side*(half_width+.006)
         ring('Polished wheel rim',(ox,y,z),(1,0,0),r*.955,r*.885,.012,steel,wheel,48 if r>.2 else 20)
         cylinder('Recessed painted wheel face',(ox-side*.003,y,z),(ox+side*.017,y,z),r*.877,paint if r>.2 else secondary,wheel,48 if r>.2 else 20,.006)
         ring('Recessed hub machining line',(ox+side*.018,y,z),(1,0,0),r*.49,r*.47,.003,secondary,wheel,32 if r>.2 else 20)
@@ -325,7 +334,7 @@ for side,label,group in [(-1,'L',left),(1,'R',right)]:
             bolt((ox+side*.034,y+math.sin(a)*r*.66,z+math.cos(a)*r*.66),(side,0,0),wheel,.016)
     # One common side-casting profile drives the structural carrier, thin gasket,
     # thick cast cover and its four inset bolt seats. Nothing can drift off an edge.
-    side_quad=[Vector((-.44,.19)),Vector((.26,.19)),Vector((.44,-.23)),Vector((-.26,-.23))]
+    side_quad=[Vector((-.36,.19)),Vector((.24,.19)),Vector((.36,-.19)),Vector((-.24,-.19))]
     center=sum(side_quad,Vector((0,0)))*.25
     def side_outline(x,scale=1.0):
         return [(side*x,(center+(p-center)*scale).y,(center+(p-center)*scale).x) for p in side_quad]
@@ -333,13 +342,14 @@ for side,label,group in [(-1,'L',left),(1,'R',right)]:
     plate('Inset aligned side gasket',side_outline(1.120,.985),(1,0,0),.014,rubber,group,.005)
     cover=plate('Thick slotted side casting',side_outline(1.164),(1,0,0),.085,paint,group,0)
     for z in [-.18,-.015,.15]:
-        slot=[(side*1.164,-.115,z-.009),(side*1.164,-.115,z+.039),(side*1.164,.10,z-.041),(side*1.164,.10,z-.089)]
+        slot=[(side*1.164,-.090,z-.009),(side*1.164,-.090,z+.039),(side*1.164,.10,z-.041),(side*1.164,.10,z-.089)]
         cutter=plate('Slot cutting tool',slot,(1,0,0),.30,dark,group,0)
         bpy.context.view_layer.objects.active=cover
         mod=cover.modifiers.new('Actual ventilation aperture','BOOLEAN');mod.operation='DIFFERENCE';mod.object=cutter;mod.solver='EXACT'
         bpy.ops.object.modifier_apply(modifier=mod.name)
         groups[group].remove(cutter);bpy.data.objects.remove(cutter,do_unlink=True)
-    bevel=cover.modifiers.new('Forged cover chamfer','BEVEL');bevel.width=.008;bevel.segments=2
+    cover.data.materials.append(paint_edge)
+    bevel=cover.modifiers.new('Forged cover chamfer','BEVEL');bevel.width=.012;bevel.segments=2;bevel.material=len(cover.data.materials)-1
     normal=cover.modifiers.new('Cover weighted normals','WEIGHTED_NORMAL');normal.keep_sharp=True
     cover.data.materials.append(secondary)
     for face in cover.data.polygons:
@@ -370,17 +380,19 @@ def path(t):
     d-=2*HALF;a=d/R
     return (CY-R*math.cos(a),-HALF-R*math.sin(a),math.pi+a)
 
-# Author one tread shoe and instance mesh data across 80 links. 3D layers, pins,
-# polished shoulders and recessed grip inserts retain strong readable separation.
+# Single forged slate-grey shoes: no stacked black pad or bright shoulder frame.
+# Separate connector strips bridge shoe centers and articulate halfway between
+# them, exposing the actual chain connection through every open shoe gap.
 proto=part('TreadPrototype')
-box('Beveled forged track shoe',(0,0,0),(.438,.062,.129),secondary,proto,b=.009)
-box('Worn steel contact pad',(0,.034,0),(.333,.018,.099),track_steel,proto,b=.009)
+box('Single slate track shoe',(0,0,0),(.438,.050,.118),track_steel,proto,b=.007)
 for sx in [-1,1]:
-    box('Polished track shoulder',(sx*.199,.033,0),(.027,.018,.110),steel,proto,b=.003)
     for z in [-.041,.041]:
-        cylinder('Track rivet',(sx*.166,.043,z),(sx*.166,.052,z),.0085,edge_steel,proto,8,0)
-    cylinder('Track hinge pin',(sx*.208,-.005,-.064),(sx*.229,-.005,-.064),.016,steel,proto,10,0)
-box('Inner drive engagement tooth',(0,-.045,0),(.081,.035,.062),dark,proto,b=.006)
+        cylinder('Flush track rivet',(sx*.175,.025,z),(sx*.175,.031,z),.0065,edge_steel,proto,8,0)
+    cylinder('Track hinge pin',(sx*.208,-.020,0),(sx*.229,-.020,0),.012,track_band,proto,12,0)
+box('Inner drive engagement tooth',(0,-.039,0),(.068,.027,.050),track_band,proto,b=.005)
+band_proto=part('ConnectorPrototype')
+for sx in [-1,1]:
+    box('Exposed connecting strap',(sx*.156,-.026,0),(.038,.025,LOOP/COUNT+.022),track_band,band_proto,b=.005)
 
 def finalize(group):
     objects=groups[group]
@@ -397,6 +409,7 @@ def finalize(group):
     obj.name=group.name+'Surface';bpy.ops.object.select_all(action='DESELECT');return obj
 
 proto_mesh=finalize(proto)
+band_mesh=finalize(band_proto)
 for label,side,group in [('L',-1,left),('R',1,right)]:
     for i in range(COUNT):
         y,z,a=path(i*LOOP/COUNT)
@@ -404,11 +417,16 @@ for label,side,group in [('L',-1,left),('R',1,right)]:
         # Godot X rotations are also Blender X rotations after coordinate change.
         link.rotation_euler.x=a
         obj=bpy.data.objects.new('TreadShoe',proto_mesh.data);bpy.context.collection.objects.link(obj);obj.parent=link
+        by,bz,ba=path((i+.5)*LOOP/COUNT)
+        connector=part('TrackConnector_'+label+'_%02d'%i,(side*.94,by,bz),group)
+        connector.rotation_euler.x=ba
+        obj=bpy.data.objects.new('ConnectingStraps',band_mesh.data);bpy.context.collection.objects.link(obj);obj.parent=connector
 del groups[proto];bpy.data.objects.remove(proto_mesh,do_unlink=True);bpy.data.objects.remove(proto,do_unlink=True)
+del groups[band_proto];bpy.data.objects.remove(band_mesh,do_unlink=True);bpy.data.objects.remove(band_proto,do_unlink=True)
 
 MOUNTS={'MountPrimary':(0,0,-1.08),'MountTopFront':(0,.49,-.38),'MountTopRear':(0,.49,.40),'MountAuxiliary':(.48,.49,0),'MountRear':(0,.06,1.10),'MountSideLeft':(-1.207,-.02,0),'MountSideRight':(1.207,-.02,0)}
 for side,label in [(-1,'Left'),(1,'Right')]:
-    for z,end in [(-.96,'Front'),(.96,'Rear')]:MOUNTS['MountCorner'+label+end]=(side*.944,.545,z)
+    for z,end in [(-CORNER_Z,'Front'),(CORNER_Z,'Rear')]:MOUNTS['MountCorner'+label+end]=(side*CORNER_X,.545,z)
 for name,pos in MOUNTS.items():
     marker=part(name,pos,hull);marker['purpose']='Addon attachment, Godot meters'
 
@@ -521,7 +539,7 @@ for obj in asset_nodes:
 base_corners=[o.matrix_world@Vector(p) for o in asset_nodes if o.type=='MESH' and o.parent not in optional for p in o.bound_box]
 base_points=[(p.x,p.z,-p.y) for p in base_corners]
 actual_bounds={'min':[round(min(p[i] for p in base_points),6) for i in range(3)],'max':[round(max(p[i] for p in base_points),6) for i in range(3)]}
-manifest={'name':'Atlas MX','id':'atlas_mx','authoring':'Godot meters, X right Y up -Z forward, origin hull center','runtime':'atlas_mx.glb','source':'art_source/atlas_mx/atlas_mx.blend','mounts':MOUNTS,'optional_groups':[o.name for o in optional],'bounds':actual_bounds,'track':{'center_y':CY,'radius':R,'half_straight':HALF,'count_per_side':COUNT,'loop_length':LOOP,'x':.94,'shoe_thickness':.062,'rotation_axis':'X','name_pattern':'Tread_{L|R}_{00..39}'},'triangles_all_options':sum(x['triangles'] for x in mesh_stats),'triangles_base':sum(len(o.data.loop_triangles) for o in asset_nodes if o.type=='MESH' and o.parent not in optional),'mesh_instances':len(mesh_stats),'material_slots':len(bpy.data.materials),'approval':'Pending user visual approval'}
+manifest={'name':'Atlas MX','id':'atlas_mx','authoring':'Godot meters, X right Y up -Z forward, origin hull center','runtime':'atlas_mx.glb','source':'art_source/atlas_mx/atlas_mx.blend','mounts':MOUNTS,'optional_groups':[o.name for o in optional],'bounds':actual_bounds,'track':{'center_y':CY,'radius':R,'half_straight':HALF,'count_per_side':COUNT,'loop_length':LOOP,'x':.94,'shoe_thickness':.050,'rotation_axis':'X','name_pattern':'Tread_{L|R}_{00..39}','connecting_strips_per_gap':2,'connector_pattern':'TrackConnector_{L|R}_{00..39}','connector_phase_offset':.5*LOOP/COUNT},'wheel_radii':{'main':.388,'lower':.120,'return':.105},'triangles_all_options':sum(x['triangles'] for x in mesh_stats),'triangles_base':sum(len(o.data.loop_triangles) for o in asset_nodes if o.type=='MESH' and o.parent not in optional),'mesh_instances':len(mesh_stats),'material_slots':len(bpy.data.materials),'approval':'Pending user visual approval'}
 (RUNTIME/'atlas_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('ATLAS_EXPORT',json.dumps(manifest))
 for group in optional:
@@ -531,7 +549,7 @@ for obj in descendants(lifter):obj.hide_render=True;obj.hide_set(True)
 # Actual source asset studio, not generated concept art. Product reflection cards
 # illuminate broad surfaces and small beveled edge catches without a black void.
 floor=material('Studio_Only',(.73,.75,.77),.0,.68)
-bpy.ops.mesh.primitive_plane_add(size=200,location=gv((0,-.568,0)))
+bpy.ops.mesh.primitive_plane_add(size=200,location=gv((0,actual_bounds['min'][1]-.001,0)))
 bpy.context.object.name='StudioFloor';bpy.context.object.data.materials.append(floor)
 def light(name,at,energy,color,size,target=(0,0,0)):
     d=bpy.data.lights.new(name,'AREA');d.energy=energy;d.shape='DISK';d.size=size;d.color=color

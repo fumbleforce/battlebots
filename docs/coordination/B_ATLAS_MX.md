@@ -23,8 +23,15 @@ catalogue hash and migration. A must build/deploy matching hosted workers and
 validate external play before this content is described as online-ready. No live
 restart is authorized by this asset task, and compatibility rejection stays.
 
-Status: second candidate implemented and locally verified; user visual approval
-and final main-branch integration remain pending. No hosted readiness claim.
+Status: third visual revision in progress after detailed user rejection of the
+second candidate. Approval and final integration remain pending. No hosted claim.
+
+Third-revision scope: slate-grey single-layer tread shoes with visible moving
+connecting bands; darker orange enamel and brighter chamfer edges; correct
+roller/carrier clearances; shorter track guards with centered corner sockets and
+no black corner overplates. B owns the source asset and its narrow runtime
+animation/material consumers. Preserve existing weapon mechanics and loadout
+contracts. Re-export and inspect actual native Godot close-ups before approval.
 
 ## B runtime and shared consumer contract
 
@@ -37,8 +44,8 @@ existing minigun; duplicate primary/auxiliary miniguns remain invalid.
 
 `AtlasGeometry` separates the source collision envelope from the shared weapon
 authoring frame. Catalogue dimensions are `[7.02,1.5,7.8]`, retaining the existing
-uniform scale of three; actual collision dimensions are `[7.32,3.42,7.8]`, with
-local vertical limits `[-1.74,1.68]`. Track probes use the real floor depth. Body
+uniform scale of three; actual collision dimensions are `[7.32,3.33,7.8]`, with
+local vertical limits `[-1.665,1.665]`. Track probes use the real floor depth. Body
 mass, acceleration, braking, recoil and recovery still use the existing mechanics.
 The model root is at body origin, Y up, -Z forward. Garage art uses scale one.
 
@@ -53,7 +60,7 @@ No other A simulation/network/menu behavior is changed by this contract.
 Runtime asset: `res://assets/models/atlas_runtime/atlas_mx.glb`. Eleven exported
 `Mount*` transforms cover front, both roof rails, auxiliary, rear, both sides and
 four supported corner sockets. Side mounts are at source `(±1.207,-0.02,0)`;
-`MountCornerLeftFront/LeftRear/RightFront/RightRear` use `(±0.944,0.545,±0.96)`,
+`MountCornerLeftFront/LeftRear/RightFront/RightRear` use `(±0.93,0.545,±0.69)`,
 with negative Z at the front. Imported transforms are checked against the asset
 manifest for all eleven named mounts.
 The front adapter joins the authored receiver to the existing primary weapon
@@ -63,8 +70,11 @@ primary weapons retain their existing runtime mechanisms. The donor minigun is
 translated by `(-0.18,0.27,0.42)` source meters, identically in presentation,
 elevation aiming, breech occlusion ray and muzzle evidence.
 
-Both drives animate forty actual tread shoes along the exported capsule loop;
-wheel pivots rotate separately. Real equipped meshes join the existing component
+Both drives animate forty actual tread shoes and forty separate connector frames
+along the exported capsule loop. Each connector carries two slate strips between
+its neighboring shoes. Wheel pivots rotate separately using source radii 0.388 m
+for main wheels, 0.120 m for lower rollers and 0.105 m for return rollers.
+Real equipped meshes join the existing component
 damage/destruction groups. Authored optional groups make side/top/front/rear armor
 and the three exhaust selections visible. They remain cosmetic; protection and
 weight come from the canonical armor/utility slots.
@@ -73,10 +83,15 @@ Four existing appearance channels persist without a new payload schema. Default
 Atlas colors preserve imported PBR materials. Custom enamel changes preserve
 normal/roughness textures and exposed steel chips; metal/rubber are independent.
 The Original action and its swatch resolve the selected chassis's authored color.
-The revised source palette uses sRGB primary `(0.92,0.615,0.05)` and secondary
-`(0.16,0.183,0.195)`, stored as linear colors in the existing appearance record.
+The revised source palette uses sRGB primary `(0.86,0.51,0.055)` and secondary
+`(0.205,0.225,0.235)`, stored as linear colors in the existing appearance record.
 Its base paint uses texture roughness around 0.66 and secondary around 0.61;
 the custom-paint path consumes the same roughness map and preserves exposed chips.
+The clean `Atlas_PaintPrimaryEdge` chamfer material follows primary paint with
+the authored linear-color lift `min(channel * 1.15 + 0.025, 1)`, keeping edges
+slightly brighter in custom colors. Its imported roughness and metallic response
+are preserved. Original colors retain every imported material without overrides;
+the steel appearance channel remains independent of primary paint.
 
 Catalogue revision 10 currently hashes to
 `623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed`.
@@ -254,5 +269,70 @@ Its bounded RTX 3080 sample used 120 warmed uncapped frames at 1800-by-1350 with
 was 1,861.94 MiB. This is a short static-camera native sample without HUD or
 networking, not a ten-bot, lower-hardware or long-session performance acceptance.
 
-The user has been shown the second native candidate and asked for explicit
-approval. No approval has been received at this checkpoint.
+The user rejected the second native candidate and requested shorter corner
+guards, centered sockets, simpler connected slate tracks, brighter painted
+chamfers, a richer yellow/slate palette and correction of the wheel/armor overlap.
+The evidence above remains the historical second-candidate record.
+
+## Third candidate: runtime and verification
+
+The current runtime contract above reflects the third source export. Its measured
+base bounds are source `[-1.2176,-0.554118,-1.234171]` to
+`[1.2176,0.5486,1.234171]`. Source collision size is `[2.44,1.11,2.60]` centered
+at zero, with source floor depth `0.555` and game clearance `1.665`. The canonical
+weapon scale, part stats and catalogue hash remain unchanged.
+
+Eighty independent `TrackConnector_{L|R}_{00..39}` frames animate halfway between
+the eighty shoes along the existing capsule. Their shared imported mesh contains
+two slate straps. Connector phases are discovered from the imported rest poses;
+they preserve their authored basis, move with the appropriate left/right drive,
+and participate in existing drive damage/destruction groups. Lower wheel rotation
+now uses the revised 0.120 m roller radius. Primary painted chamfers preserve the
+specified brighter color after repainting and retain their imported material
+response; selecting Original leaves imported materials unchanged.
+
+Executed with the pinned Godot 4.7.2 executable after the completed third export:
+
+```powershell
+& ./tools/check-baseline.ps1 -GodotPath $atlasGodot
+& $atlasGodot --path battlebots --max-fps 60 --quit-after 500 res://tests/presentation/atlas_assembly_test.tscn
+& $atlasGodot --headless --path battlebots --fixed-fps 120 --quit-after 10000 res://tests/simulation/atlas_grounded_modules.tscn
+```
+
+All three commands printed their PASS markers and exited zero. Native assembly
+used D3D12 Forward+ on the RTX 3080. It verified eighty distinct connector frames,
+their placement between the actual neighboring shoes, tangent alignment, coverage
+of both shoe inner-edge gaps by imported strap mesh bounds (8 mm bevel/chord
+tolerance), reverse travel, loop wrapping and return to imported rest transforms.
+It also passed the six primary weapon assemblies, eleven mounts, actual thumbnail
+capture/framing, Original/custom paint and lifted-edge checks. This is scoped
+geometric coverage, not a claim of exhaustive triangle collision checking.
+
+The grounded fixture passed natural Foundry/Moon spawn and reset, previous walker
+spawn clearance, revised top/underside zones, acceleration/braking, Nitro and
+charged jump. Confirmed primary hits were saw 6, lifter 1, vertical spinner 2,
+horizontal spinner 4, hammer 1 and minigun 17; auxiliary minigun confirmed 17.
+Logs: `%TEMP%/atlas-v3-baseline.log`, `%TEMP%/atlas-v3-native-assembly.log` and
+`%TEMP%/atlas-v3-grounded.log`.
+
+The first editor import reported `get_multiple_md5` errors while importing repeated
+texture dependencies and was rejected. That failure is preserved in
+`%TEMP%/atlas-v3-initial-import-failure.log`. A separate second import/baseline was
+clean, and native/grounded execution followed sequentially; no failing import was
+accepted as validation. Final visual captures are a separate review step. User
+visual approval and A's coordinated hosted release remain outstanding.
+
+Third-candidate native evidence is preserved in
+[the V3 report](evidence/b-atlas-native-v3-2026-09-22.json), including the exact
+side close-up and eight captures under `battlebots/exports/atlas-review-v3`.
+The [bounded clearance report](evidence/b-atlas-v3-clearance-2026-09-22.json)
+and adjacent Blender script record 534 mesh-pair checks against the saved source:
+zero unintended intersections, with intentional central axle contacts excluded.
+The report specifies scope, exclusion rules and exact source/runtime hashes.
+
+The user found the shape substantially improved but rejected the material style
+as too simple/plastic. The next iteration must replace uniform bright edges and
+repeated face-mapped scratches with localized exposed-metal wear, primer, varied
+physical metal surfaces and contact occlusion. Rounded machined fasteners and
+roller surfaces are also required by the supplied close-up comparison. This
+checkpoint is not visual acceptance; geometry alone does not satisfy the goal.
