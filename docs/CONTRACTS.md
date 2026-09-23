@@ -811,3 +811,21 @@ Existing `DriveBody.model_config()` propagates gravity into replay. No BotComman
 BotView, drive/camera/control implementation or combat contract changes.
 Decorative meshes and particles remain client-only. See
 [Moon handoff](coordination/A_MOON_ARENA.md) for compatibility and evidence.
+
+## Foundry size and impact response (coordinated A/B, 23 September 2026)
+
+Build `mvp-ab-15` changes gameplay; protocol 6 and catalogue 10 are unchanged.
+`ArenaBounds.half_extent(arena_id)` is 50 m for Foundry and 25 m for Moon.
+AuthorityWorld supplies each bot's `arena_half_extent` and camera-anchor metadata
+with the same key. Cameras consume that geometry when switching local/spectated
+anchors; input behavior is unchanged. Spawn clearance and recovery use the same
+octagonal planes. Moon resizes its inherited shell before entering physics and
+duplicates resources to avoid modifying concurrently loaded Foundry worlds.
+
+MvpBot keeps catalogue mass and motor settings, lowers its center of mass and
+adds pitch/roll inertia and angular damping. DriveBody.model_config now includes
+local `center_of_mass`; bounded DriveModel replay rotates the hull origin around
+that point while Jolt velocity advances the center. No wire fields change.
+CombatWorld scales ordinary weapon impulses by 0.65 and the attacker/target mass
+ratio (bounded 0.65–1.4); charged lifters omit the 0.65 reduction. Damage and
+weapon activation remain unchanged. Matching server/client deployment is required.

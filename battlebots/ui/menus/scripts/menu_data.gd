@@ -19,7 +19,7 @@ const MODES := [
 	{"id":"ffa","big":"FFA","tag":"PLAYTEST","title":"FREE FOR ALL","desc":"Every bot for itself. Start with 4–8 players.","meta1":"One round","meta2":"4–8 players","tint":Color("#3A4452"),"rules":"Free-for-all · One five-minute round · No overtime","enabled":true},
 ]
 const ARENAS := [
-	{"name":"THE FOUNDRY","sub":"Industrial octagon · Standard gravity","size":"50 m ACROSS · 9.8 m/s²","image":preload("res://ui/menus/art/arena_foundry.jpg"),"hazards":["Flat steel combat floor","Standard gravity · No active hazards","Armored cage and spectator galleries"],"enabled":true},
+	{"name":"THE FOUNDRY","sub":"Industrial octagon · Standard gravity","size":"100 m ACROSS · 9.8 m/s²","image":preload("res://ui/menus/art/arena_foundry.jpg"),"hazards":["Expanded flat steel combat floor","Standard gravity · No active hazards","Armored cage and spectator galleries"],"enabled":true},
 	{"name":"LUNAR OUTPOST","sub":"Moon surface · Low gravity","size":"50 m ACROSS · 1.62 m/s²","image":preload("res://ui/menus/art/arena_moon.png"),"art":"LUNAR OUTPOST","hazards":["Uneven regolith and small edge rocks","Lunar gravity · Longer airtime","Ballistic dust, floodlights and Earth overhead"],"enabled":true}
 ]
 

@@ -33,170 +33,170 @@ metallic = 0
 roughness = 0.8
 
 [sub_resource type="BoxMesh" id="Mesh1"]
-size = Vector3(50, 1, 50)
+size = Vector3(100, 1, 100)
 material = SubResource("FloorMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape1"]
-size = Vector3(50, 1, 50)
+size = Vector3(100, 1, 100)
 
 [sub_resource type="BoxMesh" id="Mesh2"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape2"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 
 [sub_resource type="BoxMesh" id="Mesh3"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape3"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 
 [sub_resource type="BoxMesh" id="Mesh4"]
-size = Vector3(1, 3, 22.710678)
+size = Vector3(1, 3, 43.421356)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape4"]
-size = Vector3(1, 3, 22.710678)
+size = Vector3(1, 3, 43.421356)
 
 [sub_resource type="BoxMesh" id="Mesh5"]
-size = Vector3(1, 3, 22.710678)
+size = Vector3(1, 3, 43.421356)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape5"]
-size = Vector3(1, 3, 22.710678)
+size = Vector3(1, 3, 43.421356)
 
 [sub_resource type="BoxMesh" id="Mesh6"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape6"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 
 [sub_resource type="BoxMesh" id="Mesh7"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape7"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 
 [sub_resource type="BoxMesh" id="Mesh8"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape8"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 
 [sub_resource type="BoxMesh" id="Mesh9"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 material = SubResource("WallMaterial")
 
 [sub_resource type="BoxShape3D" id="Shape9"]
-size = Vector3(22.710678, 3, 1)
+size = Vector3(43.421356, 3, 1)
 
 [sub_resource type="BoxMesh" id="Mesh10"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh11"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh12"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh13"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh14"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh15"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh16"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh17"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh18"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh19"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh20"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh21"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh22"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh23"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh24"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh25"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh26"]
-size = Vector3(0.025, 0.012, 46)
+size = Vector3(0.025, 0.012, 92)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh27"]
-size = Vector3(46, 0.012, 0.025)
+size = Vector3(92, 0.012, 0.025)
 material = SubResource("LineMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh28"]
-size = Vector3(30, 0.015, 0.16)
+size = Vector3(60, 0.015, 0.16)
 material = SubResource("OrangeMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh29"]
-size = Vector3(45.5, 0.14, 0.04)
+size = Vector3(91, 0.14, 0.04)
 material = SubResource("AmberMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh30"]
-size = Vector3(0.04, 0.14, 45.5)
+size = Vector3(0.04, 0.14, 91)
 material = SubResource("AmberMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh31"]
-size = Vector3(30, 0.015, 0.16)
+size = Vector3(60, 0.015, 0.16)
 material = SubResource("BlueMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh32"]
-size = Vector3(45.5, 0.14, 0.04)
+size = Vector3(91, 0.14, 0.04)
 material = SubResource("AmberMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh33"]
-size = Vector3(0.04, 0.14, 45.5)
+size = Vector3(0.04, 0.14, 91)
 material = SubResource("AmberMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh34"]
-size = Vector3(3, 0.015, 0.12)
+size = Vector3(6, 0.015, 0.12)
 material = SubResource("AmberMaterial")
 
 [sub_resource type="BoxMesh" id="Mesh35"]
-size = Vector3(0.12, 0.015, 3)
+size = Vector3(0.12, 0.015, 6)
 material = SubResource("AmberMaterial")
 
 [sub_resource type="Environment" id="Environment"]
@@ -226,7 +226,7 @@ mesh = SubResource("Mesh1")
 [node name="Walls" type="Node3D" parent="."]
 
 [node name="North" type="StaticBody3D" parent="Walls"]
-position = Vector3(0, 1.5, -25.5)
+position = Vector3(0, 1.5, -50.5)
 rotation_degrees = Vector3(0, 0, 0)
 collision_layer = 1
 collision_mask = 2
@@ -238,7 +238,7 @@ shape = SubResource("Shape2")
 mesh = SubResource("Mesh2")
 
 [node name="South" type="StaticBody3D" parent="Walls"]
-position = Vector3(0, 1.5, 25.5)
+position = Vector3(0, 1.5, 50.5)
 rotation_degrees = Vector3(0, 0, 0)
 collision_layer = 1
 collision_mask = 2
@@ -250,7 +250,7 @@ shape = SubResource("Shape3")
 mesh = SubResource("Mesh3")
 
 [node name="East" type="StaticBody3D" parent="Walls"]
-position = Vector3(25.5, 1.5, 0)
+position = Vector3(50.5, 1.5, 0)
 rotation_degrees = Vector3(0, 0, 0)
 collision_layer = 1
 collision_mask = 2
@@ -262,7 +262,7 @@ shape = SubResource("Shape4")
 mesh = SubResource("Mesh4")
 
 [node name="West" type="StaticBody3D" parent="Walls"]
-position = Vector3(-25.5, 1.5, 0)
+position = Vector3(-50.5, 1.5, 0)
 rotation_degrees = Vector3(0, 0, 0)
 collision_layer = 1
 collision_mask = 2
@@ -274,7 +274,7 @@ shape = SubResource("Shape5")
 mesh = SubResource("Mesh5")
 
 [node name="CornerWN" type="StaticBody3D" parent="Walls"]
-position = Vector3(-18.031223, 1.5, -18.031223)
+position = Vector3(-35.708893, 1.5, -35.708893)
 rotation_degrees = Vector3(0, 45, 0)
 collision_layer = 1
 collision_mask = 2
@@ -286,7 +286,7 @@ shape = SubResource("Shape6")
 mesh = SubResource("Mesh6")
 
 [node name="CornerWS" type="StaticBody3D" parent="Walls"]
-position = Vector3(-18.031223, 1.5, 18.031223)
+position = Vector3(-35.708893, 1.5, 35.708893)
 rotation_degrees = Vector3(0, -45, 0)
 collision_layer = 1
 collision_mask = 2
@@ -298,7 +298,7 @@ shape = SubResource("Shape7")
 mesh = SubResource("Mesh7")
 
 [node name="CornerEN" type="StaticBody3D" parent="Walls"]
-position = Vector3(18.031223, 1.5, -18.031223)
+position = Vector3(35.708893, 1.5, -35.708893)
 rotation_degrees = Vector3(0, -45, 0)
 collision_layer = 1
 collision_mask = 2
@@ -310,7 +310,7 @@ shape = SubResource("Shape8")
 mesh = SubResource("Mesh8")
 
 [node name="CornerES" type="StaticBody3D" parent="Walls"]
-position = Vector3(18.031223, 1.5, 18.031223)
+position = Vector3(35.708893, 1.5, 35.708893)
 rotation_degrees = Vector3(0, 45, 0)
 collision_layer = 1
 collision_mask = 2
@@ -325,49 +325,49 @@ mesh = SubResource("Mesh9")
 
 [node name="GridX0" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(-20, 0.008, 0)
+position = Vector3(-40, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh10")
 
 [node name="GridZ0" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, -20)
+position = Vector3(0, 0.008, -40)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh11")
 
 [node name="GridX5" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(-15, 0.008, 0)
+position = Vector3(-30, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh12")
 
 [node name="GridZ5" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, -15)
+position = Vector3(0, 0.008, -30)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh13")
 
 [node name="GridX10" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(-10, 0.008, 0)
+position = Vector3(-20, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh14")
 
 [node name="GridZ10" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, -10)
+position = Vector3(0, 0.008, -20)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh15")
 
 [node name="GridX15" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(-5, 0.008, 0)
+position = Vector3(-10, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh16")
 
 [node name="GridZ15" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, -5)
+position = Vector3(0, 0.008, -10)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh17")
 
@@ -385,85 +385,85 @@ mesh = SubResource("Mesh19")
 
 [node name="GridX25" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(5, 0.008, 0)
+position = Vector3(10, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh20")
 
 [node name="GridZ25" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, 5)
+position = Vector3(0, 0.008, 10)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh21")
 
 [node name="GridX30" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(10, 0.008, 0)
+position = Vector3(20, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh22")
 
 [node name="GridZ30" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, 10)
+position = Vector3(0, 0.008, 20)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh23")
 
 [node name="GridX35" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(15, 0.008, 0)
+position = Vector3(30, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh24")
 
 [node name="GridZ35" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, 15)
+position = Vector3(0, 0.008, 30)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh25")
 
 [node name="GridX40" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(20, 0.008, 0)
+position = Vector3(40, 0.008, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh26")
 
 [node name="GridZ40" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.008, 20)
+position = Vector3(0, 0.008, 40)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh27")
 
 [node name="TeamLineN" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.012, -19)
+position = Vector3(0, 0.012, -38)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh28")
 
 [node name="RimN" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 2.75, -24.97)
+position = Vector3(0, 2.75, -49.94)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh29")
 
 [node name="RimW" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(-24.97, 2.75, 0)
+position = Vector3(-49.94, 2.75, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh30")
 
 [node name="TeamLineS" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 0.012, 19)
+position = Vector3(0, 0.012, 38)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh31")
 
 [node name="RimS" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(0, 2.75, 24.97)
+position = Vector3(0, 2.75, 49.94)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh32")
 
 [node name="RimE" type="MeshInstance3D" parent="Markings"]
 cast_shadow = 0
-position = Vector3(24.97, 2.75, 0)
+position = Vector3(49.94, 2.75, 0)
 rotation_degrees = Vector3(0, 0, 0)
 mesh = SubResource("Mesh33")
 
@@ -490,73 +490,73 @@ shadow_enabled = true
 [node name="SpawnPoints" type="Node3D" parent="."]
 
 [node name="Team1_1" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(-12, 0.5, 19)
+position = Vector3(-24, 0.5, 38)
 rotation_degrees = Vector3(0, 0, 0)
 
 [node name="Team1_2" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(-6, 0.5, 19)
+position = Vector3(-12, 0.5, 38)
 rotation_degrees = Vector3(0, 0, 0)
 
 [node name="Team1_3" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(0, 0.5, 19)
+position = Vector3(0, 0.5, 38)
 rotation_degrees = Vector3(0, 0, 0)
 
 [node name="Team1_4" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(6, 0.5, 19)
+position = Vector3(12, 0.5, 38)
 rotation_degrees = Vector3(0, 0, 0)
 
 [node name="Team1_5" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(12, 0.5, 19)
+position = Vector3(24, 0.5, 38)
 rotation_degrees = Vector3(0, 0, 0)
 
 [node name="Team2_1" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(-12, 0.5, -19)
+position = Vector3(-24, 0.5, -38)
 rotation_degrees = Vector3(0, 180, 0)
 
 [node name="Team2_2" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(-6, 0.5, -19)
+position = Vector3(-12, 0.5, -38)
 rotation_degrees = Vector3(0, 180, 0)
 
 [node name="Team2_3" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(0, 0.5, -19)
+position = Vector3(0, 0.5, -38)
 rotation_degrees = Vector3(0, 180, 0)
 
 [node name="Team2_4" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(6, 0.5, -19)
+position = Vector3(12, 0.5, -38)
 rotation_degrees = Vector3(0, 180, 0)
 
 [node name="Team2_5" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(12, 0.5, -19)
+position = Vector3(24, 0.5, -38)
 rotation_degrees = Vector3(0, 180, 0)
 
 [node name="FFA_1" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(0.000000, 0.5, 20.000000)
+position = Vector3(0, 0.5, 40)
 rotation_degrees = Vector3(0, 0, 0)
 
 [node name="FFA_2" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(14.142136, 0.5, 14.142136)
+position = Vector3(28.284272, 0.5, 28.284272)
 rotation_degrees = Vector3(0, 45, 0)
 
 [node name="FFA_3" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(20.000000, 0.5, 0.000000)
+position = Vector3(40, 0.5, 0)
 rotation_degrees = Vector3(0, 90, 0)
 
 [node name="FFA_4" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(14.142136, 0.5, -14.142136)
+position = Vector3(28.284272, 0.5, -28.284272)
 rotation_degrees = Vector3(0, 135, 0)
 
 [node name="FFA_5" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(0.000000, 0.5, -20.000000)
+position = Vector3(0, 0.5, -40)
 rotation_degrees = Vector3(0, 180, 0)
 
 [node name="FFA_6" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(-14.142136, 0.5, -14.142136)
+position = Vector3(-28.284272, 0.5, -28.284272)
 rotation_degrees = Vector3(0, 225, 0)
 
 [node name="FFA_7" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(-20.000000, 0.5, -0.000000)
+position = Vector3(-40, 0.5, 0)
 rotation_degrees = Vector3(0, 270, 0)
 
 [node name="FFA_8" type="Marker3D" parent="SpawnPoints"]
-position = Vector3(-14.142136, 0.5, 14.142136)
+position = Vector3(-28.284272, 0.5, 28.284272)
 rotation_degrees = Vector3(0, 315, 0)

@@ -173,9 +173,10 @@ func run() -> void:
 	check(weapons.events.size() == 1, "Impulse case registers exactly one hit")
 	check(absf(target_velocity.y) < 0.001 and absf(recoil_velocity.y) < 0.001,
 		"Horizontal spinner authors no upward/downward velocity")
-	check(absf(target_velocity.length() - 4.0) < 0.01,
-		"Actual target impulse produces 4 m/s lateral velocity")
-	var expected_recoil := 4.0 * victim.body.mass / attacker.body.mass * 0.6
+	var expected_speed := 2.6 * attacker.body.mass / victim.body.mass
+	check(absf(target_velocity.length() - expected_speed) < 0.01,
+		"Full spinner transfers 2.6 m/s at equal mass, with heavier targets resisting")
+	var expected_recoil := expected_speed * victim.body.mass / attacker.body.mass * 0.6
 	check(absf(recoil_velocity.length() - expected_recoil) < 0.01
 		and recoil_velocity.dot(target_velocity) < 0,
 		"Jolt applies opposite attacker recoil at 60% of target impulse")
@@ -183,5 +184,18 @@ func run() -> void:
 		and attacker.body.angular_velocity.length() <= 12.001,
 		"Physical impact preserves the simulation angular speed cap")
 	print("Horizontal physical velocities: target=", target_velocity, " recoil=", recoil_velocity)
+	# Same attacker/strike against a heavier actual Jolt body: damage is unchanged,
+	# but velocity falls while the transferred linear momentum stays the same.
+	await reset_case(SIDE + Vector3.UP * 0.1 * BotScale.FACTOR)
+	victim.body.mass *= 1.25
+	attacker.body.freeze = false
+	victim.body.freeze = false
+	await flush_physics()
+	strike()
+	await flush_physics()
+	check(absf(victim.body.linear_velocity.length() / target_velocity.length() - 0.8) < 0.01,
+		"A 25% heavier target receives 20% less knockback from the same strike")
+	check(absf(attacker.body.linear_velocity.length() - recoil_velocity.length()) < 0.01,
+		"Changing target mass does not create extra attacker recoil")
 	print("HORIZONTAL SPINNER PHYSICS PASS" if failures == 0 else "HORIZONTAL SPINNER PHYSICS FAIL")
 	get_tree().quit(0 if failures == 0 else 1)

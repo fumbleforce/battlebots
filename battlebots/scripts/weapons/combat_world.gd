@@ -424,8 +424,14 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 		attacker.combat.component_disables += 1
 	if dealt > 0:
 		victim.combat.recent_attackers[attacker.entity_id] = time
-	victim.body.apply_impulse(impulse, point - victim.body.global_position)
-	attacker.body.apply_central_impulse(-impulse * recoil)
+	# Impact output comes from the attacking machine, not the target's weight.
+	# Heavy targets therefore resist the same strike. A charged lifter retains
+	# its deliberate launch; ordinary strikes no longer toss hulls as readily.
+	var mass_ratio := clampf(attacker.body.mass / victim.body.mass, 0.65, 1.4)
+	var impact_scale := 1.0 if kind == "lifter" else 0.65
+	var delivered := impulse * mass_ratio * impact_scale
+	victim.body.apply_impulse(delivered, point - victim.body.global_position)
+	attacker.body.apply_central_impulse(-delivered * recoil)
 	event_id += 1
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:
 		attacker.combat.attack_id += 1

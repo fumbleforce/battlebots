@@ -366,7 +366,7 @@ theme_override_font_sizes/font_size = 18
 
 [node name="Note2" type="Label" parent="Layout/Footer/Row"]
 layout_mode = 2
-text = "The Foundry · 50 × 50 meters · No arena hazards."
+text = "The Foundry · 100 m across · No arena hazards."
 theme_type_variation = &"Muted"
 theme_override_font_sizes/font_size = 17
 size_flags_vertical = 4

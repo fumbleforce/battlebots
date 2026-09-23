@@ -171,6 +171,7 @@ func model_config() -> Dictionary:
 		"charged_jump":jump_equipped,
 		"brake":brake_acceleration, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,
+		"center_of_mass":center_of_mass if center_of_mass_mode == CENTER_OF_MASS_MODE_CUSTOM else Vector3.ZERO,
 		"gravity":Vector3(ProjectSettings.get_setting("physics/3d/default_gravity_vector", Vector3.DOWN))
 			* float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)) * gravity_scale}
 

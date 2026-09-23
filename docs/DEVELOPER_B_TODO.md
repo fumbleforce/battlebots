@@ -1,5 +1,14 @@
 # Worker B — shared task list
 
+## Coordinated Foundry/weight/preview request — 23 September 2026
+
+The current session is implementing the user's combined world and bot-handling
+request on `codex/a-larger-foundry-heavy-bots`. It reserves MvpBot, shared drive
+response, weapon impulses and camera arena-bound consumption alongside A's
+Foundry/menu/release paths. See [scope and handoff](coordination/A_LARGER_FOUNDRY_HEAVY_BOTS.md).
+No parallel bot-control edits are assumed present; this is explicit feature work,
+not an incidental prediction change.
+
 ## Customize immediate choices — 22 September 2026
 
 B is updating the isolated Customize interaction and footer layout on

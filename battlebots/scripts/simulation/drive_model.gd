@@ -67,7 +67,11 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 			velocity += Vector3(config.get("gravity", Vector3(0, -9.8, 0))) * delta
 		# Free-flight roll/pitch continue between snapshots after a launch or flip.
 		angular *= maxf(0.0, 1.0 - float(config.get("angular_damp", 0.1)) * delta)
+		# Jolt linear velocity moves the center of mass. The hull origin arcs
+		# around that point when the lowered ballast pitches or rolls in flight.
+		var ballast: Vector3 = config.get("center_of_mass", Vector3.ZERO)
+		var center := pose * ballast
 		if not angular.is_zero_approx():
 			pose.basis = (Basis(angular.normalized(), angular.length() * delta) * pose.basis).orthonormalized()
-		pose.origin += velocity * delta
+		pose.origin = center + velocity * delta - pose.basis * ballast
 	return {"pose":pose, "velocity":velocity, "angular":angular}

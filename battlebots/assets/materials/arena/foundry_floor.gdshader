@@ -1,6 +1,7 @@
 shader_type spatial;
 // Meter-scaled, deterministic wear: no texture downloads or runtime image work.
 varying vec3 world_pos;
+uniform float arena_half_extent = 50.0;
 uniform sampler2D steel_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -22,10 +23,10 @@ void fragment() {
  steel+=grain*0.007;
  // Double center ring and broken perimeter safety band, all paint, no obstacles.
  float radius=length(p);
- float ring=(1.0-smoothstep(0.07,0.12,abs(radius-7.6))) +
-   (1.0-smoothstep(0.025,0.06,abs(radius-8.0)));
+ float ring=(1.0-smoothstep(0.07,0.12,abs(radius-15.6))) +
+   (1.0-smoothstep(0.025,0.06,abs(radius-16.0)));
  float edge=max(max(abs(p.x),abs(p.y)),(abs(p.x)+abs(p.y))*0.70710678);
- float band=step(23.4,edge)*(1.0-step(24.0,edge));
+ float band=step(arena_half_extent-1.6,edge)*(1.0-step(arena_half_extent-1.0,edge));
  float stripe=step(0.48,fract((p.x+p.y)*0.68));
  float paint=max(ring,band*stripe)*smoothstep(0.23,0.55,noise(p*7.0));
  steel=mix(steel,vec3(0.67,0.39,0.075),clamp(paint,0.0,0.85));

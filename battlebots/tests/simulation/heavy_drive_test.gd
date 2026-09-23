@@ -77,6 +77,38 @@ func replay_collision_cases() -> void:
 	bot.body.correction.clear()
 	wall.free()
 
+func impact_stability() -> void:
+	var reference := MvpBot.create(2, 1, bot.loadout, registry)
+	add_child(reference)
+	# Compare actual Jolt response with the previous automatic inertia, while
+	# preserving identical geometry and mass. No floor contacts during this pulse.
+	reference.body.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_AUTO
+	reference.body.inertia = Vector3.ZERO
+	reference.body.angular_damp = 0.1
+	for machine: MvpBot in [bot, reference]:
+		machine.body.gravity_scale = 0
+		machine.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(machine.entity_id * 15, 20, 0))
+	await drive(3)
+	for machine: MvpBot in [bot, reference]:
+		machine.body.apply_torque_impulse(Vector3(8, 0, 8) * machine.body.mass)
+	await drive(3)
+	var tuned_spin := bot.body.angular_velocity.length()
+	var old_spin := reference.body.angular_velocity.length()
+	check(tuned_spin > 0.1 and tuned_spin < old_spin * 0.75,
+		"Same pitch/roll impulse still moves the chassis but tumbles it at least25% less")
+	reference.free()
+	bot.body.gravity_scale = 1
+	bot.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 2.75, 0))
+	var landed := false
+	var rebound := 0.0
+	for frame: int in 180:
+		await drive(1)
+		if bot.body.grounded: landed = true
+		if landed: rebound = maxf(rebound, bot.body.global_position.y - 0.75)
+	check(landed and rebound < 0.15 and bot.body.global_basis.y.dot(Vector3.UP) > 0.99,
+		"A level two-meter drop lands upright without repeated chassis bouncing")
+	print("HEAVY IMPACT measured: pitch/roll=%.3f previous=%.3f rad/s rebound=%.3fm" % [tuned_spin, old_spin, rebound])
+
 func run() -> void:
 	var ground := StaticBody3D.new()
 	var collider := CollisionShape3D.new()
@@ -166,6 +198,7 @@ func run() -> void:
 		await get_tree().physics_frame
 	await get_tree().process_frame
 	check(bot.body.global_basis.y.dot(Vector3.UP) > 0.5, "Scaled recovery torque rights the enlarged chassis")
+	await impact_stability()
 	await replay_collision_cases()
 	print("HEAVY DRIVE measured: speed1s=%.3f speed1.4s=%.3f coast1s=%.3f brake=%.3fm pivot.75s=%.3frad/s reverse.5s=%.3fm/s replay=%.4fm/%.3fdeg" %
 		[speed_one, speed_launch, coast_speed, brake_distance, yaw, reverse_speed_half, position_error, rotation_error])

@@ -40,8 +40,8 @@ func run() -> void:
 		session.network_simulation.jitter_ms = 10
 		session.network_simulation.loss = 0.01
 		session.network_simulation.duplicate = 0.02
-	await wall_case("North", Vector3(0, 0.5, -15), 0)
-	await wall_case("CornerEN", Vector3(12, 0.5, -12), -PI / 4)
+	await wall_case("North", Vector3(0, 0.5, -40), 0)
+	await wall_case("CornerEN", Vector3(30, 0.5, -30), -PI / 4)
 	await finish()
 
 func wall_case(wall_name: String, start: Vector3, yaw: float) -> void:
@@ -51,7 +51,7 @@ func wall_case(wall_name: String, start: Vector3, yaw: float) -> void:
 	var authority: MvpBot = server.world.bots[clients[0].local_entity]
 	var predicted: MvpBot = clients[0].world.bots[clients[0].local_entity]
 	var wall: StaticBody3D = server.world.arena.get_node("Walls/" + wall_name)
-	# Wall coordinates stay in the unchanged arena; only hull floor height grows.
+	# Start near the current 100m Foundry walls; hull clearance sets floor height.
 	authority.body.reset_pose = server.world.clear_spawn_pose(authority, Transform3D(Basis(Vector3.UP, yaw), start))
 	await frames(90)
 	drive_throttle = 1
@@ -111,8 +111,8 @@ func wall_case(wall_name: String, start: Vector3, yaw: float) -> void:
 func valid_pose(body: DriveBody) -> bool:
 	var at := body.global_position
 	var valid := at.is_finite() and body.global_basis.is_finite() and body.linear_velocity.is_finite() \
-		and body.angular_velocity.is_finite() and absf(at.x) < 25 and absf(at.z) < 25 \
-		and absf(at.x)+absf(at.z) < 25.0*sqrt(2.0) \
+		and body.angular_velocity.is_finite() and absf(at.x) < 50 and absf(at.z) < 50 \
+		and absf(at.x)+absf(at.z) < 50.0*sqrt(2.0) \
 		and at.y > -0.1 and at.y < 4
 	if not valid and not reported_invalid.has(body.get_instance_id()):
 		reported_invalid[body.get_instance_id()] = true

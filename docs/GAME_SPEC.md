@@ -54,8 +54,8 @@ The signature encounter is a teammate lifting an opponent, exposing its undersid
 
 | Category | Requirement or decision |
 |---|---|
-| User requirements | PvP; standard 2v2; additional 5v5 and FFA; a simple 50 × 50 arena; customizable player-controlled battlebots; mouse-controlled third-person camera; WASD movement; Godot 4.7.2 |
-| Arena interpretation | 50 × 50 **meters** of playable floor; one Godot unit represents one meter |
+| User requirements | PvP; standard 2v2; additional 5v5 and FFA; a 100 m Foundry arena (23 September revision); customizable player-controlled battlebots; mouse-controlled third-person camera; WASD movement; Godot 4.7.2 |
+| Arena interpretation | Foundry: 100 **meters** across opposing faces; Moon: 50 meters; one Godot unit represents one meter |
 | Proposed audience/platform | PC players who enjoy mechanical combat and short competitive matches; Windows client first, headless Linux server |
 | Proposed combat style | Accessible simulation: physical motion and impacts, authored weapon damage and impulses |
 | Camera decision | Third person is standard; optional first-person chassis camera ships after the core camera is validated |
@@ -173,7 +173,7 @@ Use authored chassis sockets and compatible modules, not freeform geometry. Ever
 
 All builds share a **120 kg** mass ceiling and a **100-unit installed power** budget. Power budget controls legal construction; battery is the separate runtime resource. Chassis fixes socket locations, collision envelope, core integrity, and recovery mechanism. No part can extend beyond its permitted weapon sweep or deployment envelope.
 
-**User revision, 20 September 2026:** machines are three times their original size on every axis. Canonical hulls are now 4.5–6.6 meters long, 3.6–5.4 meters wide and 1.5 meters tall; the active balanced hull is 4.8 × 1.5 × 6.0 meters. Weapons, drive assemblies, collision and effects follow the physical size. The arena remains 50 meters across. These are deliberately oversized game machines; the 120 kg construction budget remains a gameplay stat. See [implementation and checks](coordination/B_HEAVY_MACHINES.md).
+**User revision, 20 September 2026:** machines are three times their original size on every axis. Canonical hulls are now 4.5–6.6 meters long, 3.6–5.4 meters wide and 1.5 meters tall; the active balanced hull is 4.8 × 1.5 × 6.0 meters. Weapons, drive assemblies, collision and effects follow the physical size. The subsequent 23 September revision expands Foundry to 100 meters across. These are deliberately oversized game machines; the 120 kg construction budget remains a gameplay stat. See [implementation and checks](coordination/B_HEAVY_MACHINES.md).
 
 ### Initial part catalogue
 
@@ -272,15 +272,17 @@ Elimination credit goes to the most recent enemy to deal effective damage within
 
 ## 7. Arena specification
 
-**Arena 01: The Foundry.** Per the user's 20 September arena revision, a regular octagon measuring 50 meters across opposing faces, with continuous 3-meter-high collision walls, worn industrial flooring, and spectator dressing outside the combat volume. Its inradius is 25 m; diagonal faces satisfy |X|+|Z| = 25*sqrt(2). Eight spectator bays, radial roof trusses and an octagonal overhead lighting rig follow the bowl. The floor is one uninterrupted driving surface. Painted seams and decals cannot snag wheels.
+**Arena 01: The Foundry.** Per the user's 23 September arena revision, a regular octagon measuring 100 meters across opposing faces, with continuous 3-meter-high collision walls, worn industrial flooring, and spectator dressing outside the combat volume. Its inradius is 50 m; diagonal faces satisfy |X|+|Z| = 50*sqrt(2). Sixteen spectator bays, radial roof trusses and an octagonal overhead lighting rig follow the bowl. The floor is one uninterrupted driving surface. Painted seams and decals cannot snag wheels.
 
-Use X/Z ground axes; playable boundaries are −25 to +25 meters. Team spawns sit near Z = −19 and Z = +19, facing center. For 5v5 use X = −12, −6, 0, 6, 12. 2v2 uses X = −6 and +6. FFA uses eight evenly spaced points on a 20-meter-radius circle, assigned randomly by the server. Verify every spawn envelope clears walls and every other bot.
+Use X/Z ground axes; Foundry playable boundaries are −50 to +50 meters. Team spawns sit near Z = −38 and Z = +38, facing center. For 5v5 use X = −24, −12, 0, 12, 24. 2v2 uses X = −12 and +12. FFA uses eight evenly spaced points on a 40-meter-radius circle, assigned randomly by the server. Verify every spawn envelope clears walls and every other bot.
 
 No active hazards, pits, or ring-outs in the initial arena. This keeps the baseline focused on bot combat. Floor graphics suggest a central combat area but do not change movement or damage. A future hazard variant must remain a separate ruleset.
 
 Lighting emphasizes silhouettes and weapon contact. Team colors appear as an outline/badge and small paint accents; players retain their chosen paint. Team recognition also uses icons to avoid relying solely on color. FFA displays distinct player markers and names.
 
-The arena must allow a standard bot to traverse the width in roughly 5–7 seconds after acceleration. If repeated evasive play causes timeouts, tune speed, visibility, and match timing before adding arbitrary damage zones.
+The arena must allow a standard bot to traverse the enlarged Foundry width in roughly 10–12 seconds including acceleration. If repeated evasive play causes timeouts, tune speed, visibility, and match timing before adding arbitrary damage zones.
+
+**User revision, 23 September 2026:** arena selection uses native captures of the actual Foundry and Moon scenes. Bots should feel heavier during impacts, bouncing and tipping while retaining their powerful motors. Lower ballast, increased pitch/roll inertia and damping reduce tumbling; ordinary weapon knockback is reduced and depends on relative mass. Damage and the charged lifter remain useful. See [coordinated implementation](coordination/A_LARGER_FOUNDRY_HEAVY_BOTS.md).
 
 ## 8. Interface, accessibility, and audio
 

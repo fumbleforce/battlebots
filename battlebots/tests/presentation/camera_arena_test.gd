@@ -51,29 +51,29 @@ func _run() -> void:
 	check(markers.get_child_count() == 18, "Expected ten team and eight FFA markers")
 	for index: int in range(1, 9):
 		var marker: Marker3D = markers.get_node("FFA_%d" % index)
-		check(is_equal_approx(Vector2(marker.position.x, marker.position.z).length(), 20.0),
-			"FFA radius must be 20 meters")
+		check(is_equal_approx(Vector2(marker.position.x, marker.position.z).length(), 40.0),
+			"FFA radius must be 40 meters")
 		var to_center := -Vector3(marker.position.x, 0, marker.position.z).normalized()
 		check((-marker.basis.z).dot(to_center) > 0.999, "FFA must face center")
 	for direction: Vector3 in [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]:
 		var ray := PhysicsRayQueryParameters3D.create(Vector3(0, 1, 0),
-			direction * 30.0 + Vector3(0, 1, 0), BaselineConfig.WORLD_LAYER)
+			direction * 60.0 + Vector3(0, 1, 0), BaselineConfig.WORLD_LAYER)
 		var hit := space.intersect_ray(ray)
 		check(not hit.is_empty(), "Missing perimeter wall")
 		if not hit.is_empty():
-			check(absf(hit.position.x) <= 25.01 and absf(hit.position.z) <= 25.01,
-				"Wall interior must preserve 50-meter dimensions")
+			check(absf(hit.position.x) <= 50.01 and absf(hit.position.z) <= 50.01,
+				"Wall interior must preserve 100-meter dimensions")
 	var shape := SphereShape3D.new()
 	var corner_ray := PhysicsRayQueryParameters3D.create(Vector3(0, 1, 0),
-		Vector3(30, 1, 30), BaselineConfig.WORLD_LAYER)
+		Vector3(60, 1, 60), BaselineConfig.WORLD_LAYER)
 	var corner_hit := space.intersect_ray(corner_ray)
 	check(not corner_hit.is_empty(), "Corner chamfer missing")
 	if not corner_hit.is_empty():
-		check(absf(corner_hit.position.x - 25.0 / sqrt(2.0)) < 0.01,
-			"Octagon diagonal must be 25 meters from center")
+		check(absf(corner_hit.position.x - 50.0 / sqrt(2.0)) < 0.01,
+			"Octagon diagonal must be 50 meters from center")
 	shape.radius = 0.2
-	for location: Vector3 in [Vector3(0, 0.3, 0), Vector3(0, 0.3, 22.8),
-			Vector3(16.2, 0.3, 16.2), Vector3(-16.2, 0.3, -16.2)]:
+	for location: Vector3 in [Vector3(0, 0.3, 0), Vector3(0, 0.3, 47.8),
+			Vector3(33.9, 0.3, 33.9), Vector3(-33.9, 0.3, -33.9)]:
 		source.position = location
 		await sync_physics()
 		for heading: float in [0.0, PI / 4.0, PI / 2.0, PI, -PI / 2.0]:
@@ -83,15 +83,15 @@ func _run() -> void:
 				rig.desired_distance = 9.0
 				rig.update_camera(1.0)
 				var at := rig.camera.global_position
-				check(absf(at.x) < 25.0 and absf(at.z) < 25.0
-					and absf(at.x)+absf(at.z) < 25.0*sqrt(2.0) and at.y > 0.2,
+				check(absf(at.x) < 50.0 and absf(at.z) < 50.0
+					and absf(at.x)+absf(at.z) < 50.0*sqrt(2.0) and at.y > 0.2,
 					"Camera escaped the arena or floor")
 				var probe := PhysicsShapeQueryParameters3D.new()
 				probe.shape = shape
 				probe.transform = Transform3D(Basis.IDENTITY, at)
 				probe.collision_mask = BaselineConfig.WORLD_LAYER
 				check(space.intersect_shape(probe, 1).is_empty(), "Camera sphere clips geometry")
-	source.position = Vector3(0, 0.3, 22.8)
+	source.position = Vector3(0, 0.3, 47.8)
 	rig.yaw = 0.0
 	rig.pitch = 0.0
 	rig.update_camera(1.0)

@@ -30,11 +30,12 @@ func check_shapes(world: AuthorityWorld, label: String) -> void:
 			var hits := world.get_world_3d().direct_space_state.intersect_shape(query)
 			check(hits.is_empty(), "%s bot%d %s starts clear of terrain, walls and peer hulls: %s" % [label, bot.entity_id, child.name, hits])
 		var half: Vector3 = bot.combat.stats.size * 0.5
+		var wall_limit := ArenaBounds.half_extent(world.arena_id) - 0.25
 		for x: float in [-1.0, 1.0]:
 			for z: float in [-1.0, 1.0]:
 				var corner := bot.spawn_pose * Vector3(x * half.x, -half.y, z * half.z)
-				check(absf(corner.x) <= 24.75 and absf(corner.z) <= 24.75
-					and absf(corner.x) + absf(corner.z) <= 24.75 * sqrt(2.0) + 0.001,
+				check(absf(corner.x) <= wall_limit and absf(corner.z) <= wall_limit
+					and absf(corner.x) + absf(corner.z) <= wall_limit * sqrt(2.0) + 0.001,
 					label + " entire hull clears octagonal wall planes")
 
 func run() -> void:

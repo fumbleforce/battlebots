@@ -4,6 +4,10 @@ const GRID := 81
 const STEP := 50.0 / (GRID-1)
 const ROCKS := [Vector3(21,0,7),Vector3(-21,0,-7),Vector3(7,0,-21),Vector3(-7,0,21)]
 
+func _enter_tree() -> void:
+	# Moon inherits the shell but keeps its authored 50m terrain/spawn contract.
+	ArenaBounds.resize_shell(self, ArenaBounds.MOON_HALF)
+
 static func height_at(x: float, z: float) -> float:
 	var radius := Vector2(x,z).length()
 	var h := (0.32+sin(x*0.43)*cos(z*0.37)*0.18+sin(x*0.21+z*0.29)*0.08)*smoothstep(7.0,14.0,radius)

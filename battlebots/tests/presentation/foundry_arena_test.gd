@@ -18,15 +18,15 @@ func _run() -> void:
 	check(arena.get_node("SpawnPoints").get_child_count() == 18, "Spawn contract changed")
 	check(arena.get_node("Walls").get_child_count() == 8, "Wall contract changed")
 	var shape: BoxShape3D = arena.get_node("Floor/Collision").shape
-	check(shape.size == Vector3(50, 1, 50), "Floor contract changed")
+	check(shape.size == Vector3(100, 1, 100), "Floor contract changed")
 	check(arena.get_node("Floor").position == Vector3(0, -0.5, 0), "Floor elevation changed")
 	var space := arena.get_world_3d().direct_space_state
 	for side: int in range(8):
 		var direction := Vector3(sin(side*PI/4), 0, cos(side*PI/4))
-		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 0), direction*30+Vector3(0, 1, 0), 1))
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 0), direction*60+Vector3(0, 1, 0), 1))
 		check(not hit.is_empty(), "Missing octagon side %d" % side)
 		if not hit.is_empty():
-			check(absf(Vector2(hit.position.x, hit.position.z).length()-25.0) < 0.01, "Unequal octagon side distance")
+			check(absf(Vector2(hit.position.x, hit.position.z).length()-50.0) < 0.01, "Unequal octagon side distance")
 	for marker: Node3D in arena.get_node("SpawnPoints").get_children():
 		var clearance := SphereShape3D.new()
 		clearance.radius = 1.25

@@ -63,6 +63,8 @@ func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 
 		return null
 	bot.name = "Bot%d" % id
 	add_child(bot)
+	bot.arena_half_extent = ArenaBounds.half_extent(arena_id)
+	bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
 	# B's published DriveBody replay_config already includes gravity_scale.
 	bot.body.gravity_scale = 1.62 / 9.8 if arena_id == "moon" else 1.0
 	var marker_index := slot + 1 if team_size == 5 else (2 if slot == 0 else 4)
@@ -78,19 +80,20 @@ func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 
 
 func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 	# Keep the authored lane and facing; enlarged outer team slots need room at
-	# the octagon's chamfers. These are the existing 50m arena's inner planes.
+	# the octagon's chamfers. Each arena publishes its own inner planes.
+	var arena_half := ArenaBounds.half_extent(arena_id)
 	var pose := authored
 	var half: Vector3 = bot.collision_bounds().size * 0.5
 	var extent_x := absf(pose.basis.x.x) * half.x + absf(pose.basis.z.x) * half.z
 	var extent_z := absf(pose.basis.x.z) * half.x + absf(pose.basis.z.z) * half.z
 	const WALL_GAP := 0.25
-	pose.origin.x = clampf(pose.origin.x, -25.0 + extent_x + WALL_GAP, 25.0 - extent_x - WALL_GAP)
-	pose.origin.z = clampf(pose.origin.z, -25.0 + extent_z + WALL_GAP, 25.0 - extent_z - WALL_GAP)
+	pose.origin.x = clampf(pose.origin.x, -arena_half + extent_x + WALL_GAP, arena_half - extent_x - WALL_GAP)
+	pose.origin.z = clampf(pose.origin.z, -arena_half + extent_z + WALL_GAP, arena_half - extent_z - WALL_GAP)
 	for side_x: float in [-1.0, 1.0]:
 		for side_z: float in [-1.0, 1.0]:
 			var normal := Vector3(side_x, 0, side_z)
 			var reach := absf(normal.dot(pose.basis.x)) * half.x + absf(normal.dot(pose.basis.z)) * half.z
-			var bound := (25.0 - WALL_GAP) * sqrt(2.0) - side_x * pose.origin.x - reach
+			var bound := (arena_half - WALL_GAP) * sqrt(2.0) - side_x * pose.origin.x - reach
 			pose.origin.z = minf(pose.origin.z, bound) if side_z > 0 else maxf(pose.origin.z, -bound)
 	var floor_y := 0.0
 	if arena_id == "moon":

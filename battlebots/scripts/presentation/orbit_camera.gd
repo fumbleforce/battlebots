@@ -14,7 +14,7 @@ var sensitivity: float:
 @export var invert_y: bool = false
 @export var auto_recenter: bool = true
 @export_range(0.1, 8.0, 0.1) var recenter_speed: float = 2.0
-@export var arena_half_extent: float = 25.0
+@export var arena_half_extent: float = ArenaBounds.FOUNDRY_HALF
 @export var corner_chamfer: float = 2.0
 @export var camera_radius: float = 0.25
 var source: BotSource
@@ -38,6 +38,9 @@ func bind_source(value: BotSource) -> void:
 
 func _sync_anchor_scale(anchor: Node3D) -> void:
 	if not is_instance_valid(anchor): return
+	if anchor.has_meta(&"arena_half_extent"):
+		arena_half_extent = float(anchor.get_meta(&"arena_half_extent"))
+		corner_chamfer = arena_half_extent * (2.0 - sqrt(2.0))
 	var value: Variant = anchor.get_meta(&"bot_scale", 1.0)
 	if not (value is int or value is float) or not is_finite(float(value)) or float(value) <= 0.0: return
 	var next_scale := float(value)

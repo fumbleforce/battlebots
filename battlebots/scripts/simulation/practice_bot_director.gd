@@ -28,6 +28,8 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 		bot.name = "Practice_%s_%d" % [VARIANTS[index], bot.entity_id]
 		bot.set_meta("practice_variant", VARIANTS[index])
 		world.add_child(bot)
+		bot.arena_half_extent = ArenaBounds.half_extent(world.arena_id)
+		bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
 		world.bots[bot.entity_id] = bot
 		bot.body.gravity_scale = 1.62 / 9.8 if world.arena_id == "moon" else 1.0
 		var separation: float = (player.combat.stats.size.z + bot.combat.stats.size.z) * 0.5 + 2.0 * BotScale.FACTOR

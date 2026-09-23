@@ -88,6 +88,7 @@ func _build() -> void:
 		var floor_mat := ShaderMaterial.new()
 		floor_mat.shader = FLOOR
 		floor_mat.set_shader_parameter("steel_texture", STEEL_SCAN)
+		floor_mat.set_shader_parameter("arena_half_extent", ArenaBounds.FOUNDRY_HALF)
 		floor_mesh.material_override = floor_mat
 	for wall: Node in arena.get_node("Walls").get_children():
 		var mesh := wall.get_node_or_null("Mesh") as MeshInstance3D
@@ -100,9 +101,13 @@ func _build() -> void:
 				mesh.material_override = corner
 	(arena.get_node("Markings") as Node3D).hide()
 	_lighting(arena)
+	# Two full-sized gallery bays per face: seats, people and machinery keep
+	# their authored scale while the combat bowl doubles in width.
 	for side: int in range(8):
-		_side = Transform3D(Basis(Vector3.UP, side * PI / 4.0), Vector3.ZERO)
-		_wall(side)
+		var rotation := Basis(Vector3.UP, side * PI / 4.0)
+		for bay: int in range(2):
+			_side = Transform3D(rotation, rotation * Vector3((bay * 2 - 1) * 10.355339, 0, -25))
+			_wall(side * 2 + bay)
 	_side = Transform3D.IDENTITY
 	_roof()
 	_floor_identity()
@@ -112,9 +117,9 @@ func _build() -> void:
 	var probe := ReflectionProbe.new()
 	probe.name = "CombatFloorReflections"
 	probe.position = Vector3(0, 5, 0)
-	probe.size = Vector3(54, 16, 54)
+	probe.size = Vector3(104, 16, 104)
 	probe.origin_offset = Vector3(0, 2, 0)
-	probe.max_distance = 80
+	probe.max_distance = 140
 	probe.interior = true
 	probe.box_projection = true
 	probe.intensity = 0.8
@@ -241,24 +246,26 @@ func _services() -> void:
 		_box("steel", Vector3(-10.4+i*1.89, 3.8, -26.6), Vector3(0.055, 1.5, 0.055))
 
 func _roof() -> void:
-	_box("dark", Vector3(0, 20.4, 0), Vector3(70, 0.35, 70))
+	_box("dark", Vector3(0, 20.4, 0), Vector3(120, 0.35, 120))
 	# Radial roof trusses converge on a suspended octagonal crown.
 	for side: int in range(8):
 		_side = Transform3D(Basis(Vector3.UP, side*PI/4.0), Vector3.ZERO)
 		for y: float in [16.8, 19.1]:
-			_box("steel", Vector3(0, y, -26.0), Vector3(21.8, 0.23, 0.25))
-		for i: int in range(6):
-			var x := -10.8+i*3.6
-			_beam("steel", Vector3(x, 16.8, -26), Vector3(x+3.6, 19.1, -26), 0.14)
-			_beam("steel", Vector3(x, 19.1, -26), Vector3(x+3.6, 16.8, -26), 0.14)
+			_box("steel", Vector3(0, y, -51.0), Vector3(43.6, 0.23, 0.25))
+		for i: int in range(12):
+			var x := -21.6+i*3.6
+			_beam("steel", Vector3(x, 16.8, -51), Vector3(x+3.6, 19.1, -51), 0.14)
+			_beam("steel", Vector3(x, 19.1, -51), Vector3(x+3.6, 16.8, -51), 0.14)
 		for y: float in [17, 19]:
-			_beam("steel", Vector3(0, y, -26), Vector3(0, y, -8), 0.22)
-		for i: int in range(6):
-			var z := -26.0+i*3.0
-			_beam("steel", Vector3(0, 17, z), Vector3(0, 19, z+3), 0.13)
-			_beam("steel", Vector3(0, 19, z), Vector3(0, 17, z+3), 0.13)
-		_box("steel", Vector3(0, 14.0, -8), Vector3(6.85, 0.38, 0.45))
-		_box("amber", Vector3(0, 13.77, -7.88), Vector3(6.5, 0.04, 0.07))
+			_beam("steel", Vector3(0, y, -51), Vector3(0, y, -16), 0.22)
+		for i: int in range(10):
+			var z := -51.0+i*3.5
+			_beam("steel", Vector3(0, 17, z), Vector3(0, 19, z+3.5), 0.13)
+			_beam("steel", Vector3(0, 19, z), Vector3(0, 17, z+3.5), 0.13)
+		# The crown follows the enlarged floor; fixtures retain human dimensions.
+		_side.origin = _side.basis * Vector3(0, 0, -8)
+		_box("steel", Vector3(0, 14.0, -8), Vector3(13.5, 0.38, 0.45))
+		_box("amber", Vector3(0, 13.77, -7.88), Vector3(13.0, 0.04, 0.07))
 		_beam("dark", Vector3(0, 14, -8), Vector3(0, 20.3, -8), 0.055)
 		_box("dark", Vector3(0, 13.72, -8), Vector3(2.8, 0.22, 0.95))
 		for x: float in [-0.9, 0, 0.9]:
@@ -269,8 +276,8 @@ func _roof() -> void:
 		key.look_at(_side * Vector3(0, 0, -5))
 		key.light_color = Color("ffe5c6")
 		key.light_energy = 2.0
-		key.spot_range = 24
-		key.spot_angle = 44
+		key.spot_range = 40
+		key.spot_angle = 62
 		key.spot_attenuation = 0.65
 		key.shadow_enabled = side % 2 == 0
 		key.light_volumetric_fog_energy = 0.65
@@ -282,8 +289,9 @@ func _floor_identity() -> void:
 	var subtitle := _text("THE FOUNDRY", Vector3(0, 0.029, 2.0), 64, 0.018, Color("8d8573"))
 	subtitle.rotation_degrees.x = -90
 	for side: int in range(2):
-		_side = Transform3D(Basis(Vector3.UP, side*PI), Vector3.ZERO)
-		for x: float in [-6, 6]:
+		var rotation := Basis(Vector3.UP, side*PI)
+		_side = Transform3D(rotation, rotation * Vector3(0, 0, 19))
+		for x: float in [-12, 12]:
 			_box("cyan" if side == 0 else "amber", Vector3(x, 0.014, 21.4), Vector3(3.6, 0.018, 0.055))
 			for offset: float in [-1.8, 1.8]:
 				_box("steel", Vector3(x+offset, 0.012, 20.5), Vector3(0.045, 0.015, 1.8))
@@ -310,14 +318,14 @@ func _lighting(arena: Node) -> void:
 	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.006
 	env.volumetric_fog_albedo = Color(0.65, 0.69, 0.72)
-	env.volumetric_fog_length = 64.0
+	env.volumetric_fog_length = 120.0
 	env.volumetric_fog_ambient_inject = 0.25
 	world.environment = env
 	var sun := arena.get_node("Sun") as DirectionalLight3D
 	sun.rotation_degrees = Vector3(-68, -24, 0)
 	sun.light_color = Color("ffe0b8")
 	sun.light_energy = 0.55
-	sun.directional_shadow_max_distance = 90.0
+	sun.directional_shadow_max_distance = 150.0
 	# Roof is scenic; the key light simulates the distributed overhead fixtures.
 
 func _flush() -> void:

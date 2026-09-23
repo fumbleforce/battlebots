@@ -15,6 +15,7 @@ var previous_velocity := Vector3.ZERO
 var last_floor := Vector3.ZERO
 var spawn_pose := Transform3D.IDENTITY
 var body: DriveBody
+var arena_half_extent := ArenaBounds.FOUNDRY_HALF
 var remote_state: Dictionary = {}
 var simulated := true
 var presentation: Node3D
@@ -60,6 +61,7 @@ func _ready() -> void:
 	body.yaw_response = 0.2
 	body.yaw_acceleration_limit = 4.5
 	body.lateral_response = 0.24
+	body.angular_damp = 0.45
 	# Enlarge the hull reach, not the contact tolerance: a bigger robot must not
 	# continue applying tire forces during a shallow airborne weapon launch.
 	body.probe_depth = stats.size.y * 0.5 + 0.07
@@ -87,6 +89,21 @@ func _ready() -> void:
 		rear.shape = rear_shape
 		rear.position = Vector3(0, 1.05 * art_scale - stats.size.y * 0.5, 0.83 * art_scale)
 		body.add_child(rear)
+	# Keep ballast low and resist pitch/roll independently of the yaw motor.
+	# Explicit inertia prevents a tall cosmetic rear pack from making the hull
+	# behave like a top-heavy hollow box. Budget mass and motor power stay intact.
+	var bounds := collision_bounds()
+	var hull := bounds.size
+	body.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
+	body.center_of_mass = bounds.get_center() - Vector3.UP * hull.y * 0.2
+	body.inertia = body.mass / 12.0 * Vector3(
+		(hull.y * hull.y + hull.z * hull.z) * 1.8,
+		hull.x * hull.x + hull.z * hull.z,
+		(hull.x * hull.x + hull.y * hull.y) * 1.8)
+	var contact_material := PhysicsMaterial.new()
+	contact_material.friction = 0.04
+	contact_material.bounce = 0.0
+	body.physics_material_override = contact_material
 	var mesh := BoxMesh.new()
 	mesh.size = stats.size
 	var material := StandardMaterial3D.new()
@@ -277,10 +294,9 @@ func step(delta: float, active: bool) -> void:
 			body.sleeping = false
 	var safe_radius: float = Vector2(combat.stats.size.x, combat.stats.size.z).length() * 0.5
 	var at := body.global_position
-	if body.grounded and maxf(absf(at.x), absf(at.z)) + safe_radius < 25.0 \
-		and absf(at.x) + absf(at.z) + safe_radius * sqrt(2.0) < 25.0 * sqrt(2.0):
+	if body.grounded and ArenaBounds.contains(at, arena_half_extent, safe_radius):
 		last_floor = body.global_position
-	if absf(body.global_position.x) > 27 or absf(body.global_position.z) > 27 or body.global_position.y < -2:
+	if not ArenaBounds.contains(at, arena_half_extent + 2.0) or at.y < -2:
 		body.reset_pose = Transform3D(Basis.IDENTITY, last_floor + Vector3.UP * 0.2)
 		body.sleeping = false
 	if combat.eliminated:
