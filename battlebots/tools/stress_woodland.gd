@@ -87,11 +87,14 @@ func _run() -> void:
 	var peak := {}
 	var previous := Time.get_ticks_usec()
 	var elapsed := 0.0
-	var shots_start := 0
+	var known := {}
 	while elapsed < seconds:
 		await process_frame
+		var processed := Time.get_ticks_usec()
 		await RenderingServer.frame_post_draw
 		var now := Time.get_ticks_usec()
+		if now - previous > 250000:
+			print("STALL split: process ", (processed - previous) / 1000, " ms, draw ", (now - processed) / 1000, " ms")
 		var ms := (now - previous) / 1000.0
 		previous = now
 		elapsed += ms / 1000.0
@@ -106,6 +109,11 @@ func _run() -> void:
 			var back := focus.body.global_basis.z.slide(Vector3.UP).normalized()
 			cam.position = cam.position.lerp(focus.body.global_position + back * 16.0 + Vector3.UP * 7.0, 0.1)
 			cam.look_at(focus.body.global_position + Vector3.UP * 2.0 - back * 10.0)
+		# Name what appeared in a stalled frame: first-use shader or pipeline
+		# compiles show up as newly created effect nodes.
+		var fresh := _new_nodes(known)
+		if ms > 250.0:
+			print("STALL new nodes: ", fresh.slice(0, 16))
 		if ms > 250.0 and elapsed <= 3.0:
 			print("STALL ", snappedf(ms, 1), " ms at ", snappedf(elapsed, 0.1), " s (warm-up)")
 		if elapsed > 3.0:
@@ -142,6 +150,11 @@ func _run() -> void:
 		"dynamic lights": [func(): _set_lights(false), func(): _set_lights(true)],
 		"sun shadows": [func(): sun.shadow_enabled = false, func(): sun.shadow_enabled = true],
 		"ssil": [func(): env.ssil_enabled = false, func(): env.ssil_enabled = true],
+		"particle shadows": [func(): _shadows(root.find_children("*", "GPUParticles3D", true, false), false),
+			func(): _shadows(root.find_children("*", "GPUParticles3D", true, false), true)],
+		"bot shadows": [func(): _shadows(_bot_geometry(), false), func(): _shadows(_bot_geometry(), true)],
+		"4 -> 2 splits": [func(): sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS,
+			func(): sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS],
 	}
 	for label: String in tests:
 		var a := await _gpu_min(vp, 20)
@@ -152,6 +165,16 @@ func _run() -> void:
 		print("STRESS saves ", snappedf((a + c) * 0.5 - b, 0.01), " ms  ", label)
 	quit()
 
+func _new_nodes(known: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	for node: Node in root.find_children("*", "GeometryInstance3D", true, false):
+		var id := node.get_instance_id()
+		if not known.has(id):
+			known[id] = true
+			var script: Script = node.get_script()
+			out.append("%s(%s)" % [node.name, script.resource_path.get_file() if script else node.get_class()])
+	return out
+
 func _gpu_min(vp: RID, frames: int) -> float:
 	var best := INF
 	for i in frames:
@@ -160,6 +183,25 @@ func _gpu_min(vp: RID, frames: int) -> float:
 		_drive(1.0 / 60.0)
 		if i > 4: best = minf(best, RenderingServer.viewport_get_measured_render_time_gpu(vp))
 	return best
+
+var _saved_shadows := {}
+func _shadows(nodes: Array, on: bool) -> void:
+	for node: Node in nodes:
+		var geometry := node as GeometryInstance3D
+		if geometry == null:
+			continue
+		if not on:
+			_saved_shadows[geometry.get_instance_id()] = geometry.cast_shadow
+			geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		elif _saved_shadows.has(geometry.get_instance_id()):
+			geometry.cast_shadow = _saved_shadows[geometry.get_instance_id()]
+
+func _bot_geometry() -> Array:
+	var out := []
+	for bot: MvpBot in session.world.bots.values():
+		if is_instance_valid(bot):
+			out.append_array(bot.find_children("*", "GeometryInstance3D", true, false))
+	return out
 
 func _set_all(type: String, on: bool) -> void:
 	for node: Node in root.find_children("*", type, true, false):
