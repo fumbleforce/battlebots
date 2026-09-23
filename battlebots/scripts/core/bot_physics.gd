@@ -26,6 +26,10 @@ var yaw_acceleration_multiplier: float
 var yaw_torque_grip_fraction: float
 var rolling_resistance_multiplier: float
 var brake_multiplier: float
+# nitro
+var nitro_acceleration_multiplier: float
+var nitro_top_speed_multiplier: float
+var nitro_grip_multiplier: float
 # walker
 var lift_headroom_acceleration: float
 # impacts
@@ -45,6 +49,7 @@ const SECTIONS := {
 	"contact": ["track_hull_friction", "stranded_hull_friction", "slope_hold_fraction", "bot_contact_friction"],
 	"motor": ["acceleration_multiplier", "top_speed_multiplier", "grip_multiplier", "yaw_acceleration_multiplier",
 		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier"],
+	"nitro": ["nitro_acceleration_multiplier", "nitro_top_speed_multiplier", "nitro_grip_multiplier"],
 	"walker": ["lift_headroom_acceleration"],
 	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g",
 		"minigun_impulse_multiplier", "lifter_hold_acceleration_at_1g",

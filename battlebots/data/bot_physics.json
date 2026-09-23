@@ -23,6 +23,12 @@
 		"rolling_resistance_multiplier": 13.0,
 		"brake_multiplier": 2.0
 	},
+	"nitro": {
+		"_comment": "Nitro is raw machine power: boosted acceleration and top speed carry an Atlas off a jump ramp onto a roof. Multipliers over the (already motor-scaled) drive values while nitro is held with throttle.",
+		"nitro_acceleration_multiplier": 2.0,
+		"nitro_top_speed_multiplier": 2.0,
+		"nitro_grip_multiplier": 1.5
+	},
 	"walker": {
 		"lift_headroom_acceleration": 35.0
 	},

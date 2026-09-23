@@ -20,10 +20,14 @@ var physics := BotPhysics.settings()
 var geometry_scale := 1.0
 var probe_depth := 0.32
 const INPUT_TIMEOUT := 0.25
+## Corner ground probes (also the four-legged walker's foot layout).
 const PROBES: Array[Vector3] = [
 	Vector3(-0.65, 0, -0.8), Vector3(0.65, 0, -0.8),
 	Vector3(-0.65, 0, 0.8), Vector3(0.65, 0, 0.8),
 ]
+## Mid-length track probes keep drive contact when the belly rides over a
+## ridge with both ends in the air, so a tank does not beach.
+const TRACK_MID_PROBES: Array[Vector3] = [Vector3(-0.65, 0, 0.0), Vector3(0.65, 0, 0.0)]
 
 var grounded: bool = false
 var walker := false
@@ -250,6 +254,8 @@ func model_config() -> Dictionary:
 		"yaw_acceleration_limit":yaw_acceleration_limit * physics.yaw_acceleration_multiplier, "lateral_response":lateral_response,
 		"walker":walker, "nitro":nitro_active, "nitro_equipped":nitro_equipped,
 		"charged_jump":jump_equipped, "max_rise":max_rise(),
+		"nitro_acceleration":physics.nitro_acceleration_multiplier, "nitro_speed":physics.nitro_top_speed_multiplier,
+		"nitro_grip":physics.nitro_grip_multiplier,
 		"brake":brake_acceleration * physics.brake_multiplier, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,
 		"center_of_mass":center_of_mass if center_of_mass_mode == CENTER_OF_MASS_MODE_CUSTOM else Vector3.ZERO,
@@ -260,7 +266,7 @@ func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 	var normal_sum := Vector3.ZERO
 	var contacts := 0
 	var up := state.transform.basis.y
-	for probe: Vector3 in PROBES:
+	for probe: Vector3 in PROBES + TRACK_MID_PROBES:
 		var local_probe := Vector3(signf(probe.x) * probe_half_width, 0, signf(probe.z) * probe_half_length)
 		var origin := state.transform * local_probe
 		var query := PhysicsRayQueryParameters3D.create(origin, origin - up * probe_depth,
@@ -271,6 +277,18 @@ func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 		var normal: Vector3 = hit.normal
 		# Walls and an upside-down chassis are not usable wheel contact.
 		if normal.dot(Vector3.UP) > 0.5 and normal.dot(up) > 0.5:
+			normal_sum += normal
+			contacts += 1
+	# Tracks run the full hull length: when the hull bridges a transition (rear
+	# edge on the ground, nose on a ramp, belly in the air) the probes hang just
+	# clear, but the underside still touches walkable world geometry. Count
+	# those real contacts as track contact so the tank keeps driving.
+	for index: int in range(state.get_contact_count()):
+		if state.get_contact_collider_object(index) is DriveBody:
+			continue
+		var normal := state.get_contact_local_normal(index)
+		var below := (state.get_contact_local_position(index) - state.transform.origin).dot(up) < 0.0
+		if below and normal.dot(Vector3.UP) > 0.5 and normal.dot(up) > 0.5:
 			normal_sum += normal
 			contacts += 1
 	return normal_sum.normalized() if contacts >= 2 else Vector3.ZERO

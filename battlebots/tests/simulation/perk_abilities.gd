@@ -78,7 +78,10 @@ func run() -> void:
 	var drive_config := {"speed":10.0, "acceleration":8.0, "grip":9.0, "brake":9.0,
 		"coast":1.1, "drive_scale":1.0, "turn":1.65, "steering_scale":1.0,
 		"nitro":false, "nitro_equipped":true, "charged_jump":true,
-		"gravity":Vector3(0, -9.8, 0), "max_rise":BotPhysics.settings().rise_speed_cap_at_1g}
+		"gravity":Vector3(0, -9.8, 0), "max_rise":BotPhysics.settings().rise_speed_cap_at_1g,
+		"nitro_acceleration":BotPhysics.settings().nitro_acceleration_multiplier,
+		"nitro_speed":BotPhysics.settings().nitro_top_speed_multiplier,
+		"nitro_grip":BotPhysics.settings().nitro_grip_multiplier}
 	var normal_force: float = DriveModel.forces(Basis.IDENTITY, Vector3.ZERO, Vector3.ZERO,
 		Vector3.UP, 1.0, 0.0, false, 1.0 / 60.0, drive_config).acceleration.length()
 	drive_config.nitro = true

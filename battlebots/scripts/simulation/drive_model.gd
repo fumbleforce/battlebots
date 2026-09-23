@@ -7,15 +7,15 @@ static func forces(basis: Basis, velocity: Vector3, angular: Vector3, normal: Ve
 	var right := forward.cross(normal).normalized()
 	var speed := velocity.dot(forward)
 	var nitro: bool = bool(config.get("nitro", false)) and not braking and throttle > 0.05
-	var acceleration: float = config.brake if braking else config.acceleration * config.drive_scale * (1.7 if nitro else 1.0)
+	var acceleration: float = config.brake if braking else config.acceleration * config.drive_scale * (float(config.nitro_acceleration) if nitro else 1.0)
 	# Releasing the motor lets momentum carry the chassis. Explicit braking and
 	# the existing stale-input failsafe remain stronger than neutral coasting.
 	if not braking and is_zero_approx(throttle):
 		acceleration = float(config.get("coast", config.acceleration))
-	var desired: float = 0 if braking else throttle * config.speed * (1.35 if nitro else 1.0)
+	var desired: float = 0 if braking else throttle * config.speed * (float(config.nitro_speed) if nitro else 1.0)
 	var longitudinal := clampf((desired - speed) / delta, -acceleration, acceleration)
 	var lateral := -velocity.dot(right) / maxf(float(config.get("lateral_response", 0.12)), delta)
-	var force := (forward * longitudinal + right * lateral).limit_length(config.grip * (1.5 if nitro else 1.0))
+	var force := (forward * longitudinal + right * lateral).limit_length(config.grip * (float(config.nitro_grip) if nitro else 1.0))
 	var ratio := clampf(absf(speed) / float(config.speed), 0, 1)
 	var yaw: float = 0 if braking else -steering * config.turn * lerpf(1, 0.4, ratio)
 	var yaw_limit := float(config.get("yaw_acceleration_limit", 5.0))
