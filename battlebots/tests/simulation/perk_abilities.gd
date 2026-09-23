@@ -20,14 +20,19 @@ func run() -> void:
 	unequipped.parts.nitro = "nitro_off"
 	unequipped.parts.suspension = "jump_off"
 	check(registry.validate(unequipped).valid, "Both perk slots can be independently unequipped")
-	var old := starter.duplicate(true)
-	old.parts.erase("nitro")
-	old.parts.erase("suspension")
-	old.schema_version = 1
-	old.content_hash = LoadoutStore.REVISION_EIGHT_HASHES[0]
+	# Historical schema 1 had five slots, including the now-retired armour
+	# package. Do not manufacture it by dropping perks from a current starter.
+	var old := {"schema_version":1, "name":"Legacy Striker",
+		"parts":{"chassis":"balanced", "drive":"standard_wheels",
+			"weapon":"vertical_spinner", "armor":"standard_armor", "utility":"recovery_assist"},
+		"cosmetics":{"paint":"cyan"}, "content_hash":LoadoutStore.REVISION_EIGHT_HASHES[0]}
+	var original := old.duplicate(true)
 	var migrated := LoadoutStore.new("user://perk_legacy_fixture.json").migrate({"schema_version":1, "loadouts":[old]})
 	check(registry.validate(migrated.loadouts[0]).valid and migrated.loadouts[0].parts.nitro == "nitro_off"
 		and migrated.loadouts[0].parts.suspension == "jump_off", "Known saved builds migrate without enabling new abilities")
+	check(not migrated.loadouts[0].parts.has("armor") and migrated.loadouts[0].name == old.name
+		and migrated.loadouts[0].cosmetics == old.cosmetics and old == original,
+		"Migration retires the armour package while preserving identity and the original save")
 
 	var command := BotCommand.new()
 	command.nitro_held = true

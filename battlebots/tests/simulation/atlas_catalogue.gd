@@ -35,21 +35,31 @@ func _initialize() -> void:
 		old.schema_version = 1
 		old.parts.erase("nitro")
 		old.parts.erase("suspension")
+		# Schema 1 predates perks, but includes the retired armour-package slot.
+		old.parts.armor = "standard_armor"
 		old.content_hash = LoadoutStore.REVISION_EIGHT_HASHES[0]
 		old.cosmetics.sawblade.paint_primary = [0.25, 0.4, 0.6, 1.0]
+		var original := old.duplicate(true)
 		var migrated: Dictionary = store.migrate({"schema_version":1, "loadouts":[old]}).loadouts[0]
 		var expected: Dictionary = old.parts.duplicate(true)
+		expected.erase("armor")
 		expected.nitro = "nitro_off"
 		expected.suspension = "jump_off"
 		check(registry.validate(migrated).valid and migrated.parts == expected and migrated.cosmetics == old.cosmetics,
 			"Revision-eight saved machines retain every selected part and paint channel")
-		check(old.content_hash == LoadoutStore.REVISION_EIGHT_HASHES[0], "Migration never mutates its input")
+		check(old == original and migrated.name == old.name, "Migration preserves names and never mutates its input")
 	var previous := registry.scorpion()
+	previous.schema_version = 2
+	previous.parts.armor = "standard_armor"
 	previous.parts.nitro = "nitro_off"
 	previous.content_hash = LoadoutStore.REVISION_NINE_HASHES[0]
+	var previous_original := previous.duplicate(true)
 	var upgraded: Dictionary = store.migrate({"schema_version":1, "loadouts":[previous]}).loadouts[0]
-	check(registry.validate(upgraded).valid and upgraded.parts == previous.parts and upgraded.cosmetics == previous.cosmetics,
+	var expected_previous: Dictionary = previous.parts.duplicate(true)
+	expected_previous.erase("armor")
+	check(registry.validate(upgraded).valid and upgraded.parts == expected_previous and upgraded.cosmetics == previous.cosmetics,
 		"Published revision-nine perk choices survive Atlas migration unchanged")
+	check(previous == previous_original and upgraded.name == previous.name, "Schema-two migration leaves the source save intact")
 	for distance: float in [0.0, 0.4, 1.52, 2.1, 3.0, 4.0, 5.3]:
 		var frame := AtlasGeometry.track_transform(distance, 0.94)
 		check(absf(AtlasGeometry.track_distance(frame.origin) - distance) < 0.0001,
