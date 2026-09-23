@@ -1,15 +1,27 @@
 class_name MvpWeaponVisual
 extends Node3D
 ## Primitive cosmetic placeholder. Never adds collision or awards hits.
-## Lifter/flipper arm: it lies flat while charging (a loaded spring, with a
-## slight preload dip), snaps up violently on release and settles back down.
-const LIFTER_PRELOAD_ANGLE := deg_to_rad(-3.0)
-const LIFTER_LAUNCH_ANGLE := deg_to_rad(75.0)
+## Lifter/flipper arm: its lip rests on the ground in front of the hull (found
+## with a presentation-only ray, so it follows uneven terrain), trembles harder
+## as the charge builds, snaps violently past vertical on release, holds, then
+## drops back onto the ground.
+const LIFTER_LAUNCH_ANGLE := deg_to_rad(100.0)
+## Deepest the arm may hang when no ground is found below its lip (airborne).
+const LIFTER_MAX_DROP_ANGLE := deg_to_rad(40.0)
+## Lip clearance above the ground so the arm does not z-fight the floor (m).
+const LIFTER_GROUND_CLEARANCE := 0.03
+## Loaded-spring tremble at full charge.
+const LIFTER_TREMBLE_AMPLITUDE := deg_to_rad(1.5)
+const LIFTER_TREMBLE_RATE := 70.0
 ## Cooldown starts at 3 s on launch; the arm stays extended for its first 0.3 s.
 const LIFTER_EXTENDED_UNTIL_COOLDOWN := 2.7
-const LIFTER_SNAP_RATE := 60.0
-const LIFTER_SETTLE_RATE := 10.0
+const LIFTER_SNAP_RATE := 90.0
+const LIFTER_GROUND_FOLLOW_RATE := 25.0
+const LIFTER_DROP_RATE := 8.0
 var kind := ""
+## Forward reach of the lifter arm from its hinge, in the mechanism frame.
+var _lifter_reach := -1.0
+var _lifter_time := 0.0
 var mechanism: Node3D
 var gun_effects: MinigunEffects
 var metal := StandardMaterial3D.new()
@@ -98,6 +110,32 @@ func assemble(weapon: String, size: Vector3) -> void:
 		_box(mechanism, Vector3(size.x * 0.7, 0.12, 0.14), Vector3(0, 0, -0.88), metal)
 		_box(mechanism, Vector3(size.x * 0.7, 0.16, 0.18), Vector3.ZERO, metal)
 
+## Arm angle (negative = down) that rests the lip on the ground below it. The
+## reach is measured from the arm's actual meshes, so swapped attachments such
+## as Atlas's forged lifter rest correctly too.
+func _lifter_ground_angle() -> float:
+	if _lifter_reach < 0.0:
+		_lifter_reach = 0.0
+		var to_mechanism := mechanism.global_transform.affine_inverse()
+		for node: Node in mechanism.find_children("*", "MeshInstance3D", true, false):
+			var part := node as MeshInstance3D
+			var bounds := to_mechanism * part.global_transform * part.get_aabb()
+			_lifter_reach = maxf(_lifter_reach, -bounds.position.z)
+	if _lifter_reach <= 0.0 or not is_inside_tree():
+		return 0.0
+	var frame := (mechanism.get_parent() as Node3D).global_transform
+	var up := frame.basis.y.normalized()
+	var forward := -frame.basis.z.normalized()
+	var reach := _lifter_reach * mechanism.global_basis.get_scale().z
+	var pivot := mechanism.global_position
+	var lip := pivot + forward * reach
+	var query := PhysicsRayQueryParameters3D.create(lip + up * reach, lip - up * reach * 2.0, BaselineConfig.WORLD_LAYER)
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return -LIFTER_MAX_DROP_ANGLE
+	var drop := (pivot - Vector3(hit.position)).dot(up) - LIFTER_GROUND_CLEARANCE
+	return -asin(clampf(drop / reach, 0.0, sin(LIFTER_MAX_DROP_ANGLE)))
+
 func _box(parent: Node3D, size: Vector3, at: Vector3, material: Material) -> void:
 	var mesh := BoxMesh.new()
 	mesh.size = size
@@ -134,11 +172,16 @@ func show_state(view: BotView, delta: float) -> void:
 			angle = lerpf(-PI / 6.0, PI / 6.0, clampf(1.0 - view.weapon_cooldown / 1.4, 0, 1))
 		mechanism.rotation.x = 0.0 if disabled else angle
 	elif kind == "lifter":
-		var angle := view.weapon_charge_fraction * LIFTER_PRELOAD_ANGLE
-		var rate := LIFTER_SETTLE_RATE
+		_lifter_time += delta
+		var angle := _lifter_ground_angle()
+		var rate := LIFTER_GROUND_FOLLOW_RATE
 		if view.weapon_state == "launch" or view.weapon_cooldown > LIFTER_EXTENDED_UNTIL_COOLDOWN:
 			angle = LIFTER_LAUNCH_ANGLE
 			rate = LIFTER_SNAP_RATE
+		elif mechanism.rotation.x > angle + LIFTER_TREMBLE_AMPLITUDE:
+			rate = LIFTER_DROP_RATE
+		else:
+			angle += sin(_lifter_time * LIFTER_TREMBLE_RATE) * LIFTER_TREMBLE_AMPLITUDE * view.weapon_charge_fraction
 		if disabled:
-			angle = 0
+			angle = _lifter_ground_angle()
 		mechanism.rotation.x = lerpf(mechanism.rotation.x, angle, 1 - exp(-delta * rate))
