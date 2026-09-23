@@ -48,11 +48,15 @@ func run() -> void:
 	for selection: Array in [[1, 3], [2, 1]]:
 		var category: Dictionary = profile.catalogue.parts[selection[0]]
 		profile.equip("parts", category, category.items[selection[1]])
-	# Armour every other area (exactly 120 kg), then heavy side skirts push it over.
+	# Armour every area with heavy side skirts: over 120 kg is legal now, just slower.
 	for module: Array in [["armor_top", 1], ["armor_front", 1], ["armor_rear", 1], ["armor_side", 2]]:
 		for category: Dictionary in profile.catalogue.decals:
 			if category.slot == module[0]: profile.equip("decals", category, category.items[module[1]])
-	check(not profile.bots[0].valid, "Overweight draft remains editable")
+	check(profile.bots[0].valid, "Heavy armoured draft stays valid")
+	# A quad-cannon turret needs the Atlas roof and overdraws the 100 power cap.
+	var utility: Dictionary = profile.catalogue.parts[4]
+	profile.equip("parts", utility, utility.items[6])
+	check(not profile.bots[0].valid, "Invalid draft remains editable")
 	check(profile.save_active("Invalid") == ERR_INVALID_DATA, "Invalid draft cannot save")
 	check(FileAccess.get_file_as_string(path) == disk, "Failed save preserves existing file")
 	profile.undo_edit()

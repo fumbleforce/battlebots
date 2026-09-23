@@ -16,7 +16,7 @@ func run() -> void:
 	var original := draft.duplicate(true)
 	var cases := [
 		["chassis", "compact", "core", 220.0],
-		["drive", "agile", "speed", 12.0],
+		["drive", "agile", "drive_speed", 12.0],
 		["utility", "cooling_pack", "cooling", 15.0],
 		["utility", "cooling_pack", "recovery_seconds", 2.0],
 		["weapon", "hammer", "weapon", "hammer"]]
@@ -32,6 +32,9 @@ func run() -> void:
 		result.current.stats.mass = -1
 		result.proposed.stats.clear()
 		check(draft == original, "Returned nested records are detached")
+	# Top speed scales with mass: agile drive (12) on an 87 kg build runs 6.5% faster.
+	var agile := GarageComparison.compare(registry, draft, "drive", "agile")
+	check(is_equal_approx(agile.proposed.stats.speed, 12.78) and is_equal_approx(agile.current.stats.speed, 10.45), "Canonical tradeoff: mass-scaled speed")
 	# Armour pieces are module choices: each covers faces with its own HP and mass.
 	for entry: Array in [["armor_front", 1, "front", 90.0, 97.0], ["armor_side", 2, "left", 110.0, 97.0], ["armor_side", 0, "right", 0.0, 85.0]]:
 		var result := GarageComparison.compare_armor(registry, draft, entry[0], entry[1])
@@ -52,12 +55,18 @@ func run() -> void:
 	heavy.parts.merge({"chassis": "wide", "drive": "traction", "weapon": "horizontal_spinner", "utility": "cooling_pack"}, true)
 	heavy.cosmetics.sawblade = SawbladeConfig.defaults()
 	heavy.cosmetics.sawblade.merge({"armor_side": 2, "armor_top": 1, "armor_front": 1, "armor_rear": 1}, true)
-	var repair := GarageComparison.compare_armor(registry, heavy, "armor_side", 0)
-	check(not repair.current.valid and repair.current.reasons.has("Mass exceeds 120 kg"), "Overweight build retains concrete validation error")
-	check(repair.current.stats == {"mass": 128.0, "power": 80.0}, "Invalid build exposes only verified canonical budgets")
-	check(repair.proposed.valid and repair.proposed.stats.mass == 116.0, "Proposed swap repairs overweight build")
-	var over := GarageComparison.compare_armor(registry, repair.draft, "armor_side", 2)
-	check(not over.proposed.valid and over.proposed.stats.mass == 128.0 and not over.proposed.stats.has("core"), "Invalid candidate budget remains visible without invented derived values")
+	var lighter := GarageComparison.compare_armor(registry, heavy, "armor_side", 0)
+	check(lighter.current.valid and lighter.current.stats.mass == 128.0, "Heavy build past 120 kg stays legal")
+	check(lighter.proposed.valid and lighter.proposed.stats.mass == 116.0 and lighter.proposed.stats.speed > lighter.current.stats.speed, "Shedding armour mass restores top speed")
+	# Two 40-power weapons on Atlas tracks overdraw the 100 power cap.
+	var overpowered := registry.atlas()
+	overpowered.parts.merge({"weapon": "vertical_spinner", "utility": "turret_cannon_quad"}, true)
+	var repair := GarageComparison.compare(registry, overpowered, "weapon", "saw")
+	check(not repair.current.valid and repair.current.reasons.has("Installed power exceeds 100"), "Overpowered build retains concrete validation error")
+	check(repair.current.stats == {"mass": 122.0, "power": 110.0}, "Invalid build exposes only verified canonical budgets")
+	check(repair.proposed.valid and repair.proposed.stats.power == 100.0, "Proposed swap repairs overpowered build")
+	var over := GarageComparison.compare(registry, repair.draft, "weapon", "vertical_spinner")
+	check(not over.proposed.valid and over.proposed.stats.power == 110.0 and not over.proposed.stats.has("core"), "Invalid candidate budget remains visible without invented derived values")
 	for bad: Array in [["paint", "compact"], ["chassis", "missing"], ["chassis", "agile"]]:
 		var result := GarageComparison.compare(registry, draft, bad[0], bad[1])
 		check(not result.proposed.valid and not result.changed and not result.proposed.reasons.is_empty(), "Invalid request rejects with reason")

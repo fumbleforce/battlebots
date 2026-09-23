@@ -58,10 +58,17 @@ func run() -> void:
 
 	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "utility":"recovery_assist"},
 		{"armor_side":2, "armor_front":1, "armor_rear":1})
-	check(profile.registry.validate(profile.loadouts[0]).valid, "Heavy Scorpion fixture is valid at 115 kg")
-	check(not profile.part_fits("weapon", "horizontal_spinner"), "Over-mass weapon is hidden")
-	check(not profile.part_fits("utility", "minigun_pod"), "Over-mass auxiliary is hidden")
+	var heavy: LoadoutValidation = profile.registry.validate(profile.loadouts[0])
+	check(heavy.valid and heavy.stats.mass == 115.0, "Heavy Scorpion fixture is valid at 115 kg")
+	check(profile.part_fits("weapon", "horizontal_spinner") and profile.part_fits("utility", "minigun_pod"), "Mass no longer hides heavier parts")
+	var heavier: LoadoutValidation = profile.registry.validate(profile._with_part(profile.loadouts[0], "utility", "minigun_pod"))
+	check(heavier.valid and heavier.stats.mass == 124.0 and heavier.stats.speed < heavy.stats.speed, "Heavier legal build is slower")
 	check(profile.part_fits("utility", "cooling_pack"), "Utilities within budget remain")
+
+	use({"chassis":"atlas_mx", "drive":"traction", "weapon":"vertical_spinner", "utility":"recovery_assist"})
+	check(profile.registry.validate(profile.loadouts[0]).valid, "Atlas spinner fixture is valid at 80 power")
+	check(not profile.part_fits("utility", "turret_cannon_quad"), "Over-power turret is hidden")
+	check(profile.part_fits("utility", "turret_cannon"), "Turrets within the power cap remain")
 
 	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"minigun_pod"})
 	check(profile.part_fits("utility", "minigun_pod"), "Equipped invalid part remains listed for repair")

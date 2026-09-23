@@ -97,13 +97,18 @@ func run() -> void:
 	broken.parts.weapon = "unrecognized-weapon"
 	preview.show_loadout(broken)
 	check(preview.model == null and not preview.status.text.is_empty(), "Malformed draft clears stale geometry and explains failure")
-	var overweight := registry.starter(true)
-	overweight.parts.weapon = "horizontal_spinner"
-	overweight.cosmetics["sawblade"] = SawbladeConfig.defaults()
-	overweight.cosmetics.sawblade.merge({"armor_side": 2, "armor_top": 1, "armor_front": 1, "armor_rear": 1}, true)
-	overweight.parts.utility = "cooling_pack"
-	preview.show_loadout(overweight)
-	check(preview.model == null and not preview.status.text.is_empty(), "Overweight draft is explicitly invalid, without stale geometry")
+	var heavy := registry.starter(true)
+	heavy.parts.weapon = "horizontal_spinner"
+	heavy.cosmetics["sawblade"] = SawbladeConfig.defaults()
+	heavy.cosmetics.sawblade.merge({"armor_side": 2, "armor_top": 1, "armor_front": 1, "armor_rear": 1}, true)
+	heavy.parts.utility = "cooling_pack"
+	preview.show_loadout(heavy)
+	check(preview.model != null, "Heavy draft past 120 kg is legal and previews")
+	# Two 40-power weapons on Atlas tracks overdraw the 100 power cap.
+	var overpowered := registry.atlas()
+	overpowered.parts.merge({"weapon": "vertical_spinner", "utility": "turret_cannon_quad"}, true)
+	preview.show_loadout(overpowered)
+	check(preview.model == null and not preview.status.text.is_empty(), "Overpowered draft is explicitly invalid, without stale geometry")
 	preview.show_loadout({})
 	check(preview.model == null, "Missing draft remains empty safely")
 	preview.show_loadout(original)

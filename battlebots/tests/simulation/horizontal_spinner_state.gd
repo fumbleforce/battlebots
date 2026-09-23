@@ -61,7 +61,7 @@ func catalogue() -> void:
 	armour.armor_front = 1
 	draft.cosmetics = {"paint":"cyan", "sawblade":armour}
 	var overweight := registry.validate(draft)
-	check(not overweight.valid and "Mass exceeds 120 kg" in overweight.reasons, "122kg horizontal build with heavy skirts is rejected rather than clamped")
+	check(overweight.valid and overweight.stats.mass == 122.0 and overweight.stats.speed < overweight.stats.drive_speed, "122kg horizontal build with heavy skirts is legal but slower")
 	draft.parts.utility = "recovery_assist"
 	draft.parts.chassis = "balanced"
 	var heavy := registry.validate(draft)

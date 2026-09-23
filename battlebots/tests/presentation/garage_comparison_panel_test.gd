@@ -75,13 +75,22 @@ func run() -> void:
 		await choose(part[0], part[1])
 	await choose_armor("armor_front", 1)
 	await choose_armor("armor_rear", 1)
-	check(cell(panel.budgets, 3) == "116", "Armour pieces add their mass")
-	# Heavy side skirts push the build over budget; the panel must report it without derived stats.
+	check(cell(panel.budgets, 2) == "Mass (kg)" and cell(panel.budgets, 3) == "116", "Armour pieces add their mass")
+	check(cell(panel.details, 3) == "3.7", "116 kg walker loses top speed")
+	# Heavy side skirts take the build past 120 kg: still legal, just slower.
 	await choose_armor("armor_side", 2)
-	check(cell(panel.budgets, 3) == "122", "Over-budget draft immediately updates current mass")
+	check(cell(panel.budgets, 3) == "122" and cell(panel.details, 1) == "240", "Heavy draft stays valid with derived stats")
+	check(cell(panel.details, 3) == "3.6" and not screen.get_node("%Save").disabled, "Heavier draft is slower but saveable")
+	# A quad-cannon turret needs the Atlas roof and overdraws the power cap; the panel reports it without derived stats.
+	var utility: Dictionary = profile.catalogue.parts[profile.catalogue.parts.map(func(cat: Dictionary) -> String: return cat.slot).find("utility")]
+	for item: Dictionary in utility.items:
+		if item.id == "turret_cannon_quad": profile.equip("parts", utility, item)
+	await settle()
+	check(cell(panel.budgets, 3) == "146" and cell(panel.budgets, 5) == "115", "Invalid draft immediately updates current budgets")
 	check(cell(panel.details, 1) == "—", "Invalid build has no invented derived stats")
-	check(screen.get_node("%SelDesc").text.contains("Mass exceeds 120 kg"), "Specific current build error is visible")
+	check(screen.get_node("%SelDesc").text.contains("Installed power exceeds 100"), "Specific current build error is visible")
 	check(screen.get_node("%Save").disabled, "Invalid draft disables Save")
+	await choose("utility", "cooling_pack")
 	await choose_armor("armor_side", 1)
 	await settle()
 	check(cell(panel.budgets, 3) == "116" and cell(panel.details, 1) == "240", "Repair choice restores valid current stats")

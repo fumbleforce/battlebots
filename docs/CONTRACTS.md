@@ -1044,6 +1044,7 @@ Build `mvp-ab-30`; protocol and catalogue unchanged (no wire change). Gameplay c
 `ContentRegistry.validate().stats.speed` is the drive's catalogue speed ×
 `BotPhysics.top_speed_factor(mass)` = clamp(1 + (reference_mass − mass) ×
 top_speed_per_kg, min, max) from `data/bot_physics.json` `mass` (100 kg, 0.005/kg,
-0.9–1.1). `stats.drive_speed` keeps the unscaled drive value. Authority, client replay
+0.6–1.1). `stats.drive_speed` keeps the unscaled drive value. The 120 kg mass limit is removed:
+validation no longer rejects heavy builds (power stays capped at 100). Authority, client replay
 and the garage read the same stat; `DriveBody` still applies the motor
 `top_speed_multiplier` on top. Needs the matching hosted release.

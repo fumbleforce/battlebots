@@ -132,8 +132,6 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		mass += float(part.mass)
 		power += float(part.power)
 	mass += armor_mass(draft)
-	if enforce_budget and mass > 120.0:
-		result.reasons.append("Mass exceeds 120 kg")
 	if enforce_budget and power > 100.0:
 		result.reasons.append("Installed power exceeds 100")
 	if selected.get("chassis") == "scorpion_hex" and selected.get("drive") != "walker":

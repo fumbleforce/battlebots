@@ -75,7 +75,7 @@ func render(comparison: Dictionary, candidate: String, proposed := true) -> void
 		_cell(budgets, heading, budgets.get_child_count() % 4 == 0).modulate = Color("f5b82e")
 	var before: Dictionary = comparison.current.stats
 	var after: Dictionary = comparison.proposed.stats if proposed else before
-	_row(budgets, "Mass (kg / 120)", before.get("mass"), after.get("mass"), 1, 120)
+	_row(budgets, "Mass (kg)", before.get("mass"), after.get("mass"), 1)
 	_row(budgets, "Power ( / 100)", before.get("power"), after.get("power"), 1, 100)
 	for field: Array in FIELDS:
 		_row(details, field[0], before.get(field[1]), after.get(field[1]), field[2])
@@ -93,7 +93,7 @@ func render_current(summary: Dictionary) -> void:
 	_cell(budgets, "STAT", true).modulate = Color("f5b82e")
 	_cell(budgets, "VALUE").modulate = Color("f5b82e")
 	var stats: Dictionary = summary.stats
-	_current_row(budgets, "Mass (kg / 120)", stats.get("mass"))
+	_current_row(budgets, "Mass (kg)", stats.get("mass"))
 	_current_row(budgets, "Power ( / 100)", stats.get("power"))
 	for field: Array in FIELDS:
 		_current_row(details, field[0], stats.get(field[1]), field[2])

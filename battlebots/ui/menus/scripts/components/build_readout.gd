@@ -30,7 +30,8 @@ const AMBER := Color("f5b82e")
 const GOOD := Color("8fbf8f")
 const BAD := Color("f08375")
 const MUTED := Color("6f7883")
-const MASS_LIMIT := 120.0
+## Mass has no limit; the bar is a heaviness scale that fills at this mass.
+const MASS_BAR_FULL := 180.0
 
 var preview: GarageBotPreview
 var _max_core := 1.0
@@ -146,13 +147,12 @@ func _show_values(stats: Dictionary) -> void:
 	var core := float(stats.get("core", 0))
 	var mass := float(stats.get("mass", 0))
 	%CoreValue.text = _n(core)
-	%MassValue.text = "%s / 120 kg" % _n(mass)
-	%MassValue.add_theme_color_override("font_color", BAD if mass > MASS_LIMIT else Color("e9ebee"))
+	%MassValue.text = "%s kg" % _n(mass)
 	%SpeedValue.text = "%.1f m/s" % float(stats.get("speed", 0))
 	%CoolingValue.text = "%s heat/s" % _n(stats.get("cooling", 0))
 	_show_armor(stats.get("plates", {}), {})
 	_tween_bar(%CoreBar, clampf(core / _max_core, 0.0, 1.0))
-	_tween_bar(%MassBar, minf(mass, MASS_LIMIT))
+	_tween_bar(%MassBar, minf(mass, MASS_BAR_FULL))
 
 
 ## Armour HP per area; a bare area reads "—". Areas that differ from `before`

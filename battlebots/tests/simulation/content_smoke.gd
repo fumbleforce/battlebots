@@ -24,7 +24,7 @@ func _initialize() -> void:
 	# Heavier builds lose top speed: 85 kg standard wheels run 10 × 1.075.
 	var physics := BotPhysics.settings()
 	check(is_equal_approx(physics.top_speed_factor(100.0), 1.0) and is_equal_approx(physics.top_speed_factor(0.0), 1.1)
-		and is_equal_approx(physics.top_speed_factor(200.0), 0.9), "Mass speed factor is neutral at 100 kg and clamped")
+		and is_equal_approx(physics.top_speed_factor(150.0), 0.75) and is_equal_approx(physics.top_speed_factor(250.0), 0.6), "Mass speed factor is neutral at 100 kg and clamped")
 	check(is_equal_approx(result.stats.speed, 10.75) and result.stats.drive_speed == 10.0, "Striker top speed scales with its 85 kg mass")
 	var skirted := striker.duplicate(true)
 	skirted.cosmetics["sawblade"] = SawbladeConfig.defaults()
@@ -68,7 +68,7 @@ func _initialize() -> void:
 	check(registry.validate(bad).valid, "Heavy parts alone fit the budget")
 	bad.cosmetics = {"paint":"cyan", "sawblade":SawbladeConfig.defaults()}
 	bad.cosmetics.sawblade.merge({"armor_side":2, "armor_top":1, "armor_front":1, "armor_rear":1}, true)
-	check(not registry.validate(bad).valid, "Reject overweight: armour pieces count toward the budget")
+	check(registry.validate(bad).valid and registry.validate(bad).stats.speed < registry.validate(bad).stats.drive_speed, "No mass limit: fully armoured heavy build is legal but slower")
 	bad = striker.duplicate(true)
 	bad.mass = 1
 	check(not registry.validate(bad).valid, "Reject client-supplied stats")

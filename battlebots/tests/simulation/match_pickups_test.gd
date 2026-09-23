@@ -52,11 +52,12 @@ func rules() -> void:
 	check(balanced.parts.utility == MatchPickups.FALLBACK_UTILITY and balanced.parts.drive == "walker",
 		"A body without a gun socket drops the auxiliary gun and keeps a compatible drive")
 	check(pickups.swapped(gunner, "minigun").is_empty(), "A second minigun cannot share the gun socket")
-	var heavy := gunner.duplicate(true)
-	heavy.cosmetics.sawblade.merge({"armor_side":2, "armor_top":1, "armor_front":1, "armor_rear":1}, true)
-	heavy.parts.weapon = "horizontal_spinner"
-	check(not strict.validate(heavy).valid and pickups.registry.validate(heavy).valid,
-		"Pickups are a bonus above the build budget; lobby validation stays strict")
+	# Power is the only construction budget; pickups may carry a build above it.
+	var overpowered := strict.atlas()
+	overpowered.parts.weapon = "vertical_spinner"
+	overpowered.parts.utility = "turret_cannon_quad"
+	check(not strict.validate(overpowered).valid and pickups.registry.validate(overpowered).valid,
+		"Pickups are a bonus above the power budget; lobby validation stays strict")
 	check(strict.enforce_budget, "A default registry keeps enforcing the budget")
 
 	pickups.begin([Vector3.ZERO, Vector3(5, 0, 5)], 7)

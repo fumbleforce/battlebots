@@ -338,7 +338,7 @@ unique_name_in_owner = true
 
 [node name="MassValue" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Mass/Head"]
 layout_mode = 2
-text = "105 / 120 kg"
+text = "105 kg"
 theme_type_variation = &"Subheading"
 theme_override_font_sizes/font_size = 29
 unique_name_in_owner = true
@@ -346,7 +346,7 @@ unique_name_in_owner = true
 [node name="MassBar" type="ProgressBar" parent="Col/StatsPanel/Inner/Stats/Vitals/Mass"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 8)
-max_value = 120.0
+max_value = 180.0
 value = 105.0
 show_percentage = false
 theme_override_styles/background = SubResource("sb_bar_bg")

@@ -33,13 +33,19 @@ func run() -> void:
 	profile.equip("parts",weapon,weapon.items[1])
 	var armor := {}
 	for module: Dictionary in profile.catalogue.decals: armor[module.slot] = module
-	# Armouring every area with the heavy side skirts pushes this build over 120 kg.
+	var light: float = profile.registry.validate(profile.loadouts[profile.PRESET_COUNT]).stats.speed
+	# Armouring every area with the heavy side skirts takes this build past 120 kg: legal, just slower.
 	for section: Array in [["armor_top",1],["armor_front",1],["armor_rear",1],["armor_side",2]]:
 		profile.equip("decals",armor[section[0]],armor[section[0]].items[section[1]])
-	check(profile.active_loadout().is_empty() and not profile.bots[profile.PRESET_COUNT].valid,"Overweight combination retained but cannot play")
-	check(profile.save_active("Overweight") == ERR_INVALID_DATA,"Invalid save rejected")
+	var heavy: LoadoutValidation = profile.registry.validate(profile.loadouts[profile.PRESET_COUNT])
+	check(heavy.valid and heavy.stats.mass > 120.0 and heavy.stats.speed < light,"Heavy build stays playable but loses top speed")
+	# A quad-cannon turret needs the Atlas roof and overdraws the 100 power cap.
+	var utility: Dictionary = profile.catalogue.parts[4]
+	profile.equip("parts",utility,utility.items[6])
+	check(profile.active_loadout().is_empty() and not profile.bots[profile.PRESET_COUNT].valid,"Invalid combination retained but cannot play")
+	check(profile.save_active("Overpowered") == ERR_INVALID_DATA,"Invalid save rejected")
 	check(LoadoutStore.new(path).load_saved().loadouts[0].name == "Office Striker","Rejected save preserves disk")
-	profile.equip("decals",armor.armor_side,armor.armor_side.items[1])
+	profile.equip("parts",utility,utility.items[0])
 	check(not profile.active_loadout().is_empty(),"Build repair restores validity")
 	check(profile.save_active("Repaired") == OK,"Repaired build saves")
 	var detached: Dictionary = profile.active_loadout()
