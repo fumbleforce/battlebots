@@ -84,7 +84,9 @@ World3Ds; `--no-probe` removes probes; `--cycles=N` controls repetition.
 
 [Retained report](evidence/scorpion-lifecycle/report.json) contains all final
 samples and renderer identity. [Native log excerpts](evidence/scorpion-lifecycle/native.log)
-retain the original failure and final shutdown counts. This completes #18's
+retain the original failure and final shutdown counts. After rebasing onto
+`e40d3cd`, pinned baseline and all nine controls passed again for three cycles
+each using Node 24.21.0 (integration source `ee44396`). This completes #18's
 explicit verified-engine-issue investigation outcome; it does **not** claim
 that Godot's leak has been fixed. A hosted release is not needed for these
 standalone tests and documentation.
