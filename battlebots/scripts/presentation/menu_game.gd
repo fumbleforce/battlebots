@@ -70,7 +70,10 @@ func _ready() -> void:
 		_cli_handoff = true
 		get_tree().change_scene_to_file.call_deferred("res://scenes/app/hosted_server.tscn")
 		return
-	if OS.has_feature("dedicated_server") or args.has("--server") or args.has("--host") or args.any(func(arg: String) -> bool: return arg.begins_with("--join=")):
+	# Only servers and headless peers use the lightweight console; windowed CLI
+	# host/join play in this full presentation (see _start_cli_session).
+	if OS.has_feature("dedicated_server") or args.has("--server") or (DisplayServer.get_name() == "headless" \
+			and (args.has("--host") or args.any(func(arg: String) -> bool: return arg.begins_with("--join=")))):
 		_cli_handoff = true
 		get_tree().change_scene_to_file.call_deferred("res://scenes/app/mvp.tscn")
 		return
@@ -165,6 +168,57 @@ func _ready() -> void:
 	show_screen("main")
 	if "--practice" in args:
 		start_practice()
+	else:
+		_start_cli_session(args)
+
+## Windowed `--host` / `--join=` (with `--port=`, `--players=`, `--mode=ffa`,
+## `--ready`) open the lobby exactly as the menus would, using the active build.
+func _start_cli_session(args: Array) -> void:
+	var address := ""
+	var port := 24567
+	var count := 0
+	var ffa := false
+	for arg: String in args:
+		if arg.begins_with("--join="):
+			address = arg.trim_prefix("--join=")
+		elif arg.begins_with("--port="):
+			port = arg.trim_prefix("--port=").to_int()
+		elif arg.begins_with("--players="):
+			count = arg.trim_prefix("--players=").to_int()
+		elif arg == "--mode=ffa":
+			ffa = true
+	if address.is_empty() and not args.has("--host"):
+		return
+	var draft: Dictionary = PlayerProfile.active_loadout()
+	if not session.registry.validate(draft).valid:
+		show_notice("Repair and select a valid build in the garage before hosting or joining.")
+		return
+	if args.has("--ready"):
+		var ready_up := func(kind: String, _details: Dictionary) -> void:
+			if kind in ["hosted", "joined"]:
+				session.set_loadout(draft)
+				session.set_ready(true)
+		session.session_event.connect(ready_up)
+		session.session_event.connect(func(kind: String, _details: Dictionary) -> void:
+			if kind in ["hosted", "joined", "left", "error"] and session.session_event.is_connected(ready_up):
+				session.session_event.disconnect(ready_up))
+	var error: int
+	if address.is_empty():
+		if count <= 0:
+			count = 4 if ffa else 2
+		MenuRouter.match_setup.mode = "ffa" if ffa else {2: "duel", 10: "5v5"}.get(count, "team")
+		MenuRouter.match_setup.capacity = count
+		MenuRouter.lobby_intent = "host"
+		error = session.host(port, true, count, "ffa" if ffa else "teams", "*", preload("res://scripts/arena/arena_scenery.gd").load_choice())
+		if error == OK:
+			session.set_loadout(draft)
+	else:
+		MenuRouter.lobby_intent = "join"
+		error = session.join(address, port)
+	if error != OK:
+		show_notice("Cannot %s: %s" % ["host" if address.is_empty() else "join", error_string(error)])
+		return
+	MenuRouter.goto("lobby")
 
 func _resize_menu() -> void:
 	var extent := get_viewport().get_visible_rect().size
