@@ -52,6 +52,32 @@ var _command_age: float = INPUT_TIMEOUT
 var _drive_input: float = 0.0
 var _turn_input: float = 0.0
 
+## Presentation interpolation: physics advances at 60 Hz, so a model copied from
+## the body each rendered frame holds still and then jumps a whole tick (0.4 m
+## at nitro speed). Keep the last two tick poses and blend between them.
+## Jumps larger than a tick of plausible motion (resets, respawns, large
+## reconciliation snaps) are not blended.
+const INTERPOLATION_SNAP_DISTANCE := 3.0
+var _previous_tick_pose := Transform3D.IDENTITY
+var _current_tick_pose := Transform3D.IDENTITY
+var _tick_poses_valid := false
+
+func _physics_process(_delta: float) -> void:
+	# Runs before this tick's physics step: global_transform is the pose the
+	# previous step produced.
+	var pose := global_transform
+	var teleported := pose.origin.distance_to(_current_tick_pose.origin) > INTERPOLATION_SNAP_DISTANCE
+	_previous_tick_pose = pose if not _tick_poses_valid or teleported else _current_tick_pose
+	_current_tick_pose = pose
+	_tick_poses_valid = true
+
+## Pose blended between the last two physics ticks for the current render frame.
+func interpolated_transform() -> Transform3D:
+	if not _tick_poses_valid:
+		return global_transform
+	var fraction := clampf(Engine.get_physics_interpolation_fraction(), 0.0, 1.0)
+	return _previous_tick_pose.interpolate_with(_current_tick_pose, fraction)
+
 func accept_command(command: BotCommand) -> void:
 	# Copy scalars: a caller cannot mutate accepted input after validation.
 	_throttle = command.throttle

@@ -179,7 +179,7 @@ func _on_reconciled(displacement: Vector3) -> void:
 
 func _process(delta: float) -> void:
 	if simulated:
-		presentation.global_transform = body.global_transform
+		presentation.global_transform = body.interpolated_transform()
 	# Catch up sizeable contact offsets within the settling budget while keeping
 	# small driving corrections gentle. Large divergences still snap on receipt.
 	var decay := 30.0 if visual_error.length_squared() > 0.25 * 0.25 else 20.0
