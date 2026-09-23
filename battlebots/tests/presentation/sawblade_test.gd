@@ -7,6 +7,28 @@ func check(condition: bool, message: String) -> void:
 func _ready() -> void:
 	run.call_deferred()
 
+## fposmod rounds a tiny negative travel up to exactly the sample count; the
+## tread must wrap to the first sample instead of indexing past the array.
+func tread_wrap_case(preview: GarageBotPreview, base: Dictionary) -> void:
+	var tracked := base.duplicate(true)
+	tracked.parts.drive = "traction"
+	preview.show_loadout(tracked)
+	var visual := preview.sawblade_visual
+	var key: String = SawbladeVisual.tread_samples.keys()[0]
+	var samples: Array = SawbladeVisual.tread_samples[key]
+	var side := 0 if key.begins_with("Tread_L") else 1
+	visual.advance_drive(SawbladeVisual.TREAD_LOOP_LENGTH * 0.5, SawbladeVisual.TREAD_LOOP_LENGTH * 0.5)
+	visual._travel = [0.0, 0.0]
+	var tiny := -1e-17
+	check(fposmod(tiny / SawbladeVisual.TREAD_LOOP_LENGTH * samples.size(), samples.size()) == float(samples.size()),
+		"Fixture reproduces fposmod rounding up to the sample count")
+	visual.advance_drive(tiny, tiny)
+	var first: Array = samples[0]
+	var root: Node3D = visual.nodes.SawbladeTank_ROOT
+	var local: Vector3 = root.global_transform.affine_inverse() * visual.nodes[key].global_position
+	check(local.distance_to(Vector3(first[0], first[1], first[2])) < 0.0001 and visual._travel[side] < 0,
+		"Tiny negative tread travel wraps to the first authored sample")
+
 func run() -> void:
 	get_window().size = Vector2i(1280, 720)
 	var registry := ContentRegistry.new()
@@ -58,6 +80,7 @@ func run() -> void:
 	preview.show_loadout(draft)
 	check(preview.sawblade_visual.nodes.Module_drive_wheels.visible, "Four wheel drive selects wheels")
 	check(not preview.sawblade_visual.nodes.Module_drive_tracks.visible, "Wheels hide tracks")
+	tread_wrap_case(preview, draft)
 	var walking := draft.duplicate(true)
 	walking.parts.drive = "walker"
 	walking.cosmetics.sawblade.armor_side = 1

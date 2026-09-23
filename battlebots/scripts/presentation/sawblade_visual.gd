@@ -3,6 +3,8 @@ extends Node3D
 ## Art-only assembly. All damage and attack eligibility stay in CombatState.
 const MODEL := preload("res://assets/models/sawblade_runtime/sawblade_runtime.glb")
 const PAINT := preload("res://assets/models/sawblade_runtime/paint.gdshader")
+## Authored tread loop length in model metres; sawblade_treads.json samples it evenly.
+const TREAD_LOOP_LENGTH := 3.91
 static var hammer_samples: Dictionary = {}
 static var tread_samples: Dictionary = {}
 var nodes: Dictionary = {}
@@ -173,12 +175,16 @@ func advance_drive(left: float, right: float) -> void:
 	if not _tracks: return
 	for key: String in tread_samples:
 		var side := 0 if key.begins_with("Tread_L") else 1
-		# Authored loop is 3.91 m long; position is relative to the model root.
-		var phase := fposmod(_travel[side] / 3.91 * 120, 120)
-		var index := int(phase)
-		var a: Array = tread_samples[key][index]
-		var b: Array = tread_samples[key][(index + 1) % 120]
-		var origin := Vector3(a[0], a[1], a[2]).lerp(Vector3(b[0], b[1], b[2]), phase - index)
+		# Samples are relative to the model root. fposmod can round up to exactly
+		# count for tiny negative travel, so wrap the index and derive the blend.
+		var samples: Array = tread_samples[key]
+		var count := samples.size()
+		var phase := fposmod(_travel[side] / TREAD_LOOP_LENGTH * count, count)
+		var index := int(phase) % count
+		var blend := phase - floorf(phase)
+		var a: Array = samples[index]
+		var b: Array = samples[(index + 1) % count]
+		var origin := Vector3(a[0], a[1], a[2]).lerp(Vector3(b[0], b[1], b[2]), blend)
 		var node: Node3D = nodes[key]
 		var root_node: Node3D = nodes.SawbladeTank_ROOT
-		node.global_transform = root_node.global_transform * Transform3D(Basis(Vector3.RIGHT, lerp_angle(a[3], b[3], phase - index)), origin)
+		node.global_transform = root_node.global_transform * Transform3D(Basis(Vector3.RIGHT, lerp_angle(a[3], b[3], blend)), origin)
