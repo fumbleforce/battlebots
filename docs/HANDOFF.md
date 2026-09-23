@@ -9,8 +9,12 @@ selector capture is refreshed. Native overview/close/player-camera review,
 shader/import/baseline, physical world invariants and selector checks pass.
 Geometry, bots/controls, Moon and build15 compatibility remain unchanged.
 See [visual evidence, source notes and limits](coordination/A_FOUNDRY_REFERENCE_LIGHTING.md).
-Coordinated artifact/release verification is being prepared; this entry does not
-yet certify the newly exported binaries or a replacement hosted image.
+Matching Linux/Windows clients and Linux server are built from clean `1a994a0`.
+The tested production image is deployed; its live worker record, compatibility
+and single-machine identity match. Native exported Linux launch, local-container
+and external private/Quick Play reconnect/results/rematch checks pass. Artifact
+hashes, exact image and retained rollback release are linked in the task evidence.
+Human combat/feel acceptance remains #6; the existing shutdown warning remains #18.
 
 ## GitHub is the live task/coordination tracker — 23 September 2026
 

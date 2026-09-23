@@ -73,14 +73,47 @@ asset is a fresh native Foundry capture. Generated source texture is 1254 square
 with VRAM compression, mipmaps and anisotropic sampling; exact prompt/provenance
 is in [the texture source notes](../../battlebots/assets/textures/arena/README.md).
 
-The 240-frame, two-bot RTX3080 sample at1600×900 measured render GPU median5.798ms /
-p95 8.372ms and render CPU median0.629ms / p95 1.089ms. Wall frame timing was
-6.029ms / 38.455ms in the presence of another independently launched game process;
-this is not an isolated whole-game60fps certification. About1757MiB engine video
-memory and2152 draws include bot/shadow costs. See
+The 240-frame, two-bot RTX 3080 sample at 1600×900 measured render GPU median
+5.798 ms / p95 8.372 ms and render CPU median 0.629 ms / p95 1.089 ms. Wall frame
+timing was 6.029 ms / 38.455 ms in the presence of another independently launched
+game process; this is not an isolated whole-game 60 fps certification. About
+1757 MiB engine video memory and 2152 draws include bot/shadow costs. See
 [hashes and scoped validation](evidence/foundry-reference-2026-09-23/validation.json).
 Seven Texture RID allocations are reported at fixture shutdown both before and
-after this change, without script/shader errors; existing issue18 tracks renderer
+after this change, without script/shader errors; existing issue #18 tracks renderer
 cleanup. The upgrade does not claim to resolve that unrelated diagnostic.
 
-Matching release evidence is recorded after artifact preparation and acceptance.
+## Matching release — 23 September 2026
+
+Linux server and Linux/Windows clients were exported from clean source
+`1a994a0a13171a01f69a69a210629c9cd3fc0f69`, using pinned Godot 4.7.2. Independent
+SHA256 verification passed for every artifact; the native exported Linux client
+launched and exited without script/shader/crash diagnostics. Windows was
+exported, not launched on this Linux machine. Local client packages are
+`battlebots/exports/battlebots-linux-1a994a0.tar.gz` and
+`battlebots/exports/battlebots-windows-1a994a0.zip`.
+
+The actual production container passed private/Quick Play driving, transport
+reconnect, agreed results and active rematch. That same tested image is deployed
+to the existing single Stockholm machine `287e605ad7d578`:
+
+`registry.fly.io/battlebots-fumbleforce@sha256:b42f60aa1f5f9727be7c0b7313751d27287d4e89df322ae1bdf49dfb9d70bc11`
+
+Live worker build-record equality and client/server compatibility were checked:
+`mvp-ab-15`, protocol 6, catalogue 10 hash
+`623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed`.
+Presentation-only changes do not require a gameplay compatibility bump; source
+and artifact records distinguish this release from the earlier build15 package.
+
+The user had authorized the playtest break/restart. Prior image retained for
+rollback:
+`registry.fly.io/battlebots-fumbleforce@sha256:cbf2f8b87debb586b2e2c94a9977d57c3dda3b15ef37e95a43489e6b7b1c3ff4`.
+Artifact hashes, local-container acceptance and live release checks are in
+[release evidence](evidence/foundry-reference-2026-09-23/release.json).
+
+
+The external check against `https://battlebots-fumbleforce.fly.dev` also passed
+private and Quick Play driving, real reconnect, two agreed round results and
+active rematch. See [external evidence](evidence/foundry-reference-2026-09-23/external-duel.json).
+These checks resolve rounds with public forfeit votes; they establish deployed
+lifecycle/connectivity, not natural combat or two-human feel acceptance (#6).

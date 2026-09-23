@@ -1,0 +1,197 @@
+{
+  "private": [
+    {
+      "active_frames": 365,
+      "completed_match": "51a7db4fc0f692fbc2c9c1ac",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 14.5242376327515,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 84,
+      "reconnect_health_retained": true,
+      "reconnect_token_rotated": true,
+      "reconnect_verified": true,
+      "rematch_active": true,
+      "rematch_id": "543bd80ed1378fddeac18375",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1506,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 364,
+      "completed_match": "51a7db4fc0f692fbc2c9c1ac",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 14.4635200500488,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "543bd80ed1378fddeac18375",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1508,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "quick_duel": [
+    {
+      "active_frames": 365,
+      "completed_match": "463af6719a13d71e63a286d7",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 14.4027376174927,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 85,
+      "reconnect_health_retained": true,
+      "reconnect_token_rotated": true,
+      "reconnect_verified": true,
+      "rematch_active": true,
+      "rematch_id": "a5227207141995ecae05761a",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1504,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 364,
+      "completed_match": "463af6719a13d71e63a286d7",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 14.0977029800415,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "a5227207141995ecae05761a",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1506,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "build": "mvp-ab-15",
+  "exported_server": null,
+  "service_origin": "http://127.0.0.1:18080",
+  "managed_service": true,
+  "external_endpoint": null,
+  "artifact_records": {
+    "hosted-server": {
+      "commit": "1a994a0a13171a01f69a69a210629c9cd3fc0f69",
+      "dirty": false,
+      "engine": "4.7.2.stable.official.ed1daf0bf",
+      "prepared_utc": "2026-09-23T11:34:54.382Z",
+      "preset": "Linux Server",
+      "files": [
+        {
+          "name": "battlebots-server.x86_64",
+          "sha256": "d9f79ab89b5ae369aeed11c6052d402e8218cd503bf85b4a235f9c30c46a7c63"
+        },
+        {
+          "name": "battlebots-server.pck",
+          "sha256": "45baa64d545016710e3dd7d8c0d3d7610101afbc5fc7c9efe7f7a9be9a52333e"
+        },
+        {
+          "name": "manifest.json",
+          "sha256": "269864a1dac0dc0dfe4648891a99e1084f8bd4ba1e1539404f334480c5a4c28f"
+        }
+      ]
+    },
+    "linux-client": {
+      "commit": "1a994a0a13171a01f69a69a210629c9cd3fc0f69",
+      "dirty": false,
+      "engine": "4.7.2.stable.official.ed1daf0bf",
+      "prepared_utc": "2026-09-23T11:34:57.434Z",
+      "preset": "Linux Client",
+      "files": [
+        {
+          "name": "battlebots.x86_64",
+          "sha256": "d9f79ab89b5ae369aeed11c6052d402e8218cd503bf85b4a235f9c30c46a7c63"
+        },
+        {
+          "name": "battlebots.pck",
+          "sha256": "0b0068aa35d2e2a1413eafc8340a35516c17e046976ca58e8336cccb0548ece1"
+        },
+        {
+          "name": "manifest.json",
+          "sha256": "269864a1dac0dc0dfe4648891a99e1084f8bd4ba1e1539404f334480c5a4c28f"
+        }
+      ]
+    },
+    "windows-client": {
+      "commit": "1a994a0a13171a01f69a69a210629c9cd3fc0f69",
+      "dirty": false,
+      "engine": "4.7.2.stable.official.ed1daf0bf",
+      "prepared_utc": "2026-09-23T11:35:00.658Z",
+      "preset": "Windows Client",
+      "files": [
+        {
+          "name": "battlebots.exe",
+          "sha256": "3d19ee4a764e8bb153bfa7f811f98e0dfb0139c9e0c8bc6b76b93d3ed09185bf"
+        },
+        {
+          "name": "battlebots.pck",
+          "sha256": "0b0068aa35d2e2a1413eafc8340a35516c17e046976ca58e8336cccb0548ece1"
+        },
+        {
+          "name": "manifest.json",
+          "sha256": "269864a1dac0dc0dfe4648891a99e1084f8bd4ba1e1539404f334480c5a4c28f"
+        }
+      ]
+    }
+  },
+  "image": "registry.fly.io/battlebots-fumbleforce@sha256:b42f60aa1f5f9727be7c0b7313751d27287d4e89df322ae1bdf49dfb9d70bc11",
+  "rollback_image": "registry.fly.io/battlebots-fumbleforce@sha256:cbf2f8b87debb586b2e2c94a9977d57c3dda3b15ef37e95a43489e6b7b1c3ff4",
+  "linux_export_launch": "Passed native Vulkan launch and clean exit; no script/shader/native crash diagnostics.",
+  "artifact_hashes_independently_verified": true,
+  "live_health": {
+    "build": "mvp-ab-15",
+    "protocol": 6,
+    "content_hash": "623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed",
+    "region": "arn",
+    "queue_capacities": [
+      2,
+      4
+    ]
+  },
+  "live_server_record_matches": true,
+  "live_machine": "287e605ad7d578",
+  "single_machine_verified": true
+}
