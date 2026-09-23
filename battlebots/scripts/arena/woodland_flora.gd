@@ -60,6 +60,41 @@ func height(x: float, z: float) -> float:
 const MASKS = preload("res://assets/textures/woodland/ground_masks.png")
 const SCAN_PROP = preload("res://assets/materials/arena/woodland_scan_prop.gdshader")
 const CHUNK := 24.0
+const LUMP_RES := 481 # 0.5 m texels over the 240 m octagon.
+static var _lumps := PackedFloat32Array()
+
+## Visual-only ground lumps (<= ~0.3 m), shared by the terrain shader and
+## scatter placement so props sit on the rendered surface.
+static func lump_data() -> PackedFloat32Array:
+	if _lumps.is_empty():
+		var n := FastNoiseLite.new()
+		n.seed = 6161
+		n.frequency = 0.17
+		n.fractal_octaves = 3
+		var fine := FastNoiseLite.new()
+		fine.seed = 6162
+		fine.frequency = 0.85
+		_lumps.resize(LUMP_RES * LUMP_RES)
+		for z: int in range(LUMP_RES):
+			for x: int in range(LUMP_RES):
+				var wx := x * 0.5 - HALF
+				var wz := z * 0.5 - HALF
+				_lumps[z * LUMP_RES + x] = n.get_noise_2d(wx, wz) * 0.22 + fine.get_noise_2d(wx, wz) * 0.04
+	return _lumps
+
+static func lump_texture() -> ImageTexture:
+	return ImageTexture.create_from_image(Image.create_from_data(LUMP_RES, LUMP_RES, false, Image.FORMAT_RF, lump_data().to_byte_array()))
+
+static func lump_at(x: float, z: float) -> float:
+	var data := lump_data()
+	var gx := clampf((x + HALF) * 2.0, 0.0, LUMP_RES - 1.001)
+	var gz := clampf((z + HALF) * 2.0, 0.0, LUMP_RES - 1.001)
+	var ix := int(gx)
+	var iz := int(gz)
+	var fx := gx - ix
+	var fz := gz - iz
+	return lerpf(lerpf(data[iz * LUMP_RES + ix], data[iz * LUMP_RES + ix + 1], fx),
+		lerpf(data[(iz + 1) * LUMP_RES + ix], data[(iz + 1) * LUMP_RES + ix + 1], fx), fz)
 const RUT_DEPTH := 0.16 # Matches woodland_terrain.gdshader.
 var _masks: Image
 
@@ -72,7 +107,9 @@ func _mask(x: float, z: float) -> Color:
 func ground_y(x: float, z: float) -> float:
 	var r := _mask(x, z).r
 	var profile := -smoothstep(0.15, 1.0, r) + smoothstep(0.0, 0.15, r) * (1.0 - smoothstep(0.15, 0.45, r)) * 0.35
-	return height(x, z) + profile * RUT_DEPTH
+	# Mirrors the terrain shader's visual lumps so scatter sits on the surface.
+	var lumps := lump_at(x, z) * (1.0 - smoothstep(0.05, 0.5, r))
+	return height(x, z) + lumps + profile * RUT_DEPTH
 
 ## Mesh variants of a Blender-built scatter set (art_source/woodland/build_scatter.py).
 ## Rebuild an imported scan material on woodland_scan_prop.gdshader.
@@ -128,9 +165,27 @@ func _scatter(label: String, meshes: Array[Mesh], poses: Array, range_end: float
 		visual.name = "%s_%d_%d_%d" % [label, key.x, key.y, key.z]
 		visual.multimesh = multi
 		visual.position = centre
+		# Full density out to range_end, then a thinned copy to 3x that, so the
+		# ground never reads as bare beyond a short radius.
 		visual.visibility_range_end = range_end
-		visual.visibility_range_end_margin = range_end * 0.15
-		visual.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		visual.visibility_range_end_margin = CHUNK
+		visual.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		var sparse := MultiMesh.new()
+		sparse.transform_format = MultiMesh.TRANSFORM_3D
+		sparse.mesh = multi.mesh
+		sparse.instance_count = (list.size() + 2) / 3
+		for i: int in range(sparse.instance_count):
+			sparse.set_instance_transform(i, multi.get_instance_transform(i * 3))
+		var far := MultiMeshInstance3D.new()
+		far.name = visual.name + "_far"
+		far.multimesh = sparse
+		far.position = centre
+		far.visibility_range_begin = range_end
+		far.visibility_range_begin_margin = CHUNK
+		far.visibility_range_end = range_end * 3.0
+		far.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		far.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(far)
 		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(visual)
 
@@ -179,7 +234,7 @@ func _interior_grass() -> void:
 	var ferns := _variants("scatter_fern")
 	var rocks := _variants("scatter_rocks")
 	# The granite pebble scan is pinkish; pull it toward the arena's grey stone.
-	var pebbles := _variants("scatter_pebbles", 1 << 30, Color(0.9, 0.92, 0.95), 0.12)
+	var pebbles := _variants("scatter_pebbles", 1 << 30, Color(0.62, 0.61, 0.6), 0.2)
 	var small_rocks := _variants("scatter_rocks")
 	var grass_poses: Array = []
 	var fern_poses: Array = []
@@ -212,6 +267,16 @@ func _interior_grass() -> void:
 				var centre: Vector2 = outcrop.at
 				for sign: float in [1.0, -1.0]:
 					near = maxf(near, 1.0 - smoothstep(size * 2.0, size * 7.0, p.distance_to(centre * sign)))
+			var open_tuft := rng.randf()
+			if open_tuft < 0.07 * (1.0 - smoothstep(0.02, 0.3, m.r)) and _clear_of_play(p, 0.3):
+				# Sparse tufts survive across the driven ground too.
+				var t := rng.randf_range(0.45, 0.8)
+				grass_poses.append([rng.randi() % grass.size(), Transform3D(yaw.scaled(Vector3(t, t * rng.randf_range(0.7, 1.1), t)), Vector3(p.x, ground_y(p.x, p.y) - 0.02, p.y))])
+			if rng.randf() < 0.55 and _clear_of_play(p, 0.05):
+				# Dense fine debris: small scanned stones everywhere.
+				var tilt2 := Basis.from_euler(Vector3(rng.randf_range(-0.4, 0.4), rng.randf() * TAU, rng.randf_range(-0.4, 0.4)))
+				var d := rng.randf_range(0.25, 0.7)
+				pebble_poses.append([rng.randi() % pebbles.size(), Transform3D(tilt2.scaled(Vector3(d, d * 0.7, d)), Vector3(p.x, ground_y(p.x, p.y) - 0.02 * d, p.y))])
 			if roll < 0.03 + lip * 0.25 + near * 0.25:
 				if not _clear_of_play(p, 0.1):
 					continue
@@ -240,10 +305,10 @@ func _interior_grass() -> void:
 			big_rocks += 1
 			var s := rng.randf_range(0.35, 0.9)
 			rock_poses.append([rng.randi() % rocks.size(), Transform3D(yaw.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.1 * s, p.y))])
-	_scatter("Grass", grass, grass_poses, 55.0, false)
-	_scatter("Ferns", ferns, fern_poses, 80.0, true)
-	_scatter("Pebbles", pebbles, pebble_poses, 60.0, false)
-	_scatter("MossRocks", rocks, rock_poses, 200.0, true)
+	_scatter("Grass", grass, grass_poses, 90.0, false)
+	_scatter("Ferns", ferns, fern_poses, 120.0, true)
+	_scatter("Pebbles", pebbles, pebble_poses, 80.0, false)
+	_scatter("MossRocks", rocks, rock_poses, 160.0, true)
 	print_verbose("Woodland scatter: grass %d, ferns %d, pebbles %d, rocks %d" % [grass_poses.size(), fern_poses.size(), pebble_poses.size(), rock_poses.size()])
 
 func _multimesh(label: String, mesh: Mesh, material: Material, poses: Array[Transform3D], shadows: bool) -> MultiMeshInstance3D:

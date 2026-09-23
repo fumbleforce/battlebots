@@ -132,6 +132,7 @@ func _terrain(arena: Node) -> void:
 	terrain.shader = TERRAIN
 	terrain.set_shader_parameter("height_tex", ImageTexture.create_from_image(height_image))
 	terrain.set_shader_parameter("masks", MASKS)
+	terrain.set_shader_parameter("lump_tex", FLORA.lump_texture())
 	terrain.set_shader_parameter("arena_half", HALF)
 	terrain.set_shader_parameter("grid", float(GROUND.GRID))
 	for layer: Array in [["mud", "muddy_tracks"], ["rocky", "brown_mud_rocks_01"], ["ground", "forest_ground_04"],

@@ -6,6 +6,7 @@ shader_type spatial;
 #include "res://assets/materials/arena/woodland_common.gdshaderinc"
 uniform sampler2D height_tex : filter_linear, repeat_disable;
 uniform sampler2D masks : filter_linear_mipmap, repeat_disable;
+uniform sampler2D lump_tex : filter_linear, repeat_disable;
 uniform float arena_half = 120.0;
 uniform float grid = 241.0;
 uniform float rut_depth = 0.16;
@@ -33,7 +34,11 @@ vec2 mask_uv(vec2 xz) { return (xz + arena_half) / (2.0 * arena_half); }
 float rut_profile(float r) { return -smoothstep(0.15, 1.0, r) + smoothstep(0.0, 0.15, r) * (1.0 - smoothstep(0.15, 0.45, r)) * 0.35; }
 float surface(vec2 xz) {
 	float h = textureLod(height_tex, height_uv(xz), 0.0).r;
-	return h + rut_profile(textureLod(masks, mask_uv(xz), 0.0).r) * rut_depth;
+	vec4 m = textureLod(masks, mask_uv(xz), 0.0);
+	// Visual-only lumps and churned hummocks (<= ~0.3 m) so open ground is
+	// never a flat sheet; flattened inside ruts so tracks stay crisp.
+	float lumps = textureLod(lump_tex, mask_uv(xz), 0.0).r * (1.0 - smoothstep(0.05, 0.5, m.r));
+	return h + lumps + rut_profile(m.r) * rut_depth;
 }
 
 void vertex() {
@@ -160,7 +165,7 @@ void fragment() {
 	SPECULAR = mix(0.4, 0.35, puddle);
 	AO = mix(arm.r, 1.0, puddle);
 	AO_LIGHT_AFFECT = 0.3;
-	float fade = mix(1.0, 0.55, smoothstep(20.0, 80.0, dist));
+	float fade = mix(1.0, 0.8, smoothstep(60.0, 200.0, dist));
 	vec3 nw = normalize(wnormal + vec3(tn.x, 0.0, tn.y) * fade * (1.0 - puddle));
 	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 }

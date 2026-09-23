@@ -116,6 +116,8 @@ func _capture(world: AuthorityWorld) -> void:
 		["glare", Vector3(12, 5.0, 84), Vector3(-14, 0.0, 58)],
 		# Tank-camera height beside the grassy wall foot.
 		["grass", Vector3(-8, 3.2, -104), Vector3(-2, 0.0, -117)],
+		# Default giant-tank chase camera: ~12 m boom, looking across open ground.
+		["chase", Vector3(-62, 6.0, 72), Vector3(-45, 1.0, 30)],
 	]
 	var only := ""
 	for arg: String in OS.get_cmdline_user_args():
