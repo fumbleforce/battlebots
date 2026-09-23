@@ -7,8 +7,7 @@ Writes RGBA PNGs to battlebots/assets/textures/woodland/:
 - conifer_sides.png: 3x2 atlas (512x1024 cells, row-major a0 a1 b0 / b1 c0 c1:
   saplings a/b/c, two orthogonal views each) for crossed billboard cards;
   trunk base at each cell's bottom centre, apex at the top.
-- conifer_whorls.png: 2x2 atlas of top-down single branch whorls, isolated by
-  clipping a thin height slab, for the horizontal drooping discs of hero pines.
+  (Near pines use build_branch_atlas.py branch cards instead of whorl discs.)
 Colour is rendered under a uniform white sky with no sun, so it is albedo
 multiplied by the scan's own sky occlusion: dense inner needles darken, tips
 stay bright. The game adds its own directional light on top.
@@ -140,5 +139,6 @@ def pack(paths, columns, cell_w, cell_h, out_name):
 	out.save()
 	print("ATLAS", out_name, columns * cell_w, rows * cell_h)
 pack([OUT / ("conifer_side_%s%d.png" % (v, k)) for v in "abc" for k in range(2)], 3, 512, 1024, "conifer_sides")
-pack([OUT / ("conifer_whorl_%d.png" % n) for n in range(4)], 2, 1024, 1024, "conifer_whorls")
+for n in range(4):
+	(OUT / ("conifer_whorl_%d.png" % n)).unlink(missing_ok=True)
 print("CONIFER ATLAS DONE")
