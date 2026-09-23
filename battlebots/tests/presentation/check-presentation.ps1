@@ -119,6 +119,10 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/combat_impact_visual_test.tscn', '--quit-after', '10000') -Marker 'COMBAT IMPACT VISUAL PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/nitro_feedback_test.tscn', '--quit-after', '10000') -Marker 'NITRO FEEDBACK PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/minigun_effects_test.tscn', '--quit-after', '10000') -Marker 'MINIGUN EFFECTS PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/bot_geometry_budget_test.tscn', '--quit-after', '10000') -Marker 'BOT GEOMETRY BUDGET PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     '--max-fps', '60', 'res://tests/presentation/combat_impact_game_test.tscn', '--quit-after', '3000') -Marker 'COMBAT IMPACT GAME PASS'

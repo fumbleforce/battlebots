@@ -106,7 +106,7 @@ func combat_event(event: Dictionary) -> void:
 	if event.event_id <= int(_watermarks.get(context, 0)): return
 	_watermarks[context] = event.event_id
 	_trim(_watermarks)
-	visual.spawn_impact(event.position, event.normal, event.kind, float(event.damage))
+	visual.spawn_impact(event.position, event.normal, event.kind, float(event.damage), event.attacker)
 
 func _integer(value: Variant, minimum: int) -> bool:
 	return value is int and value >= minimum

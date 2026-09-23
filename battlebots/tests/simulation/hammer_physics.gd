@@ -194,5 +194,31 @@ func run() -> void:
 	attacker.previous_pose = Transform3D(Basis.IDENTITY, ORIGIN)
 	resolve()
 	check(weapons.events.size() == 1, "Body yaw and descending head arc are swept together")
+	# Enemy blow: knockback away from the attacker, a lift and a drive stagger.
+	await reset_case()
+	attacker.body.freeze = false
+	victim.body.freeze = false
+	await flush_physics()
+	resolve()
+	await flush_physics()
+	check(weapons.events.size() == 1, "Free bodies still register the staggering blow")
+	check(victim.body.linear_velocity.z < -1.5 and victim.body.linear_velocity.y > 1.0,
+		"Hammer knocks the victim away and off the floor: %s" % victim.body.linear_velocity)
+	check(attacker.body.linear_velocity.z > 0.1, "Attacker takes a small recoil")
+	check(victim.combat.stagger_seconds > 0.7 and victim.combat.stagger_factor() < 0.2,
+		"Hammer staggers the victim drive control")
+	check(is_equal_approx(attacker.combat.stagger_factor(), 1.0), "Attacker is not staggered")
+	victim.step(1.0 / 60.0, true)
+	check(victim.body.drive_multiplier < 0.25 and victim.body.steering_multiplier < 0.25
+		and victim.body.grip_multiplier < 0.5, "Stagger reduces drive, steering and grip")
+	victim.combat.stagger(0.1, 0.2)
+	check(victim.combat.stagger_seconds > 0.7 and victim.combat.stagger_depth >= 0.85,
+		"A lighter follow-up hit never shortens or softens a stagger")
+	for step: int in 60: victim.step(1.0 / 60.0, true)
+	check(is_equal_approx(victim.combat.stagger_factor(), 1.0) and is_equal_approx(victim.body.grip_multiplier, 1.0),
+		"Control fully returns after the stagger")
+	victim.combat.stagger(NAN, 1.0)
+	victim.combat.stagger(1.0, INF)
+	check(is_equal_approx(victim.combat.stagger_factor(), 1.0), "Invalid stagger is ignored")
 	print("HAMMER PHYSICS PASS" if failures == 0 else "HAMMER PHYSICS FAIL")
 	get_tree().quit(0 if failures == 0 else 1)

@@ -27,6 +27,8 @@ var atlas_visual: AtlasVisual
 var practice_npc_visual: PracticeNpcVisual
 var damage_visual: BotDamageVisual
 var destruction_visual: BotDestructionVisual
+var nitro_visual: NitroFlameVisual
+var hammer_slam: HammerSlamDetector
 
 static func create(id: int, side: int, build: Dictionary, registry: ContentRegistry) -> MvpBot:
 	var validation := registry.validate(build)
@@ -168,6 +170,16 @@ func _ready() -> void:
 		for record: Dictionary in damage_visual.components.values():
 			for surface: Dictionary in record.surfaces: damaged_meshes.append(surface.mesh)
 		destruction_visual.configure(presentation, stats.size, damaged_meshes)
+		if stats.get("nitro", false):
+			nitro_visual = NitroFlameVisual.new()
+			nitro_visual.name = "NitroFlame"
+			presentation.add_child(nitro_visual)
+			nitro_visual.configure(presentation, stats.size, body.geometry_scale)
+		if stats.weapon == "hammer":
+			hammer_slam = HammerSlamDetector.new()
+			hammer_slam.name = "HammerSlam"
+			add_child(hammer_slam)
+			hammer_slam.configure(loadout, stats.size, body.get_rid(), entity_id)
 	previous_pose = body.global_transform
 	last_floor = body.global_position
 	body.freeze = not simulated
@@ -199,6 +211,10 @@ func _process(delta: float) -> void:
 		practice_npc_visual.show_state(view, delta)
 	if damage_visual != null:
 		damage_visual.show_state(view)
+	if nitro_visual != null:
+		nitro_visual.show_state(view, delta)
+	if hammer_slam != null:
+		hammer_slam.observe(view, delta)
 	# A newly spawned remote bot has default healthy combat until its baseline is
 	# accepted. Never use that fallback to invent a destruction edge on reconnect.
 	if destruction_visual != null and (simulated or not remote_state.is_empty()):
@@ -270,8 +286,11 @@ func step(delta: float, active: bool) -> void:
 	combat.tick_perks(delta, command, active, body.grounded)
 	command.primary_pressed = false
 	command.recovery_pressed = false
-	body.drive_multiplier = combat.drive_scale()
-	body.steering_multiplier = 0.0 if body.drive_multiplier == 0 else (0.6 if body.drive_multiplier < 1 else 1.0)
+	var pods := combat.drive_scale()
+	var stagger := combat.stagger_factor()
+	body.drive_multiplier = pods * stagger
+	body.steering_multiplier = (0.0 if pods == 0 else (0.6 if pods < 1 else 1.0)) * stagger
+	body.grip_multiplier = lerpf(0.3, 1.0, stagger)
 	body.accept_command(command)
 	body.nitro_active = combat.nitro_active
 	if combat.jump_release_speed > 0.0:

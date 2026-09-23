@@ -31,6 +31,10 @@ var jump_cooldown := 0.0
 var jump_release_speed := 0.0
 var _jump_was_held := false
 var recent_attackers: Dictionary = {}
+## Hit stagger: seconds left and the share of drive/steer/grip control it removes.
+var stagger_seconds := 0.0
+var stagger_depth := 0.0
+const STAGGER_RECOVERY := 0.3
 var _previous_held := false
 var _heat_active := false
 var _cooling_this_tick := 0.0
@@ -61,6 +65,16 @@ func _init(derived: Dictionary) -> void:
 	for zone: String in ["front", "rear", "left", "right"]:
 		zones[zone] = stats.plate_integrity
 	zones.merge({"drive_left":100.0, "drive_right":100.0, "weapon":140.0})
+
+## A fresh hit extends and deepens an ongoing stagger; it never shortens it.
+func stagger(seconds: float, depth: float) -> void:
+	if eliminated or not is_finite(seconds) or not is_finite(depth) or seconds <= 0.0: return
+	stagger_seconds = maxf(stagger_seconds, seconds)
+	stagger_depth = clampf(maxf(stagger_depth, depth), 0.0, 1.0)
+
+## Remaining drive control, easing back to full over the last STAGGER_RECOVERY seconds.
+func stagger_factor() -> float:
+	return 1.0 - stagger_depth * clampf(stagger_seconds / STAGGER_RECOVERY, 0.0, 1.0)
 
 func drive_scale() -> float:
 	var pods := int(zones.drive_left > 0) + int(zones.drive_right > 0)
@@ -124,6 +138,8 @@ func can_recover() -> bool:
 
 func tick(delta: float, command: BotCommand, active: bool) -> void:
 	gun_shot = false
+	stagger_seconds = maxf(0.0, stagger_seconds - delta)
+	if stagger_seconds <= 0.0: stagger_depth = 0.0
 	secondary_active = false
 	_heat_active = false
 	_cooling_this_tick = 0.0
@@ -358,6 +374,8 @@ func eliminate(reason: String) -> void:
 	nitro_active = false
 	jump_charge = 0.0
 	jump_release_speed = 0.0
+	stagger_seconds = 0.0
+	stagger_depth = 0.0
 
 func snapshot() -> Dictionary:
 	return {"core":core, "core_max":stats.core, "zones":zones.duplicate(),

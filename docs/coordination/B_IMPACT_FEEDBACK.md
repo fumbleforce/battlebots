@@ -68,3 +68,61 @@ headless dedicated authority needs no renderer. No audio or protocol change.
 
 Larger-scene GPU/LOD budgets, human combat readability and remote internet gameplay
 acceptance remain separate open gates; these fixture results do not certify them.
+
+## Hammer shockwave, spark showers and nitro feedback (#32)
+
+Follow-up requested by the user on 23 September 2026. It consumes the same
+confirmed `combat_event` and the already replicated `BotView.nitro_active`; no
+event fields, protocol or catalogue changes. Hit stagger and hammer knockback
+(below) are gameplay changes and need a matching hosted server release.
+
+- Every accepted impact also fires one pooled GPU spark shower (up to 240 HDR
+  streaks aligned to velocity, at least 60% on light hits; hammer, spinners and saws
+  skew denser) plus a 0.14 s contact flash light. At most ten showers, retired
+  after 1.2 s.
+- Hammer impacts add a shockwave laid on the struck face (a short read-only ray
+  through the event contact finds the real surface normal, since event normals
+  point from the victim centre): a glowing, screen-
+  refracting ring (`impact_shockwave.gdshader`, radius 2.6-4.4 m by damage, 0.5 s)
+  and a radial dust front (40 soft puffs). At most four rings, retired after 0.85 s.
+  `clear_effects()` hides live GPU particles too, so resets never leave debris.
+- `HammerSlamDetector` (per hammer bot, presentation only) spots the strike edge
+  (`strike` state, or a fresh cooldown when snapshots skip that tick), places the
+  head at the end of the authoritative swing and casts down. A world surface first
+  gives `spawn_ground_slam`; a bot first is left to the confirmed combat event.
+- Hammer rings call `add_impact_shake(origin, strength)` on the `bot_orbit_cameras`
+  group; the local rig attenuates it to zero beyond 14 m x bot scale.
+- `NitroFlameVisual` (created by `MvpBot` only with Nitro equipped, non-headless)
+  shows blue cone jets, a camera-facing nozzle bloom, world-space embers and one blue
+  light while `nitro_active`. Outlets come from the authored models: Scorpion
+  `ExhaustLeft/Right` lips, Atlas `Exhaust*Surface` stack rims (vertex top band),
+  Sawblade `Horizontal hollow exhaust*` pipe mouths; other bodies vent from the rear
+  of the visible model bounds (the model can extend past the physics hull).
+  Visibility is judged relative to the bot, so bots spawned hidden keep their pipes.
+  Elimination and release extinguish the jets. Nitro drive strength itself is tuned
+  in `data/bot_physics.json` (#38), not here.
+- Hit stagger (authority): each confirmed hit calls `CombatState.stagger(seconds,
+  depth)` from `CombatWorld.STAGGER` per weapon (hammer 0.8 s / 85% ... minigun
+  0.15 s / 30%). `stagger_factor()` scales drive, steering and (via
+  `DriveBody.grip_multiplier`, 30-100%) tyre grip, easing back over the last 0.3 s.
+  Hits extend but never shorten or soften a stagger. It is not replicated; the local
+  client's prediction is corrected by snapshots during a stagger.
+- Hammer force: blows knock the target away from the attacker and lift it
+  (`HAMMER_KNOCKBACK` 2.0, `HAMMER_LIFT` 1.5 m/s before the shared impact multiplier
+  and heavy-gravity launch scale) instead of pressing it into the floor.
+- Minigun: one pooled pressure ring per accepted shot at the muzzle (0.2 s) and
+  barrel smoke driven by presentation heat, strongest after the trigger is released.
+- Driving rumble: the orbit camera adds a slight speed-scaled thrum and sway.
+- `BotOrbitCamera` eases in a +14 degree FOV kick, 10% boom stretch, a very light
+  rumble and neutral white speed lines with a faint dark vignette (CanvasLayer -8,
+  below HUD; the blue stays on the vehicle) while the followed bot boosts.
+  `speed_effects = false` disables nitro camera effects and impact shake. The rig now
+  writes `camera.fov` every physics frame from `base_fov`; a future FOV setting must
+  set `rig.base_fov` rather than `camera.fov`.
+
+Validation: `nitro_feedback_test.tscn` (outlets on real Atlas/Sawblade models, flame
+state, camera FOV/boom/shake) and the extended `combat_impact_visual_test.tscn` pass
+headless. Native Forward+ captures (RTX 4080) were reviewed for the three authored
+bodies, hammer ring/dust, saw sparks and the nitro chase camera. Human in-match
+readability, a reduced-motion settings toggle and #29 particle-quality scaling of
+these emitters remain open.

@@ -17,6 +17,9 @@ var sensitivity: float:
 @export var arena_half_extent: float = ArenaBounds.FOUNDRY_HALF
 @export var corner_chamfer: float = 2.0
 @export var camera_radius: float = 0.25
+## Nitro FOV kick, rumble and speed streaks plus impact shake. Presentation only.
+@export var speed_effects: bool = true
+@export_range(0.0, 30.0, 0.5) var nitro_fov_boost: float = 14.0
 var source: BotSource
 var yaw: float = 0.0
 var pitch: float = deg_to_rad(24.0)
@@ -28,12 +31,40 @@ var _initialized: bool = false
 var _bot_scale := 1.0
 var _boom_scale := 1.0
 var _probe := SphereShape3D.new()
+var nitro_blend := 0.0
+var shake_trauma := 0.0
+var base_fov := 70.0
+var _shake_time := 0.0
+var _speed_lines: ColorRect
+## Smoothed ground speed of the followed bot; drives the tank-like engine rumble.
+var ground_speed := 0.0
+var _last_anchor := Vector3.INF
 @onready var camera: Camera3D = $Camera
+
+func _ready() -> void:
+	add_to_group(&"bot_orbit_cameras")
+	base_fov = camera.fov
+	if DisplayServer.get_name() == "headless": return
+	# Below every HUD layer, above the 3D view.
+	var layer := CanvasLayer.new()
+	layer.name = "SpeedLines"
+	layer.layer = -8
+	add_child(layer)
+	_speed_lines = ColorRect.new()
+	_speed_lines.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_speed_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material := ShaderMaterial.new()
+	material.shader = preload("res://scripts/presentation/speed_lines.gdshader")
+	_speed_lines.material = material
+	_speed_lines.hide()
+	layer.add_child(_speed_lines)
 
 func bind_source(value: BotSource) -> void:
 	source = value
 	if is_instance_valid(source): _sync_anchor_scale(source.camera_anchor())
 	_initialized = false
+	_last_anchor = Vector3.INF
+	ground_speed = 0.0
 	recenter()
 
 func _sync_anchor_scale(anchor: Node3D) -> void:
@@ -82,11 +113,14 @@ func _physics_process(delta: float) -> void:
 
 func update_camera(delta: float) -> void:
 	if not is_instance_valid(source):
+		_apply_speed_feel(delta, false)
 		return
 	var anchor := source.camera_anchor()
 	if not is_instance_valid(anchor):
+		_apply_speed_feel(delta, false)
 		return
 	_sync_anchor_scale(anchor)
+	_track_speed(anchor.global_position, delta)
 	seconds_since_orbit += delta
 	if auto_recenter and driving and seconds_since_orbit >= 1.5:
 		yaw = lerp_angle(yaw, _heading(), 1.0 - exp(-recenter_speed * delta))
@@ -97,7 +131,8 @@ func update_camera(delta: float) -> void:
 	pivot = _clear_contact_pivot(pivot)
 	var camera_basis := Basis.from_euler(Vector3(-pitch, yaw, 0.0))
 	var direction := camera_basis.z
-	var distance_limit := _boundary_distance(pivot, direction, desired_distance)
+	# Nitro stretches the boom slightly so the chassis appears to surge ahead.
+	var distance_limit := _boundary_distance(pivot, direction, desired_distance * (1.0 + 0.1 * nitro_blend))
 	_probe.radius = camera_radius
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = _probe
@@ -120,7 +155,58 @@ func update_camera(delta: float) -> void:
 			lerpf(actual_distance, distance_limit, 1.0 - exp(-10.0 * delta)))
 	_initialized = true
 	global_transform = Transform3D(camera_basis, pivot)
-	camera.position = Vector3(0.0, 0.0, actual_distance)
+	var view := source.read_view()
+	_apply_speed_feel(delta, view != null and view.nitro_active and not view.eliminated)
+
+## Shake from a nearby confirmed hammer blow, attenuated by distance to the rig.
+func add_impact_shake(origin: Vector3, strength: float) -> void:
+	if not speed_effects or not origin.is_finite() or not is_finite(strength) or strength <= 0.0: return
+	var reach := 14.0 * _bot_scale
+	var falloff := clampf(1.0 - global_position.distance_to(origin) / reach, 0.0, 1.0)
+	shake_trauma = minf(1.0, shake_trauma + strength * 0.5 * falloff)
+
+func _track_speed(at: Vector3, delta: float) -> void:
+	if not at.is_finite() or not is_finite(delta) or delta <= 0.0: return
+	var measured := 0.0
+	if _last_anchor.is_finite():
+		var travel := at - _last_anchor
+		travel.y = 0.0
+		measured = travel.length() / delta
+		# Respawns and teleports are not driving.
+		if measured > 40.0 * _bot_scale: measured = 0.0
+	_last_anchor = at
+	ground_speed = lerpf(ground_speed, measured, 1.0 - exp(-delta * 6.0))
+	if ground_speed < 0.01: ground_speed = 0.0
+
+func _apply_speed_feel(delta: float, boosting: bool) -> void:
+	if not is_finite(delta) or delta < 0.0: delta = 0.0
+	var target := 1.0 if boosting and speed_effects else 0.0
+	# Punch in quickly on ignition; ease out more gently on release.
+	nitro_blend = lerpf(nitro_blend, target, 1.0 - exp(-delta * (5.0 if target > nitro_blend else 2.6)))
+	if nitro_blend < 0.001: nitro_blend = 0.0
+	shake_trauma = maxf(0.0, shake_trauma - delta * 1.6)
+	if not speed_effects: shake_trauma = 0.0
+	_shake_time += delta
+	var eased := nitro_blend * nitro_blend * (3.0 - 2.0 * nitro_blend)
+	camera.fov = base_fov + nitro_fov_boost * eased
+	var impact := shake_trauma * shake_trauma
+	var rumble := 0.005 * eased + 0.06 * impact
+	var t := _shake_time
+	var jitter := Vector2(sin(t * 53.0) * 0.6 + sin(t * 91.0 + 1.3) * 0.4,
+		sin(t * 61.0 + 0.7) * 0.6 + sin(t * 83.0 + 2.1) * 0.4) * rumble * _boom_scale
+	# Heavy-machine feel: a low engine thrum plus a slower track sway, both
+	# scaled by how fast the chassis is moving. Mostly vertical, like a hull.
+	var drive := clampf(ground_speed / (5.0 * _bot_scale), 0.0, 1.0) if speed_effects else 0.0
+	if drive > 0.0:
+		var thrum := (sin(t * 38.0) * 0.55 + sin(t * 23.0 + 0.9) * 0.45) * 0.006
+		var sway := sin(t * 7.3 + 0.4) * 0.004
+		jitter += Vector2(sway * 0.5, thrum + sway) * drive * _boom_scale
+	camera.position = Vector3(jitter.x, jitter.y, actual_distance)
+	camera.rotation = Vector3(0.0, 0.0, sin(t * 47.0 + 0.4) * 0.01 * impact)
+	if _speed_lines != null:
+		_speed_lines.visible = eased > 0.01
+		if _speed_lines.visible:
+			(_speed_lines.material as ShaderMaterial).set_shader_parameter(&"intensity", eased)
 
 func _inside_arena(point: Vector3) -> Vector3:
 	var result := point

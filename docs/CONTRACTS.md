@@ -932,3 +932,12 @@ gameplay change requiring a BUILD bump and a matching hosted server release.
   `lifter_impulse_multiplier` and adds `lifter_flip_spin_at_1g` × launch_scale
   about the horizontal axis so it flips away. The flipper arm visual lies flat
   while charging and snaps up on release. Damage, cadence and wire fields are unchanged.
+
+## Hit stagger and hammer knockback (B, #32, 23 September 2026)
+
+Build `mvp-ab-20`; protocol and catalogue unchanged. Gameplay change: confirmed hits
+stagger the victim's drive, steering and grip (`CombatWorld.STAGGER`,
+`CombatState.stagger()/stagger_factor()`, `DriveBody.grip_multiplier`), and hammer
+blows knock the target away and upward. Stagger is authority-only and not
+replicated. Needs a matching hosted server release before hosted play. Details and
+the presentation-only VFX live in `docs/coordination/B_IMPACT_FEEDBACK.md`.

@@ -14,6 +14,13 @@ var _saw_contacts: Dictionary = {}
 var _saw_last_tick := -1
 var _saw_round := -1
 const MINIGUN_RANGE := 24.0
+## [seconds, depth] of lost drive control per confirmed hit. Saw contact repeats
+## every 1/3 s, so a bot being ground on stays staggered for as long as it lasts.
+const STAGGER := {"hammer":[0.8, 0.85], "vertical_spinner":[0.55, 0.75], "horizontal_spinner":[0.55, 0.75],
+	"lifter":[0.5, 0.7], "saw":[0.4, 0.55], "ram":[0.35, 0.5], "minigun":[0.15, 0.3]}
+## Before physics.weapon_impulse_multiplier and the heavy-gravity launch scale.
+const HAMMER_KNOCKBACK := 2.0
+const HAMMER_LIFT := 1.5
 const MINIGUN_DAMAGE := 6.0
 ## Rams below this closing speed (m/s) deal no damage or knock-back.
 const RAM_MIN_CLOSING_SPEED := 4.0
@@ -105,7 +112,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				saw_contacts[key] = contact_seconds
 			elif state.stats.weapon == "hammer":
 				if not _hammer_hits[id].targets.has(target_id):
-					_hit(attacker, victim, point, 38, -attacker.body.global_basis.y * victim.body.mass, tick, round_index)
+					_hit(attacker, victim, point, 38, _hammer_impulse(attacker, victim), tick, round_index)
 					_hammer_hits[id].targets[target_id] = true
 			elif state.stats.weapon == "vertical_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
 				_hit(attacker, victim, point, 45 * state.charge, (direction * 2 + Vector3.UP * 2) * victim.body.mass, tick, round_index)
@@ -484,6 +491,17 @@ func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: i
 				direction * victim.body.mass * 0.035, tick, round_index, 0.08, "minigun")
 		return
 
+## Hammer blows knock the target away from the attacker and pop it off the floor.
+## A straight-down impulse was absorbed by the arena and read as no reaction.
+func _hammer_impulse(attacker: MvpBot, victim: MvpBot) -> Vector3:
+	var away := victim.body.global_position - attacker.body.global_position
+	away.y = 0.0
+	if away.length_squared() < 0.0001:
+		away = -attacker.body.global_basis.z
+		away.y = 0.0
+	away = away.normalized() if away.length_squared() > 0.0001 else Vector3.FORWARD
+	return (away * HAMMER_KNOCKBACK + Vector3.UP * HAMMER_LIFT) * victim.body.mass
+
 func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "") -> void:
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
 		attacker.combat.stats.weapon if kind.is_empty() else kind])
@@ -512,6 +530,8 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	impact_scale *= victim.body.launch_scale()
 	var delivered := impulse * mass_ratio * impact_scale
 	victim.body.apply_impulse(delivered, point - victim.body.global_position)
+	var stagger: Array = STAGGER.get(kind, [0.4, 0.6])
+	victim.combat.stagger(stagger[0], stagger[1])
 	if kind == "lifter":
 		# Tip the struck near edge up and over, away from the flipper.
 		var away := (victim.body.global_position - attacker.body.global_position).slide(Vector3.UP).normalized()
