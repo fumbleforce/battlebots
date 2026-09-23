@@ -15,6 +15,10 @@ var _saw_last_tick := -1
 var _saw_round := -1
 const MINIGUN_RANGE := 24.0
 const MINIGUN_DAMAGE := 6.0
+## Rams below this closing speed (m/s) deal no damage or knock-back.
+const RAM_MIN_CLOSING_SPEED := 4.0
+## Impact scaling and ram knock-back tuning: data/bot_physics.json "impacts".
+var physics := BotPhysics.settings()
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
@@ -112,7 +116,11 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 						blocked[key] = time + 3
 						pins.erase(key)
 					else:
-						victim.body.apply_force(Vector3.UP * victim.body.mass * 12 * state.charge, point - victim.body.global_position)
+						# Carry the lifted edge's share of heft's extra weight so the pinned
+						# target lifts as it did at 1 g.
+						var hold_acceleration := physics.lifter_hold_acceleration_at_1g \
+							+ victim.body.heft_extra_gravity() * physics.lifter_hold_weight_share
+						victim.body.apply_force(Vector3.UP * victim.body.mass * hold_acceleration * state.charge, point - victim.body.global_position)
 				else:
 					pins.erase(key)
 	# Only eligible contacts this tick survive. Breaking contact or power cannot
@@ -131,10 +139,14 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				continue
 			var direction := (b.body.global_position - a.body.global_position).normalized()
 			var closing := (a.previous_velocity - b.previous_velocity).dot(direction)
-			if closing > 4:
-				var raw := minf(12, 2 * (closing - 4))
-				_hit(a, b, a.body.global_position, raw, Vector3.ZERO, tick, round_index, 0.2, "ram")
-				_hit(b, a, b.body.global_position, raw, Vector3.ZERO, tick, round_index, 0.2, "ram")
+			if closing > RAM_MIN_CLOSING_SPEED:
+				var excess_closing := closing - RAM_MIN_CLOSING_SPEED
+				var raw := minf(12, 2 * excess_closing)
+				# Jolt contacts are plastic (bounce 0); heavy hulls rebound apart.
+				var knockback_speed := excess_closing * physics.ram_knockback_per_closing_speed
+				var lift := Vector3.UP * physics.ram_knockback_lift_fraction
+				_hit(a, b, a.body.global_position, raw, (direction + lift) * knockback_speed * b.body.mass, tick, round_index, 0.2, "ram")
+				_hit(b, a, b.body.global_position, raw, (-direction + lift) * knockback_speed * a.body.mass, tick, round_index, 0.2, "ram")
 				cooldowns[key] = time + 0.5
 	# Collect every eligible attack before damage: mutual lethal hits share a tick.
 	for hit: Array in pending_hits:
@@ -425,10 +437,16 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	if dealt > 0:
 		victim.combat.recent_attackers[attacker.entity_id] = time
 	# Impact output comes from the attacking machine, not the target's weight.
-	# Heavy targets therefore resist the same strike. A charged lifter retains
-	# its deliberate launch; ordinary strikes no longer toss hulls as readily.
+	# Heavy targets therefore resist the same strike. Strikes hit hard and
+	# sqrt(heft) keeps launch heights under the heavier gravity, so hulls
+	# snap up and slam back down instead of drifting.
 	var mass_ratio := clampf(attacker.body.mass / victim.body.mass, 0.65, 1.4)
-	var impact_scale := 1.0 if kind == "lifter" else 0.65
+	var impact_scale := physics.weapon_impulse_multiplier
+	if kind == "minigun":
+		impact_scale = physics.minigun_impulse_multiplier
+	elif kind == "lifter":
+		impact_scale = physics.lifter_impulse_multiplier
+	impact_scale *= victim.body.launch_scale()
 	var delivered := impulse * mass_ratio * impact_scale
 	victim.body.apply_impulse(delivered, point - victim.body.global_position)
 	attacker.body.apply_central_impulse(-delivered * recoil)

@@ -856,3 +856,25 @@ server with `MatchPickups.reward`. Clients pay `total` into
 `PlayerProfile.wallet` (`CreditWallet`, `user://wallet.cfg`) once per match
 id. Practice never pays. The wallet is local and not tamper-proof; server-held
 identity (#16) must own it before credits gate shared content.
+
+## Heavy-machine physics configuration (B, #38, 23 September 2026)
+
+All heft, motor-authority and impact tuning lives in `data/bot_physics.json`,
+read through the typed `BotPhysics.settings()` loader (`scripts/core/bot_physics.gd`).
+Missing or non-numeric fields fail loading; there are no silent defaults. Server
+simulation and client replay read the same file, so changing any value is a
+gameplay change requiring a BUILD bump and a matching hosted server release.
+
+- `DriveBody.heft()` multiplies arena gravity (`heft.gravity_multiplier`) on arenas
+  at or above `minimum_arena_gravity_scale`; the Moon keeps 1.62 m/s².
+  `model_config().gravity` includes heft, and `model_config().max_rise` supplies
+  the replay rise cap. `launch_scale()` = sqrt(heft) scales jumps, weapon impulses
+  and the rise cap so apex heights hold while hang time shrinks.
+- `DriveBody.hull_friction()` divides the 1 g hull friction by heft² because Jolt
+  combines friction as sqrt(hull × floor); arena drag matches its 1 g strength.
+- Motor multipliers scale catalogue acceleration, grip and yaw limit/torque in
+  `model_config()`; brakes stay catalogue strength. Walker lift supports heft weight.
+- `CombatWorld` scales weapon impulses by `impacts.*_impulse_multiplier` and
+  `launch_scale()`, adds ram knock-back proportional to closing speed above
+  `RAM_MIN_CLOSING_SPEED`, and lifter holds carry the lifted edge's share of the
+  extra weight. Damage, cadence and wire fields are unchanged.

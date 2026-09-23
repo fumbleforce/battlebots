@@ -41,8 +41,9 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 	if body.walker_contacts.size() < 2: return Vector3.ZERO
 	var normal := normal_sum.normalized()
 	var desired_y := floor_height + RIDE_HEIGHT * scale_ratio
-	var gravity := maxf(0.0, -state.total_gravity.y)
-	var lift := clampf(gravity + (desired_y - state.transform.origin.y) * 80.0 - state.linear_velocity.y * 16.0, 0, 45)
+	# Support DriveBody's heft weight, not only Jolt's arena gravity.
+	var gravity := maxf(0.0, -state.total_gravity.y) * body.heft()
+	var lift := clampf(gravity + (desired_y - state.transform.origin.y) * 80.0 - state.linear_velocity.y * 16.0, 0, gravity + body.physics.lift_headroom_acceleration)
 	state.apply_central_force(Vector3.UP * lift * body.mass)
 	# Damped stance correction is bounded and requires live footholds. In air or
 	# upside down the walker obeys normal rigid-body gravity/recovery mechanics.

@@ -129,7 +129,8 @@ func run() -> void:
 	await reset_bot()
 	await drive(60, 1)
 	var speed_one := -bot.body.linear_velocity.z
-	check(speed_one > 7.5 and speed_one < 9.6, "Strong motors deliver a decisive launch while momentum still builds during the first second")
+	# BotPhysics motor authority: high-torque drives reach cruise within a second.
+	check(speed_one > 9.5 and speed_one < 10.2, "High-torque motors reach cruising speed within the first second")
 	await drive(24, 1)
 	var speed_launch := -bot.body.linear_velocity.z
 	check(speed_launch > 9.7 and speed_launch < 10.2, "Powerful chassis reaches its 10m/s cruising speed within 1.4 seconds")
@@ -137,7 +138,8 @@ func run() -> void:
 	check(absf(bot.body.linear_velocity.length() - 10.0) < 0.2, "Standard drive retains its10m/s cruising speed")
 	await drive(60)
 	var coast_speed := -bot.body.linear_velocity.z
-	check(coast_speed > 6.7 and coast_speed < 9.4, "Released throttle coasts without an instant stop")
+	# High-torque motors engine-brake harder while throttle ramps to neutral.
+	check(coast_speed > 5.0 and coast_speed < 9.4, "Released throttle coasts without an instant stop")
 	await reset_bot()
 	await drive(240, 1)
 	var before_brake := bot.body.global_position

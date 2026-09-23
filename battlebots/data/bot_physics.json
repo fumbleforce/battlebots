@@ -1,0 +1,30 @@
+{
+	"_comment": "Authoritative heavy-machine physics tuning shared by server simulation and client replay. Changing any value is a gameplay change: bump BUILD and ship a matching hosted server release.",
+	"heft": {
+		"_comment": "Three-times enlarged hulls read as foam under 1 g. Bots fall under gravity_multiplier times arena gravity; launch and jump speeds scale by its square root so heights hold while hang time shrinks.",
+		"gravity_multiplier": 2.5,
+		"minimum_arena_gravity_scale": 1.0,
+		"rise_speed_cap_at_1g": 8.0,
+		"hull_friction_at_1g": 0.04
+	},
+	"motor": {
+		"_comment": "Multipliers over catalogue drive values. Brakes stay catalogue strength so heavy hulls keep real stopping distance.",
+		"acceleration_multiplier": 1.6,
+		"grip_multiplier": 1.6,
+		"yaw_acceleration_multiplier": 1.6,
+		"yaw_torque_grip_fraction": 0.65
+	},
+	"walker": {
+		"lift_headroom_acceleration": 35.0
+	},
+	"impacts": {
+		"_comment": "Scales over authored weapon impulses (m/s at equal mass). Rams add knock-back because Jolt hull contacts are plastic.",
+		"weapon_impulse_multiplier": 1.6,
+		"lifter_impulse_multiplier": 1.0,
+		"minigun_impulse_multiplier": 0.65,
+		"lifter_hold_acceleration_at_1g": 12.0,
+		"lifter_hold_weight_share": 0.5,
+		"ram_knockback_per_closing_speed": 0.25,
+		"ram_knockback_lift_fraction": 0.08
+	}
+}

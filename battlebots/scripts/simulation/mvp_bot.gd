@@ -101,7 +101,7 @@ func _ready() -> void:
 		hull.x * hull.x + hull.z * hull.z,
 		(hull.x * hull.x + hull.y * hull.y) * 1.8)
 	var contact_material := PhysicsMaterial.new()
-	contact_material.friction = 0.04
+	contact_material.friction = body.hull_friction()
 	contact_material.bounce = 0.0
 	body.physics_material_override = contact_material
 	var mesh := BoxMesh.new()

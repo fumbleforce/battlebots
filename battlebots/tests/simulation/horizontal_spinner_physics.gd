@@ -173,9 +173,14 @@ func run() -> void:
 	check(weapons.events.size() == 1, "Impulse case registers exactly one hit")
 	check(absf(target_velocity.y) < 0.001 and absf(recoil_velocity.y) < 0.001,
 		"Horizontal spinner authors no upward/downward velocity")
-	var expected_speed := 2.6 * attacker.body.mass / victim.body.mass
+	# CombatWorld authors a 4 m/s lateral strike, scaled by the configured heavy
+	# impact multiplier and the heft launch factor.
+	var authored_lateral_speed := 4.0
+	var physics := BotPhysics.settings()
+	var expected_speed := authored_lateral_speed * physics.weapon_impulse_multiplier \
+		* victim.body.launch_scale() * attacker.body.mass / victim.body.mass
 	check(absf(target_velocity.length() - expected_speed) < 0.01,
-		"Full spinner transfers 2.6 m/s at equal mass, with heavier targets resisting")
+		"Full spinner transfers the configured heavy strike at equal mass, with heavier targets resisting")
 	var expected_recoil := expected_speed * victim.body.mass / attacker.body.mass * 0.6
 	check(absf(recoil_velocity.length() - expected_recoil) < 0.01
 		and recoil_velocity.dot(target_velocity) < 0,

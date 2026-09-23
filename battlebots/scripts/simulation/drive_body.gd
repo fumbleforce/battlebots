@@ -15,6 +15,8 @@ signal reconciled(displacement: Vector3)
 @export var yaw_response: float = 0.15
 @export var yaw_acceleration_limit: float = 5.0
 @export var lateral_response: float = 0.12
+## Heft, motor authority and rise cap come from data/bot_physics.json.
+var physics := BotPhysics.settings()
 var geometry_scale := 1.0
 var probe_depth := 0.32
 const INPUT_TIMEOUT := 0.25
@@ -57,8 +59,31 @@ func accept_command(command: BotCommand) -> void:
 	if not is_zero_approx(_throttle) or not is_zero_approx(_steering) or _brake:
 		sleeping = false
 
+## Gravity multiplier over this arena's gravity (1 on the low-gravity Moon).
+func heft() -> float:
+	return physics.heft_for(gravity_scale)
+
+## Launch/jump speed multiplier that keeps apex height under heft gravity.
+func launch_scale() -> float:
+	return physics.launch_scale_for(gravity_scale)
+
+## Downward acceleration (m/s²) heft adds on top of this arena's gravity.
+func heft_extra_gravity() -> float:
+	var arena_gravity := float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)) * gravity_scale
+	return arena_gravity * (heft() - 1.0)
+
+## Contact friction scales with the heavier normal force. Jolt combines
+## friction as sqrt(hull * floor), so dividing by heft squared keeps sliding and
+## coasting drag against the arena at its 1 g strength; momentum still carries.
+func hull_friction() -> float:
+	return physics.hull_friction_at_1g / (heft() * heft())
+
+func max_rise() -> float:
+	return physics.rise_speed_cap_at_1g * launch_scale()
+
 func queue_jump(speed: float) -> void:
-	_jump_queued = maxf(_jump_queued, speed)
+	# Callers scale by arena gravity; heft adds its own factor so height holds.
+	_jump_queued = maxf(_jump_queued, speed * launch_scale())
 	sleeping = false
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
@@ -82,9 +107,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	contact_bodies.clear()
 	for index: int in range(state.get_contact_count()):
 		contact_bodies.append(state.get_contact_collider_id(index))
+	# Extra weight on top of Jolt's arena gravity (total_gravity already
+	# includes gravity_scale). Walker lift supports the same heavier weight.
+	# Arenas may set gravity_scale after assembly (Moon); follow its heft.
+	if physics_material_override != null and not is_equal_approx(physics_material_override.friction, hull_friction()):
+		physics_material_override.friction = hull_friction()
+	var extra_weight_fraction := heft() - 1.0
+	state.apply_central_force(state.total_gravity * extra_weight_fraction * mass)
 	if not recovery_torque.is_zero_approx():
-		state.apply_torque(recovery_torque)
-	state.linear_velocity.y = minf(state.linear_velocity.y, 8.0)
+		# Self-righting lifts the hull against the heavier weight.
+		state.apply_torque(recovery_torque * heft())
+	state.linear_velocity.y = minf(state.linear_velocity.y, max_rise())
 	state.angular_velocity = state.angular_velocity.limit_length(12.0)
 	_command_age += state.step
 	var stale := _command_age >= INPUT_TIMEOUT
@@ -110,9 +143,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# Motor torque grows with hull inertia so enlarged machines retain the
 		# power to pivot sharply; the response model still bounds angular buildup.
 		var torque_scale := geometry_scale * geometry_scale
-		var torque := clampf(yaw_acceleration / inverse_yaw_inertia,
-			-mass * grip_acceleration * 0.65 * torque_scale * steering_multiplier,
-			mass * grip_acceleration * 0.65 * torque_scale * steering_multiplier)
+		var torque_limit := mass * grip_acceleration * physics.grip_multiplier \
+			* physics.yaw_torque_grip_fraction * torque_scale * steering_multiplier
+		var torque := clampf(yaw_acceleration / inverse_yaw_inertia, -torque_limit, torque_limit)
 		state.apply_torque(normal * torque)
 
 func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
@@ -163,17 +196,18 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 	correction.pose.origin = origin.origin + motion
 
 func model_config() -> Dictionary:
-	return {"speed":top_speed, "acceleration":drive_acceleration, "grip":grip_acceleration,
+	return {"speed":top_speed, "acceleration":drive_acceleration * physics.acceleration_multiplier,
+		"grip":grip_acceleration * physics.grip_multiplier,
 		"coast":coast_acceleration, "throttle_response":throttle_response,
 		"steering_response":steering_response, "yaw_response":yaw_response,
-		"yaw_acceleration_limit":yaw_acceleration_limit, "lateral_response":lateral_response,
+		"yaw_acceleration_limit":yaw_acceleration_limit * physics.yaw_acceleration_multiplier, "lateral_response":lateral_response,
 		"walker":walker, "nitro":nitro_active, "nitro_equipped":nitro_equipped,
-		"charged_jump":jump_equipped,
+		"charged_jump":jump_equipped, "max_rise":max_rise(),
 		"brake":brake_acceleration, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,
 		"center_of_mass":center_of_mass if center_of_mass_mode == CENTER_OF_MASS_MODE_CUSTOM else Vector3.ZERO,
 		"gravity":Vector3(ProjectSettings.get_setting("physics/3d/default_gravity_vector", Vector3.DOWN))
-			* float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)) * gravity_scale}
+			* float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)) * gravity_scale * heft()}
 
 func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 	var normal_sum := Vector3.ZERO

@@ -43,7 +43,7 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 		config["nitro"] = bool(config.get("nitro_equipped", false)) and command.nitro_held
 		throttle = move_toward(throttle, 0.0 if command.brake else command.throttle, float(config.get("throttle_response", 3.0)) * delta)
 		steering = move_toward(steering, 0.0 if command.brake else command.steering, float(config.get("steering_response", 4.0)) * delta)
-		velocity.y = minf(velocity.y, 8.0)
+		velocity.y = minf(velocity.y, float(config.max_rise))
 		angular = angular.limit_length(12.0)
 		jump_cooldown = maxf(0.0, jump_cooldown - delta)
 		if command.jump_cancel:
