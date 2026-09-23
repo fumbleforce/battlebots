@@ -6,7 +6,7 @@ height. Footprint, placement, bunker geometry, materials, rivets and plate detai
 remain as authored. `build_structures.py -- --only jump_ramp` regenerates just
 this asset; its default invocation still builds all structures.
 
-Gameplay build **mvp-ab-31** gates the changed collision on clients and workers.
+Gameplay build **mvp-ab-32** gates the changed collision on clients and workers.
 Protocol 11 and catalogue identity are unchanged. The existing build mismatch
 rejection also protects LAN play; the arena ID/schema does not change. The
 source of collision remains `woodland_ground.gd`; rendered assets never define

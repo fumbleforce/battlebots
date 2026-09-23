@@ -5,7 +5,7 @@
   "blender": "5.2.2 LTS",
   "base_commit": "1afa3b0",
   "feature_commit": "2ceb0ba",
-  "build": "mvp-ab-31",
+  "build": "mvp-ab-32",
   "headless": [
     {
       "airborne": false,
