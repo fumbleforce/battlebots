@@ -40,13 +40,14 @@ func _draw() -> void:
 	var charging := charge > 0.0
 	var fill := charge if charging else clampf(cooldown / COOLDOWN, 0.0, 1.0)
 	var fill_color := accent if charging else (Color("9aa6b5") if high_contrast else Color("5d7280"))
+	var title := "JUMP FORCE" if charging else "JUMP COOLDOWN"
 	var ascent := FONT.get_ascent(font_size)
 	var value := ("MAX" if charge >= 1.0 else "%d%%" % roundi(charge * 100.0)) if charging else "%.1f s" % cooldown
 	# Outlined like the other free-floating HUD text so it reads over bright terrain.
 	var outline := Color(0.015, 0.02, 0.03, 0.95)
-	draw_string_outline(FONT, Vector2(0, ascent), "JUMP FORCE", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 3, outline)
+	draw_string_outline(FONT, Vector2(0, ascent), title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 3, outline)
 	draw_string_outline(FONT, Vector2(0, ascent), value, HORIZONTAL_ALIGNMENT_RIGHT, size.x, font_size, 3, outline)
-	draw_string(FONT, Vector2(0, ascent), "JUMP FORCE", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color.WHITE if high_contrast else MUTED)
+	draw_string(FONT, Vector2(0, ascent), title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color.WHITE if high_contrast else MUTED)
 	draw_string(FONT, Vector2(0, ascent), value, HORIZONTAL_ALIGNMENT_RIGHT, size.x, font_size, accent if charge >= 1.0 else (Color.WHITE if high_contrast else TEXT))
 	draw_rect(Rect2(-1, bar_top - 1, size.x + 2, 8), outline)
 	draw_rect(Rect2(0, bar_top, size.x, 6), Color("384553"))

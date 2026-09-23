@@ -5,6 +5,16 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Nitro and charged-jump HUD (#9) — 23 September 2026
+
+The combat HUD now shows Nitro activity and jump charge/cooldown, plus explicit
+unequipped, round-locked, overheated and disabled states. The existing jump-force
+bar is preserved and now belongs to CombatHud, including accessibility/layout.
+MenuGame supplies matching local loadout metadata; no input/combat/wire fields
+or compatibility versions change. Local/remote producer tests, real Practice
+reset/leave composition and native 720p–ultrawide layouts at up to 150% text pass.
+[Contract and detailed evidence](coordination/PERK_HUD.md).
+
 ## Heat-only combat resources (B, #41) — 23 September 2026
 
 Battery is removed from runtime state, weapons/perks, catalogue, snapshots and UI.

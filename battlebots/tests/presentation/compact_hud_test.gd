@@ -5,6 +5,7 @@ var combat: CombatHud
 var match_hud: MatchHud
 var caption: Label
 var captures := false
+const PERKS := {"nitro":"nitro_boost", "suspension":"charged_jump"}
 
 func _initialize() -> void:
 	run.call_deferred()
@@ -88,6 +89,12 @@ func check_layout(context: String) -> void:
 		for other: Control in visible_panels():
 			check(panel == other or not panel.get_global_rect().intersects(other.get_global_rect()),
 				context + ": visible cards do not overlap")
+	if combat.jump_gauge.visible:
+		var gauge_rect := combat.jump_gauge.get_global_rect()
+		check(viewport.grow(1).encloses(gauge_rect), context + ": force gauge stays within viewport")
+		for panel: Control in visible_panels():
+			check(not gauge_rect.intersects(panel.get_global_rect()), context + ": force gauge does not overlap HUD cards")
+		check(not caption.visible or not gauge_rect.intersects(caption.get_global_rect()), context + ": force gauge leaves captions clear")
 	if caption.visible:
 		var reserved := combat.caption_bounds()
 		check(reserved.grow(1).encloses(Rect2(caption.position, caption.size)),
@@ -147,7 +154,7 @@ func run() -> void:
 			caption.hide()
 			var bot := healthy_bot()
 			var rival := healthy_bot()
-			combat.render(bot, "R", rival)
+			combat.render(bot, "R", rival, false, true, true, PERKS)
 			match_hud.render(active_match(), false, 0)
 			await settle_layout(factor)
 			check(not combat.components_panel.is_visible_in_tree(), context + ": healthy component details stay hidden")
@@ -174,12 +181,24 @@ func run() -> void:
 					print("COMPACT HUD OCCUPANCY %.2f%%" % (100.0 * occupied / (extent.x * extent.y)))
 			check_layout(context + " healthy")
 			await capture("healthy", factor)
+			bot.nitro_active = true
+			bot.jump_charge_fraction = 0.75
+			combat.render(bot, "R", rival, false, true, true, PERKS)
+			await settle_layout(factor)
+			check_layout(context + " active perks")
+			await capture("perks", factor)
+			bot.jump_charge_fraction = 0.0
+			bot.jump_cooldown = 4.0
+			combat.render(bot, "R", rival, false, true, true, PERKS)
+			await settle_layout(factor)
+			check_layout(context + " jump cooldown")
+			await capture("cooldown", factor)
 			bot.zones.front = 0.0
 			bot.zones.drive_right = 0.0
 			bot.recovery_available = true
 			bot.immobilized_remaining = 4.2
 			caption.show()
-			combat.render(bot, "Ctrl + Shift + Space", rival)
+			combat.render(bot, "Ctrl + Shift + Space", rival, false, true, true, PERKS)
 			await settle_layout(factor)
 			check(combat.components_panel.is_visible_in_tree(), context + ": breached armor and disabled drive reveal failure details")
 			check(combat.components.front.is_visible_in_tree() and combat.components.drive_right.is_visible_in_tree(),
@@ -200,17 +219,17 @@ func run() -> void:
 			bot.weapon_cooldown = 999.9
 			bot.recovery_available = true
 			bot.immobilized_remaining = 4.2
-			combat.render(bot, "Ctrl + Shift + Space", rival)
+			combat.render(bot, "Ctrl + Shift + Space", rival, false, true, true, PERKS)
 			await settle_layout(factor)
 			check_layout(context + " all failures and recovery")
 			await capture("worst", factor)
 			bot.recovery_available = false
 			bot.immobilized_remaining = 0.0
 			bot.recovery_cooldown = 999.9
-			combat.render(bot, "Ctrl + Shift + Space", rival)
+			combat.render(bot, "Ctrl + Shift + Space", rival, false, true, true, PERKS)
 			await settle_layout(factor)
 			check_layout(context + " all failures")
-			combat.render(healthy_bot(), "R", rival)
+			combat.render(healthy_bot(), "R", rival, false, true, true, PERKS)
 			caption.hide()
 			await frames()
 			check(not combat.components_panel.is_visible_in_tree() and not combat.warning_label.is_visible_in_tree(),

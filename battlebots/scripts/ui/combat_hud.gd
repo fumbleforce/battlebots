@@ -31,6 +31,8 @@ var _component_grid: GridContainer
 var _weapon_name: Label
 var charge_gauge: Control
 var status_stack: VBoxContainer
+var perk_labels: Dictionary = {}
+var jump_gauge: HudJumpGauge
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -54,6 +56,22 @@ func _ready() -> void:
 	support.add_theme_constant_override("separation", 18)
 	health_col.add_child(support)
 	resources["Heat"] = _resource(support, "HEAT")
+	var perk_rows := VBoxContainer.new()
+	perk_rows.add_theme_constant_override("separation", 2)
+	health_col.add_child(perk_rows)
+	for perk: String in ["NITRO", "JUMP"]:
+		var row := HBoxContainer.new()
+		perk_rows.add_child(row)
+		var label := _label(row, perk, 11)
+		label.modulate = MUTED
+		muted_labels.append(label)
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var value := _label(row, "UNAVAILABLE", 12)
+		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		perk_labels[perk] = value
+	jump_gauge = HudJumpGauge.new()
+	jump_gauge.name = "JumpGauge"
+	canvas.add_child(jump_gauge)
 	components_panel = _panel()
 	_component_grid = GridContainer.new()
 	_component_grid.columns = 4
@@ -149,6 +167,7 @@ func apply_accessibility(value: float, colors: String, contrast: bool) -> void:
 		var background := StyleBoxFlat.new()
 		background.bg_color = Color("384553")
 		resources[key].bar.add_theme_stylebox_override("background", background)
+	jump_gauge.apply_accessibility(text_scale, accent, high_contrast)
 	_layout()
 	_resize()
 
@@ -245,9 +264,14 @@ func _resize() -> void:
 	var extra_height := canvas.size.y - 720.0
 	for control: Control in [resources_panel, weapon_panel]:
 		control.position.y += extra_height
-func render(view: BotView, recovery_binding: String = "", opponent: BotView = null, practice := false, duel := true, combat_active := true) -> void:
+	# Preserve the jump-force instrument above the left resource housing.
+	jump_gauge.size.x = resources_panel.size.x - 28.0
+	jump_gauge.position = resources_panel.position + Vector2(14, -jump_gauge.size.y - 8)
+
+func render(view: BotView, recovery_binding: String = "", opponent: BotView = null, practice := false, duel := true, combat_active := true, perk_parts: Dictionary = {}) -> void:
 	if not is_node_ready():
 		return
+	_render_perks(view, combat_active, perk_parts)
 	var values := [view.core_fraction, view.heat_fraction, view.weapon_charge_fraction] if view != null else [NAN, NAN, NAN]
 	var index := 0
 	for key: String in ["Core", "Heat", "Charge"]:
@@ -314,6 +338,43 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		var urgent: bool = view != null and ((key == "Core" and is_finite(view.core_fraction) and view.core_fraction >= 0 and view.core_fraction <= 0.25) or (key == "Heat" and (view.overheated or (is_finite(view.heat_fraction) and view.heat_fraction >= 0.9 and view.heat_fraction <= 1))))
 		fill.bg_color = danger if urgent else (Color("9ed8e5") if key == "Core" else Color("80aab9"))
 	_resize()
+
+func _render_perks(view: BotView, combat_active: bool, parts: Dictionary) -> void:
+	var selected := {"NITRO":parts.get("nitro", ""), "JUMP":parts.get("suspension", "")}
+	var equipped := {"NITRO":selected.NITRO == "nitro_boost", "JUMP":selected.JUMP == "charged_jump"}
+	for perk: String in perk_labels:
+		var label: Label = perk_labels[perk]
+		var status := "UNAVAILABLE"
+		if view != null:
+			if selected[perk] == ("nitro_off" if perk == "NITRO" else "jump_off"):
+				status = "NOT EQUIPPED"
+			elif equipped[perk]:
+				if view.eliminated:
+					status = "DISABLED"
+				elif not combat_active:
+					status = "ROUND LOCKED"
+				elif view.overheated:
+					status = "OVERHEATED"
+				elif perk == "NITRO":
+					var left: Variant = view.zones.get("drive_left")
+					var right: Variant = view.zones.get("drive_right")
+					if _number(left) and _number(right) and left == 0 and right == 0:
+						status = "DRIVE DISABLED"
+					else:
+						status = "ACTIVE" if view.nitro_active else "IDLE"
+				elif _number(view.jump_charge_fraction) and view.jump_charge_fraction >= 0.0 and view.jump_charge_fraction <= 1.0 and _number(view.jump_cooldown) and view.jump_cooldown >= 0.0:
+					if view.jump_cooldown > 0.0:
+						status = "%.1f s COOLDOWN" % view.jump_cooldown
+					elif view.jump_charge_fraction > 0.0:
+						status = "MAX CHARGE" if view.jump_charge_fraction >= 1.0 else "CHARGING"
+					else:
+						# Zero cooldown does not prove ground contact or launch eligibility.
+						status = "IDLE"
+		label.text = status
+		label.modulate = danger if status in ["OVERHEATED", "DISABLED", "DRIVE DISABLED"] else (accent if status in ["ACTIVE", "CHARGING", "MAX CHARGE"] else _text_color())
+	# Unknown/unequipped perks and invalid charge never invent a force reading.
+	var show_jump: bool = equipped.JUMP and perk_labels.JUMP.text not in ["UNAVAILABLE", "OVERHEATED", "DISABLED", "ROUND LOCKED"]
+	jump_gauge.render(view if show_jump else null, combat_active)
 
 func _number(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value))

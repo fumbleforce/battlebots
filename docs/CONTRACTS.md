@@ -1,5 +1,16 @@
 # Shared contracts — local records and current MVP session API
 
+## Perk HUD presentation (#9)
+
+`CombatHud.render` accepts an optional final `perk_parts: Dictionary` with the
+viewed entity's current loadout part IDs. MenuGame matches the local source's
+entity ID before supplying the parts; absent metadata produces UNAVAILABLE.
+Existing BotView Nitro activity, jump charge/cooldown and shared overheating
+fields drive explicit status text. No view, command, wire or gameplay fields
+change. CombatHud now owns the existing HudJumpGauge, its layout and accessibility.
+Idle jump cooldown is labelled IDLE rather than asserting ground eligibility.
+See [states and validation](coordination/PERK_HUD.md).
+
 ## Shared heat — catalogue 12, protocol 9, build mvp-ab-19 (#41)
 
 This revision supersedes historical battery references below. `CombatState` has

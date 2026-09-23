@@ -49,7 +49,6 @@ var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
 var pickup_notice: PickupNotice
-var jump_gauge: HudJumpGauge
 var _diagnostics_canvas: Control
 var world_markers: BotWorldMarkers
 var impact_feedback: CombatImpactFeedback
@@ -137,9 +136,6 @@ func _ready() -> void:
 	pickup_feed.position = Vector2(28, 28)
 	pickup_feed.size = Vector2(320, 0)
 	pickup_feed.bind_names(pickup_visuals.names)
-	jump_gauge = HudJumpGauge.new()
-	jump_gauge.name = "JumpGauge"
-	combat_hud.canvas.add_child(jump_gauge)
 	session.pickup_collected.connect(func(event: Dictionary) -> void: pickup_feed.notify(event, session.local_entity))
 	pickup_notice = PickupNotice.new()
 	pickup_notice.name = "PickupNotice"
@@ -545,7 +541,6 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	pickup_feed.apply_text_scale(value.text_scale)
 	pickup_notice.apply_text_scale(value.text_scale)
-	jump_gauge.apply_accessibility(value.text_scale, combat_hud.accent, value.high_contrast)
 	match_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	_audio_caption.add_theme_font_size_override("font_size", roundi(18 * value.text_scale))
 	var caption: Rect2 = combat_hud.caption_bounds()
@@ -725,14 +720,10 @@ func _process(_delta: float) -> void:
 				opponent = candidate
 				break
 	combat_hud.render(local_view, preview.input_preferences.label_for(&"recover"), opponent,
-		session.connection_state == "practice", session.match_view.get("mode") == "1v1", phase in ["active", "overtime"])
+		session.connection_state == "practice", session.match_view.get("mode") == "1v1", phase in ["active", "overtime"],
+		bot.loadout.get("parts", {}) if bot != null and local_view != null and bot.entity_id == local_view.entity_id else {})
 	_audio_caption.position = combat_hud.caption_bounds().position
 	_audio_caption.size = combat_hud.caption_bounds().size
-	# The jump force bar sits directly above the integrity/resources instrument.
-	jump_gauge.render(local_view, phase in ["active", "overtime"])
-	var resources_rect := Rect2(combat_hud.resources_panel.position, combat_hud.resources_panel.size)
-	jump_gauge.size.x = resources_rect.size.x - 28.0
-	jump_gauge.position = Vector2(resources_rect.position.x + 14.0, resources_rect.position.y - jump_gauge.size.y - 8.0)
 	_update_practice(bot)
 	if menu_open:
 		preview.pause_menu.hide()
