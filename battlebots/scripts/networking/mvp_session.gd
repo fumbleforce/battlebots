@@ -73,6 +73,8 @@ var _reconnect_deadline := 0
 var _reconnecting := false
 var _tearing_down := false
 var practice_director: PracticeBotDirector
+## Offline Woodland practice only (#45): edge starts and the roaming giant.
+var woodland_boss: WoodlandBoss
 ## Authority only: stock item pickups when a match or practice starts. Fixtures
 ## that hold MvpBot references across frames disable this, since a part pickup
 ## replaces the bot node.
@@ -199,6 +201,9 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	bot.owner_id = 1
 	practice_director = PracticeBotDirector.new()
 	_next_entity = practice_director.configure(world, local_entity, _next_entity)
+	if arena_id == "woodland":
+		woodland_boss = WoodlandBoss.new()
+		_next_entity = woodland_boss.configure(world, local_entity, practice_director, _next_entity)
 	if pickups_enabled:
 		world.begin_pickups(randi())
 	match_state.match_id = "practice"
@@ -224,6 +229,7 @@ func restart_practice() -> Error:
 	_input_budget.clear()
 	world.reset_round()
 	if practice_director != null: practice_director.restart()
+	if woodland_boss != null: woodland_boss.restart()
 	# Keep command sequence high-water marks: bot identities survive this reset.
 	var neutral := BotCommand.new()
 	neutral.brake = true
@@ -250,6 +256,7 @@ func _disconnect() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	connection_state = "offline"
 	practice_director = null
+	woodland_boss = null
 	_server = false
 	local_entity = 0
 	players.clear()
@@ -747,6 +754,7 @@ func _physics_process(delta: float) -> void:
 	var active := match_state.phase in ["active", "overtime"]
 	if connection_state == "practice" and practice_director != null:
 		practice_director.step(delta)
+		if woodland_boss != null: woodland_boss.step(delta)
 	world.step(delta, active, match_state.round_index)
 	if world.pickups.revision != _pickup_revision:
 		_pickup_revision = world.pickups.revision

@@ -21,7 +21,8 @@ const MESA_TOP := 7.0
 const MESA_RADIUS := 29.0
 const MESA_CLIFF := 2.4
 const MESA_RAMP := 17.0
-const MESA_RAMP_ARC := 0.2
+## Ramps are wide enough for the roaming giant (#45) to climb on and off.
+const MESA_RAMP_ARC := 0.55
 # Everything below is authored for the west half and mirrored through the
 # centre, so both teams face identical ground.
 const TERRACES := [
@@ -268,12 +269,6 @@ static func obstacles() -> Array[Dictionary]:
 				var at: Vector2 = (centre + Vector2(cos(a), sin(a)) * radius * sqrt((n + 0.5) / count)) * sign
 				out.append({"kind":"tree", "at":_ground(at), "seed":int(grove.seed) * 10 + n, "name":"Trunk%d_%d" % [index, n]})
 			index += 1
-	# Mesa pines stand at the cliff edge, clear of the practice area.
-	for n: int in range(3):
-		for sign: float in [1.0, -1.0]:
-			var a := 0.75 + n * 0.45 + (PI if sign < 0.0 else 0.0)
-			var at := Vector2(cos(a), sin(a)) * (MESA_RADIUS - 2.5)
-			out.append({"kind":"tree", "at":_ground(at), "seed":700 + n, "name":"MesaPine%d_%d" % [n, 0 if sign > 0.0 else 1]})
 	for ramp: Dictionary in RAMPS:
 		var centre: Vector2 = ramp.at
 		for sign: float in [1.0, -1.0]:
