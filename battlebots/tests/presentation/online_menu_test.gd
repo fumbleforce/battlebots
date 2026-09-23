@@ -58,13 +58,16 @@ func run() -> void:
 	var original_bot: int = profile.active_bot
 	profile.active_bot = 1
 	await frames()
-	var bounds := Rect2(Vector2.ZERO, Vector2(root.size))
+	# Controls use logical viewport coordinates under the project's canvas stretch.
+	# The 1280x720 window still renders a 1920x1080 logical canvas.
+	var bounds := root.get_visible_rect()
 	var online: Button = game.screen.get_node("%PlayOnline")
 	for action: Control in online.get_parent().get_children():
 		if action.visible:
 			check(bounds.encloses(action.get_global_rect()), "Main menu action fits viewport: " + str(action.name))
 	var click := InputEventMouseButton.new()
-	click.position = online.get_global_rect().get_center()
+	# push_input defaults to window coordinates; include the canvas stretch once.
+	click.position = root.get_final_transform() * online.get_global_rect().get_center()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	root.push_input(click)
