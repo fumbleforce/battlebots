@@ -1,5 +1,5 @@
 extends SceneTree
-## Main-menu intent follows a short path without mandatory garage or map choices.
+## Main-menu routes, live hosting, selected builds and Practice arena choice.
 var failures := 0
 var game: Node3D
 var router: Node
@@ -38,7 +38,7 @@ func run() -> void:
 	root.add_child(game)
 	current_scene = game
 	await frames()
-	var viewport_bounds := Rect2(Vector2.ZERO, Vector2(root.size))
+	var viewport_bounds := root.get_visible_rect()
 	for action: Control in game.screen.get_node("%Play").get_parent().get_children():
 		if action.is_visible_in_tree():
 			check(viewport_bounds.encloses(action.get_global_rect()), "Main action fits the 1280×720 viewport: " + str(action.name))
@@ -59,7 +59,7 @@ func join_flow() -> void:
 	if join_button == null:
 		return
 	var click := InputEventMouseButton.new()
-	click.position = join_button.get_global_rect().get_center()
+	click.position = root.get_final_transform() * join_button.get_global_rect().get_center()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	root.push_input(click)
@@ -117,7 +117,7 @@ func host_flow() -> void:
 	check(lobby.build_button.is_visible_in_tree(), "Changing selected build offers an explicit Apply action")
 	lobby.build_button.pressed.emit()
 	await frames()
-	check(lobby._local_slot().get("loadout", {}).get("parts", {}).get("weapon") == "vertical_spinner" and not lobby._local_slot().get("ready", true), "Inline build change applies authoritative loadout and clears readiness")
+	check(lobby._local_slot().get("loadout", {}).get("parts", {}).get("weapon") == profile.loadouts[0].parts.weapon and not lobby._local_slot().get("ready", true), "Inline build change applies authoritative loadout and clears readiness")
 	check(game.session.multiplayer.multiplayer_peer == peer and router.current == "lobby", "Inline build change preserves the same session and lobby")
 	lobby.featured_vehicle.next_button.pressed.emit()
 	lobby.build_button.pressed.emit()
@@ -136,8 +136,11 @@ func garage_flow() -> void:
 func practice_flow() -> void:
 	if not await press("Practice"):
 		return
+	check(router.current == "arena_select" and router.arena_intent == "practice", "Practice opens its arena choice")
+	if router.current != "arena_select": return
+	await press("Next")
 	await frames(8)
-	check(game.session.connection_state == "practice" and not game.menu_host.visible, "Main Practice immediately starts the arena without setup screens")
+	check(game.session.connection_state == "practice" and not game.menu_host.visible, "Confirming the arena starts Practice")
 	var bot = game.session.local_source()
 	check(bot != null, "Direct Practice creates a physical player bot")
 	if bot != null:

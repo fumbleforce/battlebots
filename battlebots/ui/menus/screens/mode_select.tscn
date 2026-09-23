@@ -197,25 +197,23 @@ stretch_mode = 1
 custom_minimum_size = Vector2(0, 7)
 mouse_filter = 2
 
-[node name="Body" type="ScrollContainer" parent="Layout"]
-horizontal_scroll_mode = 0
-follow_focus = true
+[node name="Body" type="MarginContainer" parent="Layout"]
 layout_mode = 2
 theme_override_constants/margin_left = 58
-theme_override_constants/margin_top = 43
+theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 58
-theme_override_constants/margin_bottom = 43
+theme_override_constants/margin_bottom = 24
 size_flags_vertical = 3
 
 [node name="Col" type="VBoxContainer" parent="Layout/Body"]
 size_flags_horizontal = 3
 layout_mode = 2
-theme_override_constants/separation = 29
+theme_override_constants/separation = 20
 
 [node name="Cards" type="GridContainer" parent="Layout/Body/Col"]
 layout_mode = 2
 unique_name_in_owner = true
-columns = 4
+columns = 2
 theme_override_constants/h_separation = 24
 theme_override_constants/v_separation = 24
 

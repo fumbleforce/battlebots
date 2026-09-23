@@ -10,7 +10,8 @@ func settle() -> void:
 	for frame: int in 8:
 		await process_frame
 func inspect(screen: Control, context: String) -> void:
-	check(screen.size.x <= 1921 and screen.size.y <= 1081, context + " root remains within design canvas")
+	var bounds := root.get_visible_rect().grow(1)
+	check(bounds.encloses(screen.get_global_rect()), context + " root remains within viewport")
 	for node: Node in screen.find_children("*", "Control", true, false):
 		if not node is Label and not node is Button and not node is LineEdit:
 			continue
@@ -18,17 +19,18 @@ func inspect(screen: Control, context: String) -> void:
 		if not control.is_visible_in_tree():
 			continue
 		var rect := control.get_global_rect()
-		check(rect.position.x >= -1 and rect.end.x <= 1921, context + " horizontal bounds " + str(screen.get_path_to(control)))
-		var ancestor := control.get_parent()
-		var scrollable := false
-		while ancestor != screen and ancestor != null:
-			if ancestor is ScrollContainer:
-				scrollable = true
-			ancestor = ancestor.get_parent()
-		if not scrollable:
-			check(rect.position.y >= -1 and rect.end.y <= 1081, context + " vertical bounds " + str(screen.get_path_to(control)))
+		check(rect.position.x >= bounds.position.x and rect.end.x <= bounds.end.x, context + " horizontal bounds " + str(screen.get_path_to(control)))
+		check(rect.position.y >= bounds.position.y and rect.end.y <= bounds.end.y, context + " vertical bounds " + str(screen.get_path_to(control)))
 		if control is Label:
 			check(control.size.y + 1 >= control.get_minimum_size().y, context + " text height " + str(screen.get_path_to(control)))
+		if screen.name == "ModeSelect":
+			var ancestor := control.get_parent()
+			while ancestor != null and ancestor != screen:
+				if ancestor is ColorRect and ancestor.name == "Tint":
+					check(ancestor.get_global_rect().grow(1).encloses(rect), context + " mode number and selection stay inside their color panel")
+				if ancestor is Button:
+					check(ancestor.get_global_rect().grow(1).encloses(rect), context + " mode card contains " + str(ancestor.get_path_to(control)))
+				ancestor = ancestor.get_parent()
 func run() -> void:
 	root.content_scale_size = Vector2i(1920, 1080)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
@@ -55,10 +57,18 @@ func run() -> void:
 			screen.apply_text_scale(factor)
 			for label: Label in baseline_sizes:
 				check(label.get_theme_font_size("font_size") == roundi(baseline_sizes[label] * factor), screen_name + " scales each heading/body from its baseline")
-			for resolution: Vector2i in [Vector2i(1280,720), Vector2i(1920,1080), Vector2i(3840,2160)]:
+			for resolution: Vector2i in [Vector2i(1280,720), Vector2i(1920,1080), Vector2i(2560,1080), Vector2i(3840,2160)]:
 				root.size = resolution
 				await settle()
 				inspect(screen, "%s %.2f %s" % [screen_name, factor, resolution])
+		if screen_name == "mode_select":
+			screen.apply_text_scale(1.5)
+			for card: Button in screen.get_node("%Cards").get_children():
+				card.button_pressed = true
+				card.pressed.emit()
+				await settle()
+				inspect(screen, "mode selection " + str(card.data.id))
+				check(root.get_visible_rect().grow(1).encloses(screen.get_node("%Next").get_global_rect()), "Selected mode keeps Continue visible")
 		if screen_name == "main_menu":
 			screen.apply_text_scale(1.5)
 			screen.get_node("%Quit").grab_focus()

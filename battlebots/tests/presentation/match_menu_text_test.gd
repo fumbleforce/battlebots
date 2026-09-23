@@ -19,7 +19,7 @@ func _capture(label: String, extent: Vector2i) -> void:
 		root.get_texture().get_image().save_png(OS.get_environment("TEMP").path_join("battlebots-match-text-%s-%d.png" % [label, extent.y]))
 
 func _run() -> void:
-	var extents: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1920, 1080)]
+	var extents: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560,1080)]
 	if DisplayServer.get_name() == "headless":
 		extents.append(Vector2i(3840, 2160))
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
@@ -27,8 +27,8 @@ func _run() -> void:
 	var results := MatchResults.new()
 	root.add_child(results)
 	var view := {"match_id":"text-fixture", "phase":"results", "mode":"1v1", "winner":0,
-		"scores":[2, 1], "remaining":20, "rounds":[{"round":1,"winner":0}, {"round":2,"winner":1}, {"round":3,"winner":0}]}
-	var stats := {"damage":2147483647,"eliminations":2,"assists":0,"component_disables":3,"recoveries":1}
+		"scores":[2, 1], "remaining":20, "rounds":[{"round":1,"winner":0}, {"round":2,"winner":1}, {"round":3,"winner":-1}, {"round":4,"winner":-1}, {"round":5,"winner":0}]}
+	var stats := {"damage":2147483647,"eliminations":2,"assists":0,"component_disables":3,"recoveries":1,"credits":{"total":250,"performance":150,"pickups":100}}
 	results.render(view, 2147483647, 0)
 	results.accept_record({"match":view, "participants":{2147483647:stats, 2147483646:stats}}, "text-fixture")
 	results.mark_requested()
@@ -52,6 +52,9 @@ func _run() -> void:
 				results.scope.item_selected.emit(0)
 				await _frames()
 				_check(results.table.get_child(0).get_theme_font_size("font_size") == first_size, "Rebuilt table retains enlarged font")
+			for node: Node in results.find_children("*", "ScrollContainer", true, false):
+				if node.is_visible_in_tree():
+					_check(node.get_v_scroll_bar().max_value <= node.get_v_scroll_bar().page + 1, "Duel results fit without scrolling %s/%s max=%s page=%s" % [extent, details, node.get_v_scroll_bar().max_value,node.get_v_scroll_bar().page])
 			await _capture("scores" if details else "win", extent)
 		results.apply_text_scale(1.25)
 		_check(results.heading.get_theme_font_size("font_size") == 45, "Results supports intermediate scale")

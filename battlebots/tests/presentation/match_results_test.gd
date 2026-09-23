@@ -10,6 +10,8 @@ func check(ok: bool, message: String) -> void:
 		push_error(message)
 
 func run() -> void:
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+	root.content_scale_size = Vector2i.ZERO
 	root.size = Vector2i(1280, 720)
 	var panel := MatchResults.new()
 	root.add_child(panel)

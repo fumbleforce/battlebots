@@ -12,7 +12,7 @@ var code_input: LineEdit
 var status_label: Label
 var region_label: Label
 var code_label: Label
-var actions: VBoxContainer
+var actions: HBoxContainer
 var state_heading: Label
 var header_panel: PanelContainer
 
@@ -55,32 +55,25 @@ func _ready() -> void:
 	for side: String in ["left", "right"]:
 		margin.add_theme_constant_override("margin_" + side, 90)
 	for side: String in ["top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 38)
+		margin.add_theme_constant_override("margin_" + side, 24)
 	layout.add_child(margin)
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	margin.add_child(scroll)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 24)
-	scroll.add_child(body)
-	label(body, "ONE ARENA. TWO BOTS.", 42, &"HeadingItalic")
-	label(body, "Find an opponent, challenge a friend, or join with an invite code.", 27, &"Muted")
-	actions = VBoxContainer.new()
+	margin.add_child(body)
+	# Three parallel ways to join a duel, with every action visible together.
+	actions = HBoxContainer.new()
+	actions.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	actions.add_theme_constant_override("separation", 18)
 	body.add_child(actions)
-	var quick_col := card(actions, "QUICK PLAY / 1V1", "FIND YOUR NEXT OPPONENT", "Join the queue for a 1v1 duel. Choose your bot and ready up when an opponent joins.")
+	var quick_col := card(actions, "PUBLIC MATCH", "QUICK PLAY", "Find an opponent for a 1v1 duel. Choose your bot and ready up in the lobby.")
 	quick_button = button(quick_col, "QUICK PLAY · 1V1", quick_play)
 	quick_button.theme_type_variation = &"PrimaryButton"
-	var cards := HBoxContainer.new()
-	cards.add_theme_constant_override("separation", 28)
-	actions.add_child(cards)
-	var host_col := card(cards, "01 / CREATE", "CHALLENGE A FRIEND", "Start a private 1v1 game. Share the code to invite your opponent.")
+	var host_col := card(actions, "PRIVATE MATCH", "CHALLENGE A FRIEND", "Create a private 1v1 game and share its code with your opponent.")
 	create_button = button(host_col, "CREATE 1V1 GAME", create_room)
 	create_button.theme_type_variation = &"GhostButton"
-	var join_col := card(cards, "02 / JOIN", "ENTER THE ARENA", "Have an invite? Enter the eight-character code your friend shared.")
-	var join_row := HBoxContainer.new()
+	var join_col := card(actions, "HAVE AN INVITE?", "JOIN A FRIEND", "Enter the eight-character code your friend shared.")
+	var join_row := VBoxContainer.new()
 	join_row.add_theme_constant_override("separation", 16)
 	join_col.add_child(join_row)
 	code_input = LineEdit.new()
@@ -92,18 +85,26 @@ func _ready() -> void:
 	code_input.text_submitted.connect(func(_text: String) -> void: join_room())
 	join_row.add_child(code_input)
 	join_button = button(join_row, "JOIN GAME", join_room)
-	join_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	join_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var status_panel := panel(body, &"PanelGlass")
 	body.move_child(status_panel, actions.get_index())
-	status_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	status_panel.size_flags_vertical = Control.SIZE_FILL
 	var status_col := VBoxContainer.new()
 	status_col.add_theme_constant_override("separation", 15)
 	status_panel.add_child(status_col)
-	state_heading = label(status_col, "", 24, &"EyebrowAmber")
-	status_label = label(status_col, "", 29)
+	var status_row := HBoxContainer.new()
+	status_row.add_theme_constant_override("separation", 32)
+	status_col.add_child(status_row)
+	var state_col := VBoxContainer.new()
+	state_col.custom_minimum_size.x = 460
+	state_col.add_theme_constant_override("separation", 10)
+	status_row.add_child(state_col)
+	state_heading = label(state_col, "", 24, &"EyebrowAmber")
+	region_label = label(state_col, "", 22, &"Muted")
+	status_label = label(status_row, "", 29)
 	status_label.focus_mode = Control.FOCUS_ALL
-	status_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	region_label = label(status_col, "", 22, &"Muted")
+	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var code_row := HBoxContainer.new()
 	code_row.add_theme_constant_override("separation", 24)
 	status_col.add_child(code_row)
@@ -178,7 +179,7 @@ func join_room() -> void:
 func refresh() -> void:
 	status_label.text = service.message
 	if service.state == "idle" and service.available():
-		status_label.text = "Quick Play finds an opponent. You can also create a private duel or enter a friend's code."
+		status_label.text = "Find an opponent or play a private duel with a friend."
 	state_heading.text = {"idle": "READY TO PLAY" if service.available() else "ONLINE UNAVAILABLE", "failed": "CONNECTION NEEDS ATTENTION", "requesting": "CONTACTING ONLINE SERVICE", "waiting": "WAITING FOR YOUR OPPONENT", "starting": "PREPARING THE ARENA", "ready": "CONNECTING TO YOUR GAME", "connected": "GAME CONNECTED", "canceling": "LEAVING GAME"}.get(service.state, "ONLINE STATUS")
 	region_label.text = "REGION · " + (service.region if not service.region.is_empty() else "Assigned by the online service")
 	var available := service.can_start()

@@ -5,6 +5,16 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Visible online and host actions at enlarged text (#7) — 23 September 2026
+
+Online entry now fits Quick Play/Create/Join together; compact host cards keep
+all four modes/rules/Continue visible. Duel results retain full five-round history
+and score rows at 720p/150% without scrolling. Preserves existing theme and font
+scaling. Bounds checks no longer exempt scroll content; online state/Tab, native
+captures, menu flows and baseline checks accompany the fixes. No gameplay or
+wire change. Human full-flow review and CI/release remain open.
+[Evidence and reproduction](coordination/MENU_FLOW_FIT.md).
+
 ## Correct prediction correction measurements (#57) — 23 September 2026
 
 The 80 ms CI failure counted a normal tick of travel as a correction. Session

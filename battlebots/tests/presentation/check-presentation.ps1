@@ -57,6 +57,7 @@ $checks = @(
 	@('world_markers_game_test.gd', 'WORLD MARKERS GAME PASS'),
     @('menu_text_settings_test.gd', 'MENU TEXT SETTINGS PASS'),
     @('menu_text_screens_test.gd', 'MENU TEXT SCREENS PASS'),
+    @('online_menu_fit_test.gd', 'ONLINE MENU FIT PASS'),
     @('match_menu_text_test.gd', 'MATCH MENU TEXT PASS'),
     @('combat_hud_test.gd', 'COMBAT HUD PASS'),
     @('jump_gauge_test.gd', 'JUMP GAUGE PASS'),

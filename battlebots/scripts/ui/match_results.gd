@@ -51,7 +51,6 @@ func _ready() -> void:
 	_column = column
 	column.add_theme_constant_override("separation", 14)
 	margin.add_child(column)
-	_label("THE FOUNDRY  /  MATCH RESULTS", column).theme_type_variation = &"EyebrowAmber"
 	heading = _label("MATCH COMPLETE", column)
 	heading.theme_type_variation = &"Heading"
 	heading.add_theme_font_size_override("font_size", 36)
@@ -67,7 +66,7 @@ func _ready() -> void:
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(body)
 	overview = VBoxContainer.new()
-	overview.add_theme_constant_override("separation", 12)
+	overview.add_theme_constant_override("separation", 8)
 	body.add_child(overview)
 	var hero := HBoxContainer.new()
 	hero.add_theme_constant_override("separation", 24)
@@ -84,9 +83,6 @@ func _ready() -> void:
 	score.add_theme_font_size_override("font_size", 50)
 	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var score_caption := _label("FINAL RESULT", overview)
-	score_caption.theme_type_variation = &"Eyebrow"
-	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	credits_label = _label("", overview)
 	credits_label.theme_type_variation = &"Strong"
 	credits_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -143,7 +139,7 @@ func apply_text_scale(factor: float) -> void:
 	MenuTextScale.apply(self, factor)
 	for edge: String in ["left", "right", "top", "bottom"]:
 		_margin.add_theme_constant_override("margin_" + edge, 20 if factor > 1.0 else 28)
-	_column.add_theme_constant_override("separation", 10 if factor > 1.0 else 14)
+	_column.add_theme_constant_override("separation", 8 if factor > 1.0 else 14)
 	# Fixed column shares let enlarged headings wrap instead of widening the page.
 	table.add_theme_constant_override("h_separation", 12 if factor > 1.0 else 36)
 	for child: Node in table.get_children():
