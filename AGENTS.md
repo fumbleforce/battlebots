@@ -52,6 +52,8 @@ docs/TEAM_WORKFLOW.md and docs/CONTRACTS.md before implementation.
   and feel good, plus a checklist for new parts).
 - Before arena or environment work, read docs/art/ARENA_ENVIRONMENTS.md (how
   the Woodland arena was built, failures to avoid, and a checklist for new arenas).
+- Before performance or load-time work, read docs/PERFORMANCE.md (how to
+  measure, what worked, warnings and open ideas).
 - Commit source `.uid` and required `.import` files; never commit `.godot/`,
   credentials or export output.
 - After shared contract/scene changes run `tools/check-baseline.ps1` (needs
