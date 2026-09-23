@@ -13,3 +13,9 @@ Boulders are decimated to 2.4-3.6k triangles, with the scan detail baked into
 tangent normal maps and the albedo graded to cool grey granite. The same mesh
 is rendered and used as each boulder's convex collision hull. Conifer cards are
 orthographic Cycles renders under a uniform white sky (albedo x self-occlusion).
+| `assets/models/woodland/scatter_pebbles`, `scatter_rocks` | `build_scatter.py` | namaqualand_rocks_01 (2k), rock_moss_set_02 (2k) | Greg Zaal, Jenelle van Heerden; Kless Gyzen |
+| `assets/models/woodland/scatter_grass`, `scatter_fern` | `build_scatter.py` | grass_medium_01/02, fern_02 (1k) | Rob Tuytel, Rico Cilliers |
+| `assets/textures/woodland/grass_patches.png` | `build_grass_atlas.py` | grass_medium_01/02 (1k) | Rob Tuytel, Rico Cilliers |
+
+`battlebots/tools/bake_woodland_masks.gd` bakes `ground_masks.png` (ruts, grass,
+wetness, scorch) consumed by the terrain shader and scatter placement.

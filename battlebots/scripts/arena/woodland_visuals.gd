@@ -17,7 +17,8 @@ const IRON = preload("res://assets/materials/arena/woodland_iron.gdshader")
 const CANVAS = preload("res://assets/materials/arena/woodland_canvas.gdshader")
 const BANNER = preload("res://assets/materials/arena/woodland_banner.gdshader")
 const CROWD = preload("res://assets/materials/arena/woodland_crowd.gdshader")
-const DIRT = preload("res://assets/materials/arena/woodland_dirt.gdshader")
+const TERRAIN = preload("res://assets/materials/arena/woodland_terrain.gdshader")
+const MASKS = preload("res://assets/textures/woodland/ground_masks.png")
 const ROCK = preload("res://assets/materials/arena/woodland_rock.gdshader")
 const SCREEN = preload("res://assets/materials/arena/woodland_screen.gdshader")
 const CONCRETE = preload("res://assets/materials/arena/woodland_concrete.gdshader")
@@ -115,90 +116,31 @@ func _build() -> void:
 # --- Terrain and water ---------------------------------------------------
 
 func _terrain(arena: Node) -> void:
-	# Twice the collision resolution: the heights are bilinear samples of the
-	# physical grid, and the dirt shader cuts the tank ruts in the vertex stage.
+	# A 0.25 m grid displaced on the GPU from the physical heights (uploaded as a
+	# float texture) and the baked rut mask; see woodland_terrain.gdshader.
 	var ground := arena.get_node("WoodlandTerrain") as Node3D
 	var heights: PackedFloat32Array = ground.get_meta(&"heights")
-	var grid := GROUND.GRID
-	var res := (grid - 1) * 2 + 1
-	var step := GROUND.STEP * 0.5
-	var samples := PackedFloat32Array()
-	samples.resize(res * res)
-	for z: int in range(res):
-		for x: int in range(res):
-			var gx := x >> 1
-			var gz := z >> 1
-			var fx := (x & 1) * 0.5
-			var fz := (z & 1) * 0.5
-			var x1 := mini(gx + 1, grid - 1)
-			var z1 := mini(gz + 1, grid - 1)
-			samples[z * res + x] = lerpf(lerpf(heights[gz * grid + gx], heights[gz * grid + x1], fx),
-				lerpf(heights[z1 * grid + gx], heights[z1 * grid + x1], fx), fz)
-	# Smooth normals: central differences on the physics grid, interpolated to
-	# the render vertices. Per-triangle slopes of the linear height field would
-	# otherwise show as a faceted diamond pattern in the low sun.
-	var grid_normals := PackedVector3Array()
-	grid_normals.resize(grid * grid)
-	for z: int in range(grid):
-		for x: int in range(grid):
-			var hl := heights[z * grid + maxi(x - 1, 0)]
-			var hr := heights[z * grid + mini(x + 1, grid - 1)]
-			var hd := heights[maxi(z - 1, 0) * grid + x]
-			var hu := heights[mini(z + 1, grid - 1) * grid + x]
-			grid_normals[z * grid + x] = Vector3(hl - hr, 2.0 * GROUND.STEP, hd - hu).normalized()
-	var vertices := PackedVector3Array()
-	var normals := PackedVector3Array()
-	vertices.resize(res * res)
-	normals.resize(res * res)
-	for z: int in range(res):
-		for x: int in range(res):
-			var i := z * res + x
-			vertices[i] = Vector3(-HALF + x * step, samples[i], -HALF + z * step)
-			var gx := x >> 1
-			var gz := z >> 1
-			var x1 := mini(gx + 1, grid - 1)
-			var z1 := mini(gz + 1, grid - 1)
-			var fx := (x & 1) * 0.5
-			var fz := (z & 1) * 0.5
-			normals[i] = (grid_normals[gz * grid + gx].lerp(grid_normals[gz * grid + x1], fx)).lerp(
-				grid_normals[z1 * grid + gx].lerp(grid_normals[z1 * grid + x1], fx), fz).normalized()
-	var indices := PackedInt32Array()
-	indices.resize((res - 1) * (res - 1) * 6)
-	var k := 0
-	for z: int in range(res - 1):
-		for x: int in range(res - 1):
-			var a := z * res + x
-			indices[k] = a
-			indices[k + 1] = a + 1
-			indices[k + 2] = a + res
-			indices[k + 3] = a + 1
-			indices[k + 4] = a + res + 1
-			indices[k + 5] = a + res
-			k += 6
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_INDEX] = indices
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var dirt := ShaderMaterial.new()
-	dirt.shader = DIRT
-	var clusters := PackedVector4Array()
-	for outcrop: Dictionary in GROUND.OUTCROPS:
-		for sign: float in [1.0, -1.0]:
-			var at: Vector2 = outcrop.at
-			clusters.append(Vector4(at.x * sign, at.y * sign, float(outcrop.size) * 4.0, 0))
-	dirt.set_shader_parameter("clusters", clusters)
-	dirt.set_shader_parameter("arena_half_extent", HALF)
+	var height_image := Image.create_from_data(GROUND.GRID, GROUND.GRID, false, Image.FORMAT_RF, heights.to_byte_array())
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(HALF * 2.0, HALF * 2.0)
+	plane.subdivide_width = int(HALF * 8.0) - 1
+	plane.subdivide_depth = int(HALF * 8.0) - 1
+	# Displacement happens in the shader; keep culling bounds generous.
+	plane.custom_aabb = AABB(Vector3(-HALF, -4.0, -HALF), Vector3(HALF * 2.0, 20.0, HALF * 2.0))
+	var terrain := ShaderMaterial.new()
+	terrain.shader = TERRAIN
+	terrain.set_shader_parameter("height_tex", ImageTexture.create_from_image(height_image))
+	terrain.set_shader_parameter("masks", MASKS)
+	terrain.set_shader_parameter("arena_half", HALF)
+	terrain.set_shader_parameter("grid", float(GROUND.GRID))
 	for layer: Array in [["mud", "muddy_tracks"], ["rocky", "brown_mud_rocks_01"], ["ground", "forest_ground_04"],
 			["grass", "sparse_grass"], ["rock", "rock_boulder_dry"]]:
 		for map: String in ["diff", "nor", "arm"]:
-			dirt.set_shader_parameter(layer[0] + "_" + map, scan(layer[1], map))
-	mesh.surface_set_material(0, dirt)
+			terrain.set_shader_parameter(layer[0] + "_" + map, scan(layer[1], map))
+	plane.material = terrain
 	var visual := MeshInstance3D.new()
 	visual.name = "TerrainSurface"
-	visual.mesh = mesh
+	visual.mesh = plane
 	add_child(visual)
 
 # --- Materials -----------------------------------------------------------
@@ -879,39 +821,6 @@ func _outcrops() -> void:
 			continue
 		var pose := GROUND.boulder_pose(item)
 		groups[pose.model].append(Transform3D(pose.basis, item.at - Vector3(0, pose.sink, 0)))
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 60606
-	var anchors: Array[Vector3] = []
-	for item: Dictionary in GROUND.obstacles():
-		if item.kind in ["boulder", "bunker", "ramp", "plinth"]:
-			anchors.append(item.at)
-	var heights: PackedFloat32Array = get_node(arena_path).get_node("WoodlandTerrain").get_meta(&"heights")
-	var flora_height := func(x: float, z: float) -> float:
-		var gx := clampi(roundi(x + HALF), 0, GROUND.GRID - 1)
-		var gz := clampi(roundi(z + HALF), 0, GROUND.GRID - 1)
-		return heights[gz * GROUND.GRID + gx]
-	var loose := 0
-	var attempts := 0
-	while loose < 2200 and attempts < 30000:
-		attempts += 1
-		var anchor: Vector3 = anchors[rng.randi() % anchors.size()]
-		var a := rng.randf() * TAU
-		var r := rng.randf_range(3.0, 16.0) * sqrt(rng.randf())
-		var p := Vector2(anchor.x + cos(a) * r, anchor.z + sin(a) * r)
-		if GROUND.octagon_distance(p) < 1.0 or p.length() < 30.0:
-			continue
-		var near_spawn := false
-		for spawn: Vector2 in GROUND.spawn_points():
-			near_spawn = near_spawn or p.distance_to(spawn) < 14.0
-		if near_spawn:
-			continue
-		var model: String = GROUND.BOULDER_MODELS[rng.randi() % GROUND.BOULDER_MODELS.size()]
-		var box := GROUND.scan_mesh(model).get_aabb()
-		var height := rng.randf_range(0.12, 0.45)
-		var s := height / box.size.y
-		var basis := Basis.from_euler(Vector3(rng.randf_range(-0.25, 0.25), rng.randf() * TAU, rng.randf_range(-0.25, 0.25))).scaled_local(Vector3(s, s, s) * Vector3(rng.randf_range(0.9, 1.5), 1.0, rng.randf_range(0.9, 1.5)))
-		groups[model].append(Transform3D(basis, Vector3(p.x, flora_height.call(p.x, p.y) - height * 0.15, p.y)))
-		loose += 1
 	for model: String in groups:
 		var poses: Array = groups[model]
 		if poses.is_empty():

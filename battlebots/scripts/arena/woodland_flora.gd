@@ -5,12 +5,10 @@ extends Node3D
 
 const GROUND = preload("res://scripts/arena/woodland_ground.gd")
 const BARK = preload("res://assets/materials/arena/woodland_bark.gdshader")
-const GRASS = preload("res://assets/materials/arena/woodland_grass.gdshader")
 const ROCK = preload("res://assets/materials/arena/woodland_rock.gdshader")
 const CONIFER = preload("res://assets/materials/arena/woodland_conifer.gdshader")
 const HALF := GROUND.HALF
 var bark := ShaderMaterial.new()
-var grass := ShaderMaterial.new()
 var stone := ShaderMaterial.new()
 var side_cards := ShaderMaterial.new()
 var whorl_discs := ShaderMaterial.new()
@@ -19,7 +17,6 @@ func _init() -> void:
 	bark.shader = BARK
 	for map: String in ["diff", "nor", "arm"]:
 		bark.set_shader_parameter("bark_" + map, load("res://assets/textures/woodland/pine_bark_%s_1k.jpg" % map))
-	grass.shader = GRASS
 	stone.shader = ROCK
 	side_cards.shader = CONIFER
 	side_cards.set_shader_parameter("atlas", load("res://assets/textures/woodland/conifer_sides.png"))
@@ -60,70 +57,194 @@ func height(x: float, z: float) -> float:
 	return lerpf(lerpf(_heights[iz * g + ix], _heights[iz * g + ix + 1], fx),
 		lerpf(_heights[(iz + 1) * g + ix], _heights[(iz + 1) * g + ix + 1], fx), fz)
 
+const MASKS = preload("res://assets/textures/woodland/ground_masks.png")
+const SCAN_PROP = preload("res://assets/materials/arena/woodland_scan_prop.gdshader")
+const CHUNK := 24.0
+const RUT_DEPTH := 0.16 # Matches woodland_terrain.gdshader.
+var _masks: Image
+
+func _mask(x: float, z: float) -> Color:
+	var px := clampi(int((x + HALF) / (HALF * 2.0) * _masks.get_width()), 0, _masks.get_width() - 1)
+	var pz := clampi(int((z + HALF) / (HALF * 2.0) * _masks.get_height()), 0, _masks.get_height() - 1)
+	return _masks.get_pixel(px, pz)
+
+## Visual ground height including the shader's rut groove, so nothing floats.
+func ground_y(x: float, z: float) -> float:
+	var r := _mask(x, z).r
+	var profile := -smoothstep(0.15, 1.0, r) + smoothstep(0.0, 0.15, r) * (1.0 - smoothstep(0.15, 0.45, r)) * 0.35
+	return height(x, z) + profile * RUT_DEPTH
+
+## Mesh variants of a Blender-built scatter set (art_source/woodland/build_scatter.py).
+## Rebuild an imported scan material on woodland_scan_prop.gdshader.
+func _scan_material(source: BaseMaterial3D, saturation: float, tint: Color) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = SCAN_PROP
+	var foliage := source.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED
+	mat.set_shader_parameter("foliage", foliage)
+	mat.set_shader_parameter("albedo_tex", source.albedo_texture)
+	mat.set_shader_parameter("has_normal", source.normal_texture != null)
+	mat.set_shader_parameter("normal_tex", source.normal_texture)
+	mat.set_shader_parameter("has_arm", source.roughness_texture != null)
+	mat.set_shader_parameter("arm_tex", source.roughness_texture)
+	mat.set_shader_parameter("saturation", saturation)
+	mat.set_shader_parameter("tint", tint)
+	return mat
+
+func _variants(set_name: String, max_tris: int = 1 << 30, tint: Color = Color.WHITE, saturation: float = 1.0) -> Array[Mesh]:
+	var scene: Node = load("res://assets/models/woodland/%s.gltf" % set_name).instantiate()
+	var out: Array[Mesh] = []
+	for node: Node in scene.find_children("*", "MeshInstance3D", true, false):
+		var mesh := (node as MeshInstance3D).mesh.duplicate() as Mesh
+		var tris := 0
+		for surface: int in range(mesh.get_surface_count()):
+			tris += mesh.surface_get_array_index_len(surface) / 3
+		if tris <= max_tris:
+			for surface: int in range(mesh.get_surface_count()):
+				mesh.surface_set_material(surface, _scan_material(mesh.surface_get_material(surface) as BaseMaterial3D, saturation, tint))
+			out.append(mesh)
+	scene.free()
+	return out
+
+## Instances bucketed into 24 m chunks so culling and visibility ranges work.
+func _scatter(label: String, meshes: Array[Mesh], poses: Array, range_end: float, shadows: bool) -> void:
+	var buckets: Dictionary = {}
+	for entry: Array in poses:
+		var pose: Transform3D = entry[1]
+		var key := Vector3i(int(floor(pose.origin.x / CHUNK)), int(floor(pose.origin.z / CHUNK)), int(entry[0]))
+		if not buckets.has(key):
+			buckets[key] = []
+		buckets[key].append(pose)
+	for key: Vector3i in buckets:
+		var centre := Vector3((key.x + 0.5) * CHUNK, 0.0, (key.y + 0.5) * CHUNK)
+		var list: Array = buckets[key]
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = meshes[key.z]
+		multi.instance_count = list.size()
+		for i: int in range(list.size()):
+			var pose: Transform3D = list[i]
+			multi.set_instance_transform(i, Transform3D(pose.basis, pose.origin - centre))
+		var visual := MultiMeshInstance3D.new()
+		visual.name = "%s_%d_%d_%d" % [label, key.x, key.y, key.z]
+		visual.multimesh = multi
+		visual.position = centre
+		visual.visibility_range_end = range_end
+		visual.visibility_range_end_margin = range_end * 0.15
+		visual.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(visual)
+
+func _clear_of_play(p: Vector2, margin: float) -> bool:
+	if GROUND.octagon_distance(p) < 0.6:
+		return false
+	return not GROUND.blocks(Vector3(p.x, 0.0, p.y), margin)
+
+## Grass patches: two crossed 1.2 x 0.6 m cards per mesh, textured from the
+## Blender-rendered scan atlas (art_source/woodland/build_grass_atlas.py).
+func _grass_cards() -> Array[Mesh]:
+	var mat := ShaderMaterial.new()
+	mat.shader = SCAN_PROP
+	mat.set_shader_parameter("foliage", true)
+	mat.set_shader_parameter("albedo_tex", load("res://assets/textures/woodland/grass_patches.png"))
+	mat.set_shader_parameter("has_normal", false)
+	mat.set_shader_parameter("has_arm", false)
+	mat.set_shader_parameter("cutoff", 0.5)
+	mat.set_shader_parameter("tint", Color(1.08, 1.1, 1.0))
+	var out: Array[Mesh] = []
+	for cell: int in range(8):
+		var u0 := float(cell % 2) * 0.5
+		var v0 := float(cell / 2) * 0.25
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for card: int in range(3):
+			var yaw := card * PI / 3.0 + cell * 0.4
+			var across := Vector3(cos(yaw), 0, sin(yaw)) * 0.6
+			var corners := [-across, across, across + Vector3(0, 0.6, 0), -across + Vector3(0, 0.6, 0)]
+			var uvs := [Vector2(u0, v0 + 0.25), Vector2(u0 + 0.5, v0 + 0.25), Vector2(u0 + 0.5, v0), Vector2(u0, v0)]
+			for index: int in [0, 2, 1, 0, 3, 2]:
+				tool.set_normal(Vector3.UP)
+				tool.set_uv(uvs[index])
+				tool.add_vertex(corners[index])
+		tool.set_material(mat)
+		out.append(tool.commit())
+	return out
+
 func _interior_grass() -> void:
+	_masks = MASKS.get_image()
+	if _masks.is_compressed():
+		_masks.decompress()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5150
-	var patches := FastNoiseLite.new()
-	patches.seed = 77
-	patches.frequency = 0.05
-	var poses: Array[Transform3D] = []
+	var grass := _grass_cards()
+	var ferns := _variants("scatter_fern")
+	var rocks := _variants("scatter_rocks")
+	# The granite pebble scan is pinkish; pull it toward the arena's grey stone.
+	var pebbles := _variants("scatter_pebbles", 1 << 30, Color(0.95, 0.95, 0.97), 0.4)
+	var small_rocks := _variants("scatter_rocks")
+	var grass_poses: Array = []
+	var fern_poses: Array = []
+	var pebble_poses: Array = []
+	var rock_poses: Array = []
+	# One jittered candidate per 0.45 m cell, accepted by the baked masks.
+	var cell := 0.42
+	var n := int(HALF * 2.0 / cell)
+	for iz: int in range(n):
+		for ix: int in range(n):
+			var p := Vector2(-HALF + (ix + rng.randf()) * cell, -HALF + (iz + rng.randf()) * cell)
+			var roll := rng.randf()
+			var m := _mask(p.x, p.y)
+			var slope := absf(height(p.x + 0.5, p.y) - height(p.x - 0.5, p.y)) + absf(height(p.x, p.y + 0.5) - height(p.x, p.y - 0.5))
+			if slope > 0.9:
+				continue
+			var yaw := Basis(Vector3.UP, rng.randf() * TAU)
+			if roll < minf(1.0, m.g * 1.3):
+				if not _clear_of_play(p, 0.3):
+					continue
+				# Scanned clumps are ~0.3 m; tank-scale meadow grass stands 0.4-0.7 m.
+				var s := rng.randf_range(0.85, 1.5) * (0.7 + m.g * 0.5)
+				grass_poses.append([rng.randi() % grass.size(), Transform3D(yaw.scaled(Vector3(s, s * rng.randf_range(0.8, 1.3), s)), Vector3(p.x, ground_y(p.x, p.y) - 0.02, p.y))])
+				continue
+			# Pebbles gather on the churned lips of ruts and around features.
+			var lip := smoothstep(0.0, 0.2, m.r) * (1.0 - smoothstep(0.2, 0.5, m.r))
+			var near := 0.0
+			for outcrop: Dictionary in GROUND.OUTCROPS:
+				var size: float = outcrop.size
+				var centre: Vector2 = outcrop.at
+				for sign: float in [1.0, -1.0]:
+					near = maxf(near, 1.0 - smoothstep(size * 2.0, size * 7.0, p.distance_to(centre * sign)))
+			if roll < 0.03 + lip * 0.25 + near * 0.25:
+				if not _clear_of_play(p, 0.1):
+					continue
+				var tilt := Basis.from_euler(Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3)))
+				if rng.randf() < 0.25:
+					# Fist-to-knee sized mossy stones among the pebbles.
+					var r := rng.randf_range(0.08, 0.22) * (1.0 + near)
+					rock_poses.append([rng.randi() % small_rocks.size(), Transform3D(tilt.scaled(Vector3.ONE * r), Vector3(p.x, ground_y(p.x, p.y) - 0.12 * r, p.y))])
+				else:
+					var s := rng.randf_range(0.8, 2.6) * (1.0 + near * 1.5)
+					pebble_poses.append([rng.randi() % pebbles.size(), Transform3D(tilt.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.03 * s, p.y))])
+	# Ferns and mossy rocks: fewer, placed around walls, groves and outcrops.
 	var attempts := 0
-	while poses.size() < 26000 and attempts < 160000:
+	var big_rocks := 0
+	while (fern_poses.size() < 900 or big_rocks < 260) and attempts < 60000:
 		attempts += 1
 		var p := Vector2(rng.randf_range(-HALF, HALF), rng.randf_range(-HALF, HALF))
-		var edge := GROUND.octagon_distance(p)
-		if edge < 0.4:
+		var m := _mask(p.x, p.y)
+		if m.g < 0.4 or not _clear_of_play(p, 0.8):
 			continue
-		var y := height(p.x, p.y)
-		var near := 1.0 - smoothstep(1.0, 9.0, edge)
-		near = maxf(near, smoothstep(0.4, 1.3, y))
-		# Mesa and terrace tops are undriven enough to stay grassy.
-		near = maxf(near, smoothstep(2.0, 3.0, y) * 0.8)
-		for outcrop: Dictionary in GROUND.OUTCROPS:
-			var size: float = outcrop.size
-			for sign: float in [1.0, -1.0]:
-				var at: Vector2 = outcrop.at
-				near = maxf(near, 1.0 - smoothstep(size * 3.5, size * 7.0, p.distance_to(at * sign)))
-		near *= smoothstep(20.0, 34.0, p.length()) * 0.8 + 0.2
-		if rng.randf() > near * (0.5 + patches.get_noise_2dv(p) * 0.7):
-			continue
-		var at := Vector3(p.x, y - 0.03, p.y)
-		if GROUND.blocks(at, 0.2):
-			continue
-		var s := rng.randf_range(0.9, 1.8)
-		poses.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.4), s)), at))
-	_multimesh("GrassTufts", _tuft_mesh(), grass, poses, false)
-
-func _interior_stones() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 8123
-	var poses: Array[Transform3D] = []
-	var attempts := 0
-	while poses.size() < 6000 and attempts < 80000:
-		attempts += 1
-		var p := Vector2(rng.randf_range(-HALF, HALF), rng.randf_range(-HALF, HALF))
-		if GROUND.octagon_distance(p) < 0.6:
-			continue
-		var near := 0.12
-		for outcrop: Dictionary in GROUND.OUTCROPS:
-			var size: float = outcrop.size
-			for sign: float in [1.0, -1.0]:
-				var at: Vector2 = outcrop.at
-				near = maxf(near, 1.0 - smoothstep(size * 3.0, size * 8.0, p.distance_to(at * sign)))
-		if rng.randf() > near:
-			continue
-		var s := rng.randf_range(0.06, 0.22) * (1.0 + near * 1.6)
-		var basis := Basis.from_euler(Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3)))
-		poses.append(Transform3D(basis.scaled_local(Vector3(s * rng.randf_range(0.9, 1.6), s * 0.55, s)), Vector3(p.x, height(p.x, p.y) + s * 0.1, p.y)))
-	var pebble := SphereMesh.new()
-	pebble.radius = 0.5
-	pebble.height = 1.0
-	pebble.radial_segments = 7
-	pebble.rings = 4
-	var grit := StandardMaterial3D.new()
-	grit.albedo_color = Color(0.3, 0.285, 0.26)
-	grit.roughness = 0.9
-	_multimesh("Stones", pebble, grit, poses, false)
+		var yaw := Basis(Vector3.UP, rng.randf() * TAU)
+		if rng.randf() < 0.75 and fern_poses.size() < 900:
+			var s := rng.randf_range(1.4, 2.4)
+			fern_poses.append([rng.randi() % ferns.size(), Transform3D(yaw.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.03, p.y))])
+		elif big_rocks < 260:
+			big_rocks += 1
+			var s := rng.randf_range(0.35, 0.9)
+			rock_poses.append([rng.randi() % rocks.size(), Transform3D(yaw.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.1 * s, p.y))])
+	_scatter("Grass", grass, grass_poses, 55.0, false)
+	_scatter("Ferns", ferns, fern_poses, 80.0, true)
+	_scatter("Pebbles", pebbles, pebble_poses, 60.0, false)
+	_scatter("MossRocks", rocks, rock_poses, 200.0, true)
+	print_verbose("Woodland scatter: grass %d, ferns %d, pebbles %d, rocks %d" % [grass_poses.size(), fern_poses.size(), pebble_poses.size(), rock_poses.size()])
 
 func _multimesh(label: String, mesh: Mesh, material: Material, poses: Array[Transform3D], shadows: bool) -> MultiMeshInstance3D:
 	var multi := MultiMesh.new()
@@ -139,21 +260,6 @@ func _multimesh(label: String, mesh: Mesh, material: Material, poses: Array[Tran
 	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(visual)
 	return visual
-
-func _tuft_mesh() -> ArrayMesh:
-	var tool := SurfaceTool.new()
-	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for card: int in range(3):
-		var angle := card * PI / 3.0
-		var side := Vector3(cos(angle), 0, sin(angle)) * 0.34
-		var lean := Vector3(-side.z, 0, side.x) * 0.12
-		var corners := [-side, side, side + Vector3(0, 0.5, 0) + lean, -side + Vector3(0, 0.5, 0) + lean]
-		var uvs := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
-		for index: int in [0, 2, 1, 0, 3, 2]:
-			tool.set_normal(Vector3.UP)
-			tool.set_uv(uvs[index])
-			tool.add_vertex(corners[index])
-	return tool.commit()
 
 ## A seeded conifer: detail 2 is a hero tree, 1 mid-distance, 0 a far silhouette.
 ## Surface 0 is bark, surface 1 crossed side cards, surface 2 (detail > 0) whorl

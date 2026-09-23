@@ -114,6 +114,8 @@ func _capture(world: AuthorityWorld) -> void:
 		["bunker", Vector3(-28, 7.0, -92), Vector3(-48, 2.0, -76)],
 		# Looking into the low sun across rutted mud: glints and fireflies show here.
 		["glare", Vector3(12, 5.0, 84), Vector3(-14, 0.0, 58)],
+		# Tank-camera height beside the grassy wall foot.
+		["grass", Vector3(-8, 3.2, -104), Vector3(-2, 0.0, -117)],
 	]
 	var only := ""
 	for arg: String in OS.get_cmdline_user_args():
