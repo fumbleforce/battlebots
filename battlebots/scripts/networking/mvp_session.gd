@@ -641,6 +641,9 @@ func _baseline(packet: PackedByteArray) -> void:
 		bot.body.freeze = true
 		bot.body.reset_pose = null
 		bot.owner_id = slot.peer
+		if bot.entity_id == local_entity:
+			diagnostics.correction_m = 0.0
+			bot.body.reconciled.connect(_record_local_correction)
 		_snapshot(data.bots[slot.entity_id])
 	pickup_view = {}
 	_accept_pickups(data.get("pickups", {}))
@@ -649,6 +652,12 @@ func _baseline(packet: PackedByteArray) -> void:
 	_accept_results(data.get("results", {}))
 	if match_view.phase == "loading":
 		_request_local({"kind":"loaded", "match_id":match_view.match_id})
+
+## Measure the displacement actually applied by Jolt, after replay is constrained.
+## A queued replay targets the next physics callback; comparing it with the
+## snapshot-receipt pose incorrectly counts another tick of ordinary travel.
+func _record_local_correction(displacement: Vector3) -> void:
+	diagnostics.correction_m = displacement.length()
 
 func submit_local(command: BotCommand) -> void:
 	if command == null or not command.is_valid() or local_entity == 0:
@@ -945,8 +954,6 @@ func _snapshot(packet: PackedByteArray) -> void:
 			held.jump_cancel = true
 			replay.append(replay.back() if not replay.is_empty() else WireCodec.command_to_array(held))
 		var corrected := DriveModel.replay(state, replay, bot.body.model_config())
-		var error: Vector3 = bot.body.global_position - corrected.pose.origin
-		diagnostics.correction_m = error.length()
 		bot.body.freeze = not active
 		if bot.body.freeze or first:
 			bot.visual_error = Vector3.ZERO

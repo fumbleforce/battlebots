@@ -5,6 +5,14 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Correct prediction correction measurements (#57) — 23 September 2026
+
+The 80 ms CI failure counted a normal tick of travel as a correction. Session
+diagnostics now use the actual displacement applied by the existing physics
+callback; the regression samples fresh correction events once each and retains
+the 0.25 m gate. No driving, replay or smoothing changes.
+[Diagnosis and acceptance](coordination/PREDICTION_DIAGNOSTIC.md).
+
 ## Woodland Nitro ramp jumps (#42) — 23 September 2026
 
 Raised all Woodland jump ramps to 5.5 m and rebuilt the Blender visual at the

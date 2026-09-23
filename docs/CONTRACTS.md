@@ -1,5 +1,13 @@
 # Shared contracts — local records and current MVP session API
 
+## Applied correction diagnostic (#57)
+
+`MvpSession.diagnostics.correction_m` is the latest actual local-body displacement
+from `DriveBody.reconciled`, measured after constrained replay in the physics
+callback. It is no longer the distance to a future replay target at snapshot
+receipt. No command, wire, physics or gameplay build changes.
+[Cause and regression](coordination/PREDICTION_DIAGNOSTIC.md).
+
 ## Woodland ramp collision — build mvp-ab-32 (#42)
 
 The shared Woodland jump-ramp wedge and imported visual use a 5.5 m nominal lip.

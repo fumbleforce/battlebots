@@ -82,15 +82,27 @@ func run() -> void:
 	var id := clients[0].local_entity
 	var start: Vector3 = server.world.bots[id].body.global_position
 	var corrections: Array[float] = []
+	var sampling := [false]
+	# Collect one sample per applied correction, not repeated stale values on
+	# ticks without a snapshot. Independently verify the displayed diagnostic.
+	clients[0].world.bots[id].body.reconciled.connect(func(displacement: Vector3) -> void:
+		if sampling[0]:
+			check(is_equal_approx(clients[0].diagnostics.correction_m, displacement.length()),
+				"Correction diagnostic measures actual physics displacement")
+			corrections.append(displacement.length()))
 	for frame: int in range(90):
+		sampling[0] = frame > 30
 		var command := BotCommand.new()
 		command.throttle = 1
 		clients[0].submit_local(command)
 		await physics_frame
-		if frame > 30:
-			corrections.append(clients[0].diagnostics.correction_m)
+	sampling[0] = false
+	check(corrections.size() >= 8, "Correction window receives fresh physics samples")
+	if corrections.is_empty():
+		finish()
+		return
 	corrections.sort()
-	print("Profile ", profile, " correction p95 m: ", corrections[int(corrections.size() * 0.95)])
+	print("Profile ", profile, " correction p95 m: ", corrections[int(corrections.size() * 0.95)], " fresh samples: ", corrections.size())
 	if profile == "80":
 		check(corrections[int(corrections.size() * 0.95)] < 0.25, "80 ms non-contact correction p95 target")
 	check(clients[0].world.bots[id].body.global_position.distance_to(start) > 2, "Client predicts local drive")
