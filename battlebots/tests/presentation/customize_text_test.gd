@@ -56,9 +56,11 @@ func run() -> void:
 	await settle()
 	for row: Control in screen.get_node("%Categories").get_children():
 		check(row.get_node("%Label").get_theme_font_size("font_size") == 44, "Rebuilt category heading uses 150%")
-	screen._change_choice_page(1)
-	screen._change_choice_page(1)
-	await settle()
+	# Paging rebuilds the tiles; find the fifth weapon on whichever page holds it.
+	for _page in screen._choice_ranges.size():
+		if screen.get_node("%Items").get_child(4).visible: break
+		screen._change_choice_page(1)
+		await settle()
 	var last: Control = screen.get_node("%Items").get_child(4)
 	last.grab_focus()
 	await settle()

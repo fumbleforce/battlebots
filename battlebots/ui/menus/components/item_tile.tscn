@@ -9,7 +9,7 @@
 [ext_resource type="Texture2D" path="res://ui/menus/icons/lock.svg" id="4_locksvg"]
 
 [node name="ItemTile" type="Button"]
-custom_minimum_size = Vector2(0, 156)
+custom_minimum_size = Vector2(0, 76)
 size_flags_horizontal = 3
 theme_type_variation = &"Tile"
 toggle_mode = true
@@ -36,7 +36,7 @@ mouse_filter = 2
 
 [node name="ArtBox" type="Control" parent="Inner/Col"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 84)
+custom_minimum_size = Vector2(0, 16)
 clip_contents = true
 mouse_filter = 2
 
@@ -124,9 +124,9 @@ mouse_filter = 2
 [node name="Text" type="MarginContainer" parent="Inner/Col"]
 layout_mode = 2
 theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 12
+theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_bottom = 10
 mouse_filter = 2
 
 [node name="Col" type="VBoxContainer" parent="Inner/Col/Text"]

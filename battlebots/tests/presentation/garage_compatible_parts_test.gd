@@ -88,7 +88,13 @@ func run() -> void:
 	equip_part("drive", "walker")
 	check(shown_ids(screen, "drive") == ["walker"], "Valid Scorpion lists only walking legs")
 	check("minigun_pod" in shown_ids(screen, "utility"), "Scorpion lists the auxiliary minigun")
-	for _frame in 4: await process_frame
+	shown_ids(screen, "weapon")
+	for _frame in 6: await process_frame
+	for tile: Control in screen.get_node("%Items").get_children():
+		if not tile.visible: continue
+		var inner: Control = tile.get_node("Inner")
+		check(inner.get_global_rect().is_equal_approx(tile.get_global_rect()), "Tile contents stay inside their tile: " + tile.get_node("%Name").text)
+		check(tile.size.y < 100, "Part tiles are compact")
 	check(screen.get_node("Layout/Footer").get_global_rect().end.y <= 1081, "Footer remains within viewport")
 	screen.free()
 	for suffix: String in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(profile.save_path + suffix)

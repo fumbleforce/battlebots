@@ -1,10 +1,12 @@
 extends Button
-## Customize option tile: swatch (paint) or art placeholder, name and ownership status.
+## Customize option tile: name and status, with a colour strip on paint choices.
 
 
 func setup(it: Dictionary, state: String) -> void:
 	%Name.text = it.name
 	var has_swatch := it.has("swatch")
+	# Parts have no art yet; only paint choices keep a slim colour strip.
+	$Inner/Col/ArtBox.visible = has_swatch
 	%Swatch.visible = has_swatch
 	%Art.visible = not has_swatch
 	if has_swatch:

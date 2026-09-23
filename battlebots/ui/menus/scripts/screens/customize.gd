@@ -9,6 +9,9 @@ const CATEGORY_ROW := preload("res://ui/menus/components/category_row.tscn")
 const ITEM_TILE := preload("res://ui/menus/components/item_tile.tscn")
 const TABS := ["parts", "paint", "decals"]
 const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS", "decals": "VEHICLE MODULES"}
+## Compact option tiles: name and status, plus a slim swatch strip on paint choices.
+const TILE_HEIGHT := 76
+const SWATCH_HEIGHT := 16
 
 var _tab := "parts"
 var _cat := {"parts": 0, "paint": 0, "decals": 0}
@@ -54,8 +57,8 @@ func apply_text_scale(factor: float) -> void:
 		row.custom_minimum_size.y = ceilf(82 * _text_scale)
 		row.get_node("%Current").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	for tile: Control in %Items.get_children():
-		tile.custom_minimum_size.y = ceilf(150 * _text_scale)
-		tile.get_node("Inner/Col/ArtBox").custom_minimum_size.y = 40
+		tile.custom_minimum_size.y = ceilf(TILE_HEIGHT * _text_scale)
+		tile.get_node("Inner/Col/ArtBox").custom_minimum_size.y = SWATCH_HEIGHT
 		tile.get_node("%Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 func _change_choice_page(direction: int) -> void:
@@ -420,6 +423,8 @@ func _process(_delta: float) -> void:
 		row.get_node("Pad").size.x = row.size.x
 		_measure_hidden_content(row.get_node("Pad"))
 		row.visible = was_visible
+		# Pad grows both ways; measuring must not leave it offset from its row.
+		row.get_node("Pad").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		row.custom_minimum_size.y = maxf(ceilf(82 * _text_scale), row.get_node("Pad").get_combined_minimum_size().y)
 		category_heights.append(row.get_combined_minimum_size().y)
 	var choice_heights: Array[float] = []
@@ -430,8 +435,9 @@ func _process(_delta: float) -> void:
 		tile.get_node("Inner").size.x = tile.size.x
 		_measure_hidden_content(tile.get_node("Inner"))
 		tile.visible = was_visible
-		tile.custom_minimum_size.y = maxf(ceilf(150 * _text_scale), tile.get_node("Inner").get_combined_minimum_size().y)
-		tile.get_node("Inner").size.y = tile.custom_minimum_size.y
+		tile.custom_minimum_size.y = maxf(ceilf(TILE_HEIGHT * _text_scale), tile.get_node("Inner").get_combined_minimum_size().y)
+		# Inner grows both ways; resizing it here shifted contents into neighbouring tiles.
+		tile.get_node("Inner").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		choice_heights.append(tile.get_combined_minimum_size().y)
 	_category_ranges = _pack_pages(category_heights, _page_budget(%Categories, _category_pager, false), _page_budget(%Categories, _category_pager, true), %Categories.get_theme_constant("separation"), 1)
 	_choice_ranges = _pack_pages(choice_heights, _page_budget(%Items, _choice_pager, false), _page_budget(%Items, _choice_pager, true), %Items.get_theme_constant("v_separation"), %Items.columns)
@@ -458,7 +464,7 @@ func _process(_delta: float) -> void:
 func _page_budget(list: Container, pager: Control, with_pager: bool) -> float:
 	# The screen bounds the budget; a list's expanding minimum must not feed it back.
 	var body: MarginContainer = $Layout/Body
-	var available: float = size.y - $Layout/Header.size.y - $Layout/Footer.size.y
+	var available: float = size.y - $Layout/Header.size.y - $Layout/Stripe.size.y - $Layout/Footer.size.y
 	available -= body.get_theme_constant("margin_top") + body.get_theme_constant("margin_bottom")
 	var column := list.get_parent() as VBoxContainer
 	if column.get_parent() is PanelContainer:

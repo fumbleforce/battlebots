@@ -1,5 +1,25 @@
 # Current A/B handoff
 
+## Customize compatible parts and compact tiles — B, 23 September 2026
+
+Customize now lists only the parts that work with the current build, using the
+authoritative validator. For example:
+- Scorpion lists only walking legs and Atlas MX only tracks.
+- The auxiliary minigun appears only on a body with a gun socket.
+- Over-budget parts are hidden.
+
+The equipped part always stays listed, so invalid saves remain repairable.
+Bodies stay selectable and still preserve every selected part.
+
+Option tiles are about half their previous height, which fits more choices per
+page. Two layout bugs are fixed:
+- Tile contents no longer render shifted up into neighbouring tiles.
+- The page budget now accounts for the hazard stripe.
+
+This is client presentation only, with no catalogue, protocol or hosted
+change. See [scope and validation](coordination/B_GARAGE_COMPATIBLE_PARTS.md)
+and [#28](https://github.com/fumbleforce/battlebots/issues/28).
+
 ## Foundry reference material/lighting upgrade — A, 23 September 2026
 
 Issue [#27](https://github.com/fumbleforce/battlebots/issues/27) upgrades Foundry
