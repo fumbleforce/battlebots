@@ -27,7 +27,8 @@ var recovery_button: Button
 var stats_button: Button
 ## Folds or reopens the chosen item's description under the choices.
 var details_toggle: Button
-var _details_collapsed := false
+## Starts folded so the choices get the room.
+var _details_collapsed := true
 var _text_scale := 1.0
 var _showing_stats := false
 var _category_page := {"parts": 0, "paint": 0, "decals": 0}
@@ -184,7 +185,7 @@ func _ready() -> void:
 	selected.add_child(details_toggle)
 	selected.move_child(details_toggle, 0)
 	details_toggle.pressed.connect(func(): _set_details_collapsed(not _details_collapsed))
-	_set_details_collapsed(false)
+	_set_details_collapsed(true)
 	$Layout/Footer/Row/Hint1.hide()
 	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
 	name_edit = LineEdit.new()
