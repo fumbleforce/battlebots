@@ -65,7 +65,7 @@ func _register(reference: WeakRef) -> void:
 	elif node is GPUParticles3D:
 		if not _particles.has(node.get_instance_id()):
 			_particles[node.get_instance_id()] = {"node":reference,"amount":node.amount}
-			node.amount = maxi(8,roundi(node.amount * [0.35,0.65,1.0,1.25][values.particles]))
+			node.amount = maxi(1,roundi(node.amount * [0.35,0.65,1.0,1.25][values.particles]))
 	elif node is Light3D:
 		if _lights.has(node.get_instance_id()): return
 		_lights[node.get_instance_id()] = {"node":reference,"shadow":node.shadow_enabled}
@@ -92,7 +92,7 @@ func apply(draft: Dictionary) -> void:
 	for id: int in _particles.keys():
 		var item: Dictionary = _particles[id]
 		var node: GPUParticles3D = item.node.get_ref()
-		if is_instance_valid(node): node.amount = maxi(8,roundi(item.amount * [0.35,0.65,1.0,1.25][values.particles]))
+		if is_instance_valid(node): node.amount = maxi(1,roundi(item.amount * [0.35,0.65,1.0,1.25][values.particles]))
 		else: _particles.erase(id)
 	var quality: int = [0,2,3,5][values.shadows]
 	RenderingServer.directional_shadow_atlas_set_size([1024,2048,4096,8192][values.shadows],true)

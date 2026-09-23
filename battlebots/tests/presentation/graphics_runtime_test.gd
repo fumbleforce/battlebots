@@ -35,6 +35,10 @@ func run() -> void:
 		particles.emitting = false
 		particles.amount_ratio = .3
 		root.add_child(particles)
+		var single := GPUParticles3D.new()
+		single.amount = 1
+		single.emitting = false
+		root.add_child(single)
 		await frames()
 		check(world.environment != authored,"Render settings duplicate authored environment")
 		for mode: String in GraphicsOptions.CHOICES.aa.values():
@@ -55,6 +59,7 @@ func run() -> void:
 		check(not world.environment.ssao_enabled and not world.environment.ssil_enabled and not world.environment.ssr_enabled,"Low quality disables expensive screen-space effects")
 		check(not light.shadow_enabled and not fill.shadow_enabled,"Shadows Off respects authored fill lights")
 		check(particles.amount == 35 and is_equal_approx(particles.amount_ratio,.3),"Particle quality scales allocation without overriding dynamic engine-load density")
+		check(single.amount == 1,"Small one-shot cues remain one particle at reduced quality")
 		check(Engine.max_fps == 120,"Frame limiter applies")
 		check(is_equal_approx(world.environment.adjustment_brightness,.99),"Brightness composes with authored grading")
 		runtime.apply(draft)
@@ -78,6 +83,7 @@ func run() -> void:
 		light.queue_free()
 		fill.queue_free()
 		particles.queue_free()
+		single.queue_free()
 		await frames()
 		check(runtime._environments.is_empty() and runtime._particles.is_empty() and runtime._lights.is_empty(),"Removed scenes release captured resources without waiting for another Apply")
 		runtime.apply(GraphicsOptions.DEFAULTS)

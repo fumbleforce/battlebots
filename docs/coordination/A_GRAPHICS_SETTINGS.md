@@ -37,7 +37,9 @@ receive local theme styling only; no B source paths are modified.
 Capability basis: actual Godot 4.7.2 ClassDB API checked locally; official
 [anti-aliasing](https://docs.godotengine.org/en/stable/tutorials/3d/3d_antialiasing.html)
 and [resolution scaling](https://docs.godotengine.org/en/stable/tutorials/3d/resolution_scaling.html)
-documentation informs AA/FSR choices. FSR2 handles its own temporal AA. MSAA-only
+documentation informs AA/FSR choices. FSR2 handles its own temporal AA and runs on supported NVIDIA as well as AMD GPUs.
+The settings explicitly say this after the user asked about NVIDIA options.
+DLSS/DLAA are not exposed by the pinned renderer API and need a separate integration. MSAA-only
 options remain for players preferring crisp non-temporal rendering. Native
 render scale >100% supersamples; FSR methods cap at 100%. Forward+ effects are
 disabled in the UI when unavailable. No pretend DLSS/ray-tracing/motion-blur

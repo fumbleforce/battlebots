@@ -68,7 +68,7 @@ func _ready() -> void:
 	preset_choice.item_selected.connect(_preset_selected)
 	SettingsStyle.section(quality,"Image clarity")
 	_graphics_option(quality,"aa","Anti-aliasing","Temporal AA reduces surface shimmer; MSAA preserves crisp moving edges.")
-	_graphics_option(quality,"upscaler","Resolution method","FSR 2 includes temporal anti-aliasing. Native allows supersampling above 100%.")
+	_graphics_option(quality,"upscaler","Resolution method","FSR works on NVIDIA and AMD GPUs. FSR 2 includes temporal anti-aliasing.")
 	_graphics_option(quality,"render_scale","Render scale","50–100% trades detail for speed. 105–150% supersamples at a higher GPU cost.")
 	_graphics_option(quality,"sharpness","Upscaling sharpness","Restore fine detail when FSR is enabled. Higher values sharpen more.")
 	_graphics_option(quality,"anisotropy","Texture filtering","Keep ground and angled surfaces sharp at a distance.")
@@ -225,7 +225,7 @@ func open_for(preferences: VideoPreferences, path: String = VideoPreferences.DEF
 	_path = path
 	_opened = true
 	_fill(_original)
-	message.text = "Changes are saved only when applied. FSR 2 handles its own anti-aliasing." if GraphicsRuntime.forward_plus() or DisplayServer.get_name() == "headless" else "Some effects require the Forward+ renderer and are unavailable in this session."
+	message.text = "Changes are saved only when applied. FSR also supports NVIDIA GPUs." if GraphicsRuntime.forward_plus() or DisplayServer.get_name() == "headless" else "Some effects require the Forward+ renderer and are unavailable in this session."
 	if preferences.load_error != OK and not path.is_empty():
 		message.text = "Saved video settings could not be loaded. Defaults are shown; Apply replaces the file."
 	show()
