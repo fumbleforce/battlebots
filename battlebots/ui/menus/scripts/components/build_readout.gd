@@ -108,15 +108,8 @@ func show_build(bot: Dictionary, draft: Dictionary) -> void:
 
 
 ## Shows target stats with each difference from base marked. Both are
-## GarageComparison summaries; caption names the swap.
-func show_change(base: Dictionary, target: Dictionary, caption: String) -> void:
-	%ChangeBanner.visible = true
-	if not target.valid:
-		%ChangeCaption.text = caption + "  ·  " + "; ".join(target.reasons)
-		%ChangeCaption.add_theme_color_override("font_color", BAD)
-	else:
-		%ChangeCaption.text = caption
-		%ChangeCaption.remove_theme_color_override("font_color")
+## GarageComparison summaries.
+func show_change(base: Dictionary, target: Dictionary) -> void:
 	if _current.is_empty(): return
 	var before: Dictionary = base.stats
 	var after: Dictionary = target.stats
@@ -132,7 +125,6 @@ func show_change(base: Dictionary, target: Dictionary, caption: String) -> void:
 
 ## Returns the strip to the displayed build without change marks.
 func clear_change() -> void:
-	%ChangeBanner.hide()
 	for label: Label in [%CoreDelta, %MassDelta, %SpeedDelta, %CoolingDelta, %ArmorDelta]: label.hide()
 	if not _current.is_empty(): _show_values(_current)
 

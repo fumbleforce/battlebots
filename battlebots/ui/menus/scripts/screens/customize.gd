@@ -418,22 +418,18 @@ func _refresh() -> void:
 	apply_text_scale(_text_scale)
 
 
-## Swap summary for equipping a part: the build before it and "old → new".
-func _swap(verb: String, tab: String, cat: Dictionary, item: Dictionary) -> Dictionary:
+## Stats of the build before and after equipping a part.
+func _swap(tab: String, cat: Dictionary, item: Dictionary) -> Dictionary:
 	var loadout: Dictionary = PlayerProfile.loadouts[PlayerProfile.active_bot]
 	var registry: ContentRegistry = PlayerProfile.registry
-	var caption := "%s %s · %s → %s" % [verb, cat.label, PlayerProfile.equipped_name(tab, cat), item.name]
 	if tab == "parts" and cat.slot == "chassis":
 		# A body change also swaps parts the new body cannot use; show that result.
 		var fitted: Dictionary = PlayerProfile.fit_body(item.id)
-		for slot: String in fitted.swaps:
-			var pair: Array = fitted.swaps[slot]
-			caption += "\n%s %s → %s" % [slot.to_upper(), PlayerProfile.part_name(slot, pair[0]), PlayerProfile.part_name(slot, pair[1])]
 		return {"base": GarageComparison.current(registry, loadout),
-			"target": GarageComparison.current(registry, fitted.draft), "caption": caption, "draft": fitted.draft}
+			"target": GarageComparison.current(registry, fitted.draft), "draft": fitted.draft}
 	var comparison := GarageComparison.compare_armor(registry, loadout, cat.slot, int(item.id)) if tab == "decals" \
 		else GarageComparison.compare(registry, loadout, cat.slot, item.id)
-	return {"base": comparison.current, "target": comparison.proposed, "caption": caption}
+	return {"base": comparison.current, "target": comparison.proposed}
 
 
 ## Parts and armour pieces change stats; paint and exhaust choices do not.
@@ -447,8 +443,8 @@ func _preview_swap(tab: String, cat: Dictionary, item: Dictionary) -> void:
 		return
 	var draft: Dictionary
 	if _affects_stats(tab, cat):
-		var swap := _swap("PREVIEW", tab, cat, item)
-		readout.show_change(swap.base, swap.target, swap.caption)
+		var swap := _swap(tab, cat, item)
+		readout.show_change(swap.base, swap.target)
 		draft = swap.get("draft", {})
 	else:
 		readout.clear_change()

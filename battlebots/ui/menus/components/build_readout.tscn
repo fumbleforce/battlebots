@@ -80,19 +80,6 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[sub_resource type="StyleBoxFlat" id="sb_banner"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-bg_color = Color(0.051, 0.0627, 0.0784, 0.86)
-border_width_left = 3
-border_color = Color(0.9608, 0.7216, 0.1804, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
 [node name="BuildReadout" type="PanelContainer"]
 size_flags_horizontal = 3
 theme = ExtResource("1_menuthem")
@@ -195,31 +182,6 @@ theme_override_colors/font_color = Color(0.4353, 0.4706, 0.5137, 1)
 theme_override_font_sizes/font_size = 16
 unique_name_in_owner = true
 mouse_filter = 2
-
-[node name="ChangeBanner" type="PanelContainer" parent="Col/ImageFrame"]
-visible = false
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = -104.0
-offset_right = -100.0
-offset_bottom = -58.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_styles/panel = SubResource("sb_banner")
-unique_name_in_owner = true
-mouse_filter = 2
-
-[node name="ChangeCaption" type="Label" parent="Col/ImageFrame/ChangeBanner"]
-layout_mode = 2
-text = "PREVIEW · Saw → Hammer"
-theme_type_variation = &"EyebrowAmber"
-theme_override_font_sizes/font_size = 16
-autowrap_mode = 3
-unique_name_in_owner = true
 
 [node name="Rotate" type="Button" parent="Col/ImageFrame"]
 layout_mode = 1
