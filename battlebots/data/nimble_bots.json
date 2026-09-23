@@ -59,6 +59,8 @@
 			"coast_acceleration": 0.5,
 			"gun_pivot": [-0.96, 0.9, 0.9],
 			"wheel": {"radius": 1.35, "width": 0.9, "centre_y": -0.66},
+			"_low_gravity_comment": "Weighs low_gravity_heft times arena gravity where heft does not apply (the Moon), so it keeps its wheel on the ground; jump and rise limits scale with it like heft.",
+			"low_gravity_heft": 3.0,
 			"roll": {
 				"lean_scale": 1.0,
 				"max_lean_degrees": 30.0,

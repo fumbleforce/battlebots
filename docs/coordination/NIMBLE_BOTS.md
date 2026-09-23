@@ -10,7 +10,7 @@ status is on [#61](https://github.com/fumbleforce/battlebots/issues/61).
 | Preset | Chassis / drive | Weapon | Gait (`GaitDrive`) |
 |---|---|---|---|
 | STRIDER • 09 | `strider_09` / `stride_legs` | hammer arm | **stride**: a reverse-knee biped. Target speed surges once per step, the hull bobs (fed-forward so the spring follows the cadence) and sways over each planted foot; pivots quickly on the spot. |
-| HELLWHEEL • 07 | `monowheel_07` / `mono_wheel` | minigun | **roll**: the fastest. Leans into turns (atan of lateral acceleration over g, capped at 30°), pitches with throttle, slides on a loose tyre and barely pivots at rest (30% turn rate until 7 m/s). |
+| HELLWHEEL • 07 | `monowheel_07` / `mono_wheel` | minigun | **roll**: the fastest. Leans into turns (atan of lateral acceleration over g, capped at 30°), pitches with throttle, slides on a loose tyre and barely pivots at rest (30% turn rate until 7 m/s). Heavier than the others (44 kg chassis) and 3× weight on the Moon (`low_gravity_heft`). |
 | POGO • 03 | `pogo_03` / `pogo_spring` | minigun | **hop**: moves in spring-loaded bounds. After a stance on the spring it launches at the jump-scaled hop speed carrying the driven heading speed; steers and trims speed in the air, lands on the spring. |
 | SKATER • 12 | `skater_12` / `skate_legs` | twin minigun | **skate**: alternating push strokes and glides with very low coast drag (glides ~7× further than a tank after release), carves with a modest lean and crouches at speed. |
 
@@ -50,7 +50,9 @@ Foundry wall; with the full footprint a wall meets a flat face. Support only
 lands within `max_step` of the last floor stood on, and a launched pogo has no
 spring support (or rebound lift) until it falls, so a bound peaks ~1.8 m up
 and cannot carry it onto a wall. A bounded torque keeps the hull aligned with
-the floor plus the gait's lean. Each gait then shapes the shared
+the floor plus the gait's lean; it never includes a vertical (yaw) component,
+because on a leaned hull the tilted correction axis spun a braking monowheel
+up to 10 rad/s (user report, 23 September). Each gait then shapes the shared
 `DriveModel` config (speed surge, turn authority, push/glide drive) before the
 ordinary tyre forces. Hop launches and air control happen in `DriveBody`
 around the grounded check. Gait phase, stance timer, lean and crouch are local

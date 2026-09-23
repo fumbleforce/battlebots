@@ -15,6 +15,11 @@ const MIN_STRIDE_SURGE := 0.6
 ## Roll: a hard turn at speed leans the monowheel; at rest it barely pivots.
 const MIN_ROLL_LEAN_DEGREES := 12.0
 const MAX_ROLL_PIVOT_FRACTION := 0.6
+## Braking out of a leaned turn must not wind the monowheel into a spin.
+const BRAKE_FRAMES := 120
+const MAX_BRAKING_SPIN := 2.0
+## The monowheel weighs this much more than other bots on the Moon.
+const MOON_GRAVITY_SCALE := 1.62 / 9.8
 ## Hop: the pogo spends a large share of travel airborne, in several bounds.
 const MIN_HOP_AIR_FRACTION := 0.35
 const MIN_HOPS := 3
@@ -162,6 +167,12 @@ func roll(draft: Dictionary, id: int) -> void:
 		var right := bot.body.global_basis.x
 		lean[0] = maxf(lean[0], rad_to_deg(asin(clampf(-right.y, -1.0, 1.0)))))
 	check(lean[0] > MIN_ROLL_LEAN_DEGREES, "Monowheel leans %.1f° into a right turn" % lean[0])
+	var spin := [0.0]
+	await frames(BRAKE_FRAMES, bot, 0.0, 0.0, true, func(): spin[0] = maxf(spin[0], absf(bot.body.angular_velocity.y)))
+	check(spin[0] < MAX_BRAKING_SPIN, "Monowheel brakes out of the turn without spinning (%.2f rad/s)" % spin[0])
+	bot.body.gravity_scale = MOON_GRAVITY_SCALE
+	check(is_equal_approx(bot.body.heft(), float(NimbleBots.spec(draft).low_gravity_heft)) and bot.body.heft() > 1.0,
+		"Monowheel keeps extra weight on the Moon (heft %.1f)" % bot.body.heft())
 	await remove(bot)
 	# Pivot on the spot against the Strider, which turns freely at rest.
 	var mono_pivot := await pivot_rate(draft, id + 100)

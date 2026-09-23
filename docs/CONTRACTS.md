@@ -1,5 +1,15 @@
 # Shared contracts — local records and current MVP session API
 
+## Hellwheel stability and weight — build mvp-ab-38, catalogue 18 (#61)
+
+`GaitDrive` upright stabilisation no longer applies torque about the vertical
+(a leaned monowheel braking out of a turn spun up to 10 rad/s). The
+`monowheel_07` chassis weighs 44 kg (was 20), and `DriveBody.low_gravity_heft`
+(data `low_gravity_heft`, Hellwheel 3.0) is its weight multiplier where arena
+heft does not apply: on the Moon it weighs 3× so it stays on the ground.
+`DriveBody.heft()` returns it, so jumps, rise cap and replay gravity follow.
+Revision-17 saves migrate. Peers need the matching build.
+
 ## Nimble bots — build mvp-ab-37, catalogue 17 (#61)
 
 Four sealed factory presets (`ContentRegistry.nimble()`, `NimbleBots.ORDER`):

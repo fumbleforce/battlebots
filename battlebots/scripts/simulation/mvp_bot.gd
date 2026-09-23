@@ -90,6 +90,7 @@ func _ready() -> void:
 		body.turn_speed = nimble.turn_speed
 		body.lateral_response = nimble.lateral_response
 		body.coast_acceleration = nimble.coast_acceleration
+		body.low_gravity_heft = float(nimble.get("low_gravity_heft", 1.0))
 		if nimble.has("wheel"):
 			# The monowheel's tyre is solid: rams and weapons meet it below the hull.
 			var wheel := CollisionShape3D.new()

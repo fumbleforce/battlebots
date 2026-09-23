@@ -85,6 +85,9 @@ static func _hold_upright(state: PhysicsDirectBodyState3D, body: DriveBody, targ
 	var up := state.transform.basis.y
 	var tilt_velocity := state.angular_velocity - axis * state.angular_velocity.dot(axis)
 	var torque := (up.cross(target) * float(tuning.upright_gain) - tilt_velocity * float(tuning.upright_damping)) * body.mass * strength
+	# A leaned hull tilts the correction axis; its vertical part would yaw the
+	# bot (a braking monowheel spun up to 10 rad/s). Only the drive steers.
+	torque -= axis * torque.dot(axis)
 	state.apply_torque(torque.limit_length(body.mass * float(tuning.upright_torque_limit) * strength)
 		* body.geometry_scale * body.geometry_scale)
 

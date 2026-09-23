@@ -54,6 +54,8 @@ var gait_crouch := 0.0
 var gait_previous_speed := 0.0
 ## Height of the last floor the gait stood on (NAN until the first support).
 var gait_floor := NAN
+## Weight multiplier where arena heft does not apply (low-gravity arenas).
+var low_gravity_heft := 1.0
 var drive_multiplier: float = 1.0
 var nitro_equipped := false
 var jump_equipped := false
@@ -116,9 +118,11 @@ func accept_command(command: BotCommand) -> void:
 	if not is_zero_approx(_throttle) or not is_zero_approx(_steering) or _brake:
 		sleeping = false
 
-## Gravity multiplier over this arena's gravity (1 on the low-gravity Moon).
+## Gravity multiplier over this arena's gravity (1 on the low-gravity Moon,
+## unless the body carries its own low_gravity_heft, like the Hellwheel).
 func heft() -> float:
-	return physics.heft_for(gravity_scale)
+	var arena := physics.heft_for(gravity_scale)
+	return maxf(arena, low_gravity_heft) if arena <= 1.0 else arena
 
 ## Launch/jump speed multiplier that keeps apex height under heft gravity.
 func launch_scale() -> float:
