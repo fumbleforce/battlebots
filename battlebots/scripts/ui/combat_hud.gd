@@ -61,9 +61,13 @@ func _ready() -> void:
 	canvas = Control.new()
 	add_child(canvas)
 	resources_panel = _panel()
-	var health_col := _column(resources_panel)
-	# The plate map leads; the core reading sits beneath it.
-	_build_armor(health_col)
+	# One compact row: the core reading, then the plate map beside it.
+	var health_body := HBoxContainer.new()
+	health_body.add_theme_constant_override("separation", 12)
+	resources_panel.add_child(health_body)
+	var health_col := _column(health_body)
+	health_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	health_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var health_row := HBoxContainer.new()
 	health_col.add_child(health_row)
 	var title := _label(health_row, "INTEGRITY", 13)
@@ -74,6 +78,7 @@ func _ready() -> void:
 	var health_value := _label(health_row, "--", 28)
 	var health_bar := _bar(health_col, 6)
 	resources["Core"] = {"bar":health_bar, "value":health_value}
+	_build_armor(health_body)
 	systems_panel = _panel()
 	systems_panel.set("mirrored", true)
 	var systems_col := _column(systems_panel)
@@ -202,7 +207,7 @@ func caption_bounds() -> Rect2:
 func _layout() -> void:
 	if not is_node_ready(): return
 	var large := text_scale > 1.0
-	var health_width := 340.0 if large else 284.0
+	var health_width := 372.0 if large else 300.0
 	var weapon_width := 324.0 if large else 252.0
 	# Recompute after visibility/text changes; containers can shrink after a warning.
 	resources_panel.size = Vector2(health_width, 0)
@@ -273,14 +278,15 @@ func _resource(parent: Node, title: String) -> Dictionary:
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	return {"bar":_bar(column, 3), "value":value}
 
-## Garage-style plate map above the core reading: Front/Rear/Left/Right around a Top/Bottom box.
+## Compact Garage-style plate map beside the core reading: Front/Rear/Left/Right around a Top/Bottom box.
 func _build_armor(parent: Node) -> void:
 	var grid := GridContainer.new()
 	grid.name = "ArmorMap"
 	grid.columns = 3
 	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 3)
+	grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	grid.add_theme_constant_override("h_separation", 5)
+	grid.add_theme_constant_override("v_separation", 0)
 	parent.add_child(grid)
 	for cell: String in ["", "front", "", "left", "box", "right", "", "rear", ""]:
 		if cell.is_empty():
@@ -289,24 +295,24 @@ func _build_armor(parent: Node) -> void:
 			var box := PanelContainer.new()
 			_armor_box = StyleBoxFlat.new()
 			_armor_box.bg_color = Color(0.02, 0.05, 0.07, 0.45)
-			_armor_box.set_border_width_all(2)
-			_armor_box.set_corner_radius_all(6)
-			_armor_box.content_margin_left = 12
-			_armor_box.content_margin_right = 12
-			_armor_box.content_margin_top = 3
-			_armor_box.content_margin_bottom = 4
+			_armor_box.set_border_width_all(1)
+			_armor_box.set_corner_radius_all(4)
+			_armor_box.content_margin_left = 6
+			_armor_box.content_margin_right = 6
+			_armor_box.content_margin_top = 1
+			_armor_box.content_margin_bottom = 1
 			box.add_theme_stylebox_override("panel", _armor_box)
 			grid.add_child(box)
 			var split := VBoxContainer.new()
-			split.add_theme_constant_override("separation", 3)
+			split.add_theme_constant_override("separation", 1)
 			box.add_child(split)
-			plate_labels["top"] = _plate_label(split, 13)
+			plate_labels["top"] = _plate_label(split, 10)
 			_armor_line = ColorRect.new()
 			_armor_line.custom_minimum_size = Vector2(0, 1)
 			split.add_child(_armor_line)
-			plate_labels["underside"] = _plate_label(split, 13)
+			plate_labels["underside"] = _plate_label(split, 10)
 		else:
-			plate_labels[cell] = _plate_label(grid, 14)
+			plate_labels[cell] = _plate_label(grid, 11)
 
 func _plate_label(parent: Node, font_size: int) -> Label:
 	var label := _label(parent, "", font_size)
