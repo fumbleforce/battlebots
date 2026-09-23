@@ -337,8 +337,9 @@ func garage_case(registry: ContentRegistry) -> void:
 	var profile: Node = load("res://ui/menus/scripts/player_profile.gd").new()
 	profile.save_path = "user://atlas-profile-%d.json" % Time.get_ticks_usec()
 	add_child(profile)
-	check(profile.loadouts.size() == 5 and profile.loadouts[3].parts.chassis == "scorpion_hex"
-		and profile.loadouts[4].parts.chassis == "atlas_mx", "Atlas is an additional preset; existing preset order is retained")
+	check(profile.loadouts.size() == 6 and profile.loadouts[3].parts.chassis == "scorpion_hex"
+		and profile.loadouts[4].parts.chassis == "atlas_mx" and profile.loadouts[5].parts.utility == "turret_cannon",
+		"Atlas and Atlas turret are additional presets; existing preset order is retained")
 	profile.active_bot = 4
 	for category: Dictionary in profile.catalogue.paint:
 		if category.slot not in SawbladeConfig.COLORS: continue

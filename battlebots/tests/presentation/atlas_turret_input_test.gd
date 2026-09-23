@@ -58,6 +58,7 @@ func run() -> void:
 	rig.pitch = deg_to_rad(6.0)
 	for frame: int in 110:
 		rig.update_camera(STEP)
+		preview._update_tank_sight(bot.read_view(), STEP)
 		var command := BotCommand.new()
 		preview._apply_turret_aim(command, bot.read_view())
 		if frame == 0:
@@ -68,6 +69,25 @@ func run() -> void:
 	check(bot.combat.gun_pitch < 0.0, "Turret depresses toward the target below the trunnion")
 	preview._physics_process(STEP)
 	check(not rig.driving, "Turret builds suspend camera auto-recenter; the camera is the sight")
+	check(preview.tank_sight.active and preview.aim_camera() == preview.tank_sight.camera and preview.tank_sight.camera.current,
+		"Turret builds view through the tank sight camera")
+	var sight: Camera3D = preview.tank_sight.camera
+	var own := PhysicsRayQueryParameters3D.create(sight.global_position, sight.global_position - sight.global_basis.z * 60.0,
+		BaselineConfig.BOT_LAYER)
+	var centre_hit := root.get_world_3d().direct_space_state.intersect_ray(own)
+	check(centre_hit.is_empty() or centre_hit.collider_id != bot.body.get_instance_id(),
+		"The sight's centre ray looks over the own hull, never onto it")
+	# Tank buttons: LMB is the main gun, RMB the hull weapon.
+	var gate: GameplayInputGate = preview.input_gate
+	check(gate.turret_main_gun, "Turret view switches the input gate to tank buttons")
+	gate.sample({}, {}, true)
+	var lmb := gate.sample({&"primary": 1.0}, {&"primary": true}, true)
+	check(lmb.auxiliary_held and not lmb.primary_held and not lmb.secondary_held, "LMB fires the turret, not the hull weapon")
+	var rmb := gate.sample({&"secondary": 1.0}, {&"secondary": true}, true)
+	check(rmb.primary_held and rmb.primary_pressed and not rmb.auxiliary_held and not rmb.secondary_held,
+		"RMB operates the hull weapon without cancelling it")
+	var suppressed := gate.sample({&"primary": 1.0, &"secondary": 1.0}, {}, false)
+	check(not suppressed.auxiliary_held and suppressed.secondary_held, "Menu suppression never fires and still cancels")
 	preview.controls_enabled = true
 	preview.pause_menu.hide()
 	preview._render_turret_reticle(bot.read_view())

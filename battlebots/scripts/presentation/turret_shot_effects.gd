@@ -4,7 +4,9 @@ extends Node3D
 ## plasma bolt, a cosmetic arrival burst and procedural reports. Confirmed hit
 ## sparks and damage come from combat events; nothing here awards a hit.
 const PROJECTILES := 6
-const SMOKE := 10
+const BLASTS := 2
+const FOG_PUFFS := 6
+const FOG_LIFETIME := 2.6
 const RATE := 24000
 const SPEED := {"cannon":240.0, "plasma":110.0}
 ## Recoil travel in model (source) metres and its return time.
@@ -24,9 +26,11 @@ var _flash: MeshInstance3D
 var _flash_age := 1.0
 var _light: OmniLight3D
 var _projectiles: Array[Dictionary] = []
-var _smoke: Array[Dictionary] = []
+var _blasts: Array[GPUParticles3D] = []
+var _fog: Array[Dictionary] = []
 var _voices: Array[AudioStreamPlayer3D] = []
 static var _streams: Dictionary = {}
+static var _smoke_materials: Dictionary = {}
 
 func configure(weapon: String, muzzle_node: Node3D, recoil_node: Node3D, geometry_scale: float) -> void:
 	kind = weapon
@@ -82,20 +86,14 @@ func configure(weapon: String, muzzle_node: Node3D, recoil_node: Node3D, geometr
 	_light.light_energy = 0.0
 	add_child(_light)
 	_light.top_level = true
-	if cannon:
-		var smoke := StandardMaterial3D.new()
-		smoke.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		smoke.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		smoke.albedo_color = Color(0.55, 0.52, 0.48, 0.45)
-		smoke.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-		for index: int in SMOKE:
-			var quad := QuadMesh.new()
-			quad.size = Vector2.ONE
-			var puff := MeshInstance3D.new()
-			puff.mesh = quad
-			puff.material_override = smoke.duplicate()
-			_world(puff)
-			_smoke.append({"node":puff, "age":10.0, "velocity":Vector3.ZERO})
+	# Lit, depth-softened billowing cards (the #31 plume technique) in a
+	# pooled one-shot burst per shot, plus volumetric fog cores on Forward+.
+	for index: int in BLASTS:
+		var blast := _make_blast(cannon)
+		blast.name = "MuzzleSmoke%d" % index
+		add_child(blast)
+		blast.top_level = true
+		_blasts.append(blast)
 	add_to_group(&"bot_action_audio")
 	AudioPreferences.ensure_buses()
 	var stream := _report(kind)
@@ -110,6 +108,107 @@ func configure(weapon: String, muzzle_node: Node3D, recoil_node: Node3D, geometr
 		add_child(voice)
 		voice.top_level = true
 		_voices.append(voice)
+
+func _make_blast(cannon: bool) -> GPUParticles3D:
+	var emitter := GPUParticles3D.new()
+	emitter.amount = 40 if cannon else 12
+	emitter.lifetime = 2.6 if cannon else 1.1
+	emitter.one_shot = true
+	emitter.explosiveness = 0.92
+	emitter.emitting = false
+	emitter.local_coords = false
+	emitter.fixed_fps = 30
+	emitter.interpolate = true
+	emitter.draw_order = GPUParticles3D.DRAW_ORDER_VIEW_DEPTH
+	emitter.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	emitter.visibility_aabb = AABB(Vector3(-4, -2, -6) * _scale, Vector3(8, 6, 8) * _scale)
+	var motion := ParticleProcessMaterial.new()
+	motion.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	motion.emission_sphere_radius = 0.12 * _scale
+	# Local -Z is the barrel: a forward jet plus the brake's sideways vents.
+	motion.direction = Vector3.FORWARD
+	motion.spread = 70.0 if cannon else 25.0
+	motion.initial_velocity_min = (0.8 if cannon else 0.5) * _scale
+	motion.initial_velocity_max = (3.2 if cannon else 1.4) * _scale
+	motion.damping_min = 2.0
+	motion.damping_max = 3.5
+	motion.gravity = Vector3(0.05, 0.16, 0.0) * _scale
+	motion.angle_min = -180.0
+	motion.angle_max = 180.0
+	motion.angular_velocity_min = -30.0
+	motion.angular_velocity_max = 30.0
+	motion.scale_min = (0.9 if cannon else 0.3) * _scale
+	motion.scale_max = (1.4 if cannon else 0.5) * _scale
+	motion.scale_curve = _curve([Vector2(0, 0.25), Vector2(0.15, 0.7), Vector2(0.6, 1.1), Vector2(1, 1.45)])
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.04, 0.3, 1.0])
+	gradient.colors = PackedColorArray([Color(1, 1, 1, 0), Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.8), Color(1, 1, 1, 0)])
+	var ramp := GradientTexture1D.new()
+	ramp.gradient = gradient
+	motion.color_ramp = ramp
+	motion.turbulence_enabled = true
+	motion.turbulence_noise_strength = 0.6
+	motion.turbulence_noise_scale = 2.0
+	motion.turbulence_influence_min = 0.03
+	motion.turbulence_influence_max = 0.09
+	emitter.process_material = motion
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	quad.material = _smoke_material(cannon)
+	emitter.draw_pass_1 = quad
+	return emitter
+
+static func _curve(points: Array[Vector2]) -> CurveTexture:
+	var curve := Curve.new()
+	curve.max_value = 1.5
+	for point: Vector2 in points: curve.add_point(point)
+	var texture := CurveTexture.new()
+	texture.curve = curve
+	return texture
+
+static func _smoke_material(cannon: bool) -> ShaderMaterial:
+	if _smoke_materials.has(cannon): return _smoke_materials[cannon]
+	var material := ShaderMaterial.new()
+	material.shader = preload("res://scripts/presentation/turret_blast_smoke.gdshader")
+	var noise := FastNoiseLite.new()
+	noise.seed = 36036
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.027
+	noise.fractal_octaves = 3
+	var texture := NoiseTexture2D.new()
+	texture.width = 256
+	texture.height = 256
+	texture.seamless = true
+	texture.noise = noise
+	material.set_shader_parameter("smoke_noise", texture)
+	if not cannon:
+		# Plasma leaves thin ionised vapour, not propellant smoke.
+		material.set_shader_parameter("shadow_color", Color(0.32, 0.42, 0.48))
+		material.set_shader_parameter("lit_color", Color(0.62, 0.78, 0.86))
+		material.set_shader_parameter("opacity", 0.45)
+	_smoke_materials[cannon] = material
+	return material
+
+func _deposit_fog(at: Vector3, direction: Vector3) -> void:
+	if DisplayServer.get_name() == "headless" or RenderingServer.get_current_rendering_method() != "forward_plus": return
+	for step: int in 3:
+		var puff: Dictionary
+		if _fog.size() < FOG_PUFFS:
+			var volume := FogVolume.new()
+			volume.name = "MuzzleFog%d" % _fog.size()
+			var material := ShaderMaterial.new()
+			material.shader = preload("res://scripts/presentation/turret_blast_fog.gdshader")
+			volume.material = material
+			add_child(volume)
+			volume.top_level = true
+			puff = {"volume":volume, "age":FOG_LIFETIME, "origin":Vector3.ZERO, "direction":Vector3.ZERO}
+			_fog.append(puff)
+		else:
+			puff = _fog[(shot_count * 3 + step) % FOG_PUFFS]
+		puff.age = 0.0
+		puff.origin = at + direction * (0.25 + step * 0.45) * _scale
+		puff.direction = direction
+		puff.volume.visible = true
 
 func _glow(color: Color, energy: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -158,12 +257,14 @@ func _fire(from: Vector3, to: Vector3) -> void:
 	_flash_age = 0.0
 	_light.global_position = from
 	_recoil_age = 0.0
-	for index: int in (4 if kind == "cannon" else 0):
-		var puff: Dictionary = _smoke[(shot_count * 4 + index) % SMOKE]
-		puff.age = 0.0
-		puff.node.global_position = from + direction * 0.2 * _scale
-		var spread := Vector3(sin(index * 2.1), 0.4 + 0.2 * index, cos(index * 1.7)) * 0.6
-		puff.velocity = (direction * (1.8 - index * 0.35) + spread) * _scale
+	if not _blasts.is_empty():
+		var blast := _blasts[shot_count % _blasts.size()]
+		# Orient local -Z along the barrel at the muzzle, then fire one burst.
+		blast.global_transform = Transform3D(Basis.looking_at(direction, Vector3.UP if absf(direction.y) < 0.98 else Vector3.RIGHT), from)
+		blast.restart()
+		blast.emitting = true
+	if kind == "cannon":
+		_deposit_fog(from, direction)
 	if playback_enabled and not _voices.is_empty():
 		var voice := _voices[shot_count % _voices.size()]
 		voice.stop()
@@ -204,22 +305,26 @@ func _advance(delta: float) -> void:
 			var length := maxf(0.01, at.distance_to(tail))
 			projectile.trail.global_transform = Transform3D(_frame(direction).scaled_local(Vector3(1, length, 1)), (at + tail) * 0.5)
 		var burst_age: float = projectile.age - flight
-		projectile.burst.visible = burst_age >= 0.0 and burst_age < 0.22 and projectile.age < 5.0
+		# A brief, small arrival flash only; confirmed hits add their own sparks.
+		projectile.burst.visible = burst_age >= 0.0 and burst_age < 0.08 and projectile.age < 5.0
 		if projectile.burst.visible:
-			var radius := lerpf(0.15, 1.0 if kind == "cannon" else 0.6, burst_age / 0.22) * _scale
+			var radius := lerpf(0.08, 0.3 if kind == "cannon" else 0.2, burst_age / 0.08) * _scale
 			projectile.burst.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * radius * 2.0), to)
 			var material: StandardMaterial3D = projectile.burst.material_override
-			material.albedo_color.a = 0.7 * (1.0 - burst_age / 0.22)
-	for puff: Dictionary in _smoke:
+			material.albedo_color.a = 0.8 * (1.0 - burst_age / 0.08)
+	for puff: Dictionary in _fog:
 		puff.age += delta
-		puff.node.visible = puff.age < 1.6
-		if puff.node.visible:
-			puff.velocity = Vector3(puff.velocity) * exp(-delta * 2.2) + Vector3.UP * 0.25 * _scale * delta
-			puff.node.global_position += Vector3(puff.velocity) * delta
-			var grow := lerpf(0.35, 1.5, puff.age / 1.6) * _scale
-			puff.node.scale = Vector3.ONE * grow
-			var material: StandardMaterial3D = puff.node.material_override
-			material.albedo_color.a = 0.45 * (1.0 - puff.age / 1.6)
+		if puff.age >= FOG_LIFETIME:
+			puff.volume.hide()
+			continue
+		var age: float = puff.age
+		var size := (0.5 + age * 0.9) * _scale
+		puff.volume.size = Vector3(size, size * 0.85, size)
+		puff.volume.global_position = puff.origin + Vector3(puff.direction) * (1.0 - exp(-age * 3.0)) * 0.9 * _scale + Vector3.UP * 0.18 * age * _scale
+		var fade := smoothstep(0.0, 0.08, age) * (1.0 - smoothstep(0.4, FOG_LIFETIME, age))
+		var material := puff.volume.material as ShaderMaterial
+		material.set_shader_parameter("density", 0.55 * fade)
+		material.set_shader_parameter("age", age)
 
 func set_playback_enabled(enabled: bool) -> void:
 	playback_enabled = enabled
@@ -236,9 +341,13 @@ func clear_effects() -> void:
 	for projectile: Dictionary in _projectiles:
 		projectile.age = 10.0
 		for key: String in ["head", "trail", "burst"]: projectile[key].hide()
-	for puff: Dictionary in _smoke:
-		puff.age = 10.0
-		puff.node.hide()
+	for blast: GPUParticles3D in _blasts:
+		blast.emitting = false
+		blast.restart()
+		blast.emitting = false
+	for puff: Dictionary in _fog:
+		puff.age = FOG_LIFETIME
+		puff.volume.hide()
 	if _flash != null: _flash.hide()
 	if _light != null: _light.light_energy = 0.0
 	for voice: AudioStreamPlayer3D in _voices: voice.stop()

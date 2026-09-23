@@ -5,6 +5,14 @@ const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse",
 	&"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover"]
 var _blocked: Dictionary = {}
 var auxiliary_weapon := false
+## Tank controls for turret builds: the primary button (LMB) fires the turret's
+## main gun; the secondary button (RMB) operates the hull weapon with the usual
+## hold/press/toggle semantics. Synthetic cancellation is unchanged.
+var turret_main_gun := false:
+	set(value):
+		if turret_main_gun != value:
+			turret_main_gun = value
+			require_release()
 var toggle_primary: bool = false:
 	set(value):
 		if toggle_primary != value:
@@ -43,6 +51,8 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 	command.jump_cancel = _cancel_pending or _blocked.has(&"jump")
 	for action: StringName in [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right"]:
 		command.brake = command.brake or _blocked.has(action)
+	if turret_main_gun:
+		return _sample_tank(command, strengths, edges)
 	var primary_down := float(strengths.get(&"primary", 0.0)) > 0.0
 	var primary_edge := primary_down and not _primary_was_down and bool(edges.get(&"primary", false))
 	_primary_was_down = primary_down
@@ -65,6 +75,28 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 	else:
 		command.primary_held = _strength(strengths, &"primary") > 0.0
 		command.primary_pressed = command.primary_held and bool(edges.get(&"primary", false))
+	command.recovery_pressed = not _blocked.has(&"recover") and bool(edges.get(&"recover", false))
+	return command
+
+func _sample_tank(command: BotCommand, strengths: Dictionary, edges: Dictionary) -> BotCommand:
+	command.auxiliary_held = _strength(strengths, &"primary") > 0.0
+	var hull_down := float(strengths.get(&"secondary", 0.0)) > 0.0
+	var hull_edge := hull_down and not _primary_was_down and bool(edges.get(&"secondary", false))
+	_primary_was_down = hull_down
+	# Only synthetic cancellation lowers/brakes the hull weapon here; releasing
+	# a charged lifter before it is full simply lets it settle.
+	command.secondary_held = _cancel_pending or _blocked.has(&"secondary")
+	_cancel_pending = false
+	if toggle_primary:
+		if command.secondary_held:
+			_primary_latched = false
+		elif hull_edge:
+			_primary_latched = not _primary_latched
+			command.primary_pressed = true
+		command.primary_held = _primary_latched
+	else:
+		command.primary_held = _strength(strengths, &"secondary") > 0.0
+		command.primary_pressed = command.primary_held and bool(edges.get(&"secondary", false))
 	command.recovery_pressed = not _blocked.has(&"recover") and bool(edges.get(&"recover", false))
 	return command
 

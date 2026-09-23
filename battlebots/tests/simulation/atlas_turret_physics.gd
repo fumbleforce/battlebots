@@ -42,6 +42,8 @@ func catalogue_rules() -> void:
 			check(not rejected.valid and "Turret modules require the Atlas MX roof traverse race" in rejected.reasons,
 				"Turret is rejected off Atlas: " + str(other.parts.chassis))
 	check(registry.validate(registry.atlas()).stats.secondary_weapon == "", "Plain Atlas has no auxiliary weapon")
+	var seeded := registry.validate(registry.atlas_turret())
+	check(seeded.valid and seeded.stats.secondary_weapon == "cannon", "Seeded Atlas turret preset is legal: %s" % seeded.reasons)
 	var old := registry.atlas()
 	var migrated: Dictionary
 	old = registry.atlas()

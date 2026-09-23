@@ -81,10 +81,10 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Scorpion / Atlas MX gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Uses battery and builds heat. Swap for another utility to remove."
 			elif item.id == "turret_cannon":
 				item.name = "Turret · Cannon"
-				item.desc = "Atlas MX roof turret · 16 kg · 25 power. Aim with the mouse; the turret traverses toward your crosshair. Hold secondary fire for a heavy shell every 2.4 s that knocks targets back. Uses battery and heat. Replaces the roof gun mount, so it excludes the minigun."
+				item.desc = "Atlas MX roof turret · 16 kg · 25 power. Tank controls: aim with the mouse over the turret sight and fire the main gun with primary fire; secondary fire operates the hull weapon. A heavy shell every 2.4 s knocks targets back. Uses battery and heat. Replaces the roof gun mount, so it excludes the minigun."
 			elif item.id == "turret_plasma":
 				item.name = "Turret · Plasma gun"
-				item.desc = "Atlas MX roof turret · 14 kg · 25 power. Aim with the mouse; hold secondary fire for rapid plasma bolts. Light hits that build heat quickly. Replaces the roof gun mount, so it excludes the minigun."
+				item.desc = "Atlas MX roof turret · 14 kg · 25 power. Tank controls: aim with the mouse over the turret sight and hold primary fire for rapid plasma bolts; secondary fire operates the hull weapon. Light hits that build heat quickly. Replaces the roof gun mount, so it excludes the minigun."
 			elif item.id == "minigun":
 				item.name = "Minigun • Primary"
 				item.desc = "Primary weapon module · 24 kg · 35 power. Hold primary fire for sustained ranged fire. On Scorpion it replaces the dorsal hammer; choose a separate utility."

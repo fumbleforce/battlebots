@@ -10,7 +10,7 @@ var wallet := CreditWallet.new()
 var credits: int:
 	get: return wallet.balance
 var active_bot := 0
-const PRESET_COUNT := 5
+const PRESET_COUNT := 6
 var bots: Array = []
 var registry := ContentRegistry.new()
 var save_path := "user://loadouts.json"
@@ -44,7 +44,8 @@ func reload() -> void:
 		_ensure_body(preset)
 	loadouts.append(registry.scorpion())
 	loadouts.append(registry.atlas())
-	_save_indices = [-1,-1,-1,-1,-1]
+	loadouts.append(registry.atlas_turret())
+	_save_indices = [-1,-1,-1,-1,-1,-1]
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)

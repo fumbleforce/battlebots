@@ -65,6 +65,8 @@ func _capture(label: String, settle := 30) -> void:
 
 func review(kind: String) -> void:
 	session = MvpSession.new()
+	# The review holds MvpBot references; a part pickup would replace the bot.
+	session.pickups_enabled = false
 	add_child(session)
 	var draft: Dictionary = session.registry.atlas()
 	draft.parts.utility = "turret_" + kind
@@ -85,8 +87,6 @@ func review(kind: String) -> void:
 	for frame: int in 150: await get_tree().physics_frame
 	var barrel := bot.body.global_basis * AtlasGeometry.turret_direction(bot.combat.turret_yaw, bot.combat.gun_pitch)
 	var wanted := (aim_point - bot.body.global_transform * AtlasGeometry.turret_breech(bot.combat.stats.size, bot.combat.turret_yaw)).normalized()
-	print("TURRET DEBUG bot=", center, " target=", target.body.global_position, " yaw=", bot.combat.turret_yaw, " pitch=", bot.combat.gun_pitch,
-		" barrel=", barrel.normalized(), " wanted=", wanted, " aim_valid=", bot.command.aim_valid, " phase=", session.match_view.get("phase"))
 	check(barrel.normalized().dot(wanted) > 0.995, "%s turret settles on the practice target" % kind)
 	camera.position = center - toward * 7.0 + side * 13.0 + Vector3.UP * 7.5
 	camera.look_at(center + toward * 5.0 + Vector3.UP * 2.0)
@@ -105,9 +105,10 @@ func review(kind: String) -> void:
 		if bot.combat.shot_sequence > shots:
 			break
 	await _capture("turret-%s-firing" % kind, 3 if kind == "cannon" else 8)
+	await _capture("turret-%s-smoke" % kind, 12)
+	await _capture("turret-%s-smoke-late" % kind, 45)
 	for frame: int in 60: await get_tree().physics_frame
 	firing = false
-	print("TURRET SHOT DEBUG seq=", bot.combat.shot_sequence, " from=", bot.combat.last_shot_from, " to=", bot.combat.last_shot_to, " core=", target.combat.core, "/", core)
 	check(bot.combat.shot_sequence > shots, "%s fires from the ordinary auxiliary trigger" % kind)
 	check(target.combat.core < core, "%s shots damage the practice target" % kind)
 	await _capture("turret-%s-after" % kind, 10)

@@ -52,6 +52,13 @@ func atlas() -> Dictionary:
 	draft.cosmetics = {"paint":"orange", "sawblade":AtlasGeometry.paint_defaults()}
 	return draft
 
+## Seeded Atlas with the roof turret: cannon main gun over the default lifter.
+func atlas_turret() -> Dictionary:
+	var draft := atlas()
+	draft.name = "ATLAS MX • TURRET"
+	draft.parts.utility = "turret_cannon"
+	return draft
+
 func validate(draft: Dictionary) -> LoadoutValidation:
 	var result := LoadoutValidation.new()
 	if draft.size() != 5 or draft.get("schema_version") != SCHEMA:

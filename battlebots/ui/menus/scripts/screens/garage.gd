@@ -167,7 +167,9 @@ func _select(i: int) -> void:
 	var auxiliary_label: String = {"minigun_pod":"AUXILIARY GUN", "turret_cannon":"TURRET CANNON", "turret_plasma":"TURRET PLASMA"}.get(utility, "")
 	var has_auxiliary := not auxiliary_label.is_empty()
 	var auxiliary_key: Label = %AbilitySlot.get_node("Pad/Row/Key/L")
-	auxiliary_key.text = InputPreferences.load_file().label_for(&"secondary") if has_auxiliary else "—"
+	# Turret builds use tank controls: the primary button fires the main gun.
+	var auxiliary_action: StringName = &"primary" if utility.begins_with("turret_") else &"secondary"
+	auxiliary_key.text = InputPreferences.load_file().label_for(auxiliary_action) if has_auxiliary else "—"
 	%AbilitySlot.get_node("Pad/Row/Text/Label").text = auxiliary_label if has_auxiliary else "UTILITY"
 	for child in %Stats.get_children():
 		%Stats.remove_child(child)

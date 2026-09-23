@@ -28,12 +28,15 @@ var _diagnostics_fresh := false
 ## Turret aim: the camera crosshair ray, re-aimed from the turret trunnion.
 const TURRET_AIM_DISTANCE := 220.0
 var turret_reticle := TurretReticle.new()
+var tank_sight := TankSightCamera.new()
 var _turret_aim_point := Vector3.ZERO
 
 func _ready() -> void:
 	hud.set_context(fixture_title)
 	$CanvasLayer.add_child(turret_reticle)
 	$CanvasLayer.move_child(turret_reticle, 0)
+	tank_sight.rig = rig
+	add_child(tank_sight)
 	rig.bind_source(source)
 	var preferences := CameraPreferences.load_file(settings_path)
 	preferences.apply_to(rig)
@@ -161,6 +164,7 @@ func _physics_process(_delta: float) -> void:
 		strengths[action] = _action_strength(action)
 	var edges := {
 		&"primary": Input.is_action_just_pressed("primary"),
+		&"secondary": Input.is_action_just_pressed("secondary"),
 		&"recover": Input.is_action_just_pressed("recover"),
 	}
 	var enabled := controls_enabled and not settings_panel.visible \
@@ -170,6 +174,7 @@ func _physics_process(_delta: float) -> void:
 		enabled = enabled and bool(source.input_allowed.call())
 	var view := _source_view()
 	input_gate.auxiliary_weapon = view.has_auxiliary_weapon
+	input_gate.turret_main_gun = view.turret_kind != ""
 	var command := input_gate.sample(strengths, edges, enabled)
 	command.sequence = sequence
 	sequence += 1
@@ -186,8 +191,12 @@ func _turret_scale() -> float:
 
 ## World bearing/elevation from the turret trunnion to whatever the crosshair
 ## ray meets (world or bot, excluding this bot), else a far point along it.
+## The active view camera: the tank sight for turret builds, else the orbit rig.
+func aim_camera() -> Camera3D:
+	return tank_sight.camera if tank_sight.active else rig.camera
+
 func _apply_turret_aim(command: BotCommand, view: BotView) -> void:
-	var camera := rig.camera
+	var camera := aim_camera()
 	if not is_instance_valid(camera) or not camera.is_inside_tree():
 		return
 	var size := Vector3(0.0, _turret_scale() * BotScale.AUTHORING_HEIGHT, 0.0)
@@ -210,8 +219,16 @@ func _apply_turret_aim(command: BotCommand, view: BotView) -> void:
 	command.aim_yaw = atan2(-direction.x, -direction.z)
 	command.aim_pitch = atan2(direction.y, Vector2(direction.x, direction.z).length())
 
+func _update_tank_sight(view: BotView, delta: float) -> void:
+	var wanted := view != null and view.turret_kind != "" and is_instance_valid(source)
+	if wanted != tank_sight.active:
+		tank_sight.reset()
+		tank_sight.active = wanted
+	if wanted:
+		tank_sight.update_view(delta, source)
+
 func _render_turret_reticle(view: BotView) -> void:
-	var camera := rig.camera
+	var camera := aim_camera()
 	var show := controls_enabled and view != null and view.turret_kind != "" and not view.eliminated \
 		and is_instance_valid(camera) and camera.is_inside_tree() and not pause_menu.visible
 	if not show:
@@ -244,20 +261,23 @@ func _action_strength(action: StringName) -> float:
 			strength = 1.0
 	return strength
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var view := _source_view()
 	hud.show_view(view)
+	_update_tank_sight(view, delta)
 	_render_turret_reticle(view)
 	refresh_diagnostics()
 	hint.text = "Mouse  Orbit  |  %s / %s  Zoom  |  %s  Recenter  |  Esc  Menu" % [
 		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),
 		input_preferences.label_for(&"camera_recenter")] \
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
-	if controls_enabled and view != null and view.has_auxiliary_weapon:
-		var auxiliary: String = {"cannon":"Turret cannon", "plasma":"Turret plasma gun"}.get(view.turret_kind, "Minigun")
-		hint.text = "%s  Primary weapon  |  %s  %s  |  Mouse  %s  |  Esc  Menu" % [
-			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary"), auxiliary,
-			"Aim turret" if view.turret_kind != "" else "Orbit"]
+	if controls_enabled and view != null and view.turret_kind != "":
+		var gun: String = {"cannon":"Main gun", "plasma":"Plasma gun"}.get(view.turret_kind, "Turret")
+		hint.text = "Mouse  Aim  |  %s  %s  |  %s  Hull weapon  |  Esc  Menu" % [
+			input_preferences.label_for(&"primary"), gun, input_preferences.label_for(&"secondary")]
+	elif controls_enabled and view != null and view.has_auxiliary_weapon:
+		hint.text = "%s  Primary weapon  |  %s  Minigun  |  Mouse  Orbit  |  Esc  Menu" % [
+			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary")]
 
 func _source_view() -> BotView:
 	if not is_instance_valid(source):
@@ -319,6 +339,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		# Captured mouse sensitivity uses screen pixels, independent of viewport stretch.
 		rig.orbit(event.screen_relative)
+		# The sight's look range is narrower than the orbit's; never bank
+		# mouse travel beyond it.
+		if tank_sight.active: rig.pitch = tank_sight.clamp_pitch(rig.pitch)
 	elif event.is_action_pressed("camera_zoom_in"):
 		rig.zoom(-1.0)
 	elif event.is_action_pressed("camera_zoom_out"):
