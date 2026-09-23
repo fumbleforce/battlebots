@@ -1,5 +1,14 @@
 # Shared contracts — local records and current MVP session API
 
+## Woodland ramp collision — build mvp-ab-31 (#42)
+
+The shared Woodland jump-ramp wedge and imported visual use a 5.5 m nominal lip.
+Footprint/placement, arena ID/rules version, protocol 11 and catalogue identity
+are unchanged. Clients and authoritative workers require the new gameplay build
+so a 3.6 m collision client cannot join. Ordinary build mismatch rejection stays
+intact. Both mirrored ramp-to-bunker routes pass actual-Jolt Nitro/control and
+imported-geometry checks. [Route, reproduction and evidence](coordination/WOODLAND_RAMP_JUMP.md).
+
 ## Atlas drive configurations — build mvp-ab-27 (#47)
 
 `ContentRegistry.validate` accepts Atlas MX with any drive in

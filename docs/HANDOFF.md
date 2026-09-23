@@ -5,6 +5,16 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Woodland Nitro ramp jumps (#42) — 23 September 2026
+
+Raised all Woodland jump ramps to 5.5 m and rebuilt the Blender visual at the
+same nominal height. Both mirrored Atlas/Nitro routes now pass a real-Jolt
+landing-and-stop regression; the identical non-Nitro routes stop on the ramp.
+Imported deck triangles are checked against actual collision rays. Baseline,
+Woodland and spawn checks pass, retaining #49 mass/speed and #50 wall-pin work.
+Gameplay build mvp-ab-31 requires matching automatic hosted release; protocol
+and catalogue are unchanged. [Evidence and limits](coordination/WOODLAND_RAMP_JUMP.md).
+
 ## Stable Woodland normal-map imports (#51) — 23 September 2026
 
 Corrected the conifer normal map's committed VRAM output metadata and made its

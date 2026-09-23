@@ -1,0 +1,109 @@
+{
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "renderer": "Forward+ Vulkan, NVIDIA RTX 3080",
+  "physics": "Jolt 60 Hz",
+  "blender": "5.2.2 LTS",
+  "base_commit": "1afa3b0",
+  "feature_commit": "2ceb0ba",
+  "build": "mvp-ab-31",
+  "headless": [
+    {
+      "airborne": false,
+      "case": "original_normal",
+      "final_position": "(-40.24564, 6.988911, 78.81779)",
+      "final_speed": 0.00078028574353084,
+      "landed": false,
+      "landing_tick": -1,
+      "peak_y": 6.98891115188599,
+      "stable_ticks": 0
+    },
+    {
+      "airborne": true,
+      "case": "original_nitro",
+      "final_position": "(-39.66458, 6.393692, 60.40991)",
+      "final_speed": 0.00392654072493315,
+      "landed": true,
+      "landing_tick": 153,
+      "peak_y": 8.91427612304688,
+      "stable_ticks": 120
+    },
+    {
+      "airborne": false,
+      "case": "mirrored_normal",
+      "final_position": "(40.08792, 6.988614, -78.81842)",
+      "final_speed": 0.000571542768739164,
+      "landed": false,
+      "landing_tick": -1,
+      "peak_y": 6.98861360549927,
+      "stable_ticks": 0
+    },
+    {
+      "airborne": true,
+      "case": "mirrored_nitro",
+      "final_position": "(39.91924, 6.389806, -58.86254)",
+      "final_speed": 0.00811362266540527,
+      "landed": true,
+      "landing_tick": 152,
+      "peak_y": 8.90734672546387,
+      "stable_ticks": 120
+    }
+  ],
+  "native": [
+    {
+      "airborne": false,
+      "case": "original_normal",
+      "final_position": "(-40.24564, 6.988911, 78.81779)",
+      "final_speed": 0.00078028574353084,
+      "landed": false,
+      "landing_tick": -1,
+      "peak_y": 6.98891115188599,
+      "stable_ticks": 0
+    },
+    {
+      "airborne": true,
+      "case": "original_nitro",
+      "final_position": "(-39.68145, 6.393436, 60.40803)",
+      "final_speed": 0.00420703738927841,
+      "landed": true,
+      "landing_tick": 153,
+      "peak_y": 8.91450309753418,
+      "stable_ticks": 120
+    },
+    {
+      "airborne": false,
+      "case": "mirrored_normal",
+      "final_position": "(40.08792, 6.988614, -78.81842)",
+      "final_speed": 0.000571542768739164,
+      "landed": false,
+      "landing_tick": -1,
+      "peak_y": 6.98861360549927,
+      "stable_ticks": 0
+    },
+    {
+      "airborne": true,
+      "case": "mirrored_nitro",
+      "final_position": "(39.98449, 6.389338, -58.85305)",
+      "final_speed": 0.0088232159614563,
+      "landed": true,
+      "landing_tick": 151,
+      "peak_y": 8.90746212005615,
+      "stable_ticks": 120
+    }
+  ],
+  "old_3_6m_control": {
+    "base_commit": "60d9fb0",
+    "note": "Pre mass-speed revision; same controlled route. Not an assertion about every possible approach.",
+    "normal_landed": false,
+    "nitro_landed": false,
+    "normal_peak_y": 5.09136962890625,
+    "nitro_peak_y": 6.24367952346802
+  },
+  "checks": [
+    "baseline PASS",
+    "drive suite PASS",
+    "Woodland PASS",
+    "heavy spawn PASS",
+    "imported deck triangles vs actual Jolt rays PASS"
+  ],
+  "known_warning": "Seven reflection-atlas Texture RIDs on native shutdown, investigated in #18."
+}
