@@ -50,6 +50,8 @@ func _ready() -> void:
 	add_child(canvas)
 	resources_panel = _panel()
 	var health_col := _column(resources_panel)
+	# The plate map leads; the core reading sits beneath it.
+	_build_armor(health_col)
 	var health_row := HBoxContainer.new()
 	health_col.add_child(health_row)
 	var title := _label(health_row, "INTEGRITY", 13)
@@ -60,7 +62,6 @@ func _ready() -> void:
 	var health_value := _label(health_row, "--", 28)
 	var health_bar := _bar(health_col, 6)
 	resources["Core"] = {"bar":health_bar, "value":health_value}
-	_build_armor(health_col)
 	systems_panel = _panel()
 	systems_panel.set("mirrored", true)
 	var systems_col := _column(systems_panel)
@@ -260,7 +261,7 @@ func _resource(parent: Node, title: String) -> Dictionary:
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	return {"bar":_bar(column, 3), "value":value}
 
-## Garage-style plate map: Front/Rear/Left/Right around a Top/Bottom box.
+## Garage-style plate map above the core reading: Front/Rear/Left/Right around a Top/Bottom box.
 func _build_armor(parent: Node) -> void:
 	var grid := GridContainer.new()
 	grid.name = "ArmorMap"

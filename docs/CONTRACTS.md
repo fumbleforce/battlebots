@@ -22,7 +22,7 @@ imported-geometry checks. [Route, reproduction and evidence](coordination/WOODLA
 `BotView.plate_max` (additive, presentation only) holds the fitted HP of each
 armour area still present in `zones`; MvpBot fills it from the existing
 snapshot `plate_max`, and bare areas are omitted from both. `CombatHud` shows a
-Garage-style Front/Rear/Left/Right + Top/Bottom map under INTEGRITY
+Garage-style Front/Rear/Left/Right + Top/Bottom map above INTEGRITY
 (`plate_labels`), tinting plates at or below `CombatHud.PLATE_DAMAGED` of their
 fitted HP and breached ones. HEAT, NITRO, JUMP and the jump-force gauge moved to
 `systems_panel`, stacked above the weapon card. No command, wire, catalogue or
