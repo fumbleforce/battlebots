@@ -17,6 +17,25 @@ public-release persistence/account implementation.
 
 ## Prepare and validate
 
+On Linux, use Node 24 and Godot 4.7.2 with matching export templates; PowerShell
+is not needed. From a clean committed repository:
+
+```bash
+nvm use 24
+npm test --prefix services/matchmaking
+node tools/prepare-hosted.mjs --godot godot
+node tools/check-hosted.mjs --godot godot --duel-only \
+  --server-binary "$PWD/battlebots/exports/hosted-server/battlebots-server.x86_64"
+fly config validate -c services/matchmaking/fly.toml
+```
+
+The native preparation command imports/checks the baseline and exports Linux
+server plus Linux/Windows clients from one clean commit. `hosted-server`,
+`linux-client` and `windows-client` under `battlebots/exports/` each contain a
+generated compatibility manifest and a build record with source commit and
+SHA256 hashes. Keep each executable with its adjacent PCK. Test the production
+container and record its image before deploying; a build alone is not acceptance.
+
 From the repository root with Godot 4.7.2 and matching export templates installed:
 
 ```powershell

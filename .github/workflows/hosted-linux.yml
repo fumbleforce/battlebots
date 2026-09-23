@@ -7,6 +7,7 @@ on:
       - 'services/matchmaking/**'
       - 'tools/check-hosted.mjs'
       - 'tools/prepare-hosted.ps1'
+      - 'tools/prepare-hosted.mjs'
       - '.dockerignore'
       - '.github/workflows/hosted-linux.yml'
   pull_request:
@@ -39,9 +40,8 @@ jobs:
           mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
           cp "$RUNNER_TEMP/godot-templates/templates/"* "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
           echo "GODOT=$RUNNER_TEMP/godot/Godot_v4.7.2-stable_linux.x86_64" >> "$GITHUB_ENV"
-      - name: Prepare Linux release and compatibility manifest
-        shell: pwsh
-        run: ./tools/prepare-hosted.ps1 -GodotPath $env:GODOT
+      - name: Prepare matching client/server release and compatibility manifest
+        run: node tools/prepare-hosted.mjs --godot "$GODOT"
       - name: Build and start production image as its default unprivileged user
         shell: bash
         run: |
