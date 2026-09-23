@@ -14,6 +14,15 @@ correct roller clearance and centered corner sockets remain required. Fidelity
 was approved by the user on 22 September 2026. See [Atlas implementation](coordination/B_ATLAS_MX.md)
 for exported mounts, actual runtime validation and the hosted-release handoff.
 
+**User revision, 23 September 2026 — item pickups and credits:** matches stock
+server-authoritative item pickups: vehicle parts from the Customize catalogue
+(every slot, including body and drive), the Nitro/jump perks, or credits. A part
+replaces the picker's part in that slot and a perk is granted, for the rest of
+the current match only; nothing unlocks for the account. A perk the player
+already has, the same part, or an incompatible part is not picked up. Credits
+from pickups plus a post-match performance reward go into a persistent account
+wallet, later to unlock Customize parts. See [match pickups](coordination/MATCH_PICKUPS.md).
+
 **User revision, 22 September 2026:** Shift activates an equipped Nitro perk.
 Holding Space charges an equipped suspension jump; releasing Space applies the
 stored jump force. Nitro and jump occupy independent loadout slots and may be
@@ -88,8 +97,8 @@ A first-time player receives a complete starter robot, enters a short practice t
 ### Shared rules
 
 - A round starts with a 5-second countdown. Bots cannot drive, charge weapons, or take damage until the server starts the round.
-- Loadouts lock before the first round. Repairs and resource refills occur between rounds; mid-match part swaps are disabled.
-- There are no repairs, ammunition pickups, respawns, or health regeneration during a round.
+- Loadouts lock before the first round. Repairs and resource refills occur between rounds. The only mid-match part changes come from item pickups (23 September revision), which last until the match ends.
+- There are no repairs, ammunition pickups, respawns, or health regeneration during a round. A picked-up part arrives intact in its own slot; all other damage carries over.
 - Elimination occurs at zero core integrity, after a completed immobilization count, or on a disconnect timeout.
 - Team weapons cannot damage allies or apply authored attack impulses to them. Ordinary physical collisions remain, allowing accidental blocking and physical assistance.
 - Destroyed bots lose combat collision and become local visual wrecks, preventing inconsistent obstruction across clients.

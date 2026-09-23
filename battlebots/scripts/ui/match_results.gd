@@ -21,6 +21,7 @@ var scores_page: VBoxContainer
 var score: Label
 var outcome: Label
 var round_summary: Label
+var credits_label: Label
 var overview_tab: Button
 var scores_tab: Button
 var _local_team := -1
@@ -86,6 +87,12 @@ func _ready() -> void:
 	var score_caption := _label("FINAL RESULT", overview)
 	score_caption.theme_type_variation = &"Eyebrow"
 	score_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	credits_label = _label("", overview)
+	credits_label.theme_type_variation = &"Strong"
+	credits_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	credits_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	credits_label.add_theme_color_override("font_color", Color("3fcb4a"))
+	credits_label.hide()
 	var round_scroll := ScrollContainer.new()
 	round_scroll.custom_minimum_size.y = 80
 	round_scroll.focus_mode = Control.FOCUS_ALL
@@ -251,6 +258,19 @@ func _render_overview(view: Dictionary) -> void:
 	if view.get("mode") == "ffa":
 		lines = PackedStringArray([_outcome(view), "Open score details for placements and combat statistics."])
 	round_summary.text = "\n".join(lines) if not lines.is_empty() else "Round breakdown unavailable."
+	_render_credits()
+
+## The server-computed account reward for the local player: performance plus
+## credits collected from pickups during the match.
+func _render_credits() -> void:
+	var participants: Variant = record.get("participants")
+	var participant: Variant = participants.get(_local_id) if participants is Dictionary else null
+	var credits: Variant = participant.get("credits") if participant is Dictionary else null
+	credits_label.visible = credits is Dictionary and _integer(credits.get("total"), 0, 2000000000) \
+		and _integer(credits.get("performance"), 0, 2000000000) and _integer(credits.get("pickups"), 0, 2000000000)
+	if credits_label.visible:
+		credits_label.text = "+%s CREDITS EARNED  ·  performance %s  ·  pickups %s" % [MenuData.fmt_int(int(credits.total)),
+			MenuData.fmt_int(int(credits.performance)), MenuData.fmt_int(int(credits.pickups))]
 
 func _outcome(view: Dictionary) -> String:
 	if view.get("mode") == "ffa":

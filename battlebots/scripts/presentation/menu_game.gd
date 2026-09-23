@@ -46,6 +46,8 @@ var _test_drive_entry: GarageTestDriveEntry
 var _test_drive_screen := ""
 var game_menu_page: Control
 var combat_hud: CombatHud
+var pickup_visuals: PickupVisuals
+var pickup_feed: PickupFeed
 var _diagnostics_canvas: Control
 var world_markers: BotWorldMarkers
 var impact_feedback: CombatImpactFeedback
@@ -123,6 +125,17 @@ func _ready() -> void:
 	add_child(impact_feedback)
 	impact_feedback.bind_session(session)
 	practice_hud.reparent(combat_hud.canvas, false)
+	pickup_visuals = PickupVisuals.new()
+	pickup_visuals.name = "PickupVisuals"
+	add_child(pickup_visuals)
+	pickup_visuals.bind_session(session)
+	pickup_feed = PickupFeed.new()
+	pickup_feed.name = "PickupFeed"
+	combat_hud.canvas.add_child(pickup_feed)
+	pickup_feed.position = Vector2(28, 28)
+	pickup_feed.size = Vector2(320, 0)
+	pickup_feed.bind_names(pickup_visuals.names)
+	session.pickup_collected.connect(func(event: Dictionary) -> void: pickup_feed.notify(event, session.local_entity))
 	_diagnostics_canvas = Control.new()
 	_diagnostics_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$MatchLayer.add_child(_diagnostics_canvas)
@@ -521,6 +534,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
+	pickup_feed.apply_text_scale(value.text_scale)
 	match_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	_audio_caption.add_theme_font_size_override("font_size", roundi(18 * value.text_scale))
 	var caption: Rect2 = combat_hud.caption_bounds()
@@ -661,6 +675,10 @@ func _process(_delta: float) -> void:
 			break
 	match_hud.render(session.match_view, session.connection_state == "practice", local_view.team if local_view != null else -1)
 	combat_hud.visible = match_hud.visible
+	pickup_feed.render(session.pickup_view, session.local_entity, session.connection_state == "practice")
+	# Enlarged text moves the practice panel to the top-left; stack beneath it.
+	var practice_left := practice_hud.visible and practice_hud.position.x < 400.0
+	pickup_feed.position.y = practice_hud.position.y + practice_hud.size.y + 12.0 if practice_left else 28.0
 	# Diagnostics remain available from the pause screen; ordinary play only
 	# surfaces a connection warning when the session reports degradation.
 	_diagnostics_canvas.visible = preview.pause_menu.visible and not menu_open and not _general_settings_open() and not preview.settings_panel.visible
@@ -860,6 +878,7 @@ func _input(event: InputEvent) -> void:
 
 func _session_event(kind: String, details: Dictionary) -> void:
 	if kind in ["left", "hosted", "joined"]:
+		pickup_feed.clear_toasts()
 		_practice_return_screen = ""
 		preview.return_button.text = _default_return_text
 	if kind in ["practice", "practice_restarted", "left"]:
@@ -869,6 +888,10 @@ func _session_event(kind: String, details: Dictionary) -> void:
 		continuous_audio.reset()
 	if kind == "results":
 		results_panel.accept_record(details, str(session.match_view.get("match_id", "")))
+		# Server-computed reward; the wallet ignores repeats of the same match.
+		if session.connection_state != "practice":
+			PlayerProfile.bank_match_credits(str(details.get("match", {}).get("match_id", "")),
+				CreditWallet.reward_for(details, session.local_entity))
 	elif kind == "error":
 		MenuRouter.session_notice = str(details.get("message", "Session error"))
 		if _recovering or session.can_reconnect():

@@ -13,7 +13,6 @@ const OFFERED_CHASSIS := ["balanced", "scorpion_hex", "atlas_mx"]
 const EXCLUDED_PARTS := ["nitro_off", "jump_off"]
 const PERK_SLOTS := ["nitro", "suspension"]
 const REQUIRED_DRIVE := {"scorpion_hex":"walker", "atlas_mx":"traction"}
-const GUN_SOCKETS := ["scorpion_hex", "atlas_mx"]
 const FALLBACK_UTILITY := "recovery_assist"
 const REWARD_PARTICIPATION := 50
 const REWARD_VICTORY := 150
@@ -112,7 +111,7 @@ func collect(item: Dictionary, entity_id: int, loadout: Dictionary) -> Dictionar
 	return event
 
 ## The picked part replaces the one in its slot. A new body brings the drive it
-## requires and drops an auxiliary gun it has no socket for; any other conflict
+## requires and drops a utility it has no socket for; any other conflict
 ## (for example a wheeled drive on a Scorpion) leaves the pickup unused.
 func swapped(loadout: Dictionary, part: String) -> Dictionary:
 	if not registry.parts.has(part) or not loadout.get("parts") is Dictionary:
@@ -125,12 +124,14 @@ func swapped(loadout: Dictionary, part: String) -> Dictionary:
 	if slot == "chassis":
 		if REQUIRED_DRIVE.has(part):
 			next.parts.drive = REQUIRED_DRIVE[part]
-		if next.parts.get("utility") == "minigun_pod" and part not in GUN_SOCKETS:
-			next.parts.utility = FALLBACK_UTILITY
 		# Match Customize's body change: every offered body renders from the
 		# modular appearance record, so keep or supply one.
 		if next.get("cosmetics") is Dictionary and not SawbladeConfig.enabled(next):
 			next.cosmetics["sawblade"] = SawbladeConfig.defaults()
+		# Socket-bound utilities (the auxiliary minigun, or any later body-only
+		# module) cannot move to a body without that socket: fit the fallback.
+		if not registry.validate(next).valid and next.parts.get("utility") != FALLBACK_UTILITY:
+			next.parts.utility = FALLBACK_UTILITY
 	return next if registry.validate(next).valid else {}
 
 ## Post-match account reward. `participant` is a results participant record.

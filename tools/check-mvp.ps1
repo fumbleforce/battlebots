@@ -17,6 +17,8 @@ function Invoke-MvpTest {
 }
 Invoke-MvpTest 'res://tests/simulation/content_smoke.gd' 'CONTENT PASS'
 Invoke-MvpTest 'res://tests/simulation/heavy_spawn_test.gd' 'HEAVY SPAWN PASS'
+Invoke-MvpTest 'res://tests/simulation/match_pickups_test.gd' 'MATCH PICKUPS PASS'
+Invoke-MvpTest 'res://tests/network/pickup_session.tscn' 'PICKUP SESSION PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/simulation/scaled_combat.tscn' 'SCALED COMBAT PASS' -Scene
 Invoke-MvpTest 'res://tests/services/hosted_admission_test.gd' 'HOSTED ADMISSION PASS'
 Invoke-MvpTest 'res://tests/network/hosted_admission_session.tscn' 'HOSTED ADMISSION SESSION PASS' -Scene -RealTime

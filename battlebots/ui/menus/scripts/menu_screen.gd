@@ -1,6 +1,6 @@
 class_name MenuScreen
 extends Control
-## Base for every menu screen: back navigation, header profile/scrap readouts.
+## Base for every menu screen: back navigation, header profile/credit readouts.
 ## Nodes are looked up by unique name (%Name) and are all optional.
 
 ## Set false on screens where Esc must not navigate (main menu, loading).
@@ -13,8 +13,8 @@ func _ready() -> void:
 		back_btn.pressed.connect(MenuRouter.back)
 	if has_node("%ProfileName"):
 		(%ProfileName as Label).text = PlayerProfile.player_name
-	_update_scrap(PlayerProfile.scrap)
-	PlayerProfile.scrap_changed.connect(_update_scrap)
+	_update_credits(PlayerProfile.credits)
+	PlayerProfile.credits_changed.connect(_update_credits)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -30,11 +30,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		MenuRouter.back()
 
 
-func _update_scrap(value: int) -> void:
+func _update_credits(value: int) -> void:
 	if has_node("%ScrapAmount"):
-		(%ScrapAmount as Label).text = "—"
+		(%ScrapAmount as Label).text = MenuData.fmt_int(value) + " CR"
 	if has_node("%ProfileMeta"):
-		(%ProfileMeta as Label).text = "LOCAL PILOT · ALL PARTS AVAILABLE"
+		(%ProfileMeta as Label).text = "LOCAL PILOT · %s CREDITS" % MenuData.fmt_int(value)
 
 
 ## Sets which step of Mode/Bot/Arena/Lobby is current (1-4) in a header step tracker.

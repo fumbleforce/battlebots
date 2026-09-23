@@ -1,11 +1,14 @@
 extends Node
-## Canonical local loadouts. No currency, unlock gates, or paid gameplay upgrades.
-signal scrap_changed(value: int)
+## Canonical local loadouts and the account credit wallet. Every part is still
+## available; match rewards accumulate credits for future Customize unlocks.
+signal credits_changed(value: int)
 signal inventory_changed
 var player_name := "LOCAL PLAYER"
 var level := 0
 var level_progress := 0.0
-var scrap := 0
+var wallet := CreditWallet.new()
+var credits: int:
+	get: return wallet.balance
 var active_bot := 0
 const PRESET_COUNT := 5
 var bots: Array = []
@@ -52,6 +55,13 @@ func reload() -> void:
 	active_bot = clampi(active_bot,0,loadouts.size()-1)
 	_draft_baseline = loadouts.duplicate(true)
 	_refresh_bots()
+
+## Pays a finished match's reward into the wallet once per match id.
+func bank_match_credits(match_id: String, amount: int) -> bool:
+	if not wallet.bank(match_id, amount):
+		return false
+	credits_changed.emit(wallet.balance)
+	return true
 
 ## Refresh disk slots without losing local work or linking old drafts to new slots.
 func reload_retaining_drafts() -> int:

@@ -1,0 +1,65 @@
+# Match item pickups and account credits
+
+Issue: [#35](https://github.com/fumbleforce/battlebots/issues/35). Requested by the user (JosteinE) on
+23 September 2026. Implemented by B session `b-pickups-claude-deskfraph-20260923`, with the user's
+approval for the A areas it touches (world, session/network, HUD, results). Contract summary:
+[CONTRACTS.md, "Match item pickups and credits"](../CONTRACTS.md).
+
+## Rules (user decisions)
+
+- **Kinds.** Parts from the Customize catalogue (every slot, including body and drive), the Nitro and
+  charged-jump perks, and credits. Legacy bodies (`compact`, `wide`) and the "no perk" entries never drop.
+- **Parts** replace the picker's part in that slot. **Perks** are granted. Both last **until the match
+  ends**: a new round keeps them, a rematch or new match starts from each player's own loadout. Nothing
+  unlocks for the account.
+- **Not picked up** (the item stays in the world): the same part is already fitted, the perk is already
+  equipped, or the result would be physically invalid (for example, wheels under a Scorpion).
+- **Body pickups** bring the drive that body requires (Scorpion: walker, Atlas: tracks). They replace any
+  utility the new body cannot carry (for example the socket-bound auxiliary minigun) with `recovery_assist`.
+- **Budget.** Pickups are a bonus above the 120 kg / 100 power construction budget. Only the pickup path
+  is exempt; lobby builds are validated strictly as before.
+- **Credits** add to the picker's match tally. After the match, the server computes each participant's
+  reward: participation 50, victory 150, 50 per elimination, 20 per assist, 1 per 10 effective damage,
+  plus pickup credits. Clients pay it into the account wallet once per match id. The wallet will later
+  unlock Customize parts; that is out of scope here.
+
+## Implementation choices (open to revision)
+
+- Five points: the centre plus four diagonals at half the arena radius. These stay off the Z-axis team
+  spawn lanes and scale with `ArenaBounds`, so new arenas (for example Woodland, #34) get points
+  automatically. Moon points sit on its heightfield.
+- Contents are random. There is a 30% chance of credits (25/50/100); otherwise a uniformly random
+  catalogue part or perk. A collected point restocks after 20 s, and every point restocks at a new round.
+- Collection requires the hull footprint to overlap the point (horizontal radius half the longest hull
+  side + 0.5 m). Eliminated bots and practice NPCs never collect.
+- **Swap state.** The bot keeps its pose, motion, owner, input sequence, score counters, attacker
+  credit, timers, and its core, plate and battery fractions. The component in the *changed* slot arrives
+  intact: a new weapon, new drive pods or new plates. A taller body is lifted clear of the floor.
+- Practice shows pickups and the feed says rewards are not banked. Practice never pays credits.
+
+## Presentation
+
+- `PickupVisuals` draws a floor ring, a light column and a floating, rotating token (crate = part,
+  gem = perk, coin = credits) with a Label3D naming the contents. Colours: amber part, cyan perk,
+  green credits.
+- `PickupFeed` (top-left of the combat HUD canvas) shows this match's credits and up to three toasts for
+  the local player's pickups. It follows HUD text scale and stacks below the enlarged practice panel.
+- Results overview shows `+N CREDITS EARNED · performance · pickups`. The menu header shows the
+  wallet balance (`%ScrapAmount`, `%ProfileMeta`) in place of the old placeholder scrap readout.
+
+## Validation
+
+- `tests/simulation/match_pickups_test.gd` (`MATCH PICKUPS PASS`): rules, reward, and live swaps on real
+  Jolt bodies in Foundry and Moon.
+- `tests/network/pickup_session.tscn` (`PICKUP SESSION PASS`, real-time ENet): two clients, replicated
+  weapon and body swap, credits, reconnect baseline, results reward.
+- `tests/presentation/pickup_presentation_test.gd` (`PICKUP PRESENTATION PASS`): wallet persistence,
+  single payment and tamper handling, feed, results line, markers.
+
+## Limits and follow-ups
+
+- The wallet is a local file (`user://wallet.cfg`). It is not tamper-proof and not shared between
+  machines. Server-held identity (#16) must own the balance before credits gate anything shared.
+- Spending credits and gating Customize parts are not implemented.
+- A live body swap rebuilds visuals mid-fight; native frame-time impact is not yet measured.
+- Protocol 7 / build `mvp-ab-16` needs a matching hosted server release (A) before hosted play is ready.

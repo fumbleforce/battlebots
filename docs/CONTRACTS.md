@@ -829,3 +829,30 @@ that point while Jolt velocity advances the center. No wire fields change.
 CombatWorld scales ordinary weapon impulses by 0.65 and the attacker/target mass
 ratio (bounded 0.65–1.4); charged lifters omit the 0.65 reduction. Damage and
 weapon activation remain unchanged. Matching server/client deployment is required.
+
+## Match item pickups and credits (B with A areas, 23 September 2026, #35)
+
+Build `mvp-ab-16`, protocol 7; catalogue unchanged. `AuthorityWorld.pickups`
+(`MatchPickups`) stocks `pickup_points()` (centre and four diagonals at half
+the arena radius, derived from `ArenaBounds`; Moon uses its heightfield) when a
+match or practice begins; `reset_round()` restocks and `clear_bots()` clears.
+Collection runs only while the match is active. Practice NPCs never collect.
+
+`AuthorityWorld.apply_loadout(id, loadout)` is the only way to change a live
+bot's match loadout. It validates against a budget-exempt registry
+(`ContentRegistry.enforce_budget = false`; lobby validation stays strict).
+Perk-only changes update `combat.stats` and `DriveBody` flags in place. Any
+other slot replaces the MvpBot node under the same entity id and emits
+`loadout_changed(id)`. Consumers must keep looking bots up by id, or through
+`session.local_source()`, and never cache MvpBot references across frames.
+
+`MvpSession` adds a reliable `_pickups` RPC and `baseline.pickups`:
+`{match_id, revision, items:[{id, point, kind, part, amount, available}],
+credits:{entity:int}, loadouts:{entity:loadout}, events:[...]}`. Clients apply
+`loadouts` through `apply_loadout` and expose `pickup_view` (without
+loadouts/events), `pickups_changed` and `pickup_collected(event)`. Results
+participants gain `credits: {pickups, performance, total}`, computed by the
+server with `MatchPickups.reward`. Clients pay `total` into
+`PlayerProfile.wallet` (`CreditWallet`, `user://wallet.cfg`) once per match
+id. Practice never pays. The wallet is local and not tamper-proof; server-held
+identity (#16) must own it before credits gate shared content.

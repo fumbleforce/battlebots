@@ -72,6 +72,7 @@ $checks = @(
     @('hud_accessibility_test.gd', 'HUD ACCESSIBILITY PASS'),
     @('hud_accessibility_menu_test.gd', 'HUD ACCESSIBILITY MENU PASS'),
     @('match_results_test.gd', 'MATCH RESULTS PASS'),
+    @('pickup_presentation_test.gd', 'PICKUP PRESENTATION PASS'),
     @('camera_arena_test.gd', 'PRESENTATION PASS'),
     @('foundry_arena_test.gd', 'FOUNDRY PASS'),
     @('camera_settings_test.gd', 'CAMERA SETTINGS PASS'),
