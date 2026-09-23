@@ -76,8 +76,11 @@ func feed() -> void:
 	var newest: Label = panel.toasts.get_child(0).get_child(0).get_child(1)
 	check(newest.text == "HAMMER", "Newest toast is on top")
 	check(PickupFeed.describe({"kind":"credits", "amount":100}, {}) == "+100 CREDITS", "Credit items describe their amount")
+	check(panel.get_combined_minimum_size().y <= 100.0 and panel.credits_panel.get_combined_minimum_size().y <= 26.0,
+		"Feed stays compact: one-line credits chip and toasts")
 	panel.apply_text_scale(1.5)
-	check(panel.credits_value.get_theme_font_size("font_size") == 33, "Feed follows HUD text size")
+	check(panel.credits_value.get_theme_font_size("font_size") == 20, "Feed follows HUD text size")
+	check(panel.get_combined_minimum_size().y <= 140.0, "Enlarged feed stays compact: %s" % panel.get_combined_minimum_size())
 	panel._process(PickupFeed.TOAST_SECONDS + 0.1)
 	check(panel.toasts.get_child_count() == 0, "Toasts expire")
 	hud.queue_free()

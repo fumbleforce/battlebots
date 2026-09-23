@@ -35,20 +35,19 @@ static func describe(record: Dictionary, names: Dictionary) -> String:
 	var part := str(record.get("part", ""))
 	return str(names.get(part, part.capitalize())).to_upper()
 
+## One-line chips keep the feed out of the battlefield's way.
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_theme_constant_override("separation", 8)
-	credits_panel = PanelContainer.new()
-	credits_panel.theme_type_variation = &"PanelGlass"
+	size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	add_theme_constant_override("separation", 3)
+	credits_panel = _chip()
 	add_child(credits_panel)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 0)
-	credits_panel.add_child(column)
-	credits_caption = _label(column, "MATCH CREDITS", 11, MUTED)
-	credits_value = _label(column, "+0", 22, CREDITS)
-	practice_note = _label(column, "Practice rewards are not banked", 11, MUTED)
+	var row := _row(credits_panel)
+	credits_caption = _label(row, "CR", 10, MUTED)
+	credits_value = _label(row, "+0", 13, CREDITS)
+	practice_note = _label(row, "practice · not banked", 10, MUTED)
 	toasts = VBoxContainer.new()
-	toasts.add_theme_constant_override("separation", 6)
+	toasts.add_theme_constant_override("separation", 3)
 	add_child(toasts)
 	hide()
 
@@ -75,14 +74,11 @@ func notify(event: Dictionary, local_entity: int) -> void:
 	if event.get("entity") != local_entity:
 		return
 	var kind := str(event.get("kind", "part"))
-	var panel := PanelContainer.new()
-	panel.theme_type_variation = &"PanelGlass"
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 0)
-	panel.add_child(column)
-	var verb := "CREDITS COLLECTED" if kind == "credits" else ("PERK FOR THIS MATCH" if kind == "perk" else "PART FITTED FOR THIS MATCH")
-	_label(column, verb, 11, MUTED)
-	_label(column, describe(event, _names), 16, color_for(kind))
+	var panel := _chip()
+	var row := _row(panel)
+	if kind != "credits":
+		_label(row, "PERK" if kind == "perk" else "PART", 10, MUTED)
+	_label(row, describe(event, _names), 12, color_for(kind))
 	toasts.add_child(panel)
 	toasts.move_child(panel, 0)
 	_ages[panel] = 0.0
@@ -107,6 +103,26 @@ func _process(delta: float) -> void:
 			_ages.erase(panel)
 			toasts.remove_child(panel)
 			panel.queue_free()
+
+func _chip() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.045, 0.06, 0.08, 0.72)
+	style.set_corner_radius_all(3)
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	panel.add_theme_stylebox_override("panel", style)
+	return panel
+
+func _row(parent: Node) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+	return row
 
 func _label(parent: Node, value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()

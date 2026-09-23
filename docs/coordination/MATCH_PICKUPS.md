@@ -44,8 +44,10 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
 - `PickupVisuals` draws a floor ring, a light column and a floating, rotating token (crate = part,
   gem = perk, coin = credits) with a Label3D naming the contents. Colours: amber part, cyan perk,
   green credits.
-- `PickupFeed` (top-left of the combat HUD canvas) shows this match's credits and up to three toasts for
-  the local player's pickups. It follows HUD text scale and stacks below the enlarged practice panel.
+- `PickupFeed` (top-left of the combat HUD canvas) is deliberately small: a one-line `CR +N` chip for this
+  match's credits, and up to three one-line toasts (`PART …`, `PERK …`, `+N CREDITS`) for the local
+  player's pickups. The whole feed is about 94 px tall at 720p. It follows HUD text scale and stacks below
+  the enlarged practice panel.
 - Results overview shows `+N CREDITS EARNED · performance · pickups`. The menu header shows the
   wallet balance (`%ScrapAmount`, `%ProfileMeta`) in place of the old placeholder scrap readout.
 
