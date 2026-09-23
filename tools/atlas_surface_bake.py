@@ -312,6 +312,34 @@ def _procedural(material, family, ao_image, primary_color, edge_image=None, face
     color_node.inputs[1].default_value = color
     links.new(variation, color_node.inputs[2])
     base = color_node.outputs[0]
+    # Optional painted patterns under the wear (later assets; Atlas has none):
+    # camouflage bands from world-space noise, and diagonal hazard stripes.
+    if "atlas_camo" in material:
+        field = _noise(nodes, links, position, float(material.get("atlas_camo_scale", 2.2)), 2.0)
+        ramp = nodes.new("ShaderNodeValToRGB")
+        ramp.color_ramp.interpolation = "CONSTANT"
+        bands = list(material["atlas_camo"])
+        stops = list(material.get("atlas_camo_stops", [index / len(bands) for index in range(len(bands))]))
+        while len(ramp.color_ramp.elements) < len(bands):
+            ramp.color_ramp.elements.new(0.5)
+        for element, colour, stop in zip(ramp.color_ramp.elements, bands, stops):
+            element.position = stop
+            element.color = _linear(tuple(colour))
+        links.new(field, ramp.inputs["Fac"])
+        tinted = nodes.new("ShaderNodeMixRGB")
+        tinted.blend_type = "MULTIPLY"
+        tinted.inputs[0].default_value = 1.0
+        links.new(ramp.outputs["Color"], tinted.inputs[1])
+        links.new(variation, tinted.inputs[2])
+        base = tinted.outputs[0]
+    if "atlas_stripes" in material:
+        axis = nodes.new("ShaderNodeVectorMath")
+        axis.operation = "DOT_PRODUCT"
+        links.new(position, axis.inputs[0])
+        axis.inputs[1].default_value = tuple(material.get("atlas_stripe_axis", (0.7071, 0.0, 0.7071)))
+        phase = _math(nodes, links, "DIVIDE", axis.outputs["Value"], float(material["atlas_stripes"]))
+        band = _math(nodes, links, "LESS_THAN", _math(nodes, links, "FRACT", phase), 0.5)
+        base = _mix(nodes, links, band, base, _linear(tuple(material.get("atlas_stripe_color", (0.035, 0.035, 0.035)))))
     rough = _math(nodes, links, "ADD", roughness - 0.045, _math(nodes, links, "MULTIPLY", broad, 0.09))
     rough = _math(nodes, links, "ADD", rough, _math(nodes, links, "MULTIPLY", grain, 0.02), True)
     metal, coverage, chip = metallic, 0.0, 0.0
@@ -455,7 +483,7 @@ def _wire_final(material, maps, family, coverage_name):
 
 
 def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False,
-                         prefix="Atlas_Surface", families=FAMILIES, sizes=None, face_wear=0.70):
+                         prefix="Atlas_Surface", families=FAMILIES, sizes=None, face_wear=0.70, primary_color=None):
     """Bake unique UV1 atlases and return JSON-serializable export metadata.
 
     Additional Atlas assets (the turret) pass their own map prefix, the subset
@@ -520,7 +548,9 @@ def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False,
                    color=(1, 1, 1, 1) if role == "ao" else ((0.5, 0.5, 1, 1) if role == "normal" else (0, 0, 0, 1)),
                    data=role != "base") for role in ("ao", "base", "params", "normal")} for family in families}
         primary = next((m for m in active_materials if m.name == "Atlas_PaintPrimary"), None)
-        primary_color = tuple(primary.diffuse_color) if primary else _linear((.86, .51, .055))
+        # Later assets pass their own primary enamel (linear RGBA) for edge roles.
+        if primary_color is None:
+            primary_color = tuple(primary.diffuse_color) if primary else _linear((.86, .51, .055))
         edges = {family: _geometry_edge_image(representatives, family, sizes[family]) for family in ("Primary", "Secondary") if family in families}
         graphs = {material: _procedural(material, family, images[family]["ao"], primary_color, edges.get(family), face_wear)
                   for material, family in active_materials.items()}

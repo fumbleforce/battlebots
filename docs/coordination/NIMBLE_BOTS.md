@@ -84,11 +84,25 @@ no roamers.
 
 ## Models and presentation
 
-Generator: [`tools/build-nimble-bots.py`](../../tools/build-nimble-bots.py)
-(Blender 5.2; `-- --no-render` skips review renders) builds all four from the
-shared `atlas_model_kit` helpers and reads ride heights, footholds, gun pivots
-and the hammer socket from the data files, so model and simulation agree.
-Outputs: `assets/models/nimble_runtime/*.glb` and `nimble_manifest.json`.
+Generators (Blender 5.2, one process per bot; `-- --quick` for 1024/512
+review bakes, `--no-bake`, `--no-render`): `tools/build-nimble-strider.py`,
+`build-nimble-monowheel.py`, `build-nimble-pogo.py`, `build-nimble-skater.py`,
+on the shared [`tools/nimble_model_kit.py`](../../tools/nimble_model_kit.py).
+They follow [the asset guide](../art/STYLIZED_INDUSTRIAL_ASSETS.md) (user
+feedback, 23 September: the first pass was too basic and must not copy Atlas
+colours — Atlas is the fidelity reference): a written construction brief in
+each docstring; armour fitted over a backing structure with narrow seams;
+folded sections; real recessed vents and bores; pocketed lenses; lathed hubs,
+tyres, spring and collars; seated fasteners; per-bot palettes taken from the
+concept sheet. Each run audits clearance of its moving assemblies over sampled
+gait/weapon poses (all clear; sampled, not continuous), bakes portable PBR maps
+through `tools/atlas_surface_bake.py` (enamel/primer/chip wear, local AO, ORM,
+normals, coverage; the moving assemblies are isolated during the occlusion
+bake) and exports GLBs that reference `Nimble0x*`/`Nimble12*` maps. The baker
+gained additive `atlas_camo` / `atlas_stripes` material properties and a
+`primary_color` argument; Atlas output is unchanged. Triangles: Strider 55.5k,
+Hellwheel 59.7k, Pogo 59.8k, Skater 69.9k.
+
 Every moving assembly is a named empty: limbs hang along −Y from their pivot,
 wheels spin about X, the pogo coil stretches along −Y, the gun follows the
 shared GunFrame → GunMount → GunBarrels/Muzzle contract.
@@ -98,13 +112,16 @@ travel at the physics step length and plant on raycast ground with backward
 (digitigrade) knees; the monowheel tyre rolls without slip; the pogo hub
 squashes to the floor and sags in the air while the coil stretches; the skater's
 rear wheels kick back and out while it accelerates, and its wheels roll. The
-hammer arm follows the shared hammer states. Camouflage and hazard enamels are
-triplanar pattern materials at runtime.
+hammer arm follows the shared hammer states.
 
-**Art status: first pass.** Flat PBR material classes, no baked maps, wear,
-AO or coverage textures (see [the asset guide](../art/STYLIZED_INDUSTRIAL_ASSETS.md));
-no clearance audit over the gait envelope. Triangles: Strider 16.9k,
-Hellwheel 15.0k, Pogo 10.3k, Skater 39.0k. User visual approval is pending.
+Known gaps (builders' own notes): the Strider's legs are slimmer and its head
+cleaner than the concept, and its hammer rests across the face; the Hellwheel's
+hub/neck is less dense than the concept; the Pogo keeps the shared rotary gun
+rather than the concept's single cannon; the Skater reads flatter than the
+concept because of its collision box and long shared barrels; chip wear is
+tuned for Atlas's size (face_wear raised to 0.80–0.82). Boolean cuts leave a
+`material_index` attribute that darkens the baked AO unless removed (the Pogo
+generator does). User visual approval is pending.
 
 ## Validation
 

@@ -1,0 +1,175 @@
+{
+  "id": "pogo_03",
+  "runtime": "pogo_03.glb",
+  "generator": "tools/build-nimble-pogo.py",
+  "authoring": "Godot metres in the hull frame, X right Y up -Z forward; runtime factor three applied by NimbleVisual",
+  "triangles": 59796,
+  "nodes": [
+    "Coil",
+    "GunBarrels",
+    "GunFrame",
+    "GunMount",
+    "Hub",
+    "Hull",
+    "Muzzle",
+    "NimblePogo"
+  ],
+  "clearance": {
+    "scope": "Sampled triangle overlap of moving assemblies against the static hull at 5 poses each; not continuous clearance.",
+    "contacts": {},
+    "clear": true
+  },
+  "surface_atlases": {
+    "version": 1,
+    "uv": "TEXCOORD_0",
+    "unique_meshes": 5,
+    "mesh_instances": 5,
+    "families": {
+      "Primary": {
+        "resolution": 2048,
+        "faces": 1754,
+        "images": {
+          "base": "Nimble03Primary_base.png",
+          "orm": "Nimble03Primary_orm.png",
+          "normal": "Nimble03Primary_normal.png",
+          "coverage": "Nimble03Primary_coverage.png"
+        },
+        "occupied_fraction": 0.72215,
+        "ao_min": 0.0,
+        "ao_mean": 0.48939,
+        "roughness_min": 0.37,
+        "roughness_max": 0.8308
+      },
+      "Secondary": {
+        "resolution": 1024,
+        "faces": 6462,
+        "images": {
+          "base": "Nimble03Secondary_base.png",
+          "orm": "Nimble03Secondary_orm.png",
+          "normal": "Nimble03Secondary_normal.png",
+          "coverage": "Nimble03Secondary_coverage.png"
+        },
+        "occupied_fraction": 0.79666,
+        "ao_min": 0.0,
+        "ao_mean": 0.59583,
+        "roughness_min": 0.37,
+        "roughness_max": 0.80841
+      },
+      "Hardware": {
+        "resolution": 2048,
+        "faces": 17082,
+        "images": {
+          "base": "Nimble03Hardware_base.png",
+          "orm": "Nimble03Hardware_orm.png",
+          "normal": "Nimble03Hardware_normal.png"
+        },
+        "occupied_fraction": 0.69209,
+        "ao_min": 0.0,
+        "ao_mean": 0.57395,
+        "roughness_min": 0.28077,
+        "roughness_max": 0.93975
+      }
+    },
+    "paint_coverage": {
+      "Primary": "Nimble03Primary_coverage.png",
+      "Secondary": "Nimble03Secondary_coverage.png"
+    },
+    "occlusion": {
+      "method": "ray_traced_local_assembly",
+      "distance_metres": 0.06
+    },
+    "material_references": {
+      "Nimble03_SpringSteel": {
+        "linear_color": [
+          0.31854677200317383,
+          0.010816383175551891,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.30000001192092896,
+        "roughness": 0.4000000059604645
+      },
+      "Nimble03_OxidizedMetal": {
+        "linear_color": [
+          0.07323895394802094,
+          0.05708921328186989,
+          0.03968190774321556,
+          1.0
+        ],
+        "metallic": 0.7799999713897705,
+        "roughness": 0.5799999833106995
+      },
+      "Nimble03_GunMetal": {
+        "linear_color": [
+          0.036306485533714294,
+          0.03797231987118721,
+          0.03968190774321556,
+          1.0
+        ],
+        "metallic": 0.8600000143051147,
+        "roughness": 0.46000000834465027
+      },
+      "Nimble03_PaintPrimary": {
+        "linear_color": [
+          0.6038273572921753,
+          0.24286681413650513,
+          0.007850573398172855,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6200000047683716
+      },
+      "Nimble03_PaintPrimaryEdge": {
+        "linear_color": [
+          0.6038273572921753,
+          0.24286681413650513,
+          0.007850573398172855,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.66
+      },
+      "Nimble03_PaintSecondary": {
+        "linear_color": [
+          0.02322782389819622,
+          0.02451501414179802,
+          0.025842878967523575,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.5600000023841858
+      },
+      "Nimble03_Recess": {
+        "linear_color": [
+          0.0021671827416867018,
+          0.0023219813592731953,
+          0.002554179634898901,
+          1.0
+        ],
+        "metallic": 0.4000000059604645,
+        "roughness": 0.550000011920929
+      },
+      "Nimble03_Rubber": {
+        "linear_color": [
+          0.003935939632356167,
+          0.003935939632356167,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.0,
+        "roughness": 0.8600000143051147
+      },
+      "Nimble03_MachinedSteel": {
+        "linear_color": [
+          0.27383843064308167,
+          0.2846466898918152,
+          0.2846466898918152,
+          1.0
+        ],
+        "metallic": 0.9200000166893005,
+        "roughness": 0.3400000035762787
+      }
+    }
+  },
+  "approval": "Pending user visual approval"
+}

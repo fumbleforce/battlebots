@@ -46,18 +46,6 @@ const SKATER_KICK_OUT := 0.12
 const SKATER_WHEEL_RADIUS := 0.13
 ## Skater knees rise up and out like a spider's.
 const SKATER_KNEE_BEND := Vector3(0.5, 1.0, 0.0)
-const CAMO := [Color("9e9166"), Color("414c30"), Color("5e4a2e"), Color("1e211a")]
-const CAMO_BANDS := [0.0, 0.38, 0.55, 0.72]
-const CAMO_FREQUENCY := 0.012
-const CAMO_TEXTURE_SIZE := 512
-const CAMO_UV_SCALE := 0.9
-const HAZARD_YELLOW := Color("dd9c12")
-const HAZARD_BLACK := Color("141414")
-const HAZARD_TEXTURE_SIZE := 64
-const HAZARD_UV_SCALE := 5.0
-
-static var _camo_material: StandardMaterial3D
-static var _hazard_material: StandardMaterial3D
 
 var exclusions: Array[RID] = []
 ## Garage previews have no arena: legs take their neutral stance.
@@ -93,7 +81,6 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	for node: Node in model.find_children("*", "Node3D", true, false):
 		nodes[str(node.name)] = node
 		_rest[str(node.name)] = (node as Node3D).transform
-	_apply_patterns()
 	if nodes.has("GunMount"):
 		gun_effects = MinigunEffects.new()
 		add_child(gun_effects)
@@ -264,54 +251,3 @@ static func _segment(start: Vector3, end: Vector3) -> Transform3D:
 	var x := Vector3.RIGHT.slide(y).normalized()
 	if x.is_zero_approx(): x = Vector3.FORWARD.cross(y).normalized()
 	return Transform3D(Basis(x, y, x.cross(y)), start)
-
-## Camouflage and hazard enamels are pattern materials (triplanar in each mesh's
-## own frame) instead of baked maps in this first-pass look.
-func _apply_patterns() -> void:
-	for mesh_instance: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
-		for surface: int in mesh_instance.mesh.get_surface_count():
-			var material := mesh_instance.mesh.surface_get_material(surface)
-			if material == null: continue
-			if material.resource_name == "Nimble_Camo":
-				mesh_instance.set_surface_override_material(surface, _camo())
-			elif material.resource_name == "Nimble_Hazard":
-				mesh_instance.set_surface_override_material(surface, _hazard())
-
-static func _camo() -> StandardMaterial3D:
-	if _camo_material != null: return _camo_material
-	var noise := FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	noise.frequency = CAMO_FREQUENCY
-	var ramp := Gradient.new()
-	ramp.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
-	ramp.offsets = PackedFloat32Array(CAMO_BANDS)
-	ramp.colors = PackedColorArray(CAMO)
-	var texture := NoiseTexture2D.new()
-	texture.width = CAMO_TEXTURE_SIZE
-	texture.height = CAMO_TEXTURE_SIZE
-	texture.seamless = true
-	texture.noise = noise
-	texture.color_ramp = ramp
-	_camo_material = StandardMaterial3D.new()
-	_camo_material.resource_name = "Nimble_CamoPattern"
-	_camo_material.albedo_texture = texture
-	_camo_material.uv1_triplanar = true
-	_camo_material.uv1_scale = Vector3.ONE * CAMO_UV_SCALE
-	_camo_material.metallic = 0.06
-	_camo_material.roughness = 0.68
-	return _camo_material
-
-static func _hazard() -> StandardMaterial3D:
-	if _hazard_material != null: return _hazard_material
-	var image := Image.create(HAZARD_TEXTURE_SIZE, HAZARD_TEXTURE_SIZE, false, Image.FORMAT_RGB8)
-	for y: int in HAZARD_TEXTURE_SIZE:
-		for x: int in HAZARD_TEXTURE_SIZE:
-			image.set_pixel(x, y, HAZARD_YELLOW if (x + y) % HAZARD_TEXTURE_SIZE < HAZARD_TEXTURE_SIZE / 2 else HAZARD_BLACK)
-	_hazard_material = StandardMaterial3D.new()
-	_hazard_material.resource_name = "Nimble_HazardPattern"
-	_hazard_material.albedo_texture = ImageTexture.create_from_image(image)
-	_hazard_material.uv1_triplanar = true
-	_hazard_material.uv1_scale = Vector3.ONE * HAZARD_UV_SCALE
-	_hazard_material.metallic = 0.08
-	_hazard_material.roughness = 0.6
-	return _hazard_material
