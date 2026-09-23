@@ -52,3 +52,15 @@ terrain interest: varied heights, cliffs and heavy wear.
 - Fixture frame times at 1600×900, vsync off: median 8.7–13.3 ms over ten
   views. This is a static arena fixture, not a combat or low-end certification.
 - Human visual acceptance by the user is still open.
+
+## Current state (2026-09-23, supersedes details above)
+
+After user review the arena was rebuilt for fidelity; the full method, failures
+and a checklist for future arenas are in
+[docs/art/ARENA_ENVIRONMENTS.md](../art/ARENA_ENVIRONMENTS.md). Changes to the
+contract above: the mesa top is 7.0 m (cliff sectors, ramps ~22°); boulders use
+decimated CC0 granite scans whose render mesh is the convex collision hull; the
+visuals raise the active camera far plane to 12 km for the mountain ranges (the
+orbit-camera handoff to B still stands). Structures, trees, scatter and the crowd
+come from Blender scripts in `art_source/woodland/`; materials are CC0 Poly Haven
+scans (credits alongside the assets). Deferred gameplay request: #45.
