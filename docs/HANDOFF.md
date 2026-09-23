@@ -5,6 +5,14 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Stable Woodland normal-map imports (#51) — 23 September 2026
+
+Corrected the conifer normal map's committed VRAM output metadata and made its
+3D import settings explicit. Cold and repeat pinned Linux imports now preserve
+that source file, allowing the coordinated-release cleanliness gate to pass.
+Texture pixels/UID are unchanged. [Cause and checks](coordination/RELEASE_IMPORT.md);
+matching builds and live release acceptance are tracked on #51.
+
 ## Atlas MX drive configurations (#47) — 23 September 2026
 
 Atlas can now run on its approved tracks, four large lugged off-road wheels
@@ -16,6 +24,7 @@ native assembly/showcase and existing Atlas/garage/pickup/physics checks pass.
 Gameplay build `mvp-ab-27` needs the matching automated hosted release. User
 visual approval and a 6×6 `agile` option remain open.
 [Contract, evidence and limits](coordination/ATLAS_DRIVES.md).
+
 
 ## Scorpion texture shutdown investigation (#18) — 23 September 2026
 
