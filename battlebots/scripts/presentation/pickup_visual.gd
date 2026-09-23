@@ -1,18 +1,22 @@
 class_name PickupVisuals
 extends Node3D
 ## World markers for the session's public pickup state: a floor ring, a light
-## column and a floating, rotating token labelled with its contents. Colour
-## identifies the kind (amber part, cyan perk, green credits). Presentation only.
-const TOKEN_HEIGHT := 2.4
+## column and a floating, rotating item labelled with its contents. Parts with
+## real art show that model (PickupModels); perks, credits and parts without a
+## dedicated mesh show a token. Colour identifies the kind (amber part, cyan
+## perk, green credits). Presentation only.
+const TOKEN_HEIGHT := 2.6
 const BEAM_HEIGHT := MatchPickups.REACH_UP
 var session: MvpSession
 var names: Dictionary = {}
+var registry: ContentRegistry
 var markers: Dictionary = {}
 var _time := 0.0
 
 func bind_session(value: MvpSession) -> void:
 	session = value
-	names = PickupFeed.names_from(session.registry)
+	registry = session.registry
+	names = PickupFeed.names_from(registry)
 
 func _process(delta: float) -> void:
 	if DisplayServer.get_name() == "headless" or not is_instance_valid(session):
@@ -54,6 +58,16 @@ func _show(marker: Node3D, item: Dictionary) -> void:
 		core.mesh = _token_mesh(str(item.get("kind", "part")))
 		# Stand coins on edge so their spin reads from the chase camera.
 		core.rotation.x = PI * 0.5 if item.get("kind") == "credits" else 0.0
+		var token: Node3D = marker.get_node("Token")
+		var previous := token.get_node_or_null("Model")
+		if previous != null:
+			token.remove_child(previous)
+			previous.queue_free()
+		var model: Node3D = null
+		if registry != null and item.get("kind") == "part":
+			model = PickupModels.build(str(item.get("part", "")), registry, token)
+		core.visible = model == null
+		(marker.get_node("Token/Frame") as Node3D).visible = model == null
 	if not marker.visible:
 		return
 	var phase := float(int(item.id)) * 1.7

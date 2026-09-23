@@ -42,9 +42,13 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
 
 ## Presentation
 
-- `PickupVisuals` draws a floor ring, a light column and a floating, rotating token (crate = part,
-  gem = perk, coin = credits) with a Label3D naming the contents. Colours: amber part, cyan perk,
-  green credits.
+- `PickupVisuals` draws a floor ring, a light column and a floating, rotating item with a Label3D naming
+  the contents. Colours: amber part, cyan perk, green credits. Parts show their real art where it exists
+  (`PickupModels`, fitted to 3.2 m): bodies as the whole painted Sawblade/Scorpion/Atlas, weapons,
+  tracks, wheels and walker legs as that module cut from an assembled Sawblade, and the auxiliary gun as
+  the minigun. Armour grades and other utilities have no dedicated mesh and keep a crate token; perks
+  keep a gem and credits a coin. Scorpion legs hang unplanted on the marker. Close-ups:
+  [05-model-pickups.jpg](evidence/match-pickups-2026-09-23/05-model-pickups.jpg).
 - `PickupFeed` (top-left of the combat HUD canvas) is deliberately small: a one-line `CR +N` chip for this
   match's credits, and up to three one-line toasts (`PART …`, `PERK …`, `+N CREDITS`) for the local
   player's pickups. The whole feed is about 94 px tall at 720p. It follows HUD text scale and stacks below

@@ -61,6 +61,24 @@ func run() -> void:
 	place(player, Vector3(0, 0, 17), 0.0)
 	await settle(90)
 	await capture("01-stocked-pickups")
+	# Close views of real part models, then swap the fourth point through more parts.
+	for shot: Array in [[0, "atlas_mx"], [3, "hammer"], [3, "traction"], [3, "vertical_spinner"], [3, "scorpion_hex"]]:
+		var item: Dictionary = items[shot[0]]
+		item.kind = "part"
+		item.part = shot[1]
+		world.pickups.revision += 1
+		# A dedicated close camera frames the marker; the player camera resumes after.
+		var close := Camera3D.new()
+		world.add_child(close)
+		var outward: Vector3 = Vector3(item.point.x, 0.0, item.point.z).normalized()
+		close.global_position = item.point - outward * 9.0 + Vector3.UP * 4.0
+		close.look_at(item.point + Vector3.UP * 2.8)
+		close.current = true
+		await settle(45)
+		await capture("00-model-%s" % shot[1])
+		close.queue_free()
+	items[3].part = "hammer"
+	world.pickups.revision += 1
 	place(world.bots[session.local_entity], items[0].point, 0.0)
 	await settle(40)
 	await capture("02-body-swap-feed")

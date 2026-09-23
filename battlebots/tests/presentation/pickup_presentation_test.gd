@@ -17,7 +17,7 @@ func run() -> void:
 	wallet()
 	await feed()
 	await results()
-	markers()
+	await markers()
 	await notice()
 	print("PICKUP PRESENTATION PASS" if failures == 0 else "PICKUP PRESENTATION FAIL")
 	quit(0 if failures == 0 else 1)
@@ -108,12 +108,28 @@ func markers() -> void:
 	root.add_child(visuals)
 	var marker := visuals._marker()
 	visuals.add_child(marker)
+	await process_frame
 	visuals._show(marker, {"id":0, "point":Vector3(3, 0, 4), "kind":"credits", "part":"", "amount":50, "available":true})
 	check(marker.visible and marker.position == Vector3(3, 0, 4) and (marker.get_node("Label") as Label3D).text == "+50 CREDITS",
 		"Marker shows its contents at the pickup point")
 	check((marker.get_node("Token/Core") as MeshInstance3D).mesh is CylinderMesh, "Credits use a coin token")
 	visuals._show(marker, {"id":0, "point":Vector3(3, 0, 4), "kind":"perk", "part":"nitro_boost", "amount":0, "available":false})
 	check(not marker.visible and (marker.get_node("Token/Core") as MeshInstance3D).mesh is SphereMesh, "Collected items hide and restyle for their next roll")
+	visuals.registry = ContentRegistry.new()
+	for part: String in ["hammer", "vertical_spinner", "minigun", "traction", "standard_wheels", "atlas_mx", "scorpion_hex", "balanced", "minigun_pod"]:
+		visuals._show(marker, {"id":0, "point":Vector3.ZERO, "kind":"part", "part":part, "amount":0, "available":true})
+		var model := marker.get_node_or_null("Token/Model") as Node3D
+		check(model != null and not (marker.get_node("Token/Core") as Node3D).visible, part + " pickup shows its real model")
+		if model != null:
+			var shown := 0
+			for mesh: Node in model.find_children("*", "GeometryInstance3D", true, false):
+				shown += int((mesh as GeometryInstance3D).is_visible_in_tree())
+			check(shown > 0 and model.scale.x > 0.0, part + " model has visible, fitted geometry")
+	for part: String in ["heavy", "cooling_pack"]:
+		visuals._show(marker, {"id":0, "point":Vector3.ZERO, "kind":"part", "part":part, "amount":0, "available":true})
+		check(marker.get_node_or_null("Token/Model") == null or marker.get_node("Token/Model").is_queued_for_deletion(),
+			part + " without a dedicated mesh keeps the token")
+		check((marker.get_node("Token/Core") as Node3D).visible, part + " token is shown")
 	visuals.queue_free()
 
 func notice() -> void:
