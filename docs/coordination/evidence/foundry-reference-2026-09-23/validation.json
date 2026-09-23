@@ -1,0 +1,52 @@
+{
+  "reference_sha256": "b43313ef7584ea705a7d769e6181d1774c3c72642563dc7a4c98be63d119100e",
+  "checks": [
+    "/tmp/foundry-final-import.log",
+    "/tmp/foundry-final-baseline.log",
+    "/tmp/foundry-final-world.log",
+    "/tmp/foundry-final-moon.log",
+    "/tmp/foundry-material-review-final.log",
+    "/tmp/foundry-native-final.log",
+    "/tmp/foundry-preview-final.log",
+    "/tmp/foundry-preview-import.log",
+    "/tmp/foundry-selection-final.log"
+  ],
+  "render": {
+    "engine": "4.7.2.stable",
+    "renderer": "Vulkan Forward+",
+    "gpu": "NVIDIA GeForce RTX 3080",
+    "resolution": [
+      1600,
+      900
+    ],
+    "frames": 240,
+    "bots": [
+      "Atlas MX",
+      "Sawblade"
+    ],
+    "gpu_ms": {
+      "median": 5.798,
+      "p95": 8.372
+    },
+    "cpu_render_ms": {
+      "median": 0.629,
+      "p95": 1.089
+    },
+    "wall_frame_ms": {
+      "median": 6.029,
+      "p95": 38.455
+    },
+    "draws_including_shadows": 2152,
+    "video_mib": 1757.0,
+    "limitation": "Separate existing game process was running. Bounded native fixture, not whole-game 60fps or low-end certification."
+  },
+  "known_warning": "Seven Texture RID leaks at native fixture shutdown, also present before these changes; see issue18. No script/shader errors.",
+  "images": {
+    "reference.png": "b43313ef7584ea705a7d769e6181d1774c3c72642563dc7a4c98be63d119100e",
+    "wall.png": "78cbc2393b87308e8750e9e59cfce5b5d3edc416baa9fa0e3dd213a403579583",
+    "after.png": "e8bfcac0f773e659380ef7b5b4f32389a84cb99dfdb23ad306c11185f150d3d7",
+    "player-camera.png": "c4eac5440594d84ab417972b42d103a7e79d9f69a9d1b69a500555c599bb2a1e",
+    "before.png": "0b39e25347b40fd6393edf49fe727c10e309e1214840bcb6a2eabad89c6371a4"
+  },
+  "texture_sha256": "e80a5b5efc04b80c2c00a8ba5890486921cfda140b1d49ef37c902bca49988ed"
+}

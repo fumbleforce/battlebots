@@ -4,7 +4,7 @@ extends Node3D
 
 const STEEL = preload("res://assets/materials/arena/foundry_steel.gdshader")
 const FLOOR = preload("res://assets/materials/arena/foundry_floor.gdshader")
-const STEEL_SCAN = preload("res://assets/textures/arena/foundry_steel_albedo.png")
+const STEEL_SCAN = preload("res://assets/textures/arena/foundry_battered_steel.png")
 var _batches: Dictionary = {}
 var _materials: Dictionary = {}
 var _side := Transform3D.IDENTITY
@@ -31,7 +31,17 @@ func _material(key: String, color: Color, emission: float = 0.0) -> Material:
 		metal.shader = STEEL
 		metal.set_shader_parameter("paint_color", color)
 		metal.set_shader_parameter("hazard", key == "hazard")
+		metal.set_shader_parameter("panelized", key == "wall")
 		metal.set_shader_parameter("steel_texture", STEEL_SCAN)
+		var finish: Vector2 = {
+			"steel":Vector2(0.85, 0.36), "wall":Vector2(0.45, 0.44), "truss":Vector2(0.42, 0.39), "dark":Vector2(0.18, 0.48),
+			"concrete":Vector2(0.65, 0.54), "rust":Vector2(0.5, 0.48),
+			"red":Vector2(0.12, 0.47), "hazard":Vector2(0.12, 0.44),
+			"seat":Vector2(0.0, 0.78)
+		}.get(key, Vector2(0.0, 0.9))
+		metal.set_shader_parameter("base_metallic", finish.x)
+		metal.set_shader_parameter("base_roughness", finish.y)
+		metal.set_shader_parameter("texture_strength", 0.0 if key.begins_with("crowd_") else 0.45)
 		mat = metal
 	_materials[key] = mat
 	return mat
@@ -67,11 +77,13 @@ func _text(words: String, at: Vector3, size: int, pixel: float, color: Color) ->
 	return label
 
 func _build() -> void:
-	_material("steel", Color("343d42"))
-	_material("dark", Color("171e24"))
-	_material("concrete", Color("777367"))
-	_material("rust", Color("643b29"))
-	_material("red", Color("973e2e"))
+	_material("steel", Color("586168"))
+	_material("truss", Color("687077"))
+	_material("dark", Color("30353a"))
+	_material("concrete", Color("484946"))
+	_material("rust", Color("87452a"))
+	_material("red", Color("454640"))
+	_material("wall", Color("555956"))
 	_material("hazard", Color.WHITE)
 	_material("seat", Color("5b3528"))
 	_material("crowd_coal", Color("353a3e"))
@@ -122,12 +134,12 @@ func _build() -> void:
 	probe.max_distance = 140
 	probe.interior = true
 	probe.box_projection = true
-	probe.intensity = 0.8
+	probe.intensity = 1.1
 	add_child(probe)
 
 func _wall(side: int) -> void:
 	const HALF_SIDE := 10.355339
-	# Eight equal bays, tangent to the playable octagon's 25 m inradius.
+	# Human-scale bay; _side places pairs along each 100m octagon face.
 	_box("dark", Vector3(0, 1.4, -25.08), Vector3(20.71, 2.75, 0.14))
 	for i: int in range(6):
 		var x := -8.63 + i * 3.452
@@ -152,6 +164,7 @@ func _wall(side: int) -> void:
 		_box("rust", Vector3(x, 3.5, -25.1), Vector3(0.78, 0.75, 0.2))
 		_box("redlight", Vector3(x, 8.25, -25.18), Vector3(0.13, 0.3, 0.12))
 		_beam("steel", Vector3(x, 12.2, -25.6), Vector3(x*0.48, 16.7, -25.6), 0.2)
+	_box("wall", Vector3(0, 11.6, -26.45), Vector3(20.65, 8.0, 0.15))
 	_box("dark", Vector3(0, 8.0, -33.8), Vector3(28.5, 26.5, 0.5))
 	for tier: int in range(5):
 		var y := 3.0+tier*0.8
@@ -179,6 +192,8 @@ func _wall(side: int) -> void:
 		_box("steel", Vector3(0, 3.25+i*0.25, -26.8), Vector3(4.8, 0.2, 0.12))
 	for x: float in [-2.6, 2.6]:
 		_box("hazard", Vector3(x, 5.0, -26.65), Vector3(0.4, 4.2, 0.25))
+	for x: float in [-2.34, 2.34]:
+		_box("cyan" if side % 2 == 0 else "amber", Vector3(x, 5.1, -26.4), Vector3(0.045, 3.1, 0.04))
 	_box("rust", Vector3(0, 7.35, -26.7), Vector3(5.8, 0.5, 0.5))
 	_box("cyan" if side % 2 == 0 else "amber", Vector3(0, 7.38, -26.42), Vector3(4.8, 0.06, 0.035))
 	_text("GATE  /  %02d" % (side+1), Vector3(0, 6.5, -26.64), 64, 0.010, Color("d6d1bc"))
@@ -199,19 +214,29 @@ func _wall(side: int) -> void:
 		add_child(light)
 		light.position = _side * Vector3(x, 13.1, -24.0)
 		light.look_at(_side * Vector3(x*0.7, 0, -13.0))
-		light.light_color = Color("ffdfb0") if side % 2 == 0 else Color("a9cfe9")
-		light.light_energy = 1.7
-		light.spot_range = 32.0
-		light.spot_angle = 42.0
-		light.spot_attenuation = 1.1
+		light.light_color = Color("ffead2")
+		light.light_energy = 2.4
+		light.light_size = 1.0
+		light.spot_range = 48.0
+		light.spot_angle = 48.0
+		light.spot_attenuation = 0.8
 		light.light_volumetric_fog_energy = 0.5
 		light.shadow_enabled = false
+	# Approximate indirect floor/practical bounce onto the panel fronts.
+	var wall_bounce := OmniLight3D.new()
+	add_child(wall_bounce)
+	wall_bounce.position = _side * Vector3(0, 9.0, -21.5)
+	wall_bounce.light_color = Color("d4c4ad")
+	wall_bounce.light_energy = 1.6
+	wall_bounce.omni_range = 14.0
+	wall_bounce.omni_attenuation = 1.3
+	wall_bounce.light_volumetric_fog_energy = 0.0
 	var gallery_light := OmniLight3D.new()
 	add_child(gallery_light)
 	gallery_light.position = _side * Vector3(0, 9, -29)
 	gallery_light.light_color = Color("ffbd79")
-	gallery_light.light_energy = 1.1
-	gallery_light.omni_range = 12.0
+	gallery_light.light_energy = 2.2
+	gallery_light.omni_range = 17.0
 	gallery_light.light_volumetric_fog_energy = 0.1
 
 func _pipe(at: Vector3, radius: float, length: float, rotation: Vector3, key: String) -> void:
@@ -251,20 +276,30 @@ func _roof() -> void:
 	for side: int in range(8):
 		_side = Transform3D(Basis(Vector3.UP, side*PI/4.0), Vector3.ZERO)
 		for y: float in [16.8, 19.1]:
-			_box("steel", Vector3(0, y, -51.0), Vector3(43.6, 0.23, 0.25))
+			_box("truss", Vector3(0, y, -51.0), Vector3(43.6, 0.23, 0.25))
 		for i: int in range(12):
 			var x := -21.6+i*3.6
-			_beam("steel", Vector3(x, 16.8, -51), Vector3(x+3.6, 19.1, -51), 0.14)
-			_beam("steel", Vector3(x, 19.1, -51), Vector3(x+3.6, 16.8, -51), 0.14)
+			_beam("truss", Vector3(x, 16.8, -51), Vector3(x+3.6, 19.1, -51), 0.14)
+			_beam("truss", Vector3(x, 19.1, -51), Vector3(x+3.6, 16.8, -51), 0.14)
 		for y: float in [17, 19]:
-			_beam("steel", Vector3(0, y, -51), Vector3(0, y, -16), 0.22)
+			_beam("truss", Vector3(0, y, -51), Vector3(0, y, -16), 0.22)
 		for i: int in range(10):
 			var z := -51.0+i*3.5
-			_beam("steel", Vector3(0, 17, z), Vector3(0, 19, z+3.5), 0.13)
-			_beam("steel", Vector3(0, 19, z), Vector3(0, 17, z+3.5), 0.13)
+			_beam("truss", Vector3(0, 17, z), Vector3(0, 19, z+3.5), 0.13)
+			_beam("truss", Vector3(0, 19, z), Vector3(0, 17, z+3.5), 0.13)
+		# Warm service bounce reveals the roof structure without flattening the floor.
+		var roof_fill := OmniLight3D.new()
+		add_child(roof_fill)
+		roof_fill.position = _side * Vector3(0, 17.5, -42)
+		roof_fill.light_color = Color("d6bd9b")
+		roof_fill.light_energy = 3.0
+		roof_fill.light_size = 2.0
+		roof_fill.omni_range = 22.0
+		roof_fill.omni_attenuation = 1.5
+		roof_fill.light_volumetric_fog_energy = 0.0
 		# The crown follows the enlarged floor; fixtures retain human dimensions.
 		_side.origin = _side.basis * Vector3(0, 0, -8)
-		_box("steel", Vector3(0, 14.0, -8), Vector3(13.5, 0.38, 0.45))
+		_box("truss", Vector3(0, 14.0, -8), Vector3(13.5, 0.38, 0.45))
 		_box("amber", Vector3(0, 13.77, -7.88), Vector3(13.0, 0.04, 0.07))
 		_beam("dark", Vector3(0, 14, -8), Vector3(0, 20.3, -8), 0.055)
 		_box("dark", Vector3(0, 13.72, -8), Vector3(2.8, 0.22, 0.95))
@@ -274,10 +309,11 @@ func _roof() -> void:
 		add_child(key)
 		key.position = _side * Vector3(0, 13.4, -8)
 		key.look_at(_side * Vector3(0, 0, -5))
-		key.light_color = Color("ffe5c6")
+		key.light_color = Color("fff0dc")
 		key.light_energy = 2.0
-		key.spot_range = 40
-		key.spot_angle = 62
+		key.light_size = 1.1
+		key.spot_range = 48
+		key.spot_angle = 58
 		key.spot_attenuation = 0.65
 		key.shadow_enabled = side % 2 == 0
 		key.light_volumetric_fog_energy = 0.65
@@ -301,30 +337,30 @@ func _lighting(arena: Node) -> void:
 	var world := arena.get_node("WorldEnvironment") as WorldEnvironment
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("101923")
+	env.background_color = Color("171c25")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("a8bfd2")
-	env.ambient_light_energy = 0.35
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.ambient_light_color = Color("aebed0")
+	env.ambient_light_energy = 0.45
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.ssao_enabled = true
 	env.ssao_radius = 1.4
-	env.ssao_intensity = 1.6
+	env.ssao_intensity = 1.35
 	env.glow_enabled = true
-	env.glow_intensity = 0.65
+	env.glow_intensity = 0.38
 	env.fog_enabled = true
 	env.fog_light_color = Color("71818b")
 	env.fog_light_energy = 0.45
-	env.fog_density = 0.0015
+	env.fog_density = 0.00015
 	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.006
-	env.volumetric_fog_albedo = Color(0.65, 0.69, 0.72)
+	env.volumetric_fog_density = 0.002
+	env.volumetric_fog_albedo = Color(0.70, 0.65, 0.55)
 	env.volumetric_fog_length = 120.0
-	env.volumetric_fog_ambient_inject = 0.25
+	env.volumetric_fog_ambient_inject = 0.1
 	world.environment = env
 	var sun := arena.get_node("Sun") as DirectionalLight3D
 	sun.rotation_degrees = Vector3(-68, -24, 0)
 	sun.light_color = Color("ffe0b8")
-	sun.light_energy = 0.55
+	sun.light_energy = 0.22
 	sun.directional_shadow_max_distance = 150.0
 	# Roof is scenic; the key light simulates the distributed overhead fixtures.
 

@@ -1,5 +1,17 @@
 # Current A/B handoff
 
+## Foundry reference material/lighting upgrade — A, 23 September 2026
+
+Issue [#27](https://github.com/fumbleforce/battlebots/issues/27) upgrades Foundry
+with battered steel plates, fasteners, distinct metal/paint response, warm
+practical reflections, readable roof/wall metal and restrained haze. Its real
+selector capture is refreshed. Native overview/close/player-camera review,
+shader/import/baseline, physical world invariants and selector checks pass.
+Geometry, bots/controls, Moon and build15 compatibility remain unchanged.
+See [visual evidence, source notes and limits](coordination/A_FOUNDRY_REFERENCE_LIGHTING.md).
+Coordinated artifact/release verification is being prepared; this entry does not
+yet certify the newly exported binaries or a replacement hosted image.
+
 ## GitHub is the live task/coordination tracker — 23 September 2026
 
 All developers and harnesses must ALWAYS consult [board #2](https://github.com/fumbleforce/battlebots/issues/2),

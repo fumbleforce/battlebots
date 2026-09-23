@@ -11,16 +11,18 @@ func capture() -> void:
 		return
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	root.size = Vector2i(1600, 900)
-	for id: String in ["foundry", "moon"]:
+	var arenas: Array[String] = ["foundry"]
+	if not "--foundry-only" in OS.get_cmdline_user_args(): arenas.append("moon")
+	for id: String in arenas:
 		var arena := load("res://scenes/arenas/%s_arena.tscn" % ("baseline" if id == "foundry" else "moon")).instantiate() as Node3D
 		root.add_child(arena)
 		var camera := Camera3D.new()
 		arena.add_child(camera)
 		camera.current = true
-		camera.fov = 75
+		camera.fov = 70 if id == "foundry" else 75
 		camera.far = 600
-		camera.position = Vector3(30, 17, 34) if id == "foundry" else Vector3(16, 10, 18)
-		camera.look_at(Vector3(-8, 1, -10) if id == "foundry" else Vector3(-2, 2, -6))
+		camera.position = Vector3(16, 12, 24) if id == "foundry" else Vector3(16, 10, 18)
+		camera.look_at(Vector3(-4, 2, -17) if id == "foundry" else Vector3(-2, 2, -6))
 		# Let shader compilation, atmosphere and reflection captures settle.
 		for frame: int in range(120):
 			await process_frame
