@@ -1,12 +1,14 @@
 # Project Battlebots
 
-Godot **4.7.2 stable** / Jolt / typed GDScript. Two developers, one repository, separate local clones.
+Godot **4.7.2 stable** / Jolt / typed GDScript. One repository, separate local clones or worktrees per session.
 
-## Current developer ownership
+## Collaboration
 
-A owns menus, networking, game rules, game world and audio. B owns combat, bot
-models/weapons, bot-customisation menus and player controls. This supersedes
-historical role labels in older notes; see [workflow](docs/TEAM_WORKFLOW.md).
+There are no fixed developer roles: any session may work on any area, coordinated
+through GitHub issue claims and the [coordination board #2](https://github.com/fumbleforce/battlebots/issues/2).
+The former A/B split in older notes is history; see [workflow](docs/TEAM_WORKFLOW.md).
+Pushes to `main` deploy the hosted server automatically
+([deployment](services/matchmaking/DEPLOYMENT.md)).
 
 ## Start
 1. Clone the repository locally and install Godot 4.7.2 stable.
@@ -34,12 +36,9 @@ See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
   cancellation and keyboard menus without a network session.
 - Read [handoff](docs/HANDOFF.md), [contracts](docs/CONTRACTS.md),
   [team workflow](docs/TEAM_WORKFLOW.md), and [full specification](docs/GAME_SPEC.md).
-- Use a focused feature branch from main, or explicitly declare the published
-  A/B integration as a dependency while it is ahead of main. Current B work is
-  `codex/b-menu-kit`, stacked on match HUD/lobby/diagnostics/input. Published art
-  is merged into the playtest branch; the separate modelling checkout is untouched.
+- Use a focused feature branch from main.
 - Example starting names (check existing branches before creating):
-  `git switch -c codex/a-drive-controller` or `git switch -c codex/b-arena-camera`.
+  `git switch -c codex/drive-controller` or `git switch -c codex/arena-camera`.
   These are examples; branches are not created by the baseline.
 
 ## Verify
@@ -61,14 +60,9 @@ Public hosting is a later release task; MVP export presets are described below.
 
 ## Playable modes
 
-Current menu correction: `codex/a-menu-flow`, based on `codex/a-b-playtest`, build `mvp-ab-5`, protocol 4.
-Developer A's `codex/a-hosted-matchmaking` includes all five weapon families, reliable
-round-state recovery and hosted online integration with build `mvp-ab-10`, protocol 4.
-Select Duelist for the hammer, or use Garage → Customize →
-Weapon for the saw and other weapons. Both peers must update together; the saved
-menu playtest ZIP remains build 5.
-Use the same branch/build on all peers. The older `codex/a-b-integration`
-checkpoint remains available; it does not include the 5v5/FFA follow-ups.
+Play from current `main`; the hosted service is deployed automatically from it.
+Select Duelist for the hammer, or use Garage → Customize → Weapon for the saw and
+other weapons. All peers must run the same build.
 
 The main menu separates hosting, joining, practice and garage. All multiplayer
 modes use the same lobby, with an optional saved-build selector. WASD/Space drive/brake,
@@ -152,8 +146,9 @@ then run `--headless --path battlebots --export-release "Windows Client"` (or
 server startup. The GitHub workflow pins engine/templates, checks official hashes,
 runs the suite and exports both artifacts. Generated binaries stay ignored.
 
-Read [CONTRACTS.md](docs/CONTRACTS.md) for B's API and [A_MVP_TASKS.md](docs/A_MVP_TASKS.md)
-for implemented scope and remaining joint acceptance. Independent F6 scenes
+Read [CONTRACTS.md](docs/CONTRACTS.md) for the shared APIs and the
+[issue board](https://github.com/fumbleforce/battlebots/issues/2) for implemented
+scope and remaining acceptance. Independent F6 scenes
 `tests/simulation/five_v_five_rules.tscn`, `tests/network/five_v_five_session.tscn`
 and `tests/network/results_delivery.tscn` exercise 5v5 rules/spawns, ten real
 clients and complete five-round result delivery. Network tests must run in real

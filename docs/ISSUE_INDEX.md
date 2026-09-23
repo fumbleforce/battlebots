@@ -10,7 +10,7 @@ The migration preserves remaining human acceptance and deferred priorities.
 Overlapping menu/end-to-end TODOs share scoped issues rather than duplicate work.
 Scorpion/Nitro hosted release TODOs are fulfilled by the tested integrated
 catalogue10 release; obsolete workers must not be redeployed to satisfy old text.
-Continuous A/B maintenance responsibilities remain in AGENTS; concrete defects
+Continuous maintenance responsibilities remain in AGENTS; concrete defects
 and new increments get their own task issues.
 
 | Issue | Scope |

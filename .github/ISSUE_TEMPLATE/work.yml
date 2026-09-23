@@ -15,11 +15,15 @@ body:
   - type: dropdown
     id: owner
     attributes:
-      label: Feature responsibility
+      label: Primary area
       options:
-        - "A — menus, networking, rules, world, audio, release"
-        - "B — combat, bot assets, garage, controls, camera"
-        - "A/B — shared interface or coordinated task"
+        - "Menus, HUD and settings"
+        - "Networking, services and release"
+        - "Rules and world/arenas"
+        - "Combat, bots and physics"
+        - "Garage, controls and camera"
+        - "Audio"
+        - "Shared interface or cross-area task"
         - "Project coordination/documentation"
     validations:
       required: true

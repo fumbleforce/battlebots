@@ -12,7 +12,7 @@ body:
     id: tradeoffs
     attributes:
       label: Evidence, alternatives and tradeoffs
-      description: Include affected A/B areas and shared contracts, uncertainties and related work.
+      description: Include affected areas and shared contracts, uncertainties and related work.
     validations:
       required: true
   - type: textarea

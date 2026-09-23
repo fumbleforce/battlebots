@@ -1,7 +1,7 @@
 name: Linux hosted duel runtime
 on:
   push:
-    branches: [main, 'codex/a-*']
+    branches: [main, 'codex/**']
     paths:
       - 'battlebots/**'
       - 'services/matchmaking/**'

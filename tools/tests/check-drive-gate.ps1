@@ -18,6 +18,8 @@ $phase = if ($args -contains '--version') { 'version' }
     elseif ($args -contains '--editor') { 'import' }
     elseif ($args -contains 'res://tests/baseline_smoke.gd') { 'baseline' }
     elseif ($args -contains 'res://tests/simulation/drive_smoke.gd') { 'drive' }
+    elseif ($args -contains 'res://tests/simulation/heavy_drive_test.tscn') { 'heavy_drive' }
+    elseif ($args -contains 'res://tests/simulation/perk_abilities.gd') { 'perks' }
     else { throw "Unexpected fake engine arguments: $args" }
 Add-Content -LiteralPath (Join-Path $PSScriptRoot 'calls.txt') -Value $phase
 $global:LASTEXITCODE = 0
@@ -27,6 +29,8 @@ if ($phase -eq $scenario.phase) {
 } elseif ($phase -eq 'version') { '4.7.2.stable.official.test' }
 elseif ($phase -eq 'baseline') { 'BASELINE PASS' }
 elseif ($phase -eq 'drive') { 'DRIVE PASS' }
+elseif ($phase -eq 'heavy_drive') { 'HEAVY DRIVE PASS' }
+elseif ($phase -eq 'perks') { 'PERK ABILITIES PASS' }
 '@ | Set-Content -LiteralPath $fakeEnginePath -Encoding UTF8
 
     $cases = @(
@@ -73,7 +77,8 @@ elseif ($phase -eq 'drive') { 'DRIVE PASS' }
         $expectedCalls = switch ($case.phase) {
             'import' { 'version,import' }
             'baseline' { 'version,import,baseline' }
-            default { 'version,import,baseline,drive' }
+            'drive' { 'version,import,baseline,drive' }
+            default { 'version,import,baseline,drive,heavy_drive,perks' }
         }
         $actualCalls = ((Get-Content -LiteralPath $callsPath) | Where-Object { $_ }) -join ','
         if ($actualCalls -ne $expectedCalls) {

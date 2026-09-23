@@ -38,7 +38,7 @@ the other panels. Human multiplayer through a tunnel has succeeded per the user;
 Fly hosting now passes automated public private/Quick Play duel checks; a
 two-computer human hosted playtest remains open. The broader mode and tutorial
 designs below remain future scope: defer 2v2, other modes and tutorial until 1v1
-is fully working. See [the current board](A_MVP_TASKS.md) for implementation status.
+is fully working. See [the issue board](https://github.com/fumbleforce/battlebots/issues/2) for implementation status.
 
 ## 1. Product definition
 

@@ -1,7 +1,7 @@
 name: Godot MVP checks and builds
 on:
   push:
-    branches: [main, 'codex/a-*']
+    branches: [main, 'codex/**']
   pull_request:
 permissions:
   contents: read

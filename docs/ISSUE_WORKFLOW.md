@@ -3,9 +3,9 @@
 GitHub Issues are the live task tracker for **every human, machine and agent
 harness with repository access**. The pinned [coordination board #2](https://github.com/fumbleforce/battlebots/issues/2)
 is the common communication channel. This applies equally to Codex, Claude,
-Cursor, other harnesses and manual development. A/B describe feature ownership,
-not which application someone uses. Historical TODO/handoff entries do not reserve
-paths; the latest explicit issue claim does.
+Cursor, other harnesses and manual development. There are no fixed roles; the
+former A/B ownership labels are retired. Historical TODO/handoff entries do not
+reserve paths; the latest explicit issue claim does.
 
 ## Local startup and access
 
@@ -49,7 +49,7 @@ even after the current inventory is accepted.
    open **and closed** issues before making a new task. Use a new issue for new
    work; reopen an existing issue only for a genuine regression or unmet scope,
    explaining why. Break large work into separately claimable tasks.
-2. State scope, acceptance, dependencies and A/B ownership in the issue. Do not
+2. State scope, acceptance, dependencies and affected areas in the issue. Do not
    turn a design idea into implementation without an agreed scope. Templates
    support feature/investigation work, bugs and ideas.
 3. Post a claim on the task and a short linked announcement on #2. Assign your
@@ -60,18 +60,18 @@ even after the current inventory is accepted.
    uncontested claim takes precedence; agree a split/transfer in comments before
    either edits the overlap. Keep useful independent work moving. Do not infer
    permission from a stale timestamp or old branch name.
-5. Shared contracts need the documented handoff already required by AGENTS. Link
-   the affected issues and wait for conflicting owners to agree before editing
-   their reserved paths. Expand your claim before touching new areas. Preserve
+5. Shared contracts need the documented contract change already required by
+   AGENTS. Link the affected issues and agree with any session whose active claim
+   reserves those paths before editing them. Expand your claim before touching new areas. Preserve
    unrelated working changes and maintain separate task branches/checkouts.
 
 Example task comment (fill in actual values):
 
 ```text
 CLAIM — 2026-09-23T11:00:00Z
-Role: A | GitHub: fumbleforce | Harness: Codex
-Session: a-menus-x3d-20260923-1100 | Machine/checkout: x3d /home/.../battlebots
-Branch/base: codex/a-example / <commit>
+GitHub: fumbleforce | Harness: Codex
+Session: menus-x3d-20260923-1100 | Machine/checkout: x3d /home/.../battlebots
+Branch/base: codex/example / <commit>
 Reserved: exact files or clearly bounded area
 Shared interfaces/dependencies: issue links; agreed handoff or none
 Plan/checks: intended behavior and relevant validation
@@ -89,8 +89,8 @@ gh issue comment 2 --body-file /path/to/linked-announcement.md
 ```
 
 Remove whichever old status label actually exists. Do not assign an absent agent
-or reserve their paths on their behalf. Role labels mark responsibility; a claim
-comment marks current ownership of a task and its paths.
+or reserve their paths on their behalf. A claim comment marks current ownership
+of a task and its paths.
 
 ## Status and communication
 
@@ -106,7 +106,7 @@ task has exactly one status label; the permanent board has none.
 | `status:verification` | Implementation exists but specified acceptance/setup remains; activate and claim before editing |
 | `status:deferred` | Outside current priority; do not silently start it |
 
-Use `owner:A`/`owner:B`, `area:*`, `priority:1v1`, `bug`, and `kind:idea` to route
+Use `area:*`, `priority:1v1`, `bug`, and `kind:idea` to route
 work. Larger modes, ten-player optimization and tutorials remain deferred until
 the user's 1v1 priority is satisfied. Closing an issue is the completed state;
 remove its `status:*` label so searches do not imply a current reservation.

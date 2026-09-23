@@ -56,7 +56,7 @@ try {
   const issues = api(`repos/${repository}/issues?state=open&per_page=100`, '--paginate', '--slurp')
     .flat().filter(issue => !issue.pull_request);
   console.log(`GH ACCESS VERIFIED ${new Date().toISOString()}\n${version}\nAccount: ${login}; repository: ${repository}; write access: yes\nMachine: ${os.hostname()}; checkout: ${root}\nBranch: ${branch}; base: ${commit}`);
-  console.log('\nOpen task status (responsibility is not a session claim):');
+  console.log('\nOpen task status (labels route work; they are not a session claim):');
   for (const issue of issues.filter(issue => issue.number !== board)) {
     console.log(`#${issue.number} ${issue.title} | ${issue.labels.map(label => label.name).join(', ')} | updated ${issue.updated_at}`);
   }

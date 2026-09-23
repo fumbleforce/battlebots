@@ -1,4 +1,9 @@
-# Current A/B handoff
+# Handoff log
+
+Newest entries first. There are no fixed roles any more: older entries' "A"/"B"
+ownership wording and "A: release required" notes are history. Hosted releases
+now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
+live claims and coordination are on the GitHub issues.
 
 ## Heat-only combat resources (B, #41) — 23 September 2026
 

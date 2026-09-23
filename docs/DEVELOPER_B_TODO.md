@@ -1,5 +1,9 @@
 # Worker B — shared task list
 
+> **Archived history.** The A/B developer split this file describes is retired;
+> any session may work on any area. Live work is tracked in
+> [GitHub Issues](https://github.com/fumbleforce/battlebots/issues).
+
 Live work and reservations moved to [GitHub Issues](https://github.com/fumbleforce/battlebots/issues)
 on 23 September 2026. ALWAYS consult [coordination board #2](https://github.com/fumbleforce/battlebots/issues/2)
 and the linked task/comments before editing. The sections below retain historical

@@ -1,5 +1,9 @@
 # Developer B — combat, bots, customisation and controls
 
+> **Archived history.** The A/B developer split this file describes is retired;
+> any session may work on any area. Live work is tracked in
+> [GitHub Issues](https://github.com/fumbleforce/battlebots/issues).
+
 ## Confirmed impact feedback — 20 September 2026
 
 The normal menu game now consumes confirmed hit events for localized sparks and
