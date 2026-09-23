@@ -9,9 +9,9 @@ while keeping the existing motor settings, damage and charged lifter. B should
 consume the documented center-of-mass replay config in further drive work.
 Focused world, camera, combat, spawn, walker, practice and Moon checks pass;
 150 ms contact correction stays under 250 ms. A natural duel completes with
-16 real hits, results and active rematch in 112.5 s. Build `mvp-ab-15` is prepared
-for a coordinated server/client release; live deployment evidence is pending
-below in the [task handoff](coordination/A_LARGER_FOUNDRY_HEAVY_BOTS.md). Human
+16 real hits, results and active rematch in 112.5 s. Build `mvp-ab-15` is live with matching Linux/Windows clients built from
+`a638a6e`. The tested production image, live worker record and compatibility match;
+external private/Quick Play driving, reconnect, results and rematch pass. See the [task handoff](coordination/A_LARGER_FOUNDRY_HEAVY_BOTS.md). Human
 impact-feel playtesting remains open.
 
 ## Coordinated hosted release — A, 23 September 2026

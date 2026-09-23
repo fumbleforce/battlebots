@@ -60,3 +60,33 @@ ram in 133.3 ms. The enlarged north/diagonal wall check passes at 80 ms.
 The natural duel passes after 16 actual hits through results and active rematch
 in 112.5 s with canonical timers. All 25 service tests pass on existing nvm
 Node 24.21.0. Native Linux baseline commands replace the PowerShell wrapper.
+
+## Matching release completed
+
+Clean runtime commit `a638a6ef8facfa2eb3a9c025a4eb43bfad7db962` produced
+Linux server and Linux/Windows clients. Build `mvp-ab-15`, protocol 6, catalogue
+10 hash `623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed`.
+All artifact hashes match their records; Linux client starts cleanly under
+Vulkan/Forward+ on the RTX 3080. Windows exported but was not executed here.
+
+The actual production container passed private and Quick Play driving, reconnect,
+agreed two-round results and active rematch. The same image was deployed by digest
+to existing Fly Machine `287e605ad7d578` using the user's confirmed restart break.
+No additional Machine was created. Image:
+`registry.fly.io/battlebots-fumbleforce@sha256:cbf2f8b87debb586b2e2c94a9977d57c3dda3b15ef37e95a43489e6b7b1c3ff4`
+(tag `release-a638a6e-20260923`). Live health and the actual worker build-record
+match local artifacts; previous build14 clients receive HTTP409.
+
+External private and Quick Play acceptance both pass with actual reconnect,
+results and active rematch. These automated hosted cases resolve rounds by
+forfeit; the separate 112.5 s natural-duel fixture supplies combat evidence.
+See [container/artifact/live evidence](evidence/foundry-100m-release-2026-09-23.json)
+and [external evidence](evidence/foundry-100m-external-duel-2026-09-23.json).
+Temporary external logs: `/tmp/battlebots-hosted-51zM7k`.
+
+Matching archives: `battlebots/exports/battlebots-linux-a638a6e.tar.gz` and
+`battlebots/exports/battlebots-windows-a638a6e.zip`. Previous release image
+`registry.fly.io/battlebots-fumbleforce@sha256:e829cafb8fd0cd96449ab7b59f576dc642d8de49cc9b19b8b1e139af920da8f3`
+and its a84fd11 client archives remain available for rollback. The owned local
+acceptance container is stopped. Human hosted play/impact feel remains open.
+No paths remain reserved after this task is merged.

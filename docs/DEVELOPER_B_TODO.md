@@ -2,10 +2,10 @@
 
 ## Coordinated Foundry/weight/preview request — 23 September 2026
 
-The current session is implementing the user's combined world and bot-handling
-request on `codex/a-larger-foundry-heavy-bots`. It reserves MvpBot, shared drive
-response, weapon impulses and camera arena-bound consumption alongside A's
-Foundry/menu/release paths. See [scope and handoff](coordination/A_LARGER_FOUNDRY_HEAVY_BOTS.md).
+The combined world and bot-impact request is complete on
+`codex/a-larger-foundry-heavy-bots`, with matching build15 clients/server live.
+MvpBot, shared drive replay, weapon impulses and camera arena-bound consumption
+are released alongside A's Foundry/menu paths; no paths remain reserved. See [scope and handoff](coordination/A_LARGER_FOUNDRY_HEAVY_BOTS.md).
 No parallel bot-control edits are assumed present; this is explicit feature work,
 not an incidental prediction change.
 
