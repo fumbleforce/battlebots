@@ -171,7 +171,9 @@ func mortar_review() -> void:
 	await _capture("mortar-aftermath", 40)
 	print("MORTAR showcase: flight %.2f s, landed %.1f m from target, core %.0f -> %.0f" % [flight,
 		bot.combat.last_shot_to.distance_to(target.body.global_position), core, target.combat.core])
-	check(target.combat.core < core, "The mortar shell damages the practice target")
+	# The practice dummy stands inside the mortar's minimum range, so only
+	# the landing is checked here (the blast rules are atlas_launcher_physics).
+	check(flight > 1.0, "The mortar lobs a shell that lands")
 	await finish()
 
 func tool_review(weapon: String, label: String) -> void:
@@ -226,7 +228,32 @@ func tool_review(weapon: String, label: String) -> void:
 	check(target.combat.core < core, "%s damages the practice target" % label)
 	await finish()
 
+## Cooling zones and coolant canisters (#68) with their real presentation.
+func heat_relief_review() -> void:
+	var pair: Array = await start(MvpSession.new().registry.atlas(), "heat relief")
+	var bot: MvpBot = pair[0]
+	if bot == null: return
+	session.world.begin_pickups(3)
+	var zones := CoolingZoneVisuals.new()
+	add_child(zones)
+	zones.bind_session(session)
+	var markers := PickupVisuals.new()
+	add_child(markers)
+	markers.bind_session(session)
+	var zone: Vector3 = session.world.cooling_zones()[0]
+	camera.position = zone + Vector3(-14, 9, 14)
+	camera.look_at(zone + Vector3.UP * 1.5)
+	await _capture("cooling-zone", 90)
+	var canister: Vector3 = session.world.coolant_points()[0]
+	camera.position = canister + Vector3(-9, 6, 9)
+	camera.look_at(canister + Vector3.UP * 2.0)
+	await _capture("coolant-canister", 30)
+	zones.queue_free()
+	markers.queue_free()
+	await finish()
+
 func run() -> void:
+	await heat_relief_review()
 	await harpoon()
 	await mortar_review()
 	await tool_review("battering_ram", "ram")

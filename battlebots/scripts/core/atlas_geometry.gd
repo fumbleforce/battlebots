@@ -81,11 +81,11 @@ const SPEAR_LIFT := 0.42
 const SPEAR_THRUST := 0.50
 ## Grinder: arm pivot, drum axle, drum radius including spikes, half width and
 ## the arms' raise stop (radians).
-const GRINDER_PIVOT := Vector3(0.0, 0.06, -1.50)
-const GRINDER_AXLE := Vector3(0.0, -0.12, -2.34)
-const GRINDER_REACH := 0.37
-const GRINDER_HALF_WIDTH := 0.78
-const GRINDER_RAISE := 0.6632251
+const GRINDER_PIVOT := Vector3(0.0, 0.10, -1.58)
+const GRINDER_AXLE := Vector3(0.0, 0.05, -2.58)
+const GRINDER_REACH := 0.555
+const GRINDER_HALF_WIDTH := 1.08
+const GRINDER_RAISE := 0.5934119
 
 ## Front tool ("ram", "spear", "grinder") or empty.
 static func tool_kind(draft: Dictionary) -> String:

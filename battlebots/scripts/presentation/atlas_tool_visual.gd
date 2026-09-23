@@ -117,8 +117,9 @@ func show_state(view: BotView, delta: float) -> void:
 				drum.transform = _rest.GrinderDrum * Transform3D(Basis(Vector3.RIGHT, _drum_angle))
 				if _sparks != null:
 					# Sparks spray off the drum's leading underside while it spins hard.
-					_sparks.global_position = drum.global_position + drum.global_basis.y.normalized() * -0.6 \
-						- (global_basis.z.normalized()) * 1.0
+					var reach := AtlasGeometry.GRINDER_REACH * global_basis.get_scale().x
+					_sparks.global_position = drum.global_position - global_basis.y.normalized() * reach * 0.6 \
+						- global_basis.z.normalized() * reach * 0.8
 					_sparks.emitting = spin > 0.6 and view.weapon_state == &"active"
 			if _roar != null:
 				if spin > 0.05 and playback_enabled:

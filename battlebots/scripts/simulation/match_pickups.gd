@@ -52,13 +52,16 @@ func _init() -> void:
 		pool.append(id)
 	pool.sort()
 
-func begin(points: Array[Vector3], seed: int) -> void:
+## coolant_points hold coolant canisters only (data/heat_relief.json coolant).
+func begin(points: Array[Vector3], seed: int, coolant_points: Array[Vector3] = []) -> void:
 	_rng.seed = seed
 	items.clear()
 	credits.clear()
 	events.clear()
 	for index: int in points.size():
 		items.append(_roll({"id":index, "point":points[index]}))
+	for index: int in coolant_points.size():
+		items.append(_roll({"id":points.size() + index, "point":coolant_points[index], "fixed":"coolant"}))
 	_clear_contacts()
 	revision += 1
 
@@ -94,7 +97,11 @@ func tick(delta: float) -> void:
 func _roll(item: Dictionary) -> Dictionary:
 	item.available = true
 	item.respawn = 0.0
-	if pool.is_empty() or _rng.randf() < CREDIT_CHANCE:
+	if item.get("fixed") == "coolant":
+		item.kind = "coolant"
+		item.part = ""
+		item.amount = int(HeatRelief.settings().value("coolant", "heat"))
+	elif pool.is_empty() or _rng.randf() < CREDIT_CHANCE:
 		item.kind = "credits"
 		item.part = ""
 		item.amount = CREDIT_AMOUNTS[_rng.randi_range(0, CREDIT_AMOUNTS.size() - 1)]
@@ -115,6 +122,8 @@ func collect(item: Dictionary, entity_id: int, loadout: Dictionary) -> Dictionar
 	if item.kind == "credits":
 		credits[entity_id] = int(credits.get(entity_id, 0)) + int(item.amount)
 		event.credits = credits[entity_id]
+	elif item.kind == "coolant":
+		pass
 	else:
 		var next := swapped(loadout, item.part)
 		if next.is_empty():
@@ -123,7 +132,7 @@ func collect(item: Dictionary, entity_id: int, loadout: Dictionary) -> Dictionar
 		event.slot = registry.parts[item.part].category
 		event.loadout = next
 	item.available = false
-	item.respawn = RESPAWN_SECONDS
+	item.respawn = HeatRelief.settings().value("coolant", "respawn_seconds") if item.kind == "coolant" else RESPAWN_SECONDS
 	events.append(event)
 	revision += 1
 	return event

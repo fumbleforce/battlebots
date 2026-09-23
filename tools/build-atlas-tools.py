@@ -14,9 +14,11 @@ runtime factor three applied by AtlasVisual, like the hull and turret):
 - Spear/forklift: a lift mast whose SpearCarriage rises SPEAR_LIFT metres,
   carrying SpearTines (two forged fork tines and a central barbed lance) that
   thrust SPEAR_THRUST metres forward.
-- Grinder: GrinderArms, two thick box-section arms on bearing housings at the
-  hull cheeks, pivot about X by up to GRINDER_RAISE degrees; GrinderDrum spins
-  a spiked steel cylinder about X at the arm ends, chain-driven from a hub motor.
+- Grinder (v2, #69): a yoke beam across the coupler carries pivot housings
+  outboard of the tracks. GrinderArms (fabricated tapered box arms, lift rams
+  and a ribbed debris hood) pivot about X by up to GRINDER_RAISE degrees;
+  GrinderDrum spins a full-width welded drum with chevron cutter teeth,
+  chain-driven from a hydraulic motor at the right pivot.
 - Materials use the approved Atlas classes; maps are baked into a separate
   Atlas_Tools* set so the hull and turret maps stay untouched.
 """
@@ -54,12 +56,14 @@ PLATE_Z = -1.42
 RAM_PUNCH = .28
 SPEAR_LIFT = .42
 SPEAR_THRUST = .50
-GRINDER_PIVOT = (0.0, .06, -1.50)
-GRINDER_AXLE = (0.0, -.12, -2.34)
-GRINDER_RADIUS = .25
-GRINDER_SPIKE = .12
-GRINDER_HALF_WIDTH = .78
-GRINDER_RAISE = 38.0
+# Grinder v2 (#69, user: "much bigger ... quite lazy compared to the atlas
+# model"): a full-width 0.8 m drum on fabricated arms under a debris hood.
+GRINDER_PIVOT = (0.0, .10, -1.58)
+GRINDER_AXLE = (0.0, .05, -2.58)
+GRINDER_RADIUS = .40
+GRINDER_SPIKE = .155
+GRINDER_HALF_WIDTH = 1.08
+GRINDER_RAISE = 34.0
 
 def beam(name, a, b, w, h, mat, group, bevel=.014):
     """Box-section beam from a to b (w across X, h in the a-b/X plane)."""
@@ -168,53 +172,175 @@ for i in range(4):
 ring('Lance shaft collar', (0, CY + .03, -1.870), (0, 0, 1), .052, .032, .03, steel, thrust, 24)
 
 # ------------------------------------------------------------ grinder drum
-# Two thick box-section arms on bearing housings bolted to the coupler plate
-# and hull cheek brackets, lifted by hydraulic rams; the spiked drum spins on
-# their ends, chain-driven from a hub motor in the right arm.
+# Forestry-mulcher construction at Atlas fidelity: a heavy yoke beam bolted
+# across the coupler plate carries pivot housings outboard of the tracks. Two
+# fabricated, tapered box arms (enamel side plates with lightening holes,
+# secondary flanges, gussets and wear strips) hold the full-width drum under a
+# ribbed debris hood with hazard edging. The drum is a welded, segmented steel
+# shell with bolted end flanges and chevron rows of cutter teeth (welded base
+# blocks with carbide pyramid tips). A hydraulic motor at the right pivot drives
+# the drum through an enclosed chain case; big lift rams with hoses raise it.
 backing_plate(grinder, 1.30, .50)
 arms = part('GrinderArms', GRINDER_PIVOT, grinder)
 drum = part('GrinderDrum', GRINDER_AXLE, arms)
 px, py, pz = GRINDER_PIVOT; ax, ay, az = GRINDER_AXLE
-ARM_X = GRINDER_HALF_WIDTH + .12
+ARM_X = GRINDER_HALF_WIDTH + .17
+YZ = PLATE_Z - .085
+# Yoke: a deep box beam across the whole front, bolted through the plate.
+box('Grinder yoke beam', (0, py, YZ), (2 * ARM_X - .10, .26, .12), secondary, grinder, .018)
+box('Yoke enamel face plate', (0, py, YZ - .064), (2 * ARM_X - .30, .20, .012), paint, grinder, .006)
+for x in (-.9, -.6, -.3, 0.0, .3, .6, .9):
+    bolt((x, py + .075, YZ - .071), (0, 0, -1), grinder, .011)
+    bolt((x, py - .075, YZ - .071), (0, 0, -1), grinder, .011)
 for side in (-1, 1):
     x = side * ARM_X
-    box('Arm pivot bracket', (x, py - .04, PLATE_Z - .01), (.20, .34, .12), secondary, grinder, .012)
-    box('Bracket tie to plate', ((x + side * -.30) * .5 + side * .15, py - .06, PLATE_Z - .01), (abs(x) - .45, .12, .08), steel, grinder, .006)
-    cylinder('Arm pivot bearing housing', (x - .09, py, pz), (x + .09, py, pz), .105, steel, grinder, 32, .004)
-    bolt((x + side * .095, py, pz), (side, 0, 0), grinder, .030)
-    beam('Thick grinder arm', (x, py, pz), (x, ay, az), .15, .24, paint, arms, .018)
-    beam('Arm wear plate', (x + side * .077, py - .02, pz - .10), (x + side * .077, ay + .02, az + .12), .008, .16, edge_steel, arms, .003)
-    for k in (.3, .6):
-        p = Vector((x, py, pz)).lerp(Vector((x, ay, az)), k)
-        bolt((x + side * .082, p.y + .05, p.z), (side, 0, 0), arms, .010, low=True)
-        bolt((x + side * .082, p.y - .05, p.z), (side, 0, 0), arms, .010, low=True)
-    cylinder('Drum axle bearing', (x - .09, ay, az), (x + .09, ay, az), .090, steel, arms, 32, .004)
-    # Hydraulic lift ram from the plate top to the arm's mid-span.
-    top = (side * (ARM_X - .02), .26, PLATE_Z - .05)
-    mid = Vector((x, py, pz)).lerp(Vector((x, ay, az)), .45) + Vector((0, .13, 0))
-    cylinder('Arm lift cylinder', top, tuple(Vector(top).lerp(mid, .55)), .048, steel, grinder, 24, .003)
-    cylinder('Arm lift ram rod', tuple(Vector(top).lerp(mid, .5)), tuple(mid), .026, edge_steel, arms, 20, .002)
-    box('Lift ram clevis', tuple(mid), (.07, .07, .07), steel, arms, .006)
-# Chain drive: a housing along the right arm and a hub motor outboard.
-box('Chain drive housing', (ARM_X + .105, (py + ay) * .5, (pz + az) * .5), (.05, .20, .80), secondary, arms, .010)
-cylinder('Drum hub drive motor', (ARM_X + .13, ay, az), (ARM_X + .26, ay, az), .10, secondary, arms, 32, .010)
-for k in range(6):
-    a = k * math.tau / 6
-    box('Motor cooling fin', (ARM_X + .20, ay + math.sin(a) * .10, az + math.cos(a) * .10), (.10, .02, .02), steel, arms, .002)
-cylinder('Drum axle', (-ARM_X - .05, ay, az), (ARM_X + .05, ay, az), .050, steel, drum, 24, .002)
-cylinder('Spiked drum core', (-GRINDER_HALF_WIDTH, ay, az), (GRINDER_HALF_WIDTH, ay, az), GRINDER_RADIUS, gun, drum, 48, .006)
-for x in (-GRINDER_HALF_WIDTH, GRINDER_HALF_WIDTH):
-    cylinder('Drum end flange', (x - .02, ay, az), (x + .02, ay, az), GRINDER_RADIUS + .045, steel, drum, 48, .004)
-for x in (-.26, .26):
-    ring('Drum reinforcing band', (x, ay, az), (1, 0, 0), GRINDER_RADIUS + .012, GRINDER_RADIUS - .01, .05, edge_steel, drum, 48)
-ROWS, PER_ROW = 11, 12
+    # Pivot housing: a turned boss with a bolted retaining cap and grease nipple.
+    turned('Arm pivot housing', (x - side * .13, py, pz), (side, 0, 0),
+           [(0, .150), (.02, .165), (.20, .165), (.22, .150)], steel, grinder, 48)
+    box('Pivot housing saddle', (x - side * .02, py - .05, (pz + YZ) * .5), (.24, .24, abs(pz - YZ) + .10), secondary, grinder, .016)
+    for k in range(8):
+        a_ = k * math.tau / 8
+        bolt((x + side * .092, py + math.sin(a_) * .125, pz + math.cos(a_) * .125), (side, 0, 0), grinder, .010)
+    # Work light on the yoke end.
+    box('Yoke work light housing', (side * (ARM_X - .32), py + .17, YZ - .02), (.12, .08, .08), secondary, grinder, .010)
+    box('Work light lens', (side * (ARM_X - .32), py + .17, YZ - .062), (.09, .05, .004), M['cyan'], grinder, .001)
+# Fabricated tapered box arms, pivot to axle.
+d = Vector((0, ay - py, az - pz)); L = d.length; d.normalize()
+up = Vector((0, d.z, -d.y)) * -1
+if up.y < 0: up = -up
+def arm_point(t, h):
+    base = Vector((0, py, pz)) + d * (t * L)
+    return base + up * h
+for side in (-1, 1):
+    x = side * ARM_X
+    h0, h1, w = .34, .24, .20
+    # Side plates: a tapered prism in the arm plane, extruded across X.
+    outline = []
+    for t, sgn in ((0.0, 1), (1.0, 1), (1.0, -1), (0.0, -1)):
+        q = arm_point(t, sgn * (h0 + (h1 - h0) * t) * .5)
+        outline.append((q.z, q.y))
+    verts = [(x - w * .5, y_, z_) for z_, y_ in outline] + [(x + w * .5, y_, z_) for z_, y_ in outline]
+    mesh('Fabricated arm box', verts, [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], paint, arms, .016)
+    # Top and bottom flanges and a wear strip, then lightening holes.
+    for sgn in (1, -1):
+        a0 = arm_point(.04, sgn * (h0 * .5 + .008)); a1 = arm_point(.96, sgn * (h1 * .5 + .008))
+        beam('Arm flange', (x, a0.y, a0.z), (x, a1.y, a1.z), w + .04, .018, secondary, arms, .004)
+    for k, t in enumerate((.28, .52, .74)):
+        c = arm_point(t, 0)
+        hr = .065 - k * .008
+        cylinder('Arm lightening hole', (x + side * (w * .5 + .001), c.y, c.z), (x + side * (w * .5 - .006), c.y, c.z), hr, dark, arms, 28, 0)
+        ring('Lightening hole rim', (x + side * (w * .5 + .002), c.y, c.z), (1, 0, 0), hr + .014, hr, .006, secondary, arms, 28)
+    g = arm_point(.12, 0)
+    box('Pivot gusset plate', (x - side * (w * .5 + .01), g.y - .02, g.z + .04), (.02, .30, .26), secondary, arms, .006)
+    for t in (.18, .40, .62, .86):
+        q = arm_point(t, h0 * .30)
+        bolt((x + side * (w * .5 + .002), q.y, q.z), (side, 0, 0), arms, .009, low=True)
+    # Hub boss and bearing cartridge at the axle.
+    turned('Drum bearing cartridge', (x - side * .11, ay, az), (side, 0, 0),
+           [(0, .120), (.02, .135), (.19, .135), (.21, .110)], steel, arms, 40)
+    # Lift ram: a big cylinder from the yoke top to a lug on the arm.
+    base = Vector((x - side * .02, py + .20, YZ - .02))
+    lug = arm_point(.42, h0 * .5 + .02) + Vector((x - side * .02, 0, 0))
+    box('Arm ram lug', tuple(lug + Vector((0, -.02, 0))), (.10, .08, .10), secondary, arms, .008)
+    mid = base.lerp(lug, .55)
+    cylinder('Arm lift cylinder barrel', tuple(base), tuple(mid), .072, steel, grinder, 32, .004)
+    ring('Lift cylinder gland', tuple(mid), tuple(lug - base), .080, .045, .03, edge_steel, grinder, 32)
+    cylinder('Arm lift piston rod', tuple(base.lerp(lug, .5)), tuple(lug), .040, edge_steel, arms, 24, .002)
+    box('Lift cylinder base clevis', tuple(base + Vector((0, -.05, 0))), (.12, .08, .10), steel, grinder, .006)
+    tube('Hydraulic hose', [tuple(base + Vector((side * .08, .02, .03))), tuple(base + Vector((side * .14, -.10, .04))), (side * (ARM_X - .12), py - .02, YZ + .02)], .016, rubber, grinder)
+# Right side: hydraulic motor at the pivot and an enclosed chain case to the hub.
+mx = ARM_X + .20
+turned('Hydraulic drive motor', (mx - .05, py, pz), (1, 0, 0), [(0, .110), (.02, .125), (.17, .125), (.19, .095), (.21, .06)], secondary, arms, 40)
+for k in range(8):
+    a_ = k * math.tau / 8
+    box('Motor cooling fin', (mx + .06, py + math.sin(a_) * .125, pz + math.cos(a_) * .125), (.14, .012, .03), steel, arms, .002)
+tube('Motor hose', [(mx + .15, py + .05, pz), (mx + .18, py + .20, pz + .10), (ARM_X - .05, py + .22, YZ)], .018, rubber, grinder)
+c0 = arm_point(0, 0); c1 = arm_point(1, 0)
+beam('Chain case', (ARM_X + .15, c0.y, c0.z), (ARM_X + .15, c1.y, c1.z), .08, .30, secondary, arms, .018)
+beam('Chain case enamel cover', (ARM_X + .196, c0.y, c0.z - .02), (ARM_X + .196, c1.y, c1.z + .02), .012, .22, paint, arms, .006)
+for t in (.15, .5, .85):
+    q = arm_point(t, 0)
+    for sgn in (1, -1): bolt((ARM_X + .203, q.y + sgn * .10, q.z), (1, 0, 0), arms, .009, low=True)
+turned('Hub sprocket cover', (ARM_X + .19, ay, az), (1, 0, 0), [(0, .16), (.02, .17), (.05, .15), (.06, .06)], steel, arms, 40)
+# Debris hood over the top-rear of the drum: a ribbed curved shell.
+HR, HW = GRINDER_RADIUS + GRINDER_SPIKE + .07, GRINDER_HALF_WIDTH + .05
+arc = [math.radians(a_) for a_ in range(-30, 131, 10)]  # 0 = straight up, + toward the hull
+def hood(a_, r): return (ay + math.cos(a_) * r, az + math.sin(a_) * r)
+verts = []
+for x in (-HW, HW):
+    for a_ in arc: y_, z_ = hood(a_, HR); verts.append((x, y_, z_))
+    for a_ in arc: y_, z_ = hood(a_, HR + .03); verts.append((x, y_, z_))
+n = len(arc); faces = []
+for i in range(n - 1):
+    faces += [(i, i + 1, 2 * n + i + 1, 2 * n + i), (n + i, 3 * n + i, 3 * n + i + 1, n + i + 1)]
+faces += [(0, 2 * n, 3 * n, n), (n - 1, 2 * n - 1, 4 * n - 1, 3 * n - 1)]
+for i in range(n - 1):
+    faces += [(i, n + i, n + i + 1, i + 1), (2 * n + i, 2 * n + i + 1, 3 * n + i + 1, 3 * n + i)]
+mesh('Debris hood shell', verts, faces, paint, arms, .010)
+for x in (-HW + .01, -HW * .5, 0, HW * .5, HW - .01):
+    for i in range(0, n - 1, 1):
+        a0, a1 = arc[i], arc[i + 1]
+        y0, z0 = hood(a0, HR + .03); y1, z1 = hood(a1, HR + .03)
+        beam('Hood rib', (x, y0, z0), (x, y1, z1), .03, .035, secondary, arms, .004)
+for k in range(9):
+    x = -HW + .12 + k * (2 * HW - .24) / 8
+    y_, z_ = hood(arc[0], HR + .035)
+    box('Hood hazard stripe', (x, y_ + .01, z_ - .012), (.10, .05, .012), dark if k % 2 else M['paint_edge'], arms, .002)
+# Curved side skirts close the hood ends along its arc (an annular sector
+# outside the drum flange), edged with a steel lip and bolted to the shell.
+RIN = GRINDER_RADIUS + .075
+for side in (-1, 1):
+    verts = []
+    for x in (side * (HW + .004), side * (HW + .026)):
+        for a_ in arc: y_, z_ = hood(a_, RIN); verts.append((x, y_, z_))
+        for a_ in arc: y_, z_ = hood(a_, HR + .03); verts.append((x, y_, z_))
+    faces = []
+    for i in range(n - 1):
+        faces += [(i, n + i, n + i + 1, i + 1), (2 * n + i, 2 * n + i + 1, 3 * n + i + 1, 3 * n + i),
+                  (i, i + 1, 2 * n + i + 1, 2 * n + i), (n + i, 3 * n + i, 3 * n + i + 1, n + i + 1)]
+    faces += [(0, 2 * n, 3 * n, n), (n - 1, n + n - 1, 4 * n - 1, 3 * n - 1)]
+    mesh('Hood side skirt', verts, faces, secondary, arms, .006)
+    for i in range(n - 1):
+        y0, z0 = hood(arc[i], RIN); y1, z1 = hood(arc[i + 1], RIN)
+        beam('Skirt inner lip', (side * (HW + .03), y0, z0), (side * (HW + .03), y1, z1), .012, .02, steel, arms, .002)
+    for a_ in arc[1:-1:3]:
+        y_, z_ = hood(a_, HR - .02)
+        bolt((side * (HW + .027), y_, z_), (side, 0, 0), arms, .009, low=True)
+# Drum: welded segmented shell, end flanges, chevron cutter teeth.
+cylinder('Drum axle', (-ARM_X - .12, ay, az), (ARM_X + .12, ay, az), .060, steel, drum, 24, .002)
+cylinder('Drum shell', (-GRINDER_HALF_WIDTH, ay, az), (GRINDER_HALF_WIDTH, ay, az), GRINDER_RADIUS, gun, drum, 64, .008)
+for k in range(1, 6):
+    x = -GRINDER_HALF_WIDTH + k * 2 * GRINDER_HALF_WIDTH / 6
+    ring('Drum segment weld bead', (x, ay, az), (1, 0, 0), GRINDER_RADIUS + .008, GRINDER_RADIUS - .01, .022, edge_steel, drum, 64)
+for side in (-1, 1):
+    x = side * GRINDER_HALF_WIDTH
+    turned('Drum end flange', (x - side * .02, ay, az), (side, 0, 0), [(0, GRINDER_RADIUS + .05), (.04, GRINDER_RADIUS + .05), (.05, .10), (.07, .07)], steel, drum, 64)
+    for k in range(10):
+        a_ = k * math.tau / 10
+        bolt((x + side * .031, ay + math.sin(a_) * (GRINDER_RADIUS - .04), az + math.cos(a_) * (GRINDER_RADIUS - .04)), (side, 0, 0), drum, .012)
+ROWS, PER_ROW = 13, 12
 for row in range(ROWS):
-    x = -GRINDER_HALF_WIDTH + .07 + row * (2 * GRINDER_HALF_WIDTH - .14) / (ROWS - 1)
+    t = row / (ROWS - 1)
+    x = -GRINDER_HALF_WIDTH + .09 + t * (2 * GRINDER_HALF_WIDTH - .18)
+    # Chevron: the phase runs outward from the centre in both directions.
+    phase = abs(t - .5) * 2.2
     for k in range(PER_ROW):
-        a = (k + (row % 2) * .5) * math.tau / PER_ROW + row * .12
-        d = Vector((0, math.sin(a), -math.cos(a)))
-        base = Vector((x, ay, az)) + d * (GRINDER_RADIUS - .01)
-        turned('Hardened grinder spike', tuple(base), tuple(d), [(0, .040), (.025, .036), (GRINDER_SPIKE, 0)], edge_steel, drum, 12)
+        a_ = (k + (row % 2) * .5) * math.tau / PER_ROW + phase
+        dvec = Vector((0, math.sin(a_), -math.cos(a_)))
+        tang = Vector((0, math.cos(a_), math.sin(a_)))
+        base = Vector((x, ay, az)) + dvec * GRINDER_RADIUS
+        c = base + dvec * .035
+        # Welded base block, then a carbide pyramid raked into the spin.
+        verts = []
+        for sx in (-1, 1):
+            for st in (-1, 1):
+                for sr in (-1, 1):
+                    verts.append(tuple(c + Vector((sx * .038, 0, 0)) + tang * (st * .045) + dvec * (sr * .035)))
+        mesh('Cutter tooth base block', verts, [(0, 2, 6, 4), (1, 5, 7, 3), (0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6)], steel, drum, .004)
+        top = c + dvec * .035
+        tip = top + dvec * (GRINDER_SPIKE - .07) - tang * .03
+        quad = [top + Vector((sx * .03, 0, 0)) + tang * (st * .035) for sx, st in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        mesh('Carbide cutter tip', [tuple(q) for q in quad] + [tuple(tip)], [(3, 2, 1, 0), (0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4)], edge_steel, drum)
 
 # Pivots stay with their groups; join each group's meshes.
 MOVING = {'RamPunch': punch, 'SpearCarriage': lift, 'SpearTines': thrust, 'GrinderArms': arms, 'GrinderDrum': drum}
@@ -324,7 +450,11 @@ scene.render.resolution_x = 1600; scene.render.resolution_y = 1200
 scene.view_settings.view_transform = 'AgX'; scene.view_settings.look = 'AgX - Medium High Contrast'
 def view(name, at, target=(0, .0, -1.5), ortho=3.6):
     cam.location = gv(at); cam.rotation_euler = (gv(target) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam_data.type = 'ORTHO'; cam_data.ortho_scale = ortho
-    scene.render.filepath = str(SOURCE / (name + '.png')); bpy.ops.render.render(write_still=True)
+    scene.render.filepath = str(SOURCE / (name + '.png'))
+    try: bpy.ops.render.render(write_still=True)
+    except RuntimeError:
+        # A busy GPU (other sessions rendering) falls back to the CPU.
+        scene.cycles.device = 'CPU'; bpy.ops.render.render(write_still=True)
 def show(tool):
     for group in TOOLS.values():
         for o in descendants(group): o.hide_render = group != tool

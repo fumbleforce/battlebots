@@ -40,6 +40,8 @@ var _audio_overlay: Control
 var _audio_caption: Label
 var practice_hud: PracticeHud
 var _restart_practice: Button
+var cooling_zones: CoolingZoneVisuals
+var spree_banner: SpreeBanner
 var _practice_knocked_out := false
 var _practice_return_screen := ""
 var _default_return_text := ""
@@ -141,6 +143,18 @@ func _ready() -> void:
 	session.pickup_collected.connect(func(event: Dictionary) -> void:
 		pickup_feed.notify(event, session.local_entity)
 		gameplay_audio.pickup_collected(event, session.local_entity))
+	cooling_zones = CoolingZoneVisuals.new()
+	cooling_zones.name = "CoolingZones"
+	add_child(cooling_zones)
+	cooling_zones.bind_session(session)
+	spree_banner = SpreeBanner.new()
+	spree_banner.name = "SpreeBanner"
+	combat_hud.canvas.add_child(spree_banner)
+	spree_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	spree_banner.position = Vector2(-400, 150)
+	spree_banner.size = Vector2(800, 60)
+	spree_banner.pivot_offset = Vector2(400, 30)
+	spree_banner.bind_session(session)
 	pickup_notice = PickupNotice.new()
 	pickup_notice.name = "PickupNotice"
 	combat_hud.canvas.add_child(pickup_notice)

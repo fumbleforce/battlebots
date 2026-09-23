@@ -4,7 +4,7 @@ extends Node3D
 ## column and a floating, rotating item labelled with its contents. Parts with
 ## real art show that model (PickupModels); perks, credits and parts without a
 ## dedicated mesh show a token. Colour identifies the kind (amber part, cyan
-## perk, green credits). Presentation only.
+## perk, green credits, frosty white coolant). Presentation only.
 const TOKEN_HEIGHT := 2.6
 const BEAM_HEIGHT := MatchPickups.REACH_UP
 var session: MvpSession
@@ -142,6 +142,14 @@ static func _token_mesh(kind: String) -> Mesh:
 		coin.height = 0.22
 		coin.radial_segments = 24
 		return coin
+	if kind == "coolant":
+		# A coolant canister: an upright frosted cylinder.
+		var canister := CylinderMesh.new()
+		canister.top_radius = 0.45
+		canister.bottom_radius = 0.45
+		canister.height = 1.3
+		canister.radial_segments = 16
+		return canister
 	if kind == "perk":
 		var gem := SphereMesh.new()
 		gem.radius = 0.7

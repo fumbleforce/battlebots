@@ -464,6 +464,8 @@ func read_view() -> BotView:
 	view.grip_target = data.get("grip_target", 0)
 	view.grip_point = data.get("grip_point", Vector3.ZERO)
 	view.tool_pose = data.get("tool_pose", 0.0)
+	view.spree = data.get("spree", 0)
+	view.cooling = data.get("cooling", false)
 	return view
 
 func camera_anchor() -> Node3D:

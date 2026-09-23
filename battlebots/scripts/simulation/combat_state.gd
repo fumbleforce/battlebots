@@ -73,6 +73,13 @@ var grip_mode := ""
 ## Ram punch and spear thrust extension ride in charge; grinder spin too.
 var tool_pose := 0.0
 var _tool_timer := 0.0
+## Kill spree (data/heat_relief.json): combo count of eliminations inside the
+## window, and seconds left of boosted cooling after the latest one.
+var spree := 0
+var _spree_timer := 0.0
+var cooling_boost := 0.0
+## Set by the world each tick while the bot stands in an arena cooling zone.
+var in_cooling_zone := false
 
 func _init(derived: Dictionary) -> void:
 	stats = derived.duplicate(true)
@@ -159,6 +166,9 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	secondary_active = false
 	_heat_active = false
 	_cooling_this_tick = 0.0
+	_spree_timer = maxf(0.0, _spree_timer - delta)
+	if _spree_timer <= 0.0: spree = 0
+	cooling_boost = maxf(0.0, cooling_boost - delta)
 	if active and not eliminated and overheated and heat <= HEAT_RESUME:
 		overheated = false
 	_tick_primary(delta, command, active)
@@ -177,8 +187,12 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	# Perks follow weapons in MvpBot.step. A later perk activation reverses this
 	# tentative cooling before adding heat, including a warm jump release.
 	if not _heat_active:
-		_cooling_this_tick = minf(heat, float(stats.cooling) * delta)
+		var rate := float(stats.cooling) * (HeatRelief.settings().value("spree", "boost_multiplier") if cooling_boost > 0.0 else 1.0)
+		_cooling_this_tick = minf(heat, rate * delta)
 		heat -= _cooling_this_tick
+	# Cooling zones shed heat even while weapons run.
+	if in_cooling_zone:
+		heat = maxf(0.0, heat - HeatRelief.settings().value("zones", "cooling_per_second") * delta)
 	_enforce_heat_lock()
 
 func is_turret() -> bool:
@@ -297,6 +311,28 @@ func _tick_special_turret(delta: float, held: bool) -> void:
 				tethered = false
 			secondary_active = tethered and held and eligible
 			secondary_charge = 0.0 if not eligible else (1.0 if tethered else 1.0 - _gun_cooldown / interval)
+
+## An elimination credited to this bot: extend the spree combo, vent heat,
+## clear any overheat lock and boost cooling so the killing can continue.
+func credit_kill() -> void:
+	if eliminated:
+		return
+	var relief := HeatRelief.settings()
+	spree = mini(spree + 1, int(relief.value("spree", "max_combo")))
+	_spree_timer = relief.value("spree", "window_seconds")
+	cooling_boost = relief.value("spree", "boost_seconds")
+	vent(relief.kill_vent(spree))
+	# A kill always clears the thermal lock: the spree can go on at once.
+	overheated = false
+
+## Removes heat (kill sprees, coolant); a vent below the resume level lifts
+## the overheat lock at once.
+func vent(amount: float) -> void:
+	if eliminated or not is_finite(amount) or amount <= 0.0:
+		return
+	heat = maxf(0.0, heat - amount)
+	if overheated and heat <= HEAT_RESUME:
+		overheated = false
 
 ## Drops any hold on another bot (the world also calls this when it breaks).
 func release_grip() -> void:
@@ -548,6 +584,8 @@ func damage(zone: String, raw: float, armour_share := 1.0) -> int:
 func eliminate(reason: String) -> void:
 	eliminated = true
 	elimination_reason = reason
+	spree = 0
+	cooling_boost = 0.0
 	strike = false
 	_hammer_windup = 0.0
 	charge = 0
@@ -570,7 +608,7 @@ func snapshot() -> Dictionary:
 		"secondary_charge":secondary_charge, "secondary_active":secondary_active,
 		"shot_sequence":shot_sequence, "last_shot_from":last_shot_from,
 		"last_shot_to":last_shot_to, "last_shot_tick":last_shot_tick,
-		"gun_pitch":gun_pitch, "turret_yaw":turret_yaw, "grip_target":grip_target, "grip_point":grip_point, "tool_pose":tool_pose,
+		"gun_pitch":gun_pitch, "turret_yaw":turret_yaw, "grip_target":grip_target, "grip_point":grip_point, "tool_pose":tool_pose, "spree":spree, "cooling":in_cooling_zone or cooling_boost > 0.0,
 		"nitro_active":nitro_active, "jump_charge":jump_charge, "jump_cooldown":jump_cooldown,
 		"cooldown":cooldown, "recovery_available":can_recover(), "recovery_remaining":recovery_remaining,
 		"recovery_cooldown":recovery_cooldown, "immobilized_remaining":maxf(0, 10 - immobilized_seconds) if immobilized_seconds > 0 else 0.0,

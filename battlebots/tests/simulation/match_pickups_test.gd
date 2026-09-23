@@ -141,7 +141,9 @@ func world_swaps(arena_id: String) -> void:
 	check(picker != null and rival != null, arena_id + " duel spawns")
 	world.begin_pickups(11)
 	var points := world.pickup_points()
-	check(points.size() == 5 and world.pickups.items.size() == 5, arena_id + " stocks five pickup points")
+	var canisters := int(HeatRelief.settings().value("coolant", "count"))
+	check(points.size() == 5 and world.pickups.items.size() == 5 + canisters, arena_id + " stocks five pickup points plus its coolant canisters")
+	check(world.pickups.items.slice(5).all(func(item: Dictionary) -> bool: return item.kind == "coolant"), arena_id + " coolant points only hold canisters")
 	for item: Dictionary in world.pickups.items:
 		for bot: MvpBot in [picker, rival]:
 			check(not world.touches_pickup(bot, item.point) or bot.body.global_position.distance_to(bot.spawn_pose.origin) > 1.0,

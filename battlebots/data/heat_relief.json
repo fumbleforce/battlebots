@@ -1,0 +1,15 @@
+{
+	"_comment": "Authoritative heat relief (#67, #68). Changing any value is a gameplay change: bump WireCodec.BUILD and ship a matching hosted server release. Heat is the shared 0..100 heat; seconds and game metres.",
+	"spree": {
+		"_comment": "Each elimination vents heat_per_kill heat plus heat_per_combo for every earlier kill still inside window_seconds (the combo, capped at max_combo), and triples ordinary cooling (boost_multiplier) for boost_seconds, so a spree can keep going.",
+		"window_seconds": 8.0, "heat_per_kill": 40.0, "heat_per_combo": 15.0, "max_combo": 5, "boost_seconds": 4.0, "boost_multiplier": 3.0
+	},
+	"zones": {
+		"_comment": "Cooling zones: circles of radius metres at fraction of the arena half extent on the four axes, reaching height metres above their floor point. A bot inside sheds cooling_per_second heat even while its weapons run.",
+		"radius": 7.0, "height": 6.0, "cooling_per_second": 45.0, "fraction": 0.44
+	},
+	"coolant": {
+		"_comment": "Coolant canisters: count pickup points spread on a ring at fraction of the arena half extent between the spawn bearings; each vents heat on collection and returns after respawn_seconds.",
+		"heat": 60.0, "fraction": 0.62, "count": 8, "respawn_seconds": 15.0
+	}
+}

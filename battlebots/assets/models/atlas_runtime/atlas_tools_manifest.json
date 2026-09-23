@@ -35,23 +35,23 @@
   "grinder": {
     "pivot": [
       0.0,
-      0.06,
-      -1.5
+      0.1,
+      -1.58
     ],
     "axle": [
       0.0,
-      -0.12,
-      -2.34
+      0.05,
+      -2.58
     ],
-    "radius": 0.25,
-    "spike": 0.12,
-    "half_width": 0.78,
-    "raise_degrees": 38.0
+    "radius": 0.4,
+    "spike": 0.155,
+    "half_width": 1.08,
+    "raise_degrees": 34.0
   },
   "triangles": {
     "ram": 14560,
     "spear": 6104,
-    "grinder": 21604
+    "grinder": 59524
   },
   "clearance": {
     "scope": "Triangle-overlap of each tool at rest, half and full travel against the imported atlas_mx.glb (base and optional modules).",
@@ -66,47 +66,47 @@
     "families": {
       "Primary": {
         "resolution": 2048,
-        "faces": 360,
+        "faces": 544,
         "images": {
           "base": "Atlas_ToolsPrimary_base.png",
           "orm": "Atlas_ToolsPrimary_orm.png",
           "normal": "Atlas_ToolsPrimary_normal.png",
           "coverage": "Atlas_ToolsPrimary_coverage.png"
         },
-        "occupied_fraction": 0.84618,
+        "occupied_fraction": 0.83583,
         "ao_min": 0.0,
-        "ao_mean": 0.50557,
+        "ao_mean": 0.68203,
         "roughness_min": 0.37,
-        "roughness_max": 0.83071
+        "roughness_max": 0.83075
       },
       "Secondary": {
         "resolution": 1024,
-        "faces": 670,
+        "faces": 4208,
         "images": {
           "base": "Atlas_ToolsSecondary_base.png",
           "orm": "Atlas_ToolsSecondary_orm.png",
           "normal": "Atlas_ToolsSecondary_normal.png",
           "coverage": "Atlas_ToolsSecondary_coverage.png"
         },
-        "occupied_fraction": 0.84393,
+        "occupied_fraction": 0.81539,
         "ao_min": 0.0,
-        "ao_mean": 0.7435,
+        "ao_mean": 0.6513,
         "roughness_min": 0.37,
-        "roughness_max": 0.81136
+        "roughness_max": 0.81848
       },
       "Hardware": {
         "resolution": 2048,
-        "faces": 16772,
+        "faces": 31966,
         "images": {
           "base": "Atlas_ToolsHardware_base.png",
           "orm": "Atlas_ToolsHardware_orm.png",
           "normal": "Atlas_ToolsHardware_normal.png"
         },
-        "occupied_fraction": 0.75938,
+        "occupied_fraction": 0.77741,
         "ao_min": 0.0,
-        "ao_mean": 0.75096,
-        "roughness_min": 0.2428,
-        "roughness_max": 0.66158
+        "ao_mean": 0.67977,
+        "roughness_min": 0.24317,
+        "roughness_max": 0.92308
       }
     },
     "paint_coverage": {
@@ -118,15 +118,15 @@
       "distance_metres": 0.06
     },
     "material_references": {
-      "Atlas_EdgeSteel": {
+      "Atlas_PaintSecondary": {
         "linear_color": [
-          0.36724647879600525,
-          0.38005632162094116,
-          0.3546920716762543,
+          0.03468407690525055,
+          0.04143557697534561,
+          0.0450764074921608,
           1.0
         ],
-        "metallic": 0.949999988079071,
-        "roughness": 0.30000001192092896
+        "metallic": 0.08,
+        "roughness": 0.6100000143051147
       },
       "Atlas_Metal": {
         "linear_color": [
@@ -138,25 +138,25 @@
         "metallic": 0.9200000166893005,
         "roughness": 0.36000001430511475
       },
-      "Atlas_OxidizedMetal": {
+      "Atlas_Rubber": {
         "linear_color": [
-          0.09462962299585342,
-          0.08088690787553787,
-          0.059253521263599396,
+          0.0035010159481316805,
+          0.004400849808007479,
+          0.004896310158073902,
           1.0
         ],
-        "metallic": 0.800000011920929,
-        "roughness": 0.5699999928474426
+        "metallic": 0.0,
+        "roughness": 0.8399999737739563
       },
-      "Atlas_PaintSecondary": {
+      "Atlas_PaintPrimaryEdge": {
         "linear_color": [
-          0.03468407690525055,
-          0.04143557697534561,
-          0.0450764074921608,
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
           1.0
         ],
         "metallic": 0.08,
-        "roughness": 0.6100000143051147
+        "roughness": 0.66
       },
       "Atlas_GunMetal": {
         "linear_color": [
@@ -178,15 +178,15 @@
         "metallic": 0.41999998688697815,
         "roughness": 0.5099999904632568
       },
-      "Atlas_PaintPrimaryEdge": {
+      "Atlas_OxidizedMetal": {
         "linear_color": [
-          0.7105664610862732,
-          0.22341398894786835,
-          0.004400849808007479,
+          0.09462962299585342,
+          0.08088690787553787,
+          0.059253521263599396,
           1.0
         ],
-        "metallic": 0.08,
-        "roughness": 0.66
+        "metallic": 0.800000011920929,
+        "roughness": 0.5699999928474426
       },
       "Atlas_PaintPrimary": {
         "linear_color": [
@@ -197,6 +197,16 @@
         ],
         "metallic": 0.08,
         "roughness": 0.6600000262260437
+      },
+      "Atlas_EdgeSteel": {
+        "linear_color": [
+          0.36724647879600525,
+          0.38005632162094116,
+          0.3546920716762543,
+          1.0
+        ],
+        "metallic": 0.949999988079071,
+        "roughness": 0.30000001192092896
       }
     }
   },

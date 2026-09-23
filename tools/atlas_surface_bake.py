@@ -7,6 +7,7 @@ export a model, or alter object transforms permanently. No downloaded textures.
 from __future__ import annotations
 
 import math
+import os
 from pathlib import Path
 
 import bpy
@@ -503,6 +504,10 @@ def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False,
         scene.render.bake.margin_type = "EXTEND"
         scene.render.bake.normal_space = "TANGENT"
         try:
+            # ATLAS_BAKE_DEVICE=CPU bakes on the CPU when the GPU is busy
+            # (a starved GPU bakes empty atlases).
+            if os.environ.get("ATLAS_BAKE_DEVICE") == "CPU":
+                raise RuntimeError("CPU bake requested")
             preferences = bpy.context.preferences.addons["cycles"].preferences
             preferences.compute_device_type = "OPTIX"
             preferences.get_devices()

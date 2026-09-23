@@ -120,6 +120,28 @@ tools bolt to the existing quick-release coupler.
     hull and every optional module. The result is clear.
   - Review renders are in `art_source/atlas_tools/`.
 
+## Grinder v2 (#69)
+
+User: "make it much bigger, and improve the design, it is quite lazy compared
+to the atlas model".
+
+The drum now spans the hull width: 2.16 source m wide and 0.8 m across, with
+cutter teeth reaching 0.555 m. A yoke beam across the coupler carries pivot
+housings outboard of the tracks.
+- **Arms:** fabricated tapered box arms with enamel side plates, lightening
+  holes with rims, secondary flanges, gussets and bolted wear rows. Big lift
+  rams with clevises and hoses raise them.
+- **Hood:** a ribbed debris hood with a hazard-striped leading edge. Curved
+  side skirts close its ends; the first draft's flat cheek plates looked cheap.
+- **Drum:** a welded, segmented shell with bolted end flanges and chevron rows
+  of cutter teeth, each a welded base block with a raked carbide tip.
+- **Drive:** a finned hydraulic motor at the right pivot drives the drum
+  through an enclosed chain case.
+
+The audit is clear at rest, half and full raise (34°). Pass
+`ATLAS_BAKE_DEVICE=CPU` when the GPU is busy; a starved GPU bakes empty
+atlases.
+
 ## Validation (Linux, Godot 4.7.2)
 
 - New suites:

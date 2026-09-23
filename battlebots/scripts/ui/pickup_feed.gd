@@ -5,6 +5,7 @@ extends VBoxContainer
 const PART := Color("f5b82e")
 const PERK := Color("29cce5")
 const CREDITS := Color("3fcb4a")
+const COOLANT := Color("bdf1ff")
 const TEXT := Color("e8ecf1")
 const MUTED := Color("9aa6b5")
 const TOAST_SECONDS := 4.0
@@ -26,12 +27,15 @@ static func names_from(registry: ContentRegistry) -> Dictionary:
 	return names
 
 static func color_for(kind: String) -> Color:
+	if kind == "coolant": return COOLANT
 	return CREDITS if kind == "credits" else (PERK if kind == "perk" else PART)
 
 ## Short world/HUD label for an item or collection event.
 static func describe(record: Dictionary, names: Dictionary) -> String:
 	if record.get("kind") == "credits":
 		return "+%d CREDITS" % int(record.get("amount", 0))
+	if record.get("kind") == "coolant":
+		return "COOLANT  −%d HEAT" % int(record.get("amount", 0))
 	var part := str(record.get("part", ""))
 	return str(names.get(part, part.capitalize())).to_upper()
 
@@ -76,7 +80,7 @@ func notify(event: Dictionary, local_entity: int) -> void:
 	var kind := str(event.get("kind", "part"))
 	var panel := _chip()
 	var row := _row(panel)
-	if kind != "credits":
+	if kind not in ["credits", "coolant"]:
 		_label(row, "PERK" if kind == "perk" else "PART", 10, MUTED)
 	_label(row, describe(event, _names), 12, color_for(kind))
 	toasts.add_child(panel)

@@ -48,7 +48,7 @@ func run() -> void:
 		"Pickup duel reaches active"):
 		return
 	if not await require(await until(func() -> bool:
-		return clients.all(func(c: MvpSession) -> bool: return c.pickup_view.get("items", []).size() == 5)),
+		return clients.all(func(c: MvpSession) -> bool: return c.pickup_view.get("items", []).size() == 5 + int(HeatRelief.settings().value("coolant", "count")))),
 		"Clients receive stocked pickup points with the match baseline"):
 		return
 	check(picker.pickup_view.match_id == server.match_state.match_id, "Pickup state is bound to the running match")

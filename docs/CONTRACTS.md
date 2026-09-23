@@ -1,5 +1,18 @@
 # Shared contracts — local records and current MVP session API
 
+## Heat relief and grinder v2 — build mvp-ab-40, protocol 14 (#67, #68, #69)
+
+The snapshot gains `spree` (int, kill combo) and `cooling` (bool, in a
+cooling zone or post-kill boost); 45 fields in total. Kills vent heat, build
+combos and clear the overheat lock. Arenas have four cooling zones and eight
+coolant-only pickup points (pickup kind `coolant`). Tuning is in
+`data/heat_relief.json` (`HeatRelief`).
+[Rules and evidence](coordination/HEAT_RELIEF.md).
+
+The grinder drum is rebuilt larger: `AtlasGeometry.GRINDER_*` gives a
+full-width drum reaching 0.555 source m on a pivot at Z −1.58, which enlarges
+its contact volume. Catalogue and mass are unchanged.
+
 ## Woodland boulder collision from baked hulls — build mvp-ab-39 (#34)
 
 Woodland boulder colliders are built from each scan's convex-hull vertices,

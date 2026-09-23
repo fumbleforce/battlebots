@@ -138,6 +138,7 @@ func reset_round() -> void:
 
 func step(delta: float, active: bool, round_index: int) -> void:
 	tick += 1
+	_mark_cooling_zones()
 	for id: int in bots:
 		bots[id].server_tick = tick
 		bots[id].step(delta, active)
@@ -160,6 +161,7 @@ func step(delta: float, active: bool, round_index: int) -> void:
 				killer = source_id
 		if killer != 0 and bots.has(killer):
 			bots[killer].combat.eliminations += 1
+			bots[killer].combat.credit_kill()
 		for source_id: int in bot.combat.recent_attackers:
 			if source_id != killer and bots.has(source_id) and weapons.time - float(bot.combat.recent_attackers[source_id]) <= 10:
 				bots[source_id].combat.assists += 1
@@ -199,6 +201,49 @@ func pickup_points() -> Array[Vector3]:
 
 ## Stocks every point that is clear of the bots' spawn poses, so nobody collects
 ## an item on the first frame (Practice places the player beside the centre).
+## Arena cooling zones (data/heat_relief.json zones): floor points on the four
+## axes. Presentation draws them from the same list.
+func cooling_zones() -> Array[Vector3]:
+	var relief := HeatRelief.settings()
+	var half := ArenaBounds.half_extent(arena_id) * relief.value("zones", "fraction")
+	return _on_surface([Vector3(half, 0, 0), Vector3(-half, 0, 0), Vector3(0, 0, half), Vector3(0, 0, -half)])
+
+## Coolant canister points: a ring between the spawn bearings.
+func coolant_points() -> Array[Vector3]:
+	var relief := HeatRelief.settings()
+	var count := int(relief.value("coolant", "count"))
+	var radius := ArenaBounds.half_extent(arena_id) * relief.value("coolant", "fraction")
+	var points: Array[Vector3] = []
+	for index: int in count:
+		var angle := (float(index) + 0.5) * TAU / float(count)
+		points.append(Vector3(cos(angle), 0.0, sin(angle)) * radius)
+	return _on_surface(points)
+
+func _on_surface(points: Array[Vector3]) -> Array[Vector3]:
+	var surface: Script = null
+	if arena_id == "moon":
+		surface = preload("res://scripts/arena/moon_surface.gd")
+	elif arena_id == "woodland":
+		surface = preload("res://scripts/arena/woodland_ground.gd")
+	if surface != null:
+		for index: int in points.size():
+			points[index].y = surface.height_at(points[index].x, points[index].z)
+	return points
+
+func _mark_cooling_zones() -> void:
+	var relief := HeatRelief.settings()
+	var radius := relief.value("zones", "radius")
+	var height := relief.value("zones", "height")
+	var zones := cooling_zones()
+	for id: int in bots:
+		var bot: MvpBot = bots[id]
+		var at := bot.body.global_position
+		var inside := false
+		for zone: Vector3 in zones:
+			if Vector2(at.x - zone.x, at.z - zone.z).length() <= radius and at.y - zone.y <= height and at.y - zone.y >= -1.0:
+				inside = true
+		bot.combat.in_cooling_zone = inside and not bot.combat.eliminated
+
 func begin_pickups(seed: int) -> void:
 	const SPAWN_CLEARANCE := 3.0
 	var clear: Array[Vector3] = []
@@ -211,7 +256,7 @@ func begin_pickups(seed: int) -> void:
 			blocked = blocked or Vector2(at.x - point.x, at.z - point.z).length() <= reach
 		if not blocked:
 			clear.append(point)
-	pickups.begin(clear, seed)
+	pickups.begin(clear, seed, coolant_points())
 
 func _collect_pickups(delta: float) -> void:
 	pickups.tick(delta)
@@ -230,6 +275,8 @@ func _collect_pickups(delta: float) -> void:
 				continue
 			if event.has("loadout"):
 				apply_loadout(id, event.loadout)
+			elif event.kind == "coolant":
+				bot.combat.vent(float(event.amount))
 			break
 
 ## A pickup is a vertical column: the hull footprint must overlap the point

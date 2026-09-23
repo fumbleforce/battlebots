@@ -47,3 +47,7 @@ var grip_target := 0
 var grip_point := Vector3.ZERO
 ## Front tool pose 0..1: spear carriage lift or grinder arm raise.
 var tool_pose := 0.0
+## Kill-spree combo (0 = none) and whether the bot is being cooled (zone or
+## post-kill boost), from data/heat_relief.json rules.
+var spree := 0
+var cooling := false
