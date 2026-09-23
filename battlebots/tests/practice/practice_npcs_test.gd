@@ -59,7 +59,12 @@ func run() -> void:
 	check(target.combat.eliminated and target.body.freeze and target.body.collision_layer == 0,
 		"Destroyed NPC becomes a frozen non-colliding wreck")
 	# Freeze pilots for this isolated respawn setup; retain the full six-second gate.
-	for record: Dictionary in session.practice_director.records: record.grace = 100.0
+	# Park the other NPCs at their homes so how far patrols drove (a drive-tuning
+	# detail) cannot occupy the wreck's home and defer its regeneration.
+	for record: Dictionary in session.practice_director.records:
+		record.grace = 100.0
+		if record.id != identity:
+			session.world.bots[record.id].body.reset_pose = record.home
 	await frames(380)
 	check(session.practice_target() == target and target.entity_id == identity and not target.combat.eliminated,
 		"Expired wreck regenerates the same stable calibration entity")

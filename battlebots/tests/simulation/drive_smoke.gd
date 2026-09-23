@@ -63,10 +63,12 @@ func _run() -> void:
 	await _step(120, 1.0)
 	var speed_at_two_seconds := -body.linear_velocity.z
 	print("Forward speed at 2 seconds: ", speed_at_two_seconds)
-	_check(speed_at_two_seconds > 9.0 and speed_at_two_seconds <= 10.1, "Acceleration target: near 10 m/s in 2 seconds")
+	# Cruise speed includes the BotPhysics top-speed multiplier.
+	var cruise: float = body.model_config().speed
+	_check(speed_at_two_seconds > cruise * 0.9 and speed_at_two_seconds <= cruise + 0.1, "Acceleration target: near cruise speed in 2 seconds")
 	_check(body.position.z < -8.0, "Positive throttle must move along -Z")
 	await _step(120, 1.0)
-	_check(absf(body.linear_velocity.length() - 10.0) < 0.15, "Drive must settle at speed limit")
+	_check(absf(body.linear_velocity.length() - cruise) < 0.15, "Drive must settle at speed limit")
 	var brake_start := body.position
 	await _step(90, 1.0, 1.0, true)
 	print("Braking distance: ", body.position.distance_to(brake_start))

@@ -11,10 +11,16 @@ var gravity_multiplier: float
 var minimum_arena_gravity_scale: float
 var rise_speed_cap_at_1g: float
 # contact
-var hull_friction: float
+## Hull friction against the arena while supported by its drive, and while
+## stranded on its roof or side.
+var track_hull_friction: float
+var stranded_hull_friction: float
+## Fraction of the downhill gravity pull the grounded drive cancels.
+var slope_hold_fraction: float
 var bot_contact_friction: float
 # motor
 var acceleration_multiplier: float
+var top_speed_multiplier: float
 var grip_multiplier: float
 var yaw_acceleration_multiplier: float
 var yaw_torque_grip_fraction: float
@@ -36,8 +42,8 @@ var ram_knockback_lift_fraction: float
 
 const SECTIONS := {
 	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g"],
-	"contact": ["hull_friction", "bot_contact_friction"],
-	"motor": ["acceleration_multiplier", "grip_multiplier", "yaw_acceleration_multiplier",
+	"contact": ["track_hull_friction", "stranded_hull_friction", "slope_hold_fraction", "bot_contact_friction"],
+	"motor": ["acceleration_multiplier", "top_speed_multiplier", "grip_multiplier", "yaw_acceleration_multiplier",
 		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier"],
 	"walker": ["lift_headroom_acceleration"],
 	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g",

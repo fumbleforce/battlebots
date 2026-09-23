@@ -2,23 +2,26 @@
 	"_comment": "Authoritative heavy-machine physics tuning shared by server simulation and client replay. Changing any value is a gameplay change: bump BUILD and ship a matching hosted server release.",
 	"heft": {
 		"_comment": "Three-times enlarged hulls read as foam under 1 g. Bots fall under gravity_multiplier times arena gravity; launch and jump speeds scale by its square root so heights hold while hang time shrinks.",
-		"gravity_multiplier": 2.5,
+		"gravity_multiplier": 3.2,
 		"minimum_arena_gravity_scale": 1.0,
 		"rise_speed_cap_at_1g": 8.0
 	},
 	"contact": {
-		"_comment": "hull_friction is the Jolt material friction against the arena (combined as sqrt(hull * floor)); its drag grows with heft weight so sliding hulls grind. bot_contact_friction is an explicit Coulomb friction between clashing hulls so they bite into each other instead of glancing off.",
-		"hull_friction": 0.04,
+		"_comment": "Tracks carry the weight: while on its drive the hull has track_hull_friction against the arena (the drive model handles grip), and slope_hold_fraction of the downhill pull is cancelled by the tracks up to the grip limit, so tanks park and climb on hills. Off its drive (roof/side) the hull grinds with stranded_hull_friction (Jolt combines sqrt(hull * floor)). bot_contact_friction is explicit Coulomb friction between clashing hulls.",
+		"track_hull_friction": 0.0,
+		"stranded_hull_friction": 0.25,
+		"slope_hold_fraction": 1.0,
 		"bot_contact_friction": 0.9
 	},
 	"motor": {
 		"_comment": "Multipliers over catalogue drive values. rolling_resistance_multiplier scales the released-throttle coast deceleration (motor controllers brake hard) so knocked hulls stop instead of sliding; brakes stay stronger than coasting.",
-		"acceleration_multiplier": 1.6,
-		"grip_multiplier": 2.5,
+		"acceleration_multiplier": 2.0,
+		"top_speed_multiplier": 1.25,
+		"grip_multiplier": 3.0,
 		"yaw_acceleration_multiplier": 1.6,
 		"yaw_torque_grip_fraction": 0.65,
-		"rolling_resistance_multiplier": 10.0,
-		"brake_multiplier": 1.5
+		"rolling_resistance_multiplier": 13.0,
+		"brake_multiplier": 2.0
 	},
 	"walker": {
 		"lift_headroom_acceleration": 35.0

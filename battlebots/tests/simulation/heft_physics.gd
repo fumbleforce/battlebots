@@ -15,6 +15,14 @@ const LIFTER_OBSERVE_FRAMES := 150
 const MAX_CHARGE_RISE := 0.05
 const MIN_LAUNCH_RISE := 2.0
 const MIN_FLIP_DEGREES := 150.0
+## Tanks climb and park on steep hills under heft weight.
+const RAMP_SIZE := Vector3(40, 2, 80)
+const RAMP_HEIGHT := 30.0
+const RAMP_START_OFFSET := 20.0
+const CLIMB_DEGREES := 30.0
+const CLIMB_FRAMES := 120
+const MIN_CLIMB_SPEED_FRACTION := 0.9
+const MAX_PARKED_DRIFT := 0.3
 var failures := 0
 var world: AuthorityWorld
 var physics := BotPhysics.settings()
@@ -47,6 +55,7 @@ func run() -> void:
 	await knock_slide(bot, Vector3.BACK)
 	await ram_rebound()
 	await flipper_launch()
+	await hill_climb()
 	if failures == 0:
 		print("HEFT PHYSICS PASS")
 	quit(failures)
@@ -185,3 +194,41 @@ func flipper_launch() -> void:
 	print("Flipper: charge rise %.2fm, launch rise %.2fm, flip %.0f deg" % [charge_peak - rest, apex - rest, flip])
 	check(charge_peak - rest < MAX_CHARGE_RISE, "Charging flipper stays low instead of floating its target")
 	check(apex - rest > MIN_LAUNCH_RISE and flip > MIN_FLIP_DEGREES, "Released flipper violently launches and flips its target")
+
+func drive_throttle(bot: MvpBot, count: int, throttle: float) -> void:
+	for index: int in range(count):
+		var command := BotCommand.new()
+		command.sequence = bot.last_sequence + 1
+		command.throttle = throttle
+		bot.submit_command(command)
+		world.step(1.0 / 60, true, 1)
+		await physics_frame
+
+## Atlas tracks park on a steep incline and climb it at cruise speed.
+func hill_climb() -> void:
+	world.clear_bots()
+	await frames(2)
+	var ramp := StaticBody3D.new()
+	ramp.collision_layer = BaselineConfig.WORLD_LAYER
+	var collider := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = RAMP_SIZE
+	collider.shape = box
+	ramp.add_child(collider)
+	var tilt := Basis(Vector3.RIGHT, deg_to_rad(CLIMB_DEGREES))
+	ramp.transform = Transform3D(tilt, Vector3.UP * RAMP_HEIGHT)
+	world.add_child(ramp)
+	var bot := world.spawn(1, 0, 0, world.registry.atlas())
+	var start: Vector3 = ramp.transform.origin + tilt * Vector3(0, RAMP_SIZE.y * 0.5 + bot.combat.stats.size.y, RAMP_START_OFFSET)
+	bot.body.reset_pose = Transform3D(tilt, start)
+	await drive_throttle(bot, 60, 0.0)
+	var parked := bot.body.global_position
+	await drive_throttle(bot, 60, 0.0)
+	var drift := bot.body.global_position.distance_to(parked)
+	await drive_throttle(bot, CLIMB_FRAMES, 1.0)
+	var uphill_speed := bot.body.linear_velocity.dot(tilt * Vector3.FORWARD)
+	var cruise: float = bot.body.model_config().speed
+	print("Hill %.0f deg: parked drift %.2fm, uphill speed %.2f of %.2f m/s" % [CLIMB_DEGREES, drift, uphill_speed, cruise])
+	check(drift < MAX_PARKED_DRIFT, "Heavy tank parks on a steep hill")
+	check(uphill_speed > cruise * MIN_CLIMB_SPEED_FRACTION, "Heavy tank climbs a steep hill at cruise speed")
+	ramp.queue_free()

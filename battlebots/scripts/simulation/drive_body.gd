@@ -67,10 +67,24 @@ func heft() -> float:
 func launch_scale() -> float:
 	return physics.launch_scale_for(gravity_scale)
 
-## Jolt material friction against the arena. Its drag grows with heft weight,
-## so a sliding heavy hull grinds to a stop.
+## Jolt material friction against the arena. On its drive the tracks carry the
+## weight and the drive model owns grip, so the hull must not drag (it would
+## stall climbs under heft weight). Stranded on its roof or side, the hull
+## grinds against the floor instead of skating.
 func hull_friction() -> float:
-	return physics.hull_friction
+	return physics.track_hull_friction if grounded else physics.stranded_hull_friction
+
+func _update_hull_friction() -> void:
+	if physics_material_override != null and not is_equal_approx(physics_material_override.friction, hull_friction()):
+		physics_material_override.friction = hull_friction()
+
+## Grounded tracks hold against the downhill pull (up to the grip limit), so a
+## heavy machine parks on hills and its full motor authority drives the climb.
+func _hold_slope(state: PhysicsDirectBodyState3D, normal: Vector3) -> void:
+	var weight := state.total_gravity * heft()
+	var downhill := weight - normal * weight.dot(normal)
+	var hold := (-downhill * physics.slope_hold_fraction).limit_length(grip_acceleration * physics.grip_multiplier)
+	state.apply_central_force(hold * mass)
 
 func max_rise() -> float:
 	return physics.rise_speed_cap_at_1g * launch_scale()
@@ -118,6 +132,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	_turn_input = move_toward(_turn_input, 0.0 if braking else _steering, steering_response * state.step)
 	var normal := WalkerDrive.support(state, self) if walker else _ground_normal(state)
 	grounded = not normal.is_zero_approx()
+	_update_hull_friction()
 	if grounded and _jump_queued > 0.0:
 		state.linear_velocity.y = maxf(state.linear_velocity.y, _jump_queued)
 		_jump_queued = 0.0
@@ -126,6 +141,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	_jump_queued = 0.0
 	if not grounded:
 		return
+	_hold_slope(state, normal)
 	var response := DriveModel.forces(state.transform.basis, state.linear_velocity, state.angular_velocity,
 		normal, _drive_input, _turn_input, braking, state.step, model_config())
 	state.apply_central_force(response.acceleration * mass)
@@ -187,7 +203,7 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 	for index: int in range(0, contacts.size(), 2):
 		var normal := (contacts[index + 1] - contacts[index]).normalized()
 		motion -= normal * minf(motion.dot(normal), 0.0)
-		correction.velocity -= normal * minf(Vector3(correction.velocity).dot(normal), 0.0)
+		_block_velocity(normal)
 	query.motion = motion
 	var fractions := space.cast_motion(query)
 	if fractions[0] < 1.0:
@@ -200,17 +216,34 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 		query.margin = 0.002
 		var hit := space.get_rest_info(query)
 		if not hit.is_empty():
-			var normal: Vector3 = hit.normal
-			correction.velocity -= normal * minf(Vector3(correction.velocity).dot(normal), 0.0)
+			_block_velocity(hit.normal)
 		else:
-			# A conservative stop is safer than carrying velocity through an
-			# obstruction whose contact normal lies on a numerical boundary.
-			correction.velocity = Vector3.ZERO
+			# Rest info can miss a tumbling hull's corner touching the floor; find
+			# the contact normals at the hit pose instead.
+			query.exclude = [get_rid()]
+			var touching := space.collide_shape(query)
+			if touching.is_empty():
+				# No normal at all: a conservative stop is safer than carrying
+				# velocity through an obstruction on a numerical boundary.
+				correction.velocity = Vector3.ZERO
+			for index: int in range(0, touching.size(), 2):
+				_block_velocity((touching[index + 1] - touching[index]).normalized())
 		motion *= fractions[0]
 	correction.pose.origin = origin.origin + motion
 
+## Contacts cancel replayed velocity into them so extrapolation never tunnels,
+## except the floor under an airborne hull: a tumbling hull's low corner meets
+## the floor while its center keeps falling as it pivots, so the fall must
+## continue and Jolt resolves that contact (and rotation) on its next step, as
+## on the server. Once the drive probes find ground, landings stop as before.
+func _block_velocity(normal: Vector3) -> void:
+	const FLOOR_NORMAL_Y := 0.5
+	if normal.y > FLOOR_NORMAL_Y and not grounded:
+		return
+	correction.velocity -= normal * minf(Vector3(correction.velocity).dot(normal), 0.0)
+
 func model_config() -> Dictionary:
-	return {"speed":top_speed, "acceleration":drive_acceleration * physics.acceleration_multiplier,
+	return {"speed":top_speed * physics.top_speed_multiplier, "acceleration":drive_acceleration * physics.acceleration_multiplier,
 		"grip":grip_acceleration * physics.grip_multiplier,
 		"coast":coast_acceleration * physics.rolling_resistance_multiplier, "throttle_response":throttle_response,
 		"steering_response":steering_response, "yaw_response":yaw_response,

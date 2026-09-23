@@ -129,13 +129,15 @@ func run() -> void:
 	await reset_bot()
 	await drive(60, 1)
 	var speed_one := -bot.body.linear_velocity.z
-	# BotPhysics motor authority: high-torque drives reach cruise within a second.
-	check(speed_one > 9.5 and speed_one < 10.2, "High-torque motors reach cruising speed within the first second")
+	# BotPhysics motor authority and top-speed multiplier set the cruise speed;
+	# high-torque drives reach it within a second.
+	var cruise: float = bot.body.model_config().speed
+	check(speed_one > cruise - 0.5 and speed_one < cruise + 0.2, "High-torque motors reach cruising speed within the first second")
 	await drive(24, 1)
 	var speed_launch := -bot.body.linear_velocity.z
-	check(speed_launch > 9.7 and speed_launch < 10.2, "Powerful chassis reaches its 10m/s cruising speed within 1.4 seconds")
+	check(speed_launch > cruise - 0.3 and speed_launch < cruise + 0.2, "Powerful chassis holds its cruising speed at 1.4 seconds")
 	await drive(156, 1)
-	check(absf(bot.body.linear_velocity.length() - 10.0) < 0.2, "Standard drive retains its10m/s cruising speed")
+	check(absf(bot.body.linear_velocity.length() - cruise) < 0.2, "Standard drive retains its cruising speed")
 	# BotPhysics rolling resistance: released motors brake hard so knocked or
 	# released hulls stop instead of sliding, but not instantly.
 	await drive(30)
@@ -148,7 +150,7 @@ func run() -> void:
 	var before_brake := bot.body.global_position
 	await drive(120, 1, 1, true)
 	var brake_distance := bot.body.global_position.distance_to(before_brake)
-	check(brake_distance > 2.5 and brake_distance < 5.0, "Strong brakes stop from 10m/s within one hull length while retaining real stopping distance")
+	check(brake_distance > 2.5 and brake_distance < 5.0, "Strong brakes stop from cruise within one hull length while retaining real stopping distance")
 	check(bot.body.linear_velocity.length() < 0.15 and bot.body.angular_velocity.length() < 0.15, "Brakes override drive and steering")
 	await reset_bot()
 	await drive(45, 0, -1)

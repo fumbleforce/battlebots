@@ -870,11 +870,15 @@ gameplay change requiring a BUILD bump and a matching hosted server release.
   `model_config().gravity` includes heft, and `model_config().max_rise` supplies
   the replay rise cap. `launch_scale()` = sqrt(heft) scales jumps, weapon impulses
   and the rise cap so apex heights hold while hang time shrinks.
-- Hull material friction is `contact.hull_friction`; arena drag grows with heft
-  weight. `DriveBody` also applies explicit Coulomb friction between touching
-  bots (`contact.bot_contact_friction`, each body half of the pair) so clashing
-  hulls bite instead of glancing off.
-- Motor multipliers scale catalogue acceleration, grip, yaw limit/torque, brakes
+- Traction: on its drive the hull uses `contact.track_hull_friction` (the drive
+  model owns grip) and the tracks cancel `slope_hold_fraction` of the downhill
+  pull up to the grip limit, so tanks park and climb steep hills. Stranded on
+  roof/side it grinds with `stranded_hull_friction`. `DriveBody` also applies
+  explicit Coulomb friction between touching bots (`bot_contact_friction`).
+- Client replay sweep: floor-like contacts under an airborne client body limit
+  translation but keep velocity, so a tumbling hull pivoting on a corner keeps
+  falling like the server's; walls, and floors once grounded, still cancel it.
+- Motor multipliers scale catalogue top speed, acceleration, grip, yaw limit/torque, brakes
   and released-throttle coast (`rolling_resistance_multiplier`, so knocked hulls
   stop instead of sliding) in `model_config()`. Walker lift supports heft weight.
 - `CombatWorld` scales weapon impulses by `impacts.*_impulse_multiplier` and
