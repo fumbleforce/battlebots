@@ -27,7 +27,8 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
 
 - Five points: the centre plus four diagonals at half the arena radius. These stay off the Z-axis team
   spawn lanes and scale with `ArenaBounds`, so new arenas (for example Woodland, #34) get points
-  automatically. Moon and Woodland points sit on their terrain.
+  automatically. Moon and Woodland points sit on their terrain. A point that overlaps any bot's spawn is
+  not stocked (in Practice the player starts beside the centre), so nobody collects on the first frame.
 - Contents are random. There is a 30% chance of credits (25/50/100); otherwise a uniformly random
   catalogue part or perk. A collected point restocks after 20 s, and every point restocks at a new round.
 - Collection is a vertical column. Horizontally, the hull footprint must overlap the point (radius: half
@@ -53,6 +54,8 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
   FITTED` or `<PART> DOESN'T FIT YOUR BUILD`. It fades after 2.5 s. The server reports a refusal once
   per contact (again after the bot drives off and back, or the item respawns with new contents), and
   only to that bot's owner.
+- **Camera.** A part pickup rebuilds the local bot node. `menu_game`/`lobby_game` re-bind the orbit
+  camera, which recentres it, only when the match or entity changes, so a pickup keeps the player's orbit.
 - Results overview shows `+N CREDITS EARNED · performance · pickups`. The menu header shows the
   wallet balance (`%ScrapAmount`, `%ProfileMeta`) in place of the old placeholder scrap readout.
 

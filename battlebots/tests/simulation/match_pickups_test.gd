@@ -137,6 +137,10 @@ func world_swaps(arena_id: String) -> void:
 	world.begin_pickups(11)
 	var points := world.pickup_points()
 	check(points.size() == 5 and world.pickups.items.size() == 5, arena_id + " stocks five pickup points")
+	for item: Dictionary in world.pickups.items:
+		for bot: MvpBot in [picker, rival]:
+			check(not world.touches_pickup(bot, item.point) or bot.body.global_position.distance_to(bot.spawn_pose.origin) > 1.0,
+				arena_id + " no pickup overlaps a spawn")
 	for point: Vector3 in points:
 		check(ArenaBounds.contains(point, ArenaBounds.half_extent(arena_id), 6.0), arena_id + " pickup lies well inside the walls")
 	var changes: Array[int] = []

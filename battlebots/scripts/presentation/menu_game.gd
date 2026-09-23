@@ -8,6 +8,7 @@ extends Node3D
 var screen: Control
 var _last_phase := ""
 var _last_source: BotSource
+var _last_source_key := ""
 var _settings_from_menu := false
 var settings_hub: SettingsHub
 var _settings_session_open := false
@@ -642,7 +643,12 @@ func _process(_delta: float) -> void:
 	gameplay_audio.observe_match(session.match_view, session.connection_state == "practice")
 	if bot != _last_source:
 		_last_source = bot
-		preview.rig.bind_source(source)
+		# A part pickup rebuilds the local bot under the same entity id. Only a new
+		# match or entity re-binds, which recentres; a pickup keeps the player's orbit.
+		var key := "%s:%s" % [session.match_view.get("match_id", ""), bot.get("entity_id") if bot != null else ""]
+		if key != _last_source_key:
+			_last_source_key = key
+			preview.rig.bind_source(source)
 	if phase != _last_phase:
 		var prior := _last_phase
 		_last_phase = phase

@@ -196,8 +196,21 @@ func pickup_points() -> Array[Vector3]:
 			points[index].y = surface.height_at(points[index].x, points[index].z)
 	return points
 
+## Stocks every point that is clear of the bots' spawn poses, so nobody collects
+## an item on the first frame (Practice places the player beside the centre).
 func begin_pickups(seed: int) -> void:
-	pickups.begin(pickup_points(), seed)
+	const SPAWN_CLEARANCE := 3.0
+	var clear: Array[Vector3] = []
+	for point: Vector3 in pickup_points():
+		var blocked := false
+		for bot: MvpBot in bots.values():
+			var size: Vector3 = bot.collision_bounds().size
+			var at := bot.spawn_pose.origin
+			var reach := maxf(size.x, size.z) * 0.5 + 0.5 + SPAWN_CLEARANCE
+			blocked = blocked or Vector2(at.x - point.x, at.z - point.z).length() <= reach
+		if not blocked:
+			clear.append(point)
+	pickups.begin(clear, seed)
 
 func _collect_pickups(delta: float) -> void:
 	pickups.tick(delta)
