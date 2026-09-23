@@ -12,7 +12,7 @@ const RING_DURATION := 0.6
 ## event from the same swing can claim the ring on the struck bot instead.
 const ONE_RING_WINDOW := 0.8
 const SLAM_GRACE := 0.15
-const KINDS := ["vertical_spinner", "horizontal_spinner", "saw", "hammer", "lifter", "ram"]
+const KINDS := ["vertical_spinner", "horizontal_spinner", "saw", "hammer", "lifter", "ram", "crush"]
 const GOLDEN_ANGLE := 2.39996323
 var _sparks: Array[Dictionary] = []
 var _fragments: Array[Dictionary] = []
@@ -251,7 +251,7 @@ func _shared_mesh(fragment: bool) -> BoxMesh:
 func _spawn_burst(origin: Vector3, frame: Basis, kind: String, damage: float) -> void:
 	var burst := _oldest_or_new(_bursts, MAX_BURSTS, _make_burst)
 	var weight := clampf(0.6 + minf(damage, 60.0) / 50.0, 0.6, 1.0)
-	if kind in ["saw", "horizontal_spinner", "vertical_spinner", "hammer"]: weight = minf(1.0, weight + 0.25)
+	if kind in ["saw", "horizontal_spinner", "vertical_spinner", "hammer", "crush"]: weight = minf(1.0, weight + 0.25)
 	_serial += 1
 	burst.serial = _serial
 	burst.active = true

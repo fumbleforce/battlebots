@@ -2,7 +2,7 @@ class_name CombatImpactFeedback
 extends Node3D
 ## Confirms event context before creating cosmetic effects; never predicts a hit.
 const PHASES := ["lobby", "loading", "countdown", "active", "overtime", "intermission", "results"]
-const KINDS := ["hammer", "saw", "lifter", "vertical_spinner", "horizontal_spinner", "ram"]
+const KINDS := ["hammer", "saw", "lifter", "vertical_spinner", "horizontal_spinner", "ram", "crush"]
 const CONTEXT_LIMIT := 16
 var visual: CombatImpactVisual
 var session: MvpSession

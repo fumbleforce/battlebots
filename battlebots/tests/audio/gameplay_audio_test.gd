@@ -48,7 +48,7 @@ func sound_bank() -> void:
 		check(stream != null and stream == bank.stream(cue), cue + " is cached")
 		var recorded := recordings.has(cue)
 		check(stream.format == AudioStreamWAV.FORMAT_16_BITS and not stream.stereo \
-			and stream.mix_rate == (48000 if recorded else 16000) and stream.data.size() > 3000,
+			and stream.mix_rate == (48000 if recorded or cue == "impact_crush" else 16000) and stream.data.size() > 3000,
 			cue + " has finite-length mono PCM")
 		check(stream.loop_mode == AudioStreamWAV.LOOP_DISABLED, cue + " plays once per event")
 		if recorded:
@@ -133,6 +133,13 @@ func run() -> void:
 	var ram_stream := audio._effects[(audio._effect_cursor - 1) % audio.EFFECT_VOICES].stream as AudioStreamWAV
 	check(ram_stream.data == (load("res://assets/audio/combat/metal_collision.wav") as AudioStreamWAV).data,
 		"Authoritative ram hit plays the supplied metal-collision recording")
+	check(is_zero_approx(audio._effects[(audio._effect_cursor - 1) % audio.EFFECT_VOICES].volume_db), "Ordinary hits play at unit gain")
+	audio.combat_event(hit(2, "crush", 2), 2)
+	var crush_player := audio._effects[(audio._effect_cursor - 1) % audio.EFFECT_VOICES]
+	check(count("impact_crush") == 1,
+		"A wall-pin crush plays its own cue right after the ram, past the burst throttle")
+	check(crush_player.volume_db > 0.0 and crush_player.stream.get_length() > 1.0,
+		"The crush is louder and longer than an ordinary impact")
 	advance()
 	audio.observe_bot(bot(100, 0.2, 10.0))
 	check(count("low_core") == 0 and count("recovery") == 0, "Initial damaged/recovering view stays quiet")

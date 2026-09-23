@@ -14,6 +14,8 @@ var _announcements: Array[AudioStreamPlayer] = []
 var _crowd: AudioStreamPlayer
 var _crowd_duck_until := 0.0
 const CROWD_DB := -18.0
+## A wall-pin crush plays above ordinary impacts and past the burst throttle.
+const CRUSH_DB := 4.0
 var _effect_cursor := 0
 var _announcement_cursor := 0
 var _clock := 0.0
@@ -40,7 +42,7 @@ var _recovery_cooldown := 0.0
 
 func _ready() -> void:
 	add_to_group(&"gameplay_audio")
-	for cue: String in ["crowd_round", "crowd_match"]:
+	for cue: String in ["crowd_round", "crowd_match", "impact_crush"]:
 		_bank.stream(cue)
 	for index: int in EFFECT_VOICES:
 		var player := AudioStreamPlayer3D.new()
@@ -205,7 +207,7 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	if _practice and event.has("match_id") and event.match_id != _match:
 		return
 	var kinds := {"hammer":"hammer", "vertical_spinner":"spinner", "horizontal_spinner":"spinner",
-		"lifter":"lifter", "saw":"saw", "ram":"ram"}
+		"lifter":"lifter", "saw":"saw", "ram":"ram", "crush":"crush"}
 	if not kinds.has(event.kind):
 		return
 	var context := "%s/%d" % [_match, _round]
@@ -218,7 +220,9 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	var caption := kind.capitalize() + " impact"
 	if event.attacker == local_entity: caption = kind.capitalize() + " hit"
 	elif event.target == local_entity: caption = "Hit by " + kind
-	_play("impact_" + kind, caption, false, false, false, -1, event.position)
+	if kind == "crush":
+		caption = "Crushed against the wall" if event.target == local_entity else "Wall crush"
+	_play("impact_" + kind, caption, false, kind == "crush", false, -1, event.position)
 
 ## A hammer that lands on the arena has no combat event; its shockwave still
 ## sounds like a hammer blow at the slam point.
@@ -270,6 +274,7 @@ func _play(cue: String, caption: String, announcement: bool, transition := false
 		var player := _effects[_effect_cursor % pool_size]
 		player.stop()
 		player.global_position = impact_position
+		player.volume_db = CRUSH_DB if cue == "impact_crush" else 0.0
 		player.stream = stream
 		player.play()
 		_effect_cursor += 1

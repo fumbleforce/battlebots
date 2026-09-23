@@ -193,7 +193,7 @@ func _open_pin_window(attacker: MvpBot, victim: MvpBot, direction: Vector3, exce
 		"victim":victim.entity_id, "face":face, "direction":flat.normalized(),
 		"excess":excess_closing, "expires":time + physics.ram_pin_window_seconds}
 
-## A rammed bot shoved into static geometry behind it takes one crushing hit per
+## A rammed bot shoved into static geometry behind it takes one "crush" hit per
 ## ram on the struck face. Armour there soaks only ram_pin_armour_share of it.
 func _resolve_pins(bots: Dictionary, tick: int, round_index: int) -> void:
 	for key: String in _pin_windows.keys():
@@ -208,7 +208,7 @@ func _resolve_pins(bots: Dictionary, tick: int, round_index: int) -> void:
 			continue
 		var raw := minf(physics.ram_pin_damage_max,
 			physics.ram_pin_damage_base + physics.ram_pin_damage_per_closing_speed * float(pin.excess))
-		_hit(attacker, victim, wall[0], raw, Vector3.ZERO, tick, round_index, 0.0, "ram", pin.face, physics.ram_pin_armour_share)
+		_hit(attacker, victim, wall[0], raw, Vector3.ZERO, tick, round_index, 0.0, "crush", pin.face, physics.ram_pin_armour_share)
 		_pin_windows.erase(key)
 
 ## The victim's contact with a wall-like static surface on the side facing away

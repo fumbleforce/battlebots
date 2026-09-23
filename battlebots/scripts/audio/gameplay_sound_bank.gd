@@ -8,9 +8,17 @@ const SAMPLES := {
 const RATE := 16000
 const CUES := ["impact_hammer", "impact_spinner", "impact_lifter", "impact_saw", "impact_ram",
 	"countdown", "start", "round_end", "results", "low_core", "recovery", "weapon_ready", "armor_break",
-	"crowd_round", "crowd_match", "credit_pickup"]
-const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34, 0.24, 0.30, 1.0, 1.5, 0.42]
-const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0, 740.0, 730.0, 165.0, 190.0, 1318.51]
+	"crowd_round", "crowd_match", "credit_pickup", "impact_crush"]
+const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34, 0.24, 0.30, 1.0, 1.5, 0.42, 1.6]
+const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0, 740.0, 730.0, 165.0, 190.0, 1318.51, 60.0]
+## Wall-pin crush: the supplied hammer and collision recordings slowed into a
+## heavier register, under a sub-bass boom, crumpling-plate crackles and a
+## groan of bending steel. Mixed at the recordings' rate and saturated.
+const CRUSH_RATE := 48000
+const CRUSH_PEAK := 0.74
+const CRUSH_HAMMER_SPEED := 0.7
+const CRUSH_COLLISION_SPEED := 0.82
+const CRUSH_CRACKLES := 11
 var _streams: Dictionary = {}
 
 func stream(cue: String) -> AudioStreamWAV:
@@ -24,6 +32,9 @@ func stream(cue: String) -> AudioStreamWAV:
 		recording.loop_mode = AudioStreamWAV.LOOP_DISABLED
 		_streams[cue] = recording
 		return recording
+	if cue == "impact_crush":
+		_streams[cue] = _crush(LENGTHS[index], PITCHES[index])
+		return _streams[cue]
 	var duration: float = LENGTHS[index]
 	var pitch: float = PITCHES[index]
 	var count := int(RATE * duration)
@@ -107,3 +118,61 @@ func stream(cue: String) -> AudioStreamWAV:
 	result.data = pcm
 	_streams[cue] = result
 	return result
+
+func _crush(duration: float, boom_pitch: float) -> AudioStreamWAV:
+	var hammer := load(SAMPLES.impact_hammer) as AudioStreamWAV
+	var collision := load(SAMPLES.impact_ram) as AudioStreamWAV
+	var count := int(CRUSH_RATE * duration)
+	var mix := PackedFloat32Array()
+	mix.resize(count)
+	var noise_state := 90113
+	# Crumple onsets: dense at impact, thinning as the hull folds.
+	var crackles: Array[Vector3] = []
+	for crackle: int in range(CRUSH_CRACKLES):
+		noise_state = (noise_state * 1664525 + 1013904223) & 0x7fffffff
+		var onset := 0.02 + 0.9 * pow(float(crackle) / CRUSH_CRACKLES, 1.6) + (noise_state % 1000) * 0.00002
+		noise_state = (noise_state * 1664525 + 1013904223) & 0x7fffffff
+		crackles.append(Vector3(onset, 420.0 + (noise_state % 1100), 0.5 * pow(0.86, crackle)))
+	var peak := 0.0
+	for sample: int in range(count):
+		var time := sample / float(CRUSH_RATE)
+		noise_state = (noise_state * 1664525 + 1013904223) & 0x7fffffff
+		var noise := noise_state / 1073741824.0 - 1.0
+		var value := _sample_at(hammer, time * CRUSH_HAMMER_SPEED) * 0.8 			+ _sample_at(collision, time * CRUSH_COLLISION_SPEED) * 0.6
+		# Falling sub-bass boom with a hard front.
+		var boom_phase := TAU * (boom_pitch * time - 9.0 * time * time)
+		value += sin(boom_phase) * 0.55 * minf(1.0, time / 0.004) * exp(-time * 3.2)
+		for crackle: Vector3 in crackles:
+			var local := time - crackle.x
+			if local >= 0.0 and local < 0.12:
+				var ring := sin(TAU * crackle.y * local) + 0.5 * sin(TAU * crackle.y * 2.37 * local)
+				value += (noise * 0.7 + ring * 0.4) * crackle.z * exp(-local * 42.0)
+		# Bending steel groans in behind the impact.
+		var groan := sin(TAU * (92.0 * time + 1.8 * sin(TAU * 5.3 * time)))
+		value += groan * 0.14 * smoothstep(0.08, 0.3, time) * exp(-time * 2.2)
+		value = tanh(value * 1.6)
+		mix[sample] = value
+		peak = maxf(peak, absf(value))
+	var pcm := PackedByteArray()
+	pcm.resize(count * 2)
+	var fade := int(CRUSH_RATE * 0.06)
+	for sample: int in range(count):
+		var envelope := minf(1.0, sample / (CRUSH_RATE * 0.001)) * minf(1.0, (count - 1 - sample) / float(fade))
+		pcm.encode_s16(sample * 2, roundi(mix[sample] / peak * CRUSH_PEAK * envelope * 32767.0))
+	var result := AudioStreamWAV.new()
+	result.format = AudioStreamWAV.FORMAT_16_BITS
+	result.mix_rate = CRUSH_RATE
+	result.stereo = false
+	result.data = pcm
+	return result
+
+## Linearly interpolated mono PCM16 value at a time in seconds (0 past the end).
+static func _sample_at(stream: AudioStreamWAV, time: float) -> float:
+	var position := time * stream.mix_rate
+	var index := int(position)
+	var frames := stream.data.size() / 2
+	if index + 1 >= frames:
+		return 0.0
+	var a := stream.data.decode_s16(index * 2) / 32767.0
+	var b := stream.data.decode_s16(index * 2 + 2) / 32767.0
+	return lerpf(a, b, position - index)

@@ -178,12 +178,14 @@ func wall_pin(armoured: bool, walled := true) -> void:
 		world.step(1.0 / 60, true, 1)
 		await physics_frame
 		for event: Dictionary in world.weapons.events:
-			if event.kind == "ram" and event.target == b.entity_id:
+			if event.target != b.entity_id:
+				continue
+			if event.kind == "ram":
 				ram_damage += int(event.damage)
 				if follow < 0:
 					follow = PIN_FOLLOW_FRAMES
-				if event.damage >= physics.ram_pin_damage_base:
-					pin_damage += int(event.damage)
+			elif event.kind == "crush":
+				pin_damage += int(event.damage)
 	print("Wall pin (armoured=%s, walled=%s): ram damage %d, pin damage %d, core %.0f -> %.0f" % [armoured, walled, ram_damage, pin_damage, core_before, b.combat.core])
 	check(ram_damage > 0, "The rammer reaches the victim at ram speed")
 	if not walled:

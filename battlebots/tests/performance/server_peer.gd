@@ -254,7 +254,7 @@ func observe_combat_event(event: Dictionary) -> void:
 		authored_events[kind] = int(authored_events.get(kind, 0)) + 1
 		if measuring:
 			measured_authored_events[kind] = int(measured_authored_events.get(kind, 0)) + 1
-	elif kind != "ram":
+	elif kind not in ["ram", "crush"]:
 		unknown_kind_events += 1
 		measured_unknown_kind_events += int(measuring)
 

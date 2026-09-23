@@ -1022,10 +1022,17 @@ Build `mvp-ab-28` (#50): wall pin. When a ram opens (closing speed above 4 m/s),
 `CombatWorld` remembers the victim's struck face (drive/weapon zones map to
 left/right/front) for `impacts.ram_pin_window_seconds`. If the victim touches static
 arena geometry on its far side (new `DriveBody.static_contacts`, wall-like normals
-only), it takes one extra `ram` event on that face:
+only), it takes one extra hit on that face:
 `ram_pin_damage_base + ram_pin_damage_per_closing_speed * excess`, capped at
 `ram_pin_damage_max`. Armour on the face stops at most `ram_pin_armour_share` (0.2)
 of it via the new `CombatState.damage(zone, raw, armour_share)`; the rest reaches the
 core (data/bot_physics.json).
 Bots now report up to 16
 contacts. Protocol and catalogue unchanged. Needs a matching hosted server release.
+
+Build `mvp-ab-29` (#50): the wall-pin hit is its own combat event kind, `crush`
+(was `ram`), with the same fields. `GameplayAudio` plays `impact_crush`, a 1.6 s
+cue synthesized in `GameplaySoundBank` from the supplied hammer/collision
+recordings plus boom, crackle and groan layers, at +4 dB and past the burst
+throttle. Impact sparks treat it as a heavy hit. Consumers matching only `ram`
+must accept `crush` too. Protocol unchanged; needs a matching hosted release.
