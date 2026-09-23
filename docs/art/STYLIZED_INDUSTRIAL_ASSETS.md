@@ -1,5 +1,8 @@
 # Building convincing stylized industrial robots
 
+For weapon parts, effects, sound and recoil feel, also read
+[WEAPON_FEEL.md](WEAPON_FEEL.md).
+
 This is the working method learned while building Atlas MX, 22–23 September
 2026. The user approved the compact, cohesive V5 design on 22 September and
 requested this record after the final checks. Use its construction and validation

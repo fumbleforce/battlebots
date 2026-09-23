@@ -47,6 +47,9 @@ docs/TEAM_WORKFLOW.md and docs/CONTRACTS.md before implementation.
   development-only.
 - Before bot modelling, material, baking or asset-export work, read
   docs/art/STYLIZED_INDUSTRIAL_ASSETS.md.
+- Before weapon, effects, weapon-sound or recoil work, read
+  docs/art/WEAPON_FEEL.md (how the turret weapons were made to look, sound
+  and feel good, plus a checklist for new parts).
 - Commit source `.uid` and required `.import` files; never commit `.godot/`,
   credentials or export output.
 - After shared contract/scene changes run `tools/check-baseline.ps1` (needs

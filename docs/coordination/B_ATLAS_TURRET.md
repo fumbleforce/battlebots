@@ -1,5 +1,8 @@
 # Atlas MX turret — B, 23 September 2026
 
+Design lessons (looks, sound, recoil, checklist for new parts):
+[WEAPON_FEEL.md](../art/WEAPON_FEEL.md).
+
 Issue: [#36](https://github.com/fumbleforce/battlebots/issues/36). Owner: B.
 The user asked for a modelled Atlas turret carrying a cannon or plasma gun,
 aimed by mouse and controlled like a tank game.
