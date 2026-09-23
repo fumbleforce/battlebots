@@ -1,6 +1,7 @@
 extends SceneTree
 ## Native review captures of match pickups in the real menu game's Practice:
-## stocked markers, a live body swap with the HUD feed, and a perk/credit toast.
+## stocked markers, a live body swap with the HUD feed, perk/credit toasts and a
+## centred notice for a refused pickup.
 ## Run: godot --path battlebots --script res://tools/capture_pickup_review.gd
 var output := "res://exports/pickup-review"
 var game: Node
@@ -68,5 +69,13 @@ func run() -> void:
 	place(world.bots[session.local_entity], items[2].point, PI * 0.25)
 	await settle(25)
 	await capture("03-perk-credit-toasts")
+	# Drive back onto a Nitro the bot now has: the server refuses it with a reason.
+	items[1].kind = "perk"
+	items[1].part = "nitro_boost"
+	items[1].available = true
+	world.pickups.revision += 1
+	place(world.bots[session.local_entity], items[1].point, PI * 0.25)
+	await settle(20)
+	await capture("04-refused-notice")
 	print("PICKUP REVIEW CAPTURED")
 	quit(0)

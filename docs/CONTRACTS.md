@@ -891,7 +891,10 @@ other slot replaces the MvpBot node under the same entity id and emits
 `{match_id, revision, items:[{id, point, kind, part, amount, available}],
 credits:{entity:int}, loadouts:{entity:loadout}, events:[...]}`. Clients apply
 `loadouts` through `apply_loadout` and expose `pickup_view` (without
-loadouts/events), `pickups_changed` and `pickup_collected(event)`. Results
+loadouts/events), `pickups_changed` and `pickup_collected(event)`. A refused touch
+(`MatchPickups.refusals`: `{entity, item, kind, part, reason: equipped|incompatible}`, once per
+contact) goes only to the owning peer via the reliable `_pickup_refused` RPC and emits
+`pickup_refused(event)`. Protocol 10 / `mvp-ab-21`. Results
 participants gain `credits: {pickups, performance, total}`, computed by the
 server with `MatchPickups.reward`. Clients pay `total` into
 `PlayerProfile.wallet` (`CreditWallet`, `user://wallet.cfg`) once per match

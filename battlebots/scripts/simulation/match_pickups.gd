@@ -32,6 +32,12 @@ var items: Array[Dictionary] = []
 var credits: Dictionary = {}
 ## Collections resolved during the latest tick.
 var events: Array[Dictionary] = []
+## Pickups refused during the latest tick: {entity, item, kind, part, reason}.
+## Reported once per contact, not every tick a bot stands on the item. Reason is
+## "equipped" (same part or perk already fitted) or "incompatible".
+var refusals: Array[Dictionary] = []
+var _contacts: Dictionary = {}
+var _previous_contacts: Dictionary = {}
 var revision := 0
 var pool: Array[String] = []
 var _rng := RandomNumberGenerator.new()
@@ -52,11 +58,13 @@ func begin(points: Array[Vector3], seed: int) -> void:
 	events.clear()
 	for index: int in points.size():
 		items.append(_roll({"id":index, "point":points[index]}))
+	_clear_contacts()
 	revision += 1
 
 ## A new round restocks every point. Tallies and match loadouts persist.
 func reset_round() -> void:
 	events.clear()
+	_clear_contacts()
 	for item: Dictionary in items:
 		if not item.available:
 			_roll(item)
@@ -66,10 +74,14 @@ func clear() -> void:
 	items.clear()
 	credits.clear()
 	events.clear()
+	_clear_contacts()
 	revision += 1
 
 func tick(delta: float) -> void:
 	events.clear()
+	refusals.clear()
+	_previous_contacts = _contacts
+	_contacts = {}
 	for item: Dictionary in items:
 		if item.available:
 			continue
@@ -105,6 +117,7 @@ func collect(item: Dictionary, entity_id: int, loadout: Dictionary) -> Dictionar
 	else:
 		var next := swapped(loadout, item.part)
 		if next.is_empty():
+			_refuse(item, entity_id, loadout)
 			return {}
 		event.slot = registry.parts[item.part].category
 		event.loadout = next
@@ -113,6 +126,22 @@ func collect(item: Dictionary, entity_id: int, loadout: Dictionary) -> Dictionar
 	events.append(event)
 	revision += 1
 	return event
+
+func _clear_contacts() -> void:
+	refusals.clear()
+	_contacts = {}
+	_previous_contacts = {}
+
+func _refuse(item: Dictionary, entity_id: int, loadout: Dictionary) -> void:
+	# Key on contents too: a respawn under a parked bot is a new attempt.
+	var key := "%d:%d:%s" % [entity_id, item.id, item.part]
+	_contacts[key] = true
+	if _previous_contacts.has(key):
+		return
+	var slot: String = registry.parts[item.part].category if registry.parts.has(item.part) else ""
+	var equipped: bool = loadout.get("parts") is Dictionary and loadout.parts.get(slot) == item.part
+	refusals.append({"entity":entity_id, "item":item.id, "kind":item.kind, "part":item.part,
+		"reason":"equipped" if equipped else "incompatible"})
 
 ## The picked part replaces the one in its slot. A new body brings the drive it
 ## requires and drops a utility it has no socket for; any other conflict

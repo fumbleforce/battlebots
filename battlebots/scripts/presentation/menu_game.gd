@@ -48,6 +48,7 @@ var game_menu_page: Control
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
+var pickup_notice: PickupNotice
 var jump_gauge: HudJumpGauge
 var _diagnostics_canvas: Control
 var world_markers: BotWorldMarkers
@@ -140,6 +141,10 @@ func _ready() -> void:
 	jump_gauge.name = "JumpGauge"
 	combat_hud.canvas.add_child(jump_gauge)
 	session.pickup_collected.connect(func(event: Dictionary) -> void: pickup_feed.notify(event, session.local_entity))
+	pickup_notice = PickupNotice.new()
+	pickup_notice.name = "PickupNotice"
+	combat_hud.canvas.add_child(pickup_notice)
+	session.pickup_refused.connect(func(event: Dictionary) -> void: pickup_notice.notify(event, pickup_visuals.names))
 	_diagnostics_canvas = Control.new()
 	_diagnostics_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$MatchLayer.add_child(_diagnostics_canvas)
@@ -539,6 +544,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	pickup_feed.apply_text_scale(value.text_scale)
+	pickup_notice.apply_text_scale(value.text_scale)
 	jump_gauge.apply_accessibility(value.text_scale, combat_hud.accent, value.high_contrast)
 	match_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
 	_audio_caption.add_theme_font_size_override("font_size", roundi(18 * value.text_scale))
@@ -684,6 +690,10 @@ func _process(_delta: float) -> void:
 	# Enlarged text moves the practice panel to the top-left; stack beneath it.
 	var practice_left := practice_hud.visible and practice_hud.position.x < 400.0
 	pickup_feed.position.y = practice_hud.position.y + practice_hud.size.y + 12.0 if practice_left else 28.0
+	# Centred just above the audio caption band so the two never overlap.
+	pickup_notice.size = pickup_notice.get_combined_minimum_size()
+	pickup_notice.position = Vector2((combat_hud.canvas.size.x - pickup_notice.size.x) * 0.5,
+		combat_hud.caption_bounds().position.y - pickup_notice.size.y - 6.0)
 	# Diagnostics remain available from the pause screen; ordinary play only
 	# surfaces a connection warning when the session reports degradation.
 	_diagnostics_canvas.visible = preview.pause_menu.visible and not menu_open and not _general_settings_open() and not preview.settings_panel.visible
@@ -889,6 +899,7 @@ func _input(event: InputEvent) -> void:
 func _session_event(kind: String, details: Dictionary) -> void:
 	if kind in ["left", "hosted", "joined"]:
 		pickup_feed.clear_toasts()
+		pickup_notice.clear()
 		_practice_return_screen = ""
 		preview.return_button.text = _default_return_text
 	if kind in ["practice", "practice_restarted", "left"]:

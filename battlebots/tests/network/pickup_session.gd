@@ -3,6 +3,8 @@ extends "res://tests/network/contact_reconciliation.gd"
 ## match credits to both clients, survive reconnect, and pay into results.
 var collected: Array[Dictionary] = []
 var results: Array[Dictionary] = []
+var refused: Array[Dictionary] = []
+var watcher_refused: Array[Dictionary] = []
 
 func require(ok: bool, message: String) -> bool:
 	check(ok, message)
@@ -35,6 +37,8 @@ func run() -> void:
 	var watcher := clients[1]
 	var id := picker.local_entity
 	picker.pickup_collected.connect(func(event: Dictionary) -> void: collected.append(event))
+	picker.pickup_refused.connect(func(event: Dictionary) -> void: refused.append(event))
+	watcher.pickup_refused.connect(func(event: Dictionary) -> void: watcher_refused.append(event))
 	picker.session_event.connect(func(kind: String, details: Dictionary) -> void:
 		if kind == "results": results.append(details))
 	for client: MvpSession in clients:
@@ -59,6 +63,13 @@ func run() -> void:
 		"Clients see the collected item leave the world")
 	check(collected.size() == 1 and collected[0].kind == "part" and collected[0].part == "hammer"
 		and collected[0].entity == id and not collected[0].has("loadout"), "Picker receives one public pickup event")
+	take(0, "part", "hammer", id)
+	if not await require(await until(func() -> bool: return refused.size() == 1),
+		"Picker is told why an already-fitted part is refused"):
+		return
+	check(refused[0].reason == "equipped" and refused[0].part == "hammer" and refused[0].entity == id
+		and not refused[0].has("match_id"), "Refusal carries the reason and part for the HUD")
+	check(watcher_refused.is_empty() and server.world.pickups.items[0].available, "Only the toucher is told; the item stays")
 
 	take(1, "credits", "", id, 50)
 	if not await require(await until(func() -> bool:

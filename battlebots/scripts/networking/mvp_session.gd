@@ -10,6 +10,9 @@ signal combat_event(event: Dictionary)
 signal pickups_changed(view: Dictionary)
 ## One entity collected an item: {entity, kind, part, amount, slot?, credits?}.
 signal pickup_collected(event: Dictionary)
+## This player touched an item it cannot take: {entity, item, kind, part, reason}.
+## Reason is "equipped" or "incompatible". Only the owning player receives it.
+signal pickup_refused(event: Dictionary)
 const MAX_CONTROL_STATE_BYTES := 131072 # Ten players, up to five detailed round results.
 # Arena content this client understands. Older clients cannot build newer arenas,
 # so a host rejects them with a visible update message rather than a bad world.
@@ -748,6 +751,7 @@ func _physics_process(delta: float) -> void:
 	if world.pickups.revision != _pickup_revision:
 		_pickup_revision = world.pickups.revision
 		_publish_pickups()
+	_deliver_refusals()
 	if connection_state == "practice":
 		for event: Dictionary in world.weapons.events:
 			combat_event.emit(event.duplicate(true))
@@ -989,6 +993,29 @@ func _publish_pickups() -> void:
 	for peer: int in peer_entities:
 		if peer != 1 and _peer_can_receive(peer):
 			_pickups.rpc_id(peer, packet)
+
+## A refusal is private feedback for the bot's owner, not public match state.
+func _deliver_refusals() -> void:
+	for event: Dictionary in world.pickups.refusals:
+		var id: int = event.entity
+		var peer: int = players[id].peer if players.has(id) else 0
+		if id == local_entity:
+			pickup_refused.emit(event.duplicate())
+		elif peer != 0 and peer != 1 and _peer_can_receive(peer):
+			var packet := event.duplicate()
+			packet.match_id = match_state.match_id
+			_pickup_refused.rpc_id(peer, var_to_bytes(packet))
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _pickup_refused(packet: PackedByteArray) -> void:
+	if packet.size() > 1024:
+		return
+	var event: Variant = bytes_to_var(packet)
+	if not event is Dictionary or event.get("match_id") != match_view.get("match_id") \
+			or event.get("entity") != local_entity or event.get("reason") not in ["equipped", "incompatible"]:
+		return
+	event.erase("match_id")
+	pickup_refused.emit(event)
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _pickups(packet: PackedByteArray) -> void:

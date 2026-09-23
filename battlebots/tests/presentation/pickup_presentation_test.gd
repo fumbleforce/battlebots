@@ -18,6 +18,7 @@ func run() -> void:
 	await feed()
 	await results()
 	markers()
+	await notice()
 	print("PICKUP PRESENTATION PASS" if failures == 0 else "PICKUP PRESENTATION FAIL")
 	quit(0 if failures == 0 else 1)
 
@@ -114,3 +115,21 @@ func markers() -> void:
 	visuals._show(marker, {"id":0, "point":Vector3(3, 0, 4), "kind":"perk", "part":"nitro_boost", "amount":0, "available":false})
 	check(not marker.visible and (marker.get_node("Token/Core") as MeshInstance3D).mesh is SphereMesh, "Collected items hide and restyle for their next roll")
 	visuals.queue_free()
+
+func notice() -> void:
+	var names := PickupFeed.names_from(ContentRegistry.new())
+	check(PickupNotice.message({"kind":"perk", "part":"nitro_boost", "reason":"equipped"}, names) == "NITRO BOOST ALREADY EQUIPPED",
+		"Equipped perk explains itself")
+	check(PickupNotice.message({"kind":"part", "part":"hammer", "reason":"equipped"}, names) == "HAMMER ALREADY FITTED",
+		"Fitted part explains itself")
+	check(PickupNotice.message({"kind":"part", "part":"standard_wheels", "reason":"incompatible"}, names).ends_with("DOESN'T FIT YOUR BUILD"),
+		"Incompatible part explains itself")
+	var label := PickupNotice.new()
+	root.add_child(label)
+	await process_frame
+	check(not label.visible, "Notice starts hidden")
+	label.notify({"kind":"part", "part":"hammer", "reason":"equipped"}, names)
+	check(label.visible and label.text == "HAMMER ALREADY FITTED", "Refusal shows centred text")
+	label._process(PickupNotice.SECONDS + 0.1)
+	check(not label.visible, "Notice fades away")
+	label.queue_free()

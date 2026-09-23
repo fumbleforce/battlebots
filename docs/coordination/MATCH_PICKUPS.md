@@ -48,6 +48,11 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
   match's credits, and up to three one-line toasts (`PART …`, `PERK …`, `+N CREDITS`) for the local
   player's pickups. The whole feed is about 94 px tall at 720p. It follows HUD text scale and stacks below
   the enlarged practice panel.
+- `PickupNotice` shows centred amber text on a dark backing, just above the audio-caption band, when the
+  server refuses a pickup the local player touched: `NITRO BOOST ALREADY EQUIPPED`, `HAMMER ALREADY
+  FITTED` or `<PART> DOESN'T FIT YOUR BUILD`. It fades after 2.5 s. The server reports a refusal once
+  per contact (again after the bot drives off and back, or the item respawns with new contents), and
+  only to that bot's owner.
 - Results overview shows `+N CREDITS EARNED · performance · pickups`. The menu header shows the
   wallet balance (`%ScrapAmount`, `%ProfileMeta`) in place of the old placeholder scrap readout.
 

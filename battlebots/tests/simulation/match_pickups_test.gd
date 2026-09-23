@@ -79,6 +79,19 @@ func rules() -> void:
 	var before := pickups.revision
 	check(pickups.collect(perk, 4, starter).is_empty() and perk.available and pickups.revision == before,
 		"An ignored perk pickup stays in the world")
+	check(pickups.refusals.size() == 1 and pickups.refusals[0].entity == 4 and pickups.refusals[0].reason == "equipped"
+		and pickups.refusals[0].part == "nitro_boost", "A refused pickup reports why to its toucher")
+	pickups.tick(0.0)
+	pickups.collect(perk, 4, starter)
+	check(pickups.refusals.is_empty(), "A bot parked on a refused item is told once, not every tick")
+	pickups.tick(0.0)
+	pickups.tick(0.0)
+	pickups.collect(perk, 4, starter)
+	check(pickups.refusals.size() == 1, "Driving back onto a refused item tells the player again")
+	pickups.tick(0.0)
+	var wheels := {"id":9, "kind":"part", "part":"standard_wheels", "amount":0, "available":true}
+	pickups.collect(wheels, 5, scorpion)
+	check(pickups.refusals.size() == 1 and pickups.refusals[0].reason == "incompatible", "An unfittable part reports incompatibility")
 	pickups.tick(MatchPickups.RESPAWN_SECONDS - 0.1)
 	check(not item.available, "Collected items wait for their respawn")
 	pickups.tick(0.2)
