@@ -1,10 +1,12 @@
 class_name MvpWeaponVisual
 extends Node3D
 ## Primitive cosmetic placeholder. Never adds collision or awards hits.
-## Lifter/flipper arm: its lip rests on the ground in front of the hull (found
-## with a presentation-only ray, so it follows uneven terrain), trembles harder
-## as the charge builds, snaps violently past vertical on release, holds, then
-## drops back onto the ground.
+## Lifter/flipper arm: it idles level and raised, is driven down with the
+## charge until its lip presses on the ground in front of the hull (found with a
+## presentation-only ray, so it follows uneven terrain) and trembles as it
+## loads, then flips up on release by an angle proportional to the charge,
+## holds, and settles back to idle.
+const LIFTER_IDLE_ANGLE := 0.0
 const LIFTER_LAUNCH_ANGLE := deg_to_rad(100.0)
 ## Deepest the arm may hang when no ground is found below its lip (airborne).
 const LIFTER_MAX_DROP_ANGLE := deg_to_rad(40.0)
@@ -13,15 +15,20 @@ const LIFTER_GROUND_CLEARANCE := 0.03
 ## Loaded-spring tremble at full charge.
 const LIFTER_TREMBLE_AMPLITUDE := deg_to_rad(1.5)
 const LIFTER_TREMBLE_RATE := 70.0
-## Cooldown starts at 3 s on launch; the arm stays extended for its first 0.3 s.
+## CombatState starts a 3 s cooldown on launch while the released charge drains
+## at 1/s; the arm stays extended for the cooldown's first 0.3 s.
+const LIFTER_COOLDOWN_SECONDS := 3.0
+const LIFTER_CHARGE_DRAIN_RATE := 1.0
 const LIFTER_EXTENDED_UNTIL_COOLDOWN := 2.7
 const LIFTER_SNAP_RATE := 90.0
-const LIFTER_GROUND_FOLLOW_RATE := 25.0
-const LIFTER_DROP_RATE := 8.0
+const LIFTER_LOAD_RATE := 25.0
+const LIFTER_SETTLE_RATE := 8.0
 var kind := ""
 ## Forward reach of the lifter arm from its hinge, in the mechanism frame.
 var _lifter_reach := -1.0
 var _lifter_time := 0.0
+## Charge at release of the flip in progress (0 when not flipping).
+var _lifter_launch_strength := 0.0
 var mechanism: Node3D
 var gun_effects: MinigunEffects
 var metal := StandardMaterial3D.new()
@@ -173,15 +180,21 @@ func show_state(view: BotView, delta: float) -> void:
 		mechanism.rotation.x = 0.0 if disabled else angle
 	elif kind == "lifter":
 		_lifter_time += delta
-		var angle := _lifter_ground_angle()
-		var rate := LIFTER_GROUND_FOLLOW_RATE
+		var charge := view.weapon_charge_fraction
+		var angle := lerpf(LIFTER_IDLE_ANGLE, _lifter_ground_angle(), charge)
+		var rate := LIFTER_LOAD_RATE
 		if view.weapon_state == "launch" or view.weapon_cooldown > LIFTER_EXTENDED_UNTIL_COOLDOWN:
-			angle = LIFTER_LAUNCH_ANGLE
+			if is_zero_approx(_lifter_launch_strength):
+				# Snapshots may miss the launch tick; undo the post-release drain.
+				var drained := (LIFTER_COOLDOWN_SECONDS - view.weapon_cooldown) * LIFTER_CHARGE_DRAIN_RATE
+				_lifter_launch_strength = clampf(charge + maxf(drained, 0.0), 0.0, 1.0)
+			angle = lerpf(LIFTER_IDLE_ANGLE, LIFTER_LAUNCH_ANGLE, _lifter_launch_strength)
 			rate = LIFTER_SNAP_RATE
-		elif mechanism.rotation.x > angle + LIFTER_TREMBLE_AMPLITUDE:
-			rate = LIFTER_DROP_RATE
 		else:
-			angle += sin(_lifter_time * LIFTER_TREMBLE_RATE) * LIFTER_TREMBLE_AMPLITUDE * view.weapon_charge_fraction
+			_lifter_launch_strength = 0.0
+			if mechanism.rotation.x > angle + LIFTER_TREMBLE_AMPLITUDE:
+				rate = LIFTER_SETTLE_RATE
+			angle += sin(_lifter_time * LIFTER_TREMBLE_RATE) * LIFTER_TREMBLE_AMPLITUDE * charge
 		if disabled:
 			angle = _lifter_ground_angle()
 		mechanism.rotation.x = lerpf(mechanism.rotation.x, angle, 1 - exp(-delta * rate))

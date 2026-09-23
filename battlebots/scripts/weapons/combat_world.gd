@@ -109,7 +109,9 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				cooldowns[key] = time + 0.3
 			elif state.stats.weapon == "lifter" and not blocked.has(key):
 				if state.launch:
-					_hit(attacker, victim, point, 8, (Vector3.UP * 6 + direction) * victim.body.mass, tick, round_index)
+					# Charge at release (decayed one tick) sets the launch strength.
+					var strength := clampf(state.charge, physics.lifter_min_release_charge, 1.0)
+					_hit(attacker, victim, point, 8 * strength, (Vector3.UP * 6 + direction) * victim.body.mass * strength, tick, round_index)
 				elif state.weapon_phase == "active":
 					pins[key] = float(pins.get(key, 0)) + delta if victim.body.linear_velocity.length() < 0.5 else 0.0
 					if pins[key] >= 5:
@@ -452,7 +454,8 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 		# Tip the struck near edge up and over, away from the flipper.
 		var away := (victim.body.global_position - attacker.body.global_position).slide(Vector3.UP).normalized()
 		if not away.is_zero_approx():
-			victim.body.angular_velocity += Vector3.UP.cross(away) * physics.lifter_flip_spin_at_1g * victim.body.launch_scale()
+			var strength := clampf(attacker.combat.charge, physics.lifter_min_release_charge, 1.0)
+			victim.body.angular_velocity += Vector3.UP.cross(away) * physics.lifter_flip_spin_at_1g * victim.body.launch_scale() * strength
 	attacker.body.apply_central_impulse(-delivered * recoil)
 	event_id += 1
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:

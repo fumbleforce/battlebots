@@ -150,7 +150,11 @@ func run() -> void:
 	var before_brake := bot.body.global_position
 	await drive(120, 1, 1, true)
 	var brake_distance := bot.body.global_position.distance_to(before_brake)
-	check(brake_distance > 2.5 and brake_distance < 5.0, "Strong brakes stop from cruise within one hull length while retaining real stopping distance")
+	# Ideal stopping distance from the configured brake deceleration; the hull
+	# must neither skid on nor stop unphysically short.
+	var ideal_stop := cruise * cruise / (2.0 * float(bot.body.model_config().brake))
+	check(brake_distance > ideal_stop * 0.6 and brake_distance < ideal_stop * 1.4,
+		"Strong brakes stop from cruise close to the configured braking distance")
 	check(bot.body.linear_velocity.length() < 0.15 and bot.body.angular_velocity.length() < 0.15, "Brakes override drive and steering")
 	await reset_bot()
 	await drive(45, 0, -1)

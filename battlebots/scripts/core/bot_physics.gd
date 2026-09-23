@@ -38,6 +38,8 @@ var lifter_impulse_multiplier: float
 ## Flip angular speed (rad/s at 1 g) added to a launched target, scaled by
 ## launch_scale so the flip completes within heft's shorter hang time.
 var lifter_flip_spin_at_1g: float
+## Lowest charge at which a lifter may release; launch strength scales with charge.
+var lifter_min_release_charge: float
 var minigun_impulse_multiplier: float
 ## Upward acceleration while a charging lifter holds a target; scaled by heft.
 var lifter_hold_acceleration_at_1g: float
@@ -51,7 +53,7 @@ const SECTIONS := {
 		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier"],
 	"nitro": ["nitro_acceleration_multiplier", "nitro_top_speed_multiplier", "nitro_grip_multiplier"],
 	"walker": ["lift_headroom_acceleration"],
-	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g",
+	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g", "lifter_min_release_charge",
 		"minigun_impulse_multiplier", "lifter_hold_acceleration_at_1g",
 		"ram_knockback_per_closing_speed", "ram_knockback_lift_fraction"],
 }

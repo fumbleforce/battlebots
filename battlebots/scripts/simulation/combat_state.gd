@@ -174,7 +174,9 @@ func _tick_primary(delta: float, command: BotCommand, active: bool) -> void:
 			_inactive += delta
 			if _inactive >= 1.0:
 				battery = minf(stats.battery, battery + 8 * delta)
-	if stats.weapon == "lifter" and _previous_held and not command.primary_held and not _secondary_brake(command) and eligible and charge >= 1.0:
+	# A partly charged lifter may release; CombatWorld scales its launch by charge.
+	if stats.weapon == "lifter" and _previous_held and not command.primary_held and not _secondary_brake(command) and eligible \
+			and charge >= BotPhysics.settings().lifter_min_release_charge:
 		if battery >= 20:
 			battery -= 20
 			heat = minf(100, heat + 18)
