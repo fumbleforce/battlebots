@@ -6,7 +6,7 @@ render_mode cull_disabled;
 #include "res://assets/materials/arena/woodland_common.gdshaderinc"
 uniform sampler2D atlas : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform float cutoff = 0.42;
-uniform vec3 tint : source_color = vec3(1.0, 1.0, 1.0);
+uniform vec3 tint : source_color = vec3(0.78, 0.82, 0.74);
 varying float seed;
 void vertex() {
 	vec3 origin = MODEL_MATRIX[3].xyz;
@@ -24,5 +24,5 @@ void fragment() {
 	ALBEDO = col;
 	ROUGHNESS = 0.8;
 	SPECULAR = 0.3;
-	BACKLIGHT = col * 0.5;
+	BACKLIGHT = col * 0.22;
 }

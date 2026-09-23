@@ -9,9 +9,9 @@ extends Node3D
 const GROUND = preload("res://scripts/arena/woodland_ground.gd")
 const FLORA = preload("res://scripts/arena/woodland_flora.gd")
 const NATURE = preload("res://scripts/arena/woodland_nature.gd")
-const SKY = preload("res://assets/materials/arena/woodland_sky.gdshader")
 ## Views span the 240 m bowl and the valley; see #34 for the camera handoff.
-const VIEW_DISTANCE := 1600.0
+const VIEW_DISTANCE := 12000.0
+const SKY_ENERGY := 1.6
 const WOOD = preload("res://assets/materials/arena/woodland_wood.gdshader")
 const IRON = preload("res://assets/materials/arena/woodland_iron.gdshader")
 const CANVAS = preload("res://assets/materials/arena/woodland_canvas.gdshader")
@@ -963,16 +963,20 @@ func _icosphere(subdivisions: int) -> Dictionary:
 func _lighting(arena: Node) -> void:
 	var world := arena.get_node("WorldEnvironment") as WorldEnvironment
 	var env := Environment.new()
+	# CC0 HDRI sky (assets/textures/woodland/CREDITS.md). The key light below is
+	# aimed along the photographed sun, so the visible sun, shadows and sky light agree.
 	var sky := Sky.new()
-	var sky_mat := ShaderMaterial.new()
-	sky_mat.shader = SKY
+	var sky_mat := PanoramaSkyMaterial.new()
+	sky_mat.panorama = load("res://assets/textures/woodland/woodland_sky_4k.hdr")
+	sky_mat.energy_multiplier = SKY_ENERGY
 	sky.sky_material = sky_mat
-	sky.process_mode = Sky.PROCESS_MODE_REALTIME
+	sky.process_mode = Sky.PROCESS_MODE_QUALITY
 	sky.radiance_size = Sky.RADIANCE_SIZE_256
 	env.sky = sky
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.55
+	env.ambient_light_sky_contribution = 1.0
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_exposure = 1.0
@@ -985,26 +989,30 @@ func _lighting(arena: Node) -> void:
 	env.glow_intensity = 0.3
 	env.glow_hdr_threshold = 1.8
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.74, 0.74, 0.76)
+	env.fog_light_color = Color(0.62, 0.68, 0.76)
 	env.fog_light_energy = 0.9
 	env.fog_sun_scatter = 0.3
-	env.fog_density = 0.00028
+	env.fog_density = 0.00016
 	env.fog_height = 2.0
 	env.fog_height_density = 0.01
-	env.fog_aerial_perspective = 0.5
-	env.fog_sky_affect = 0.15
+	env.fog_aerial_perspective = 0.35
+	env.fog_sky_affect = 0.0
 	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.0012
+	env.volumetric_fog_density = 0.0007
 	env.volumetric_fog_albedo = Color(0.86, 0.8, 0.7)
 	env.volumetric_fog_anisotropy = 0.55
 	env.volumetric_fog_length = 110.0
-	env.volumetric_fog_ambient_inject = 0.15
+	env.volumetric_fog_ambient_inject = 0.0
 	env.volumetric_fog_sky_affect = 0.0
 	world.environment = env
 	var sun := arena.get_node("Sun") as DirectionalLight3D
-	sun.rotation_degrees = Vector3(-36, 205, 0)
-	sun.light_color = Color(1.0, 0.87, 0.7)
-	sun.light_energy = 1.65
+	# Panorama u 0.5997 / elevation 37.8 deg: Godot maps u to atan(x, z) / TAU.
+	var azimuth := 0.5997 * TAU
+	var elevation := deg_to_rad(37.84)
+	var toward_sun := Vector3(sin(azimuth) * cos(elevation), sin(elevation), cos(azimuth) * cos(elevation))
+	sun.transform = Transform3D(Basis.looking_at(-toward_sun, Vector3.UP), Vector3.ZERO)
+	sun.light_color = Color(1.0, 0.9, 0.76)
+	sun.light_energy = 1.7
 	sun.light_angular_distance = 0.6
 	sun.shadow_enabled = true
 	sun.shadow_blur = 1.2
