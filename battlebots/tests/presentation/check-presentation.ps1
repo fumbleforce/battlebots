@@ -59,6 +59,7 @@ $checks = @(
     @('menu_text_screens_test.gd', 'MENU TEXT SCREENS PASS'),
     @('match_menu_text_test.gd', 'MATCH MENU TEXT PASS'),
     @('combat_hud_test.gd', 'COMBAT HUD PASS'),
+    @('jump_gauge_test.gd', 'JUMP GAUGE PASS'),
     @('compact_hud_test.gd', 'COMPACT HUD PASS'),
     @('game_hud_test.gd', 'GAME HUD PASS'),
     @('match_hud_layout_test.gd', 'MATCH HUD LAYOUT PASS'),
