@@ -39,6 +39,7 @@ var _low_core := false
 var _recovery_cooldown := 0.0
 
 func _ready() -> void:
+	add_to_group(&"gameplay_audio")
 	for cue: String in ["crowd_round", "crowd_match"]:
 		_bank.stream(cue)
 	for index: int in EFFECT_VOICES:
@@ -218,6 +219,12 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	if event.attacker == local_entity: caption = kind.capitalize() + " hit"
 	elif event.target == local_entity: caption = "Hit by " + kind
 	_play("impact_" + kind, caption, false, false, false, -1, event.position)
+
+## A hammer that lands on the arena has no combat event; its shockwave still
+## sounds like a hammer blow at the slam point.
+func ground_slam(position: Vector3) -> void:
+	if not position.is_finite(): return
+	_play("impact_hammer", "Hammer slam", false, false, false, -1, position)
 
 ## Local credit pickups ring a short coin cue. Other players' pickups are silent.
 func pickup_collected(event: Dictionary, local_entity: int) -> void:

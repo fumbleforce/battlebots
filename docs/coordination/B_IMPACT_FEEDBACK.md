@@ -83,13 +83,15 @@ event fields, protocol or catalogue changes. Hit stagger and hammer knockback
 - Hammer impacts add a shockwave laid on the struck face (a short read-only ray
   through the event contact finds the real surface normal, since event normals
   point from the victim centre): a glowing, screen-
-  refracting ring (`impact_shockwave.gdshader`, radius 2.6-4.4 m by damage, 0.5 s)
-  and a radial dust front (40 soft puffs). At most four rings, retired after 0.85 s.
+  refracting ring (`impact_shockwave.gdshader`, radius 4.2-6.8 m by damage, 0.6 s)
+  and a radial dust front (64 soft puffs). At most four rings, retired after 0.85 s.
   `clear_effects()` hides live GPU particles too, so resets never leave debris.
 - `HammerSlamDetector` (per hammer bot, presentation only) spots the strike edge
   (`strike` state, or a fresh cooldown when snapshots skip that tick), places the
   head at the end of the authoritative swing and casts down. A world surface first
-  gives `spawn_ground_slam`; a bot first is left to the confirmed combat event.
+  gives `spawn_ground_slam`, which also calls `GameplayAudio.ground_slam()` (the
+  `impact_hammer` cue, group `gameplay_audio`); a bot first is left to the
+  confirmed combat event and its existing hammer cue.
 - Hammer rings call `add_impact_shake(origin, strength)` on the `bot_orbit_cameras`
   group; the local rig attenuates it to zero beyond 14 m x bot scale.
 - `NitroFlameVisual` (created by `MvpBot` only with Nitro equipped, non-headless)
@@ -112,7 +114,11 @@ event fields, protocol or catalogue changes. Hit stagger and hammer knockback
 - Hammer force: blows knock the target away from the attacker and lift it
   (`HAMMER_KNOCKBACK` 2.0, `HAMMER_LIFT` 1.5 m/s before the shared impact multiplier
   and heavy-gravity launch scale) instead of pressing it into the floor.
-- Minigun: one pooled pressure ring per accepted shot at the muzzle (0.2 s) and
+- Minigun: one pooled pressure ring per accepted shot at the barrel end (0.2 s).
+  `MvpBot` gives each `MinigunEffects` the authoritative muzzle geometry, so flash,
+  tracer and ring start at `ScorpionGeometry.gun_muzzle + gun_offset` on the current
+  visual pose; snapshot origins trail a moving bot and use the breech at point-blank.
+  Shot audio stays on the accepted report origin. Barrel smoke and
   barrel smoke driven by presentation heat, strongest after the trigger is released.
 - `BotOrbitCamera` eases in a +14 degree FOV kick, 10% boom stretch, a very light
   rumble and neutral white speed lines with a faint dark vignette (CanvasLayer -8,

@@ -27,6 +27,10 @@ var _ring_serial := 0
 var smoke: GPUParticles3D
 var barrel_heat := 0.0
 var _since_shot := 10.0
+## Authoritative projectile spawn: ScorpionGeometry muzzle plus the body gun offset,
+## applied to the current visual pose so effects start at the barrel end.
+var _hull_size := Vector3.ZERO
+var _gun_offset := Vector3.ZERO
 
 func configure(barrels: Node3D, socket: Node3D, geometry_scale: float, mount: Node3D = null) -> void:
 	rotor = barrels
@@ -91,6 +95,16 @@ func configure(barrels: Node3D, socket: Node3D, geometry_scale: float, mount: No
 		_rings.append({"node":ring, "age":1.0, "origin":Transform3D.IDENTITY, "reach":0.7})
 	smoke = _barrel_smoke()
 
+func set_shot_geometry(hull_size: Vector3, gun_offset: Vector3) -> void:
+	_hull_size = hull_size
+	_gun_offset = gun_offset
+
+## Where the projectile leaves the barrel now. Snapshot origins trail a moving
+## bot and fall back to the breech at point-blank range.
+func shot_origin(pose: Transform3D, pitch: float, fallback: Vector3) -> Vector3:
+	if _hull_size == Vector3.ZERO or not pose.is_finite() or not is_finite(pitch): return fallback
+	return pose * (ScorpionGeometry.gun_muzzle(_hull_size, pitch) + _gun_offset)
+
 func _mesh(shape: Mesh, material: Material) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
 	node.mesh = shape
@@ -119,7 +133,7 @@ func show_state(view: BotView, delta: float, primary := false) -> void:
 		_seen = view.shot_sequence
 		if not view.eliminated and view.last_shot_tick >= 0 and view.last_shot_tick <= view.server_tick \
 			and view.server_tick - view.last_shot_tick <= 12:
-			_fire(view.last_shot_from, view.last_shot_to, view.pose)
+			_fire(shot_origin(view.pose, view.gun_pitch, view.last_shot_from), view.last_shot_to, view.pose, view.last_shot_from)
 	_tick = view.server_tick
 	if view.eliminated: clear_effects()
 	_flash_age += delta
@@ -138,7 +152,8 @@ func show_state(view: BotView, delta: float, primary := false) -> void:
 			casing.node.global_position += Vector3(casing.velocity) * delta
 			casing.node.rotation += Vector3(casing.spin) * delta
 
-func _fire(from: Vector3, to: Vector3, pose: Transform3D) -> void:
+## `from` is the visual barrel end; audio stays on the accepted report origin.
+func _fire(from: Vector3, to: Vector3, pose: Transform3D, report_from: Vector3) -> void:
 	var direction := to - from
 	if direction.length_squared() < 0.0001: return
 	var distance := direction.length()
@@ -152,7 +167,7 @@ func _fire(from: Vector3, to: Vector3, pose: Transform3D) -> void:
 	flash.global_transform = Transform3D(frame, from + direction * 0.12 * _scale)
 	light.global_position = from
 	_flash_age = 0.0
-	_spawn_ring(from + direction * 0.1 * _scale, frame, 0.9, 0.7)
+	_spawn_ring(from, frame, 0.9, 0.7)
 	barrel_heat = minf(1.0, barrel_heat + SHOT_HEAT)
 	_since_shot = 0.0
 	var casing: Dictionary = _casings[shot_count % CASINGS]
@@ -161,7 +176,7 @@ func _fire(from: Vector3, to: Vector3, pose: Transform3D) -> void:
 	casing.velocity = (pose.basis.x * 1.3 + Vector3.UP * 0.8) * _scale
 	casing.spin = Vector3(9, 15, 4)
 	shot_count += 1
-	weapon_audio.fire(from)
+	weapon_audio.fire(report_from)
 
 func clear_effects() -> void:
 	if weapon_audio != null: weapon_audio.reset()

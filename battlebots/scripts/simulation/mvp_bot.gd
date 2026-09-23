@@ -165,6 +165,9 @@ func _ready() -> void:
 			legs.exclusions = [body.get_rid()]
 			legs.assemble(stats.size, material, SawbladeConfig.defaults())
 	if DisplayServer.get_name() != "headless":
+		var gun_offset := AtlasGeometry.gun_offset(loadout, stats.size)
+		for node: Node in presentation.find_children("*", "Node3D", true, false):
+			if node is MinigunEffects: (node as MinigunEffects).set_shot_geometry(stats.size, gun_offset)
 		_create_damage_visual(stats.size)
 		destruction_visual = BotDestructionVisual.new()
 		add_child(destruction_visual)

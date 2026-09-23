@@ -2,6 +2,11 @@ extends Node3D
 ## Isolated cosmetic impact acceptance; no simulation or network producer involved.
 const KINDS := ["vertical_spinner","horizontal_spinner","saw","hammer","lifter","ram"]
 var failures: Array[String] = []
+class SlamAudioProbe extends Node:
+	var slams := 0
+	func ground_slam(_position: Vector3) -> void:
+		slams += 1
+
 class ShakeProbe extends Node:
 	var calls := 0
 	var strength := 0.0
@@ -93,6 +98,32 @@ func run() -> void:
 	effect._process(0.2)
 	check(effect.shockwave_count() == 1,"The next swing rings again once the window has passed")
 	effect.clear_effects()
+	# Every ground shockwave sounds like a hammer blow; bot hits keep their event cue.
+	var listener := SlamAudioProbe.new()
+	listener.add_to_group(&"gameplay_audio")
+	add_child(listener)
+	effect.spawn_ground_slam(Vector3(1,0,1),Vector3.UP)
+	check(listener.slams == 1,"Immediate ground slam plays the hammer sound")
+	effect.clear_effects()
+	effect.spawn_ground_slam(Vector3(1,0,1),Vector3.UP,0.8,21)
+	check(listener.slams == 1,"A pending slam waits before sounding")
+	effect._process(0.2)
+	check(listener.slams == 2,"The released ground slam sounds with its ring")
+	effect.clear_effects()
+	effect.spawn_ground_slam(Vector3(1,0,1),Vector3.UP,0.8,22)
+	effect.spawn_impact(Vector3(0,1,0),Vector3.UP,"hammer",38.0,22)
+	effect._process(0.3)
+	check(listener.slams == 2,"A slam claimed by a bot hit stays silent (the event cue plays)")
+	effect.clear_effects()
+	listener.free()
+	var audio := GameplayAudio.new()
+	add_child(audio)
+	var cues: Array[String] = []
+	audio.cue_played.connect(func(cue: String) -> void: cues.append(cue))
+	audio.ground_slam(Vector3(2,0,2))
+	audio.ground_slam(Vector3(NAN,0,0))
+	check(cues == ["impact_hammer"],"GameplayAudio plays the hammer cue for a ground slam: %s" % [cues])
+	audio.free()
 	await check_slam_detector()
 	effect.spawn_impact(Vector3.ZERO,Vector3.UP,"lifter",0.0)
 	check(effect.spark_count() > 0 and effect.fragment_count() == 0,"Zero-damage contact has sparks without damage fragments")

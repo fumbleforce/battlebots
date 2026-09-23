@@ -58,5 +58,25 @@ func run() -> void:
 	effects.clear_effects()
 	check(effects.ring_count() == 0 and effects.barrel_heat == 0.0 and not effects.smoke.emitting, "Clear removes rings and smoke")
 	effects.free()
+	# With shot geometry the ring sits on the authoritative barrel end at the
+	# current pose, even when the snapshot origin trails or is the breech.
+	var hull := Vector3(4.8, 1.5, 6.0)
+	var armed := MinigunEffects.new()
+	add_child(armed)
+	armed.configure(rotor, muzzle, 3.0)
+	armed.set_shot_geometry(hull, Vector3.ZERO)
+	var pose := Transform3D(Basis(Vector3.UP, 0.4), Vector3(3, 0.75, -2))
+	var expected := pose * ScorpionGeometry.gun_muzzle(hull, 0.0)
+	armed.show_state(shot_view(0, 100), 1.0 / 60.0)
+	var trailing := shot_view(1, 105)
+	trailing.pose = pose
+	trailing.last_shot_from = pose * ScorpionGeometry.gun_breech(hull, 0.0)
+	trailing.last_shot_to = expected + pose.basis * Vector3(0, 0, -20)
+	armed.show_state(trailing, 1.0 / 60.0)
+	var armed_ring: MeshInstance3D = armed.find_child("MuzzleRing0", false, false)
+	check(armed.ring_count() == 1 and armed_ring.global_position.distance_to(expected) < 0.01,
+		"Muzzle ring spawns at the barrel end: %s vs %s" % [armed_ring.global_position, expected])
+	check(armed.shot_origin(pose, 0.0, Vector3.ZERO).is_equal_approx(expected), "Shot origin follows the visual pose")
+	armed.free()
 	if failures == 0: print("MINIGUN EFFECTS PASS")
 	get_tree().quit(0 if failures == 0 else 1)

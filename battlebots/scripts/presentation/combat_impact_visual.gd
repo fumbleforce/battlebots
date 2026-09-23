@@ -7,7 +7,7 @@ const MAX_BURSTS := 10
 const MAX_SHOCKWAVES := 4
 const BURST_LIFETIME := 1.2
 const SHOCKWAVE_LIFETIME := 0.85
-const RING_DURATION := 0.5
+const RING_DURATION := 0.6
 ## One hammer swing makes one ring. A ground slam waits briefly so a late bot-hit
 ## event from the same swing can claim the ring on the struck bot instead.
 const ONE_RING_WINDOW := 0.8
@@ -104,6 +104,7 @@ func _claim_ring(source: int) -> bool:
 	return true
 
 func _slam_now(position: Vector3, normal: Vector3, strength: float) -> void:
+	get_tree().call_group(&"gameplay_audio", &"ground_slam", position)
 	var up := normal.normalized() if normal.length_squared() > 0.000001 else Vector3.UP
 	var frame := _frame_for(up)
 	var damage := clampf(strength, 0.0, 1.0) * 45.0
@@ -275,7 +276,7 @@ func _spawn_shockwave(origin: Vector3, frame: Basis, damage: float) -> void:
 	wave.active = true
 	wave.age = 0.0
 	wave.strength = strength
-	wave.radius = lerpf(2.6, 4.4, strength)
+	wave.radius = lerpf(4.2, 6.8, strength)
 	# The ring lies across the struck surface; lift it clear to avoid z-fighting.
 	wave.origin = Transform3D(frame, origin + frame.y * 0.04)
 	var ring: MeshInstance3D = wave.ring
@@ -367,7 +368,7 @@ func _make_shockwave(index: int) -> Dictionary:
 	ring.hide()
 	_burst_root.add_child(ring)
 	ring.top_level = true
-	var dust := _one_shot_emitter("ShockDust" + str(index), 40, 0.75, _dust_material(), _puff())
+	var dust := _one_shot_emitter("ShockDust" + str(index), 64, 0.8, _dust_material(), _puff())
 	dust.explosiveness = 1.0
 	return {"ring":ring, "dust":dust, "active":false, "age":0.0, "strength":0.0,
 		"radius":1.0, "origin":Transform3D.IDENTITY, "serial":0}
@@ -384,7 +385,7 @@ func _one_shot_emitter(label: String, amount: int, lifetime: float,
 	emitter.emitting = false
 	emitter.visible = false
 	emitter.local_coords = false
-	emitter.visibility_aabb = AABB(Vector3(-6, -3, -6), Vector3(12, 7, 12))
+	emitter.visibility_aabb = AABB(Vector3(-9, -3, -9), Vector3(18, 8, 18))
 	emitter.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	emitter.process_material = motion
 	emitter.draw_pass_1 = mesh
@@ -426,22 +427,22 @@ static func _dust_material() -> ParticleProcessMaterial:
 	# A flat ring blown outward along the struck surface reads as the blast front.
 	motion.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
 	motion.emission_ring_axis = Vector3.UP
-	motion.emission_ring_radius = 0.35
-	motion.emission_ring_inner_radius = 0.2
+	motion.emission_ring_radius = 0.6
+	motion.emission_ring_inner_radius = 0.35
 	motion.emission_ring_height = 0.05
 	motion.direction = Vector3.UP
 	motion.spread = 12.0
 	motion.initial_velocity_min = 0.2
 	motion.initial_velocity_max = 0.7
-	motion.radial_velocity_min = 10.0
-	motion.radial_velocity_max = 13.0
+	motion.radial_velocity_min = 15.0
+	motion.radial_velocity_max = 20.0
 	motion.damping_min = 11.0
 	motion.damping_max = 14.0
 	motion.gravity = Vector3(0, 0.25, 0)
 	motion.angle_min = -180.0
 	motion.angle_max = 180.0
-	motion.scale_min = 0.8
-	motion.scale_max = 1.3
+	motion.scale_min = 1.1
+	motion.scale_max = 1.8
 	motion.scale_curve = _curve([Vector2(0, 0.3), Vector2(0.35, 0.8), Vector2(1, 1.0)])
 	var gradient := Gradient.new()
 	gradient.offsets = PackedFloat32Array([0.0, 0.1, 0.45, 1.0])
