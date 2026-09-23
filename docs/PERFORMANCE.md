@@ -83,6 +83,15 @@ Forward+, Vulkan); treat them as relative guides, not budgets.
 - **Measure before rewriting shaders.** Stubbing every procedural noise call in
   the Woodland shaders changed GPU time by less than run-to-run noise; the cost
   was geometry, shadows and overdraw, not ALU.
+- **Occlusion culling needs occludable pieces.** Box occluders on all eight
+  palisade faces culled almost nothing (the valley, mountains and forest sectors
+  are a few huge objects never fully hidden) and doubled render CPU time. Only
+  revisit if distant scenery is split into small chunks.
+- **Know what a cost scales with before cutting detail.** Halving the near
+  terrain grid removed only ~0.1 M triangles; the terrain's cost is its pixel
+  shading, so coarser geometry would lose detail for nothing. Bot models already
+  import with generated LODs and shadow meshes; their shadows cost ~0.2 ms in a
+  brawl.
 - **Beware many unique shaders.** Every distinct ShaderMaterial shader adds
   first-draw setup and pipeline variants; prefer shared shaders with uniforms.
 
@@ -93,8 +102,6 @@ Forward+, Vulkan); treat them as relative guides, not budgets.
 - Build heavy presentation over several frames instead of in one `_ready`.
 - Fewer, larger scatter chunks or GPU-driven scatter to cut draw calls
   (~5 k draws in a brawl).
-- Occlusion culling (`OccluderInstance3D`) for the stands and palisade; the arena
-  wall hides most of the valley from low cameras.
 - Cheaper combat particles (fewer, larger, shared materials) — owned with the
   weapon-feel work; measure with the stress tool.
 - A graphics-quality preset that lowers shadow distance, SSIL/SSR and scatter
