@@ -179,6 +179,12 @@ offsets. Raising the terminal hood underside resolved the contacts without
 enlarging the footprint. Shortening the outer hinge-pin ends by 3 mm provides
 3.5 mm lateral clearance to the skirts.
 
+Check backing end caps as well as large faces: lowering/insetting a supporting
+strip can still leave its terminal caps coplanar with the outer panel. Atlas
+showed moving diagonal edge stripes despite passing belt clearance. Its terminal
+seats now stop 3 mm inside both hood ends; `python3 tools/atlas_hood_seats.py`
+checks that gap in both runtime assets. See [the native before/after evidence](../coordination/ATLAS_HOOD_FLICKER.md).
+
 Use a declared collision-check scope and narrow exclusions. The final audit
 checks 6,454 mesh pairs across eight sampled belt positions, retains only 388
 intentional central-axle triangle contacts, and allows no shoe/armor exclusions.

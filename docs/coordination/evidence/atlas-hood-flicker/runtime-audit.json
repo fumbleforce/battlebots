@@ -1,0 +1,40 @@
+{
+  "atlas_mx.glb": {
+    "sha256": "6de15873d7fe5caf8e0173dd1848b2506588d1ce0b0f4a5bc2197544fccb5d16",
+    "modified_vertex_bytes": 5428,
+    "updated_accessor_bounds": [
+      0,
+      264
+    ],
+    "all_other_metadata_and_buffers_unchanged": true,
+    "caps": {
+      "DriveLeftSurface": {
+        "seat_vertices": 234,
+        "minimum_cap_gap_m": 0.002999993801116929
+      },
+      "DriveRightSurface": {
+        "seat_vertices": 234,
+        "minimum_cap_gap_m": 0.002999993801116929
+      }
+    }
+  },
+  "atlas_drives.glb": {
+    "sha256": "0c7a955d239785ee7f04edebbdc0815f57445d4bbd915c16ddd07a20f80e4d69",
+    "modified_vertex_bytes": 5519,
+    "updated_accessor_bounds": [
+      196,
+      216
+    ],
+    "all_other_metadata_and_buffers_unchanged": true,
+    "caps": {
+      "SponsonLeft": {
+        "seat_vertices": 240,
+        "minimum_cap_gap_m": 0.002999993801116929
+      },
+      "SponsonRight": {
+        "seat_vertices": 237,
+        "minimum_cap_gap_m": 0.002999993801116929
+      }
+    }
+  }
+}

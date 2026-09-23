@@ -5,6 +5,15 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Atlas terminal hood edge flicker (#66) — 23 September 2026
+
+Recessed the structural backing end caps by 3 mm to remove their coplanar
+overlap with the yellow hood. Updated the Blender source, generator and both
+runtime Atlas/sponson assets, preserving the exterior, UVs and painted maps.
+Native moving-camera/belt captures, cap-gap audit, sampled source clearance,
+baseline and Atlas assembly/drive checks pass.
+[Cause, reproduction and before/after evidence](coordination/ATLAS_HOOD_FLICKER.md).
+
 ## Direct-launch startup regression (#65) — 23 September 2026
 
 Fixed the controller helper's reliance on a refreshed editor class cache. Both

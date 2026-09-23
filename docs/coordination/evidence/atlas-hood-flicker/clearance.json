@@ -1,0 +1,1593 @@
+{
+  "schema_version": 1,
+  "asset_revision": "V5",
+  "asset_stage": "production",
+  "executed_utc": "2026-09-23T20:33:34.556980+00:00",
+  "blender_version": "5.2.2 LTS",
+  "command_powershell": "& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' --background 'art_source/atlas_mx/atlas_mx.blend' --python docs/coordination/evidence/b-atlas-v5-clearance-2026-09-22.py -- --source 'art_source/atlas_mx/atlas_mx.blend' --model 'battlebots/assets/models/atlas_runtime/atlas_mx.glb' --report '/tmp/atlas-hood-clearance.json'",
+  "working_directory": "repository root",
+  "source_blend": {
+    "path": "art_source/atlas_mx/atlas_mx.blend",
+    "sha256": "66f1d70707aab897a045689acfd5bac91646290845fa901dd6c3f97c66e66306"
+  },
+  "runtime_model": {
+    "path": "battlebots/assets/models/atlas_runtime/atlas_mx.glb",
+    "sha256": "6de15873d7fe5caf8e0173dd1848b2506588d1ce0b0f4a5bc2197544fccb5d16"
+  },
+  "manifest": {
+    "path": "battlebots/assets/models/atlas_runtime/atlas_manifest.json",
+    "sha256": "72270f6fca35361b0f6574325958bf17cc6414ca92f233992cef814d3d870088"
+  },
+  "script_sha256": "ffebe68dd568482ebc3b0099f2086f2c563bf2266f71043b739705473975c056",
+  "method": "World-space triangle BVHTree.overlap on the saved Blender source at its authored rest phase; both sides checked independently.",
+  "geometry_coverage": "Final joined meshes include rounded wheel hardware and V5 cohesive armor. V4 wheel pair coverage and central axle exclusions remain unchanged. Additional V5 checks compare all authored shoes/connectors to their stationary drive and hull armor, and base footprint to the recorded V4 envelope.",
+  "central_axle_exclusion": {
+    "rule": "For each wheel/DriveSurface intersecting triangle pair, exclude only when every vertex of the stationary triangle is within wheel_radius * 0.22 + 0.0001 metres of the wheel X axis. The radial distance uses world Blender Y/Z relative to the wheel pivot.",
+    "radius_multiplier": 0.22,
+    "tolerance_m": 0.0001,
+    "purpose": "Permit the intentional central axle joints; all other stationary-surface intersections remain failures."
+  },
+  "limits": [
+    "Checks surface-triangle intersections, not volumetric containment.",
+    "Belt motion samples eight fractional shoe-pitch offsets; this is a discrete pose check, not a mathematical continuous sweep or deformation check. Wheel rotations are not sampled.",
+    "Connector/shoe overlap and wheel/shoe engagement are outside this bounded check; shoe/connector checks against stationary armor have no contact exclusions.",
+    "Optional armor, weapons, physics collision shapes, gameplay and renderer materials are outside this check.",
+    "Runtime GLB hash identifies the accompanying export; these BVH counts use the saved Blender source, not a separate GLB reimport."
+  ],
+  "sides": {
+    "L": {
+      "stationary_mesh": "DriveLeftSurface",
+      "wheels": [
+        {
+          "name": "Wheel_L_Front",
+          "radius_m": 0.388,
+          "mesh": "Wheel_L_FrontSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 34,
+          "excluded_axle_triangle_pairs": 34,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Rear",
+          "radius_m": 0.388,
+          "mesh": "Wheel_L_RearSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 34,
+          "excluded_axle_triangle_pairs": 34,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller0",
+          "radius_m": 0.12,
+          "mesh": "Wheel_L_Roller0Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller1",
+          "radius_m": 0.12,
+          "mesh": "Wheel_L_Roller1Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Roller2",
+          "radius_m": 0.12,
+          "mesh": "Wheel_L_Roller2Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_L_Return",
+          "radius_m": 0.105,
+          "mesh": "Wheel_L_ReturnSurface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ],
+      "wheel_pair_intersections": {
+        "Front/Rear": 0,
+        "Front/Roller0": 0,
+        "Front/Roller1": 0,
+        "Front/Roller2": 0,
+        "Front/Return": 0,
+        "Rear/Roller0": 0,
+        "Rear/Roller1": 0,
+        "Rear/Roller2": 0,
+        "Rear/Return": 0,
+        "Roller0/Roller1": 0,
+        "Roller0/Roller2": 0,
+        "Roller0/Return": 0,
+        "Roller1/Roller2": 0,
+        "Roller1/Return": 0,
+        "Roller2/Return": 0
+      },
+      "connectors": {
+        "node_pattern": "TrackConnector_L_{00..39}",
+        "count": 40,
+        "wheel_pair_checks": 240,
+        "triangle_pairs_by_wheel": {
+          "Front": 0,
+          "Rear": 0,
+          "Roller0": 0,
+          "Roller1": 0,
+          "Roller2": 0,
+          "Return": 0
+        }
+      },
+      "belt_stationary_intersections": [
+        {
+          "name": "Tread_L_00",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_01",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_02",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_03",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_04",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_05",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_06",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_07",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_08",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_09",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_10",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_11",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_12",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_13",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_14",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_15",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_16",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_17",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_18",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_19",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_20",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_21",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_22",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_23",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_24",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_25",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_26",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_27",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_28",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_29",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_30",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_31",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_32",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_33",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_34",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_35",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_36",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_37",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_38",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_L_39",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_00",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_01",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_02",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_03",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_04",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_05",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_06",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_07",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_08",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_09",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_10",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_11",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_12",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_13",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_14",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_15",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_16",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_17",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_18",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_19",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_20",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_21",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_22",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_23",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_24",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_25",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_26",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_27",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_28",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_29",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_30",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_31",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_32",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_33",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_34",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_35",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_36",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_37",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_38",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_L_39",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ]
+    },
+    "R": {
+      "stationary_mesh": "DriveRightSurface",
+      "wheels": [
+        {
+          "name": "Wheel_R_Front",
+          "radius_m": 0.388,
+          "mesh": "Wheel_R_FrontSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Rear",
+          "radius_m": 0.388,
+          "mesh": "Wheel_R_RearSurface",
+          "mesh_triangle_count": 7500,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller0",
+          "radius_m": 0.12,
+          "mesh": "Wheel_R_Roller0Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller1",
+          "radius_m": 0.12,
+          "mesh": "Wheel_R_Roller1Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Roller2",
+          "radius_m": 0.12,
+          "mesh": "Wheel_R_Roller2Surface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Wheel_R_Return",
+          "radius_m": 0.105,
+          "mesh": "Wheel_R_ReturnSurface",
+          "mesh_triangle_count": 2380,
+          "drive_triangle_pairs": 32,
+          "excluded_axle_triangle_pairs": 32,
+          "unexpected_stationary_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ],
+      "wheel_pair_intersections": {
+        "Front/Rear": 0,
+        "Front/Roller0": 0,
+        "Front/Roller1": 0,
+        "Front/Roller2": 0,
+        "Front/Return": 0,
+        "Rear/Roller0": 0,
+        "Rear/Roller1": 0,
+        "Rear/Roller2": 0,
+        "Rear/Return": 0,
+        "Roller0/Roller1": 0,
+        "Roller0/Roller2": 0,
+        "Roller0/Return": 0,
+        "Roller1/Roller2": 0,
+        "Roller1/Return": 0,
+        "Roller2/Return": 0
+      },
+      "connectors": {
+        "node_pattern": "TrackConnector_R_{00..39}",
+        "count": 40,
+        "wheel_pair_checks": 240,
+        "triangle_pairs_by_wheel": {
+          "Front": 0,
+          "Rear": 0,
+          "Roller0": 0,
+          "Roller1": 0,
+          "Roller2": 0,
+          "Return": 0
+        }
+      },
+      "belt_stationary_intersections": [
+        {
+          "name": "Tread_R_00",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_01",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_02",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_03",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_04",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_05",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_06",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_07",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_08",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_09",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_10",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_11",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_12",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_13",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_14",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_15",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_16",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_17",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_18",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_19",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_20",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_21",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_22",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_23",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_24",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_25",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_26",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_27",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_28",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_29",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_30",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_31",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_32",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_33",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_34",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_35",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_36",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_37",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_38",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "Tread_R_39",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_00",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_01",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_02",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_03",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_04",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_05",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_06",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_07",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_08",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_09",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_10",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_11",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_12",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_13",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_14",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_15",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_16",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_17",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_18",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_19",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_20",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_21",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_22",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_23",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_24",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_25",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_26",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_27",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_28",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_29",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_30",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_31",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_32",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_33",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_34",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_35",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_36",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_37",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_38",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        },
+        {
+          "name": "TrackConnector_R_39",
+          "drive_triangle_pairs": 0,
+          "hull_triangle_pairs": 0
+        }
+      ]
+    }
+  },
+  "sampled_belt_motion": {
+    "fractional_pitch_offsets": [
+      0.0,
+      0.125,
+      0.25,
+      0.375,
+      0.5,
+      0.625,
+      0.75,
+      0.875
+    ],
+    "rest_offset_covered_by": "sides and totals at the authored rest pose",
+    "method": "Rebuild BVHs from temporary world matrices for seven additional capsule-path poses. Source objects and saved asset transforms are never mutated.",
+    "contact_exclusions": "None for shoe/connector versus stationary armor or connector versus wheels.",
+    "additional_mesh_pairs": 5600,
+    "triangle_intersections": 0,
+    "sides": {
+      "L": [
+        {
+          "pitch_offset": 0.125,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.25,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.375,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.5,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.625,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.75,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.875,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        }
+      ],
+      "R": [
+        {
+          "pitch_offset": 0.125,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.25,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.375,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.5,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.625,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.75,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        },
+        {
+          "pitch_offset": 0.875,
+          "mesh_pairs": 400,
+          "triangle_intersections": 0,
+          "intersections": []
+        }
+      ]
+    },
+    "passed": true
+  },
+  "footprint": {
+    "coordinate_system": "Godot metres: X right, Y up, -Z forward",
+    "base_meshes_checked": 175,
+    "actual_base_bounds": {
+      "min": [
+        -1.21750009059906,
+        -0.5515308976173401,
+        -1.2329981327056885
+      ],
+      "max": [
+        1.21750009059906,
+        0.5450000166893005,
+        1.232998251914978
+      ]
+    },
+    "baseline_v4_bounds": {
+      "min": [
+        -1.218,
+        -0.554118,
+        -1.234171
+      ],
+      "max": [
+        1.218,
+        0.549,
+        1.234171
+      ]
+    },
+    "baseline_v4_runtime_model_sha256": "98bfad6950c3397c26a0d1863293e4316a290db690deedca8c6b456faa318b06",
+    "checked_axes": [
+      "X",
+      "Z"
+    ],
+    "tolerance_m": 0.001,
+    "height_is_informational": true,
+    "passed": true
+  },
+  "tread_variation": {
+    "instances": 80,
+    "unique_mesh_datablocks": 8,
+    "unique_uv_layouts": 8,
+    "uv_hash_encoding": "IEEE-754 float32 little-endian UV coordinates in mesh loop order",
+    "variants": [
+      {
+        "mesh_datablock": "AtlasTreadVariant00",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "d7b1eda8ba99056eedc1a43d91ef10377cf2d9e2c97cf4503a59589bb5576e8a"
+      },
+      {
+        "mesh_datablock": "AtlasTreadVariant01",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "55ad10b789f7fb1ffccbb3b571e32866aa22fe76f2f03685d77a6e7897934efe"
+      },
+      {
+        "mesh_datablock": "AtlasTreadVariant02",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "5d00b271e79c973b49f1c937e0a7e5a98b07f75b49fdee92bbe7c3445c49b3bf"
+      },
+      {
+        "mesh_datablock": "AtlasTreadVariant03",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "c9f4c2c7517e62a0078c6499c19444d7681611509dab20104b399c88f96b9068"
+      },
+      {
+        "mesh_datablock": "AtlasTreadVariant04",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "e80c5fb07a5ecc57aab42a42190c6117684946c5616b7342536836a17e8e8206"
+      },
+      {
+        "mesh_datablock": "AtlasTreadVariant05",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "c42e327812cc97d6bec45285808fd6cbad22a5f538a1f913a27a9647f3145fd6"
+      },
+      {
+        "mesh_datablock": "AtlasTreadVariant06",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "8967401fcd7e0b3fa7eebc59c31c6bb715fca3f61e59fc56783fd2b235528eea"
+      },
+      {
+        "mesh_datablock": "AtlasTreadVariant07",
+        "instance_count": 10,
+        "vertices": 288,
+        "polygons": 232,
+        "uv_layer": "UVMap",
+        "uv_loop_count": 1008,
+        "uv_layout_sha256": "70becdebc4fb09859013c36f958b020d91a9a73b76871eb40a8b39d034d350d1"
+      }
+    ]
+  },
+  "material_maps": {
+    "expected_count": 14,
+    "checked_count": 14,
+    "passed": true,
+    "maps": [
+      {
+        "name": "Atlas_SurfacePrimary_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_base.png",
+        "sha256": "6c280c4e6687ca3a22dda00250583a1c7d79d361f1c817516b7da4c3b66bed59",
+        "packed_sha256": "6c280c4e6687ca3a22dda00250583a1c7d79d361f1c817516b7da4c3b66bed59",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfacePrimary_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_normal.png",
+        "sha256": "090ab640cb96e6c73db979ab8b0378778b38933de6e2ce7e2564629d142578fc",
+        "packed_sha256": "090ab640cb96e6c73db979ab8b0378778b38933de6e2ce7e2564629d142578fc",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfacePrimary_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_orm.png",
+        "sha256": "6b7f3c93631f8c05b003d955177bc8cc81edf8431a15498899ea227102276723",
+        "packed_sha256": "6b7f3c93631f8c05b003d955177bc8cc81edf8431a15498899ea227102276723",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfacePrimary_coverage",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfacePrimary_coverage.png",
+        "sha256": "54f81097a432d0aa12a1e66332e0d8ee5a7ecf04a78883b1da5e5c7915b71cd2",
+        "packed_sha256": "54f81097a432d0aa12a1e66332e0d8ee5a7ecf04a78883b1da5e5c7915b71cd2",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_base.png",
+        "sha256": "03b80488ade094bbfc875a89e4a7ab52c1542a9197b97d249558c3c36b2ac935",
+        "packed_sha256": "03b80488ade094bbfc875a89e4a7ab52c1542a9197b97d249558c3c36b2ac935",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_normal.png",
+        "sha256": "b3ac2898cabcabe0bc28280d716ea582028ff8d703a9077c3ac734c14357f2e7",
+        "packed_sha256": "b3ac2898cabcabe0bc28280d716ea582028ff8d703a9077c3ac734c14357f2e7",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_orm.png",
+        "sha256": "b7dc41bf5a586c11ef5f162e2a04b5dd2eb3434d609bb95077d1417edc845827",
+        "packed_sha256": "b7dc41bf5a586c11ef5f162e2a04b5dd2eb3434d609bb95077d1417edc845827",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceSecondary_coverage",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceSecondary_coverage.png",
+        "sha256": "4324f9c2dbbf5a6bc2a7fba12df131ff905770d5d5a4b7996939989140560463",
+        "packed_sha256": "4324f9c2dbbf5a6bc2a7fba12df131ff905770d5d5a4b7996939989140560463",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceTrack_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_base.png",
+        "sha256": "216104b04075bdcbaa0f0f834d33e4cb6853b8d12f53960fc56db205b9f7ea42",
+        "packed_sha256": "216104b04075bdcbaa0f0f834d33e4cb6853b8d12f53960fc56db205b9f7ea42",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceTrack_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_normal.png",
+        "sha256": "7cf13779fa35e61cea7116573acfa0b85bed85f273ef8839f8756ec1654cecea",
+        "packed_sha256": "7cf13779fa35e61cea7116573acfa0b85bed85f273ef8839f8756ec1654cecea",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceTrack_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceTrack_orm.png",
+        "sha256": "20aa0861e9c83255c848db6940cf55511cd8d3a1c80e58c8a28c7672d31aa6c3",
+        "packed_sha256": "20aa0861e9c83255c848db6940cf55511cd8d3a1c80e58c8a28c7672d31aa6c3",
+        "disk_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 2048,
+          "height": 2048,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceHardware_base",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_base.png",
+        "sha256": "136dc95c5b28e19c945179a251348a2db41d464a675de018730894e1eabd3f57",
+        "packed_sha256": "136dc95c5b28e19c945179a251348a2db41d464a675de018730894e1eabd3f57",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "sRGB",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceHardware_normal",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_normal.png",
+        "sha256": "a575289936fb9d60b1ce460527ab3aa000df364b10a8184aaea5ddeccecfd17c",
+        "packed_sha256": "a575289936fb9d60b1ce460527ab3aa000df364b10a8184aaea5ddeccecfd17c",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      },
+      {
+        "name": "Atlas_SurfaceHardware_orm",
+        "path": "battlebots/assets/models/atlas_runtime/Atlas_SurfaceHardware_orm.png",
+        "sha256": "3f4f38616c712095986112be11f78ea0a6449491c2fcc9d75e2a64f7e4b8e8ea",
+        "packed_sha256": "3f4f38616c712095986112be11f78ea0a6449491c2fcc9d75e2a64f7e4b8e8ea",
+        "disk_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_png": {
+          "width": 4096,
+          "height": 4096,
+          "bit_depth": 8,
+          "color_type": 6
+        },
+        "packed_matches_disk": true,
+        "blender_float_buffer": false,
+        "colorspace": "Non-Color",
+        "passed": true
+      }
+    ]
+  },
+  "totals": {
+    "wheel_drive_pairs": 12,
+    "wheel_hull_pairs": 12,
+    "wheel_wheel_pairs": 30,
+    "connector_wheel_pairs": 480,
+    "unexpected_stationary_triangle_pairs": 0,
+    "hull_triangle_pairs": 0,
+    "wheel_wheel_triangle_pairs": 0,
+    "connector_wheel_triangle_pairs": 0,
+    "excluded_axle_triangle_pairs": 388,
+    "shoe_drive_pairs": 80,
+    "shoe_hull_pairs": 80,
+    "connector_drive_pairs": 80,
+    "connector_hull_pairs": 80,
+    "shoe_drive_triangle_pairs": 0,
+    "shoe_hull_triangle_pairs": 0,
+    "connector_drive_triangle_pairs": 0,
+    "connector_hull_triangle_pairs": 0
+  },
+  "geometry_passed": true,
+  "passed": true
+}

@@ -1,9 +1,12 @@
 """Compact folded glacis and shoulder armor, in Godot metres."""
-from mathutils import Vector
 
+
+# Keep support end caps behind the enamel edge to prevent depth fighting.
+TERMINAL_SEAT_END_INSET = .003
 
 def add_front_shell(*, plate, box, bolt, tube, ring,
                     paint, secondary, steel, edge_steel, dark, lamp):
+    from mathutils import Vector
     normal = Vector((0, .437, -.38)).normalized()
     center = Vector((0, .23, -.9465))
 
@@ -90,10 +93,13 @@ def add_shoulders(side, group, *, mesh, plate, box, bolt, cylinder, ring,
     profile=[(.688,.437),(.688,.481),(.739,.500),(1.121,.500),
              (1.207,.414),(1.170,.395),(1.095,.460),(.739,.460)]
 
-    def strip(name,z0,z1,off0=0,off1=0,material=paint,backing=False):
+    def strip(name,z0,z1,off0=0,off1=0,material=paint,backing=False,end_inset=0.0):
         outline=profile
         if backing:
             outline=[(x-.002,y-.006) for x,y in profile]
+        slope=(off1-off0)/(z1-z0)
+        z0+=end_inset;off0+=slope*end_inset
+        z1-=end_inset;off1-=slope*end_inset
         n=len(outline)
         verts=[(side*x,y+off,z) for z,off in ((z0,off0),(z1,off1)) for x,y in outline]
         faces=[tuple(reversed(range(n))),tuple(range(n,2*n))]
@@ -109,7 +115,7 @@ def add_shoulders(side, group, *, mesh, plate, box, bolt, cylinder, ring,
         strip('Folded terminal track hood',a,b,
               -.065 if end<0 else 0,0 if end<0 else -.065)
         strip('Terminal hood structural seat',a,b,
-              -.065 if end<0 else 0,0 if end<0 else -.065,secondary,True)
+              -.065 if end<0 else 0,0 if end<0 else -.065,secondary,True,TERMINAL_SEAT_END_INSET)
         z=end*.69;x=side*.93
         for dx in (-.145,.145):
             for dz in (-.151,.151):bolt((x+dx,.501,z+dz),group=group,r=.010)
