@@ -4,6 +4,11 @@ extends Node3D
 const PARTICLES_PER_STACK := 128
 const LIFETIME := 3.6
 const IDLE_DENSITY := 0.075
+const FOG_LIMIT := 16
+const FOG_LIFETIME := 1.8
+var fog_puffs: Array[Dictionary] = []
+var _fog_cursor := 0
+var _fog_clock := 0.0
 const OUTLETS := ["ExhaustLeft", "ExhaustRight"]
 var emitters: Array[GPUParticles3D] = []
 var engine_load := 0.0
@@ -143,6 +148,9 @@ func show_state(view: BotView, pose: Transform3D, delta: float, runtime: bool) -
 	engine_running = not view.eliminated
 	engine_load = lerpf(engine_load, target_load, 1.0 - exp(-delta * (5.0 if target_load > engine_load else 1.45)))
 	emission_density = lerpf(IDLE_DENSITY, 1.0, smoothstep(0.02, 0.80, engine_load)) if engine_running else 0.0
+	_fog_clock += minf(delta,0.1)
+	var deposit := engine_running and engine_load > 0.22 and _fog_clock >= 0.32
+	if deposit: _fog_clock = 0.0
 	for index: int in emitters.size():
 		var emitter := emitters[index]
 		var outlet := _outlets[index]
@@ -155,6 +163,51 @@ func show_state(view: BotView, pose: Transform3D, delta: float, runtime: bool) -
 		var pulse := 0.80 + 0.20 * sin(_elapsed * lerpf(32.0, 51.0, engine_load) + index * PI)
 		emitter.amount_ratio = emission_density * pulse
 		emitter.emitting = engine_running
+		if deposit: _deposit_fog(outlet.global_position, motion.direction)
+
+# Lit volume cores complement the detailed soft particles. Both use world-space
+# history; local fog can be disabled by GraphicsRuntime without hiding particles.
+func _deposit_fog(at: Vector3, direction: Vector3) -> void:
+	if DisplayServer.get_name() == "headless" or RenderingServer.get_current_rendering_method() != "forward_plus": return
+	var puff: Dictionary
+	if fog_puffs.size() < FOG_LIMIT:
+		var volume := FogVolume.new()
+		volume.name = "DieselVolume%d" % fog_puffs.size()
+		volume.top_level = true
+		var material := ShaderMaterial.new()
+		material.shader = preload("res://scripts/presentation/scorpion_exhaust_fog.gdshader")
+		volume.material = material
+		add_child(volume)
+		puff = {"volume":volume,"age":0.0,"origin":at,"direction":direction,"load":engine_load}
+		fog_puffs.append(puff)
+	else:
+		puff = fog_puffs[_fog_cursor]
+		_fog_cursor = (_fog_cursor+1)%FOG_LIMIT
+	puff.age = 0.0
+	puff.origin = at
+	puff.direction = direction
+	puff.load = engine_load
+	puff.volume.global_position = at
+	puff.volume.size = Vector3.ONE*.2*_scale
+	puff.volume.visible = true
+	puff.volume.material.set_shader_parameter("density",0.0)
+
+func _process(delta: float) -> void:
+	_update_fog(delta)
+
+func _update_fog(delta: float) -> void:
+	for puff: Dictionary in fog_puffs:
+		puff.age += delta
+		if puff.age >= FOG_LIFETIME:
+			puff.volume.hide()
+			continue
+		var age: float = puff.age
+		var expansion := (.2+age*.3)*_scale
+		puff.volume.size = Vector3(expansion,expansion*1.3,expansion)
+		puff.volume.global_position = puff.origin+puff.direction*age*.42*_scale+Vector3(.0275,.11,.0125)*age*age*_scale
+		var fade := smoothstep(0.0,.15,age)*(1.0-smoothstep(.3,FOG_LIFETIME,age))
+		puff.volume.material.set_shader_parameter("density",.22*puff.load*fade)
+		puff.volume.material.set_shader_parameter("age",age)
 
 ## Explicit round reset also handles respawning at exactly the previous pose.
 ## Elimination deliberately does not call this: its old plume should dissipate.
@@ -166,6 +219,10 @@ func reset_observation() -> void:
 	_last_tick = -1
 	_elapsed = 0.0
 	reset_count += 1
+	_fog_clock = 0.0
+	for puff: Dictionary in fog_puffs:
+		puff.age = FOG_LIFETIME
+		puff.volume.hide()
 	for emitter: GPUParticles3D in emitters:
 		emitter.emitting = false
 		emitter.amount_ratio = 0.0

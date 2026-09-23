@@ -78,16 +78,16 @@ func check_dust(world: AuthorityWorld, bot: MvpBot) -> void:
 	bot.remote_state.merge({"velocity":Vector3(0,0,5),"grounded":true,"eliminated":false},true)
 	await process_frame
 	await process_frame
-	check(art._dust[1].emitting,"Remote grounded movement emits dust")
+	check(art.get_node("LunarEffects").ballistic_dust[1][0].emitting,"Remote grounded movement emits dust")
 	bot.remote_state.grounded = false
 	await process_frame
 	await process_frame
-	check(not art._dust[1].emitting,"Airborne bots stop emitting dust")
+	check(not art.get_node("LunarEffects").ballistic_dust[1][0].emitting,"Airborne bots stop emitting dust")
 	bot.remote_state.grounded = true
 	bot.remote_state.velocity = Vector3.ZERO
 	await process_frame
 	await process_frame
-	check(not art._dust[1].emitting,"Stopped bots stop emitting dust")
+	check(not art.get_node("LunarEffects").ballistic_dust[1][0].emitting,"Stopped bots stop emitting dust")
 	bot.simulated = true
 
 func check_traversal(world: AuthorityWorld, bot: MvpBot) -> void:

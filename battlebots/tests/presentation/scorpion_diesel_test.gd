@@ -92,6 +92,13 @@ func run() -> void:
 		check(emitter.global_basis.get_scale().is_equal_approx(Vector3.ONE), "Particle dimensions apply bot scale only once")
 		check(not emitter.local_coords and emitter.top_level, "Emitted plumes remain in world space behind the walker")
 		check(emitter.amount_ratio > 0.50, "Native moving system is actively emitting its dense pressure pulses")
+	if native:
+		check(not diesel.fog_puffs.is_empty() and diesel.fog_puffs.size()<=ScorpionDieselExhaust.FOG_LIMIT,"Loaded engine builds a bounded volumetric plume")
+		check(diesel.fog_puffs.any(func(p:Dictionary)->bool:return p.volume.visible),"At least one live lit smoke volume")
+		for puff: Dictionary in diesel.fog_puffs:
+			check(puff.volume.top_level,"Smoke volume does not inherit subsequent chassis motion")
+	else:
+		check(diesel.fog_puffs.is_empty(),"Headless exhaust does not allocate volume rendering")
 	await capture("walking")
 	throttle = 0.0
 	await frames(45)
@@ -124,7 +131,9 @@ func run() -> void:
 	await capture("shutdown")
 	await frames(180)
 	await capture("cleared")
+	check(diesel.fog_puffs.all(func(p:Dictionary)->bool:return not p.volume.visible),"Shutdown plume expires fully")
 	visual.reset_observation()
+	check(diesel.fog_puffs.all(func(p:Dictionary)->bool:return not p.volume.visible),"Round reset clears volume history")
 	check(diesel.reset_count == resets + 1 and diesel.engine_load == 0.0, "Explicit round reset clears old smoke and motion history at the same pose")
 	view.eliminated = false
 	diesel.show_state(view, pose, 1.0 / 60.0, true)
