@@ -40,19 +40,19 @@ func run() -> void:
 		"Full spool fires the first round at tick 36")
 	check(ticks(state, 120, held()) == 24 and state.shot_sequence == 25,
 		"Two subsequent seconds yield exactly 24 more rounds at 12 Hz")
-	check(is_equal_approx(state.battery, 74.8) and is_equal_approx(state.heat, 42.8),
-		"Motor plus actual shot battery/heat costs are charged exactly, without idle recovery")
+	check(is_equal_approx(state.heat, 42.8),
+		"Motor plus actual shot heat costs are charged exactly, without idle recovery")
 	state.tick(STEP, BotCommand.new(), true)
 	check(not state.gun_shot and state.weapon_phase == "idle" and state.charge < 1.0,
 		"Release immediately stops fire and winds the rotor down")
 	state = fresh(true)
 	ticks(state, 156, held(true))
-	check(is_equal_approx(state.battery, 74.8) and is_equal_approx(state.heat, 42.8),
-		"An idle primary cannot cool or recharge behind a firing auxiliary gun")
+	check(is_equal_approx(state.heat, 42.8),
+		"An idle primary cannot cool behind a firing auxiliary gun")
 	state = fresh()
 	state.tick(30.0, held(), true)
 	check(state.shot_sequence <= 1, "Long frame never emits an unbounded catch-up volley")
-	for reason: String in ["inactive", "disabled", "overheated", "battery", "eliminated", "secondary"]:
+	for reason: String in ["inactive", "disabled", "overheated", "eliminated", "secondary"]:
 		state = fresh()
 		ticks(state, 35, held())
 		var command := held()
@@ -60,7 +60,6 @@ func run() -> void:
 		if reason == "overheated":
 			state.overheated = true
 			state.heat = 80.0
-		if reason == "battery": state.battery = 0.0
 		if reason == "eliminated": state.eliminate("fixture")
 		if reason == "secondary": command.secondary_held = true
 		check(ticks(state, 1, command, reason != "inactive") == 0,
@@ -86,7 +85,7 @@ func run() -> void:
 	ticks(state, 20, aux)
 	check(state.strike and state.gun_shot and state.attack_id == 1 and state.shot_sequence == 6,
 		"Committed hammer and auxiliary minigun can strike on the same tick")
-	check(state.battery < 80.0 and state.heat > 20.0,
+	check(state.heat > 20.0,
 		"Simultaneous weapons pay both shared resource costs")
 	state = fresh(true)
 	var cancelled := BotCommand.new()

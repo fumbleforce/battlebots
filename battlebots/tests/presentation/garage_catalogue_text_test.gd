@@ -80,12 +80,12 @@ func run() -> void:
 	check(overview.build_preview.yaw < yaw, "Horizontal keyboard orbit is reversed")
 	check(not overview.build_preview.status.visible, "No text inside valid preview")
 	await capture("garage-overview")
-	profile.loadouts[profile.active_bot].parts.utility = "battery_pack"
+	profile.loadouts[profile.active_bot].parts.utility = "cooling_pack"
 	profile._draft_changed()
 	await settle()
 	var summary := ""
 	for label: Label in overview.get_node("%Stats").get_children(): summary += label.text + "\n"
-	check("Battery  125" in summary, "Actual battery capacity replaces installed power")
+	check("Cooling  15 heat/s" in summary and "Battery" not in summary, "Canonical cooling replaces the removed battery stat")
 	check("Max speed  8 m/s" in summary, "Canonical max speed is displayed")
 	for side: String in ["Front", "Rear", "Left", "Right"]:
 		check(side + " armor  90 HP" in summary, "Individual plate integrity: " + side)

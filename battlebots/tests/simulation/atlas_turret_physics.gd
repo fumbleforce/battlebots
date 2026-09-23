@@ -138,12 +138,12 @@ func servo_and_cannon() -> void:
 		"The miss still publishes an authoritative visual shot")
 	run_ticks(60, SIDE_TARGET, false)
 	check(absf(attacker.combat.turret_yaw - PI * 0.5) < 0.03, "Turret settles on the side target bearing (trunnion parallax)")
-	var battery := attacker.combat.battery
+	var heat := attacker.combat.heat
 	var hits := run_ticks(150, SIDE_TARGET, true)
 	check(hits.size() == 1 and hits[0].kind == "cannon" and hits[0].attack_id == attacker.combat.shot_sequence,
 		"Held fire waits for the 2.4 s reload, then lands one confirmed cannon hit: %d" % hits.size())
 	check(victim.combat.core < victim.combat.stats.core, "Cannon hit damages through zone rules")
-	check(attacker.combat.battery < battery, "Cannon shots spend battery")
+	check(attacker.combat.heat > heat, "Cannon shots generate shared heat")
 	# Chassis turns under a held aim: the servo keeps the world bearing.
 	await reset_case()
 	run_ticks(90, SIDE_TARGET, false)
@@ -202,9 +202,10 @@ func servo_and_cannon() -> void:
 	check(run_ticks(30, SIDE_TARGET, true).is_empty() and attacker.combat.shot_sequence == 0,
 		"A disabled weapon zone disables the turret")
 	await reset_case()
-	attacker.combat.battery = 5.0
-	check(run_ticks(5, SIDE_TARGET, true).is_empty() and attacker.combat.failure_reason == "battery_empty",
-		"An unaffordable shell reports empty battery")
+	attacker.combat.heat = 100.0
+	attacker.combat.overheated = true
+	check(run_ticks(5, SIDE_TARGET, true).is_empty() and attacker.combat.failure_reason == "overheated",
+		"Overheat rejects another shell and reports the thermal lock")
 	# The turret trigger does not brake a lifter primary (secondary cancellation).
 	await reset_case()
 	var both := aim_at(SIDE_TARGET, true)

@@ -1,5 +1,5 @@
 {
-  "revision": 11,
+  "revision": 12,
   "parts": [
     {"id":"compact","category":"chassis","mass":25,"power":0,"core":220,"size":[3.6,1.5,4.5]},
     {"id":"balanced","category":"chassis","mass":30,"power":0,"core":260,"size":[4.8,1.5,6.0]},
@@ -21,7 +21,6 @@
     {"id":"heavy","category":"armor","mass":25,"power":0,"reduction":0.4,"integrity":120},
     {"id":"recovery_assist","category":"utility","mass":5,"power":10},
     {"id":"cooling_pack","category":"utility","mass":6,"power":10},
-    {"id":"battery_pack","category":"utility","mass":8,"power":5},
     {"id":"minigun_pod","category":"utility","mass":14,"power":25},
     {"id":"turret_cannon","category":"utility","mass":16,"power":25},
     {"id":"turret_plasma","category":"utility","mass":14,"power":25},

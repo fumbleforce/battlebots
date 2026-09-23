@@ -68,9 +68,9 @@ func driver_command() -> BotCommand:
 	command.steering = clampf(angle * 1.4, -1.0, 1.0)
 	command.throttle = clampf((desired_speed - forward_speed) * 0.5, -0.4, 0.7) if absf(angle) < 1.2 else 0.0
 	command.brake = absf(distance - contact_distance) < 0.10 * BotScale.FACTOR and absf(angle) < 0.10
-	if state.battery < 25 or state.heat > 80:
+	if state.heat > 80:
 		cooling = true
-	elif state.battery > 60 and state.heat < 35:
+	elif state.heat < 35:
 		cooling = false
 	command.primary_held = not cooling and absf(angle) < 0.25 and distance < 2.3 * BotScale.FACTOR \
 		and fmod(active_seconds, 2.1) < 0.25
@@ -109,7 +109,7 @@ func progress() -> void:
 		if host.world != null:
 			for bot: MvpBot in host.world.bots.values():
 				bots.append({"entity":bot.entity_id, "position":bot.body.global_position,
-					"core":bot.combat.core, "battery":bot.combat.battery, "heat":bot.combat.heat,
+					"core":bot.combat.core, "heat":bot.combat.heat,
 					"weapon":bot.combat.weapon_phase, "eliminated":bot.combat.eliminated})
 		print("NATURAL DUEL t=%.1f phase=%s round=%d remaining=%.1f scores=%s hits=%d bots=%s" %
 			[elapsed, phase, round_number, host.match_state.remaining, host.match_state.scores, effects.size(), bots])
@@ -204,9 +204,9 @@ func run() -> void:
 	for bot: MvpBot in host.world.bots.values():
 		check(not bot.combat.eliminated and is_equal_approx(bot.combat.core, bot.combat.stats.core), "Rematch fully repairs each bot")
 		var fresh := CombatState.new(bot.combat.stats)
-		check(bot.combat.zones == fresh.zones and is_equal_approx(bot.combat.battery, fresh.battery) \
+		check(bot.combat.zones == fresh.zones \
 			and bot.combat.heat == 0 and bot.combat.cooldown == 0,
-			"Rematch restores every zone, battery, heat and weapon cooldown")
+			"Rematch restores every zone, heat and weapon cooldown")
 		check(bot.combat.effective_damage == 0 and bot.combat.charge == 0, "Rematch clears prior combat counters and charge")
 	print("NATURAL DUEL completed: hits=%d delivered=%d duration=%.1fs" %
 		[effects.size(), client_effects.size(), (Time.get_ticks_msec() - started_ms) / 1000.0])

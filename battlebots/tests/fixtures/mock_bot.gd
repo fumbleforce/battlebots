@@ -26,7 +26,6 @@ func read_view() -> BotView:
 	view.entity_id = 999
 	view.pose = global_transform
 	view.core_fraction = 0.75
-	view.battery_fraction = 0.6
 	view.heat_fraction = 0.25
 	view.weapon_charge_fraction = (sin(elapsed) + 1.0) * 0.5
 	view.weapon_state = &"mock"

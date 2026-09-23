@@ -22,8 +22,8 @@ func read_view() -> BotView:
 	view.pose = global_transform
 	if combat != null:
 		view.core_fraction = combat.core / float(combat.stats.core)
-		view.battery_fraction = combat.battery / float(combat.stats.battery)
 		view.heat_fraction = combat.heat / 100.0
+		view.overheated = combat.overheated
 		view.weapon_charge_fraction = combat.charge
 		view.weapon_state = StringName(combat.weapon_phase)
 	return view

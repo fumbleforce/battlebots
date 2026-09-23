@@ -21,7 +21,6 @@ func frames(count := 8) -> void:
 func healthy_bot() -> BotView:
 	var bot := BotView.new()
 	bot.core_fraction = 1.0
-	bot.battery_fraction = 1.0
 	bot.heat_fraction = 0.0
 	bot.weapon_charge_fraction = 0.0
 	bot.weapon_state = &"idle"
@@ -197,6 +196,7 @@ func run() -> void:
 			for key: String in bot.zones:
 				bot.zones[key] = 0.0
 			bot.weapon_state = &"overheated"
+			bot.overheated = true
 			bot.weapon_cooldown = 999.9
 			bot.recovery_available = true
 			bot.immobilized_remaining = 4.2

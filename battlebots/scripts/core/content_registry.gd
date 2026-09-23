@@ -120,7 +120,6 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		"plate_integrity": float(armor.integrity), "reduction": float(armor.reduction),
 		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.TURRET_PARTS.get(selected.utility,
 			"minigun" if selected.utility == "minigun_pod" else ""),
-		"battery": 125.0 if selected.utility == "battery_pack" else 100.0,
 		"cooling": 15.0 if selected.utility == "cooling_pack" else 12.0,
 		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0,
 		"nitro": selected.nitro == "nitro_boost", "charged_jump": selected.suspension == "charged_jump"}

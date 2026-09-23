@@ -132,7 +132,7 @@ FFA uses the same survivor/core/damage ordering for players remaining at timeout
 - Low speed alone never triggers elimination. Holding position is legal.
 - A bot is immobilized if it has no functional drive pod, or remains upside down without restoring usable wheel contact for 5 seconds. The server then starts a visible 10-second elimination countdown.
 - Restoring functional drive contact and moving at least 0.5 meters under the bot's own drive cancels the countdown. Being pushed does not count.
-- A bot upside down for at least 2 seconds may activate its recovery system with `R`. Recovery takes 2 seconds and costs 30 battery. All chassis include this system; it has a 20-second cooldown and requires battery recovery if empty.
+- A bot upside down for at least 2 seconds may activate its recovery system with `R`. Recovery takes 2 seconds and generates 30 heat. All chassis include this system; it has a 20-second cooldown and requires the shared overheat lock to clear.
 - Recovery applies a capped physical torque. It cannot teleport through another bot or guarantee escape from a pin. Cooldown and cost apply on activation.
 - A pin is continuous weapon-assisted restraint against a wall or ground with target speed below 0.5 m/s. After 5 seconds, the holding weapon releases, withdraws, and cannot engage the same target for 3 seconds. Ordinary pushing remains legal.
 - Out-of-bounds is an exceptional fault, not a scoring mechanic. The server returns the bot to its last valid floor position with zero velocity, preserving damage and resources. Repeated faults are logged for investigation.
@@ -180,7 +180,7 @@ The camera sits on a standardized chassis sensor mount. It keeps a stabilized ho
 
 Use authored chassis sockets and compatible modules, not freeform geometry. Every legal build contains one chassis, one drive package, one primary weapon, one armor package, and one utility. Cosmetic elements have no mass, collision, visibility advantage, or gameplay effects.
 
-All builds share a **120 kg** mass ceiling and a **100-unit installed power** budget. Power budget controls legal construction; battery is the separate runtime resource. Chassis fixes socket locations, collision envelope, core integrity, and recovery mechanism. No part can extend beyond its permitted weapon sweep or deployment envelope.
+All builds share a **120 kg** mass ceiling and a **100-unit installed power** budget. Power budget controls legal construction; heat is the sole runtime operating resource. Chassis fixes socket locations, collision envelope, core integrity, and recovery mechanism. No part can extend beyond its permitted weapon sweep or deployment envelope.
 
 **User revision, 20 September 2026:** machines are three times their original size on every axis. Canonical hulls are now 4.5–6.6 meters long, 3.6–5.4 meters wide and 1.5 meters tall; the active balanced hull is 4.8 × 1.5 × 6.0 meters. Weapons, drive assemblies, collision and effects follow the physical size. The subsequent 23 September revision expands Foundry to 100 meters across. These are deliberately oversized game machines; the 120 kg construction budget remains a gameplay stat. See [implementation and checks](coordination/B_HEAVY_MACHINES.md).
 
@@ -208,7 +208,6 @@ All statistics in these tables are authoring seeds, subject to the balancing pro
 | Armor | Heavy | 25 | 0 | 40% core reduction; 120 integrity per plate |
 | Utility | Recovery assist | 5 | 10 | Recovery activation 1 second instead of 2 |
 | Utility | Cooling pack | 6 | 10 | Heat dissipation +25% |
-| Utility | Battery pack | 8 | 5 | Battery capacity 125 instead of 100 |
 
 Armor packages consist of front, rear, left, and right plates. Top and underside retain chassis baseline protection of 5%. A destroyed side plate loses its reduction. Package mass is the total for all four plates, not the mass of one plate.
 
@@ -260,20 +259,33 @@ Spinners require at least 25% charge to deal weapon damage, then scale linearly 
 
 Contact direction, weapon charge, and armor matter; random critical hits do not exist. Apply capped attack impulses independently of health damage, and account for ordinary collision impulse when tuning them so effects are not accidentally doubled. Cap launch vertical speed at an initial 8 m/s and angular speed at 12 rad/s; adjust only after testing stable recovery and camera behavior.
 
-### Battery and heat
+### Heat (user revision, 23 September 2026)
 
-Base battery is 100; base heat range is 0–100. Driving is always available without battery. Battery recharges at 8 units/second after 1 second without weapon activation or recovery. Cooling continues at 12 heat/second when the weapon is inactive. Overheat at 100 disables the primary weapon until heat falls to 50.
+Heat is the sole runtime operating resource, ranging from 0 to 100. Normal driving
+remains available at every heat level. At 100, a shared overheat lock blocks new
+weapon, Nitro, jump and self-right activations until heat cools to 50. An accepted
+hammer strike, flipper launch, shot or recovery can complete when it reaches the
+limit; sustained weapons stop. Weapon cooldowns remain independent.
 
-| Action | Battery cost | Heat gained |
-|---|---:|---:|
-| Spinner powered | 10/second | 12/second |
-| Lifter holding/raising | 6/second | 4/second |
-| Flipper launch | 20 | 18 |
-| Hammer strike | 16 | 20 |
-| Saw powered | 9/second | 14/second |
-| Recovery | 30 | 0 |
+| Action | Heat gained |
+|---|---:|
+| Spinner powered | 12/second |
+| Lifter holding/raising | 4/second |
+| Flipper launch | 18 |
+| Hammer strike | 20 |
+| Saw powered | 14/second |
+| Minigun motor / shot | 3/second + 1.4/shot |
+| Turret cannon / plasma shot | 16 / 4.5 |
+| Nitro | 14/second |
+| Charged jump release | 20 |
+| Self-right recovery activation | 30 |
 
-An action requiring more battery than available cannot begin. Continuous actions stop at zero. An empty battery does not prevent recharge while flipped. Cooldown, overheat, and insufficient-battery feedback identify the specific reason an action failed.
+When no heat-generating weapon or Nitro is powered, cooling removes 12 heat/second,
+or 15 with Cooling Pack. Cooling applies once across the whole bot; an idle primary
+cannot cool behind an active auxiliary or Nitro. Holding a jump charge generates
+no heat; cancellation cannot launch or add heat. Cooldowns, overheat and disabled
+components retain explicit feedback. There is no battery capacity, cost or recharge
+wait. Known saved Battery Pack selections migrate to Cooling Pack.
 
 ### Assists and match statistics
 
@@ -301,7 +313,7 @@ Boot/loading → main menu → garage / play / practice / settings → lobby →
 
 The Play screen exposes quick-play 2v2 and custom lobbies. Custom hosts select mode, region/server where supported, and public/private visibility. Lobby UI shows slots, teams, readiness, connection quality, and build validity. Friendly team assignment and FFA slot changes invalidate readiness. Players can inspect opponents' chassis and primary weapon before lock, but cannot change loadout once the match starts.
 
-The combat HUD contains core integrity, component diagram, battery, heat, weapon charge/cooldown, team survivors, round score, timer, and a chassis-facing compass marker. A prominent countdown identifies immobilization. Pings expire after 4 seconds and are limited to one per second. Menus expose network status and reconnect progress without covering essential elimination feedback.
+The combat HUD contains core integrity, component diagram, heat, weapon charge/cooldown, team survivors, round score, timer, and a chassis-facing compass marker. A prominent countdown identifies immobilization. Pings expire after 4 seconds and are limited to one per second. Menus expose network status and reconnect progress without covering essential elimination feedback.
 
 User update (20 September 2026): show a simple fixed-size health bar below each
 displayed player name/identity. Green fills the remaining HP from the left; red
@@ -351,7 +363,7 @@ battlebots/
     practice/      # Tutorial and target fixtures
   scripts/
     core/          # IDs, signals, state machine, content registry
-    simulation/    # Drive, damage, battery, heat, round rules
+    simulation/    # Drive, damage, heat, round rules
     weapons/       # Weapon states and swept hit queries
     networking/    # Input transport, snapshots, reconciliation
     services/      # Lobby, allocation, profile adapters
@@ -492,7 +504,7 @@ Dedicated servers advertise ready/active/draining status; draining prevents new 
 | Construction | Every starter build is valid; overweight, excess-power, missing, duplicate, unknown, and incompatible parts are rejected on client and server |
 | Driving | Acceleration/brake targets are measurable; wall contacts do not tunnel; bots recover from representative flips without explosive impulses |
 | Damage | One contact cannot hit multiple zones; attack cadence, armor break, component disable, overkill clamp, and ally immunity match the rules |
-| Resources | Battery exhaustion, heat lockout, cooldowns, and recovery are identical on all observers |
+| Resources | Heat lockout, cooldowns, and recovery are identical on all observers |
 | Match logic | All three modes handle timer expiry, same-tick wipes, draws, forfeits, and disconnects; five-round cap terminates tied team matches |
 | Camera | Walls, corners, flips, wheel loss, and first-person toggle cannot place the view outside the arena or leave it permanently clipped |
 | Network | Four- and ten-client sessions complete with 0/80/150 ms RTT, 0/20/40 ms jitter, and 0/1/3% loss; include reordered/duplicated inputs and reconnects |

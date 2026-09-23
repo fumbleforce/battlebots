@@ -15,6 +15,7 @@ const REVISION_EIGHT_HASHES := ["bf965dc8fdd5456ccddb23873d40f490885006eb70424a6
 const REVISION_NINE_HASHES := ["e8d254c8f6d2636fc2c1db7b329a78b04727f5061261a9dd8f437e9021b64bda",
 	"3e3bea8546acfb26cc2ba9db84b4a7d018e582bc9303006b88dba7311df09bdd"]
 const REVISION_TEN_HASHES := ["623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed"]
+const REVISION_ELEVEN_HASHES := ["9c24100bd8b1aa480137e9ab061d9190c6c75b4462b9456d2e32935c9f116751"]
 const MAX_SAVE_BYTES := 65536
 var registry := ContentRegistry.new()
 var path: String
@@ -223,7 +224,7 @@ func migrate(data: Dictionary) -> Dictionary:
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES + REVISION_ELEVEN_HASHES:
 				continue
 			# Known catalogues preserve part IDs, names and cosmetics while adopting
 			# current canonical dimensions/handling. No arbitrary old hash is trusted.
@@ -233,6 +234,9 @@ func migrate(data: Dictionary) -> Dictionary:
 				upgraded.schema_version = ContentRegistry.SCHEMA
 				upgraded.parts["nitro"] = "nitro_off"
 				upgraded.parts["suspension"] = "jump_off"
+			# The retired resource utility becomes the heat-only cooling utility.
+			if upgraded.get("parts") is Dictionary and upgraded.parts.get("utility") == "battery_pack":
+				upgraded.parts.utility = "cooling_pack"
 			upgraded.content_hash = registry.content_hash
 			if registry.validate(upgraded).valid:
 				copy.loadouts[index] = upgraded

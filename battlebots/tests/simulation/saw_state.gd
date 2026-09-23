@@ -56,26 +56,11 @@ func power_and_resources() -> void:
 	var state := fresh()
 	state.tick(STEP, held(), true)
 	check(state.charge == 1 and state.weapon_phase == "active", "Saw powers immediately without a spinup or press edge")
-	near(state.battery, 99.85, "First saw tick battery cost")
 	near(state.heat, 14.0 / 60.0, "First saw tick heat")
 	ticks(state, 59, held())
-	near(state.battery, 91, "One second of powered misses costs nine battery")
 	near(state.heat, 14, "One second of powered misses produces fourteen heat")
 	check(state.attack_id == 0 and not state.launch and not state.strike, "Saw power does not invent a contact event or committed attack")
 	check(state.snapshot().weapon == "saw" and state.snapshot().weapon_state == "active" and state.snapshot().charge == 1, "Existing snapshot fields publish saw power")
-	state = fresh()
-	state.battery = 0.15
-	state.tick(STEP, held(), true)
-	near(state.battery, 0, "Exactly one tick of fuel is consumed")
-	check(state.charge == 0 and state.weapon_phase == "idle" and state.failure_reason == "battery_empty", "Reaching zero battery prevents damage eligibility that same tick")
-	state.tick(STEP, held(), true)
-	check(state.charge == 0 and state.weapon_phase == "idle", "Zero battery cannot power another tick")
-	near(state.drive_scale(), 1, "Battery exhaustion does not stop drive pods")
-	state = fresh()
-	state.battery = 0.149
-	state.tick(STEP, held(), true)
-	near(state.battery, 0.149, "Insufficient full-tick energy is not spent")
-	check(state.charge == 0 and state.failure_reason == "battery_empty", "Insufficient full-tick energy rejects activation")
 
 func stop_conditions() -> void:
 	for reason: String in ["release", "secondary", "destroyed", "inactive", "eliminated"]:
@@ -92,10 +77,9 @@ func stop_conditions() -> void:
 			state.eliminate("fixture")
 		state.tick(STEP, command, reason != "inactive")
 		check(state.charge == 0 and state.weapon_phase != "active", reason + " immediately removes saw contact eligibility")
-		near(state.battery, 99.85, reason + " does not spend another powered tick")
 	var state := fresh()
 	state.tick(STEP, held(), false)
-	check(state.battery == 100 and state.heat == 0 and state.charge == 0, "Countdown blocks saw resource use")
+	check(state.heat == 0 and state.charge == 0, "Countdown blocks saw resource use")
 	state.tick(STEP, held(), true)
 	state.tick(STEP, BotCommand.new(), true)
 	state.tick(STEP, held(), true)
@@ -106,11 +90,9 @@ func thermal_lock() -> void:
 	state.heat = 99.9
 	state.tick(STEP, held(), true)
 	check(state.heat == 100 and state.overheated and state.charge == 0 and state.weapon_phase == "overheated", "Heat100 locks the saw and removes same-tick contact eligibility")
-	var battery_before := state.battery
 	state.heat = 53
 	state.tick(0.25, held(), true)
 	near(state.heat, 50, "Overheated saw cools at twelve per second despite held primary")
-	near(state.battery, battery_before, "Overheated activation does not consume energy")
 	check(state.charge == 0 and state.failure_reason == "overheated", "Tick cooling toward threshold stays blocked")
 	state.tick(STEP, held(), true)
 	check(not state.overheated and state.weapon_phase == "active" and state.charge == 1, "Saw restarts when heat begins at fifty")
@@ -122,40 +104,26 @@ func thermal_lock() -> void:
 func idle_and_recovery() -> void:
 	var state := fresh()
 	ticks(state, 60, held())
-	ticks(state, 59, BotCommand.new())
-	near(state.battery, 91, "No recharge before full inactivity wait")
-	state.tick(STEP, BotCommand.new(), true)
-	near(state.battery, 91, "Exact one-second inactivity boundary has no premature recharge")
 	ticks(state, 60, BotCommand.new())
-	near(state.battery, 99, "Following idle second restores eight battery")
+	near(state.heat, 2, "Idle saw cools twelve heat immediately in one second")
 	ticks(state, 60, BotCommand.new())
-	near(state.battery, 100, "Recharge never exceeds capacity")
-	state = fresh("cooling_pack")
-	state.battery = 50
-	state._inactive = 0.9
-	state.tick(0.2, BotCommand.new(), true)
-	near(state.battery, 50.8, "A tick crossing the wait boundary only recharges its eligible portion")
+	near(state.heat, 0, "Cooling never takes heat below zero")
 	state = fresh("cooling_pack")
 	state.inverted_seconds = 2
 	state.zones.weapon = 0
 	var command := BotCommand.new()
 	command.recovery_pressed = true
 	state.tick(STEP, command, true)
-	near(state.battery, 70, "Destroyed saw does not block recovery activation")
+	near(state.heat, 30, "Destroyed saw does not block recovery heat")
 	near(state.recovery_remaining, 2, "Non-assist recovery duration is unchanged")
 	ticks(state, 120, BotCommand.new())
-	near(state.battery, 70, "Recovery blocks recharge for its full duration")
-	near(state._inactive, 0, "Final recovery tick does not count as inactivity")
-	ticks(state, 60, BotCommand.new())
-	near(state.battery, 70, "Full one-second wait follows recovery")
-	ticks(state, 60, BotCommand.new())
-	near(state.battery, 78, "Battery recharges while still inverted after recovery")
+	near(state.heat, 0, "Cooling works while completing recovery, with no recharge wait")
 	state = fresh()
 	state.inverted_seconds = 2
 	command = held()
 	command.recovery_pressed = true
 	state.tick(STEP, command, true)
-	near(state.battery, 69.85, "Simultaneous recovery and saw power pay both costs")
+	near(state.heat, 30 + 14.0 / 60.0, "Simultaneous recovery and saw add both heat costs")
 	check(state.charge == 1 and state.recovery_count == 1, "Recovery does not silently disable legal saw power")
 
 func legacy() -> void:

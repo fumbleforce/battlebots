@@ -16,6 +16,7 @@ function Invoke-MvpTest {
     }
 }
 Invoke-MvpTest 'res://tests/simulation/content_smoke.gd' 'CONTENT PASS'
+Invoke-MvpTest 'res://tests/simulation/heat_only_state.gd' 'HEAT ONLY STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/heavy_spawn_test.gd' 'HEAVY SPAWN PASS'
 Invoke-MvpTest 'res://tests/simulation/match_pickups_test.gd' 'MATCH PICKUPS PASS'
 Invoke-MvpTest 'res://tests/network/pickup_session.tscn' 'PICKUP SESSION PASS' -Scene -RealTime

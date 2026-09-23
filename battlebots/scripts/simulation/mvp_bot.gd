@@ -358,7 +358,7 @@ func read_view() -> BotView:
 	view.server_tick = server_tick
 	view.pose = presentation.global_transform
 	view.core_fraction = data.core / data.core_max
-	view.battery_fraction = data.battery / data.battery_max
+	view.overheated = data.overheated
 	view.heat_fraction = data.heat / 100.0
 	view.weapon_charge_fraction = data.charge
 	view.weapon_state = data.weapon_state

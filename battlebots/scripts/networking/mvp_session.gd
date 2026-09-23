@@ -912,7 +912,8 @@ func _snapshot(packet: PackedByteArray) -> void:
 		buffer.pop_front()
 	_remote_buffers[bot.entity_id] = buffer
 	if bot.entity_id == local_entity:
-		bot.combat.battery = state.battery
+		bot.combat.heat = state.heat
+		bot.combat.overheated = state.overheated
 		bot.combat.jump_cooldown = state.jump_cooldown
 		while not _local_commands.is_empty() and _local_commands.front()[0] <= state.ack:
 			_local_commands.pop_front()

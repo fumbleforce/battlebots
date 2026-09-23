@@ -314,7 +314,6 @@ static func carry_combat(from: CombatState, to: CombatState, changed: Array[Stri
 		var old_max: float = fixed.get(zone, float(from.stats.plate_integrity))
 		var new_max: float = fixed.get(zone, float(to.stats.plate_integrity))
 		to.zones[zone] = new_max * clampf(float(from.zones[zone]) / old_max, 0.0, 1.0)
-	to.battery = to.stats.battery * clampf(from.battery / float(from.stats.battery), 0.0, 1.0)
 	for field: String in ["heat", "overheated", "recovery_cooldown", "recovery_remaining",
 			"inverted_seconds", "immobilized_seconds", "driven_distance", "eliminated",
 			"elimination_reason", "effective_damage", "eliminations", "assists",

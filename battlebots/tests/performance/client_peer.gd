@@ -247,11 +247,10 @@ func drive() -> void:
 		command.steering = clampf(atan2(inward.x, -inward.z) * 1.4, -1, 1)
 		command.throttle = 0.5
 		command.brake = false
-	var battery := float(state.get("battery", 0))
 	var heat := float(state.get("heat", 0))
-	if battery < 25 or heat > 80:
+	if heat > 80:
 		cooling = true
-	elif battery > 60 and heat < 35:
+	elif heat < 35:
 		cooling = false
 	var aligned := absf(angle) < 0.65
 	if not cooling:
@@ -261,7 +260,7 @@ func drive() -> void:
 			command.primary_held = fmod(active_seconds + index * 0.31, 2.4) < 1.5
 		elif weapon == "saw":
 			# Instant activation means powering up across the arena only wastes the
-			# battery and thermal headroom needed for the actual sustained cut.
+			# thermal headroom needed for the actual sustained cut.
 			command.primary_held = aligned and distance < 3.0
 		else:
 			command.primary_held = distance < 8.0

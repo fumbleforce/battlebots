@@ -34,19 +34,28 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 	var jump_cooldown: float = state.get("jump_cooldown", 0.0)
 	var jump_was_held := jump_charge > 0.0
 	var grounded: bool = state.get("grounded", false)
+	var predicted_heat: float = state.get("heat", 0.0)
+	var thermal_locked: bool = state.get("overheated", false)
 	var delta := 1.0 / 60
 	# Contact replay is approximate: authoritative snapshots always replace outcomes.
 	for data: Array in commands.slice(maxi(0, commands.size() - 15)):
 		var command := WireCodec.command_from_array(data)
 		if command == null:
 			continue
-		config["nitro"] = bool(config.get("nitro_equipped", false)) and command.nitro_held
+		# Keep a received thermal lock until the next authority snapshot clears it.
+		# Replay only adds perk heat; it cannot reconstruct intervening weapon hits.
+		config["nitro"] = bool(config.get("nitro_equipped", false)) and command.nitro_held \
+			and not thermal_locked and not command.jump_cancel and not command.brake and command.throttle > 0.05
+		if config.nitro:
+			predicted_heat = minf(CombatState.HEAT_LIMIT, predicted_heat + CombatState.NITRO_HEAT_RATE * delta)
+			thermal_locked = predicted_heat >= CombatState.HEAT_LIMIT
+			config.nitro = not thermal_locked
 		throttle = move_toward(throttle, 0.0 if command.brake else command.throttle, float(config.get("throttle_response", 3.0)) * delta)
 		steering = move_toward(steering, 0.0 if command.brake else command.steering, float(config.get("steering_response", 4.0)) * delta)
 		velocity.y = minf(velocity.y, float(config.max_rise))
 		angular = angular.limit_length(12.0)
 		jump_cooldown = maxf(0.0, jump_cooldown - delta)
-		if command.jump_cancel:
+		if command.jump_cancel or thermal_locked:
 			jump_charge = 0.0
 			jump_was_held = false
 		elif command.jump_held and bool(config.get("charged_jump", false)) and grounded and jump_cooldown <= 0.0:
@@ -57,6 +66,9 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 				velocity.y = maxf(velocity.y, lerpf(3.5, 7.5, jump_charge) * sqrt(gravity.length() / 9.8))
 				grounded = false
 				jump_cooldown = 4.0
+				predicted_heat = minf(CombatState.HEAT_LIMIT, predicted_heat + CombatState.JUMP_HEAT)
+				thermal_locked = predicted_heat >= CombatState.HEAT_LIMIT
+				if thermal_locked: config.nitro = false
 			jump_charge = 0.0
 		jump_was_held = command.jump_held and not command.jump_cancel
 		if grounded:

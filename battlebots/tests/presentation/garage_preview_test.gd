@@ -100,7 +100,7 @@ func run() -> void:
 	var overweight := registry.starter(true)
 	overweight.parts.weapon = "horizontal_spinner"
 	overweight.parts.armor = "heavy"
-	overweight.parts.utility = "battery_pack"
+	overweight.parts.utility = "cooling_pack"
 	preview.show_loadout(overweight)
 	check(preview.model == null and not preview.status.text.is_empty(), "Overweight draft is explicitly invalid, without stale geometry")
 	preview.show_loadout({})

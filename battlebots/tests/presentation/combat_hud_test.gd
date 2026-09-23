@@ -63,10 +63,11 @@ func run() -> void:
 	bot.immobilized_remaining = 0
 	bot.recovery_available = false
 	bot.recovery_cooldown = 7.2
-	bot.weapon_state = &"overheated"
+	bot.weapon_state = &"disabled"
+	bot.overheated = true
 	bot.heat_fraction = 0.65
 	hud.render(bot)
-	check(hud.warning_label.text == "WEAPON OVERHEATED", "Overheat lock follows weapon state after cooling begins")
+	check(hud.warning_label.text == "OVERHEATED / COOL TO 50%", "Shared thermal lock displays even when the weapon is disabled")
 	check(hud.recovery_label.text.contains("7.2 s COOLDOWN"), "Recovery cooldown uses published seconds")
 	bot.zones = {"front":NAN, "rear":-1, "left":true, "right":"0", "weapon":INF}
 	bot.core_fraction = 1.1

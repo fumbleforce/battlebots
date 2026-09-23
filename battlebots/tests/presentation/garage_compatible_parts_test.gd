@@ -56,7 +56,7 @@ func run() -> void:
 	check(profile.registry.validate(profile.loadouts[0]).valid, "Heavy Scorpion fixture is valid at 116 kg")
 	check(not profile.part_fits("weapon", "horizontal_spinner"), "Over-mass weapon is hidden")
 	check(not profile.part_fits("utility", "minigun_pod"), "Over-mass auxiliary is hidden")
-	check(profile.part_fits("utility", "battery_pack"), "Utilities within budget remain")
+	check(profile.part_fits("utility", "cooling_pack"), "Utilities within budget remain")
 
 	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "armor":"standard_armor", "utility":"minigun_pod"})
 	check(profile.part_fits("utility", "minigun_pod"), "Equipped invalid part remains listed for repair")

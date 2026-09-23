@@ -19,7 +19,7 @@ func _initialize() -> void:
 	var command := BotCommand.new()
 	command.primary_held = true
 	bot.tick(1.5, command, true)
-	check(is_equal_approx(bot.charge, 1) and bot.battery == 85, "Spinner spin-up and drain")
+	check(is_equal_approx(bot.charge, 1) and is_equal_approx(bot.heat, 18), "Spinner spin-up and heat")
 	bot.heat = 99
 	bot.tick(0.1, command, true)
 	check(bot.overheated and bot.charge == 0, "Overheat locks weapon")
@@ -32,14 +32,14 @@ func _initialize() -> void:
 	bot.tick(1, command, true)
 	command.primary_held = false
 	bot.tick(1.0 / 60, command, true)
-	check(bot.launch and bot.cooldown == 3 and bot.battery == 74, "Charged lifter release")
+	check(bot.launch and bot.cooldown == 3 and is_equal_approx(bot.heat, 22), "Charged lifter release")
 	bot.tick(0.1, command, true)
 	check(not bot.launch, "Flipper launch is one tick")
 	bot = CombatState.new(stats)
 	bot.mobility(2, false, true, 0)
 	command.recovery_pressed = true
 	bot.tick(0.01, command, true)
-	check(bot.recovery_remaining == 1 and bot.battery == 70 and bot.recovery_cooldown == 20, "Recovery eligibility/cost/assist")
+	check(bot.recovery_remaining == 1 and bot.heat == 30 and bot.recovery_cooldown == 20, "Recovery eligibility/cost/assist")
 	bot = CombatState.new(stats)
 	bot.mobility(60, true, false, 0)
 	check(not bot.eliminated, "Standing still is legal")

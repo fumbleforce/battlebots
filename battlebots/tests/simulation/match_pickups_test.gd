@@ -157,7 +157,8 @@ func world_swaps(arena_id: String) -> void:
 	picker.combat.effective_damage = 42
 	picker.combat.eliminations = 1
 	picker.combat.recent_attackers[2] = 1.0
-	picker.combat.battery = 50.0
+	picker.combat.overheated = true
+	picker.combat.heat = 80.0
 	var core_fraction: float = picker.combat.core / picker.combat.stats.core
 	var front_fraction: float = picker.combat.zones.front / picker.combat.stats.plate_integrity
 	force(world, "part", "hammer")
@@ -170,7 +171,7 @@ func world_swaps(arena_id: String) -> void:
 	check(armed.combat.zones.weapon == 140.0, arena_id + " the picked weapon arrives intact")
 	check(armed.combat.effective_damage == 42 and armed.combat.eliminations == 1 and armed.combat.recent_attackers.has(2),
 		arena_id + " score counters and attacker credit carry over")
-	check(is_equal_approx(armed.combat.battery, 50.0), arena_id + " battery fraction carries over")
+	check(armed.combat.overheated, arena_id + " shared overheat lock carries over")
 	check(changes == [1] and armed.get_parent() == world and armed.name == "Bot1", arena_id + " swap announces and keeps the entity identity")
 	check(armed.body.global_position.distance_to(center) < 8.0, arena_id + " swap keeps the bot where it stood")
 

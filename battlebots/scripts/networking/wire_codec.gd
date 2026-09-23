@@ -1,7 +1,7 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 8
-const BUILD := "mvp-ab-18"
+const PROTOCOL := 9
+const BUILD := "mvp-ab-19"
 const SNAPSHOT_FIELDS := 40
 const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
 
@@ -49,7 +49,7 @@ static func encode_bot(bot: MvpBot, epoch: String) -> PackedByteArray:
 	return var_to_bytes([epoch, bot.server_tick, bot.entity_id, bot.last_sequence,
 		pose, Vector3.ZERO if resetting else bot.body.linear_velocity,
 		Vector3.ZERO if resetting else bot.body.angular_velocity,
-		c.core, zones, c.battery, c.heat, c.charge, c.weapon_phase, c.cooldown,
+		c.core, zones, c.overheated, c.heat, c.charge, c.weapon_phase, c.cooldown,
 		c.can_recover(), c.recovery_remaining, c.recovery_cooldown,
 		maxf(0, 10 - c.immobilized_seconds) if c.immobilized_seconds > 0 else 0.0,
 		c.eliminated, c.elimination_reason, c.failure_reason, c.effective_damage,
@@ -84,6 +84,8 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		return {}
 	if not (values[39] is float or values[39] is int) or not is_finite(float(values[39])) or absf(values[39]) > PI + 0.001:
 		return {}
+	if not values[9] is bool or not (values[10] is float or values[10] is int) or not is_finite(float(values[10])) or values[10] < 0.0 or values[10] > CombatState.HEAT_LIMIT:
+		return {}
 	var zones := {}
 	if not values[8] is Array or values[8].size() != ZONES.size():
 		return {}
@@ -91,8 +93,8 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		zones[ZONES[index]] = values[8][index]
 	return {"epoch":values[0], "tick":values[1], "entity":values[2], "ack":values[3],
 		"pose":values[4], "velocity":values[5], "angular":values[6], "core":values[7], "zones":zones,
-		"core_max":stats.core, "plate_max":stats.plate_integrity, "battery_max":stats.battery, "weapon":stats.weapon,
-		"battery":values[9], "heat":values[10], "charge":values[11], "weapon_state":values[12], "cooldown":values[13],
+		"core_max":stats.core, "plate_max":stats.plate_integrity, "weapon":stats.weapon,
+		"overheated":values[9], "heat":values[10], "charge":values[11], "weapon_state":values[12], "cooldown":values[13],
 		"recovery_available":values[14], "recovery_remaining":values[15], "recovery_cooldown":values[16],
 		"immobilized_remaining":values[17], "eliminated":values[18], "elimination_reason":values[19], "failure":values[20],
 		"damage":values[21], "eliminations":values[22], "assists":values[23], "component_disables":values[24], "recoveries":values[25],

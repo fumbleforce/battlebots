@@ -55,9 +55,9 @@ func catalogue() -> void:
 	draft.parts.chassis = "wide"
 	draft.parts.drive = "traction"
 	draft.parts.armor = "heavy"
-	draft.parts.utility = "battery_pack"
+	draft.parts.utility = "cooling_pack"
 	var overweight := registry.validate(draft)
-	check(not overweight.valid and "Mass exceeds 120 kg" in overweight.reasons, "126kg horizontal build is rejected rather than clamped")
+	check(not overweight.valid and "Mass exceeds 120 kg" in overweight.reasons, "124kg horizontal build is rejected rather than clamped")
 	draft.parts.utility = "recovery_assist"
 	draft.parts.chassis = "balanced"
 	check(registry.validate(draft).valid, "118kg horizontal heavy-armor build remains legal")
@@ -68,34 +68,23 @@ func spinup_and_resources() -> void:
 	var command := held()
 	ticks(state, 30, command)
 	near(state.charge, 0.25, "Half-second horizontal charge")
-	near(state.battery, 95, "Half-second spinner battery cost")
 	near(state.heat, 6, "Half-second spinner heat")
 	ticks(state, 89, command)
 	check(state.charge < 1.0, "Horizontal is not fully charged at tick119")
 	ticks(state, 1, command)
 	near(state.charge, 1, "Horizontal reaches full charge at exactly120 ticks")
-	near(state.battery, 80, "Two-second spinner battery cost")
 	near(state.heat, 24, "Two-second spinner heat")
 	check(state.weapon_phase == "active" and not state.launch and state.attack_id == 0, "Powered spinner does not synthesize a lifter launch")
 	var view := state.snapshot()
 	check(view.weapon == "horizontal_spinner" and view.weapon_state == "active" and view.charge == state.charge, "Existing detached snapshot publishes horizontal state")
 	state = make_state()
-	state.battery = 2.5
+	state.heat = 97.0
 	state.tick(0.25, command, true)
-	near(state.battery, 0, "Available exact activation cost is consumed")
+	near(state.heat, 100, "Sustained power reaches heat cap")
 	state.tick(0.25, command, true)
-	check(state.failure_reason == "battery_empty" and state.weapon_phase == "idle", "Depleted battery stops continuous activation")
-	near(state.charge, 0, "Unpowered spinner coasts down")
-	near(state.drive_scale(), 1, "Empty weapon battery does not disable driving")
-	state.tick(0.5, BotCommand.new(), true)
-	check(state.battery >= 0 and state.battery <= state.stats.battery, "Idle battery stays within capacity")
-	state = make_state()
-	state.battery = 0
-	ticks(state, 45, BotCommand.new())
-	near(state.battery, 0, "Recharge does not begin within first0.75 inactive seconds")
-	state._inactive = 1.0 # Measure the steady recharge rate after the wait has elapsed.
-	ticks(state, 60, BotCommand.new())
-	near(state.battery, 8, "Established idle recharge is eight units per second")
+	check(state.failure_reason == "overheated" and state.charge == 0, "Heat lock stops continued power")
+	near(state.drive_scale(), 1, "Heat lock does not disable driving")
+	near(state.heat, 97, "Locked spinner cools despite held input")
 
 func brake_and_gates() -> void:
 	var state := make_state()
@@ -106,7 +95,6 @@ func brake_and_gates() -> void:
 	state.tick(0.25, command, true)
 	near(state.charge, 0, "Secondary brakes full spinner charge in quarter second")
 	near(state.heat, 9, "Braked spinner cools at twelve per second")
-	near(state.battery, 100, "Brake does not spend weapon battery")
 	check(not state.launch and state.weapon_phase == "idle", "Brake cancels instead of launching")
 	state.charge = 1
 	state.tick(0.25, BotCommand.new(), true)
@@ -123,13 +111,12 @@ func brake_and_gates() -> void:
 	state.charge = 1
 	state.tick(STEP, held(), true)
 	check(state.charge == 0 and state.weapon_phase == "disabled" and state.failure_reason == "disabled", "Destroyed weapon cannot activate or retain charge")
-	near(state.battery, 100, "Destroyed weapon consumes no activation energy")
 	state = make_state()
 	ticks(state, 120, held(), false)
-	check(state.charge == 0 and state.heat == 0 and state.battery == 100, "Countdown freezes all primary activation resources")
+	check(state.charge == 0 and state.heat == 0, "Countdown freezes all primary activation resources")
 	state.eliminate("fixture")
 	ticks(state, 120, held())
-	check(state.charge == 0 and state.weapon_phase == "disabled" and state.battery == 100, "Eliminated bot cannot power its spinner")
+	check(state.charge == 0 and state.weapon_phase == "disabled", "Eliminated bot cannot power its spinner")
 
 func overheat_and_recovery() -> void:
 	var state := make_state()
@@ -152,20 +139,18 @@ func overheat_and_recovery() -> void:
 	var recovery := BotCommand.new()
 	recovery.recovery_pressed = true
 	state.tick(STEP, recovery, true)
-	near(state.battery, 70, "Weapon disability does not prevent thirty-battery recovery")
+	near(state.heat, 30, "Weapon disability does not prevent thirty-heat recovery")
 	check(state.recovery_count == 1 and state.recovery_cooldown == 20 and state.recovery_remaining == 1, "Recovery assist timing and cooldown remain unchanged")
 
 func legacy_weapons() -> void:
 	var vertical := make_state("vertical_spinner")
 	ticks(vertical, 90, held())
 	near(vertical.charge, 1, "Vertical spinner preserves1.5-second spinup")
-	near(vertical.battery, 85, "Vertical spinner battery rate is unchanged")
 	near(vertical.heat, 18, "Vertical spinner heat rate is unchanged")
 	var lifter := make_state("lifter")
 	ticks(lifter, 60, held())
 	near(lifter.charge, 1, "Lifter preserves one-second raise")
-	near(lifter.battery, 94, "Lifter preserves six battery per second")
 	near(lifter.heat, 4, "Lifter preserves four heat per second")
 	lifter.tick(STEP, BotCommand.new(), true)
 	check(lifter.launch and lifter.attack_id == 1 and lifter.cooldown == 3, "Charged lifter release preserves launch and three-second cooldown")
-	near(lifter.battery, 74, "Lifter launch retains twenty-battery cost")
+	near(lifter.heat, 22, "Lifter launch adds eighteen heat")

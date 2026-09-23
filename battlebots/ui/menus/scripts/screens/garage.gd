@@ -178,7 +178,7 @@ func _select(i: int) -> void:
 		var stats := ContentRegistry.new().validate(PlayerProfile.loadouts[i]).stats
 		for text: String in [
 			"Mass  %s / 120 kg" % MenuData.fmt_int(stats.mass),
-			"Battery  %s" % MenuData.fmt_int(stats.battery),
+			"Cooling  %s heat/s" % MenuData.fmt_int(stats.cooling),
 			"Max speed  %s m/s" % MenuData.fmt_int(stats.speed),
 			"Front armor  %s HP" % MenuData.fmt_int(stats.plate_integrity),
 			"Rear armor  %s HP" % MenuData.fmt_int(stats.plate_integrity),

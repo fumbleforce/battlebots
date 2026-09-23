@@ -28,7 +28,7 @@ func _initialize() -> void:
 	bad.parts.erase("armor")
 	check(not registry.validate(bad).valid, "Reject missing parts")
 	bad = striker.duplicate(true)
-	bad.parts = {"chassis":"wide", "drive":"traction", "weapon":"vertical_spinner", "armor":"heavy", "utility":"battery_pack"}
+	bad.parts.merge({"chassis":"wide", "drive":"traction", "weapon":"vertical_spinner", "armor":"heavy", "utility":"cooling_pack"}, true)
 	check(not registry.validate(bad).valid, "Reject overweight")
 	bad = striker.duplicate(true)
 	bad.mass = 1

@@ -15,7 +15,7 @@ func _initialize() -> void:
 	for old_id: String in ["compact", "balanced", "wide", "scorpion_hex"]:
 		check(registry.parts.has(old_id), "Previous chassis remains available: " + old_id)
 	for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner", "minigun"]:
-		for utility: String in ["recovery_assist", "cooling_pack", "battery_pack", "minigun_pod"]:
+		for utility: String in ["recovery_assist", "cooling_pack", "minigun_pod"]:
 			var variant := draft.duplicate(true)
 			variant.parts.weapon = weapon
 			variant.parts.utility = utility

@@ -284,7 +284,7 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 	recovery_label.text = "SELF-RIGHT / " + recovery
 	recovery_label.modulate = accent if view != null and view.recovery_available and not view.eliminated and combat_active else _text_color()
 	recovery_label.visible = view != null and not view.eliminated and combat_active and (view.recovery_available or (_number(view.recovery_cooldown) and view.recovery_cooldown > 0))
-	var failures := {"recovery_unavailable":"Self-right unavailable", "disabled":"Weapon disabled", "overheated":"Weapon overheated", "cooldown":"Weapon cooling down"}
+	var failures := {"recovery_unavailable":"Self-right unavailable", "disabled":"Weapon disabled", "overheated":"Overheated", "cooldown":"Weapon cooling down"}
 	failure_label.text = failures.get(view.failure_reason, "") if view != null else "Bot data unavailable"
 	if view != null and not combat_active:
 		weapon_label.text = "LOCKED"
@@ -303,15 +303,15 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		elif _number(view.immobilized_remaining) and view.immobilized_remaining > 0:
 			warning_label.text = ("IMMOBILIZED %.1f s\nWheels down; drive" if text_scale > 1.0 else "IMMOBILIZED / %.1f s\nRegain wheel contact and drive to recover") % view.immobilized_remaining
 			warning_label.modulate = danger
-		elif view.weapon_state == &"overheated":
-			warning_label.text = "WEAPON OVERHEATED"
+		elif view.overheated:
+			warning_label.text = "OVERHEATED / COOL TO 50%"
 		elif is_finite(view.core_fraction) and view.core_fraction >= 0 and view.core_fraction <= 0.25:
 			warning_label.text = "CORE CRITICAL"
 	warning_label.visible = not warning_label.text.is_empty()
-	charge_gauge.call("render", view.weapon_charge_fraction if view != null else NAN, danger if view != null and view.weapon_state in [&"overheated", &"disabled"] else accent, text_scale, high_contrast)
+	charge_gauge.call("render", view.weapon_charge_fraction if view != null else NAN, danger if view != null and (view.overheated or view.weapon_state == &"disabled") else accent, text_scale, high_contrast)
 	for key: String in ["Core", "Heat"]:
 		var fill := resources[key].bar.get_theme_stylebox("fill") as StyleBoxFlat
-		var urgent: bool = view != null and ((key == "Core" and is_finite(view.core_fraction) and view.core_fraction >= 0 and view.core_fraction <= 0.25) or (key == "Heat" and is_finite(view.heat_fraction) and view.heat_fraction >= 0.9 and view.heat_fraction <= 1))
+		var urgent: bool = view != null and ((key == "Core" and is_finite(view.core_fraction) and view.core_fraction >= 0 and view.core_fraction <= 0.25) or (key == "Heat" and (view.overheated or (is_finite(view.heat_fraction) and view.heat_fraction >= 0.9 and view.heat_fraction <= 1))))
 		fill.bg_color = danger if urgent else (Color("9ed8e5") if key == "Core" else Color("80aab9"))
 	_resize()
 

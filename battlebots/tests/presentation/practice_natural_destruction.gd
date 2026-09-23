@@ -92,8 +92,8 @@ func _physics_process(_delta: float) -> void:
 		var angle := atan2(local.x,-local.z)
 		command.steering = clampf(angle*1.4,-0.4,0.4)
 		command.brake = absf(angle)<.015
-		if player.combat.heat > 80 or player.combat.battery < 15: cooling = true
-		if player.combat.heat < 30 and player.combat.battery > 55: cooling = false
+		if player.combat.heat > 80: cooling = true
+		if player.combat.heat < 30: cooling = false
 		command.auxiliary_held = absf(angle)<.07 and not cooling
 		command.secondary_held = command.auxiliary_held
 		if command.auxiliary_held: fired += 1

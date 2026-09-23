@@ -17,7 +17,6 @@ func run() -> void:
 		["chassis", "compact", "core", 220.0],
 		["drive", "agile", "speed", 12.0],
 		["armor", "heavy", "plate_integrity", 120.0],
-		["utility", "battery_pack", "battery", 125.0],
 		["utility", "cooling_pack", "cooling", 15.0],
 		["utility", "cooling_pack", "recovery_seconds", 2.0],
 		["weapon", "hammer", "weapon", "hammer"]]
@@ -38,13 +37,13 @@ func run() -> void:
 	noop.proposed.stats.mass = -1
 	check(noop.current.stats.mass == 103.0, "Current and proposed do not share dictionaries")
 	var heavy := registry.starter()
-	heavy.parts = {"chassis": "wide", "drive": "traction", "weapon": "horizontal_spinner", "armor": "heavy", "utility": "battery_pack"}
+	heavy.parts.merge({"chassis": "wide", "drive": "traction", "weapon": "horizontal_spinner", "armor": "heavy", "utility": "cooling_pack"}, true)
 	var repair := GarageComparison.compare(registry, heavy, "armor", "light")
 	check(not repair.current.valid and repair.current.reasons.has("Mass exceeds 120 kg"), "Overweight build retains concrete validation error")
-	check(repair.current.stats == {"mass": 126.0, "power": 75.0}, "Invalid build exposes only verified canonical budgets")
-	check(repair.proposed.valid and repair.proposed.stats.mass == 111.0, "Proposed swap repairs overweight build")
+	check(repair.current.stats == {"mass": 124.0, "power": 80.0}, "Invalid build exposes only verified canonical budgets")
+	check(repair.proposed.valid and repair.proposed.stats.mass == 109.0, "Proposed swap repairs overweight build")
 	var over := GarageComparison.compare(registry, repair.draft, "armor", "heavy")
-	check(not over.proposed.valid and over.proposed.stats.mass == 126.0 and not over.proposed.stats.has("core"), "Invalid candidate budget remains visible without invented derived values")
+	check(not over.proposed.valid and over.proposed.stats.mass == 124.0 and not over.proposed.stats.has("core"), "Invalid candidate budget remains visible without invented derived values")
 	for bad: Array in [["paint", "compact"], ["chassis", "missing"], ["chassis", "agile"]]:
 		var result := GarageComparison.compare(registry, draft, bad[0], bad[1])
 		check(not result.proposed.valid and not result.changed and not result.proposed.reasons.is_empty(), "Invalid request rejects with reason")

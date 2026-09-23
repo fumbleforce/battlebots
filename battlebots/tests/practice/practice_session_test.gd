@@ -52,7 +52,6 @@ func damage_fixture(session: MvpSession) -> void:
 		bot.combat.zones.front = 4.0
 		bot.combat.zones.drive_left = 0.0
 		bot.combat.zones.weapon = 0.0
-		bot.combat.battery = 2.0
 		bot.combat.heat = 95.0
 		bot.combat.charge = 0.8
 		bot.combat.cooldown = 3.0

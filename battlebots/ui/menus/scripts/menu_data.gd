@@ -78,10 +78,10 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Orange diesel-powered six-legged combat machine. Tapered hexagonal armor, interchangeable dorsal weapon and minigun socket. Requires walking drive; preserves your other selected parts."
 			elif item.id == "minigun_pod":
 				item.name = "Minigun • Auxiliary"
-				item.desc = "Scorpion / Atlas MX gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Uses battery and builds heat. Swap for another utility to remove."
+				item.desc = "Scorpion / Atlas MX gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Builds shared heat. Swap for another utility to remove."
 			elif item.id == "turret_cannon":
 				item.name = "Turret · Cannon"
-				item.desc = "Atlas MX roof turret · 16 kg · 25 power. Tank controls: aim with the mouse over the turret sight and fire the main gun with primary fire; secondary fire operates the hull weapon. A heavy shell every 2.4 s knocks targets back. Uses battery and heat. Replaces the roof gun mount, so it excludes the minigun."
+				item.desc = "Atlas MX roof turret · 16 kg · 25 power. Tank controls: aim with the mouse over the turret sight and fire the main gun with primary fire; secondary fire operates the hull weapon. A heavy shell every 2.4 s knocks targets back. Builds shared heat. Replaces the roof gun mount, so it excludes the minigun."
 			elif item.id == "turret_plasma":
 				item.name = "Turret · Plasma gun"
 				item.desc = "Atlas MX roof turret · 14 kg · 25 power. Tank controls: aim with the mouse over the turret sight and hold primary fire for rapid plasma bolts; secondary fire operates the hull weapon. Light hits that build heat quickly. Replaces the roof gun mount, so it excludes the minigun."
@@ -90,13 +90,13 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Primary weapon module · 24 kg · 35 power. Hold primary fire for sustained ranged fire. On Scorpion it replaces the dorsal hammer; choose a separate utility."
 			elif item.id == "nitro_boost":
 				item.name = "Nitro boost"
-				item.desc = "Hold Shift to accelerate and drive faster. Consumes battery while active; release to conserve energy."
+				item.desc = "Hold Shift to accelerate and drive faster. Generates 14 heat/s while active; release to cool."
 			elif item.id == "nitro_off":
 				item.name = "No Nitro"
 				item.desc = "Leave the Nitro perk unequipped."
 			elif item.id == "charged_jump":
 				item.name = "Charged suspension jump"
-				item.desc = "Hold Space while grounded to charge, then release to jump. Longer holds launch harder. Costs battery and has a short cooldown."
+				item.desc = "Hold Space while grounded to charge, then release to jump. Longer holds launch harder. Generates 20 heat on release and has a short cooldown."
 			elif item.id == "jump_off":
 				item.name = "No jump"
 				item.desc = "Leave the suspension perk unequipped."

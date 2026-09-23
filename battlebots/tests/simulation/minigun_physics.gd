@@ -135,14 +135,13 @@ func run() -> void:
 	attacker.combat.eliminate("fixture")
 	check(fire(60).is_empty() and attacker.combat.shot_sequence == 0,
 		"Eliminated bot cannot generate or resolve bullets")
-	for reason: String in ["disabled", "overheated", "battery", "inactive"]:
+	for reason: String in ["disabled", "overheated", "inactive"]:
 		await reset_case()
 		fire(35)
 		if reason == "disabled": attacker.combat.zones.weapon = 0.0
 		if reason == "overheated":
 			attacker.combat.heat = 80.0
 			attacker.combat.overheated = true
-		if reason == "battery": attacker.combat.battery = 0.0
 		var locked := BotCommand.new()
 		locked.secondary_held = true
 		locked.auxiliary_held = true

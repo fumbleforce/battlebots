@@ -1,5 +1,33 @@
 # Shared contracts — local records and current MVP session API
 
+## Shared heat — catalogue 12, protocol 9, build mvp-ab-19 (#41)
+
+This revision supersedes historical battery references below. `CombatState` has
+one shared `heat` and `overheated` latch; no battery/capacity/recharge state.
+Weapons retain their heat rates. Nitro adds14/s, jump release20, recovery30.
+The 100/50 lock gates all heat-generating actions while normal driving stays
+available. A committed discrete attack may finish at the cap. Cooling is12/s
+(15 with Cooling Pack), once per idle tick, without an inactivity delay.
+
+`BotView.overheated` replaces `battery_fraction`, independently of weapon phase
+(e.g. a destroyed weapon or a final committed strike). Local snapshots drop
+`battery`/`battery_max`. Packed snapshot slot9 changes from numeric battery to
+boolean `overheated`; the remaining indices and40-field count are unchanged.
+The decoder rejects legacy numeric slot9. All clients/workers require the new
+protocol/build/catalogue; compatibility rejection remains intact.
+
+Local perk prediction restores authoritative heat/latch on each snapshot.
+Drive replay gates Nitro/jump by that latch and accumulates predicted perk heat;
+it conservatively keeps a received lock until authority clears it, because it
+cannot reconstruct concurrent weapon heat/cooling. Force/aim/physics contracts
+are unchanged. Pickups preserve shared heat/latch when swapping a part.
+
+Battery Pack is removed from the catalogue. Known revision1–11 saved builds
+migrate its utility to Cooling Pack while preserving all other selections, name
+and cosmetics. Unknown hashes remain invalid. HUDs show heat and an explicit
+cool-to50% warning; garage stats show cooling instead of capacity.
+See [implementation and release handoff](coordination/B_HEAT_ONLY.md).
+
 ## Atlas turret — catalogue 11, protocol 8, build mvp-ab-18
 
 Utilities `turret_cannon`/`turret_plasma` are Atlas-only and exclude the

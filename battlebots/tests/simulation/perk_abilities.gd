@@ -53,8 +53,8 @@ func run() -> void:
 	check(is_equal_approx(combat.jump_charge, 1.0), "Grounded hold reaches full charge")
 	jump.jump_held = false
 	combat.tick_perks(1.0 / 60.0, jump, true, true)
-	check(is_equal_approx(combat.jump_release_speed, 7.5) and is_equal_approx(combat.battery, 80.0)
-		and combat.jump_cooldown > 3.9, "Release spends battery and produces a full jump")
+	check(is_equal_approx(combat.jump_release_speed, 7.5) and is_equal_approx(combat.heat, 20.0)
+		and combat.jump_cooldown > 3.9, "Release generates heat and produces a full jump")
 	combat.tick_perks(1.0 / 60.0, jump, true, true)
 	check(combat.jump_release_speed == 0.0, "One release cannot launch twice")
 	var canceled_charge := CombatState.new(registry.validate(starter).stats)
@@ -65,14 +65,14 @@ func run() -> void:
 	jump.jump_held = false
 	jump.jump_cancel = false
 	canceled_charge.tick_perks(1.0 / 60.0, jump, true, true)
-	check(canceled_charge.jump_release_speed == 0.0 and canceled_charge.battery == 100.0,
-		"Canceled charge cannot launch or spend battery")
+	check(canceled_charge.jump_release_speed == 0.0 and canceled_charge.heat == 0.0,
+		"Canceled charge cannot launch or generate heat")
 	var nitro := CombatState.new(registry.validate(starter).stats)
 	var boost := BotCommand.new()
 	boost.nitro_held = true
 	boost.throttle = 1.0
 	nitro.tick_perks(1.0, boost, true, true)
-	check(nitro.nitro_active and is_equal_approx(nitro.battery, 86.0), "Nitro drains battery while driving")
+	check(nitro.nitro_active and is_equal_approx(nitro.heat, 14.0), "Nitro generates heat while driving")
 	nitro.tick_perks(1.0, boost, false, true)
 	check(not nitro.nitro_active, "Inactive rounds disable Nitro")
 	var drive_config := {"speed":10.0, "acceleration":8.0, "grip":9.0, "brake":9.0,

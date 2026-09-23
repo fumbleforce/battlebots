@@ -56,7 +56,6 @@ func catalogue() -> void:
 func committed_timing() -> void:
 	var state := fresh()
 	state.tick(STEP, press(), true)
-	near(state.battery, 84, "Accepted activation spends sixteen battery immediately")
 	near(state.heat, 0, "Windup does not charge strike heat early")
 	near(state.charge, 1.0 / 21.0, "First physics tick reports windup progress")
 	check(state.attack_id == 1 and state.weapon_phase == "windup" and not state.strike, "Activation creates one attack identity")
@@ -73,7 +72,6 @@ func committed_timing() -> void:
 	near(state.charge, 1, "Strike publishes completed windup")
 	near(state.heat, 20, "Strike produces twenty heat once")
 	near(state.cooldown, 1.4, "Strike begins full miss recovery")
-	near(state.battery, 84, "Committed strike has no second battery charge")
 	check(state.snapshot().weapon_state == "strike", "Existing snapshot fields expose strike phase")
 	state.tick(STEP, press(), true)
 	check(not state.strike and state.attack_id == 1 and state.failure_reason == "cooldown", "Strike pulse clears next tick and recovery rejects presses")
@@ -94,15 +92,7 @@ func activation_gates() -> void:
 	var blocked := press()
 	blocked.secondary_held = true
 	state.tick(STEP, blocked, true)
-	check(state.attack_id == 0 and state.battery == 100, "Secondary prevents starting a new hammer attack")
-	state.battery = 15.99
-	state.tick(STEP, press(), true)
-	check(state.attack_id == 0 and state.failure_reason == "battery_empty", "Insufficient activation battery rejects hammer")
-	state.battery = 16
-	state.tick(STEP, press(), true)
-	near(state.battery, 0, "Exactly sixteen battery commits an attack")
-	ticks(state, 20, BotCommand.new())
-	check(state.strike, "Committed attack completes with zero remaining battery")
+	check(state.attack_id == 0, "Secondary prevents starting a new hammer attack")
 	state = fresh()
 	state.heat = 80
 	state.tick(STEP, press(), true)
@@ -126,7 +116,6 @@ func cancellation() -> void:
 			state.eliminate("fixture")
 		state.tick(STEP, BotCommand.new(), reason != "inactive")
 		check(not state.strike and state.charge == 0, reason + " cancels committed hammer windup")
-		near(state.battery, 84, reason + " does not refund committed battery")
 		if reason == "destroyed":
 			state.zones.weapon = 140
 		elif reason == "eliminated":
@@ -135,20 +124,16 @@ func cancellation() -> void:
 		check(not state.strike and state.attack_id == 1 and state.heat == 0, reason + " cannot later resurrect the cancelled strike")
 	var state := fresh()
 	state.tick(STEP, press(), false)
-	check(state.attack_id == 0 and state.battery == 100, "Inactive countdown rejects a new activation")
+	check(state.attack_id == 0, "Inactive countdown rejects a new activation")
 
 func resources() -> void:
 	var state := fresh()
 	state.tick(STEP, press(), true)
 	ticks(state, 20, BotCommand.new())
-	ticks(state, 59, BotCommand.new())
-	near(state.battery, 84, "No recharge before one second after the strike")
-	state.tick(STEP, BotCommand.new(), true)
-	near(state.battery, 84, "Exactly one inactive second produces no premature recharge")
 	ticks(state, 60, BotCommand.new())
-	near(state.battery, 92, "Next idle second recharges eight battery")
-	near(state.heat, 0, "Duelist cooling dissipates strike heat")
-	state = fresh()
+	near(state.heat, 5, "Cooling pack dissipates fifteen strike heat in one second")
+	ticks(state, 60, BotCommand.new())
+	near(state.heat, 0, "Duelist cooling dissipates all strike heat")
 	state.heat = 40
 	state.tick(0.5, BotCommand.new(), true)
 	near(state.heat, 32.5, "Duelist cooling pack dissipates fifteen heat per second")
@@ -157,18 +142,12 @@ func resources() -> void:
 	var command := BotCommand.new()
 	command.recovery_pressed = true
 	state.tick(STEP, command, true)
-	near(state.battery, 70, "Recovery remains available with a destroyed hammer")
+	near(state.heat, 62.5, "Destroyed hammer retains recovery with thirty added heat")
 	near(state.recovery_cooldown, 20, "Recovery keeps its twenty-second cooldown")
 	near(state.recovery_remaining, 2, "Duelist without recovery assist takes two seconds")
-	ticks(state, 60, BotCommand.new())
-	near(state.battery, 70, "Active recovery prevents recharge")
-	ticks(state, 60, BotCommand.new())
+	ticks(state, 120, BotCommand.new())
 	near(state.recovery_remaining, 0, "Recovery completes after exactly two seconds")
-	near(state._inactive, 0, "Final recovery tick does not count toward inactivity")
-	ticks(state, 60, BotCommand.new())
-	near(state.battery, 70, "Full one-second recharge wait follows completed recovery")
-	ticks(state, 60, BotCommand.new())
-	near(state.battery, 78, "Following idle second restores eight battery after recovery")
+	near(state.heat, 32.5, "Bot cools while completing recovery")
 
 func legacy_regression() -> void:
 	for weapon: String in ["vertical_spinner", "horizontal_spinner", "lifter"]:

@@ -40,7 +40,7 @@ func run() -> void:
 	b.team = 1
 	world.reset_round()
 	await frames(60, false)
-	check(b.combat.core == b.combat.stats.core and b.combat.battery == b.combat.stats.battery, "Round reset repairs/refills")
+	check(b.combat.core == b.combat.stats.core and b.combat.heat == 0 and not b.combat.overheated, "Round reset repairs/refills")
 	check(a.body.mass == 103 and b.body.mass == 108 and b.body.top_speed == 8, "Server assembly uses catalogue stats")
 	b.combat.eliminate("test")
 	world.step(1.0 / 60, true, 1)
@@ -54,7 +54,7 @@ func run() -> void:
 	a.submit_command(recovery)
 	await frames(110)
 	print("Recovery upright dot: ", a.body.global_basis.y.dot(Vector3.UP), " activations: ", a.combat.recovery_count)
-	check(a.body.global_basis.y.dot(Vector3.UP) > 0.5 and a.combat.battery < 100,
+	check(a.body.global_basis.y.dot(Vector3.UP) > 0.5 and a.combat.recovery_count == 1,
 		"Physical recovery rights an unpinned inverted bot without teleporting")
 	world.reset_round()
 	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 0.5, 0) * BotScale.FACTOR)

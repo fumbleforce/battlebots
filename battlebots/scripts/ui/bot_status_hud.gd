@@ -28,11 +28,13 @@ func show_view(view: BotView) -> void:
 		state_label.text = "ELIMINATED"
 	elif is_finite(view.core_fraction) and view.core_fraction <= 0.25:
 		state_label.text = "LOW CORE  /  WEAPON: " + weapon
+	elif view.overheated:
+		state_label.text = "OVERHEATED / COOL TO 50%"
 	elif is_finite(view.heat_fraction) and view.heat_fraction >= 0.9:
 		state_label.text = "HIGH HEAT  /  WEAPON: " + weapon
 	else:
 		state_label.text = "WEAPON: " + weapon
-	state_label.modulate = WARNING if view.eliminated \
+	state_label.modulate = WARNING if view.eliminated or view.overheated \
 		or (is_finite(view.core_fraction) and view.core_fraction <= 0.25) \
 		or (is_finite(view.heat_fraction) and view.heat_fraction >= 0.9) else NORMAL
 

@@ -1,5 +1,23 @@
 # Current A/B handoff
 
+## Heat-only combat resources (B, #41) — 23 September 2026
+
+Battery is removed from runtime state, weapons/perks, catalogue, snapshots and UI.
+Nitro generates 14 heat/s, jumping 20 and self-righting 30; weapons retain their
+heat rates. All use the same 100/50 overheat latch and idle cooling. Known saved
+Battery Pack selections migrate to Cooling Pack. HUD shows heat and its recovery
+threshold, and Garage shows cooling instead of capacity.
+
+Catalogue 12, protocol 9, build `mvp-ab-19`: snapshot slot 9 is now boolean
+`overheated`, with all other indices preserved. #32/#36/#39 must rebase and retain
+the heat-only shared resource when adding effects, turret or dual-weapon work.
+Local baseline, combat/physics, native UI and network checks pass, including a
+complete natural duel through results/rematch. [Details and catalogue hash](coordination/B_HEAT_ONLY.md).
+**A/release workflow: matching clients and hosted workers remain required.**
+Main's automated deployment must finish its container/external checks and verify
+the live compatibility record before this is called hosted-ready. No live release
+or human acceptance is claimed by the local tests; #41 stays open for verification.
+
 ## Atlas turret (B, #36) — 23 September 2026
 
 B merged the modelled, mouse-aimed Atlas turret (cannon/plasma) with tank sight
