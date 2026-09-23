@@ -1,9 +1,27 @@
 // Shared Woodland procedural helpers. Heights are metres; wl_bump turns a
 // procedural height into a physically scaled shading normal (surface gradient).
-float wl_hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float wl_hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+// Exact integer (PCG) hashes of the input's bits. The common
+// fract(sin(x) * 43758) hash amplifies last-bit float differences: GPUs can
+// evaluate a lattice corner shared by two noise cells slightly differently,
+// so cell edges showed as hard shards. Adding 0.0 folds -0.0 into +0.0.
+uint wl_pcg(uint v) {
+	uint state = v * 747796405u + 2891336453u;
+	uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+	return (word >> 22u) ^ word;
+}
+float wl_unit(uint v) { return float(v >> 8u) * (1.0 / 16777216.0); }
+float wl_hash(vec2 p) {
+	uvec2 q = floatBitsToUint(p + 0.0);
+	return wl_unit(wl_pcg(q.x ^ wl_pcg(q.y)));
+}
+float wl_hash3(vec3 p) {
+	uvec3 q = floatBitsToUint(p + 0.0);
+	return wl_unit(wl_pcg(q.x ^ wl_pcg(q.y ^ wl_pcg(q.z))));
+}
 vec2 wl_hash22(vec2 p) {
-	return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+	uvec2 q = floatBitsToUint(p + 0.0);
+	uint h = wl_pcg(q.x ^ wl_pcg(q.y));
+	return vec2(wl_unit(h), wl_unit(wl_pcg(h)));
 }
 float wl_noise(vec2 p) {
 	vec2 i = floor(p), f = fract(p);

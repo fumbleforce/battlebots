@@ -16,6 +16,7 @@ extends Node3D
 @onready var network_diagnostics: NetworkDiagnosticsPanel = $DiagnosticsLayer/NetworkDiagnostics
 var sequence: int = 0
 var controls_enabled: bool = false
+var _resume_on_focus := false
 var input_gate := GameplayInputGate.new()
 var _load_notice: String = ""
 var _control_generation: int = 0
@@ -57,7 +58,8 @@ func _ready() -> void:
 	settings_button.pressed.connect(open_settings)
 	return_button.pressed.connect(return_to_launcher)
 	settings_panel.closed.connect(_on_settings_closed)
-	get_window().focus_exited.connect(release_controls)
+	get_window().focus_exited.connect(_on_focus_lost)
+	get_window().focus_entered.connect(_on_focus_regained)
 	if DisplayServer.get_name() != "headless":
 		capture_controls()
 	else:
@@ -73,6 +75,23 @@ func capture_controls() -> void:
 	get_viewport().gui_release_focus()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+## Losing window focus (a screenshot tool on Print Screen, alt-tab, overlays)
+## still neutralises driving input and frees the mouse, but is not a request to
+## pause: the menu stays hidden and control returns with focus.
+func _on_focus_lost() -> void:
+	if not controls_enabled:
+		return
+	_resume_on_focus = true
+	release_controls(false)
+	pause_menu.hide()
+
+func _on_focus_regained() -> void:
+	if not _resume_on_focus:
+		return
+	_resume_on_focus = false
+	if not pause_menu.visible:
+		capture_controls()
+
 func _apply_input_preferences(preferences: InputPreferences) -> void:
 	input_preferences = preferences
 	input_preferences.apply_to_input_map()
@@ -85,6 +104,8 @@ func _on_diagnostics_interaction() -> void:
 	network_diagnostics.details_button.grab_focus()
 
 func release_controls(focus_menu: bool = true) -> void:
+	if focus_menu:
+		_resume_on_focus = false
 	_control_generation += 1
 	controls_enabled = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
