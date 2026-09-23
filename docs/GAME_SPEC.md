@@ -149,6 +149,7 @@ FFA uses the same survivor/core/damage ordering for players remaining at timeout
 | Left mouse | Primary weapon; hold for spin/saw, press for hammer or flipper |
 | Right mouse | Secondary mechanical action when supported: lower/retract lifter; otherwise brake weapon spin |
 | Space | Wheel brake |
+| Left Ctrl | Hold to crouch a four-legged walker to about tracked-Atlas ride height (fixed binding, not yet rebindable) |
 | R | Activate self-right recovery when eligible |
 | C | Toggle third-person / first-person camera |
 | Middle mouse | Recenter camera behind chassis |

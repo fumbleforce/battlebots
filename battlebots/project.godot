@@ -74,6 +74,10 @@ jump={
 "deadzone": 0.2,
 "events": [Object(InputEventKey, "physical_keycode":32)]
 }
+crouch={
+"deadzone": 0.2,
+"events": [Object(InputEventKey, "physical_keycode":4194326, "location":1)]
+}
 recover={
 "deadzone": 0.2,
 "events": [Object(InputEventKey, "physical_keycode":82)]

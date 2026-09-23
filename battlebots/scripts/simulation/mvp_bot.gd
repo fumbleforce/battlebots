@@ -279,7 +279,7 @@ func submit_command(intent: BotCommand) -> void:
 		return
 	last_sequence = intent.sequence
 	command = BotCommand.new()
-	for field: String in ["sequence", "throttle", "steering", "brake", "nitro_held", "jump_held", "jump_cancel", "primary_held", "primary_pressed", "secondary_held", "auxiliary_held", "recovery_pressed", "aim_valid", "aim_yaw", "aim_pitch"]:
+	for field: String in ["sequence", "throttle", "steering", "brake", "nitro_held", "jump_held", "jump_cancel", "crouch_held", "primary_held", "primary_pressed", "secondary_held", "auxiliary_held", "recovery_pressed", "aim_valid", "aim_yaw", "aim_pitch"]:
 		command.set(field, intent.get(field))
 	input_age = 0
 

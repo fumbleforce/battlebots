@@ -2,7 +2,7 @@ class_name GameplayInputGate
 extends RefCounted
 ## Local intent filtering only. Authority/lifecycle checks remain with the session.
 const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse",
-	&"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover"]
+	&"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"crouch", &"primary", &"secondary", &"recover"]
 var _blocked: Dictionary = {}
 var auxiliary_weapon := false
 ## Tank controls for turret builds: the primary button (LMB) fires the turret's
@@ -49,6 +49,7 @@ func sample(strengths: Dictionary, edges: Dictionary, enabled: bool) -> BotComma
 	command.nitro_held = _strength(strengths, &"nitro") > 0.0
 	command.jump_held = _strength(strengths, &"jump") > 0.0
 	command.jump_cancel = _cancel_pending or _blocked.has(&"jump")
+	command.crouch_held = _strength(strengths, &"crouch") > 0.0
 	for action: StringName in [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right"]:
 		command.brake = command.brake or _blocked.has(action)
 	if turret_main_gun:

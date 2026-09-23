@@ -3,6 +3,7 @@ var failures: Array[String] = []
 var bot: MvpBot
 var throttle := 0.0
 var steering := 0.0
+var crouch := false
 var ticks := 0
 var peak_y := 0.0
 var visual_legs: WalkerLegs
@@ -21,6 +22,7 @@ func _physics_process(delta: float) -> void:
 	command.sequence = ticks
 	command.throttle = throttle
 	command.steering = steering
+	command.crouch_held = crouch
 	command.brake = is_zero_approx(throttle) and is_zero_approx(steering)
 	bot.submit_command(command)
 	bot.step(delta, true)
@@ -88,6 +90,19 @@ func run() -> void:
 	check(bot.body.grounded, "Legs establish support")
 	check(absf(bot.body.global_position.y - WalkerDrive.RIDE_HEIGHT) < 0.08, "Leg forces hold authored ride height")
 	check(bot.body.walker_contacts.size() == 4, "Four footholds on flat ground")
+	crouch = true
+	var crouch_start := bot.body.global_position.y
+	await wait_ticks(6)
+	var drop_speed := (crouch_start - bot.body.global_position.y) / (6.0 / 60.0)
+	await wait_ticks(90)
+	var crouch_height := bot.body.physics.crouch_ride_height
+	check(drop_speed <= bot.body.physics.crouch_lower_speed * 1.1, "Crouch lowers the hull at a bounded speed")
+	check(absf(bot.body.global_position.y - crouch_height) < 0.08, "Held crouch settles at the crouch ride height")
+	check(absf(visual_legs.stance_height * BotScale.FACTOR - crouch_height) < 0.1, "Leg presentation measures the crouched stance")
+	check(not visual_legs.airborne and bot.body.walker_contacts.size() == 4, "Crouched walker keeps its footholds")
+	crouch = false
+	await wait_ticks(90)
+	check(absf(bot.body.global_position.y - WalkerDrive.RIDE_HEIGHT) < 0.08, "Releasing crouch stands back up")
 	throttle = 1
 	# Linear speed stays in meters/second; the course is three times longer.
 	await wait_ticks(roundi(115 * SCALE))
@@ -121,6 +136,18 @@ func run() -> void:
 	bot.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(7, 1, 3) * SCALE)
 	await wait_ticks(90)
 	check(absf(bot.body.global_position.y - WalkerDrive.RIDE_HEIGHT) < 0.08, "Walker stance supports lunar gravity")
+	# Falling: legs hang under the hull instead of stepping on air. Lunar gravity
+	# lets the stance catch the landing.
+	bot.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(7, 4, 3) * SCALE)
+	await wait_ticks(12)
+	check(not bot.body.grounded and visual_legs.airborne, "A falling walker is airborne")
+	for leg: Dictionary in visual_legs.legs:
+		check(leg.time >= 1.0 and leg.collider == null, "Airborne feet do not step onto footholds")
+		check(visual_legs.to_local(leg.foot).y < Vector3(leg.neutral).y, "Airborne feet hang below the stance")
+	await wait_ticks(240)
+	check(bot.body.grounded and not visual_legs.airborne, "The walker lands and walks again")
+	for leg: Dictionary in visual_legs.legs:
+		check(leg.time >= 1.0 and leg.collider != null, "Landing plants every foot on the ground")
 	for ankle: Vector3 in [Vector3(0.3, -0.9, 0.1), Vector3(-0.2, -1.0, 0), Vector3(0.5, -0.6, 0.3)]:
 		var knee := WalkerLegs.solve_knee(Vector3.ZERO, ankle, Vector3.RIGHT)
 		check(absf(knee.length() - WalkerLegs.UPPER) < 0.001, "IK preserves upper segment length")

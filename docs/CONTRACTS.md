@@ -1,5 +1,19 @@
 # Shared contracts — local records and current MVP session API
 
+## Walker crouch — protocol 13, build mvp-ab-35 (#60)
+
+`BotCommand.crouch_held` (project input action `crouch`, Left Ctrl) travels as
+command flag bit 10 (`1024`); `WireCodec.command_from_array` now accepts flags
+up to 2047, so the wire `PROTOCOL` is 13. `MvpBot.submit_command` copies it and
+`DriveBody.accept_command` sets `DriveBody.crouched`. While it is held,
+`WalkerDrive` supports a four-legged walker (`walker_rows == 2`) at
+`bot_physics.json` `walker.crouch_ride_height` (canonical-scale metres, about
+the tracked Atlas ride height) and lowers it no faster than
+`walker.crouch_lower_speed`. The six-legged Scorpion ignores it. Snapshots are
+unchanged: leg presentation measures the hull height (`WalkerLegs.stance_height`),
+which `AtlasLegs.solve` uses for its ankle-rise clamp. Crouch is not part of
+`InputPreferences` rebinding yet. Presentation-only gait changes in the same
+issue: predicted footholds, airborne hang (`WalkerLegs.airborne`) and landing.
 ## Harpoon, mortar, ram, spear and grinder — build mvp-ab-34, catalogue 16, protocol 12 (#52–#56)
 
 New Atlas MX-only parts:

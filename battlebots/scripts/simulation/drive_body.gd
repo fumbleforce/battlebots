@@ -36,6 +36,8 @@ var walker_rows := 2
 ## metres; zero derives them from the probe box plus WalkerDrive.FOOT_SPREAD.
 var walker_footholds := Vector2.ZERO
 var walker_contacts: Array[Dictionary] = []
+## Held crouch intent; only the four-legged walker lowers its stance.
+var crouched := false
 var drive_multiplier: float = 1.0
 var nitro_equipped := false
 var jump_equipped := false
@@ -91,6 +93,7 @@ func accept_command(command: BotCommand) -> void:
 	_throttle = command.throttle
 	_steering = command.steering
 	_brake = command.brake
+	crouched = command.crouch_held
 	if nitro_equipped:
 		nitro_active = command.nitro_held and command.throttle > 0.05 and not command.brake
 	_command_age = 0.0

@@ -39,7 +39,10 @@
 		"max_top_speed_factor": 1.1
 	},
 	"walker": {
-		"lift_headroom_acceleration": 35.0
+		"_comment": "Four-legged walkers stand at WalkerDrive.RIDE_HEIGHT; holding crouch lowers the hull to crouch_ride_height (metres at the canonical factor-three scale, about the tracked Atlas ride height) and never sinks faster than crouch_lower_speed m/s so the stance spring cannot slam the hull into the floor. The six-legged Scorpion does not crouch.",
+		"lift_headroom_acceleration": 35.0,
+		"crouch_ride_height": 1.8,
+		"crouch_lower_speed": 3.0
 	},
 	"impacts": {
 		"_comment": "Scales over authored weapon impulses (m/s at equal mass). Rams add knock-back because Jolt hull contacts are plastic. The lifter applies no force while charging (hold 0 keeps the flipper low) and releases one violent launch with flip spin.",

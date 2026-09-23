@@ -1,13 +1,40 @@
 class_name WalkerLegs
 extends Node3D
 ## Planted feet, alternating diagonal steps and two-bone IK; no damage authority.
+## Footholds are predicted: a step lands where the hull will carry the hip
+## half a stance after touchdown, so feet reach ahead instead of trailing. With
+## fewer than MIN_SUPPORT footholds in reach the legs hang under the hull.
 const UPPER := 0.67
 const LOWER := 0.73
 const STEP_TIME := 0.24
+## Swing apex (source metres) and the planted-foot drift that starts a step.
+const STEP_HEIGHT := 0.25
+const STEP_DISTANCE := 0.22
+## Time a foot stays planted between swings; it lands half of this ahead.
+const STANCE_TIME := 0.24
+## Hull speed (source metres per second) and turn (rad) the prediction may lead.
+const MAX_LEAD_SPEED := 4.0
+const MAX_LEAD_TURN := 0.6
+## 1/s smoothing of the observed hull velocity and yaw rate.
+const MOTION_RESPONSE := 10.0
+## Planted footholds needed to walk; fewer and the walker is airborne.
+const MIN_SUPPORT := 2
+## Airborne feet hang this far (source metres) below the standing stance.
+const HANG_DROP := 0.3
+const HANG_RESPONSE := 8.0
+## Touchdown after a fall: feet reach the ground in this time without a lift arc.
+const LANDING_TIME := 0.1
 var legs: Array[Dictionary] = []
 var exclusions: Array[RID] = []
 var terrain := true
+## Measured hull height (source metres) above the ground under the feet;
+## drops when the walker crouches.
+var stance_height := WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR
+var airborne := false
 var _last_origin := Vector3.ZERO
+var _last_forward := Vector3.FORWARD
+var _velocity := Vector3.ZERO
+var _yaw_rate := 0.0
 var _initialized := false
 var _pair := 0
 var _paint: Material
@@ -153,8 +180,10 @@ static func solve_knee(hip: Vector3, ankle: Vector3, outward: Vector3) -> Vector
 	if bend.is_zero_approx(): bend = Vector3.FORWARD.slide(direction).normalized()
 	return hip + direction * along + bend * sqrt(maxf(0, UPPER * UPPER - along * along))
 
-func _contact(leg: Dictionary, ahead := Vector3.ZERO) -> Dictionary:
-	var target := global_transform * Vector3(leg.neutral) + ahead
+## Ground under the leg's neutral foothold, after the hull moves by ahead and
+## turns by turn (rad about world up). Misses fall back without a collider.
+func _contact(leg: Dictionary, ahead := Vector3.ZERO, turn := 0.0) -> Dictionary:
+	var target := global_position + (global_basis * Vector3(leg.neutral)).rotated(Vector3.UP, turn) + ahead
 	if not terrain or global_basis.y.normalized().dot(Vector3.UP) < 0.45:
 		return {"position":target, "normal":global_basis.y.normalized(), "collider":null}
 	var start := Vector3(target.x, global_position.y + 0.20 * _geometry_scale, target.z)
@@ -166,6 +195,12 @@ func _contact(leg: Dictionary, ahead := Vector3.ZERO) -> Dictionary:
 		return {"position":target, "normal":Vector3.UP, "collider":null}
 	return hit
 
+## Foothold for a step that touches down after `swing` seconds: the hip's
+## position half a stance later, so the planted foot straddles the hip.
+func _predicted_contact(leg: Dictionary, swing: float) -> Dictionary:
+	var lead := swing + STANCE_TIME * 0.5
+	return _contact(leg, _velocity * lead, clampf(_yaw_rate * lead, -MAX_LEAD_TURN, MAX_LEAD_TURN))
+
 func reset_feet() -> void:
 	if not is_inside_tree(): return
 	for leg: Dictionary in legs:
@@ -174,8 +209,14 @@ func reset_feet() -> void:
 		leg.target = hit.position
 		leg.normal = hit.normal
 		leg.time = 1.0
+		leg.duration = STEP_TIME
+		leg.arc = STEP_HEIGHT
 		_set_contact(leg, hit)
 	_last_origin = global_position
+	_last_forward = _planar_forward()
+	_velocity = Vector3.ZERO
+	_yaw_rate = 0.0
+	airborne = false
 	_initialized = true
 	_pose()
 
@@ -185,6 +226,10 @@ func _set_contact(leg: Dictionary, hit: Dictionary) -> void:
 	if collider is Node3D:
 		leg.local_contact = collider.to_local(hit.position)
 		leg.local_normal = collider.global_basis.inverse() * Vector3(hit.normal)
+
+func _planar_forward() -> Vector3:
+	var forward := (-global_basis.z).slide(Vector3.UP)
+	return forward.normalized() if not forward.is_zero_approx() else Vector3.FORWARD
 
 func _process(delta: float) -> void:
 	if legs.is_empty(): return
@@ -197,39 +242,107 @@ func _process(delta: float) -> void:
 	if not _initialized or global_position.distance_to(_last_origin) > 2.0 * _geometry_scale:
 		reset_feet()
 		return
-	var velocity := (global_position - _last_origin) / maxf(delta, 0.001)
+	var step := maxf(delta, 0.001)
+	var response := 1.0 - exp(-MOTION_RESPONSE * delta)
+	var velocity := ((global_position - _last_origin) / step).slide(Vector3.UP)
+	_velocity = _velocity.lerp(velocity.limit_length(MAX_LEAD_SPEED * _geometry_scale), response)
+	var forward := _planar_forward()
+	_yaw_rate = lerpf(_yaw_rate, _last_forward.signed_angle_to(forward, Vector3.UP) / step, response)
 	_last_origin = global_position
+	_last_forward = forward
+	if _measure_support(response) < MIN_SUPPORT:
+		_hang(delta)
+	else:
+		if airborne: _land()
+		_walk(delta)
+	_pose()
+
+## Counts legs with ground in reach under their neutral footholds and tracks
+## the hull height above that ground (crouching lowers it).
+func _measure_support(response: float) -> int:
+	var supported := 0
+	var height := 0.0
+	for leg: Dictionary in legs:
+		var hit := _contact(leg)
+		if hit.get("collider") == null: continue
+		supported += 1
+		height -= to_local(hit.position).y
+	if supported > 0:
+		stance_height = lerpf(stance_height, height / supported, response)
+	return supported
+
+## Nothing to stand on: the feet leave the ground and hang, extended, under the
+## hull in its own frame instead of stepping onto air.
+func _hang(delta: float) -> void:
+	if not airborne:
+		airborne = true
+		for leg: Dictionary in legs:
+			leg.air = to_local(leg.foot)
+			leg.time = 1.0
+			leg.collider = null
+	var response := 1.0 - exp(-HANG_RESPONSE * delta)
+	for leg: Dictionary in legs:
+		var hang := Vector3(leg.neutral)
+		hang.y -= HANG_DROP
+		leg.air = Vector3(leg.air).lerp(hang, response)
+		leg.foot = to_global(leg.air)
+		leg.normal = global_basis.y.normalized()
+
+## Every hanging foot reaches for the ground it is about to land on.
+func _land() -> void:
+	airborne = false
+	for leg: Dictionary in legs:
+		var hit := _predicted_contact(leg, LANDING_TIME)
+		leg.start = leg.foot
+		leg.target = hit.position
+		leg.normal = hit.normal
+		leg.time = 0.0
+		leg.duration = LANDING_TIME
+		leg.arc = 0.0
+		_set_contact(leg, hit)
+
+func _walk(delta: float) -> void:
 	var stepping := false
 	for leg: Dictionary in legs:
 		if leg.time < 1.0:
-			leg.time = minf(1.0, leg.time + delta / STEP_TIME)
-			leg.foot = Vector3(leg.start).lerp(leg.target, smoothstep(0, 1, leg.time)) + Vector3.UP * sin(leg.time * PI) * 0.25 * _geometry_scale
+			leg.time = minf(1.0, leg.time + delta / leg.duration)
+			if leg.arc > 0.0:
+				# Keep steering the swing toward where the hull will be at touchdown.
+				var hit := _predicted_contact(leg, (1.0 - leg.time) * leg.duration)
+				if hit.get("collider") != null:
+					leg.target = hit.position
+					leg.normal = hit.normal
+					_set_contact(leg, hit)
+			leg.foot = Vector3(leg.start).lerp(leg.target, smoothstep(0, 1, leg.time)) \
+				+ Vector3.UP * sin(leg.time * PI) * leg.arc * _geometry_scale
 			stepping = true
 		elif leg.collider != null:
 			var collider: Node3D = leg.collider.get_ref()
 			if is_instance_valid(collider):
 				leg.foot = collider.to_global(leg.local_contact)
 				leg.normal = (collider.global_basis * Vector3(leg.local_normal)).normalized()
-	if not stepping:
-		var needs_step := false
-		for leg: Dictionary in legs:
-			if leg.pair != _pair: continue
-			var hit := _contact(leg, velocity.slide(Vector3.UP).limit_length(4 * _geometry_scale) * 0.12)
-			if Vector3(leg.foot).distance_to(hit.position) > 0.22 * _geometry_scale: needs_step = true
-		if needs_step:
-			for leg: Dictionary in legs:
-				if leg.pair != _pair: continue
-				var hit := _contact(leg, velocity.slide(Vector3.UP).limit_length(4 * _geometry_scale) * 0.12)
-				leg.start = leg.foot
-				leg.target = hit.position
-				leg.normal = hit.normal
-				leg.time = 0.0
-				_set_contact(leg, hit)
-			_pair = 1 - _pair
-		else:
-			# Also check the other diagonal when turning around a planted pair.
-			_pair = 1 - _pair
-	_pose()
+	if stepping: return
+	var needs_step := false
+	var targets := {}
+	for index: int in legs.size():
+		var leg := legs[index]
+		if leg.pair != _pair: continue
+		var hit := _predicted_contact(leg, STEP_TIME)
+		targets[index] = hit
+		if Vector3(leg.foot).distance_to(hit.position) > STEP_DISTANCE * _geometry_scale: needs_step = true
+	if needs_step:
+		for index: int in targets:
+			var leg := legs[index]
+			var hit: Dictionary = targets[index]
+			leg.start = leg.foot
+			leg.target = hit.position
+			leg.normal = hit.normal
+			leg.time = 0.0
+			leg.duration = STEP_TIME
+			leg.arc = STEP_HEIGHT
+			_set_contact(leg, hit)
+	# Alternate diagonals; an idle pair also lets the other check while turning.
+	_pair = 1 - _pair
 
 func _pose() -> void:
 	for leg: Dictionary in legs:

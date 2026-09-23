@@ -60,7 +60,7 @@ func _pose() -> void:
 	for leg: Dictionary in legs:
 		var normal := (global_basis.inverse() * Vector3(leg.normal)).normalized()
 		var ankle := to_local(leg.foot) + normal * rig.ankle
-		var frames := solve(rig, leg.side, leg.end, ankle, normal, leg.neutral_yaw)
+		var frames := solve(rig, leg.side, leg.end, ankle, normal, leg.neutral_yaw, stance_height)
 		for part: String in PARTS:
 			var node: Node3D = leg.nodes[part]
 			node.global_transform = global_transform * frames[part]
@@ -68,11 +68,12 @@ func _pose() -> void:
 ## Hull-frame transforms (source metres) of every moving part for an ankle
 ## target: coxa X = heading, Y = up; segments +Y along the member, Z = the
 ## hinge (up x heading), X = Y x Z; foot Y = ground normal, X = heading. The
-## ankle rises at most rig.ankle_rise_limit above its stance height.
+## ankle rises at most rig.ankle_rise_limit above its stance height: the hull's
+## height above the ground (lower while crouched).
 static func solve(rig: AtlasDriveRig, side: int, end: int, ankle: Vector3, normal: Vector3,
-		neutral_yaw: float) -> Dictionary:
+		neutral_yaw: float, stance := WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR) -> Dictionary:
 	var axis := Vector3(side * rig.yaw_axis.x, rig.pin_height, end * rig.yaw_axis.y)
-	ankle.y = minf(ankle.y, -WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR + rig.ankle + rig.ankle_rise_limit)
+	ankle.y = minf(ankle.y, -stance + rig.ankle + rig.ankle_rise_limit)
 	var flat := Vector3(ankle.x - axis.x, 0.0, ankle.z - axis.z)
 	var outward := neutral_yaw
 	if flat.length() > MIN_HEADING_REACH:

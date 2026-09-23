@@ -1,7 +1,7 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 12
-const BUILD := "mvp-ab-34"
+const PROTOCOL := 13
+const BUILD := "mvp-ab-35"
 const SNAPSHOT_FIELDS := 43
 const ZONES := ["front", "rear", "left", "right", "top", "underside", "drive_left", "drive_right", "weapon"]
 
@@ -9,13 +9,13 @@ static func snapshot_epoch(match_id: String, round_index: int) -> String:
 	return "%s:%d" % [match_id, round_index]
 
 static func command_to_array(command: BotCommand) -> Array:
-	var flags := int(command.brake) | (int(command.primary_held) << 1) | (int(command.primary_pressed) << 2) | (int(command.secondary_held) << 3) | (int(command.recovery_pressed) << 4) | (int(command.auxiliary_held) << 5) | (int(command.nitro_held) << 6) | (int(command.jump_held) << 7) | (int(command.jump_cancel) << 8) | (int(command.aim_valid) << 9)
+	var flags := int(command.brake) | (int(command.primary_held) << 1) | (int(command.primary_pressed) << 2) | (int(command.secondary_held) << 3) | (int(command.recovery_pressed) << 4) | (int(command.auxiliary_held) << 5) | (int(command.nitro_held) << 6) | (int(command.jump_held) << 7) | (int(command.jump_cancel) << 8) | (int(command.aim_valid) << 9) | (int(command.crouch_held) << 10)
 	return [command.sequence, command.throttle, command.steering, flags, command.aim_yaw, command.aim_pitch]
 
 static func command_from_array(data: Variant) -> BotCommand:
 	if not data is Array or data.size() != 6 or not data[0] is int or data[0] < 0 or data[0] > 2147483647:
 		return null
-	if (not data[1] is float and not data[1] is int) or (not data[2] is float and not data[2] is int) or not data[3] is int or data[3] < 0 or data[3] > 1023:
+	if (not data[1] is float and not data[1] is int) or (not data[2] is float and not data[2] is int) or not data[3] is int or data[3] < 0 or data[3] > 2047:
 		return null
 	if (not data[4] is float and not data[4] is int) or (not data[5] is float and not data[5] is int):
 		return null
@@ -33,6 +33,7 @@ static func command_from_array(data: Variant) -> BotCommand:
 	command.jump_held = (data[3] & 128) != 0
 	command.jump_cancel = (data[3] & 256) != 0
 	command.aim_valid = (data[3] & 512) != 0
+	command.crouch_held = (data[3] & 1024) != 0
 	command.aim_yaw = data[4]
 	command.aim_pitch = data[5]
 	return command if command.is_valid() else null

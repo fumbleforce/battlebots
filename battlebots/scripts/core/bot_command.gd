@@ -10,6 +10,8 @@ var nitro_held: bool = false
 var jump_held: bool = false
 ## Cancels a charged jump on focus loss, menu suppression or input timeout.
 var jump_cancel: bool = false
+## Lowers a four-legged walker to crouch ride height while held.
+var crouch_held: bool = false
 var primary_held: bool = false
 var primary_pressed: bool = false
 var secondary_held: bool = false

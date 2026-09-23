@@ -5,6 +5,16 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Predictive walker legs, airborne hang and crouch (#60) — 23 September 2026
+
+Walker feet now step to where the hull will be half a stance after touchdown
+(velocity and yaw-rate lead, re-aimed during the swing), so they straddle the
+hip instead of trailing it. On a flat Atlas walk at 6.2 m/s, touchdown moved
+from 0.27 m behind the hip to 0.25 m ahead, and mean planted offset from
+−0.54 m to −0.03 m (source metres). With under two footholds in reach the legs
+hang, extended, in the hull frame, then reach down to land. Left Ctrl crouches
+four-legged walkers to 1.8 m ride height. Wire protocol 13 / build mvp-ab-35
+need the matching automatic hosted release. Crouch is not rebindable yet.
 ## Harpoon, mortar, ram, spear/forklift and grinder (#52–#56) — 23 September 2026
 
 New weapons, all Atlas MX only:

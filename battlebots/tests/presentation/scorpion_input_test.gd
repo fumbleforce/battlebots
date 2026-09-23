@@ -71,8 +71,13 @@ func run() -> void:
 	legacy.sample({}, {}, true)
 	check(not legacy.sample({&"secondary": 1.0}, {}, true).auxiliary_held,
 		"Bots without auxiliary capability preserve ordinary secondary cancellation")
-	check(WireCodec.command_from_array([1, 0.0, 0.0, 1024, 0.0, 0.0]) == null,
+	check(WireCodec.command_from_array([1, 0.0, 0.0, 2048, 0.0, 0.0]) == null,
 		"Unknown command flag bits are rejected")
+	var crouch := legacy.sample({&"crouch": 1.0}, {}, true)
+	var crouch_wire := WireCodec.command_from_array(WireCodec.command_to_array(crouch))
+	check(crouch.crouch_held and crouch_wire != null and crouch_wire.crouch_held
+		and not legacy.sample({&"crouch": 1.0}, {}, false).crouch_held,
+		"Crouch is sampled, survives the command wire and releases under suppression")
 	var cancel := BotCommand.new()
 	cancel.secondary_held = true
 	check(not WireCodec.command_from_array(WireCodec.command_to_array(cancel)).auxiliary_held,

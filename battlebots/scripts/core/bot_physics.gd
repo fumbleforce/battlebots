@@ -39,6 +39,10 @@ var min_top_speed_factor: float
 var max_top_speed_factor: float
 # walker
 var lift_headroom_acceleration: float
+## Crouched four-legged walker ride height (canonical-scale metres) and the
+## fastest the stance may lower the hull (m/s).
+var crouch_ride_height: float
+var crouch_lower_speed: float
 # impacts
 var weapon_impulse_multiplier: float
 var lifter_impulse_multiplier: float
@@ -76,7 +80,7 @@ const SECTIONS := {
 		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier", "steering_direction_threshold"],
 	"nitro": ["nitro_acceleration_multiplier", "nitro_top_speed_multiplier", "nitro_grip_multiplier"],
 	"mass": ["reference_mass", "top_speed_per_kg", "min_top_speed_factor", "max_top_speed_factor"],
-	"walker": ["lift_headroom_acceleration"],
+	"walker": ["lift_headroom_acceleration", "crouch_ride_height", "crouch_lower_speed"],
 	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g", "lifter_min_release_charge",
 		"minigun_impulse_multiplier", "lifter_hold_acceleration_at_1g",
 		"ram_knockback_per_closing_speed", "ram_knockback_lift_fraction",

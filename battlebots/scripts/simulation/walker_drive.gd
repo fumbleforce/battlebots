@@ -5,6 +5,17 @@ const RIDE_HEIGHT := 0.95 * BotScale.FACTOR
 const MAX_STEP := 0.45 * BotScale.FACTOR
 const REACH := 1.45 * BotScale.FACTOR
 const FOOT_SPREAD := 0.18 * BotScale.FACTOR
+## Damped stance spring (per second squared / per second) holding the ride height.
+const STANCE_STIFFNESS := 80.0
+const STANCE_DAMPING := 16.0
+
+## Only the four-legged walker crouches; the six-legged Scorpion keeps its stance.
+static func crouching(body: DriveBody) -> bool:
+	return body.crouched and body.walker_rows == 2
+
+## Canonical-scale ride height.
+static func ride_height(body: DriveBody) -> float:
+	return body.physics.crouch_ride_height if crouching(body) else RIDE_HEIGHT
 
 static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3:
 	body.walker_contacts.clear()
@@ -13,6 +24,7 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 	if up.dot(Vector3.UP) < 0.45: return Vector3.ZERO
 	var forward := -state.transform.basis.z.slide(Vector3.UP).normalized()
 	var lead := forward * clampf(body._drive_input, -1.0, 1.0) * 0.45 * body.geometry_scale
+	var ride := ride_height(body)
 	var normal_sum := Vector3.ZERO
 	var floor_height := -INF
 	var probes: Array[Vector3] = DriveBody.PROBES
@@ -27,7 +39,7 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 			local_support = Vector3(signf(probe.x) * body.walker_footholds.x, 0, signf(probe.z) * body.walker_footholds.y)
 		var hip := state.transform * local_support
 		var foot := hip + lead
-		var start := Vector3(foot.x, state.transform.origin.y - (RIDE_HEIGHT - MAX_STEP) * scale_ratio + 0.08 * body.geometry_scale, foot.z)
+		var start := Vector3(foot.x, state.transform.origin.y - (ride - MAX_STEP) * scale_ratio + 0.08 * body.geometry_scale, foot.z)
 		var end := Vector3(foot.x, state.transform.origin.y - REACH * scale_ratio, foot.z)
 		var query := PhysicsRayQueryParameters3D.create(start, end,
 			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [body.get_rid()])
@@ -42,10 +54,14 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 		floor_height = maxf(floor_height, point.y)
 	if body.walker_contacts.size() < 2: return Vector3.ZERO
 	var normal := normal_sum.normalized()
-	var desired_y := floor_height + RIDE_HEIGHT * scale_ratio
+	var desired_y := floor_height + ride * scale_ratio
 	# Support DriveBody's heft weight, not only Jolt's arena gravity.
 	var gravity := maxf(0.0, -state.total_gravity.y) * body.heft()
-	var lift := clampf(gravity + (desired_y - state.transform.origin.y) * 80.0 - state.linear_velocity.y * 16.0, 0, gravity + body.physics.lift_headroom_acceleration)
+	var error := desired_y - state.transform.origin.y
+	if crouching(body):
+		# The spring settles at error * STIFFNESS / DAMPING m/s; cap the crouch descent.
+		error = maxf(error, -body.physics.crouch_lower_speed * scale_ratio * STANCE_DAMPING / STANCE_STIFFNESS)
+	var lift := clampf(gravity + error * STANCE_STIFFNESS - state.linear_velocity.y * STANCE_DAMPING, 0, gravity + body.physics.lift_headroom_acceleration)
 	state.apply_central_force(Vector3.UP * lift * body.mass)
 	# Damped stance correction is bounded and requires live footholds. In air or
 	# upside down the walker obeys normal rigid-body gravity/recovery mechanics.
