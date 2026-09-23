@@ -7,8 +7,9 @@ class CustomizePreview extends GarageBotPreview:
 
 const CATEGORY_ROW := preload("res://ui/menus/components/category_row.tscn")
 const ITEM_TILE := preload("res://ui/menus/components/item_tile.tscn")
-const TABS := ["parts", "paint", "decals"]
-const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS", "decals": "VEHICLE MODULES"}
+## Vehicle modules ("decals" catalogue) are sections of PARTS > ARMOR, not a tab.
+const TABS := ["parts", "paint"]
+const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS"}
 ## Compact option tiles: name and status, plus a slim swatch strip on paint choices.
 const TILE_HEIGHT := 76
 const SWATCH_HEIGHT := 16
@@ -40,8 +41,14 @@ var _choice_layout_capacity: Dictionary = {}
 var _category_ranges: Array[Vector2i] = [Vector2i(0, 3)]
 var _choice_ranges: Array[Vector2i] = [Vector2i(0, 2)]
 var _color_picker: ColorPickerButton
-## Catalogue indices of the choice tiles, in display order.
+## Catalogue indices of the first choice group's tiles, in display order.
 var _shown_items: Array[int] = []
+## Choice group ("tab:category") whose selected tile fills the description.
+var _detail_key := ""
+## %Items child index of the described tile, for paging to it.
+var _selected_child := 0
+## Choice tiles by "tab:category:item" for keyboard/test lookup.
+var _tiles: Dictionary = {}
 
 func apply_text_scale(factor: float) -> void:
 	_pagination_frames = 4
@@ -57,6 +64,7 @@ func apply_text_scale(factor: float) -> void:
 		row.custom_minimum_size.y = ceilf(82 * _text_scale)
 		row.get_node("%Current").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	for tile: Control in %Items.get_children():
+		if not tile.has_node("Inner"): continue
 		tile.custom_minimum_size.y = ceilf(TILE_HEIGHT * _text_scale)
 		tile.get_node("Inner/Col/ArtBox").custom_minimum_size.y = SWATCH_HEIGHT
 		tile.get_node("%Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -75,7 +83,7 @@ func _show_preview_stats(value: bool) -> void:
 
 func _ready() -> void:
 	super()
-	%TabDecals.text = "VEHICLE"
+	%TabDecals.hide()
 	%Categories.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_category_pager = HBoxContainer.new()
 	%Categories.get_parent().add_child(_category_pager)
@@ -312,18 +320,9 @@ func _refresh() -> void:
 		var rgba: Array = PlayerProfile.loadouts[PlayerProfile.active_bot].cosmetics.sawblade[cat.slot]
 		_color_picker.color = Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb()
 	var key := "%s:%d" % [_tab, ci]
-	_shown_items.clear()
-	var equipped_index := 0
-	for i in cat.items.size():
-		# Bodies stay selectable; other part slots list only choices that fit this build.
-		if _tab == "parts" and cat.slot != "chassis" and not PlayerProfile.part_fits(cat.slot, cat.items[i].id): continue
-		if PlayerProfile.item_state(_tab, cat, cat.items[i]) == "eq": equipped_index = i
-		_shown_items.append(i)
-	if _shown_items.is_empty(): _shown_items.assign(range(cat.items.size()))
-	var ii: int = _item.get(key, 0)
-	if ii not in _shown_items:
-		ii = equipped_index if equipped_index in _shown_items else _shown_items.front()
-		_item[key] = ii
+	var groups := _choice_groups(cat, ci)
+	var group_keys: Array = groups.map(func(group: Dictionary) -> String: return "%s:%d" % [group.tab, group.index])
+	if _detail_key not in group_keys: _detail_key = group_keys[0]
 	var choice_page: int = _choice_pages.get(key, 0)
 	_choice_page_label.text = "%d / %d" % [choice_page + 1, _choice_ranges.size()]
 	%SlotHeading.text = SLOT_HEADINGS[_tab]
@@ -346,46 +345,118 @@ func _refresh() -> void:
 			_focus_control.call_deferred(row)
 
 	clear_children(%Items)
+	_tiles.clear()
+	_selected_child = 0
 	var ig := ButtonGroup.new()
-	var owned_count := 0
-	for position in _shown_items.size():
-		var i: int = _shown_items[position]
-		var it: Dictionary = PlayerProfile.resolved_item(_tab, cat, cat.items[i])
-		var st := PlayerProfile.item_state(_tab, cat, it)
-		if st == "eq" or st == "own":
-			owned_count += 1
-		var tile := ITEM_TILE.instantiate()
-		%Items.add_child(tile)
-		tile.setup(it, st)
-		tile.button_group = ig
-		tile.button_pressed = i == ii
-		var shown_choices := _choice_ranges[clampi(choice_page, 0, _choice_ranges.size() - 1)]
-		tile.visible = position >= shown_choices.x and position < shown_choices.y
-		tile.pressed.connect(func():
-			_item[key] = i
-			_choice_pages[key] = _page_for_item(_choice_ranges, position)
-			_refocus = "item"
-			if PlayerProfile.item_state(_tab, cat, it) == "own":
-				PlayerProfile.equip(_tab, cat, it)
-			else:
-				_refresh())
-		if _refocus == "item" and i == ii:
-			_focus_control.call_deferred(tile)
+	var shown_count := 0
+	var total_count := 0
+	var detail: Dictionary = {}
+	for group: Dictionary in groups:
+		var group_key := "%s:%d" % [group.tab, group.index]
+		var group_cat: Dictionary = group.cat
+		var items := _group_items(group.tab, group_cat)
+		if group_key == group_keys[0]: _shown_items = items
+		var selected := _selected_item(group_key, group.tab, group_cat, items)
+		shown_count += items.size()
+		total_count += group_cat.items.size()
+		if not str(group.heading).is_empty(): _add_section_heading(group.heading)
+		for i: int in items:
+			var it: Dictionary = PlayerProfile.resolved_item(group.tab, group_cat, group_cat.items[i])
+			var tile := ITEM_TILE.instantiate()
+			%Items.add_child(tile)
+			tile.setup(it, PlayerProfile.item_state(group.tab, group_cat, it))
+			tile.button_group = ig
+			_tiles["%s:%d" % [group_key, i]] = tile
+			var described: bool = group_key == _detail_key and i == selected
+			tile.button_pressed = described
+			if described:
+				_selected_child = tile.get_index()
+				detail = {"item": group_cat.items[i], "cat": group_cat, "tab": group.tab}
+			var child := tile.get_index()
+			var group_tab: String = group.tab
+			tile.pressed.connect(func():
+				_item[group_key] = i
+				_detail_key = group_key
+				_choice_pages[key] = _page_for_item(_choice_ranges, child)
+				_refocus = "item"
+				if PlayerProfile.item_state(group_tab, group_cat, it) == "own":
+					PlayerProfile.equip(group_tab, group_cat, it)
+				else:
+					_refresh())
+			if _refocus == "item" and described:
+				_focus_control.call_deferred(tile)
+	var shown_choices := _choice_ranges[clampi(choice_page, 0, _choice_ranges.size() - 1)]
+	for index: int in %Items.get_child_count():
+		%Items.get_child(index).visible = index >= shown_choices.x and index < shown_choices.y
 	_refocus = ""
 
 	%CatLabel.text = cat.label
-	%Count.text = "%d / %d available" % [owned_count, cat.items.size()]
-	var cur: Dictionary = cat.items[ii]
+	%Count.text = "%d / %d available" % [shown_count, total_count]
+	var cur: Dictionary = detail.item
 	comparison_panel.render_current(GarageComparison.current(PlayerProfile.registry, PlayerProfile.loadouts[PlayerProfile.active_bot]))
 	%SelName.text = cur.name
 	%PreviewName.text = cur.name
-	var fallback := ("Applies to the %s layer." if _tab == "paint" else "Decal for the %s.") % cat.label.to_lower()
+	var fallback := ("Applies to the %s layer." if detail.tab == "paint" else "Decal for the %s.") % detail.cat.label.to_lower()
 	%SelDesc.text = cur.get("desc", fallback)
 	if not current.valid: %SelDesc.text += "\nBuild invalid: " + "; ".join(current.reasons)
 
 	%Stats.hide()
 	%CosmeticNote.hide()
 	apply_text_scale(_text_scale)
+
+
+## Right-panel choice groups for the selected category. PARTS > ARMOR follows its
+## armor package choices with one headed section per vehicle module category.
+func _choice_groups(cat: Dictionary, ci: int) -> Array[Dictionary]:
+	var groups: Array[Dictionary] = [{"tab": _tab, "index": ci, "cat": cat, "heading": ""}]
+	if _tab == "parts" and cat.slot == "armor":
+		groups[0].heading = "ARMOR PACKAGE"
+		var modules: Array = PlayerProfile.catalogue.decals
+		for index: int in modules.size():
+			groups.append({"tab": "decals", "index": index, "cat": modules[index], "heading": modules[index].label})
+	return groups
+
+
+func _group_items(tab: String, cat: Dictionary) -> Array[int]:
+	# Bodies stay selectable; other part slots list only choices that fit this build.
+	var items: Array[int] = []
+	for i in cat.items.size():
+		if tab == "parts" and cat.slot != "chassis" and not PlayerProfile.part_fits(cat.slot, cat.items[i].id): continue
+		items.append(i)
+	if items.is_empty(): items.assign(range(cat.items.size()))
+	return items
+
+
+func _selected_item(group_key: String, tab: String, cat: Dictionary, items: Array[int]) -> int:
+	var selected: int = _item.get(group_key, 0)
+	if selected in items: return selected
+	selected = items.front()
+	for i: int in items:
+		if PlayerProfile.item_state(tab, cat, cat.items[i]) == "eq": selected = i
+	_item[group_key] = selected
+	return selected
+
+
+func _add_section_heading(text: String) -> void:
+	# Each section starts on its own grid row; blank cells complete the rows.
+	while %Items.get_child_count() % %Items.columns != 0: %Items.add_child(_grid_filler())
+	var heading := Label.new()
+	heading.text = text
+	heading.theme_type_variation = &"Eyebrow"
+	heading.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	%Items.add_child(heading)
+	for _column in %Items.columns - 1: %Items.add_child(_grid_filler())
+
+
+func _grid_filler() -> Control:
+	var filler := Control.new()
+	filler.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return filler
+
+
+## The tile for one catalogue choice, or null when it is not listed.
+func choice_tile(tab: String, category: int, item: int) -> Control:
+	return _tiles.get("%s:%d:%d" % [tab, category, item])
 
 
 func _save_build() -> void:
@@ -429,6 +500,10 @@ func _process(_delta: float) -> void:
 		category_heights.append(row.get_combined_minimum_size().y)
 	var choice_heights: Array[float] = []
 	for tile: Control in %Items.get_children():
+		if not tile.has_node("Inner"):
+			# Section headings and blank grid cells keep their natural height.
+			choice_heights.append(tile.get_combined_minimum_size().y)
+			continue
 		var was_visible := tile.visible
 		tile.show()
 		tile.size.x = (%Items.size.x - %Items.get_theme_constant("h_separation")) / %Items.columns
@@ -440,12 +515,12 @@ func _process(_delta: float) -> void:
 		tile.get_node("Inner").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		choice_heights.append(tile.get_combined_minimum_size().y)
 	_category_ranges = _pack_pages(category_heights, _page_budget(%Categories, _category_pager, false), _page_budget(%Categories, _category_pager, true), %Categories.get_theme_constant("separation"), 1)
-	_choice_ranges = _pack_pages(choice_heights, _page_budget(%Items, _choice_pager, false), _page_budget(%Items, _choice_pager, true), %Items.get_theme_constant("v_separation"), %Items.columns)
+	_choice_ranges = _keep_headings_with_choices(_pack_pages(choice_heights, _page_budget(%Items, _choice_pager, false), _page_budget(%Items, _choice_pager, true), %Items.get_theme_constant("v_separation"), %Items.columns))
 	_category_page[_tab] = _page_for_item(_category_ranges, int(_cat[_tab]))
 	var choice_key := "%s:%d" % [_tab, _cat[_tab]]
 	if _choice_layout_capacity.get(choice_key, []) != _choice_ranges:
 		_choice_layout_capacity[choice_key] = _choice_ranges.duplicate()
-		_choice_pages[choice_key] = _page_for_item(_choice_ranges, maxi(0, _shown_items.find(int(_item.get(choice_key, 0)))))
+		_choice_pages[choice_key] = _page_for_item(_choice_ranges, _selected_child)
 	var category_page: int = _category_page[_tab]
 	var category_range := _category_ranges[category_page]
 	_category_capacity = category_range.y - category_range.x
@@ -508,6 +583,17 @@ func _pack_pages(heights: Array[float], full_budget: float, paged_budget: float,
 			used = height
 		else: used += needed
 	pages.append(Vector2i(first, heights.size()))
+	return pages
+
+
+func _keep_headings_with_choices(pages: Array[Vector2i]) -> Array[Vector2i]:
+	# A section heading must not end a page away from its first row of choices.
+	var columns: int = %Items.columns
+	for page in pages.size() - 1:
+		var last_row := pages[page].y - columns
+		if last_row > pages[page].x and %Items.get_child(last_row) is Label:
+			pages[page].y = last_row
+			pages[page + 1].x = last_row
 	return pages
 
 

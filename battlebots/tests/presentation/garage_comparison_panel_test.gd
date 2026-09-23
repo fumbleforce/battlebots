@@ -21,8 +21,8 @@ func choose(slot: String, id: String) -> void:
 	await settle()
 	var category: Dictionary = profile.catalogue.parts[index]
 	for item_index: int in category.items.size():
-		if category.items[item_index].id == id and item_index in screen._shown_items:
-			screen.get_node("%Items").get_child(screen._shown_items.find(item_index)).pressed.emit()
+		if category.items[item_index].id == id and screen.choice_tile("parts", index, item_index) != null:
+			screen.choice_tile("parts", index, item_index).pressed.emit()
 			await settle()
 			return
 	check(false, "Customize does not list part " + id)

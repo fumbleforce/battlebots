@@ -22,7 +22,7 @@ func run() -> void:
 			screen.apply_text_scale(factor)
 			await settle()
 			if resource == "customize":
-				for tab: String in ["parts","paint","decals"]:
+				for tab: String in ["parts","paint"]:
 					screen._set_tab(tab)
 					await settle()
 					print("PAGINATION ",tab," scale ",factor," categories ",screen._category_capacity," choices ",screen._choice_capacity)
@@ -38,7 +38,7 @@ func run() -> void:
 						for row: Control in screen.get_node("%Categories").get_children():
 							if row.visible: check(row.get_global_rect().end.y <= 970,"Category contained")
 						for tile: Control in screen.get_node("%Items").get_children():
-							if tile.visible: check(tile.get_node("Inner").size.y <= tile.size.y + 1,"Tile content contained %s %d %s tile%s inner%s" % [tab, category, factor, tile.size, tile.get_node("Inner").size])
+							if tile.visible and tile.has_node("Inner"): check(tile.get_node("Inner").size.y <= tile.size.y + 1,"Tile content contained %s %d %s tile%s inner%s" % [tab, category, factor, tile.size, tile.get_node("Inner").size])
 			else:
 				print("PAGINATION garage scale ",factor," capacity ",screen._build_capacity)
 				check(screen._build_ranges[0].y > 2,"Garage uses available height")
@@ -108,5 +108,8 @@ func check_full_page(list: Container, pager: Control, page: Vector2i, columns: i
 	for i in range(page.y, mini(page.y + columns, list.get_child_count())):
 		next_height = maxf(next_height, list.get_child(i).get_combined_minimum_size().y)
 	var gap := list.get_theme_constant("v_separation" if list is GridContainer else "separation")
+	# A section heading only moves with its first row of choices.
+	if list.get_child(page.y) is Label and page.y + columns < list.get_child_count():
+		next_height += gap + list.get_child(page.y + columns).get_combined_minimum_size().y
 	var available_end: float = pager.get_global_rect().position.y - list.get_parent().get_theme_constant("separation")
 	check(bottom + gap + next_height > available_end + 1, "Next row cannot fit unused vertical space: " + str(list.get_path()))

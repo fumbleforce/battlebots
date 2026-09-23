@@ -117,7 +117,8 @@ func run() -> void:
 	get_window().content_scale_size = Vector2i(1920, 1080)
 	get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	add_child(screen)
-	screen._set_tab("decals")
+	screen._cat.parts = ContentRegistry.SLOTS.find("armor")
+	screen._refresh()
 	screen.apply_text_scale(1.5)
 	for frame: int in 4: await get_tree().process_frame
 	check(screen.get_node("Layout").size.x <= 1921, "Module controls fit logical width at 150%")

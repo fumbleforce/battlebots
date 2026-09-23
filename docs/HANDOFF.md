@@ -1,5 +1,17 @@
 # Current A/B handoff
 
+## Customize armor modules — B, 23 September 2026
+
+The Customize VEHICLE tab is merged into PARTS > ARMOR. The armor choices now
+appear as headed sections: ARMOR PACKAGE first, then ARMOR SIDE, TOP, FRONT,
+REAR and EXHAUST. Each section starts on a new row, and a heading never ends a
+page without its choices. Module choices still edit `cosmetics.sawblade`
+immediately, with undo.
+
+This is presentation only, with no catalogue, save, protocol or hosted change.
+See [scope and validation](coordination/B_CUSTOMIZE_ARMOR_MODULES.md) and
+[#30](https://github.com/fumbleforce/battlebots/issues/30).
+
 ## Customize compatible parts and compact tiles — B, 23 September 2026
 
 Customize now lists only the parts that work with the current build, using the

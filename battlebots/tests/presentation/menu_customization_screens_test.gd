@@ -42,9 +42,28 @@ func run() -> void:
 			check(screen.get_node("%Categories").get_child_count() == ContentRegistry.SLOTS.size(),"Every canonical category is available")
 			screen._set_tab("paint")
 			check(screen.get_node("%Items").get_child_count() == 4,"Four canonical paints")
-			screen._set_tab("decals")
-			check(screen.get_node("%Items").get_child_count() > 0 and screen.get_node_or_null("%Action") == null, "Vehicle choices are available without Equip")
 			screen._set_tab("parts")
+			check(not screen.get_node("%TabDecals").visible and "decals" not in screen.TABS, "Vehicle modules no longer have their own tab")
+			var armor := ContentRegistry.SLOTS.find("armor")
+			screen.get_node("%Categories").get_child(armor).pressed.emit()
+			var headings: Array = []
+			for child: Node in screen.get_node("%Items").get_children():
+				if child is Label: headings.append(child.text)
+			var expected_headings: Array = ["ARMOR PACKAGE"]
+			for module: Dictionary in profile.catalogue.decals: expected_headings.append(module.label)
+			check(headings == expected_headings, "Armor lists its package then one section per vehicle module: " + str(headings))
+			check(screen.get_node("%Items").get_child_count() % 2 == 0 and screen.get_node("%Items").get_child(0) is Label, "Every armor section starts on its own row")
+			var side: Dictionary = profile.catalogue.decals[0]
+			var cover: Control = screen.choice_tile("decals", 0, 2)
+			check(cover != null and screen.get_node_or_null("%Action") == null, "Module choices are tiles without Equip")
+			var modules_before: Dictionary = profile.loadouts[profile.active_bot].cosmetics.sawblade.duplicate(true)
+			if cover != null: cover.pressed.emit()
+			check(profile.loadouts[profile.active_bot].cosmetics.sawblade[side.slot] == 2, "Choosing a module edits the draft")
+			check(screen.get_node("%SelName").text == side.items[2].name, "Module choice fills the description")
+			check(screen.choice_tile("decals", 0, 2) != null and screen.choice_tile("decals", 0, 2).get_node("%Status").text == "EQUIPPED", "Chosen module shows equipped")
+			profile.undo_edit()
+			check(profile.loadouts[profile.active_bot].cosmetics.sawblade == modules_before, "Undo restores the module")
+			screen.get_node("%Categories").get_child(0).pressed.emit()
 		for _frame in 4: await process_frame
 		var footer: Control = screen.get_node("Layout/Footer")
 		check(footer.get_global_rect().end.y <= 1081,"Footer remains within viewport: "+name)
