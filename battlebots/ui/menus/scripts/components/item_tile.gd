@@ -1,9 +1,11 @@
 extends Button
-## Customize option tile: name and status, with a colour strip on paint choices.
+## Compact Customize option tile: one line with the name and, when relevant, its
+## status; paint choices add a thin colour strip.
 
 
 func setup(it: Dictionary, state: String) -> void:
 	%Name.text = it.name
+	tooltip_text = it.name
 	var has_swatch := it.has("swatch")
 	# Parts have no art yet; only paint choices keep a slim colour strip.
 	$Inner/Col/ArtBox.visible = has_swatch
@@ -12,6 +14,8 @@ func setup(it: Dictionary, state: String) -> void:
 	if has_swatch:
 		%Swatch.color = Color(it.swatch)
 	%Lock.visible = state == "lock"
+	# Listed choices are usable, so only equipped/unavailable states need a label.
+	%Status.visible = state != "own"
 	match state:
 		"eq":
 			_status("EQUIPPED", MenuData.GREEN)

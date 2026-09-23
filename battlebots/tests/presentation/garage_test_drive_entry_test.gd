@@ -69,7 +69,8 @@ func run() -> void:
 					check(rect.end.x <= resolution.x + 1 and rect.end.y <= resolution.y + 1, screen_name + " footer fits " + str(resolution))
 					previous_end = rect.end.x
 				check(entry.is_visible_in_tree(), "Entry remains visible")
-				check(screen.find_children("*", "ScrollContainer", true, false).is_empty(), "No scrolling entry layout")
+				# Only the Customize choice list scrolls (user request, 23 September 2026).
+				check(screen.find_children("*", "ScrollContainer", true, false).all(func(node: Node) -> bool: return node == screen.get("_choice_scroll")), "No scrolling entry layout")
 			if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 				screen.apply_text_scale(1.5)
 				await settle()

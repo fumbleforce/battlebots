@@ -1,5 +1,17 @@
 # Current A/B handoff
 
+## Customize scrolling choice list — B, 23 September 2026
+
+At the user's explicit request, the Customize right panel now scrolls instead
+of paging. This applies to that list only; other menus keep their no-scroll
+layout. Option tiles are compact one-line rows that show a status only when
+equipped. The selected item's description moved under the 3D preview. About 20
+options are visible at 1080p.
+
+This is presentation only, with no catalogue, save, protocol or hosted change.
+See [scope and validation](coordination/B_CUSTOMIZE_SCROLL_LAYOUT.md) and
+[#33](https://github.com/fumbleforce/battlebots/issues/33).
+
 ## Customize armor modules — B, 23 September 2026
 
 The Customize VEHICLE tab is merged into PARTS > ARMOR. The armor choices now

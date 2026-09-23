@@ -10,9 +10,9 @@ const ITEM_TILE := preload("res://ui/menus/components/item_tile.tscn")
 ## Vehicle modules ("decals" catalogue) are sections of PARTS > ARMOR, not a tab.
 const TABS := ["parts", "paint"]
 const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS"}
-## Compact option tiles: name and status, plus a slim swatch strip on paint choices.
-const TILE_HEIGHT := 76
-const SWATCH_HEIGHT := 16
+## Compact one-line option tiles, plus a thin swatch strip on paint choices.
+const TILE_HEIGHT := 44
+const SWATCH_HEIGHT := 6
 
 var _tab := "parts"
 var _cat := {"parts": 0, "paint": 0, "decals": 0}
@@ -28,25 +28,20 @@ var recovery_panel: GarageRecoveryPanel
 var recovery_button: Button
 var stats_button: Button
 var _text_scale := 1.0
-var _choice_pages: Dictionary = {}
-var _choice_page_label: Label
-var _choice_pager: HBoxContainer
 var _showing_stats := false
 var _category_page := {"parts": 0, "paint": 0, "decals": 0}
 var _category_pager: HBoxContainer
 var _category_page_label: Label
 var _category_capacity := 3
-var _choice_capacity := 2
-var _choice_layout_capacity: Dictionary = {}
 var _category_ranges: Array[Vector2i] = [Vector2i(0, 3)]
-var _choice_ranges: Array[Vector2i] = [Vector2i(0, 2)]
 var _color_picker: ColorPickerButton
 ## Catalogue indices of the first choice group's tiles, in display order.
 var _shown_items: Array[int] = []
 ## Choice group ("tab:category") whose selected tile fills the description.
 var _detail_key := ""
-## %Items child index of the described tile, for paging to it.
-var _selected_child := 0
+## Vertical scroll box holding the choice grid; keeps its position per category.
+var _choice_scroll: ScrollContainer
+var _scroll_key := ""
 ## Choice tiles by "tab:category:item" for keyboard/test lookup.
 var _tiles: Dictionary = {}
 
@@ -60,6 +55,8 @@ func apply_text_scale(factor: float) -> void:
 	comparison_panel.apply_text_scale(_text_scale)
 	if is_instance_valid(recovery_panel): recovery_panel.apply_text_scale(_text_scale)
 	%BotImage.get_parent().custom_minimum_size.y = 300 if _text_scale == 1.0 else 180
+	# Room for a name and three description lines keeps the preview from resizing.
+	%SelDesc.get_parent().custom_minimum_size.y = ceilf(120 * _text_scale)
 	for row: Control in %Categories.get_children():
 		row.custom_minimum_size.y = ceilf(82 * _text_scale)
 		row.get_node("%Current").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -67,12 +64,6 @@ func apply_text_scale(factor: float) -> void:
 		if not tile.has_node("Inner"): continue
 		tile.custom_minimum_size.y = ceilf(TILE_HEIGHT * _text_scale)
 		tile.get_node("Inner/Col/ArtBox").custom_minimum_size.y = SWATCH_HEIGHT
-		tile.get_node("%Name").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-
-func _change_choice_page(direction: int) -> void:
-	var key := "%s:%d" % [_tab, _cat[_tab]]
-	_choice_pages[key] = wrapi(int(_choice_pages.get(key, 0)) + direction, 0, maxi(1, _choice_ranges.size()))
-	_refresh()
 
 func _show_preview_stats(value: bool) -> void:
 	_showing_stats = value
@@ -109,24 +100,21 @@ func _ready() -> void:
 		var category: Dictionary = PlayerProfile.catalogue[_tab][_cat[_tab]]
 		if _tab == "paint" and category.slot != "paint": PlayerProfile.set_sawblade_color(category.slot, _color_picker.color))
 	var options := %Items.get_parent()
-	_choice_pager = HBoxContainer.new()
-	options.add_child(_choice_pager)
-	options.move_child(_choice_pager, %Items.get_index() + 1)
-	var previous := Button.new()
-	previous.text = "PREVIOUS"
-	previous.pressed.connect(_change_choice_page.bind(-1))
-	_choice_pager.add_child(previous)
-	_choice_page_label = Label.new()
-	_choice_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_choice_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_choice_pager.add_child(_choice_page_label)
-	var next := Button.new()
-	next.text = "NEXT"
-	next.pressed.connect(_change_choice_page.bind(1))
-	_choice_pager.add_child(next)
-	%Items.size_flags_vertical = Control.SIZE_FILL
-	%SelDesc.get_parent().size_flags_vertical = Control.SIZE_SHRINK_END
-	options.get_node("Line").show()
+	_choice_scroll = ScrollContainer.new()
+	_choice_scroll.name = "ChoiceScroll"
+	_choice_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_choice_scroll.follow_focus = true
+	_choice_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options.add_child(_choice_scroll)
+	options.move_child(_choice_scroll, %Items.get_index())
+	var scroll_gutter := MarginContainer.new()
+	scroll_gutter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll_gutter.add_theme_constant_override("margin_right", 18)
+	_choice_scroll.add_child(scroll_gutter)
+	%Items.reparent(scroll_gutter)
+	%Items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	%Items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	options.get_node("Line").hide()
 	%SelName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%CatLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%CatLabel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -174,6 +162,11 @@ func _ready() -> void:
 	reset_button.add_theme_font_size_override("font_size", 20)
 	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	comparison_panel.hide()
+	# The chosen item's name and description sit under the preview.
+	var selected := %SelDesc.get_parent() as Control
+	selected.reparent(preview_column)
+	selected.size_flags_vertical = Control.SIZE_SHRINK_END
+	%SelDesc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Layout/Footer/Row/Hint1.hide()
 	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
 	name_edit = LineEdit.new()
@@ -323,8 +316,6 @@ func _refresh() -> void:
 	var groups := _choice_groups(cat, ci)
 	var group_keys: Array = groups.map(func(group: Dictionary) -> String: return "%s:%d" % [group.tab, group.index])
 	if _detail_key not in group_keys: _detail_key = group_keys[0]
-	var choice_page: int = _choice_pages.get(key, 0)
-	_choice_page_label.text = "%d / %d" % [choice_page + 1, _choice_ranges.size()]
 	%SlotHeading.text = SLOT_HEADINGS[_tab]
 
 	clear_children(%Categories)
@@ -344,9 +335,11 @@ func _refresh() -> void:
 		if _refocus == "cat" and i == ci:
 			_focus_control.call_deferred(row)
 
+	# Rebuilding the grid resets its height; restore the scroll within one category.
+	var scroll_to: int = _choice_scroll.scroll_vertical if _scroll_key == key else 0
+	_scroll_key = key
 	clear_children(%Items)
 	_tiles.clear()
-	_selected_child = 0
 	var ig := ButtonGroup.new()
 	var shown_count := 0
 	var total_count := 0
@@ -370,14 +363,11 @@ func _refresh() -> void:
 			var described: bool = group_key == _detail_key and i == selected
 			tile.button_pressed = described
 			if described:
-				_selected_child = tile.get_index()
 				detail = {"item": group_cat.items[i], "cat": group_cat, "tab": group.tab}
-			var child := tile.get_index()
 			var group_tab: String = group.tab
 			tile.pressed.connect(func():
 				_item[group_key] = i
 				_detail_key = group_key
-				_choice_pages[key] = _page_for_item(_choice_ranges, child)
 				_refocus = "item"
 				if PlayerProfile.item_state(group_tab, group_cat, it) == "own":
 					PlayerProfile.equip(group_tab, group_cat, it)
@@ -385,10 +375,8 @@ func _refresh() -> void:
 					_refresh())
 			if _refocus == "item" and described:
 				_focus_control.call_deferred(tile)
-	var shown_choices := _choice_ranges[clampi(choice_page, 0, _choice_ranges.size() - 1)]
-	for index: int in %Items.get_child_count():
-		%Items.get_child(index).visible = index >= shown_choices.x and index < shown_choices.y
 	_refocus = ""
+	_restore_scroll.call_deferred(key, scroll_to)
 
 	%CatLabel.text = cat.label
 	%Count.text = "%d / %d available" % [shown_count, total_count]
@@ -454,6 +442,10 @@ func _grid_filler() -> Control:
 	return filler
 
 
+func _restore_scroll(key: String, value: int) -> void:
+	if _scroll_key == key and is_instance_valid(_choice_scroll): _choice_scroll.scroll_vertical = value
+
+
 ## The tile for one catalogue choice, or null when it is not listed.
 func choice_tile(tab: String, category: int, item: int) -> Control:
 	return _tiles.get("%s:%d:%d" % [tab, category, item])
@@ -479,8 +471,8 @@ var _pagination_frames := 4
 var _pagination_geometry: Array = []
 
 func _process(_delta: float) -> void:
-	if not is_instance_valid(_choice_pager) or not is_visible_in_tree(): return
-	var geometry: Array = [size, $Layout/Header.size, $Layout/Footer.size, %Categories.size.x, %Items.size.x]
+	if not is_instance_valid(_choice_scroll) or not is_visible_in_tree(): return
+	var geometry: Array = [size, $Layout/Header.size, $Layout/Footer.size, %Categories.size.x, %Items.size.x, %Items.get_child_count()]
 	if geometry != _pagination_geometry:
 		_pagination_geometry = geometry
 		_pagination_frames = 4
@@ -498,42 +490,23 @@ func _process(_delta: float) -> void:
 		row.get_node("Pad").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		row.custom_minimum_size.y = maxf(ceilf(82 * _text_scale), row.get_node("Pad").get_combined_minimum_size().y)
 		category_heights.append(row.get_combined_minimum_size().y)
-	var choice_heights: Array[float] = []
 	for tile: Control in %Items.get_children():
-		if not tile.has_node("Inner"):
-			# Section headings and blank grid cells keep their natural height.
-			choice_heights.append(tile.get_combined_minimum_size().y)
-			continue
-		var was_visible := tile.visible
-		tile.show()
+		# Tiles are Buttons with a free child; size each to its scaled text.
+		if not tile.has_node("Inner"): continue
 		tile.size.x = (%Items.size.x - %Items.get_theme_constant("h_separation")) / %Items.columns
 		tile.get_node("Inner").size.x = tile.size.x
 		_measure_hidden_content(tile.get_node("Inner"))
-		tile.visible = was_visible
 		tile.custom_minimum_size.y = maxf(ceilf(TILE_HEIGHT * _text_scale), tile.get_node("Inner").get_combined_minimum_size().y)
 		# Inner grows both ways; resizing it here shifted contents into neighbouring tiles.
 		tile.get_node("Inner").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		choice_heights.append(tile.get_combined_minimum_size().y)
 	_category_ranges = _pack_pages(category_heights, _page_budget(%Categories, _category_pager, false), _page_budget(%Categories, _category_pager, true), %Categories.get_theme_constant("separation"), 1)
-	_choice_ranges = _keep_headings_with_choices(_pack_pages(choice_heights, _page_budget(%Items, _choice_pager, false), _page_budget(%Items, _choice_pager, true), %Items.get_theme_constant("v_separation"), %Items.columns))
 	_category_page[_tab] = _page_for_item(_category_ranges, int(_cat[_tab]))
-	var choice_key := "%s:%d" % [_tab, _cat[_tab]]
-	if _choice_layout_capacity.get(choice_key, []) != _choice_ranges:
-		_choice_layout_capacity[choice_key] = _choice_ranges.duplicate()
-		_choice_pages[choice_key] = _page_for_item(_choice_ranges, _selected_child)
 	var category_page: int = _category_page[_tab]
 	var category_range := _category_ranges[category_page]
 	_category_capacity = category_range.y - category_range.x
 	for i in %Categories.get_child_count(): %Categories.get_child(i).visible = i >= category_range.x and i < category_range.y
 	_category_pager.visible = _category_ranges.size() > 1
 	_category_page_label.text = "%d / %d" % [category_page + 1, _category_ranges.size()]
-	var page := clampi(int(_choice_pages.get(choice_key, 0)), 0, _choice_ranges.size() - 1)
-	_choice_pages[choice_key] = page
-	var choice_range := _choice_ranges[page]
-	_choice_capacity = choice_range.y - choice_range.x
-	for i in %Items.get_child_count(): %Items.get_child(i).visible = i >= choice_range.x and i < choice_range.y
-	_choice_pager.visible = _choice_ranges.size() > 1
-	_choice_page_label.text = "%d / %d" % [page + 1, _choice_ranges.size()]
 
 
 func _page_budget(list: Container, pager: Control, with_pager: bool) -> float:
@@ -583,17 +556,6 @@ func _pack_pages(heights: Array[float], full_budget: float, paged_budget: float,
 			used = height
 		else: used += needed
 	pages.append(Vector2i(first, heights.size()))
-	return pages
-
-
-func _keep_headings_with_choices(pages: Array[Vector2i]) -> Array[Vector2i]:
-	# A section heading must not end a page away from its first row of choices.
-	var columns: int = %Items.columns
-	for page in pages.size() - 1:
-		var last_row := pages[page].y - columns
-		if last_row > pages[page].x and %Items.get_child(last_row) is Label:
-			pages[page].y = last_row
-			pages[page + 1].x = last_row
 	return pages
 
 

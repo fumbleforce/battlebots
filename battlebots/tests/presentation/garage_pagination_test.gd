@@ -25,7 +25,7 @@ func run() -> void:
 				for tab: String in ["parts","paint"]:
 					screen._set_tab(tab)
 					await settle()
-					print("PAGINATION ",tab," scale ",factor," categories ",screen._category_capacity," choices ",screen._choice_capacity)
+					print("PAGINATION ",tab," scale ",factor," categories ",screen._category_capacity)
 					for category: int in PlayerProfile.catalogue[tab].size():
 						screen._cat[tab] = category
 						screen._category_page[tab] = screen._page_for_item(screen._category_ranges, category)
@@ -33,8 +33,10 @@ func run() -> void:
 						await settle()
 						check(screen.get_node("Layout/Footer").get_global_rect().end.y <= 1081,"Customize footer contained")
 						check_full_page(screen.get_node("%Categories"), screen._category_pager, screen._category_ranges[screen._category_page[tab]], 1)
-						var selected_page: int = screen._choice_pages.get("%s:%d" % [tab, category], 0)
-						check_full_page(screen.get_node("%Items"), screen._choice_pager, screen._choice_ranges[selected_page], 2)
+						var scroll: ScrollContainer = screen._choice_scroll
+						check(scroll.get_global_rect().end.y <= screen.get_node("Layout/Footer").get_global_rect().position.y + 1, "Choice list scrolls within the body")
+						for tile: Control in screen.get_node("%Items").get_children():
+							if tile.has_node("Inner"): check(tile.get_global_rect().end.x <= scroll.get_global_rect().end.x - scroll.get_v_scroll_bar().size.x + 1 or not scroll.get_v_scroll_bar().visible, "Scrollbar does not cover choices")
 						for row: Control in screen.get_node("%Categories").get_children():
 							if row.visible: check(row.get_global_rect().end.y <= 970,"Category contained")
 						for tile: Control in screen.get_node("%Items").get_children():
@@ -64,15 +66,12 @@ func run() -> void:
 				var key := "paint:0"
 				var last: int = PlayerProfile.catalogue.paint[0].items.size() - 1
 				screen._item[key] = last
-				screen._choice_pages[key] = screen._page_for_item(screen._choice_ranges, last)
 				screen._refresh()
 				await settle()
-				screen.apply_text_scale(1.0)
+				var tile: Control = screen.get_node("%Items").get_child(last)
+				tile.grab_focus()
 				await settle()
-				check(screen.get_node("%Items").get_child(last).visible,"Selected choice remains visible when capacity grows")
-				screen.apply_text_scale(1.5)
-				await settle()
-				check(screen.get_node("%Items").get_child(last).visible,"Selected choice remains visible when capacity shrinks")
+				check(screen._choice_scroll.get_global_rect().grow(1).encloses(tile.get_global_rect()),"Focused choice scrolls into view")
 			else:
 				check(screen.get_node("%BotList").get_child(PlayerProfile.active_bot).visible,"Selected build visible after resize")
 			if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
@@ -82,7 +81,8 @@ func run() -> void:
 		get_window().size = Vector2i(1920,1440)
 		await settle()
 		if resource == "customize":
-			check(screen._choice_ranges.size() == 1,"Taller aspect fits every paint choice")
+			var bar: VScrollBar = screen._choice_scroll.get_v_scroll_bar()
+			check(bar.max_value <= bar.page + 1,"Taller aspect fits every paint choice without scrolling")
 		else:
 			check(screen._build_ranges[0].y > 4,"Taller aspect adds build rows")
 		get_window().size = Vector2i(1920,1080)

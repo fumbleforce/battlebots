@@ -12,7 +12,8 @@ func settle() -> void:
 
 func inspect(screen: Control, context: String) -> void:
 	for node: Node in screen.find_children("*", "Control", true, false):
-		check(not node is ScrollContainer, context + " does not require scroll containers")
+		# Only the choice list scrolls (user request, 23 September 2026).
+		check(not node is ScrollContainer or node == screen._choice_scroll, context + " scrolls only the choice list")
 		if not node is Label and not node is Button and not node is LineEdit and not node is RichTextLabel: continue
 		var control := node as Control
 		if not control.is_visible_in_tree(): continue
@@ -56,18 +57,13 @@ func run() -> void:
 	await settle()
 	for row: Control in screen.get_node("%Categories").get_children():
 		check(row.get_node("%Label").get_theme_font_size("font_size") == 44, "Rebuilt category heading uses 150%")
-	# Paging rebuilds the tiles; find the fifth weapon on whichever page holds it.
-	for _page in screen._choice_ranges.size():
-		if screen.get_node("%Items").get_child(4).visible: break
-		screen._change_choice_page(1)
-		await settle()
 	var last: Control = screen.get_node("%Items").get_child(4)
 	last.grab_focus()
 	await settle()
-	check(last.is_visible_in_tree() and Rect2(0, 0, 1920, 1080).encloses(last.get_global_rect()), "Paging reveals last weapon tile without scrolling")
+	check(last.is_visible_in_tree() and screen._choice_scroll.get_global_rect().grow(1).encloses(last.get_global_rect()), "Focus scrolls the fifth weapon tile into view")
 	last.pressed.emit()
 	await settle()
-	check(screen.get_node("%Items").get_child(4).get_node("%Name").get_theme_font_size("font_size") == 38, "Rebuilt item labels use 150%")
+	check(screen.get_node("%Items").get_child(4).get_node("%Name").get_theme_font_size("font_size") == 30, "Rebuilt item labels use 150%")
 	check(screen.comparison_panel.budgets.get_child(0).get_theme_font_size("font_size") == 32, "Rebuilt comparison cells use 150%")
 	for index: int in range(2):
 		check(screen.comparison_panel.budgets.get_child(index).get_line_count() == 1, "Comparison headings remain whole at 150%")
