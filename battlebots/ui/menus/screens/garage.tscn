@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
 
@@ -10,17 +10,102 @@
 
 [ext_resource type="Texture2D" path="res://ui/menus/icons/plus.svg" id="5_plussvg"]
 
-[ext_resource type="Texture2D" path="res://ui/menus/icons/wrench.svg" id="7_wrenchsv"]
-
-[ext_resource type="Texture2D" path="res://ui/menus/icons/arrow_up.svg" id="8_arrowups"]
-
-[ext_resource type="Texture2D" path="res://ui/menus/icons/rotate.svg" id="9_rotatesv"]
-
-[ext_resource type="Texture2D" path="res://ui/menus/icons/shield.svg" id="10_shieldsv"]
+[ext_resource type="PackedScene" path="res://ui/menus/components/build_readout.tscn" id="12_readout"]
 
 [ext_resource type="Texture2D" path="res://ui/menus/icons/chevron_right.svg" id="11_chevronr"]
 
-[ext_resource type="PackedScene" path="res://ui/menus/components/stat_bar.tscn" id="12_statbart"]
+[sub_resource type="StyleBoxFlat" id="sb_new_bot"]
+content_margin_left = 20.0
+content_margin_right = 20.0
+bg_color = Color(0.051, 0.063, 0.078, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2275, 0.2588, 0.302, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="sb_new_bot_hover"]
+content_margin_left = 20.0
+content_margin_right = 20.0
+bg_color = Color(0.0863, 0.102, 0.1255, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9608, 0.7216, 0.1804, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="sb_slot"]
+bg_color = Color(0.0863, 0.102, 0.1255, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.149, 0.1725, 0.2078, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="sb_slot_hover"]
+bg_color = Color(0.1059, 0.1255, 0.1529, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2275, 0.2588, 0.302, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="sb_slot_focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9608, 0.7216, 0.1804, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="sb_key"]
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1216, 0.1451, 0.1765, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 3
+border_color = Color(0.2902, 0.3255, 0.3765, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_footer"]
+content_margin_left = 52.0
+content_margin_top = 16.0
+content_margin_right = 52.0
+content_margin_bottom = 16.0
+bg_color = Color(0.0392, 0.0471, 0.0627, 1)
+border_width_top = 1
+border_color = Color(0.1216, 0.1412, 0.1725, 1)
 
 [node name="Garage" type="Control"]
 layout_mode = 3
@@ -39,7 +124,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0549, 0.0706, 0.0902, 1)
+color = Color(0.051, 0.0627, 0.0784, 1)
 mouse_filter = 2
 
 [node name="Layout" type="VBoxContainer" parent="."]
@@ -66,7 +151,7 @@ theme_type_variation = &"GhostButton"
 text = "BACK"
 unique_name_in_owner = true
 icon = ExtResource("3_chevronl")
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(200, 58)
 size_flags_vertical = 4
 
 [node name="TitleBox" type="VBoxContainer" parent="Layout/Header/Row"]
@@ -76,7 +161,7 @@ size_flags_vertical = 4
 
 [node name="Eyebrow" type="Label" parent="Layout/Header/Row/TitleBox"]
 layout_mode = 2
-text = "STEP 2 OF 4 · TEAM BRAWL"
+text = "YOUR BOTS · SELECT OR CUSTOMIZE"
 theme_type_variation = &"Eyebrow"
 theme_override_font_sizes/font_size = 16
 unique_name_in_owner = true
@@ -94,54 +179,11 @@ size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="Steps" type="HBoxContainer" parent="Layout/Header/Row"]
+visible = false
 layout_mode = 2
 theme_override_constants/separation = 7
 unique_name_in_owner = true
 size_flags_vertical = 4
-
-[node name="Step1" type="PanelContainer" parent="Layout/Header/Row/Steps"]
-layout_mode = 2
-theme_type_variation = &"StepDone"
-
-[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step1"]
-layout_mode = 2
-text = "1 MODE"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 22
-theme_override_colors/font_color = Color(0.9098, 0.9255, 0.9451, 1)
-
-[node name="Step2" type="PanelContainer" parent="Layout/Header/Row/Steps"]
-layout_mode = 2
-theme_type_variation = &"StepActive"
-
-[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step2"]
-layout_mode = 2
-text = "2 BOT"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 22
-theme_override_colors/font_color = Color(0.0784, 0.0784, 0.0745, 1)
-
-[node name="Step3" type="PanelContainer" parent="Layout/Header/Row/Steps"]
-layout_mode = 2
-theme_type_variation = &"StepTodo"
-
-[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step3"]
-layout_mode = 2
-text = "3 ARENA"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 22
-theme_override_colors/font_color = Color(0.6039, 0.651, 0.7098, 1)
-
-[node name="Step4" type="PanelContainer" parent="Layout/Header/Row/Steps"]
-layout_mode = 2
-theme_type_variation = &"StepTodo"
-
-[node name="L" type="Label" parent="Layout/Header/Row/Steps/Step4"]
-layout_mode = 2
-text = "4 LOBBY"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 22
-theme_override_colors/font_color = Color(0.6039, 0.651, 0.7098, 1)
 
 [node name="Sep" type="VSeparator" parent="Layout/Header/Row"]
 layout_mode = 2
@@ -179,7 +221,7 @@ unique_name_in_owner = true
 
 [node name="ProfileMeta" type="Label" parent="Layout/Header/Row/Profile/Info"]
 layout_mode = 2
-text = "LV 12 · 4,250 scrap"
+text = "LOCAL PILOT · ALL PARTS AVAILABLE"
 theme_type_variation = &"Muted"
 theme_override_font_sizes/font_size = 16
 unique_name_in_owner = true
@@ -194,22 +236,22 @@ mouse_filter = 2
 
 [node name="Body" type="MarginContainer" parent="Layout"]
 layout_mode = 2
-theme_override_constants/margin_left = 58
-theme_override_constants/margin_top = 34
-theme_override_constants/margin_right = 58
-theme_override_constants/margin_bottom = 34
+theme_override_constants/margin_left = 52
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 52
+theme_override_constants/margin_bottom = 28
 size_flags_vertical = 3
 
 [node name="Row" type="HBoxContainer" parent="Layout/Body"]
 layout_mode = 2
-theme_override_constants/separation = 29
+theme_override_constants/separation = 26
 
 [node name="BotsCol" type="VBoxContainer" parent="Layout/Body/Row"]
 layout_mode = 2
-theme_override_constants/separation = 12
-custom_minimum_size = Vector2(360, 0)
+theme_override_constants/separation = 14
+custom_minimum_size = Vector2(400, 0)
 
-[node name="Head" type="VBoxContainer" parent="Layout/Body/Row/BotsCol"]
+[node name="Head" type="HBoxContainer" parent="Layout/Body/Row/BotsCol"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
@@ -218,424 +260,318 @@ layout_mode = 2
 text = "YOUR BOTS"
 theme_type_variation = &"Eyebrow"
 theme_override_font_sizes/font_size = 16
-
-[node name="Spacer" type="Control" parent="Layout/Body/Row/BotsCol/Head"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
+size_flags_vertical = 8
 
 [node name="Bays" type="Label" parent="Layout/Body/Row/BotsCol/Head"]
 layout_mode = 2
-text = "3 / 8 bays"
+text = "3 builds · 12 saved max"
 theme_type_variation = &"Muted"
 theme_override_font_sizes/font_size = 17
+size_flags_vertical = 8
+size_flags_horizontal = 3
+horizontal_alignment = 2
+clip_text = true
+text_overrun_behavior = 3
 unique_name_in_owner = true
+
+[node name="NewBot" type="Button" parent="Layout/Body/Row/BotsCol"]
+layout_mode = 2
+text = "BUILD NEW BOT"
+unique_name_in_owner = true
+icon = ExtResource("5_plussvg")
+custom_minimum_size = Vector2(0, 62)
+theme_type_variation = &"GhostButton"
+theme_override_styles/normal = SubResource("sb_new_bot")
+theme_override_styles/hover = SubResource("sb_new_bot_hover")
+theme_override_styles/pressed = SubResource("sb_new_bot_hover")
+theme_override_styles/hover_pressed = SubResource("sb_new_bot_hover")
+theme_override_constants/icon_max_width = 20
+theme_override_constants/h_separation = 12
+theme_override_font_sizes/font_size = 24
 
 [node name="BotList" type="VBoxContainer" parent="Layout/Body/Row/BotsCol"]
 layout_mode = 2
 theme_override_constants/separation = 12
 unique_name_in_owner = true
+size_flags_vertical = 3
 
-[node name="NewBot" type="Button" parent="Layout/Body/Row/BotsCol"]
+[node name="Preview" parent="Layout/Body/Row" instance=ExtResource("12_readout")]
 layout_mode = 2
-theme_type_variation = &"GhostButton"
-text = "BUILD NEW BOT"
-unique_name_in_owner = true
-icon = ExtResource("5_plussvg")
-custom_minimum_size = Vector2(0, 77)
-
-[node name="Preview" type="PanelContainer" parent="Layout/Body/Row"]
-layout_mode = 2
-theme_type_variation = &"PanelBox"
-size_flags_horizontal = 3
-
-[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/Preview"]
-layout_mode = 2
-theme_override_constants/separation = 19
-
-[node name="ImageFrame" type="Control" parent="Layout/Body/Row/Preview/Col"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 516)
-clip_contents = true
-
-[node name="BotImage" type="TextureRect" parent="Layout/Body/Row/Preview/Col/ImageFrame"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-expand_mode = 1
-stretch_mode = 6
-unique_name_in_owner = true
-mouse_filter = 2
-
-[node name="Overlay" type="HBoxContainer" parent="Layout/Body/Row/Preview/Col/ImageFrame"]
-layout_mode = 1
-theme_override_constants/separation = 10
-offset_left = 14.0
-offset_top = 14.0
-
-[node name="Customize" type="Button" parent="Layout/Body/Row/Preview/Col/ImageFrame/Overlay"]
-layout_mode = 2
-theme_type_variation = &"OverlayButton"
-text = "CUSTOMIZE"
-unique_name_in_owner = true
-icon = ExtResource("7_wrenchsv")
-custom_minimum_size = Vector2(0, 53)
-
-[node name="Rotate" type="Button" parent="Layout/Body/Row/Preview/Col/ImageFrame"]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -67.0
-offset_top = -67.0
-offset_right = -14.0
-offset_bottom = -14.0
-grow_horizontal = 0
-grow_vertical = 0
-theme_type_variation = &"IconButton"
-icon = ExtResource("9_rotatesv")
-tooltip_text = "Reset build preview view"
-
-[node name="Info" type="VBoxContainer" parent="Layout/Body/Row/Preview/Col"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Name" type="VBoxContainer" parent="Layout/Body/Row/Preview/Col/Info"]
-layout_mode = 2
-theme_override_constants/separation = 5
-size_flags_vertical = 8
-
-[node name="BotClass" type="Label" parent="Layout/Body/Row/Preview/Col/Info/Name"]
-layout_mode = 2
-text = "TANK CLASS"
-theme_type_variation = &"EyebrowAmber"
-theme_override_font_sizes/font_size = 16
-unique_name_in_owner = true
-
-[node name="BotName" type="Label" parent="Layout/Body/Row/Preview/Col/Info/Name"]
-layout_mode = 2
-text = "CHEVRON"
-theme_type_variation = &"HeadingItalic"
-theme_override_font_sizes/font_size = 77
-unique_name_in_owner = true
-
-[node name="Spacer" type="Control" parent="Layout/Body/Row/Preview/Col/Info"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
-[node name="Hull" type="VBoxContainer" parent="Layout/Body/Row/Preview/Col/Info"]
-layout_mode = 2
-theme_override_constants/separation = 10
-size_flags_vertical = 8
-
-[node name="BotHp" type="Label" parent="Layout/Body/Row/Preview/Col/Info/Hull"]
-layout_mode = 2
-text = "1,000 HP"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 34
-horizontal_alignment = 2
-unique_name_in_owner = true
-
-[node name="PipRow" type="HBoxContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull"]
-layout_mode = 2
-theme_override_constants/separation = 5
-alignment = 2
-
-[node name="Shield" type="TextureRect" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow"]
-layout_mode = 2
-texture = ExtResource("10_shieldsv")
-expand_mode = 1
-stretch_mode = 5
-custom_minimum_size = Vector2(22, 22)
-size_flags_vertical = 4
-self_modulate = Color(0.9098, 0.9255, 0.9451, 1)
-mouse_filter = 2
-
-[node name="Pips" type="HBoxContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow"]
-layout_mode = 2
-theme_override_constants/separation = 5
-unique_name_in_owner = true
-
-[node name="Pip1" type="PanelContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow/Pips"]
-layout_mode = 2
-theme_type_variation = &"PipOn"
-custom_minimum_size = Vector2(31, 14)
-size_flags_vertical = 4
-
-[node name="Pip2" type="PanelContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow/Pips"]
-layout_mode = 2
-theme_type_variation = &"PipOn"
-custom_minimum_size = Vector2(31, 14)
-size_flags_vertical = 4
-
-[node name="Pip3" type="PanelContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow/Pips"]
-layout_mode = 2
-theme_type_variation = &"PipOn"
-custom_minimum_size = Vector2(31, 14)
-size_flags_vertical = 4
-
-[node name="Pip4" type="PanelContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow/Pips"]
-layout_mode = 2
-theme_type_variation = &"PipOn"
-custom_minimum_size = Vector2(31, 14)
-size_flags_vertical = 4
-
-[node name="Pip5" type="PanelContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow/Pips"]
-layout_mode = 2
-theme_type_variation = &"PipOn"
-custom_minimum_size = Vector2(31, 14)
-size_flags_vertical = 4
-
-[node name="Pip6" type="PanelContainer" parent="Layout/Body/Row/Preview/Col/Info/Hull/PipRow/Pips"]
-layout_mode = 2
-theme_type_variation = &"Pip"
-custom_minimum_size = Vector2(31, 14)
-size_flags_vertical = 4
-
-[node name="Stats" type="GridContainer" parent="Layout/Body/Row/Preview/Col/Info"]
-layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 24
-theme_override_constants/v_separation = 4
-unique_name_in_owner = true
 
 [node name="RightCol" type="VBoxContainer" parent="Layout/Body/Row"]
 layout_mode = 2
-theme_override_constants/separation = 19
-custom_minimum_size = Vector2(504, 0)
+theme_override_constants/separation = 0
+custom_minimum_size = Vector2(520, 0)
 
-[node name="Loadout" type="PanelContainer" parent="Layout/Body/Row/RightCol"]
+[node name="Loadout" type="VBoxContainer" parent="Layout/Body/Row/RightCol"]
 layout_mode = 2
-theme_type_variation = &"PanelBox"
-
-[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout"]
-layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col"]
+[node name="Head" type="HBoxContainer" parent="Layout/Body/Row/RightCol/Loadout"]
 layout_mode = 2
+
+[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
 text = "LOADOUT"
 theme_type_variation = &"Eyebrow"
 theme_override_font_sizes/font_size = 16
 
-[node name="WeaponSlot" type="Button" parent="Layout/Body/Row/RightCol/Loadout/Col"]
+[node name="SlotCount" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Head"]
 layout_mode = 2
-theme_type_variation = &"SlotButton"
+size_flags_vertical = 8
+text = "3 slots"
+theme_type_variation = &"Muted"
+theme_override_font_sizes/font_size = 17
+
+[node name="WeaponSlot" type="Button" parent="Layout/Body/Row/RightCol/Loadout"]
+layout_mode = 2
 text = ""
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 84)
+custom_minimum_size = Vector2(0, 106)
+theme_override_styles/normal = SubResource("sb_slot")
+theme_override_styles/hover = SubResource("sb_slot_hover")
+theme_override_styles/pressed = SubResource("sb_slot_hover")
+theme_override_styles/hover_pressed = SubResource("sb_slot_hover")
+theme_override_styles/focus = SubResource("sb_slot_focus")
 
-[node name="Pad" type="MarginContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot"]
+[node name="Pad" type="MarginContainer" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 17
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 17
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
 mouse_filter = 2
 
-[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot/Pad"]
+[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot/Pad"]
 layout_mode = 2
-theme_override_constants/separation = 17
+theme_override_constants/separation = 16
 mouse_filter = 2
 
-[node name="Key" type="PanelContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot/Pad/Row"]
+[node name="Text" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot/Pad/Row"]
 layout_mode = 2
-theme_type_variation = &"KeyCap"
+size_flags_horizontal = 3
 size_flags_vertical = 4
-custom_minimum_size = Vector2(70, 0)
+theme_override_constants/separation = 2
 mouse_filter = 2
 
-[node name="L" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot/Pad/Row/Key"]
+[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot/Pad/Row/Text"]
+layout_mode = 2
+text = "WEAPON"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 15
+
+[node name="Weapon" type="Label" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot/Pad/Row/Text"]
+layout_mode = 2
+text = "Spin Blade"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 34
+unique_name_in_owner = true
+
+[node name="Key" type="PanelContainer" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot/Pad/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+custom_minimum_size = Vector2(60, 40)
+theme_override_styles/panel = SubResource("sb_key")
+mouse_filter = 2
+
+[node name="L" type="Label" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot/Pad/Row/Key"]
 layout_mode = 2
 text = "LMB"
 theme_type_variation = &"KeyLabel"
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Text" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot/Pad/Row"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot/Pad/Row/Text"]
-layout_mode = 2
-text = "WEAPON"
-theme_type_variation = &"Eyebrow"
-theme_override_font_sizes/font_size = 14
-
-[node name="Weapon" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot/Pad/Row/Text"]
-layout_mode = 2
-text = "Spin Blade"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 29
-unique_name_in_owner = true
-
-[node name="Chevron" type="TextureRect" parent="Layout/Body/Row/RightCol/Loadout/Col/WeaponSlot/Pad/Row"]
+[node name="Chevron" type="TextureRect" parent="Layout/Body/Row/RightCol/Loadout/WeaponSlot/Pad/Row"]
 layout_mode = 2
 texture = ExtResource("11_chevronr")
 expand_mode = 1
 stretch_mode = 5
-custom_minimum_size = Vector2(24, 24)
+custom_minimum_size = Vector2(22, 22)
 size_flags_vertical = 4
-self_modulate = Color(0.6039, 0.651, 0.7098, 1)
+self_modulate = Color(0.5451, 0.5804, 0.6196, 1)
 mouse_filter = 2
 
-[node name="AbilitySlot" type="Button" parent="Layout/Body/Row/RightCol/Loadout/Col"]
+[node name="AbilitySlot" type="Button" parent="Layout/Body/Row/RightCol/Loadout"]
 layout_mode = 2
-theme_type_variation = &"SlotButton"
 text = ""
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 84)
+custom_minimum_size = Vector2(0, 106)
+theme_override_styles/normal = SubResource("sb_slot")
+theme_override_styles/hover = SubResource("sb_slot_hover")
+theme_override_styles/pressed = SubResource("sb_slot_hover")
+theme_override_styles/hover_pressed = SubResource("sb_slot_hover")
+theme_override_styles/focus = SubResource("sb_slot_focus")
 
-[node name="Pad" type="MarginContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot"]
+[node name="Pad" type="MarginContainer" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 17
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 17
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
 mouse_filter = 2
 
-[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot/Pad"]
+[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot/Pad"]
 layout_mode = 2
-theme_override_constants/separation = 17
+theme_override_constants/separation = 16
 mouse_filter = 2
 
-[node name="Key" type="PanelContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot/Pad/Row"]
+[node name="Text" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot/Pad/Row"]
 layout_mode = 2
-theme_type_variation = &"KeyCap"
+size_flags_horizontal = 3
 size_flags_vertical = 4
-custom_minimum_size = Vector2(70, 0)
+theme_override_constants/separation = 2
 mouse_filter = 2
 
-[node name="L" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot/Pad/Row/Key"]
+[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot/Pad/Row/Text"]
+layout_mode = 2
+text = "UTILITY"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 15
+
+[node name="Ability" type="Label" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot/Pad/Row/Text"]
+layout_mode = 2
+text = "Overdrive"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 34
+unique_name_in_owner = true
+
+[node name="Key" type="PanelContainer" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot/Pad/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+custom_minimum_size = Vector2(60, 40)
+theme_override_styles/panel = SubResource("sb_key")
+mouse_filter = 2
+
+[node name="L" type="Label" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot/Pad/Row/Key"]
 layout_mode = 2
 text = "R"
 theme_type_variation = &"KeyLabel"
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Text" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot/Pad/Row"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot/Pad/Row/Text"]
-layout_mode = 2
-text = "UTILITY"
-theme_type_variation = &"Eyebrow"
-theme_override_font_sizes/font_size = 14
-
-[node name="Ability" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot/Pad/Row/Text"]
-layout_mode = 2
-text = "Overdrive"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 29
-unique_name_in_owner = true
-
-[node name="Chevron" type="TextureRect" parent="Layout/Body/Row/RightCol/Loadout/Col/AbilitySlot/Pad/Row"]
+[node name="Chevron" type="TextureRect" parent="Layout/Body/Row/RightCol/Loadout/AbilitySlot/Pad/Row"]
 layout_mode = 2
 texture = ExtResource("11_chevronr")
 expand_mode = 1
 stretch_mode = 5
-custom_minimum_size = Vector2(24, 24)
+custom_minimum_size = Vector2(22, 22)
 size_flags_vertical = 4
-self_modulate = Color(0.6039, 0.651, 0.7098, 1)
+self_modulate = Color(0.5451, 0.5804, 0.6196, 1)
 mouse_filter = 2
 
-[node name="BoostSlot" type="Button" parent="Layout/Body/Row/RightCol/Loadout/Col"]
+[node name="BoostSlot" type="Button" parent="Layout/Body/Row/RightCol/Loadout"]
 layout_mode = 2
-theme_type_variation = &"SlotButton"
 text = ""
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 84)
+custom_minimum_size = Vector2(0, 106)
+theme_override_styles/normal = SubResource("sb_slot")
+theme_override_styles/hover = SubResource("sb_slot_hover")
+theme_override_styles/pressed = SubResource("sb_slot_hover")
+theme_override_styles/hover_pressed = SubResource("sb_slot_hover")
+theme_override_styles/focus = SubResource("sb_slot_focus")
 
-[node name="Pad" type="MarginContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot"]
+[node name="Pad" type="MarginContainer" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 17
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 17
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
 mouse_filter = 2
 
-[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot/Pad"]
+[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad"]
 layout_mode = 2
-theme_override_constants/separation = 17
+theme_override_constants/separation = 16
 mouse_filter = 2
 
-[node name="Key" type="PanelContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot/Pad/Row"]
+[node name="Text" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad/Row"]
 layout_mode = 2
-theme_type_variation = &"KeyCap"
+size_flags_horizontal = 3
 size_flags_vertical = 4
-custom_minimum_size = Vector2(70, 0)
+theme_override_constants/separation = 8
 mouse_filter = 2
 
-[node name="L" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot/Pad/Row/Key"]
+[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad/Row/Text"]
+layout_mode = 2
+text = "PERKS"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 15
+
+[node name="Boost" type="Label" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad/Row/Text"]
+layout_mode = 2
+text = "No perks equipped"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 34
+unique_name_in_owner = true
+
+[node name="Perks" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad/Row/Text"]
+layout_mode = 2
+theme_override_constants/separation = 8
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Key" type="PanelContainer" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+custom_minimum_size = Vector2(60, 40)
+theme_override_styles/panel = SubResource("sb_key")
+mouse_filter = 2
+
+[node name="L" type="Label" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad/Row/Key"]
 layout_mode = 2
 text = "—"
 theme_type_variation = &"KeyLabel"
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Text" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot/Pad/Row"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot/Pad/Row/Text"]
-layout_mode = 2
-text = "PERKS"
-theme_type_variation = &"Eyebrow"
-theme_override_font_sizes/font_size = 14
-
-[node name="Boost" type="Label" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot/Pad/Row/Text"]
-layout_mode = 2
-text = "Track Surge"
-theme_type_variation = &"Subheading"
-theme_override_font_sizes/font_size = 29
-unique_name_in_owner = true
-
-[node name="Chevron" type="TextureRect" parent="Layout/Body/Row/RightCol/Loadout/Col/BoostSlot/Pad/Row"]
+[node name="Chevron" type="TextureRect" parent="Layout/Body/Row/RightCol/Loadout/BoostSlot/Pad/Row"]
 layout_mode = 2
 texture = ExtResource("11_chevronr")
 expand_mode = 1
 stretch_mode = 5
-custom_minimum_size = Vector2(24, 24)
+custom_minimum_size = Vector2(22, 22)
 size_flags_vertical = 4
-self_modulate = Color(0.6039, 0.651, 0.7098, 1)
+self_modulate = Color(0.5451, 0.5804, 0.6196, 1)
 mouse_filter = 2
+
+[node name="Spacer" type="Control" parent="Layout/Body/Row/RightCol/Loadout"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="TestDriveSlot" type="VBoxContainer" parent="Layout/Body/Row/RightCol/Loadout"]
+layout_mode = 2
+unique_name_in_owner = true
 
 [node name="Footer" type="PanelContainer" parent="Layout"]
 layout_mode = 2
-theme_type_variation = &"FooterBar"
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 124)
+theme_override_styles/panel = SubResource("sb_footer")
 
 [node name="Row" type="HBoxContainer" parent="Layout/Footer"]
 layout_mode = 2
-theme_override_constants/separation = 34
+theme_override_constants/separation = 26
 
 [node name="Hint0" type="HBoxContainer" parent="Layout/Footer/Row"]
 layout_mode = 2
@@ -700,9 +636,9 @@ mouse_filter = 2
 [node name="Next" type="Button" parent="Layout/Footer/Row"]
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
-text = "CHOOSE ARENA"
+text = "DONE"
 unique_name_in_owner = true
 icon = ExtResource("11_chevronr")
 icon_alignment = 2
-custom_minimum_size = Vector2(0, 77)
+custom_minimum_size = Vector2(0, 68)
 size_flags_vertical = 4

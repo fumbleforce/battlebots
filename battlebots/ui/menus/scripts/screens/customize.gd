@@ -1,10 +1,6 @@
 extends MenuScreen
 ## Canonical parts and paint editing; draft history and saves belong to PlayerProfile.
 
-class CustomizePreview extends GarageBotPreview:
-	func rotate_view(delta: Vector2) -> void:
-		super(Vector2(-delta.x, delta.y))
-
 const CATEGORY_ROW := preload("res://ui/menus/components/category_row.tscn")
 const ITEM_TILE := preload("res://ui/menus/components/item_tile.tscn")
 ## Vehicle modules ("decals" catalogue) are sections of PARTS > ARMOR, not a tab.
@@ -44,6 +40,12 @@ var _choice_scroll: ScrollContainer
 var _scroll_key := ""
 ## Choice tiles by "tab:category:item" for keyboard/test lookup.
 var _tiles: Dictionary = {}
+## Selected build: status, name, live preview and stat strip.
+@onready var readout: BuildReadout = $Layout/Body/Row/Preview
+## Part swap about to be equipped: the build summary before it and its caption.
+var _pending_swap: Dictionary = {}
+## Last equipped part swap, shown while the draft still matches its result.
+var _last_swap: Dictionary = {}
 
 func apply_text_scale(factor: float) -> void:
 	_pagination_frames = 4
@@ -54,7 +56,7 @@ func apply_text_scale(factor: float) -> void:
 	build_preview.apply_text_scale(_text_scale)
 	comparison_panel.apply_text_scale(_text_scale)
 	if is_instance_valid(recovery_panel): recovery_panel.apply_text_scale(_text_scale)
-	%BotImage.get_parent().custom_minimum_size.y = 300 if _text_scale == 1.0 else 180
+	readout.get_node("%ImageFrame").custom_minimum_size.y = 240 if _text_scale == 1.0 else 160
 	# Room for a name and three description lines keeps the preview from resizing.
 	%SelDesc.get_parent().custom_minimum_size.y = ceilf(120 * _text_scale)
 	for row: Control in %Categories.get_children():
@@ -67,8 +69,7 @@ func apply_text_scale(factor: float) -> void:
 
 func _show_preview_stats(value: bool) -> void:
 	_showing_stats = value
-	build_preview.get_parent().visible = not value
-	comparison_panel.visible = value
+	readout.show_detail(comparison_panel, value)
 	stats_button.text = "SHOW MODEL" if value else "SHOW STATS"
 
 
@@ -81,7 +82,11 @@ func _ready() -> void:
 	%Categories.get_parent().move_child(_category_pager, %Categories.get_index() + 1)
 	for direction: int in [-1, 1]:
 		var button := Button.new()
-		button.text = "PREV" if direction < 0 else "NEXT"
+		button.icon = preload("res://ui/menus/icons/chevron_left.svg") if direction < 0 else preload("res://ui/menus/icons/chevron_right.svg")
+		button.tooltip_text = "Previous page" if direction < 0 else "Next page"
+		button.theme_type_variation = &"IconButton"
+		button.custom_minimum_size = Vector2(56, 56)
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_category_pager.add_child(button)
 		button.pressed.connect(func():
 			_category_page[_tab] = wrapi(_category_page[_tab] + direction, 0, maxi(1, _category_ranges.size()))
@@ -91,6 +96,8 @@ func _ready() -> void:
 			_category_page_label = Label.new()
 			_category_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_category_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_category_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			_category_page_label.theme_type_variation = &"Muted"
 			_category_pager.add_child(_category_page_label)
 	_color_picker = ColorPickerButton.new()
 	_color_picker.text = "CUSTOM COLOR"
@@ -125,46 +132,21 @@ func _ready() -> void:
 	$Layout/Header/Row/SpacerR.hide()
 	$Layout/Header/Row/Sep.hide()
 	$Layout/Header/Row/Scrap.hide()
-	build_preview = CustomizePreview.new()
-	var frame := %BotImage.get_parent()
-	%BotImage.hide()
-	frame.add_child(build_preview)
-	frame.move_child(build_preview, 1)
-	frame.get_node("PreviewChip").hide()
-	frame.custom_minimum_size.y = 300
+	build_preview = BuildReadout.Preview.new()
+	readout.attach_preview(build_preview)
 	comparison_panel = GarageComparisonPanel.new()
 	comparison_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var preview_column := frame.get_parent()
-	preview_column.add_child(comparison_panel)
-	preview_column.move_child(comparison_panel, %Stats.get_index())
-	var preview_toolbar := HBoxContainer.new()
-	preview_toolbar.add_theme_constant_override("separation", 10)
-	preview_column.add_child(preview_toolbar)
-	preview_column.move_child(preview_toolbar, frame.get_index())
-	var toolbar_spacer := Control.new()
-	toolbar_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	preview_toolbar.add_child(toolbar_spacer)
+	readout.show_detail(comparison_panel, false)
 	stats_button = Button.new()
+	stats_button.name = "StatsToggle"
 	stats_button.text = "SHOW STATS"
-	stats_button.theme_type_variation = &"GhostButton"
-	stats_button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	stats_button.custom_minimum_size = Vector2(176, 48)
-	stats_button.add_theme_font_size_override("font_size", 20)
-	preview_toolbar.add_child(stats_button)
+	stats_button.tooltip_text = "Switch between the 3D model and the detailed stat table."
+	stats_button.custom_minimum_size.x = 196
+	stats_button.add_theme_font_size_override("font_size", 22)
+	readout.add_action(stats_button)
 	stats_button.pressed.connect(func(): _show_preview_stats(not _showing_stats))
-	var reset_button := frame.get_node("Rotate") as Button
-	reset_button.reparent(preview_toolbar)
-	reset_button.theme_type_variation = &"GhostButton"
-	reset_button.icon = null
-	reset_button.text = "RESET VIEW"
-	reset_button.custom_minimum_size = Vector2(176, 48)
-	reset_button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	reset_button.add_theme_font_size_override("font_size", 20)
-	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	comparison_panel.hide()
-	# The chosen item's name and description sit under the preview.
+	# The chosen item's name and description stay under its choices.
 	var selected := %SelDesc.get_parent() as Control
-	selected.reparent(preview_column)
 	selected.size_flags_vertical = Control.SIZE_SHRINK_END
 	%SelDesc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Layout/Footer/Row/Hint1.hide()
@@ -214,10 +196,6 @@ func _ready() -> void:
 	_style_utility_button(revalidate_button)
 	history.add_child(revalidate_button)
 	revalidate_button.pressed.connect(PlayerProfile.revalidate_active)
-	for control: Node in find_children("Rotate","Button",true,false):
-		control.tooltip_text = "Reset build preview view"
-		control.pressed.connect(build_preview.reset_view)
-	%BotImage.texture = null
 	var group := ButtonGroup.new()
 	var tab_buttons := [%TabParts, %TabPaint, %TabDecals]
 	for i in TABS.size():
@@ -307,7 +285,14 @@ func _set_tab(t: String) -> void:
 
 func _refresh() -> void:
 	var current: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
-	build_preview.show_loadout(PlayerProfile.loadouts[PlayerProfile.active_bot])
+	var loadout: Dictionary = PlayerProfile.loadouts[PlayerProfile.active_bot]
+	readout.show_build(current, loadout)
+	if not _pending_swap.is_empty():
+		_last_swap = _pending_swap
+		_last_swap.target = GarageComparison.current(PlayerProfile.registry, loadout)
+		_last_swap.loadout = loadout.duplicate(true)
+		_pending_swap = {}
+	_show_last_swap()
 	if not name_edit.has_focus(): name_edit.text = current.name
 	undo_button.disabled = not PlayerProfile.can_undo()
 	redo_button.disabled = not PlayerProfile.can_redo()
@@ -316,7 +301,7 @@ func _refresh() -> void:
 	var cats: Array = PlayerProfile.catalogue[_tab]
 	var ci: int = _cat[_tab]
 	var cat: Dictionary = cats[ci]
-	_category_page_label.text = "%d / %d" % [_category_page[_tab] + 1, _category_ranges.size()]
+	_category_page_label.text = "Page %d of %d" % [_category_page[_tab] + 1, _category_ranges.size()]
 	_color_picker.visible = _tab == "paint" and cat.slot != "paint" and SawbladeConfig.enabled(PlayerProfile.loadouts[PlayerProfile.active_bot])
 	if _color_picker.visible:
 		var rgba: Array = PlayerProfile.loadouts[PlayerProfile.active_bot].cosmetics.sawblade[cat.slot]
@@ -379,9 +364,16 @@ func _refresh() -> void:
 				_detail_key = group_key
 				_refocus = "item"
 				if PlayerProfile.item_state(group_tab, group_cat, it) == "own":
+					if group_tab == "parts": _pending_swap = _swap("CHANGED", group_cat, it)
 					PlayerProfile.equip(group_tab, group_cat, it)
 				else:
 					_refresh())
+			if group_tab == "parts":
+				# Hovering or focusing another part previews how it would move the build.
+				for entered: Signal in [tile.mouse_entered, tile.focus_entered]:
+					entered.connect(_preview_swap.bind(group_cat, it))
+				for exited: Signal in [tile.mouse_exited, tile.focus_exited]:
+					exited.connect(_show_last_swap)
 			if _refocus == "item" and described:
 				_focus_control.call_deferred(tile)
 	_refocus = ""
@@ -392,14 +384,37 @@ func _refresh() -> void:
 	var cur: Dictionary = detail.item
 	comparison_panel.render_current(GarageComparison.current(PlayerProfile.registry, PlayerProfile.loadouts[PlayerProfile.active_bot]))
 	%SelName.text = cur.name
-	%PreviewName.text = cur.name
 	var fallback := ("Applies to the %s layer." if detail.tab == "paint" else "Decal for the %s.") % detail.cat.label.to_lower()
 	%SelDesc.text = cur.get("desc", fallback)
 	if not current.valid: %SelDesc.text += "\nBuild invalid: " + "; ".join(current.reasons)
 
-	%Stats.hide()
-	%CosmeticNote.hide()
 	apply_text_scale(_text_scale)
+
+
+## Swap summary for equipping a part: the build before it and "old → new".
+func _swap(verb: String, cat: Dictionary, item: Dictionary) -> Dictionary:
+	var loadout: Dictionary = PlayerProfile.loadouts[PlayerProfile.active_bot]
+	var comparison := GarageComparison.compare(PlayerProfile.registry, loadout, cat.slot, item.id)
+	return {"base": comparison.current, "target": comparison.proposed,
+		"caption": "%s %s · %s → %s" % [verb, cat.label, PlayerProfile.equipped_name("parts", cat), item.name]}
+
+
+func _preview_swap(cat: Dictionary, item: Dictionary) -> void:
+	if not is_inside_tree() or PlayerProfile.item_state("parts", cat, item) == "eq":
+		_show_last_swap()
+		return
+	var swap := _swap("PREVIEW", cat, item)
+	readout.show_change(swap.base, swap.target, swap.caption)
+
+
+## Marks the last equipped swap while the draft is still its result.
+func _show_last_swap() -> void:
+	if not is_instance_valid(readout): return
+	var loadout: Dictionary = PlayerProfile.loadouts[PlayerProfile.active_bot]
+	if not _last_swap.is_empty() and _last_swap.loadout == loadout:
+		readout.show_change(_last_swap.base, _last_swap.target, _last_swap.caption)
+	else:
+		readout.clear_change()
 
 
 ## Right-panel choice groups for the selected category. PARTS > ARMOR follows its
@@ -515,7 +530,7 @@ func _process(_delta: float) -> void:
 	_category_capacity = category_range.y - category_range.x
 	for i in %Categories.get_child_count(): %Categories.get_child(i).visible = i >= category_range.x and i < category_range.y
 	_category_pager.visible = _category_ranges.size() > 1
-	_category_page_label.text = "%d / %d" % [category_page + 1, _category_ranges.size()]
+	_category_page_label.text = "Page %d of %d" % [category_page + 1, _category_ranges.size()]
 
 
 func _page_budget(list: Container, pager: Control, with_pager: bool) -> float:

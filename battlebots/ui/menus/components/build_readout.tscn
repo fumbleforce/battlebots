@@ -1,0 +1,497 @@
+[gd_scene format=3]
+
+[ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
+
+[ext_resource type="Script" path="res://ui/menus/scripts/components/build_readout.gd" id="2_readout"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/check.svg" id="3_checksvg"]
+
+[ext_resource type="Texture2D" path="res://ui/menus/icons/rotate.svg" id="4_rotatesv"]
+
+[sub_resource type="StyleBoxFlat" id="sb_preview"]
+bg_color = Color(0.0824, 0.098, 0.1255, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1412, 0.1647, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="sb_stats"]
+content_margin_left = 30.0
+content_margin_top = 22.0
+content_margin_right = 30.0
+content_margin_bottom = 24.0
+bg_color = Color(0.0706, 0.0863, 0.1098, 1)
+border_width_top = 1
+border_color = Color(0.1412, 0.1647, 0.2, 1)
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_bg"]
+content_margin_top = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.149, 0.1725, 0.2078, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_core"]
+bg_color = Color(0.4353, 0.749, 0.451, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_mass"]
+bg_color = Color(0.9608, 0.7216, 0.1804, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_tile"]
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+bg_color = Color(0.0941, 0.1137, 0.1412, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_core_box"]
+content_margin_left = 12.0
+content_margin_right = 12.0
+bg_color = Color(0.0941, 0.1137, 0.1412, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.4353, 0.749, 0.451, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="BuildReadout" type="PanelContainer"]
+size_flags_horizontal = 3
+theme = ExtResource("1_menuthem")
+theme_override_styles/panel = SubResource("sb_preview")
+script = ExtResource("2_readout")
+
+[node name="Col" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Top" type="MarginContainer" parent="Col"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 4
+
+[node name="Row" type="HBoxContainer" parent="Col/Top"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Name" type="VBoxContainer" parent="Col/Top/Row"]
+layout_mode = 2
+theme_override_constants/separation = 6
+size_flags_horizontal = 3
+
+[node name="Status" type="HBoxContainer" parent="Col/Top/Row/Name"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Check" type="TextureRect" parent="Col/Top/Row/Name/Status"]
+layout_mode = 2
+texture = ExtResource("3_checksvg")
+expand_mode = 1
+stretch_mode = 5
+custom_minimum_size = Vector2(18, 18)
+size_flags_vertical = 4
+self_modulate = Color(0.5608, 0.749, 0.5608, 1)
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="BotClass" type="Label" parent="Col/Top/Row/Name/Status"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "VALID BUILD"
+theme_type_variation = &"EyebrowAmber"
+theme_override_colors/font_color = Color(0.5608, 0.749, 0.5608, 1)
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 3
+unique_name_in_owner = true
+
+[node name="BotName" type="Label" parent="Col/Top/Row/Name"]
+layout_mode = 2
+text = "Build"
+theme_type_variation = &"HeadingItalic"
+theme_override_font_sizes/font_size = 48
+clip_text = true
+text_overrun_behavior = 3
+mouse_filter = 0
+unique_name_in_owner = true
+
+[node name="Actions" type="HBoxContainer" parent="Col/Top/Row"]
+layout_mode = 2
+theme_override_constants/separation = 12
+size_flags_vertical = 0
+unique_name_in_owner = true
+
+[node name="ImageFrame" type="Control" parent="Col"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+size_flags_vertical = 3
+clip_contents = true
+unique_name_in_owner = true
+
+[node name="BotImage" type="TextureRect" parent="Col/ImageFrame"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 6
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="DragHint" type="Label" parent="Col/ImageFrame"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 26.0
+offset_top = -48.0
+offset_right = 400.0
+offset_bottom = -22.0
+grow_vertical = 0
+text = "Drag to rotate · Wheel to zoom"
+theme_override_colors/font_color = Color(0.4353, 0.4706, 0.5137, 1)
+theme_override_font_sizes/font_size = 16
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Rotate" type="Button" parent="Col/ImageFrame"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -80.0
+offset_top = -80.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"IconButton"
+icon = ExtResource("4_rotatesv")
+tooltip_text = "Reset build preview view"
+unique_name_in_owner = true
+
+[node name="StatsPanel" type="PanelContainer" parent="Col"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("sb_stats")
+unique_name_in_owner = true
+
+[node name="Inner" type="VBoxContainer" parent="Col/StatsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ChangeCaption" type="Label" parent="Col/StatsPanel/Inner"]
+visible = false
+layout_mode = 2
+text = "PREVIEW · Saw → Hammer"
+theme_type_variation = &"EyebrowAmber"
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 3
+unique_name_in_owner = true
+
+[node name="BotHp" type="Label" parent="Col/StatsPanel/Inner"]
+layout_mode = 2
+text = "260 core HP"
+theme_type_variation = &"Subheading"
+theme_override_colors/font_color = Color(0.9412, 0.5137, 0.4588, 1)
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+unique_name_in_owner = true
+
+[node name="Stats" type="HBoxContainer" parent="Col/StatsPanel/Inner"]
+layout_mode = 2
+theme_override_constants/separation = 36
+unique_name_in_owner = true
+
+[node name="Vitals" type="VBoxContainer" parent="Col/StatsPanel/Inner/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="Core" type="VBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Head" type="HBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Core"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Caption" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Core/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "CORE HP"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+
+[node name="CoreDelta" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Core/Head"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 8
+text = "+40"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 20
+unique_name_in_owner = true
+
+[node name="CoreValue" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Core/Head"]
+layout_mode = 2
+text = "260"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+unique_name_in_owner = true
+
+[node name="CoreBar" type="ProgressBar" parent="Col/StatsPanel/Inner/Stats/Vitals/Core"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 8)
+max_value = 1.0
+step = 0.001
+value = 0.65
+show_percentage = false
+theme_override_styles/background = SubResource("sb_bar_bg")
+theme_override_styles/fill = SubResource("sb_bar_core")
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Mass" type="VBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Head" type="HBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Mass"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Caption" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Mass/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "MASS"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+
+[node name="MassDelta" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Mass/Head"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 8
+text = "+5"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 20
+unique_name_in_owner = true
+
+[node name="MassValue" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Mass/Head"]
+layout_mode = 2
+text = "105 / 120 kg"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+unique_name_in_owner = true
+
+[node name="MassBar" type="ProgressBar" parent="Col/StatsPanel/Inner/Stats/Vitals/Mass"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 8)
+max_value = 120.0
+value = 105.0
+show_percentage = false
+theme_override_styles/background = SubResource("sb_bar_bg")
+theme_override_styles/fill = SubResource("sb_bar_mass")
+unique_name_in_owner = true
+mouse_filter = 2
+
+[node name="Tiles" type="HBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Speed" type="PanelContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("sb_tile")
+
+[node name="Col" type="VBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Speed"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Speed/Col"]
+layout_mode = 2
+text = "MAX SPEED"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 15
+
+[node name="Row" type="HBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Speed/Col"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SpeedValue" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Speed/Col/Row"]
+layout_mode = 2
+text = "8 m/s"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+unique_name_in_owner = true
+
+[node name="SpeedDelta" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Speed/Col/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 8
+text = "+2"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 20
+unique_name_in_owner = true
+
+[node name="Cooling" type="PanelContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("sb_tile")
+
+[node name="Col" type="VBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Cooling"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Cooling/Col"]
+layout_mode = 2
+text = "COOLING"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 15
+
+[node name="Row" type="HBoxContainer" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Cooling/Col"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CoolingValue" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Cooling/Col/Row"]
+layout_mode = 2
+text = "12 heat/s"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 29
+unique_name_in_owner = true
+
+[node name="CoolingDelta" type="Label" parent="Col/StatsPanel/Inner/Stats/Vitals/Tiles/Cooling/Col/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 8
+text = "+3"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 20
+unique_name_in_owner = true
+
+[node name="Armor" type="VBoxContainer" parent="Col/StatsPanel/Inner/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Head" type="HBoxContainer" parent="Col/StatsPanel/Inner/Stats/Armor"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Caption" type="Label" parent="Col/StatsPanel/Inner/Stats/Armor/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ARMOR · HP PER SIDE"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 16
+
+[node name="ArmorDelta" type="Label" parent="Col/StatsPanel/Inner/Stats/Armor/Head"]
+visible = false
+layout_mode = 2
+text = "+10"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 20
+unique_name_in_owner = true
+
+[node name="Grid" type="GridContainer" parent="Col/StatsPanel/Inner/Stats/Armor"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+columns = 3
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 6
+
+[node name="TL" type="Control" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="FrontArmor" type="Label" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+text = "Front  90"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+unique_name_in_owner = true
+
+[node name="TR" type="Control" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LeftArmor" type="Label" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Left
+90"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+unique_name_in_owner = true
+
+[node name="CoreBox" type="PanelContainer" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+custom_minimum_size = Vector2(124, 96)
+theme_override_styles/panel = SubResource("sb_core_box")
+
+[node name="L" type="Label" parent="Col/StatsPanel/Inner/Stats/Armor/Grid/CoreBox"]
+layout_mode = 2
+text = "CORE"
+theme_type_variation = &"Eyebrow"
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RightArmor" type="Label" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Right
+90"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+unique_name_in_owner = true
+
+[node name="BL" type="Control" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RearArmor" type="Label" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+text = "Rear  90"
+theme_type_variation = &"Subheading"
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+unique_name_in_owner = true
+
+[node name="BR" type="Control" parent="Col/StatsPanel/Inner/Stats/Armor/Grid"]
+layout_mode = 2
+mouse_filter = 2

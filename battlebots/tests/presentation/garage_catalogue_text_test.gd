@@ -84,11 +84,11 @@ func run() -> void:
 	profile._draft_changed()
 	await settle()
 	var summary := ""
-	for label: Label in overview.get_node("%Stats").get_children(): summary += label.text + "\n"
-	check("Cooling  15 heat/s" in summary and "Battery" not in summary, "Canonical cooling replaces the removed battery stat")
-	check("Max speed  8 m/s" in summary, "Canonical max speed is displayed")
+	for label: Node in overview.readout.get_node("%Stats").find_children("*", "Label", true, false): summary += label.text.replace("\n", "  ") + "\n"
+	check(overview.readout.get_node("%CoolingValue").text == "15 heat/s" and "Battery" not in summary, "Canonical cooling replaces the removed battery stat")
+	check(overview.readout.get_node("%SpeedValue").text == "8 m/s", "Canonical max speed is displayed")
 	for side: String in ["Front", "Rear", "Left", "Right"]:
-		check(side + " armor  90 HP" in summary, "Individual plate integrity: " + side)
+		check(side + "  90" in summary, "Individual plate integrity: " + side)
 	overview.queue_free()
 	await get_tree().process_frame
 	profile.new_build()
@@ -119,17 +119,17 @@ func run() -> void:
 			await settle()
 			var row: Control = screen.get_node("%BotList").get_child(0)
 			check(row.get_node("%Name").get_theme_font_size("font_size") == 44,"Rebuilt build row uses current scale")
-			check(screen.get_node("%BotName").get_theme_font_size("font_size") == 48,"Compact design title retains150% scale")
+			check(screen.readout.get_node("%BotName").get_theme_font_size("font_size") == 72,"Design title retains 150% scale")
 			row.grab_focus()
 			check(row.has_focus(),"Garage build remains keyboard focusable")
 			await capture("garage")
 			profile.loadouts[profile.active_bot].parts.weapon = "missing_weapon"
 			profile._draft_changed()
 			await settle()
-			check(not screen.get_node("%Stats").visible,"Invalid build hides unavailable stats")
+			check(not screen.readout.get_node("%Stats").visible,"Invalid build hides unavailable stats")
 			check(screen.get_node("%BotList").get_child(profile.active_bot).get_node("%Thumb").texture == null, "Invalid build has no unrelated artwork")
 			check(not screen.build_preview.status.visible, "No text inside invalid preview")
-			check("Unknown or missing part" in screen.get_node("%BotHp").text, "Invalid reason lives in description")
+			check("Unknown or missing part" in screen.readout.get_node("%BotHp").text, "Invalid reason lives in description")
 			await capture("garage-invalid")
 			for page: int in ceili(profile.bots.size() / 2.0):
 				screen._build_page = page

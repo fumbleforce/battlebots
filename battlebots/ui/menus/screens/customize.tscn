@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Theme" path="res://ui/menus/theme/menu_theme.tres" id="1_menuthem"]
 
@@ -8,13 +8,16 @@
 
 [ext_resource type="Texture2D" path="res://ui/menus/art/hazard_stripe.png" id="4_hazardst"]
 
-[ext_resource type="Texture2D" path="res://ui/menus/art/bot_chevron.jpg" id="5_botchevr"]
+[ext_resource type="PackedScene" path="res://ui/menus/components/build_readout.tscn" id="9_readout"]
 
-[ext_resource type="Texture2D" path="res://ui/menus/icons/rotate.svg" id="6_rotatesv"]
-
-[ext_resource type="PackedScene" path="res://ui/menus/components/stat_bar.tscn" id="7_statbart"]
-
-[ext_resource type="Texture2D" path="res://ui/menus/icons/info.svg" id="8_infosvg"]
+[sub_resource type="StyleBoxFlat" id="sb_footer"]
+content_margin_left = 52.0
+content_margin_top = 16.0
+content_margin_right = 52.0
+content_margin_bottom = 16.0
+bg_color = Color(0.0392, 0.0471, 0.0627, 1)
+border_width_top = 1
+border_color = Color(0.1216, 0.1412, 0.1725, 1)
 
 [node name="Customize" type="Control"]
 layout_mode = 3
@@ -60,7 +63,7 @@ theme_type_variation = &"GhostButton"
 text = "GARAGE"
 unique_name_in_owner = true
 icon = ExtResource("3_chevronl")
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(200, 58)
 size_flags_vertical = 4
 
 [node name="TitleBox" type="VBoxContainer" parent="Layout/Header/Row"]
@@ -159,20 +162,20 @@ mouse_filter = 2
 
 [node name="Body" type="MarginContainer" parent="Layout"]
 layout_mode = 2
-theme_override_constants/margin_left = 58
-theme_override_constants/margin_top = 34
-theme_override_constants/margin_right = 58
-theme_override_constants/margin_bottom = 34
+theme_override_constants/margin_left = 52
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 52
+theme_override_constants/margin_bottom = 28
 size_flags_vertical = 3
 
 [node name="Row" type="HBoxContainer" parent="Layout/Body"]
 layout_mode = 2
-theme_override_constants/separation = 29
+theme_override_constants/separation = 26
 
 [node name="Slots" type="VBoxContainer" parent="Layout/Body/Row"]
 layout_mode = 2
 theme_override_constants/separation = 7
-custom_minimum_size = Vector2(300, 0)
+custom_minimum_size = Vector2(400, 0)
 
 [node name="SlotHeading" type="Label" parent="Layout/Body/Row/Slots"]
 layout_mode = 2
@@ -186,126 +189,13 @@ layout_mode = 2
 theme_override_constants/separation = 7
 unique_name_in_owner = true
 
-[node name="Preview" type="PanelContainer" parent="Layout/Body/Row"]
+[node name="Preview" parent="Layout/Body/Row" instance=ExtResource("9_readout")]
 layout_mode = 2
-theme_type_variation = &"PanelBox"
-size_flags_horizontal = 3
-
-[node name="Col" type="VBoxContainer" parent="Layout/Body/Row/Preview"]
-layout_mode = 2
-theme_override_constants/separation = 17
-
-[node name="ImageFrame" type="Control" parent="Layout/Body/Row/Preview/Col"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 432)
-clip_contents = true
-
-[node name="BotImage" type="TextureRect" parent="Layout/Body/Row/Preview/Col/ImageFrame"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("5_botchevr")
-expand_mode = 1
-stretch_mode = 6
-unique_name_in_owner = true
-mouse_filter = 2
-
-[node name="PreviewChip" type="PanelContainer" parent="Layout/Body/Row/Preview/Col/ImageFrame"]
-layout_mode = 1
-anchors_preset = 0
-offset_left = 14.0
-offset_top = 14.0
-offset_right = 14.0
-offset_bottom = 14.0
-theme_type_variation = &"PanelDark"
-
-[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/Preview/Col/ImageFrame/PreviewChip"]
-layout_mode = 2
-theme_override_constants/separation = 7
-
-[node name="Label" type="Label" parent="Layout/Body/Row/Preview/Col/ImageFrame/PreviewChip/Row"]
-layout_mode = 2
-text = "Previewing:"
-theme_type_variation = &"Strong"
-theme_override_font_sizes/font_size = 17
-
-[node name="PreviewName" type="Label" parent="Layout/Body/Row/Preview/Col/ImageFrame/PreviewChip/Row"]
-layout_mode = 2
-text = "Spin Blade"
-theme_type_variation = &"Strong"
-theme_override_font_sizes/font_size = 17
-theme_override_colors/font_color = Color(0.9608, 0.7216, 0.1804, 1)
-unique_name_in_owner = true
-
-[node name="Rotate" type="Button" parent="Layout/Body/Row/Preview/Col/ImageFrame"]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -67.0
-offset_top = -67.0
-offset_right = -14.0
-offset_bottom = -14.0
-grow_horizontal = 0
-grow_vertical = 0
-theme_type_variation = &"IconButton"
-icon = ExtResource("6_rotatesv")
-tooltip_text = "Reset build preview view"
-
-[node name="Stats" type="GridContainer" parent="Layout/Body/Row/Preview/Col"]
-layout_mode = 2
-unique_name_in_owner = true
-columns = 2
-theme_override_constants/h_separation = 34
-theme_override_constants/v_separation = 17
-
-[node name="Stat1" parent="Layout/Body/Row/Preview/Col/Stats" instance=ExtResource("7_statbart")]
-layout_mode = 2
-
-[node name="Stat2" parent="Layout/Body/Row/Preview/Col/Stats" instance=ExtResource("7_statbart")]
-layout_mode = 2
-
-[node name="Stat3" parent="Layout/Body/Row/Preview/Col/Stats" instance=ExtResource("7_statbart")]
-layout_mode = 2
-
-[node name="Stat4" parent="Layout/Body/Row/Preview/Col/Stats" instance=ExtResource("7_statbart")]
-layout_mode = 2
-
-[node name="CosmeticNote" type="PanelContainer" parent="Layout/Body/Row/Preview/Col"]
-layout_mode = 2
-theme_type_variation = &"PanelSoft"
-unique_name_in_owner = true
-visible = false
-
-[node name="Row" type="HBoxContainer" parent="Layout/Body/Row/Preview/Col/CosmeticNote"]
-layout_mode = 2
-theme_override_constants/separation = 17
-
-[node name="Info" type="TextureRect" parent="Layout/Body/Row/Preview/Col/CosmeticNote/Row"]
-layout_mode = 2
-texture = ExtResource("8_infosvg")
-expand_mode = 1
-stretch_mode = 5
-custom_minimum_size = Vector2(24, 24)
-size_flags_vertical = 4
-self_modulate = Color(0.6039, 0.651, 0.7098, 1)
-mouse_filter = 2
-
-[node name="Text" type="Label" parent="Layout/Body/Row/Preview/Col/CosmeticNote/Row"]
-layout_mode = 2
-text = "Cosmetic only — no effect on stats."
-theme_type_variation = &"Body"
-theme_override_font_sizes/font_size = 18
 
 [node name="Options" type="PanelContainer" parent="Layout/Body/Row"]
 layout_mode = 2
 theme_type_variation = &"PanelBox"
-custom_minimum_size = Vector2(564, 0)
+custom_minimum_size = Vector2(520, 0)
 
 [node name="Col" type="VBoxContainer" parent="Layout/Body/Row/Options"]
 layout_mode = 2
@@ -367,8 +257,8 @@ unique_name_in_owner = true
 
 [node name="Footer" type="PanelContainer" parent="Layout"]
 layout_mode = 2
-theme_type_variation = &"FooterBar"
-custom_minimum_size = Vector2(0, 120)
+theme_override_styles/panel = SubResource("sb_footer")
+custom_minimum_size = Vector2(0, 124)
 
 [node name="Row" type="HBoxContainer" parent="Layout/Footer"]
 layout_mode = 2

@@ -17,8 +17,8 @@ func run() -> void:
 		for _frame in 5: await process_frame
 		if name == "garage":
 			check(screen.build_preview.model != null, "Garage shows live selected build")
-			check(screen.get_node("%BotName").text == profile.bots[profile.active_bot].name,"Garage displays the selected build")
-			check(screen.get_node("%BotHp").text == "260 core HP","Garage core HP")
+			check(screen.readout.get_node("%BotName").text == profile.bots[profile.active_bot].name,"Garage displays the selected build")
+			check(screen.readout.get_node("%BotHp").text == "260 core HP","Garage core HP")
 		if name == "customize":
 			check(screen.get_node_or_null("%ShopLink") == null, "Customize has no catalogue link")
 			var yaw: float = screen.build_preview.yaw

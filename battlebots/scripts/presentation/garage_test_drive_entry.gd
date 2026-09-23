@@ -21,6 +21,18 @@ static func install(screen: Control, callback: Callable) -> GarageTestDriveEntry
 	entry.disabled = true
 	entry._callback = callback
 	entry.pressed.connect(entry._activate)
+	# Screens may reserve a slot for the entry beside the loadout it drives.
+	var slot: Container = screen.get_node_or_null("%TestDriveSlot") as Container
+	if slot != null:
+		entry.theme_type_variation = &"GhostButton"
+		entry.icon = preload("res://ui/menus/icons/play.svg")
+		entry.add_theme_constant_override("icon_max_width", 18)
+		entry.add_theme_constant_override("h_separation", 12)
+		entry.add_theme_font_size_override("font_size", 26)
+		entry.custom_minimum_size.y = 68
+		entry.size_flags_vertical = Control.SIZE_FILL
+		slot.add_child(entry)
+		return entry
 	var footer: HBoxContainer = screen.get_node("Layout/Footer/Row")
 	footer.add_theme_constant_override("separation", 12)
 	footer.add_child(entry)

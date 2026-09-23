@@ -50,7 +50,7 @@ func run() -> void:
 			for factor: float in [1.0,1.5,1.0]:
 				screen.apply_text_scale(factor)
 				await settle()
-				check(entry.get_theme_font_size("font_size") == roundi((30 if screen_name == "customize" else 20) * factor), "Full noncompounding test-drive text scale")
+				check(entry.get_theme_font_size("font_size") == roundi((30 if screen_name == "customize" else 26) * factor), "Full noncompounding test-drive text scale")
 				if screen_name == "customize":
 					var save: Button = screen.get_node("%Save")
 					check(entry.custom_minimum_size.y == save.custom_minimum_size.y and entry.get_index() + 1 == save.get_index(), "Test Drive matches Save height and Save is rightmost")
