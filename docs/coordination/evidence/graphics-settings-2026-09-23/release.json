@@ -1,0 +1,97 @@
+{
+  "source_commit": "387b0fc8211b1c23404f4c0e75b9029a82358f38",
+  "image": "registry.fly.io/battlebots-fumbleforce@sha256:99e3d41900bc524d9ecf47978aba5408b7d231e5c787db218e919a52ec54aad8",
+  "rollback_image": "registry.fly.io/battlebots-fumbleforce@sha256:b42f60aa1f5f9727be7c0b7313751d27287d4e89df322ae1bdf49dfb9d70bc11",
+  "endpoint": "https://battlebots-fumbleforce.fly.dev",
+  "health": {
+    "build": "mvp-ab-15",
+    "protocol": 6,
+    "content_hash": "623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed",
+    "region": "arn",
+    "queue_capacities": [
+      2,
+      4
+    ]
+  },
+  "live_worker_record_matches_local": true,
+  "machine": {
+    "id": "287e605ad7d578",
+    "state": "started",
+    "region": "arn"
+  },
+  "artifacts": {
+    "hosted-server": {
+      "commit": "387b0fc8211b1c23404f4c0e75b9029a82358f38",
+      "dirty": false,
+      "engine": "4.7.2.stable.official.ed1daf0bf",
+      "prepared_utc": "2026-09-23T12:24:02.348Z",
+      "preset": "Linux Server",
+      "files": [
+        {
+          "name": "battlebots-server.x86_64",
+          "sha256": "d9f79ab89b5ae369aeed11c6052d402e8218cd503bf85b4a235f9c30c46a7c63"
+        },
+        {
+          "name": "battlebots-server.pck",
+          "sha256": "a691b8e2ea2c204985cdc5b2e4baac4b65e0b4275158685b9659ebf67e5ae36d"
+        },
+        {
+          "name": "manifest.json",
+          "sha256": "269864a1dac0dc0dfe4648891a99e1084f8bd4ba1e1539404f334480c5a4c28f"
+        }
+      ]
+    },
+    "linux-client": {
+      "commit": "387b0fc8211b1c23404f4c0e75b9029a82358f38",
+      "dirty": false,
+      "engine": "4.7.2.stable.official.ed1daf0bf",
+      "prepared_utc": "2026-09-23T12:24:05.496Z",
+      "preset": "Linux Client",
+      "files": [
+        {
+          "name": "battlebots.x86_64",
+          "sha256": "d9f79ab89b5ae369aeed11c6052d402e8218cd503bf85b4a235f9c30c46a7c63"
+        },
+        {
+          "name": "battlebots.pck",
+          "sha256": "5a4d5348f80bbef4b86582aeec68a6933fc0fcb866247f872108fb1bb2e18695"
+        },
+        {
+          "name": "manifest.json",
+          "sha256": "269864a1dac0dc0dfe4648891a99e1084f8bd4ba1e1539404f334480c5a4c28f"
+        }
+      ]
+    },
+    "windows-client": {
+      "commit": "387b0fc8211b1c23404f4c0e75b9029a82358f38",
+      "dirty": false,
+      "engine": "4.7.2.stable.official.ed1daf0bf",
+      "prepared_utc": "2026-09-23T12:24:08.669Z",
+      "preset": "Windows Client",
+      "files": [
+        {
+          "name": "battlebots.exe",
+          "sha256": "3d19ee4a764e8bb153bfa7f811f98e0dfb0139c9e0c8bc6b76b93d3ed09185bf"
+        },
+        {
+          "name": "battlebots.pck",
+          "sha256": "5a4d5348f80bbef4b86582aeec68a6933fc0fcb866247f872108fb1bb2e18695"
+        },
+        {
+          "name": "manifest.json",
+          "sha256": "269864a1dac0dc0dfe4648891a99e1084f8bd4ba1e1539404f334480c5a4c28f"
+        }
+      ]
+    }
+  },
+  "archives": {
+    "battlebots-linux-387b0fc.tar.gz": "fa261961f631f63a1a7f88e21c3f2715a4d53f0bc2e6b474a4460d7729c83bdb",
+    "battlebots-windows-387b0fc.zip": "91805ec2da7b45d321aa5fb84388a40dfb55a5b9fb37f77cd1552be115a23ca3"
+  },
+  "acceptance": {
+    "container": "container-acceptance.json",
+    "external": "external-acceptance.json",
+    "result": "PASS",
+    "scope": "Two independent clients per private/Quick Play duel: driving, transport reconnect, two public-forfeit rounds, matching results and active rematch; not natural combat/human acceptance."
+  }
+}

@@ -7,8 +7,8 @@ The user wants smooth, refined rendering and a substantial settings overhaul.
 The old video panel exposed only mode/resolution/V-Sync despite project MSAA 4×.
 MSAA misses specular/shader shimmer. Add working, persisted rendering controls
 and quality presets; modernize the category hub and A-owned pages. Keep existing
-B camera/input transactions intact through their published panels. B #28 owns
-garage/customize and currently reserves HANDOFF; use this scoped record.
+B camera/input transactions intact through their published panels. Completed
+B Customize work through `4cc5629` is integrated; B #32 VFX remains separate.
 
 Design plan: steel blue ink #101b26, surface #172634, divider #314957, warm white
 #e6e9df, amber #eebd65 and cool cyan #7dc5d4. Existing Barlow Condensed titles and
@@ -113,4 +113,38 @@ The user's subsequent driving dust/exhaust idea is deferred to [#31](https://git
 at their explicit request. No lunar emitter/fog shader or B exhaust source edits
 are included. Existing effects are consumed only through general quality controls.
 
-Matching release evidence will follow artifact preparation and acceptance.
+## Matching hosted release
+
+Tested runtime source: `387b0fc8211b1c23404f4c0e75b9029a82358f38`, based on
+main `4cc5629`. Linux server, Linux client and Windows client were prepared from
+that same clean commit with Godot 4.7.2; every artifact hash was independently
+verified. Linux exported client launched cleanly on Vulkan. Windows is exported,
+not natively verified here. Subsequent evidence-only commits do not alter runtime.
+
+Deployed the exact tested container to the existing single Stockholm Machine
+`287e605ad7d578` during the authorized playtest break:
+`registry.fly.io/battlebots-fumbleforce@sha256:99e3d41900bc524d9ecf47978aba5408b7d231e5c787db218e919a52ec54aad8`.
+Retained rollback image:
+`registry.fly.io/battlebots-fumbleforce@sha256:b42f60aa1f5f9727be7c0b7313751d27287d4e89df322ae1bdf49dfb9d70bc11`.
+Live worker build record equals the exported server record; `/healthz` matches
+all clients: build `mvp-ab-15`, protocol 6, content hash
+`623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed`.
+Single Machine is started and serves the expected image.
+
+Both the production container and external Fly service passed private and Quick
+Play duels with two independent clients, driving, actual transport reconnect,
+two rounds resolved through public forfeits, matching results and active rematch.
+This verifies deployment/lifecycle; human natural-combat acceptance remains #6.
+
+Evidence: [artifact/image/rollback records](evidence/graphics-settings-2026-09-23/release.json),
+[container acceptance](evidence/graphics-settings-2026-09-23/container-acceptance.json),
+[external acceptance](evidence/graphics-settings-2026-09-23/external-acceptance.json),
+[focused validation](evidence/graphics-settings-2026-09-23/validation.json).
+Local release archives: `battlebots/exports/battlebots-linux-387b0fc.tar.gz` and
+`battlebots/exports/battlebots-windows-387b0fc.zip`.
+
+B's in-progress #32 combat VFX is not part of this release. Its new GPU emitters
+can use GraphicsRuntime's deferred discovery and Low/Medium/High/Ultra allocation
+multipliers 0.35/0.65/1.0/1.25 (minimum one); dynamic `amount_ratio`, emission state,
+attachments and process materials remain B-owned. This interface is also posted
+on #32. Driving dust/exhaust #31 remains backlog.

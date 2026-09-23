@@ -1,5 +1,31 @@
 # Current A/B handoff
 
+## Graphics quality and settings overhaul — A, 23 September 2026
+
+Issue [#29](https://github.com/fumbleforce/battlebots/issues/29) adds a cohesive
+settings hub and compact, scrollable video/audio/accessibility pages with fixed
+actions. High defaults enable TAA + 2× MSAA, improved filtering/shading and
+reflections. Presets and detailed AA/upscaling, shadows, lighting, fog, particles,
+color, monitor and frame-pacing controls apply and persist; FSR explicitly
+supports NVIDIA as well as AMD. B camera/input transactions retain their behavior.
+
+Source `387b0fc` includes B's completed Customize work through `4cc5629`.
+Migration, rollback/save errors, actual native renderer state, resource cleanup,
+text/layout/focus, baseline and integrated menu/garage checks pass. Physical X11
+fullscreen, resolution, V-Sync and monitor-switch rollback pass on this machine.
+See [screenshots, capabilities and scoped measurements](coordination/A_GRAPHICS_SETTINGS.md).
+Matching Linux/Windows clients and Linux server were exported from that clean
+source; Linux client launch and all artifact hashes passed. The exact tested
+container is deployed on the existing Fly Machine; live worker record and health
+match. Production-container and external private/Quick Play checks passed driving,
+transport reconnect, results and active rematch (public forfeits, not natural
+combat acceptance). [Release/image/rollback evidence](coordination/evidence/graphics-settings-2026-09-23/release.json)
+and local archives `battlebots/exports/battlebots-{linux,windows}-387b0fc.*` identify
+this release. Windows native/human checks remain outstanding.
+Driving dust/exhaust refinement is deferred by the user to #31. B's #32 combat
+VFX remains separate in-progress work; the particle-quality interface is handed
+off on that issue. Human/other-platform display acceptance remains #8.
+
 ## Customize scrolling choice list — B, 23 September 2026
 
 At the user's explicit request, the Customize right panel now scrolls instead

@@ -1,0 +1,78 @@
+{
+  "checks": [
+    {
+      "log": "/tmp/graphics-preferences-final2.log",
+      "pass_marker": "GRAPHICS PREFERENCES PASS",
+      "sha256": "3317ec741968b9a7fa8476eecc0142fab7a5c2be35d24c065006b273b5263813"
+    },
+    {
+      "log": "/tmp/graphics-runtime-final2.log",
+      "pass_marker": "GRAPHICS RUNTIME PASS",
+      "sha256": "3f773906284891dd729b75638e5438bac2b48e2321a02240068d209ae002dab7"
+    },
+    {
+      "log": "/tmp/graphics-headless-runtime.log",
+      "pass_marker": "GRAPHICS RUNTIME PASS",
+      "sha256": "2f9a00d7518bc3d7a4e3485cf435e54d467f473309f0411475bc78f905a6e8a4"
+    },
+    {
+      "log": "/tmp/graphics-nvidia-copy-layout.log",
+      "pass_marker": "VIDEO SETTINGS LAYOUT PASS",
+      "sha256": "9b7ee2f7e1eaac4cdadab6496fc67acc434fed2824c9dce9606e7e716409817c"
+    },
+    {
+      "log": "/tmp/graphics-final-integrated-hub.log",
+      "pass_marker": "SETTINGS HUB PASS",
+      "sha256": "7ac31bab5a5c4236e1b01361950bb737f2971fc2ecbbfb56ace171b5146f7650"
+    },
+    {
+      "log": "/tmp/graphics-menu-text-final2.log",
+      "pass_marker": "MENU TEXT SETTINGS PASS",
+      "sha256": "eda9e381b99a3ab00b7dc0712b174b8b84f6ea03819452743e1bab4a0a29d000"
+    },
+    {
+      "log": "/tmp/graphics-audio-final.log",
+      "pass_marker": "AUDIO SETTINGS PASS",
+      "sha256": "84490332bc170e9fb66435675a48d2a82384d67b51b47c7e9329af65b0f0addf"
+    },
+    {
+      "log": "/tmp/graphics-hud-final.log",
+      "pass_marker": "HUD SETTINGS PASS",
+      "sha256": "59feb6413d3c85df826741c8b26959f803fd8cfae18918649288393dae650881"
+    },
+    {
+      "log": "/tmp/graphics-video-final.log",
+      "pass_marker": "VIDEO SETTINGS PASS",
+      "sha256": "a32c39e79fc663ef0595d173400fe81844c7807914ea51abbc158b4f570c8314"
+    },
+    {
+      "log": "/tmp/graphics-physical-display-final.log",
+      "pass_marker": "VIDEO DISPLAY NATIVE PASS",
+      "sha256": "7ef6dfb7152857e9e9075b87859f70c0d2cd47c2a226d56c570110da143357c2"
+    },
+    {
+      "log": "/tmp/graphics-final-prepare.log",
+      "pass_marker": "MATCHING CLIENT/SERVER RELEASE PREPARED: 387b0fc",
+      "sha256": "2cf4c02970e667e803001f26cd55dcf2c5bcaeb6653e7b39c851242daba6b88a"
+    },
+    {
+      "log": "/tmp/graphics-settings-final-capture.log",
+      "pass_marker": "SETTINGS CAPTURE PASS",
+      "sha256": "cc2265cb082220221581a572eacb86f4cc1029e81f2aa7b99212c882fca43e21"
+    },
+    {
+      "log": "/tmp/graphics-capture.log",
+      "pass_marker": "GRAPHICS CAPTURE PASS",
+      "sha256": "688037c797d5e457380c2d8f841e5c31a0f19dacb7257c3c63bee2ae4ddbfe18"
+    },
+    {
+      "log": "/tmp/graphics-final-integrated-garage.log",
+      "pass_marker": "GARAGE COMPATIBLE PARTS PASS",
+      "sha256": "219549034601924ca85068699029f32e4d7b709a8c51a435009548afd88ad588"
+    }
+  ],
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "native_display": "X11, 3 screens; actual monitor change/cancel checked",
+  "known_warning": "Seven Texture RIDs at arena fixture shutdown, existing issue #18",
+  "limits": "Bounded render fixture; Windows exported but not run; human and other-platform acceptance remains #8."
+}
