@@ -413,6 +413,34 @@ Source navigation:
 - [Final clearance evidence](../coordination/evidence/b-atlas-v5-clearance-2026-09-22.json)
   and [final native evidence](../coordination/evidence/b-atlas-native-v5-final-2026-09-23.json).
 
+## Adding running gear to an approved chassis
+
+The Atlas drive configurations (#47, [record](../coordination/ATLAS_DRIVES.md))
+added wheels and legs without touching the approved hull. What worked:
+
+- **Reuse approved geometry by connectivity, not by eye.** The sponsons live in
+  the drive assemblies, so the generator imports the approved GLB, groups each
+  drive surface into connected components (vertices welded by position, since
+  glTF splits them at seams) and deletes only components identified by their
+  published positions. The trimmed parts keep their approved maps; new parts get
+  their own map set.
+- **Fit the new gear to the old envelope first.** Measure what the old moving
+  parts occupied (shoe X span, skirt inner face, hood underside, axle bosses) and
+  keep the ground contact depth. Then the collision box and spawn contract do not
+  change, and existing axle bosses become honest mounting points.
+- **Audit the whole motion envelope a joint can reach, not a pretty gait.** Leg
+  clearance was clean over a normal stride but failed at WalkerDrive's reach and
+  step limits. Diagnostic overlap coordinates (the other part's triangle centroid)
+  found culprits quickly; yaw stops and a rise limit are published data shared by
+  the generator and the runtime solver.
+- **Check actuator stroke before modelling rams.** A fixed-eye cylinder needs its
+  shortest eye distance to hold both barrel and rod and its longest to keep gland
+  overlap. Over the full envelope no hip-ram layout satisfied that, so the hip
+  became a rotary drive and only the knee kept a ram. Compute eye ranges early.
+- **Keep one construction for authoring and runtime.** The GLB stores the
+  generator's neutral leg poses; the runtime test reproduces every transform
+  from the rig data to 0.5 mm, so the two solvers cannot drift silently.
+
 ## Final measured limits and what not to claim
 
 Atlas V5 has 159,877 base triangles, 175 visible base mesh instances and an

@@ -5,6 +5,10 @@ extends Node3D
 const MODEL := "res://assets/models/atlas_runtime/atlas_mx.glb"
 const LIFTER := "res://assets/models/atlas_runtime/atlas_lifter.glb"
 const TURRET := "res://assets/models/atlas_runtime/atlas_turret.glb"
+## Alternative running gear on the approved sponsons (tools/build-atlas-drives.py).
+const DRIVES := "res://assets/models/atlas_runtime/atlas_drives.glb"
+## atlas_drives.glb group per running gear; the others are freed on assembly.
+const GEAR_GROUPS := {"wheels":"WheelsLarge", "legs":"Legs"}
 ## Deck modules the fitted turret occupies or sweeps through (clearance audit).
 const TURRET_HIDDEN := ["ArmorTop", "ExhaustSmall", "ExhaustMedium", "ExhaustLarge"]
 const PAINT := preload("res://scripts/presentation/atlas_paint.gdshader")
@@ -19,6 +23,10 @@ var _travel := [0.0, 0.0]
 var _previous_pose := Transform3D.IDENTITY
 var _have_pose := false
 var _size := Vector3.ZERO
+## "tracks", "wheels" or "legs" (AtlasGeometry.DRIVE_GEAR).
+var drive_gear := "tracks"
+var drives: Node3D
+var legs: AtlasLegs
 var turret: Node3D
 var turret_kind := ""
 var turret_model := ""
@@ -51,6 +59,9 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 			_links.append(_track_part(node, 0 if label.begins_with("Tread_L_") else 1))
 		elif not node is MeshInstance3D and (label.begins_with("TrackConnector_L_") or label.begins_with("TrackConnector_R_")):
 			_connectors.append(_track_part(node, 0 if label.begins_with("TrackConnector_L_") else 1))
+	drive_gear = AtlasGeometry.drive_gear(draft)
+	if drive_gear in GEAR_GROUPS and ResourceLoader.exists(DRIVES):
+		_assemble_drives(size)
 	_apply_modules(draft.cosmetics.get("sawblade", AtlasGeometry.paint_defaults()))
 	primary = _weapon(draft.parts.weapon)
 	if draft.parts.weapon == "lifter" and ResourceLoader.exists(LIFTER):
@@ -70,6 +81,36 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	if not turret_kind.is_empty() and ResourceLoader.exists(TURRET):
 		_assemble_turret()
 	_apply_paint(draft.cosmetics.get("sawblade", AtlasGeometry.paint_defaults()))
+
+## The approved tracks, sprockets and rollers give way to the chosen gear. Its
+## GLB carries the same sponsons (hood, corner sockets, skirts, axle bosses)
+## with only the track-specific roller mounts removed.
+func _assemble_drives(size: Vector3) -> void:
+	for label: String in ["DriveLeft", "DriveRight"]:
+		if nodes.has(label): nodes[label].visible = false
+	_wheels.clear()
+	_links.clear()
+	_connectors.clear()
+	drives = load(DRIVES).instantiate()
+	drives.name = "AtlasDriveGear"
+	add_child(drives)
+	for gear: String in GEAR_GROUPS:
+		if gear != drive_gear: drives.find_child(GEAR_GROUPS[gear], true, false).free()
+	var found := {}
+	for node: Node in drives.find_children("*", "Node3D", true, false):
+		found[str(node.name)] = node
+	if drive_gear == "wheels":
+		var radius := AtlasDriveRig.settings().wheel_radius
+		for label: String in found:
+			var node: Node3D = found[label]
+			if not node is MeshInstance3D and (label.begins_with("Wheel_L_") or label.begins_with("Wheel_R_")):
+				_wheels.append({"node":node, "basis":node.basis, "side":0 if label.begins_with("Wheel_L_") else 1, "radius":radius})
+	else:
+		legs = AtlasLegs.new()
+		legs.name = "AtlasLegs"
+		add_child(legs)
+		legs.scale = Vector3.ONE / scale
+		legs.attach(size, found)
 
 func _assemble_turret() -> void:
 	turret = load(TURRET).instantiate()
@@ -271,6 +312,9 @@ func show_state(view: BotView, delta: float) -> void:
 		auxiliary.gun_effects.show_state(view, delta, false)
 	if turret != null:
 		_show_turret(view, delta)
+	if legs != null:
+		legs.observe_state(view)
+		legs.set_process(not view.eliminated)
 	if _have_pose and delta > 0.0:
 		var displacement := view.pose.origin - _previous_pose.origin
 		if displacement.length() < 2.0 and not view.eliminated:
@@ -288,6 +332,10 @@ func component_meshes() -> Dictionary:
 	if _turret_yaw != null: _collect(_turret_yaw, groups.weapon)
 	if nodes.has("DriveLeft"): _collect(nodes.DriveLeft, groups.drive_left)
 	if nodes.has("DriveRight"): _collect(nodes.DriveRight, groups.drive_right)
+	if drives != null:
+		for mesh: MeshInstance3D in drives.find_children("*", "MeshInstance3D", true, false):
+			var label := str(mesh.name)
+			(groups.drive_left if "Left" in label or "_L_" in label else groups.drive_right).append(mesh)
 	return groups
 
 func _collect(root: Node3D, result: Array) -> void:
@@ -302,3 +350,4 @@ func reset_observation() -> void:
 	if auxiliary != null: auxiliary.gun_effects.clear_effects()
 	if turret_effects != null: turret_effects.clear_effects()
 	_turret_shown = false
+	if legs != null: legs.reset_feet()

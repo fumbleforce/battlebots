@@ -21,10 +21,12 @@ func _initialize() -> void:
 			variant.parts.utility = utility
 			check(registry.validate(variant).valid == not (weapon == "minigun" and utility == "minigun_pod"),
 				"Every mounted primary/utility fits; duplicate guns do not: " + weapon + "/" + utility)
-	for drive: String in ["agile", "standard_wheels", "walker"]:
-		var invalid := draft.duplicate(true)
-		invalid.parts.drive = drive
-		check(not registry.validate(invalid).valid, "Unmodelled drive swaps are rejected: " + drive)
+	for drive: String in registry.parts:
+		if registry.parts[drive].category != "drive": continue
+		var swapped := draft.duplicate(true)
+		swapped.parts.drive = drive
+		check(registry.validate(swapped).valid == AtlasGeometry.DRIVE_GEAR.has(drive),
+			"Only drives with modelled Atlas running gear are accepted: " + drive)
 	var unknown := draft.duplicate(true)
 	unknown.parts.utility = "external_model.glb"
 	check(not registry.validate(unknown).valid, "Atlas never accepts arbitrary external modules")

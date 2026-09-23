@@ -138,8 +138,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Installed power exceeds 100")
 	if selected.get("chassis") == "scorpion_hex" and selected.get("drive") != "walker":
 		result.reasons.append("Scorpion hex body requires the articulated walking drive")
-	if selected.get("chassis") == "atlas_mx" and selected.get("drive") != "traction":
-		result.reasons.append("Atlas MX requires its tracked traction drive")
+	if selected.get("chassis") == "atlas_mx" and not AtlasGeometry.DRIVE_GEAR.has(selected.get("drive")):
+		result.reasons.append("Atlas MX drives on tracks, large wheels or hydraulic legs")
 	if selected.get("utility") in AtlasGeometry.TURRET_PARTS:
 		if selected.get("chassis") != "atlas_mx":
 			result.reasons.append("Turret modules require the Atlas MX roof traverse race")

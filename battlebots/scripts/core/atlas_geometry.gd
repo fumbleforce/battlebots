@@ -51,6 +51,11 @@ const TURRET_BARRELS := {
 	"plasma_quad":[[-0.64525, 0.0899], [-0.64525, -0.0899], [0.64525, 0.0899], [0.64525, -0.0899]]}
 const TURRET_MUZZLE := {"cannon":1.37025, "plasma":0.957, "flamer":1.102, "tesla":1.0295, "railgun":1.6385}
 
+## Drive part -> Atlas running gear. Tracks are the approved hull's own; the
+## others are authored in atlas_drives.glb (tools/build-atlas-drives.py) on the
+## same sponsons. Physics follow the drive part (walker = WalkerDrive).
+const DRIVE_GEAR := {"traction":"tracks", "standard_wheels":"wheels", "walker":"legs"}
+
 static func enabled(draft: Dictionary) -> bool:
 	return draft.get("parts", {}).get("chassis") == "atlas_mx"
 
@@ -158,3 +163,7 @@ static func turret_slew(current: Vector2, target: Vector2, delta: float, kind: S
 	var goal := clampf(maxf(target.y, candidate_floor), turret_pitch_min(kind, yaw), TURRET_PITCH_MAX)
 	var pitch := move_toward(current.y, goal, TurretTuning.settings().pitch_rate * maxf(0.0, delta))
 	return Vector2(yaw, pitch)
+
+## Running gear for an Atlas draft ("tracks", "wheels", "legs"), or empty.
+static func drive_gear(draft: Dictionary) -> String:
+	return DRIVE_GEAR.get(draft.get("parts", {}).get("drive", ""), "") if enabled(draft) else ""

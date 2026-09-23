@@ -137,6 +137,8 @@ func _ready() -> void:
 		atlas_visual = AtlasVisual.new()
 		presentation.add_child(atlas_visual)
 		atlas_visual.assemble(loadout, stats.size)
+		if atlas_visual.legs != null:
+			atlas_visual.legs.exclusions = [body.get_rid()]
 	elif DisplayServer.get_name() != "headless" and ScorpionVisual.enabled(loadout):
 		presentation.get_node("Visual").hide()
 		presentation.get_node("ForwardStripe").hide()

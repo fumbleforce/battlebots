@@ -80,7 +80,7 @@ func run() -> void:
 	equip_part("chassis", "balanced")
 	check(profile.loadouts[0].parts == before.parts, "Switching back re-equips the original parts")
 	equip_part("chassis", "atlas_mx")
-	check(profile.loadouts[0].parts.drive == "traction", "Atlas swaps to its tracked drive")
+	check(profile.loadouts[0].parts.drive == "standard_wheels", "Atlas keeps a drive it can mount (large wheels)")
 	equip_part("weapon", "saw")
 	equip_part("chassis", "balanced")
 	check(profile.loadouts[0].parts.drive == "standard_wheels" and profile.loadouts[0].parts.weapon == "saw", "Manual edits on another body survive switching back")

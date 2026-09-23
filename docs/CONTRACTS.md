@@ -1,5 +1,17 @@
 # Shared contracts — local records and current MVP session API
 
+## Atlas drive configurations — build mvp-ab-27 (#47)
+
+`ContentRegistry.validate` accepts Atlas MX with any drive in
+`AtlasGeometry.DRIVE_GEAR`: `traction` (tracks), `standard_wheels` (large
+wheels) and `walker` (hydraulic legs); `agile` stays invalid. Physics follow the
+drive part as for other bodies (`walker` uses WalkerDrive and its ride height);
+Atlas collision, mounts, weapons and turret frames are unchanged. No catalogue,
+schema, command or snapshot fields change, but peers must agree on validation,
+so clients and workers need the matching gameplay build. Presentation reads the
+generated `data/atlas_drive_rig.json` through `AtlasDriveRig`; an Atlas body
+pickup still brings its tracks. [Details and validation](coordination/ATLAS_DRIVES.md).
+
 ## Reverse steering — build mvp-ab-23 (#43)
 
 `DriveModel.forces` inverts yaw steering when travelling backward along the

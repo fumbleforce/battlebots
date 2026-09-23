@@ -5,6 +5,18 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Atlas MX drive configurations (#47) — 23 September 2026
+
+Atlas can now run on its approved tracks, four large lugged off-road wheels
+(`standard_wheels`) or four hydraulic legs (`walker`). New generator
+`tools/build-atlas-drives.py` reuses the approved sponsons and bakes a separate
+`Atlas_Drive*` PBR set; `AtlasLegs` poses coxa, femur (planetary hip drive),
+tibia, foot and knee ram on the shared planted-foot gait. Sampled clearance,
+native assembly/showcase and existing Atlas/garage/pickup/physics checks pass.
+Gameplay build `mvp-ab-27` needs the matching automated hosted release. User
+visual approval and a 6×6 `agile` option remain open.
+[Contract, evidence and limits](coordination/ATLAS_DRIVES.md).
+
 ## Scorpion texture shutdown investigation (#18) — 23 September 2026
 
 The seven Texture RID warnings come from the pinned Godot reflection-atlas

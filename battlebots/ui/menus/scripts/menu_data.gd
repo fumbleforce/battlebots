@@ -77,14 +77,16 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Authored chassis body. Changing the body preserves all other selected parts and appearance options."
 			elif item.id == "atlas_mx":
 				item.name = "Atlas MX modular chassis"
-				item.desc = "Wide tracked platform with an open equipment deck, front tool coupler, roof rails, auxiliary gun socket and a turret race for a cannon or plasma turret. Requires Tracks · Traction. All primary weapons and utilities fit within normal build budgets."
+				item.desc = "Wide tracked platform with an open equipment deck, front tool coupler, roof rails, auxiliary gun socket and a turret race for a cannon or plasma turret. Runs on Tracks · Traction, large off-road wheels (Four wheels · Standard) or four hydraulic legs (Articulated walking legs). All primary weapons and utilities fit within normal build budgets."
 			elif item.id == "traction": item.name = "Tracks · Traction"
-			elif item.id == "standard_wheels": item.name = "Four wheels · Standard"
+			elif item.id == "standard_wheels":
+				item.name = "Four wheels · Standard"
+				item.desc = "Standard wheels · 22 kg · 25 power · 10 m/s. On Atlas MX: four large lugged off-road tyres on hub motors under the sponson hoods."
 			elif item.id == "agile": item.name = "Four wheels · Agile"
 			elif item.id == "lifter": item.name = "Ramp · Lifter"
 			elif item.id == "walker":
 				item.name = "Articulated walking legs"
-				item.desc = "Six legs on Scorpion, four on Sawblade · 32 kg · 35 power · 4 m/s. Planted feet adapt to terrain and smooth alternating steps."
+				item.desc = "Six legs on Scorpion, four hydraulic legs on Atlas MX, four on Sawblade · 32 kg · 35 power · 4 m/s. Planted feet adapt to terrain and smooth alternating steps."
 			elif item.id == "scorpion_hex":
 				item.name = "Scorpion hex body"
 				item.desc = "Orange diesel-powered six-legged combat machine. Tapered hexagonal armor, interchangeable dorsal weapon and minigun socket. Requires walking drive; preserves your other selected parts."

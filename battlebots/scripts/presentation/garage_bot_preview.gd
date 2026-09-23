@@ -1,6 +1,8 @@
 class_name GarageBotPreview
 extends Control
 ## Cosmetic workshop only. Never creates a bot, collision body or combat state.
+## Garage caption for each Atlas running gear (AtlasGeometry.DRIVE_GEAR).
+const ATLAS_GEAR_NAMES := {"tracks":"tracks", "wheels":"large off-road wheels", "legs":"hydraulic legs"}
 const PAINTS := {"cyan":Color(0.1, 0.65, 0.85), "orange":Color(0.95, 0.4, 0.1),
 	"white":Color(0.86, 0.89, 0.93), "red":Color(0.75, 0.1, 0.08)}
 var viewport: SubViewport
@@ -107,7 +109,7 @@ func _layout_status() -> void:
 func _valid_status() -> void:
 	_update_camera()
 	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
-	if atlas_visual != null: assembly = "ATLAS MX · modular tracked platform"
+	if atlas_visual != null: assembly = "ATLAS MX · modular platform on " + ATLAS_GEAR_NAMES.get(atlas_visual.drive_gear, "tracks")
 	if scorpion_visual != null: assembly = "SCORPION HX-6 · equipped modules"
 	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
 	status.visible = not _compact
@@ -255,9 +257,13 @@ func show_loadout(draft: Dictionary) -> void:
 	var size: Vector3 = validation.stats.size / BotScale.FACTOR
 	if AtlasGeometry.enabled(draft):
 		model.position.y = AtlasGeometry.GROUND_DEPTH - 0.12
+		if draft.parts.drive == "walker": model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
 		atlas_visual = AtlasVisual.new()
 		model.add_child(atlas_visual)
 		atlas_visual.assemble(draft, size)
+		if atlas_visual.legs != null:
+			atlas_visual.legs.terrain = false
+			atlas_visual.legs.reset_feet()
 		_valid_status()
 		return
 	if ScorpionVisual.enabled(draft):
