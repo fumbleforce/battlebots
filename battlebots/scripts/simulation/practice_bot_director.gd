@@ -4,12 +4,18 @@ extends RefCounted
 ## as a human. Appearance metadata never enters a loadout or a network baseline.
 const VARIANTS := ["wedge", "bruiser", "sentry"]
 const WRECK_SECONDS := 6.0
+## The player's wreck returns to its spawn after this delay instead of a menu.
+const PLAYER_RESPAWN_SECONDS := 3.0
 const RESET_GRACE := 1.0
 var world: AuthorityWorld
 var player_id := 0
 var target_id := 0
 var records: Array[Dictionary] = []
 var elapsed := 0.0
+var player_wreck_age := 0.0
+## Counts completed player respawns so presentation can react to each one.
+var player_respawns := 0
+var _player_home := Transform3D.IDENTITY
 
 func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
@@ -41,6 +47,7 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 		_place(bot, Transform3D(Basis(Vector3.UP, PI), home))
 		records.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":index,
 			"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
+	_player_home = player.spawn_pose
 	return first_id + VARIANTS.size()
 
 func _place(bot: MvpBot, authored: Transform3D) -> void:
@@ -51,6 +58,9 @@ func _place(bot: MvpBot, authored: Transform3D) -> void:
 
 func restart() -> void:
 	elapsed = 0.0
+	player_wreck_age = 0.0
+	# A fallback respawn may have moved the player's spawn; restore the original.
+	_place(world.bots[player_id], _player_home)
 	for record: Dictionary in records:
 		record.wreck_age = 0.0
 		record.previous_primary = false
@@ -63,6 +73,12 @@ func step(delta: float) -> void:
 	if not is_instance_valid(world) or not world.bots.has(player_id): return
 	elapsed += delta
 	var player: MvpBot = world.bots[player_id]
+	if player.combat.eliminated:
+		player_wreck_age += delta
+		if player_wreck_age >= PLAYER_RESPAWN_SECONDS:
+			_respawn_player(player)
+	else:
+		player_wreck_age = 0.0
 	for record: Dictionary in records:
 		var bot: MvpBot = world.bots[record.id]
 		if bot.combat.eliminated:
@@ -113,16 +129,44 @@ func _pilot(bot: MvpBot, player: MvpBot, record: Dictionary, intent: BotCommand)
 		bot.body.linear_velocity.dot(forward), intent.throttle)
 	intent.brake = absf(intent.throttle) < 0.06 and absf(angle) < 0.12
 
-func _try_respawn(bot: MvpBot, record: Dictionary) -> void:
-	# Reuse the stable entity; do not reset the world, player, weapon clock or IDs.
-	# If its home is occupied, defer regeneration until it is safe to materialize.
-	var pose: Transform3D = record.home
+## Seconds until the knocked-out player returns; NAN while the player is alive.
+func player_respawn_remaining() -> float:
+	if not is_instance_valid(world) or not world.bots.has(player_id) or not world.bots[player_id].combat.eliminated:
+		return NAN
+	return maxf(0.0, PLAYER_RESPAWN_SECONDS - player_wreck_age)
+
+func _pose_clear(bot: MvpBot, pose: Transform3D) -> bool:
 	var radius: float = Vector2(bot.combat.stats.size.x, bot.combat.stats.size.z).length() * 0.5
 	for other: MvpBot in world.bots.values():
 		if other == bot or other.combat.eliminated: continue
 		var other_radius: float = Vector2(other.combat.stats.size.x, other.combat.stats.size.z).length() * 0.5
 		var gap := Vector2(other.body.global_position.x - pose.origin.x, other.body.global_position.z - pose.origin.z)
-		if gap.length() < radius + other_radius + 1.0: return
+		if gap.length() < radius + other_radius + 1.0: return false
+	return true
+
+func _respawn_player(player: MvpBot) -> void:
+	# Prefer the player's own spawn. An NPC parked there must not hold the player
+	# out indefinitely, so also try that spot quarter-turned about the symmetric
+	# arena's centre; if all are occupied, retry next tick.
+	for turn: int in 4:
+		var rotation := Basis(Vector3.UP, turn * PI * 0.5)
+		var pose := world.clear_spawn_pose(player, Transform3D(rotation * _player_home.basis, rotation * _player_home.origin))
+		if not _pose_clear(player, pose): continue
+		player.spawn_pose = pose
+		player.reset_round()
+		world.credited.erase(player.entity_id)
+		player_wreck_age = 0.0
+		player_respawns += 1
+		# NPCs pause briefly so the player is not hit the instant they return.
+		for record: Dictionary in records:
+			record.grace = RESET_GRACE
+		return
+
+func _try_respawn(bot: MvpBot, record: Dictionary) -> void:
+	# Reuse the stable entity; do not reset the world, player, weapon clock or IDs.
+	# If its home is occupied, defer regeneration until it is safe to materialize.
+	var pose: Transform3D = record.home
+	if not _pose_clear(bot, pose): return
 	bot.spawn_pose = pose
 	bot.reset_round()
 	world.credited.erase(bot.entity_id)

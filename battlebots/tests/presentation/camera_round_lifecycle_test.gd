@@ -59,7 +59,9 @@ func run() -> void:
 	check(bot.command.throttle > 0.9 and bot.command.primary_held, "Active held input reaches real bot")
 	bot.combat.eliminate("camera lifecycle fixture")
 	await frames()
-	check(not game.gameplay_input_allowed() and not game.preview.controls_enabled, "Elimination suppresses actual app input")
+	# Practice keeps driving captured through a knockout; the bot respawns on a timer.
+	check(not game.gameplay_input_allowed() and game.preview.controls_enabled and not game.preview.pause_menu.visible,
+		"Elimination suppresses actual app input without opening pause")
 	canceled(bot, "Eliminated")
 	camera_check(game, bot, "Eliminated")
 	var anchor_id := bot.camera_anchor().get_instance_id()

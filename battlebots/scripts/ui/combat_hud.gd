@@ -28,6 +28,8 @@ var palette := "standard"
 var high_contrast := false
 var accent := AMBER
 var danger := RED
+## Practice-only seconds until the local bot respawns; NAN when not pending.
+var respawn_remaining := NAN
 var panels: Array[PanelContainer] = []
 var base_fonts: Dictionary = {}
 var muted_labels: Array[Label] = []
@@ -512,6 +514,8 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 	if view != null:
 		if view.eliminated:
 			warning_label.text = "BOT ELIMINATED"
+			if is_finite(respawn_remaining):
+				warning_label.text += "\nRESPAWNING IN %d" % maxi(1, ceili(respawn_remaining))
 			warning_label.modulate = danger
 		elif _number(view.immobilized_remaining) and view.immobilized_remaining > 0:
 			warning_label.text = ("IMMOBILIZED %.1f s\nWheels down; drive" if text_scale > 1.0 else "IMMOBILIZED / %.1f s\nRegain wheel contact and drive to recover") % view.immobilized_remaining

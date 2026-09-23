@@ -40,7 +40,7 @@ var _audio_overlay: Control
 var _audio_caption: Label
 var practice_hud: PracticeHud
 var _restart_practice: Button
-var _practice_knockout_handled := false
+var _practice_knocked_out := false
 var _practice_return_screen := ""
 var _default_return_text := ""
 var _test_drive_entry: GarageTestDriveEntry
@@ -297,13 +297,14 @@ func _update_practice(bot: BotSource) -> void:
 	var practice := session.connection_state == "practice"
 	_restart_practice.visible = practice
 	var view: BotView = bot.read_view() if bot != null else null
+	# A practice knockout keeps the player in the arena: the director respawns
+	# the bot after a short countdown, shown by the combat HUD. Keys held through
+	# the knockout must be released before they drive the respawned bot.
 	var knocked_out := practice and view != null and view.eliminated
-	var modal: bool = preview.settings_panel.visible or _general_settings_open() or menu_host.visible
-	if knocked_out and (not _practice_knockout_handled or preview.controls_enabled) and not modal:
-		preview.release_controls(false)
-		_restart_practice.grab_focus()
-		_practice_knockout_handled = true
-	preview.resume_button.disabled = knocked_out or bot == null
+	if _practice_knocked_out and not knocked_out:
+		preview.input_gate.require_release()
+	_practice_knocked_out = knocked_out
+	preview.resume_button.disabled = bot == null
 	# The target already has an in-world health bar. Keep the practice fixture's
 	# readout out of the normal fighting view.
 	practice_hud.hide()
@@ -728,6 +729,8 @@ func _process(_delta: float) -> void:
 			if candidate.entity_id != local_view.entity_id and candidate.team != local_view.team:
 				opponent = candidate
 				break
+	combat_hud.respawn_remaining = session.practice_director.player_respawn_remaining() \
+		if session.connection_state == "practice" and session.practice_director != null else NAN
 	combat_hud.render(local_view, preview.input_preferences.label_for(&"recover"), opponent,
 		session.connection_state == "practice", session.match_view.get("mode") == "1v1", phase in ["active", "overtime"],
 		bot.loadout.get("parts", {}) if bot != null and local_view != null and bot.entity_id == local_view.entity_id else {})
@@ -804,8 +807,6 @@ func resume_gameplay() -> void:
 	if session.match_view.get("phase") == "results":
 		return
 	if session.local_source() == null or preview.settings_panel.visible:
-		return
-	if session.connection_state == "practice" and session.local_source().read_view().eliminated:
 		return
 	if session.match_view.get("phase") not in ["countdown", "active", "overtime", "intermission", "results"]:
 		return
@@ -902,8 +903,6 @@ func _session_event(kind: String, details: Dictionary) -> void:
 		pickup_notice.clear()
 		_practice_return_screen = ""
 		preview.return_button.text = _default_return_text
-	if kind in ["practice", "practice_restarted", "left"]:
-		_practice_knockout_handled = false
 	if kind == "practice_restarted":
 		gameplay_audio.reset()
 		continuous_audio.reset()

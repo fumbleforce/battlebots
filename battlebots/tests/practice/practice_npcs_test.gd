@@ -85,6 +85,31 @@ func run() -> void:
 		"Restart preserves all NPC instances and bounded count")
 	check(session.practice_director.elapsed == 0.0 and rec.wreck_age == 0.0,
 		"Restart clears pilot clocks and pending respawns")
+	await frames(4)
+	# A knocked-out player returns to its own spawn after the practice delay.
+	var director := session.practice_director
+	var player_home := player.spawn_pose
+	check(is_nan(director.player_respawn_remaining()), "No respawn countdown while the player is alive")
+	player.combat.damage("top", 100000)
+	await frames(2)
+	director.step(PracticeBotDirector.PLAYER_RESPAWN_SECONDS - 0.1)
+	check(player.combat.eliminated and director.player_respawn_remaining() > 0.0, "Player waits out the respawn delay")
+	director.step(0.2)
+	check(not player.combat.eliminated and player.combat.core == player.combat.stats.core and not player.body.freeze
+		and player.spawn_pose.origin.is_equal_approx(player_home.origin) and director.player_respawns == 1,
+		"Player respawns repaired at its own spawn")
+	check(session.local_source() == player and session.world.bots.size() == 4, "Player respawn keeps the same entity and bot count")
+	# An NPC parked on the player's spawn moves the respawn rather than blocking it.
+	await frames(4)
+	target.body.reset_pose = player_home
+	await frames(4)
+	player.combat.damage("top", 100000)
+	await frames(2)
+	director.step(PracticeBotDirector.PLAYER_RESPAWN_SECONDS + 0.1)
+	check(not player.combat.eliminated and not player.spawn_pose.origin.is_equal_approx(player_home.origin),
+		"Occupied player spawn falls back to another clear pose")
+	check(session.restart_practice() == OK and player.spawn_pose.origin.is_equal_approx(player_home.origin),
+		"Restart returns the player to its original spawn")
 	session.leave()
 	check(session.practice_director == null and session.practice_target() == null, "Leave removes all practice authority")
 	check(session.host(42000+OS.get_process_id()%10000, true, 2) == OK, "Online host can start after practice")
