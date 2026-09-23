@@ -19,7 +19,6 @@ func show_view(view: BotView) -> void:
 		state_label.modulate = NORMAL
 		return
 	_set_fraction(rows.get_node("Core"), view.core_fraction)
-	_set_fraction(rows.get_node("Battery"), view.battery_fraction)
 	_set_fraction(rows.get_node("Heat"), view.heat_fraction)
 	_set_fraction(rows.get_node("Charge"), view.weapon_charge_fraction)
 	var weapon := String(view.weapon_state).strip_edges().to_upper().substr(0, 24)

@@ -83,34 +83,6 @@ horizontal_alignment = 2
 theme_override_font_sizes/font_size = 14
 text = "--"
 
-[node name="Battery" type="HBoxContainer" parent="Margin/Content/Resources"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 12
-
-[node name="Label" type="Label" parent="Margin/Content/Resources/Battery"]
-layout_mode = 2
-custom_minimum_size = Vector2(84, 0)
-theme_override_font_sizes/font_size = 14
-text = "BATTERY"
-
-[node name="Bar" type="ProgressBar" parent="Margin/Content/Resources/Battery"]
-layout_mode = 2
-custom_minimum_size = Vector2(160, 10)
-size_flags_horizontal = 3
-size_flags_vertical = 4
-mouse_filter = 2
-show_percentage = false
-theme_override_styles/background = SubResource("Track")
-theme_override_styles/fill = SubResource("Blue")
-
-[node name="Value" type="Label" parent="Margin/Content/Resources/Battery"]
-layout_mode = 2
-custom_minimum_size = Vector2(44, 0)
-horizontal_alignment = 2
-theme_override_font_sizes/font_size = 14
-text = "--"
-
 [node name="Heat" type="HBoxContainer" parent="Margin/Content/Resources"]
 layout_mode = 2
 mouse_filter = 2

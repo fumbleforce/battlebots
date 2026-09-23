@@ -22,13 +22,13 @@ func run() -> void:
 	var bot := BotView.new()
 	bot.zones = {"front":60.0, "rear":90.0, "left":12.0, "right":0.0, "drive_left":100.0, "drive_right":0.0, "weapon":45.5}
 	bot.core_fraction = 0.64
-	bot.battery_fraction = 0.33
 	bot.heat_fraction = 0.55
 	bot.weapon_charge_fraction = 0.4
 	bot.weapon_state = &"active"
 	bot.recovery_cooldown = 0
 	var opponent := BotView.new()
 	hud.render(bot, "T", opponent)
+	check(hud.resources.keys() == ["Core", "Heat", "Charge"], "HUD exposes heat as its only operating resource")
 	check(hud.resources.Core.value.text == "64%" and hud.resources.Heat.value.text == "55%", "Published fractions display accurately")
 	check(hud.components.front.text == "FRONT\n60" and hud.components.weapon.text == "WEAPON\n46", "Integrity uses raw units, with positive fractions rounded up")
 	check(hud.components.right.text.contains("BREACHED") and hud.components.drive_right.text.contains("DISABLED"), "Destroyed armor and disabled mechanisms are distinguished")
@@ -77,7 +77,7 @@ func run() -> void:
 	for key: String in CombatHud.ZONES:
 		check(hud.components[key].text.ends_with("--"), "Malformed/missing component unavailable: " + key)
 	hud.render(null)
-	check(hud.resources.Battery.value.text == "--" and not hud.warning_label.visible and not hud.components_panel.visible, "Missing bot clears old HUD state")
+	check(hud.resources.Heat.value.text == "--" and not hud.warning_label.visible and not hud.components_panel.visible, "Missing bot clears old HUD state")
 	check(not hud.recovery_label.visible, "Missing bot hides stale recovery prompt")
 	hud.free()
 	print("COMBAT HUD PASS" if failures == 0 else "COMBAT HUD FAIL")

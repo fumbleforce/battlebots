@@ -4,7 +4,7 @@ extends VBoxContainer
 const FIELDS := [
 	["Core integrity", "core", 1.0], ["Speed (m/s)", "speed", 1.0],
 	["Armor reduction (%)", "reduction", 100.0], ["Grip (m/s²)", "grip", 1.0],
-	["Battery capacity", "battery", 1.0], ["Cooling (heat/s)", "cooling", 1.0],
+	["Cooling (heat/s)", "cooling", 1.0],
 	["Recovery time (s)", "recovery_seconds", 1.0],
 	["Plate integrity", "plate_integrity", 1.0]]
 var title: Label

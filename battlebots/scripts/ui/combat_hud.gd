@@ -53,7 +53,6 @@ func _ready() -> void:
 	var support := HBoxContainer.new()
 	support.add_theme_constant_override("separation", 18)
 	health_col.add_child(support)
-	resources["Battery"] = _resource(support, "BATTERY")
 	resources["Heat"] = _resource(support, "HEAT")
 	components_panel = _panel()
 	_component_grid = GridContainer.new()
@@ -249,9 +248,9 @@ func _resize() -> void:
 func render(view: BotView, recovery_binding: String = "", opponent: BotView = null, practice := false, duel := true, combat_active := true) -> void:
 	if not is_node_ready():
 		return
-	var values := [view.core_fraction, view.battery_fraction, view.heat_fraction, view.weapon_charge_fraction] if view != null else [NAN, NAN, NAN, NAN]
+	var values := [view.core_fraction, view.heat_fraction, view.weapon_charge_fraction] if view != null else [NAN, NAN, NAN]
 	var index := 0
-	for key: String in ["Core", "Battery", "Heat", "Charge"]:
+	for key: String in ["Core", "Heat", "Charge"]:
 		var value: float = values[index]
 		var valid := is_finite(value) and value >= 0.0 and value <= 1.0
 		resources[key].bar.value = value * 100.0 if valid else 0.0
@@ -285,7 +284,7 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 	recovery_label.text = "SELF-RIGHT / " + recovery
 	recovery_label.modulate = accent if view != null and view.recovery_available and not view.eliminated and combat_active else _text_color()
 	recovery_label.visible = view != null and not view.eliminated and combat_active and (view.recovery_available or (_number(view.recovery_cooldown) and view.recovery_cooldown > 0))
-	var failures := {"battery_empty":"Not enough battery", "recovery_unavailable":"Self-right unavailable", "disabled":"Weapon disabled", "overheated":"Weapon overheated", "cooldown":"Weapon cooling down"}
+	var failures := {"recovery_unavailable":"Self-right unavailable", "disabled":"Weapon disabled", "overheated":"Weapon overheated", "cooldown":"Weapon cooling down"}
 	failure_label.text = failures.get(view.failure_reason, "") if view != null else "Bot data unavailable"
 	if view != null and not combat_active:
 		weapon_label.text = "LOCKED"
@@ -310,9 +309,9 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 			warning_label.text = "CORE CRITICAL"
 	warning_label.visible = not warning_label.text.is_empty()
 	charge_gauge.call("render", view.weapon_charge_fraction if view != null else NAN, danger if view != null and view.weapon_state in [&"overheated", &"disabled"] else accent, text_scale, high_contrast)
-	for key: String in ["Core", "Heat", "Battery"]:
+	for key: String in ["Core", "Heat"]:
 		var fill := resources[key].bar.get_theme_stylebox("fill") as StyleBoxFlat
-		var urgent: bool = view != null and ((key == "Core" and is_finite(view.core_fraction) and view.core_fraction >= 0 and view.core_fraction <= 0.25) or (key == "Heat" and is_finite(view.heat_fraction) and view.heat_fraction >= 0.9 and view.heat_fraction <= 1) or (key == "Battery" and is_finite(view.battery_fraction) and view.battery_fraction >= 0 and view.battery_fraction <= 0.2))
+		var urgent: bool = view != null and ((key == "Core" and is_finite(view.core_fraction) and view.core_fraction >= 0 and view.core_fraction <= 0.25) or (key == "Heat" and is_finite(view.heat_fraction) and view.heat_fraction >= 0.9 and view.heat_fraction <= 1))
 		fill.bg_color = danger if urgent else (Color("9ed8e5") if key == "Core" else Color("80aab9"))
 	_resize()
 
