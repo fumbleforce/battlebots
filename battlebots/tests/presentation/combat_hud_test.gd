@@ -34,12 +34,21 @@ func run() -> void:
 	check(hud.components.front.text == "FRONT\n60" and hud.components.weapon.text == "WEAPON\n46", "Integrity uses raw units, with positive fractions rounded up")
 	check(hud.components.right.text.contains("BREACHED") and hud.components.drive_right.text.contains("DISABLED"), "Destroyed armor and disabled mechanisms are distinguished")
 	check(hud.recovery_label.text.ends_with("UNAVAILABLE"), "Zero cooldown does not imply recovery eligibility")
-	check(hud.plate_labels.front.text == "Front  60" and hud.plate_labels.left.text == "Left
-12", "Plate map shows each fitted plate's live HP")
+	check(hud.plate_labels.front.text == "Front  60" and hud.plate_labels.left.text == "Left\n12", "Plate map shows each fitted plate's live HP")
 	check(hud.plate_labels.top.text == "Top  —" and hud.plate_labels.underside.text == "Bottom  —", "Bare areas read as unarmoured, not breached")
 	check(hud.plate_labels.front.modulate == hud._text_color() and hud.plate_labels.left.modulate == hud.accent and hud.plate_labels.right.modulate == hud.danger, "Damaged and breached plates are tinted by share of fitted HP")
-	check(hud.plate_labels.right.text == "Right
-0", "Breached plate keeps a numeric reading")
+	check(hud.plate_labels.right.text == "Right\n0", "Breached plate keeps a numeric reading")
+	check(hud._plate_flash.is_empty(), "First reading of a bot is not a hit")
+	bot.zones.front = 50.0
+	hud.render(bot, "T", opponent)
+	check(hud._plate_flash.has("front") and hud.plate_labels.front.modulate == hud.danger and not hud._plate_flash.has("rear"), "Only the plate that lost HP flashes red")
+	hud.render(bot, "T", opponent)
+	check(hud.plate_labels.front.modulate == hud.danger, "Unchanged HP does not cancel or restart a running flash")
+	hud._process(CombatHud.PLATE_HIT_FLASH + 0.1)
+	check(not hud._plate_flash.has("front") and hud.plate_labels.front.modulate == hud._text_color(), "Hit flash returns to the resting colour")
+	bot.zones.front = 60.0
+	hud.render(bot, "T", opponent)
+	check(hud._plate_flash.is_empty(), "Restored HP does not flash")
 	check(hud.weapon_label.text.ends_with("ACTIVE"), "Powered partial charge is not labelled ready")
 	bot.pose = Transform3D.IDENTITY
 	bot.recovery_available = true

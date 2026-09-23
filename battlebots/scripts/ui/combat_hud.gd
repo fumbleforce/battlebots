@@ -10,6 +10,9 @@ const ZONES := {"front":"FRONT", "rear":"REAR", "left":"LEFT", "right":"RIGHT", 
 const PLATES := {"front":"Front", "rear":"Rear", "left":"Left", "right":"Right", "top":"Top", "underside":"Bottom"}
 ## A fitted plate at or below this share of its fitted HP reads as damaged.
 const PLATE_DAMAGED := 0.5
+## Seconds a plate blinks in the danger colour after its HP drops, and blinks shown.
+const PLATE_HIT_FLASH := 0.9
+const PLATE_HIT_BLINKS := 3
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
 var text_scale := 1.0
 var palette := "standard"
@@ -41,6 +44,11 @@ var jump_gauge: HudJumpGauge
 var plate_labels: Dictionary = {}
 var _armor_box: StyleBoxFlat
 var _armor_line: ColorRect
+## Per-plate hit flash: last published HP, resting colour and remaining flash time.
+var _plate_last: Dictionary = {}
+var _plate_color: Dictionary = {}
+var _plate_flash: Dictionary = {}
+var _plate_entity := -1
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -306,6 +314,12 @@ func _plate_label(parent: Node, font_size: int) -> Label:
 ## Live HP of each fitted plate. Bare areas read "—" (views omit them), unknown
 ## data "--"; damaged plates use the accent colour and breached ones danger.
 func _render_armor(view: BotView) -> void:
+	# A different bot (or none) starts with no hit history.
+	var entity := view.entity_id if view != null else -1
+	if entity != _plate_entity:
+		_plate_entity = entity
+		_plate_last.clear()
+		_plate_flash.clear()
 	for face: String in PLATES:
 		var value: Variant = view.zones.get(face) if view != null else null
 		var maximum: Variant = view.plate_max.get(face) if view != null else null
@@ -321,7 +335,29 @@ func _render_armor(view: BotView) -> void:
 			elif _number(maximum) and maximum > 0 and value / maximum <= PLATE_DAMAGED:
 				color = accent
 		plate_labels[face].text = PLATES[face] + ("\n" if face in ["left", "right"] else "  ") + detail
-		plate_labels[face].modulate = color
+		# Only a drop in published HP is a hit; repairs and loadout swaps stay quiet.
+		if _number(value) and value >= 0:
+			if _number(_plate_last.get(face)) and value < _plate_last[face]:
+				_plate_flash[face] = PLATE_HIT_FLASH
+			_plate_last[face] = value
+		else:
+			_plate_last.erase(face)
+			_plate_flash.erase(face)
+		_plate_color[face] = color
+		_show_plate(face)
+
+func _process(delta: float) -> void:
+	for face: String in _plate_flash.keys():
+		_plate_flash[face] -= delta
+		if _plate_flash[face] <= 0.0: _plate_flash.erase(face)
+		_show_plate(face)
+
+## Blends a plate from the danger colour back to its resting colour while it flashes.
+func _show_plate(face: String) -> void:
+	var remaining: float = _plate_flash.get(face, 0.0)
+	var progress := remaining / PLATE_HIT_FLASH
+	var blink := 0.5 + 0.5 * cos(TAU * PLATE_HIT_BLINKS * (1.0 - progress))
+	plate_labels[face].modulate = _plate_color[face].lerp(danger, progress * blink) if remaining > 0.0 else _plate_color[face]
 
 func _ignore_input(node: Node) -> void:
 	if node is Control: node.mouse_filter = Control.MOUSE_FILTER_IGNORE

@@ -24,7 +24,7 @@ armour area still present in `zones`; MvpBot fills it from the existing
 snapshot `plate_max`, and bare areas are omitted from both. `CombatHud` shows a
 Garage-style Front/Rear/Left/Right + Top/Bottom map above INTEGRITY
 (`plate_labels`), tinting plates at or below `CombatHud.PLATE_DAMAGED` of their
-fitted HP and breached ones. HEAT, NITRO, JUMP and the jump-force gauge moved to
+fitted HP and breached ones; a plate whose HP drops blinks in the danger colour for `CombatHud.PLATE_HIT_FLASH` s. HEAT, NITRO, JUMP and the jump-force gauge moved to
 `systems_panel`, stacked above the weapon card. No command, wire, catalogue or
 gameplay field changes; BUILD is unchanged.
 
