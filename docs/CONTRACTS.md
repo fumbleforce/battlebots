@@ -1000,3 +1000,8 @@ matching hosted server release (automatic on the `main` push).
 - **Garage/Customize.** PARTS > ARMOR lists the per-area piece sections (no package
   section). `GarageComparison.compare_armor()` previews a piece swap.
   `BuildReadout` shows six area values with top/underside inside the core box.
+
+Build `mvp-ab-26` (B, #32): stagger now applies only to projectile hits (minigun,
+plasma, flamer, tesla, cannon, railgun) and the saw blade. Hammer, spinners, lifter
+and rams no longer stagger; hammer knockback is unchanged. Protocol and catalogue
+unchanged. Needs a matching hosted server release.

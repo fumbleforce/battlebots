@@ -14,10 +14,12 @@ var _saw_contacts: Dictionary = {}
 var _saw_last_tick := -1
 var _saw_round := -1
 const MINIGUN_RANGE := 24.0
-## [seconds, depth] of lost drive control per confirmed hit. Saw contact repeats
-## every 1/3 s, so a bot being ground on stays staggered for as long as it lasts.
-const STAGGER := {"hammer":[0.8, 0.85], "vertical_spinner":[0.55, 0.75], "horizontal_spinner":[0.55, 0.75],
-	"lifter":[0.5, 0.7], "saw":[0.4, 0.55], "ram":[0.35, 0.5], "minigun":[0.15, 0.3]}
+## [seconds, depth] of lost drive control while a bot is being shot or sawn.
+## Only projectiles and the saw blade stagger; hammer, spinners, lifter and rams
+## rely on their impulses. Saw contact repeats every 1/3 s and the minigun fires
+## about 12 times a second, so their victims stay staggered while under fire.
+const STAGGER := {"saw":[0.4, 0.55], "minigun":[0.15, 0.3], "plasma":[0.2, 0.35],
+	"flamer":[0.2, 0.3], "tesla":[0.3, 0.45], "cannon":[0.5, 0.65], "railgun":[0.55, 0.7]}
 ## Before physics.weapon_impulse_multiplier and the heavy-gravity launch scale.
 const HAMMER_KNOCKBACK := 2.0
 const HAMMER_LIFT := 1.5
@@ -671,8 +673,8 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	impact_scale *= victim.body.launch_scale()
 	var delivered := impulse * mass_ratio * impact_scale
 	victim.body.apply_impulse(delivered, point - victim.body.global_position)
-	var stagger: Array = STAGGER.get(kind, [0.4, 0.6])
-	victim.combat.stagger(stagger[0], stagger[1])
+	if STAGGER.has(kind):
+		victim.combat.stagger(STAGGER[kind][0], STAGGER[kind][1])
 	if kind == "lifter":
 		# Tip the struck near edge up and over, away from the flipper.
 		var away := (victim.body.global_position - attacker.body.global_position).slide(Vector3.UP).normalized()

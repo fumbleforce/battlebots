@@ -101,9 +101,11 @@ event fields, protocol or catalogue changes. Hit stagger and hammer knockback
   Visibility is judged relative to the bot, so bots spawned hidden keep their pipes.
   Elimination and release extinguish the jets. Nitro drive strength itself is tuned
   in `data/bot_physics.json` (#38), not here.
-- Hit stagger (authority): each confirmed hit calls `CombatState.stagger(seconds,
-  depth)` from `CombatWorld.STAGGER` per weapon (hammer 0.8 s / 85% ... minigun
-  0.15 s / 30%). `stagger_factor()` scales drive, steering and (via
+- Hit stagger (authority): only projectiles and the saw blade stagger. Their
+  confirmed hits call `CombatState.stagger(seconds, depth)` from
+  `CombatWorld.STAGGER` (saw 0.4 s / 55%, minigun 0.15 s / 30%, plasma and flamer
+  0.2 s, tesla 0.3 s, cannon 0.5 s / 65%, railgun 0.55 s / 70%). Hammer, spinners,
+  lifter and rams rely on their impulses and never stagger (build `mvp-ab-26`). `stagger_factor()` scales drive, steering and (via
   `DriveBody.grip_multiplier`, 30-100%) tyre grip, easing back over the last 0.3 s.
   Hits extend but never shorten or soften a stagger. It is not replicated; the local
   client's prediction is corrected by snapshots during a stagger.

@@ -207,20 +207,26 @@ func run() -> void:
 	attacker.previous_pose = Transform3D(Basis.IDENTITY, ORIGIN)
 	resolve()
 	check(weapons.events.size() == 1, "Body yaw and descending head arc are swept together")
-	# Enemy blow: knockback away from the attacker, a lift and a drive stagger.
+	# Enemy blow: knockback away from the attacker and a lift, but no stagger;
+	# only projectiles and the saw blade stagger drive control.
 	await reset_case()
 	attacker.body.freeze = false
 	victim.body.freeze = false
 	await flush_physics()
 	resolve()
 	await flush_physics()
-	check(weapons.events.size() == 1, "Free bodies still register the staggering blow")
+	check(weapons.events.size() == 1, "Free bodies still register the hammer blow")
 	check(victim.body.linear_velocity.z < -1.5 and victim.body.linear_velocity.y > 1.0,
 		"Hammer knocks the victim away and off the floor: %s" % victim.body.linear_velocity)
 	check(attacker.body.linear_velocity.z > 0.1, "Attacker takes a small recoil")
-	check(victim.combat.stagger_seconds > 0.7 and victim.combat.stagger_factor() < 0.2,
-		"Hammer staggers the victim drive control")
-	check(is_equal_approx(attacker.combat.stagger_factor(), 1.0), "Attacker is not staggered")
+	check(is_equal_approx(victim.combat.stagger_factor(), 1.0) and is_equal_approx(attacker.combat.stagger_factor(), 1.0),
+		"Hammer blows do not stagger either machine")
+	check(CombatWorld.STAGGER.has("saw") and CombatWorld.STAGGER.has("minigun") and CombatWorld.STAGGER.has("cannon")
+		and not CombatWorld.STAGGER.has("hammer") and not CombatWorld.STAGGER.has("ram")
+		and not CombatWorld.STAGGER.has("vertical_spinner") and not CombatWorld.STAGGER.has("lifter"),
+		"Only projectiles and the saw blade stagger")
+	# Stagger mechanics, as applied by a heavy projectile.
+	victim.combat.stagger(0.8, 0.85)
 	victim.step(1.0 / 60.0, true)
 	check(victim.body.drive_multiplier < 0.25 and victim.body.steering_multiplier < 0.25
 		and victim.body.grip_multiplier < 0.5, "Stagger reduces drive, steering and grip")
