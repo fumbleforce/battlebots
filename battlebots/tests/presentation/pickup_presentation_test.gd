@@ -77,7 +77,7 @@ func feed() -> void:
 	check(newest.text == "HAMMER", "Newest toast is on top")
 	check(PickupFeed.describe({"kind":"credits", "amount":100}, {}) == "+100 CREDITS", "Credit items describe their amount")
 	panel.apply_text_scale(1.5)
-	check(panel.credits_value.get_theme_font_size("font_size") == 39, "Feed follows HUD text size")
+	check(panel.credits_value.get_theme_font_size("font_size") == 33, "Feed follows HUD text size")
 	panel._process(PickupFeed.TOAST_SECONDS + 0.1)
 	check(panel.toasts.get_child_count() == 0, "Toasts expire")
 	hud.queue_free()

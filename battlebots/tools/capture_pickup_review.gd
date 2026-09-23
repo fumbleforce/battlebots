@@ -35,7 +35,7 @@ func run() -> void:
 	root.add_child(game)
 	await settle(30)
 	var session: MvpSession = game.session
-	var draft: Dictionary = PlayerProfile.registry.starter()
+	var draft: Dictionary = ContentRegistry.new().starter()
 	draft.parts.nitro = "nitro_off"
 	if session.practice(draft, "foundry") != OK:
 		push_error("Practice did not start")

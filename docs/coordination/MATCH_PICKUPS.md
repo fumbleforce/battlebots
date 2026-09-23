@@ -55,6 +55,9 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
   weapon and body swap, credits, reconnect baseline, results reward.
 - `tests/presentation/pickup_presentation_test.gd` (`PICKUP PRESENTATION PASS`): wallet persistence,
   single payment and tamper handling, feed, results line, markers.
+- Native review, `tools/capture_pickup_review.gd`, run in real Practice at 1600×900 on Foundry: stocked
+  markers, a live Atlas body swap with the feed, and perk/credit toasts. Captures are in
+  [evidence/match-pickups-2026-09-23](evidence/match-pickups-2026-09-23/).
 
 ## Limits and follow-ups
 
