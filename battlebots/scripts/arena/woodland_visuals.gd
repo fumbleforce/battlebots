@@ -80,11 +80,12 @@ func _build() -> void:
 				_side = Transform3D(Basis(Vector3.UP, item.yaw), item.at)
 				_barricade(item.length)
 			"ramp":
-				_side = Transform3D(Basis(Vector3.UP, item.yaw), item.at)
-				_jump_ramp()
+				# The Blender model rises toward -Z; the collision wedge toward +Z.
+				_structure("jump_ramp", Transform3D(Basis(Vector3.UP, float(item.yaw) + PI), item.at))
 			"bunker":
-				_side = Transform3D(Basis(Vector3.UP, item.yaw), item.at)
-				_bunker(item.size)
+				var size: Vector3 = item.size
+				var model := "bunker_large" if size.x > 13.0 else ("bunker_medium" if size.x > 10.0 else "bunker_small")
+				_structure(model, Transform3D(Basis(Vector3.UP, item.yaw), item.at))
 			"plinth":
 				_side = Transform3D(Basis.IDENTITY, item.at)
 				_plinth(item.radius, item.height)
@@ -243,6 +244,10 @@ func _make_materials() -> void:
 	paint.roughness = 0.7
 	paint.vertex_color_use_as_albedo = true
 	_materials.hazard = paint
+	var hazard_paint := StandardMaterial3D.new()
+	hazard_paint.albedo_color = Color(0.78, 0.55, 0.07)
+	hazard_paint.roughness = 0.75
+	_materials.hazard_paint = hazard_paint
 	var slit := StandardMaterial3D.new()
 	slit.albedo_color = Color(0.015, 0.014, 0.013)
 	slit.roughness = 1.0
@@ -768,6 +773,24 @@ func _scoreboard() -> void:
 		_add("banner", "banner", Transform3D(basis, Vector3(x, 38.0, z + 2.8)), CYAN if x < 0 else ORANGE)
 
 # --- Bridges and barricades ---------------------------------------------
+
+## Blender-built obstacle model (art_source/woodland/build_structures.py) with
+## the scanned materials assigned by its slot names.
+func _structure(model: String, pose: Transform3D) -> void:
+	var scene: Node = load("res://assets/models/woodland/%s.gltf" % model).instantiate()
+	var source := scene.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
+	var visual := MeshInstance3D.new()
+	visual.name = model.capitalize().replace(" ", "")
+	visual.mesh = source.mesh
+	scene.free()
+	var slots := {"concrete":_materials.concrete, "steel":_materials.steel, "rust":_materials.rusty,
+		"slot":_materials.dark_slit, "hazard":_materials.hazard_paint}
+	for surface: int in range(visual.mesh.get_surface_count()):
+		var name := visual.mesh.surface_get_material(surface).resource_name if visual.mesh.surface_get_material(surface) else ""
+		if slots.has(name):
+			visual.set_surface_override_material(surface, slots[name])
+	visual.transform = pose
+	add_child(visual)
 
 func _jump_ramp() -> void:
 	# Local frame: rises along +Z to the lip, matching GROUND.ramp_points().

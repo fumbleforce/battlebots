@@ -27,7 +27,7 @@ void fragment() {
 	vec3 rust_scan = wl_triplanar(rust_diff, wpos, wnormal, 1.4);
 	// The rusty scan's orange blooms become the rust mask; the plate scan the steel.
 	float scan_rust = smoothstep(0.08, 0.3, rust_scan.r - rust_scan.b);
-	rust = clamp(max(rust, scan_rust * rust_amount * 1.2), 0.0, 1.0);
+	rust = clamp(max(rust * 0.6, scan_rust * rust_amount), 0.0, 1.0);
 	iron = plate * (iron_color / 0.35) * (0.85 + scale * 0.3);
 	oxide = mix(oxide, rust_scan * 0.8, 0.6);
 	ALBEDO = mix(iron, oxide, rust);
