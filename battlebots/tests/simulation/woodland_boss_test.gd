@@ -55,6 +55,9 @@ func _run() -> void:
 	check(session.restart_practice() == OK, "Practice restarts")
 	await physics_frame
 	check(not giant.combat.eliminated and giant.combat.zones.weapon > 1000.0, "Restart rebuilds the giant")
+	check(session.practice_director.player_home.origin.is_equal_approx(player.spawn_pose.origin)
+		and Vector2(player.spawn_pose.origin.x, player.spawn_pose.origin.z).length() > 80.0,
+		"Player respawns and restarts use the edge start")
 	session.leave()
 	session.queue_free()
 	await process_frame

@@ -19,7 +19,8 @@ var elapsed := 0.0
 var player_wreck_age := 0.0
 ## Counts completed player respawns so presentation can react to each one.
 var player_respawns := 0
-var _player_home := Transform3D.IDENTITY
+## Where the player spawns; the Woodland boss moves it to an edge start.
+var player_home := Transform3D.IDENTITY
 
 func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
@@ -51,7 +52,7 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 		_place(bot, Transform3D(Basis(Vector3.UP, PI), home))
 		records.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":index,
 			"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
-	_player_home = player.spawn_pose
+	player_home = player.spawn_pose
 	return _add_roamers(first_id + VARIANTS.size())
 
 func _add_roamers(next_id: int) -> int:
@@ -87,7 +88,7 @@ func restart() -> void:
 	elapsed = 0.0
 	player_wreck_age = 0.0
 	# A fallback respawn may have moved the player's spawn; restore the original.
-	_place(world.bots[player_id], _player_home)
+	_place(world.bots[player_id], player_home)
 	for record: Dictionary in records + roamers:
 		record.wreck_age = 0.0
 		record.previous_primary = false
@@ -170,32 +171,58 @@ func player_respawn_remaining() -> float:
 		return NAN
 	return maxf(0.0, PLAYER_RESPAWN_SECONDS - player_wreck_age)
 
-func _pose_clear(bot: MvpBot, pose: Transform3D) -> bool:
+## Smallest spare gap (m) between a bot placed at pose and any live bot;
+## negative when it would sit inside another bot's clearance.
+func _clearance(bot: MvpBot, pose: Transform3D) -> float:
 	var radius: float = Vector2(bot.combat.stats.size.x, bot.combat.stats.size.z).length() * 0.5
+	var spare := INF
 	for other: MvpBot in world.bots.values():
 		if other == bot or other.combat.eliminated: continue
 		var other_radius: float = Vector2(other.combat.stats.size.x, other.combat.stats.size.z).length() * 0.5
 		var gap := Vector2(other.body.global_position.x - pose.origin.x, other.body.global_position.z - pose.origin.z)
-		if gap.length() < radius + other_radius + 1.0: return false
-	return true
+		spare = minf(spare, gap.length() - (radius + other_radius + 1.0))
+	return spare
+
+func _pose_clear(bot: MvpBot, pose: Transform3D) -> bool:
+	return _clearance(bot, pose) >= 0.0
+
+## The player's own spawn first, then the arena's authored spawn markers
+## nearest to it. They spread around the whole arena, so pilots gathered
+## where the player fell cannot cover them all.
+func _player_candidates(player: MvpBot) -> Array[Transform3D]:
+	var candidates: Array[Transform3D] = [player_home]
+	var markers := world.arena.get_node_or_null("SpawnPoints") if is_instance_valid(world.arena) else null
+	if markers != null:
+		var authored: Array[Transform3D] = []
+		for marker: Node in markers.get_children():
+			if marker is Node3D:
+				authored.append(world.clear_spawn_pose(player, (marker as Node3D).global_transform))
+		authored.sort_custom(func(a: Transform3D, b: Transform3D) -> bool:
+			return a.origin.distance_squared_to(player_home.origin) < b.origin.distance_squared_to(player_home.origin))
+		candidates.append_array(authored)
+	return candidates
 
 func _respawn_player(player: MvpBot) -> void:
-	# Prefer the player's own spawn. An NPC parked there must not hold the player
-	# out indefinitely, so also try that spot quarter-turned about the symmetric
-	# arena's centre; if all are occupied, retry next tick.
-	for turn: int in 4:
-		var rotation := Basis(Vector3.UP, turn * PI * 0.5)
-		var pose := world.clear_spawn_pose(player, Transform3D(rotation * _player_home.basis, rotation * _player_home.origin))
-		if not _pose_clear(player, pose): continue
-		player.spawn_pose = pose
-		player.reset_round()
-		world.credited.erase(player.entity_id)
-		player_wreck_age = 0.0
-		player_respawns += 1
-		# NPCs pause briefly so the player is not hit the instant they return.
-		for record: Dictionary in records:
-			record.grace = RESET_GRACE
-		return
+	# Use the first clear candidate. The player must never be held out, so if
+	# every one is covered, fall back to the roomiest.
+	var best := player_home
+	var best_spare := -INF
+	for pose: Transform3D in _player_candidates(player):
+		var spare := _clearance(player, pose)
+		if spare >= 0.0:
+			best = pose
+			break
+		if spare > best_spare:
+			best = pose
+			best_spare = spare
+	player.spawn_pose = best
+	player.reset_round()
+	world.credited.erase(player.entity_id)
+	player_wreck_age = 0.0
+	player_respawns += 1
+	# NPCs pause briefly so the player is not hit the instant they return.
+	for record: Dictionary in records + roamers:
+		record.grace = RESET_GRACE
 
 func _try_respawn(bot: MvpBot, record: Dictionary) -> void:
 	# Reuse the stable entity; do not reset the world, player, weapon clock or IDs.

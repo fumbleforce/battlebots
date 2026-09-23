@@ -636,8 +636,9 @@ again at event ID one. No wire/schema version changes.
 
 Player knockout no longer opens pause (23 September 2026). `PracticeBotDirector`
 respawns the same local entity, repaired, `PLAYER_RESPAWN_SECONDS` (3 s) after
-elimination: at its original spawn, or that spot quarter-turned about the arena
-centre when a live bot occupies it. NPC pilots get the usual reset grace.
+elimination: at its own spawn (`player_home`; Woodland moves it to the edge start), or
+else the nearest authored `SpawnPoints` marker clear of live bots, or the roomiest
+one if none is clear, so it is never held out. NPC pilots get the usual reset grace.
 `player_respawn_remaining()` (NAN while alive) drives the combat HUD's
 "RESPAWNING IN n" line; controls stay captured and held keys must be released
 after the respawn. Restart still revives immediately and restores the original

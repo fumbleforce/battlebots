@@ -110,15 +110,18 @@ func run() -> void:
 		and player.spawn_pose.origin.is_equal_approx(player_home.origin) and director.player_respawns == 1,
 		"Player respawns repaired at its own spawn")
 	check(session.local_source() == player and session.world.bots.size() == 4 + roamers.size(), "Player respawn keeps the same entity and bot count")
-	# An NPC parked on the player's spawn moves the respawn rather than blocking it.
+	# Playtest regression: the rammer parked on the player's spawn while the
+	# calibration target covered every nearby fallback held the player out forever.
 	await frames(4)
-	target.body.reset_pose = player_home
+	var rammer: MvpBot = session.world.bots[director.records[1].id]
+	rammer.body.reset_pose = player_home
 	await frames(4)
 	player.combat.damage("top", 100000)
 	await frames(2)
 	director.step(PracticeBotDirector.PLAYER_RESPAWN_SECONDS + 0.1)
-	check(not player.combat.eliminated and not player.spawn_pose.origin.is_equal_approx(player_home.origin),
-		"Occupied player spawn falls back to another clear pose")
+	check(not player.combat.eliminated and not player.spawn_pose.origin.is_equal_approx(player_home.origin)
+		and director._pose_clear(player, player.spawn_pose),
+		"Occupied player spawn falls back to a clear authored spawn")
 	check(session.restart_practice() == OK and player.spawn_pose.origin.is_equal_approx(player_home.origin),
 		"Restart returns the player to its original spawn")
 	session.leave()

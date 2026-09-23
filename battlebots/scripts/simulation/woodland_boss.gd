@@ -122,6 +122,8 @@ func _edge_starts(player_id: int, director: PracticeBotDirector) -> void:
 	_place(player, world.clear_spawn_pose(player, (markers.get_node("Team1_3") as Node3D).global_transform))
 	if director == null:
 		return
+	# Respawns and restarts return the player to this edge start.
+	director.player_home = player.spawn_pose
 	var starts := ["FFA_3", "FFA_5", "FFA_7"]
 	for index: int in director.records.size():
 		var record: Dictionary = director.records[index]
