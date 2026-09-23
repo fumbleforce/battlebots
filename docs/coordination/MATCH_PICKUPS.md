@@ -27,7 +27,7 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
 
 - Five points: the centre plus four diagonals at half the arena radius. These stay off the Z-axis team
   spawn lanes and scale with `ArenaBounds`, so new arenas (for example Woodland, #34) get points
-  automatically. Moon points sit on its heightfield.
+  automatically. Moon and Woodland points sit on their terrain.
 - Contents are random. There is a 30% chance of credits (25/50/100); otherwise a uniformly random
   catalogue part or perk. A collected point restocks after 20 s, and every point restocks at a new round.
 - Collection requires the hull footprint to overlap the point (horizontal radius half the longest hull

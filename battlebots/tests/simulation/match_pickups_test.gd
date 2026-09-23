@@ -20,6 +20,7 @@ func run() -> void:
 	rules()
 	await world_swaps("foundry")
 	await world_swaps("moon")
+	await world_swaps("woodland")
 	print("MATCH PICKUPS PASS" if failures == 0 else "MATCH PICKUPS FAIL")
 	quit(0 if failures == 0 else 1)
 
@@ -185,7 +186,8 @@ func world_swaps(arena_id: String) -> void:
 	check(atlas.collision_bounds().size.is_equal_approx(AtlasGeometry.COLLISION_SIZE * atlas.body.geometry_scale),
 		arena_id + " body pickup installs the new collision")
 	await step(world, 90)
-	check(atlas.body.global_position.y > -0.5 and atlas.body.global_position.y < 6.0, arena_id + " rebuilt body settles on the floor")
+	var rest := atlas.body.global_position.y - center.y
+	check(rest > -0.5 and rest < 6.0, arena_id + " rebuilt body settles on the floor (%.2f m above the point)" % rest)
 	check(not atlas.combat.eliminated, arena_id + " rebuilt body stays in the match")
 
 	# Rounds keep the match loadout; reset restocks.
@@ -198,7 +200,7 @@ func world_swaps(arena_id: String) -> void:
 	npc.set_meta("practice_variant", "wedge")
 	force(world, "part", "saw")
 	place(world, npc, center)
-	place(world, world.bots[1], center + Vector3(30, 0, 0) if arena_id == "foundry" else center + Vector3(0, 0, 12))
+	place(world, world.bots[1], center + Vector3(0, 0, 12) if arena_id == "moon" else center + Vector3(30, 0, 0))
 	await frames(3)
 	await step(world)
 	check(world.pickups.items[0].available and world.bots[2] == npc, arena_id + " practice NPCs keep their training builds")

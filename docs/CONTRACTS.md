@@ -834,7 +834,7 @@ weapon activation remain unchanged. Matching server/client deployment is require
 
 Build `mvp-ab-16`, protocol 7; catalogue unchanged. `AuthorityWorld.pickups`
 (`MatchPickups`) stocks `pickup_points()` (centre and four diagonals at half
-the arena radius, derived from `ArenaBounds`; Moon uses its heightfield) when a
+the arena radius, derived from `ArenaBounds`; terrain arenas use their ground) when a
 match or practice begins; `reset_round()` restocks and `clear_bots()` clears.
 Collection runs only while the match is active. Practice NPCs never collect.
 

@@ -180,16 +180,20 @@ func clear_bots() -> void:
 	weapons = CombatWorld.new()
 
 ## Pickup points avoid the team spawn lanes on the Z axis: one at the centre and
-## four on the diagonals, scaled to the arena. Moon points follow its terrain.
+## four on the diagonals, scaled to the arena. Terrain arenas follow their ground.
 func pickup_points() -> Array[Vector3]:
 	var half := ArenaBounds.half_extent(arena_id)
 	var points: Array[Vector3] = [Vector3.ZERO]
 	for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
 		points.append(Vector3(cos(angle), 0.0, sin(angle)) * half * 0.5)
+	var surface: Script = null
 	if arena_id == "moon":
-		const SURFACE = preload("res://scripts/arena/moon_surface.gd")
+		surface = preload("res://scripts/arena/moon_surface.gd")
+	elif arena_id == "woodland":
+		surface = preload("res://scripts/arena/woodland_ground.gd")
+	if surface != null:
 		for index: int in points.size():
-			points[index].y = SURFACE.height_at(points[index].x, points[index].z)
+			points[index].y = surface.height_at(points[index].x, points[index].z)
 	return points
 
 func begin_pickups(seed: int) -> void:
