@@ -80,7 +80,15 @@ func _run() -> void:
 	await _step(60, -1.0)
 	_check(body.position.z > 1.0 and body.linear_velocity.z > 3.0, "Reverse must drive +Z")
 	await _step(30, -1.0, 1.0)
-	_check(body.angular_velocity.y < -0.5, "Right turn must keep negative yaw while reversing")
+	_check(body.angular_velocity.y > 0.5, "Right steering must produce positive yaw while reversing")
+	for direction: float in [-1.0, 1.0]:
+		for turn: float in [-1.0, 1.0]:
+			await _spawn()
+			await _step(60)
+			await _step(60, direction)
+			await _step(30, direction, turn)
+			_check(body.angular_velocity.y * turn * direction < -0.5,
+				"Live Jolt yaw follows vehicle steering for forward/reverse and left/right")
 	await _spawn()
 	await _step(60)
 	await _step(45, 0.0, -1.0)

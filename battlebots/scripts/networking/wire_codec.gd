@@ -1,7 +1,7 @@
 class_name WireCodec
 extends RefCounted
 const PROTOCOL := 10
-const BUILD := "mvp-ab-22"
+const BUILD := "mvp-ab-23"
 const SNAPSHOT_FIELDS := 40
 const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
 

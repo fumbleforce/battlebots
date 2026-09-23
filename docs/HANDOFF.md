@@ -5,6 +5,16 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Conventional reverse steering (#43) — 23 September 2026
+
+Backing up now reverses steering yaw, including reverse coasting. Forward
+steering and neutral pivots stay familiar; near standstill throttle selects the
+orientation. The shared drive model covers both live physics and client replay.
+New force/replay regression and pinned baseline/drive/heavy/perk checks pass,
+including actual Jolt forward/reverse left/right motion. Gameplay build
+`mvp-ab-23` requires the matching automated hosted release (protocol 10,
+catalogue 13 unchanged). [Contract and evidence](coordination/REVERSE_STEERING.md).
+
 ## Nitro and charged-jump HUD (#9) — 23 September 2026
 
 The combat HUD now shows Nitro activity and jump charge/cooldown, plus explicit

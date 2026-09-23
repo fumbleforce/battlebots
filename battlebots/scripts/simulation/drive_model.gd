@@ -1,6 +1,13 @@
 class_name DriveModel
 extends RefCounted
 ## Shared tire response for live Jolt drive and bounded client input replay.
+## Vehicle steering follows travel, including reverse coasting. Near rest,
+## throttle chooses direction; neutral pivots ignore tiny contact velocities.
+static func steering_direction(forward_speed: float, throttle: float) -> float:
+	if absf(forward_speed) > BotPhysics.settings().steering_direction_threshold:
+		return signf(forward_speed)
+	return -1.0 if throttle < 0.0 else 1.0
+
 static func forces(basis: Basis, velocity: Vector3, angular: Vector3, normal: Vector3,
 		throttle: float, steering: float, braking: bool, delta: float, config: Dictionary) -> Dictionary:
 	var forward := (-basis.z).slide(normal).normalized()
@@ -17,7 +24,8 @@ static func forces(basis: Basis, velocity: Vector3, angular: Vector3, normal: Ve
 	var lateral := -velocity.dot(right) / maxf(float(config.get("lateral_response", 0.12)), delta)
 	var force := (forward * longitudinal + right * lateral).limit_length(config.grip * (float(config.nitro_grip) if nitro else 1.0))
 	var ratio := clampf(absf(speed) / float(config.speed), 0, 1)
-	var yaw: float = 0 if braking else -steering * config.turn * lerpf(1, 0.4, ratio)
+	var direction := steering_direction(speed, throttle)
+	var yaw: float = 0 if braking else -steering * direction * config.turn * lerpf(1, 0.4, ratio)
 	var yaw_limit := float(config.get("yaw_acceleration_limit", 5.0))
 	var yaw_acceleration := clampf((yaw - angular.dot(normal)) / float(config.get("yaw_response", 0.15)), -yaw_limit, yaw_limit)
 	if config.steering_scale == 0:

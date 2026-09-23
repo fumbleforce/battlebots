@@ -157,7 +157,7 @@ FFA uses the same survivor/core/damage ordering for players remaining at timeout
 | Tab | Hold scoreboard |
 | Escape | Menu; online gameplay continues |
 
-WASD uses vehicle steering rather than strafing. Mouse movement does not steer the bot. Reverse steering follows the same turn-direction convention as forward input to keep differential-drive control predictable. Acceleration and turning ramp in rather than changing instantly.
+WASD uses vehicle steering rather than strafing. Mouse movement does not steer the bot. Reverse steering inverts left/right yaw like conventional vehicle controls. Direction follows chassis-relative travel, including reverse coasting; near standstill it follows throttle intent, while neutral differential pivoting keeps its normal direction. Acceleration and turning ramp in rather than changing instantly.
 
 Inputs are remappable. Expose mouse sensitivity, inversion, camera recenter strength, toggle/hold weapon activation, and separate horizontal/vertical sensitivities. Focus loss clears held inputs. Controller support is a post-MVP release requirement with equivalent actions and remapping.
 

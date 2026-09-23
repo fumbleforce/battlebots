@@ -1,5 +1,14 @@
 # Shared contracts — local records and current MVP session API
 
+## Reverse steering — build mvp-ab-23 (#43)
+
+`DriveModel.forces` inverts yaw steering when travelling backward along the
+chassis's ground-plane forward axis. Below `motor.steering_direction_threshold`
+(0.25 m/s), throttle selects reverse/normal steering; neutral retains normal
+pivot steering. Live Jolt and replay share this rule, without input adapter or
+wire shape changes. Protocol 10/catalogue 13 remain unchanged, but matching
+clients/workers require the new gameplay build. [Details and validation](coordination/REVERSE_STEERING.md).
+
 ## Perk HUD presentation (#9)
 
 `CombatHud.render` accepts an optional final `perk_parts: Dictionary` with the
@@ -495,7 +504,8 @@ new practice hits begin again at event ID one. No wire/schema version changes.
 `scripts/core/bot_command.gd`: sequence >= 0, throttle and steering in [-1, 1],
 brake, primary_held, primary_pressed, secondary_held, recovery_pressed.
 Positive throttle drives chassis -Z. Positive steering means a right turn
-(negative Godot yaw), including while reversing. Held actions are levels;
+(negative Godot yaw) in forward travel or a neutral pivot, and positive yaw in
+reverse travel. Near standstill, reverse throttle selects the reversed convention. Held actions are levels;
 pressed actions are one-physics-tick edges. Commands are created fresh each tick.
 Camera orbit/toggle/zoom/pings remain local until their own service exists.
 

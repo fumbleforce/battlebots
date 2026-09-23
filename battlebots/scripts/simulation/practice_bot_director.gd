@@ -99,7 +99,6 @@ func _pilot(bot: MvpBot, player: MvpBot, record: Dictionary, intent: BotCommand)
 			desired = waypoints[int(record.patrol)]
 	var local := bot.body.global_basis.inverse() * (desired - bot.body.global_position)
 	var angle := atan2(local.x, -local.z)
-	intent.steering = clampf(angle * 1.5, -1.0, 1.0)
 	var contact: float = (bot.combat.stats.size.z + player.combat.stats.size.z) * 0.5
 	var reach := 11.0 if bot.combat.stats.weapon == "minigun" else contact + 0.4
 	intent.throttle = 0.42 if absf(angle) < 0.9 else 0.10
@@ -107,6 +106,11 @@ func _pilot(bot: MvpBot, player: MvpBot, record: Dictionary, intent: BotCommand)
 		intent.throttle = clampf((distance - reach) * 0.2, -0.20, 0.50) if absf(angle) < 0.9 else 0.0
 		intent.primary_held = absf(angle) < 0.18 and distance < reach + 2.2
 		if bot.combat.stats.weapon == "hammer": intent.primary_held = intent.primary_held and fmod(elapsed, 2.3) < 0.25
+	# The pilot requests facing yaw; convert it to vehicle steering so retreating
+	# continues to face the player under the same controls used by human drivers.
+	var forward := (-bot.body.global_basis.z).slide(Vector3.UP).normalized()
+	intent.steering = clampf(angle * 1.5, -1.0, 1.0) * DriveModel.steering_direction(
+		bot.body.linear_velocity.dot(forward), intent.throttle)
 	intent.brake = absf(intent.throttle) < 0.06 and absf(angle) < 0.12
 
 func _try_respawn(bot: MvpBot, record: Dictionary) -> void:

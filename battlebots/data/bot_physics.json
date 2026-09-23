@@ -21,7 +21,9 @@
 		"yaw_acceleration_multiplier": 2.2,
 		"yaw_torque_grip_fraction": 0.9,
 		"rolling_resistance_multiplier": 13.0,
-		"brake_multiplier": 2.0
+		"brake_multiplier": 2.0,
+		"_steering_comment": "Below steering_direction_threshold m/s, throttle selects the steering direction; above it, signed ground-plane forward speed does. Neutral keeps differential pivot steering.",
+		"steering_direction_threshold": 0.25
 	},
 	"nitro": {
 		"_comment": "Nitro is raw machine power: boosted acceleration and top speed carry an Atlas off a jump ramp onto a roof. Multipliers over the (already motor-scaled) drive values while nitro is held with throttle.",
