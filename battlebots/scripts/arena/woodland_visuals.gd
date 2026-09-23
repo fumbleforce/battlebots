@@ -21,6 +21,7 @@ const TERRAIN = preload("res://assets/materials/arena/woodland_terrain.gdshader"
 const MASKS = preload("res://assets/textures/woodland/ground_masks.png")
 const ROCK = preload("res://assets/materials/arena/woodland_rock.gdshader")
 const SCREEN = preload("res://assets/materials/arena/woodland_screen.gdshader")
+const TIMBER = preload("res://assets/materials/arena/woodland_timber.gdshader")
 const CONCRETE = preload("res://assets/materials/arena/woodland_concrete.gdshader")
 const FLAME = preload("res://assets/materials/arena/woodland_flame.gdshader")
 const HALF := GROUND.HALF
@@ -335,7 +336,49 @@ func _team_color(local: Vector3) -> Color:
 	var world := _side * local
 	return CYAN if world.z > 0.0 else ORANGE
 
+var _modules: Dictionary = {}
+
+func _module(name: String, pose: Transform3D) -> void:
+	if not _modules.has(name):
+		_modules[name] = []
+	_modules[name].append(_side * pose)
+
+## Instance the Blender palisade modules with the scanned timber materials.
+func _flush_modules() -> void:
+	var grain := {"grain_diff":scan("weathered_planks", "diff"), "grain_nor":scan("weathered_planks", "nor"), "grain_arm":scan("weathered_planks", "arm")}
+	var slots := {}
+	for slot: Array in [["timber", Color(0.78, 0.74, 0.7), 0.35], ["plank", Color(1.0, 0.95, 0.88), 0.6]]:
+		var m := ShaderMaterial.new()
+		m.shader = TIMBER
+		for k: String in grain:
+			m.set_shader_parameter(k, grain[k])
+		m.set_shader_parameter("tone", slot[1])
+		m.set_shader_parameter("weathering", slot[2])
+		slots[slot[0]] = m
+	slots["iron"] = _materials.iron
+	for name: String in _modules:
+		var scene: Node = load("res://assets/models/woodland/palisade_%s.gltf" % name).instantiate()
+		var mesh := (scene.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate() as Mesh
+		scene.free()
+		for surface: int in range(mesh.get_surface_count()):
+			var source := mesh.surface_get_material(surface)
+			if source and slots.has(source.resource_name):
+				mesh.surface_set_material(surface, slots[source.resource_name])
+		var poses: Array = _modules[name]
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = mesh
+		multi.instance_count = poses.size()
+		for i: int in range(poses.size()):
+			multi.set_instance_transform(i, poses[i])
+		var visual := MultiMeshInstance3D.new()
+		visual.name = "Palisade_" + name
+		visual.multimesh = multi
+		add_child(visual)
+	_modules.clear()
+
 func _flush() -> void:
+	_flush_modules()
 	for key: String in _batches:
 		var parts := key.split("/")
 		var batch: Dictionary = _batches[key]
@@ -397,13 +440,7 @@ func _face(side: int) -> void:
 	_stands(side)
 
 func _post(x: float) -> void:
-	var tint := _tint(0.08)
-	_box("timber", Vector3(x, (DECK + 1.8) * 0.5, W - 0.58), Vector3(1.15, DECK + 1.8, 1.15), Vector3.ZERO, tint)
-	for y: float in [BUMPER + 0.1, 8.0, 13.4]:
-		_box("iron", Vector3(x, y, W - 0.58), Vector3(1.23, 0.26, 1.23))
-		for dx: float in [-0.32, 0.32]:
-			_bolt(Vector3(x + dx, y, W + 0.02), 0.075)
-	_box("rusty", Vector3(x, DECK + 2.2, W - 0.58), Vector3(1.3, 0.8, 1.3), Vector3(0, PI / 4.0, 0), Color.WHITE, "pyr")
+	_module("post", Transform3D(Basis(Vector3.UP, (_rng.randi() % 4) * PI * 0.5), Vector3(x, 0.0, W - 0.58)) * Transform3D(Basis.IDENTITY, Vector3(0, 0, 0.58)))
 	# Iron lantern bracket; the glass glows warmly.
 	_box("iron", Vector3(x, 11.2, W + 0.15), Vector3(0.1, 0.1, 0.75))
 	_box("iron", Vector3(x, 10.6, W + 0.5), Vector3(0.44, 0.7, 0.44))
@@ -440,51 +477,14 @@ func _buttress(x: float, side: int, index: int) -> void:
 		add_child(fire)
 
 func _corner_post(x: float) -> void:
-	_log("log", Vector3(x, -1.0, W - 0.95), Vector3(x, DECK + 3.0, W - 0.95), 0.92, _tint(0.06))
-	for y: float in [2.0, 8.0, 13.4, DECK + 2.2]:
-		_log("iron", Vector3(x, y - 0.13, W - 0.95), Vector3(x, y + 0.13, W - 0.95), 0.96)
+	_module("corner_post", Transform3D(Basis.IDENTITY, Vector3(x, 0.0, W)))
 
 func _bay(a: float, b: float, bannered: bool) -> void:
-	var width := b - a
+	# Blender-built bay module (art_source/woodland/build_palisade.py).
 	var centre := (a + b) * 0.5
-	# Impact zone: three stacked hewn beams bolted through forged straps.
-	for row: int in range(3):
-		var y := 0.525 + row * 1.05
-		_box("timber", Vector3(centre, y, W - 0.42 - _rng.randf_range(0.0, 0.03)), Vector3(width + 0.1, 1.02, 0.8),
-			Vector3(0, 0, _rng.randf_range(-0.003, 0.003)), _tint(0.1))
-	for dx: float in [-width * 0.32, 0.0, width * 0.32]:
-		_box("iron", Vector3(centre + dx, BUMPER * 0.5, W - 0.012), Vector3(0.32, BUMPER - 0.1, 0.045))
-		for y: float in [0.52, 1.57, 2.62]:
-			_bolt(Vector3(centre + dx, y, W + 0.01), 0.07)
-	_box("rail", Vector3(centre, BUMPER + 0.07, W - 0.8), Vector3(width + 0.1, 0.14, 1.6), Vector3.ZERO, _tint(0.05))
-	# Dark backing so plank gaps read as shadow, not open sky.
-	_box("timber", Vector3(centre, (BUMPER + DECK) * 0.5, W - 1.62), Vector3(width + 0.6, DECK - BUMPER, 0.1), Vector3.ZERO, Color(0.35, 0.33, 0.3))
-	var count := int(width / 0.56)
-	var pitch := width / count
-	for n: int in range(count):
-		var x := a + (n + 0.5) * pitch
-		var top := DECK - 0.35 + _rng.randf_range(-0.25, 0.1)
-		var tint := _tint(0.16)
-		if _rng.randf() < 0.07:
-			tint = Color(1.18, 1.02, 0.86) # A recently replaced board.
-		elif _rng.randf() < 0.1:
-			tint = Color(0.72, 0.7, 0.68)
-		_box("plank", Vector3(x, (BUMPER + top) * 0.5, W - 1.45 + _rng.randf_range(-0.025, 0.025)),
-			Vector3(pitch - 0.04, top - BUMPER, 0.15), Vector3(0, 0, _rng.randf_range(-0.005, 0.005)), tint)
-		if n % 3 == 1:
-			for y: float in [8.0, 13.4]:
-				_bolt(Vector3(x, y, W - 0.86), 0.045)
-	for y: float in [8.0, 13.4]:
-		_box("rail", Vector3(centre, y, W - 1.1), Vector3(width + 0.04, 0.56, 0.46), Vector3.ZERO, _tint(0.08))
+	_module("bay_bannered" if bannered else "bay_braced", Transform3D(Basis.IDENTITY, Vector3(centre, 0.0, W)))
 	if bannered:
 		_banner(centre, _team_color(Vector3(centre, 0, W)))
-	else:
-		# Diagonal cross bracing, halved at the crossing like carpentry.
-		var low := BUMPER + 0.35
-		var high := 7.6
-		_beam("rail", Vector3(a + 0.4, low, W - 1.02), Vector3(b - 0.4, high, W - 1.02), Vector2(0.44, 0.28), _tint(0.08))
-		_beam("rail", Vector3(a + 0.4, high, W - 1.06), Vector3(b - 0.4, low, W - 1.06), Vector2(0.44, 0.28), _tint(0.08))
-		_bolt(Vector3(centre, (low + high) * 0.5, W - 0.9), 0.09)
 
 func _banner(x: float, color: Color) -> void:
 	var top := 13.1

@@ -109,6 +109,10 @@ def export(name):
 	scene.cycles.samples = 128
 	scene.render.bake.target = "VERTEX_COLORS"
 	scene.render.bake.use_selected_to_active = False
+	# Contact occlusion only: a short AO distance keeps open faces bright.
+	if scene.world is None:
+		scene.world = bpy.data.worlds.new("w")
+	scene.world.light_settings.distance = 0.35
 	bpy.ops.mesh.primitive_plane_add(size=200, location=(0, 0, -0.02))
 	ground = bpy.context.object
 	bpy.ops.object.select_all(action="DESELECT")

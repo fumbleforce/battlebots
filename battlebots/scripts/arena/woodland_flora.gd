@@ -179,7 +179,7 @@ func _interior_grass() -> void:
 	var ferns := _variants("scatter_fern")
 	var rocks := _variants("scatter_rocks")
 	# The granite pebble scan is pinkish; pull it toward the arena's grey stone.
-	var pebbles := _variants("scatter_pebbles", 1 << 30, Color(0.95, 0.95, 0.97), 0.4)
+	var pebbles := _variants("scatter_pebbles", 1 << 30, Color(0.9, 0.92, 0.95), 0.12)
 	var small_rocks := _variants("scatter_rocks")
 	var grass_poses: Array = []
 	var fern_poses: Array = []
