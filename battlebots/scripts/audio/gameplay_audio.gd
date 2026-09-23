@@ -218,9 +218,11 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	if _event_watermarks.size() > CONTEXT_LIMIT:
 		_event_watermarks.erase(_event_watermarks.keys()[0])
 	var kind: String = kinds[event.kind]
-	var caption := kind.capitalize() + " impact"
-	if event.attacker == local_entity: caption = kind.capitalize() + " hit"
-	elif event.target == local_entity: caption = "Hit by " + kind
+	# Tools borrowing another weapon's cue keep their own caption name.
+	var label: String = {"ram_punch":"ram punch", "spear":"spear", "grinder":"grinder"}.get(event.kind, kind)
+	var caption := label.capitalize() + " impact"
+	if event.attacker == local_entity: caption = label.capitalize() + " hit"
+	elif event.target == local_entity: caption = "Hit by " + label
 	if kind == "crush":
 		caption = "Crushed against the wall" if event.target == local_entity else "Wall crush"
 	_play("impact_" + kind, caption, false, kind == "crush", false, -1, event.position)
