@@ -1,6 +1,12 @@
 param([Parameter(Mandatory = $true)][string]$GodotPath)
 $ErrorActionPreference = 'Stop'
 & (Join-Path $PSScriptRoot 'check-drive.ps1') -GodotPath $GodotPath
+# Launch with recently added classes missing from the editor class cache
+# (#65, #74; covers GamepadInput). It needs the real engine and an imported
+# project, so it lives here rather than in check-baseline, whose gate test
+# drives it with a fake engine.
+& python (Join-Path $PSScriptRoot 'check-stale-class-cache.py') --godot $GodotPath
+if ($LASTEXITCODE -ne 0) { throw 'Launch with a stale class cache failed' }
 $projectRoot = Join-Path $PSScriptRoot '../battlebots'
 function Invoke-MvpTest {
     param([string]$Script, [string]$Marker, [switch]$Scene, [switch]$RealTime)

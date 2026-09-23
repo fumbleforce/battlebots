@@ -20,7 +20,3 @@ function Invoke-GodotCheck {
 }
 Invoke-GodotCheck -EngineArgs @('--headless', '--path', $projectRoot, '--editor', '--import', '--quit')
 Invoke-GodotCheck -EngineArgs @('--headless', '--path', $projectRoot, '--script', 'res://tests/baseline_smoke.gd')
-& (Join-Path $PSScriptRoot 'check-gamepad-startup.ps1') -GodotPath $GodotPath
-# Every class added since the last stable cache must survive a stale cache (#74).
-& python (Join-Path $PSScriptRoot 'check-stale-class-cache.py') --godot $GodotPath
-if ($LASTEXITCODE -ne 0) { throw 'Launch with a stale class cache failed' }
