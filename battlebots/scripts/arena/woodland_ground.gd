@@ -57,7 +57,7 @@ const RAMPS := [
 ]
 const RAMP_LENGTH := 15.0
 const RAMP_WIDTH := 8.0
-const RAMP_HEIGHT := 3.6
+const RAMP_HEIGHT := 5.5
 # Riveted concrete bunkers: centre, yaw, size.
 const BUNKERS := [
 	{"at":Vector2(-48, -76), "yaw":-0.3, "size":Vector3(15, 5.2, 8)},

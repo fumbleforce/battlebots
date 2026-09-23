@@ -1,6 +1,7 @@
 """Woodland obstacle models: steel-and-concrete jump ramps and bunkers.
 
 Run: blender --background --python art_source/woodland/build_structures.py
+Only the jump ramp: append -- --only jump_ramp
 
 Geometry matches woodland_ground.gd's collision exactly (ramp wedge, bunker
 boxes), so what players see is what they hit. Materials are named slots only
@@ -11,6 +12,7 @@ export maps Blender (x, y, z) to Godot (x, z, -y), so the ramp rises toward
 Godot -Z and the game rotates it half a turn to match the collision wedge,
 which rises toward +Z.
 """
+import argparse, sys
 import bpy, bmesh, math, pathlib
 from mathutils import Vector, Matrix
 
@@ -18,7 +20,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "battlebots/assets/models/woodland"
 OUT.mkdir(parents=True, exist_ok=True)
 # Mirrors woodland_ground.gd.
-RAMP_LENGTH, RAMP_WIDTH, RAMP_HEIGHT = 15.0, 8.0, 3.6
+RAMP_LENGTH, RAMP_WIDTH, RAMP_HEIGHT = 15.0, 8.0, 5.5
 BUNKERS = {"bunker_large": (15.0, 5.2, 8.0), "bunker_medium": (12.0, 4.6, 7.0), "bunker_small": (9.0, 4.0, 6.0)}
 
 def reset():
@@ -224,7 +226,13 @@ def build_bunker(name, size):
 		finish(bpy.context.object, "steel")
 	export(name)
 
-build_ramp()
-for name, size in BUNKERS.items():
-	build_bunker(name, size)
-print("STRUCTURES DONE")
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser(description=__doc__)
+	parser.add_argument("--only", choices=["all", "jump_ramp", *BUNKERS], default="all")
+	args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
+	if args.only in ("all", "jump_ramp"):
+		build_ramp()
+	for name, size in BUNKERS.items():
+		if args.only in ("all", name):
+			build_bunker(name, size)
+	print("STRUCTURES DONE")
