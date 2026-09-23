@@ -358,8 +358,11 @@ func combat_event(event: Dictionary) -> void:
 	var zone: Variant = event.get("zone")
 	var damage: Variant = event.get("damage")
 	if _plate_entity < 0 or not event.get("target") is int or event.target != _plate_entity \
-		or not zone is String or not PLATES.has(zone) or not _number(damage) or damage <= 0:
+		or not zone is String or not _number(damage) or damage <= 0:
 		return
+	# Drive pods and the front weapon sit on a side; show where the damage came from.
+	zone = CombatWorld.COMPONENT_FACES.get(zone, zone)
+	if not PLATES.has(zone): return
 	_plate_flash[zone] = HIT_FLASH
 	_show_plate(zone)
 
