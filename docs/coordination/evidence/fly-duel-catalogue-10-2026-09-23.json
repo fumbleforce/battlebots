@@ -1,0 +1,150 @@
+{
+  "private": [
+    {
+      "active_frames": 365,
+      "completed_match": "e21cdce71a557288fa69a2bd",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 15.368673324585,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 85,
+      "reconnect_health_retained": true,
+      "reconnect_token_rotated": true,
+      "reconnect_verified": true,
+      "rematch_active": true,
+      "rematch_id": "42876f5910a1fc90759d56af",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1505,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 364,
+      "completed_match": "e21cdce71a557288fa69a2bd",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 14.9614315032959,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "42876f5910a1fc90759d56af",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1508,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "quick_duel": [
+    {
+      "active_frames": 366,
+      "completed_match": "ddf16ebb437646030eca4b78",
+      "completed_rounds": 2,
+      "entity": 1,
+      "moved_m": 15.2539567947388,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 119,
+      "reconnect_health_retained": true,
+      "reconnect_token_rotated": true,
+      "reconnect_verified": true,
+      "rematch_active": true,
+      "rematch_id": "37fd61dbecdc680b08c16afc",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1510,
+      "team": 0,
+      "valid": true,
+      "winner": 1
+    },
+    {
+      "active_frames": 366,
+      "completed_match": "ddf16ebb437646030eca4b78",
+      "completed_rounds": 2,
+      "entity": 2,
+      "moved_m": 15.368673324585,
+      "participants": 2,
+      "players": 2,
+      "reason": "",
+      "reconnect_barrier_passed": true,
+      "reconnect_elapsed_ms": 0,
+      "reconnect_health_retained": false,
+      "reconnect_token_rotated": false,
+      "reconnect_verified": false,
+      "rematch_active": true,
+      "rematch_id": "37fd61dbecdc680b08c16afc",
+      "results_received": true,
+      "scores": [
+        0,
+        2
+      ],
+      "snapshots": 1512,
+      "team": 1,
+      "valid": true,
+      "winner": 1
+    }
+  ],
+  "build": "mvp-ab-14",
+  "exported_server": null,
+  "service_origin": "https://battlebots-fumbleforce.fly.dev",
+  "managed_service": true,
+  "external_endpoint": "https://battlebots-fumbleforce.fly.dev",
+  "release_commit": "a84fd11b9c96d4e18378353babe914761a195f44",
+  "machine_id": "287e605ad7d578",
+  "image": "registry.fly.io/battlebots-fumbleforce@sha256:e829cafb8fd0cd96449ab7b59f576dc642d8de49cc9b19b8b1e139af920da8f3",
+  "health": {
+    "build": "mvp-ab-14",
+    "protocol": 6,
+    "content_hash": "623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed",
+    "region": "arn",
+    "queue_capacities": [
+      2,
+      4
+    ]
+  },
+  "live_build_record": {
+    "commit": "a84fd11b9c96d4e18378353babe914761a195f44",
+    "dirty": false,
+    "engine": "4.7.2.stable.official.ed1daf0bf",
+    "prepared_utc": "2026-09-23T10:13:39.178Z",
+    "preset": "Linux Server",
+    "files": [
+      {
+        "name": "battlebots-server.x86_64",
+        "sha256": "d9f79ab89b5ae369aeed11c6052d402e8218cd503bf85b4a235f9c30c46a7c63"
+      },
+      {
+        "name": "battlebots-server.pck",
+        "sha256": "5933a8af59d60342e504d21554b918b971ea93e9e5b7ff01a485a6699f2e9985"
+      },
+      {
+        "name": "manifest.json",
+        "sha256": "a028ee7340c8e5ed23d13e6d2fa538d61e3dc6811519521511fbb4c4cc3d216f"
+      }
+    ]
+  },
+  "stale_client_http_status": 409
+}

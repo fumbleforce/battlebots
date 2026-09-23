@@ -1,11 +1,12 @@
 # Fly.io online playtest deployment
 
-Live since 2026-09-20: `https://battlebots-fumbleforce.fly.dev`, build `mvp-ab-12`.
-Updated on 2026-09-20 to main's catalogue revision 6 after Quick Play correctly
-rejected the older deployed catalogue. See [service synchronization](../../docs/coordination/A_QUICK_PLAY_SERVICE_SYNC.md).
-Private and Quick Play duels passed real external UDP results/rematch checks;
-the current project is configured for this endpoint. See
-[deployment evidence](../../docs/coordination/A_FLY_DUEL_LIVE.md).
+Live endpoint: `https://battlebots-fumbleforce.fly.dev`. Updated 2026-09-23 to
+build `mvp-ab-14`, protocol 6, catalogue 10 from source `a84fd11`, with matching
+Linux/Windows clients. Private and Quick Play duels passed external UDP driving,
+reconnect, results and active rematch checks; stale clients still receive HTTP 409.
+See [current release and rollback evidence](../../docs/coordination/A_HOSTED_LINUX_RELEASE.md).
+The original deployment was 2026-09-20; previous catalogue-six evidence remains in
+[service synchronization](../../docs/coordination/A_QUICK_PLAY_SERVICE_SYNC.md).
 Provisioning commands below describe recreation, not a request to create duplicates.
 
 This deploys the HTTPS matchmaker and a bounded pool of real Godot UDP game

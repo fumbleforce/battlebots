@@ -118,9 +118,11 @@ and Vote rematch only at results. Reconnect is available through the session API
 
 The **Play Online** route supports Quick Play (1v1), private 1v1
 games and eight-character friend codes through an externally hosted dedicated
-server at `https://battlebots-fumbleforce.fly.dev`. Current `mvp-ab-12` clients
-are configured to use it. Older builds must update to match the server's
-transport settings. There is no built-in localhost fallback for players.
+server at `https://battlebots-fumbleforce.fly.dev`. Current clients
+are configured to use it. The 2026-09-23 coordinated release is `mvp-ab-14`,
+protocol 6, catalogue 10; older builds must update. See the
+[current release and matching clients](docs/coordination/A_HOSTED_LINUX_RELEASE.md).
+There is no built-in localhost fallback for players.
 [Deployment instructions](services/matchmaking/DEPLOYMENT.md) describe Fly.io,
 local checks, operating costs and the current single-Machine limits. LAN remains
 available independently through **Host LAN Game** and **Join LAN Game**.

@@ -1,5 +1,23 @@
 # Current A/B handoff
 
+## Coordinated hosted release — A, 23 September 2026
+
+The existing Fly service now matches main's Atlas/Nitro/Scorpion content:
+`mvp-ab-14`, protocol 6, catalogue 10. Linux server and Linux/Windows client
+artifacts were built together from clean `a84fd11`; the user confirmed the
+playtest break before the single-Machine update. The exact tested production
+image is live, its build record and compatibility match, and external private
+and Quick Play duels passed driving, reconnect, agreed results and active rematch.
+Old clients still receive HTTP 409. Previous image is retained for rollback.
+
+Linux preparation now uses `node tools/prepare-hosted.mjs --godot godot`, with no
+PowerShell requirement; it exports both clients and the server with commit/hash
+records. The Linux Client preset and Linux CI consume that workflow. The online
+menu test now accounts for the project's canvas stretch when checking bounds and
+injecting a click; its actual HTTP/ENet flow passes. Runtime UI/controls and
+compatibility contracts are unchanged. See [release/artifacts/validation](coordination/A_HOSTED_LINUX_RELEASE.md).
+Automated hosted acceptance is complete; human two-computer combat remains open.
+
 ## Customize footer and header alignment — B, 22 September 2026
 
 The Customize title is vertically centered with Back and the section tabs.
