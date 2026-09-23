@@ -131,7 +131,7 @@ void fragment() {
 	// The scanned mud is ochre clay; the reference mud is a dark brown.
 	if (w.z > 0.02) {
 		float lum = dot(L[2].albedo, vec3(0.299, 0.587, 0.114));
-		L[2].albedo = mix(vec3(lum), L[2].albedo, 0.35) * vec3(0.78, 0.7, 0.62);
+		L[2].albedo = mix(vec3(lum), L[2].albedo, 0.35) * vec3(0.62, 0.55, 0.48);
 	}
 	for (int i = 0; i < 4; i++) {
 		if (bw[i] > 0.0005) {
@@ -144,7 +144,7 @@ void fragment() {
 	// Churned, lighter lips and darker wet groove floors.
 	float lip = smoothstep(0.0, 0.25, rut) * (1.0 - smoothstep(0.25, 0.5, rut));
 	col *= 1.0 + lip * 0.12 - smoothstep(0.5, 1.0, rut) * 0.18;
-	col = mix(col, col * vec3(0.55, 0.5, 0.45), wet * 0.55);
+	col = mix(col, col * vec3(0.45, 0.41, 0.37), wet * 0.7);
 	// Scorch: soot mottled by fine noise, strongest at the blast centre.
 	float soot = smoothstep(0.1, 0.7, scorch) * (0.6 + 0.4 * wl_fbm(p * 1.3, 3));
 	col = mix(col, col * 0.16, soot * 0.85);

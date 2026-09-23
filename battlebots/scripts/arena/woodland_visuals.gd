@@ -885,15 +885,26 @@ func _lighting(arena: Node) -> void:
 	env.sky = sky
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.55
+	# Lower flat fill; SSAO/SSIL supply contact darkening and warm bounce.
+	env.ambient_light_energy = 0.42
 	env.ambient_light_sky_contribution = 1.0
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 1.0
-	env.tonemap_white = 6.0
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.05
+	env.tonemap_white = 12.0
 	env.ssao_enabled = true
-	env.ssao_radius = 1.2
-	env.ssao_intensity = 1.6
+	env.ssao_radius = 2.2
+	env.ssao_intensity = 2.4
+	env.ssao_power = 1.6
+	env.ssao_detail = 0.8
+	env.ssao_light_affect = 0.25
+	env.ssil_enabled = true
+	env.ssil_radius = 6.0
+	env.ssil_intensity = 1.2
+	# Natural film grade: slightly lifted contrast, restrained saturation.
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.16
+	env.adjustment_saturation = 0.95
 	env.ssr_enabled = true
 	env.glow_enabled = true
 	env.glow_intensity = 0.3
@@ -922,9 +933,12 @@ func _lighting(arena: Node) -> void:
 	var toward_sun := Vector3(sin(azimuth) * cos(elevation), sin(elevation), cos(azimuth) * cos(elevation))
 	sun.transform = Transform3D(Basis.looking_at(-toward_sun, Vector3.UP), Vector3.ZERO)
 	sun.light_color = Color(1.0, 0.9, 0.76)
-	sun.light_energy = 1.7
-	sun.light_angular_distance = 0.6
+	sun.light_energy = 2.0
+	# Soft penumbrae that widen with distance from the caster.
+	sun.light_angular_distance = 1.2
 	sun.shadow_enabled = true
-	sun.shadow_blur = 1.2
+	sun.shadow_blur = 1.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_blend_splits = true
 	sun.directional_shadow_max_distance = 190.0
 	sun.light_volumetric_fog_energy = 1.2
