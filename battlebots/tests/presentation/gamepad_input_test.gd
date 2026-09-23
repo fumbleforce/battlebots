@@ -30,7 +30,7 @@ func sample() -> BotCommand:
 	return probe.last_command
 func neutral() -> void:
 	for index: JoyAxis in [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y, JOY_AXIS_TRIGGER_LEFT, JOY_AXIS_TRIGGER_RIGHT]: axis(index, 0.0)
-	for index: JoyButton in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_RIGHT_STICK, JOY_BUTTON_BACK, JOY_BUTTON_START, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN]: button(index, false)
+	for index: JoyButton in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_RIGHT_STICK, JOY_BUTTON_LEFT_STICK, JOY_BUTTON_BACK, JOY_BUTTON_START, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN]: button(index, false)
 
 func run() -> void:
 	var original_accumulation := Input.use_accumulated_input
@@ -38,6 +38,11 @@ func run() -> void:
 	var scene := load("res://scenes/dev/b_input_menu.tscn").instantiate() as Node3D
 	root.add_child(scene)
 	await process_frame
+	# A native window receives focus asynchronously from the window manager.
+	for frame: int in 120:
+		if root.has_focus(): break
+		await process_frame
+	check(root.has_focus(), "Input fixture window has focus before gameplay checks")
 	preview = scene.get_node("Preview")
 	probe = scene.get_node("Bot")
 	preview.set_process(false)
@@ -63,6 +68,8 @@ func run() -> void:
 	button(JOY_BUTTON_X, true)
 	command = sample()
 	check(command.nitro_held and command.jump_held and command.recovery_pressed, "RB, south and west map to Nitro, jump and recovery")
+	button(JOY_BUTTON_LEFT_STICK, true)
+	check(sample().crouch_held, "Left-stick press crouches through the existing command")
 	neutral()
 	sample()
 	axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)
@@ -133,6 +140,11 @@ func run() -> void:
 	axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	for tick: int in 65: sample()
 	launches = probe.launch_count
+	var mouse := InputEventMouseMotion.new()
+	mouse.screen_relative = Vector2.ONE
+	Input.parse_input_event(mouse)
+	Input.flush_buffered_events()
+	check(preview._controller_device == -1, "Mouse activity switches hints without forgetting the active pad")
 	Input.joy_connection_changed.emit(DEVICE, false)
 	check(not preview.controls_enabled and probe.last_command.brake and probe.last_command.jump_cancel, "Active controller disconnect releases controls immediately")
 	check(not sample().primary_held and probe.launch_count == launches, "Disconnect cancels charged weapons instead of firing")
@@ -147,6 +159,41 @@ func run() -> void:
 	check(not preview.controls_enabled and probe.last_command.secondary_held, "Focus loss cancels controller weapon intent")
 	preview._on_focus_regained()
 	check(not sample().primary_held, "Held trigger stays blocked after focus returns")
+	neutral()
+	preview.capture_controls()
+	var registry := ContentRegistry.new()
+	var draft := registry.atlas()
+	draft.parts.utility = "turret_mortar"
+	var mortar := MvpBot.create(1, 0, draft, registry)
+	scene.add_child(mortar)
+	mortar.body.freeze = true
+	mortar.body.global_position = Vector3(0, 2, 0)
+	preview.source = mortar
+	preview.rig.bind_source(mortar)
+	preview.rig.pitch = 0.0
+	preview._process(1.0 / 60.0)
+	preview._physics_process(1.0 / 60.0)
+	check(preview.tank_sight.artillery and preview.aim_camera() == preview.tank_sight.camera,
+		"Mortar retains its artillery camera with a gamepad")
+	var target_before: Vector3 = preview._turret_aim_point
+	axis(JOY_AXIS_RIGHT_X, 0.5)
+	axis(JOY_AXIS_RIGHT_Y, 1.0)
+	for tick: int in 12:
+		preview._process(1.0 / 60.0)
+		preview._physics_process(1.0 / 60.0)
+	check(mortar.command.aim_valid and preview._turret_aim_point.distance_to(target_before) > 1.0,
+		"Right stick moves the mortar ground target and supplies valid launch aim")
+	check(preview.rig.pitch <= TankSightCamera.PITCH_MAX, "Controller artillery aim respects the sight range")
+	axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)
+	preview._physics_process(1.0 / 60.0)
+	check(mortar.command.auxiliary_held and not mortar.command.primary_held, "RT operates the fitted turret")
+	axis(JOY_AXIS_TRIGGER_RIGHT, 0.0)
+	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
+	preview._physics_process(1.0 / 60.0)
+	check(mortar.command.primary_held and not mortar.command.auxiliary_held, "LT operates the turret build's hull weapon")
+	preview.source = probe
+	preview.rig.bind_source(probe)
+	mortar.queue_free()
 	neutral()
 	preview.open_settings()
 	preview.settings_panel.open_controls()

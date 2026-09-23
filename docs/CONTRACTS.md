@@ -13,6 +13,17 @@ weapon, body or drive through the pickup swap. It returns `{part}` or
 the match (practice or a self-hosted listen game). No wire, catalogue or
 gameplay build change.
 
+## Controller input adapter (#22, 23 September 2026)
+
+Standard gamepad actions enter the existing GameplayInputGate/BotCommand path;
+right-stick aim calls the existing orbit rig and tank/artillery sight limits.
+No authoritative, wire, catalogue or compatibility change. Bindings are fixed;
+keyboard/mouse rebinding retains pad events. Menu/focus/remap suppression needs
+physical neutral before rearming, and disconnect cancels charges and pauses.
+A/B also supply GUI confirm/back. The Controls modal publishes all bindings,
+including left-stick press for the existing walker crouch action.
+[Mapping, tuning and evidence](coordination/CONTROLLER_INPUT.md).
+
 ## Walker hard-landing recovery — build mvp-ab-36 (#62)
 
 `WalkerDrive.support` first casts one ray down from the hull centre. If the

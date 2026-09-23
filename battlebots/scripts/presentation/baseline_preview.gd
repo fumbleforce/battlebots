@@ -20,6 +20,7 @@ var _resume_on_focus := false
 var input_gate := GameplayInputGate.new()
 var gamepad := GamepadInput.new()
 var _controller_device := -1
+var _used_controllers: Dictionary = {}
 var _load_notice: String = ""
 var _control_generation: int = 0
 var _leaving: bool = false
@@ -158,8 +159,9 @@ func _resume_after_settings(generation: int) -> void:
 		capture_controls()
 
 func _on_controller_connection_changed(device: int, connected: bool) -> void:
-	if not connected and device == _controller_device:
-		_controller_device = -1
+	if not connected and _used_controllers.has(device):
+		_used_controllers.erase(device)
+		if device == _controller_device: _controller_device = -1
 		gamepad.require_release()
 		if controls_enabled:
 			release_controls()
@@ -167,8 +169,10 @@ func _on_controller_connection_changed(device: int, connected: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadButton and event.pressed:
 		_controller_device = event.device
+		_used_controllers[event.device] = true
 	elif event is InputEventJoypadMotion and absf(event.axis_value) > InputMap.action_get_deadzone("camera_look_right"):
 		_controller_device = event.device
+		_used_controllers[event.device] = true
 	elif (event is InputEventKey or event is InputEventMouseButton) and event.is_pressed():
 		_controller_device = -1
 	elif event is InputEventMouseMotion and not event.screen_relative.is_zero_approx():
@@ -359,7 +363,8 @@ func _action_strength(action: StringName) -> float:
 			strength = 1.0
 		elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
 			var devices := Input.get_connected_joypads()
-			if _controller_device >= 0 and not devices.has(_controller_device): devices.append(_controller_device)
+			for used: int in _used_controllers:
+				if not devices.has(used): devices.append(used)
 			for device: int in devices:
 				if event.device >= 0 and event.device != device: continue
 				if event is InputEventJoypadButton:
@@ -387,8 +392,9 @@ func _process(delta: float) -> void:
 		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),
 		input_preferences.label_for(&"camera_recenter")] \
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
+	var gun := "Turret"
 	if controls_enabled and view != null and view.turret_kind != "":
-		var gun: String = {"cannon":"Main gun", "plasma":"Plasma gun", "flamer":"Flamethrower (hold)",
+		gun = {"cannon":"Main gun", "plasma":"Plasma gun", "flamer":"Flamethrower (hold)",
 			"tesla":"Tesla arc", "railgun":"Railgun (hold, release)",
 			"harpoon":"Harpoon (hold to reel, press to cut)", "mortar":"Mortar"}.get(view.turret_kind, "Turret")
 		if view.turret_model.ends_with("_dual"): gun = "Twin " + gun.to_lower()
@@ -403,7 +409,7 @@ func _process(delta: float) -> void:
 		hint.text = "Left stick  Drive  |  Right stick  Orbit  |  RB  Nitro  |  A  Jump  |  Start  Menu" \
 			if controls_enabled else "D-pad  Select  |  A  Confirm  |  B  Back  |  Start  Resume"
 		if controls_enabled and view != null and view.turret_kind != "":
-			hint.text = "Right stick  Aim  |  RT  Turret  |  LT  Hull weapon  |  Start  Menu"
+			hint.text = "Right stick  Aim  |  RT  %s  |  LT  Hull weapon  |  Start  Menu" % gun
 		elif controls_enabled and view != null and view.has_auxiliary_weapon:
 			hint.text = "RT  Primary weapon  |  LT  Auxiliary gun  |  Right stick  Orbit  |  Start  Menu"
 

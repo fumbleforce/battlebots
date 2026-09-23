@@ -9,7 +9,8 @@ const GUIDE: Array[String] = [
 	"LB · brake", "RB · Nitro",
 	"A / south · charge jump", "X / west · recover",
 	"Right stick press · recenter", "D-pad up / down · zoom",
-	"View / Back · scoreboard", "Start · menu",
+	"Left stick press · crouch", "View / Back · scoreboard",
+	"Start · menu", "D-pad / A / B · menus",
 ]
 var look_pixels_per_second: float
 var max_look_delta_seconds: float

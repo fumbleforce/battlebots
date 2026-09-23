@@ -5,6 +5,16 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Standard controller input and settings guide (#22) — 23 September 2026
+
+Analog driving and right-stick camera/aim now use the existing gameplay actions,
+including new walker crouch and mortar aiming. Trigger/button gameplay, menu
+confirm/back, disconnect cancellation and held-input safety are covered by the
+focused integration test. The Controls modal exposes a fixed gamepad layout at
+enlarged text. No simulation/wire/catalogue change. Human physical-controller,
+remapping and camera/spectator feel acceptance remain open.
+[Mapping and validation](coordination/CONTROLLER_INPUT.md).
+
 ## Walker stands up after a hard landing (#62) — 23 September 2026
 
 A four-legged walker that fell far enough to bottom its hull out on the floor
