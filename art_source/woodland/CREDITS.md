@@ -17,6 +17,7 @@ orthographic Cycles renders under a uniform white sky (albedo x self-occlusion).
 | `assets/models/woodland/scatter_grass`, `scatter_fern` | `build_scatter.py` | grass_medium_01/02, fern_02 (1k) | Rob Tuytel, Rico Cilliers |
 | `assets/models/woodland/palisade_*` | `build_palisade.py` | (modelled; scanned weathered_planks applied in game) | - |
 | `assets/models/woodland/stadium_*` | `build_stands.py` | (modelled) | - |
+| `assets/textures/woodland/conifer_branches*.png` | `build_branch_atlas.py` | fir_sapling_medium (1k) | Rob Tuytel, Rico Cilliers |
 | `assets/textures/woodland/grass_patches.png` | `build_grass_atlas.py` | grass_medium_01/02 (1k) | Rob Tuytel, Rico Cilliers |
 
 `battlebots/tools/bake_woodland_masks.gd` bakes `ground_masks.png` (ruts, grass,

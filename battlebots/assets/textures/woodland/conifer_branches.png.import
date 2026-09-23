@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cf41vlg4jnoya"
-path="res://.godot/imported/conifer_whorls.png-ce28f92658175465cdb3680d90c9e4bd.ctex"
+uid="uid://cgomnxeeh6ksh"
+path="res://.godot/imported/conifer_branches.png-53bf174d7093fd6a9b7e1cc983319fc3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/woodland/conifer_whorls.png"
-dest_files=["res://.godot/imported/conifer_whorls.png-ce28f92658175465cdb3680d90c9e4bd.ctex"]
+source_file="res://assets/textures/woodland/conifer_branches.png"
+dest_files=["res://.godot/imported/conifer_branches.png-53bf174d7093fd6a9b7e1cc983319fc3.ctex"]
 
 [params]
 

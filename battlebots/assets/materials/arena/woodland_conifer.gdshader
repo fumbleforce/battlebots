@@ -5,6 +5,9 @@ shader_type spatial;
 render_mode cull_disabled;
 #include "res://assets/materials/arena/woodland_common.gdshaderinc"
 uniform sampler2D atlas : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
+uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_disable;
+uniform bool use_normal = false;
+uniform bool use_occlusion = false;
 uniform float cutoff = 0.42;
 uniform vec3 tint : source_color = vec3(0.78, 0.82, 0.74);
 varying float seed;
@@ -21,7 +24,14 @@ void fragment() {
 	ALPHA = c.a;
 	ALPHA_SCISSOR_THRESHOLD = cutoff;
 	vec3 col = c.rgb * tint * (0.9 + seed * 0.2);
+	if (use_occlusion) { col *= COLOR.r; }
 	ALBEDO = col;
+	if (use_normal) {
+		// Rendered world normals of a top-down spray: flip for back faces.
+		vec3 n = texture(normal_tex, UV).rgb;
+		NORMAL_MAP = FRONT_FACING ? n : vec3(1.0 - n.x, 1.0 - n.y, n.z);
+		NORMAL_MAP_DEPTH = 0.6;
+	}
 	ROUGHNESS = 0.8;
 	SPECULAR = 0.3;
 	BACKLIGHT = col * 0.22;

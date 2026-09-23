@@ -11,7 +11,7 @@ const HALF := GROUND.HALF
 var bark := ShaderMaterial.new()
 var stone := ShaderMaterial.new()
 var side_cards := ShaderMaterial.new()
-var whorl_discs := ShaderMaterial.new()
+var branch_cards := ShaderMaterial.new()
 
 func _init() -> void:
 	bark.shader = BARK
@@ -20,8 +20,11 @@ func _init() -> void:
 	stone.shader = ROCK
 	side_cards.shader = CONIFER
 	side_cards.set_shader_parameter("atlas", load("res://assets/textures/woodland/conifer_sides.png"))
-	whorl_discs.shader = CONIFER
-	whorl_discs.set_shader_parameter("atlas", load("res://assets/textures/woodland/conifer_whorls.png"))
+	branch_cards.shader = CONIFER
+	branch_cards.set_shader_parameter("atlas", load("res://assets/textures/woodland/conifer_branches.png"))
+	branch_cards.set_shader_parameter("normal_tex", load("res://assets/textures/woodland/conifer_branches_nor.png"))
+	branch_cards.set_shader_parameter("use_normal", true)
+	branch_cards.set_shader_parameter("use_occlusion", true)
 
 var _heights := PackedFloat32Array()
 var _pines: Dictionary = {}
@@ -363,68 +366,95 @@ func pine(seed: int, height: float, detail: int) -> ArrayMesh:
 	trunk.generate_tangents()
 	trunk.set_material(bark)
 	trunk.commit(mesh)
-	# Crossed side cards of the scanned fir, from the Blender-rendered atlas.
-	var width := height * 0.56
+	# Crossed side cards: the whole foliage for far trees, a dense core for near ones.
+	var width := height * 0.56 * (1.0 if detail == 0 else 0.62)
 	var crown_centre := height * 0.55
 	var cross := SurfaceTool.new()
 	cross.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var cards: int = [2, 3, 4][detail]
+	var cards: int = [2, 2, 3][detail]
 	for k: int in range(cards):
 		var cell := (seed + k * 2) % 6
 		var u0 := float(cell % 3) / 3.0
 		var v0 := float(cell / 3) / 2.0
 		var yaw := PI * k / cards + rng.randf_range(-0.2, 0.2)
 		var across := Vector3(cos(yaw), 0, sin(yaw))
-		var columns := 4
-		var rows := 4
 		var grid: Array = []
-		for r: int in range(rows + 1):
+		for r: int in range(5):
 			var row: Array = []
-			for c: int in range(columns + 1):
-				var fx := float(c) / columns
-				var fy := float(r) / rows
+			for c: int in range(5):
+				var fx := float(c) / 4.0
+				var fy := float(r) / 4.0
 				var at := across * (fx - 0.5) * width + Vector3(0, fy * height * 1.03 - 0.3, 0)
 				var normal := (Vector3(at.x, (at.y - crown_centre) * 0.35, at.z) + Vector3.UP * height * 0.12).normalized()
 				row.append([at, normal, Vector2(u0 + fx / 3.0, v0 + (1.0 - fy) / 2.0)])
 			grid.append(row)
-		for r: int in range(rows):
-			for c: int in range(columns):
+		for r: int in range(4):
+			for c: int in range(4):
 				_tri(cross, grid[r][c], grid[r][c + 1], grid[r + 1][c + 1])
 				_tri(cross, grid[r][c], grid[r + 1][c + 1], grid[r + 1][c])
 	cross.set_material(side_cards)
 	cross.commit(mesh)
-	# Drooping whorl discs give near trees volume from above and at an angle.
-	var whorls: int = [0, 3, 6][detail]
-	if whorls > 0:
-		var discs := SurfaceTool.new()
-		discs.begin(Mesh.PRIMITIVE_TRIANGLES)
-		for n: int in range(whorls):
-			var t := lerpf(0.3, 0.82, float(n) / maxf(whorls - 1, 1))
-			var y := height * t
-			var radius := width * 0.5 * (1.12 - t) * 1.35 + 0.4
-			var cell := (seed + n) % 4
-			var centre_uv := Vector2(0.25 + 0.5 * (cell % 2), 0.25 + 0.5 * float(cell / 2))
-			var spin := rng.randf() * TAU
-			var disc_rings := 3
-			var disc_segments := 14
-			var disc: Array = []
-			for ring: int in range(disc_rings + 1):
-				var fr := float(ring) / disc_rings
-				var circle: Array = []
-				for sgm: int in range(disc_segments + 1):
-					var a := TAU * sgm / disc_segments
-					var at := Vector3(cos(a) * radius * fr, y - radius * 0.28 * fr * fr + radius * 0.06, sin(a) * radius * fr)
-					var normal := (Vector3(at.x, radius * 0.9, at.z)).normalized()
-					var uv := centre_uv + Vector2(cos(a + spin), sin(a + spin)) * fr * 0.25
-					circle.append([at + Vector3(axis.call(y).x, 0, axis.call(y).z), normal, uv])
-				disc.append(circle)
-			for ring: int in range(disc_rings):
-				for sgm: int in range(disc_segments):
-					_tri(discs, disc[ring][sgm], disc[ring][sgm + 1], disc[ring + 1][sgm + 1])
-					_tri(discs, disc[ring][sgm], disc[ring + 1][sgm + 1], disc[ring + 1][sgm])
-		discs.set_material(whorl_discs)
-		discs.commit(mesh)
+	if detail == 0:
+		return mesh
+	# Near trees: whorls of drooping branch cards rendered from the scan
+	# (art_source/woodland/build_branch_atlas.py), like production conifers.
+	var branches := SurfaceTool.new()
+	branches.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var crown_base := height * rng.randf_range(0.14, 0.22)
+	var reach := height * rng.randf_range(0.2, 0.25)
+	var spacing: float = [1.3, 1.3, 0.85][detail]
+	var levels := maxi(5, int((height - crown_base) / spacing))
+	var per_level: int = [5, 6, 8][detail]
+	var index := 0
+	for level: int in range(levels):
+		var t := float(level) / (levels - 1)
+		var y := lerpf(crown_base, height - 0.6, t) + rng.randf_range(-0.2, 0.2)
+		var length := reach * pow(1.0 - t, 0.85) + 0.7
+		var count := maxi(3, int(round(per_level * (1.0 - t * 0.4))))
+		for n: int in range(count):
+			index += 1
+			var az := TAU * n / count + level * 2.39996 + rng.randf_range(-0.25, 0.25)
+			var out := Vector3(cos(az), 0, sin(az))
+			var pitch := lerpf(0.5, -0.15, t) + rng.randf_range(-0.12, 0.12) # + is downward.
+			var dir := (out * cos(pitch) - Vector3.UP * sin(pitch)).normalized()
+			var side := out.cross(Vector3.UP).normalized().rotated(dir, rng.randf_range(-0.4, 0.4))
+			var up := side.cross(dir).normalized()
+			if up.y < 0.0:
+				up = -up
+			var w := length * 0.48
+			var droop := length * lerpf(0.28, 0.08, t) * rng.randf_range(0.7, 1.3)
+			var cell := (seed + index) % 8
+			var u0 := float(cell % 2) * 0.5
+			var v0 := float(cell / 2) * 0.25
+			var base: Vector3 = axis.call(y)
+			var grid: Array = []
+			for k: int in range(5):
+				var u := float(k) / 4.0
+				var centre := base + dir * length * u - Vector3.UP * droop * u * u
+				var row: Array = []
+				for j: int in range(3):
+					var v := float(j) / 2.0
+					var at := centre + side * (v - 0.5) * w * (0.55 + 0.45 * u) + up * (0.5 - absf(v - 0.5)) * w * 0.08
+					# Rounded crown shading: blend card up with the outward direction.
+					var normal := (up * 0.7 + out * 0.6 + Vector3.UP * 0.2).normalized()
+					var occlusion := lerpf(0.45, 1.0, u) * lerpf(0.75, 1.0, t)
+					row.append([at, normal, Vector2(u0 + u * 0.5, v0 + v * 0.25), Color(occlusion, occlusion, occlusion)])
+				grid.append(row)
+			for k: int in range(4):
+				for j: int in range(2):
+					_tri_c(branches, grid[k][j], grid[k + 1][j], grid[k + 1][j + 1])
+					_tri_c(branches, grid[k][j], grid[k + 1][j + 1], grid[k][j + 1])
+	branches.generate_tangents()
+	branches.set_material(branch_cards)
+	branches.commit(mesh)
 	return mesh
+
+func _tri_c(tool: SurfaceTool, a: Array, b: Array, c: Array) -> void:
+	for v: Array in [a, b, c]:
+		tool.set_color(v[3])
+		tool.set_normal(v[1])
+		tool.set_uv(v[2])
+		tool.add_vertex(v[0])
 
 func _tri(tool: SurfaceTool, a: Array, b: Array, c: Array) -> void:
 	# Keep Godot's clockwise front faces pointing along the authored normals.
