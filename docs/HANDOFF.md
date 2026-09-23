@@ -1,5 +1,13 @@
 # Current A/B handoff
 
+## Atlas turret (B, #36) — 23 September 2026
+
+B merged the modelled, mouse-aimed Atlas turret (cannon/plasma) with tank sight
+controls. It changes gameplay and the wire: catalogue 11, PROTOCOL 8, BUILD
+`mvp-ab-18`. **A: a matching hosted release is required.** Until then, live
+workers correctly reject this client. Details, validation and open work:
+[B_ATLAS_TURRET.md](coordination/B_ATLAS_TURRET.md).
+
 ## Moon driving dust and diesel volumes — 23 September 2026
 
 Issue [#31](https://github.com/fumbleforce/battlebots/issues/31), isolated worktree

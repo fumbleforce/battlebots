@@ -1,5 +1,18 @@
 # Shared contracts — local records and current MVP session API
 
+## Atlas turret — catalogue 11, protocol 8, build mvp-ab-18
+
+Utilities `turret_cannon`/`turret_plasma` are Atlas-only and exclude the
+primary minigun. `BotCommand` adds `aim_valid` (flag bit 9) plus `aim_yaw` and
+`aim_pitch` (world bearing/elevation). The wire command array is
+`[sequence, throttle, steering, flags, aim_yaw, aim_pitch]` and rejects
+malformed, non-finite or out-of-range aim. Snapshots append `turret_yaw`
+(40 fields). Elevation reuses `gun_pitch` and shots reuse the gun shot fields.
+`BotView` adds `turret_kind` and `turret_yaw`. The server alone slews the turret
+within the audited per-bearing elevation profile and resolves every ray; the
+client supplies only aim intent. Revision-10 saves migrate. Hosted peers need
+the matching release. See [B turret handoff](coordination/B_ATLAS_TURRET.md).
+
 ## Atlas MX — catalogue 10, schema 2, protocol 6, build mvp-ab-14
 
 `ContentRegistry.atlas()` adds the `atlas_mx` chassis with traction drive and the
