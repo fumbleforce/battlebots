@@ -19,6 +19,12 @@ const MINIGUN_DAMAGE := 6.0
 const RAM_MIN_CLOSING_SPEED := 4.0
 ## Impact scaling and ram knock-back tuning: data/bot_physics.json "impacts".
 var physics := BotPhysics.settings()
+## Atlas turret rays. The cannon trades cadence for a heavy knock; plasma bolts
+## are quick, light and heat-limited. Both use the ordinary zone/armor rules.
+const TURRET_RANGE := {"cannon":80.0, "plasma":55.0}
+const TURRET_DAMAGE := {"cannon":32.0, "plasma":11.0}
+const TURRET_KNOCK := {"cannon":0.9, "plasma":0.06}
+const TURRET_RECOIL := {"cannon":0.12, "plasma":0.02}
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
@@ -42,13 +48,18 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		if attacker.combat.eliminated:
 			continue
 		var state := attacker.combat
-		if state.stats.weapon == "minigun" or state.stats.get("secondary_weapon", "") == "minigun":
+		if state.is_turret():
+			_update_turret_aim(attacker, delta)
+		elif state.stats.weapon == "minigun" or state.stats.get("secondary_weapon", "") == "minigun":
 			_update_gun_aim(attacker, bots, delta)
 		if state.gun_shot:
 			# Paid cadence pulses resolve once, including a last shot that reaches
 			# the shared heat ceiling. A second world step cannot replay a bullet.
 			state.gun_shot = false
-			_minigun_shot(attacker, bots, tick, round_index)
+			if state.is_turret():
+				_turret_shot(attacker, bots, tick, round_index)
+			else:
+				_minigun_shot(attacker, bots, tick, round_index)
 		if state.stats.weapon == "minigun":
 			continue
 		# A committed strike may reach the heat limit on its impact tick. The
@@ -388,6 +399,57 @@ func _update_gun_aim(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 			desired = clampf(absolute_pitch, deg_to_rad(-35.0), deg_to_rad(20.0)) - ScorpionGeometry.GUN_REST_PITCH
 	state.gun_pitch = move_toward(state.gun_pitch, desired, maxf(0.0, delta) * 3.0)
 
+## The client supplies only a world aim bearing, like steering intent. The
+## turret servos toward it within mechanical rates and stops, stabilised
+## against chassis motion; stale/neutral commands return it to the front.
+func _update_turret_aim(attacker: MvpBot, delta: float) -> void:
+	var state := attacker.combat
+	var target := Vector2.ZERO
+	var command := attacker.command
+	if command.aim_valid and not state.eliminated and state.zones.weapon > 0.0:
+		var world := Basis(Vector3.UP, command.aim_yaw) * Basis(Vector3.RIGHT, command.aim_pitch) * Vector3.FORWARD
+		target = AtlasGeometry.turret_target(attacker.body.global_basis, world, state.stats.secondary_weapon)
+	elif state.zones.weapon <= 0.0:
+		# A disabled turret loses traverse power and stays where it is.
+		target = Vector2(state.turret_yaw, state.gun_pitch)
+	var next := AtlasGeometry.turret_slew(Vector2(state.turret_yaw, state.gun_pitch), target, delta, state.stats.secondary_weapon)
+	state.turret_yaw = next.x
+	state.gun_pitch = next.y
+
+func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: int) -> void:
+	var state := attacker.combat
+	if state.zones.weapon <= 0 or state.eliminated:
+		return
+	var kind: String = state.stats.secondary_weapon
+	var size: Vector3 = state.stats.size
+	var basis := attacker.body.global_basis
+	var direction := (basis * AtlasGeometry.turret_direction(state.turret_yaw, state.gun_pitch)).normalized()
+	var origin := attacker.body.global_transform * AtlasGeometry.turret_breech(size, state.turret_yaw)
+	var from := attacker.body.global_transform * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch)
+	var end := from + direction * float(TURRET_RANGE[kind])
+	# Trace from the trunnion, inside the casting, so a barrel pushed through a
+	# wall cannot fire from its far side. Allies block without taking damage.
+	var query := PhysicsRayQueryParameters3D.create(origin, end,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid()])
+	query.hit_from_inside = true
+	var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
+	state.last_shot_from = from
+	state.last_shot_to = end if result.is_empty() else result.position
+	state.last_shot_tick = tick
+	if result.is_empty():
+		return
+	if origin.distance_squared_to(result.position) < origin.distance_squared_to(from):
+		state.last_shot_from = origin
+	for id: int in bots:
+		var victim: MvpBot = bots[id]
+		if victim.body.get_instance_id() != result.collider_id:
+			continue
+		if victim.team != attacker.team and not victim.combat.eliminated:
+			_hit(attacker, victim, result.position, float(TURRET_DAMAGE[kind]),
+				direction * victim.body.mass * float(TURRET_KNOCK[kind]), tick, round_index,
+				float(TURRET_RECOIL[kind]), kind)
+		return
+
 func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: int) -> void:
 	var state := attacker.combat
 	if state.zones.weapon <= 0 or state.eliminated:
@@ -461,6 +523,6 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:
 		attacker.combat.attack_id += 1
 	events.append({"event_id":event_id, "round":round_index, "tick":tick, "kind":kind,
-		"attack_id":attacker.combat.shot_sequence if kind == "minigun" else attacker.combat.attack_id, "attacker":attacker.entity_id,
+		"attack_id":attacker.combat.shot_sequence if kind in ["minigun", "cannon", "plasma"] else attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,
 		"normal":(point - victim.body.global_position).normalized()})

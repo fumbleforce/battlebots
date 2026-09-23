@@ -71,7 +71,7 @@ func run() -> void:
 	legacy.sample({}, {}, true)
 	check(not legacy.sample({&"secondary": 1.0}, {}, true).auxiliary_held,
 		"Bots without auxiliary capability preserve ordinary secondary cancellation")
-	check(WireCodec.command_from_array([1, 0.0, 0.0, 512]) == null,
+	check(WireCodec.command_from_array([1, 0.0, 0.0, 1024, 0.0, 0.0]) == null,
 		"Unknown command flag bits are rejected")
 	var cancel := BotCommand.new()
 	cancel.secondary_held = true

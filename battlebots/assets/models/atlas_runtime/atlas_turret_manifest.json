@@ -1,0 +1,781 @@
+{
+  "name": "Atlas MX turret",
+  "id": "atlas_turret",
+  "runtime": "atlas_turret.glb",
+  "authoring": "Godot metres in the Atlas hull frame, X right Y up -Z forward; runtime factor three applied by AtlasVisual",
+  "generator": "tools/build-atlas-turret.py",
+  "yaw_pivot": [
+    0.0,
+    0.52,
+    -0.14
+  ],
+  "pitch_pivot": [
+    0.0,
+    0.77345,
+    -0.546
+  ],
+  "pitch_limits_degrees": [
+    -20.0,
+    30.0
+  ],
+  "muzzles": {
+    "cannon": [
+      0.0,
+      0.77345,
+      -1.91625
+    ],
+    "plasma": [
+      0.0,
+      0.77345,
+      -1.503
+    ]
+  },
+  "muzzle_offsets": {
+    "cannon": 1.37025,
+    "plasma": 0.957
+  },
+  "turret_scale": 1.45,
+  "nodes": [
+    "TurretBase",
+    "TurretYaw",
+    "TurretPitch",
+    "AttachmentCannon",
+    "CannonRecoil",
+    "AttachmentPlasma",
+    "MuzzleCannon",
+    "MuzzlePlasma"
+  ],
+  "bounds_all_attachments": {
+    "min": [
+      -0.60175,
+      0.4765,
+      -1.91625
+    ],
+    "max": [
+      0.60175,
+      1.10115,
+      0.4603
+    ]
+  },
+  "triangles": {
+    "base": 14484,
+    "housing": 19432,
+    "mantlet": 5112,
+    "cannon": 10724,
+    "plasma": 9048
+  },
+  "clearance": {
+    "scope": "Sampled triangle-overlap audit against imported atlas_mx.glb. Per 5-degree bearing the lowest clear elevation of mantlet+attachment is measured (7-step bisection, 1 degree margin); the runtime rule (max of the two neighbouring samples) is then verified at every 2.5 degrees of yaw from that floor to the +30 degree stop in 2.5 degree steps. Adapter checked at rest.",
+    "yaw_step_degrees": 5,
+    "contacts": {
+      "adapter_vs_base": 0,
+      "adapter_vs_objects": [],
+      "moving": {
+        "yaw_vs_ArmorTop": {
+          "samples": 5188,
+          "first": [
+            [
+              0.0,
+              -20.0,
+              277
+            ],
+            [
+              0.0,
+              -17.5,
+              277
+            ],
+            [
+              0.0,
+              -15.0,
+              277
+            ],
+            [
+              0.0,
+              -12.5,
+              277
+            ],
+            [
+              0.0,
+              -10.0,
+              277
+            ],
+            [
+              0.0,
+              -7.5,
+              277
+            ]
+          ]
+        },
+        "mantlet_vs_ArmorTop": {
+          "samples": 3006,
+          "first": [
+            [
+              57.5,
+              -7.0,
+              26
+            ],
+            [
+              57.5,
+              -4.5,
+              32
+            ],
+            [
+              57.5,
+              -2.0,
+              18
+            ],
+            [
+              57.5,
+              -6.0,
+              30
+            ],
+            [
+              57.5,
+              -3.5,
+              26
+            ],
+            [
+              60.0,
+              -7.0,
+              64
+            ]
+          ]
+        },
+        "cannon_vs_ArmorTop": {
+          "samples": 235,
+          "first": [
+            [
+              122.5,
+              -8.0,
+              15
+            ],
+            [
+              125.0,
+              -6.0,
+              20
+            ],
+            [
+              127.5,
+              -6.0,
+              21
+            ],
+            [
+              127.5,
+              -3.5,
+              12
+            ],
+            [
+              130.0,
+              -6.0,
+              27
+            ],
+            [
+              130.0,
+              -3.5,
+              16
+            ]
+          ]
+        },
+        "plasma_vs_ArmorTop": {
+          "samples": 99,
+          "first": [
+            [
+              140.0,
+              -7.0,
+              103
+            ],
+            [
+              140.0,
+              -4.5,
+              26
+            ],
+            [
+              142.5,
+              -7.0,
+              194
+            ],
+            [
+              145.0,
+              -8.0,
+              62
+            ],
+            [
+              145.0,
+              -5.5,
+              72
+            ],
+            [
+              147.5,
+              -8.0,
+              50
+            ]
+          ]
+        },
+        "cannon_vs_ExhaustLarge": {
+          "samples": 252,
+          "first": [
+            [
+              142.5,
+              -9.0,
+              50
+            ],
+            [
+              142.5,
+              -6.5,
+              48
+            ],
+            [
+              142.5,
+              -4.0,
+              48
+            ],
+            [
+              142.5,
+              -1.5,
+              46
+            ],
+            [
+              142.5,
+              1.0,
+              48
+            ],
+            [
+              142.5,
+              3.5,
+              48
+            ]
+          ]
+        },
+        "cannon_vs_ExhaustMedium": {
+          "samples": 183,
+          "first": [
+            [
+              142.5,
+              -9.0,
+              24
+            ],
+            [
+              142.5,
+              -6.5,
+              24
+            ],
+            [
+              142.5,
+              -4.0,
+              22
+            ],
+            [
+              142.5,
+              -1.5,
+              22
+            ],
+            [
+              142.5,
+              1.0,
+              22
+            ],
+            [
+              142.5,
+              3.5,
+              22
+            ]
+          ]
+        },
+        "cannon_vs_ExhaustSmall": {
+          "samples": 83,
+          "first": [
+            [
+              142.5,
+              -9.0,
+              12
+            ],
+            [
+              142.5,
+              -6.5,
+              22
+            ],
+            [
+              142.5,
+              -4.0,
+              18
+            ],
+            [
+              145.0,
+              -10.0,
+              294
+            ],
+            [
+              145.0,
+              -7.5,
+              217
+            ],
+            [
+              145.0,
+              -5.0,
+              184
+            ]
+          ]
+        },
+        "plasma_vs_ExhaustLarge": {
+          "samples": 242,
+          "first": [
+            [
+              142.5,
+              -7.0,
+              66
+            ],
+            [
+              142.5,
+              -4.5,
+              64
+            ],
+            [
+              142.5,
+              -2.0,
+              62
+            ],
+            [
+              142.5,
+              0.5,
+              58
+            ],
+            [
+              142.5,
+              3.0,
+              66
+            ],
+            [
+              142.5,
+              5.5,
+              70
+            ]
+          ]
+        },
+        "plasma_vs_ExhaustMedium": {
+          "samples": 182,
+          "first": [
+            [
+              142.5,
+              -7.0,
+              10
+            ],
+            [
+              142.5,
+              -4.5,
+              10
+            ],
+            [
+              142.5,
+              -2.0,
+              6
+            ],
+            [
+              142.5,
+              0.5,
+              4
+            ],
+            [
+              142.5,
+              3.0,
+              6
+            ],
+            [
+              142.5,
+              5.5,
+              12
+            ]
+          ]
+        },
+        "plasma_vs_ExhaustSmall": {
+          "samples": 76,
+          "first": [
+            [
+              145.0,
+              -8.0,
+              273
+            ],
+            [
+              145.0,
+              -5.5,
+              218
+            ],
+            [
+              145.0,
+              -3.0,
+              180
+            ],
+            [
+              145.0,
+              -0.5,
+              128
+            ],
+            [
+              145.0,
+              2.0,
+              14
+            ],
+            [
+              147.5,
+              -8.0,
+              637
+            ]
+          ]
+        }
+      }
+    },
+    "depression_profile_degrees": {
+      "cannon": [
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -14.0,
+        -11.0,
+        -10.0,
+        -7.0,
+        -7.0,
+        -8.0,
+        -9.0,
+        -10.0,
+        -10.0,
+        -11.0,
+        -11.0,
+        -11.0,
+        -10.0,
+        -10.0,
+        -10.0,
+        -9.0,
+        -9.0,
+        -8.0,
+        -6.0,
+        -6.0,
+        -9.0,
+        -10.0,
+        -13.0,
+        -14.0,
+        -15.0,
+        -17.0,
+        -18.0,
+        -18.0,
+        -18.0,
+        -18.0,
+        -18.0,
+        -17.0,
+        -15.0,
+        -14.0,
+        -13.0,
+        -10.0,
+        -9.0,
+        -6.0,
+        -6.0,
+        -8.0,
+        -9.0,
+        -9.0,
+        -10.0,
+        -10.0,
+        -10.0,
+        -11.0,
+        -11.0,
+        -11.0,
+        -10.0,
+        -10.0,
+        -9.0,
+        -8.0,
+        -7.0,
+        -7.0,
+        -10.0,
+        -11.0,
+        -14.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0
+      ],
+      "plasma": [
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -13.0,
+        -10.0,
+        -9.0,
+        -6.0,
+        -6.0,
+        -7.0,
+        -8.0,
+        -9.0,
+        -9.0,
+        -10.0,
+        -10.0,
+        -10.0,
+        -9.0,
+        -9.0,
+        -9.0,
+        -8.0,
+        -8.0,
+        -8.0,
+        -5.0,
+        -5.0,
+        -7.0,
+        -8.0,
+        -11.0,
+        -12.0,
+        -13.0,
+        -14.0,
+        -14.0,
+        -15.0,
+        -15.0,
+        -15.0,
+        -14.0,
+        -14.0,
+        -13.0,
+        -12.0,
+        -11.0,
+        -8.0,
+        -7.0,
+        -5.0,
+        -5.0,
+        -8.0,
+        -8.0,
+        -8.0,
+        -9.0,
+        -9.0,
+        -9.0,
+        -10.0,
+        -10.0,
+        -10.0,
+        -9.0,
+        -9.0,
+        -8.0,
+        -7.0,
+        -6.0,
+        -6.0,
+        -9.0,
+        -10.0,
+        -13.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0,
+        -20.0
+      ]
+    },
+    "base_clear": true
+  },
+  "surface_atlases": {
+    "version": 1,
+    "uv": "TEXCOORD_0",
+    "unique_meshes": 6,
+    "mesh_instances": 6,
+    "families": {
+      "Primary": {
+        "resolution": 2048,
+        "faces": 1284,
+        "images": {
+          "base": "Atlas_TurretPrimary_base.png",
+          "orm": "Atlas_TurretPrimary_orm.png",
+          "normal": "Atlas_TurretPrimary_normal.png",
+          "coverage": "Atlas_TurretPrimary_coverage.png"
+        },
+        "occupied_fraction": 0.79021,
+        "ao_min": 0.0,
+        "ao_mean": 0.569,
+        "roughness_min": 0.33836,
+        "roughness_max": 0.83897
+      },
+      "Secondary": {
+        "resolution": 1024,
+        "faces": 1724,
+        "images": {
+          "base": "Atlas_TurretSecondary_base.png",
+          "orm": "Atlas_TurretSecondary_orm.png",
+          "normal": "Atlas_TurretSecondary_normal.png",
+          "coverage": "Atlas_TurretSecondary_coverage.png"
+        },
+        "occupied_fraction": 0.75778,
+        "ao_min": 0.0,
+        "ao_mean": 0.66559,
+        "roughness_min": 0.34204,
+        "roughness_max": 0.81812
+      },
+      "Hardware": {
+        "resolution": 2048,
+        "faces": 22578,
+        "images": {
+          "base": "Atlas_TurretHardware_base.png",
+          "orm": "Atlas_TurretHardware_orm.png",
+          "normal": "Atlas_TurretHardware_normal.png"
+        },
+        "occupied_fraction": 0.52807,
+        "ao_min": 0.0,
+        "ao_mean": 0.47514,
+        "roughness_min": 0.25875,
+        "roughness_max": 0.92253
+      }
+    },
+    "paint_coverage": {
+      "Primary": "Atlas_TurretPrimary_coverage.png",
+      "Secondary": "Atlas_TurretSecondary_coverage.png"
+    },
+    "occlusion": {
+      "method": "ray_traced_local_assembly",
+      "distance_metres": 0.06
+    },
+    "material_references": {
+      "Atlas_PaintPrimaryEdge": {
+        "linear_color": [
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.66
+      },
+      "Atlas_Metal": {
+        "linear_color": [
+          0.23302200436592102,
+          0.2632734179496765,
+          0.27383843064308167,
+          1.0
+        ],
+        "metallic": 0.9200000166893005,
+        "roughness": 0.36000001430511475
+      },
+      "Atlas_Rubber": {
+        "linear_color": [
+          0.0035010159481316805,
+          0.004400849808007479,
+          0.004896310158073902,
+          1.0
+        ],
+        "metallic": 0.0,
+        "roughness": 0.8399999737739563
+      },
+      "Atlas_Recess": {
+        "linear_color": [
+          0.0020123838912695646,
+          0.0027089782524853945,
+          0.0030185759533196688,
+          1.0
+        ],
+        "metallic": 0.41999998688697815,
+        "roughness": 0.5099999904632568
+      },
+      "Atlas_CoilCopper": {
+        "linear_color": [
+          0.47699978947639465,
+          0.11928018927574158,
+          0.03310476616024971,
+          1.0
+        ],
+        "metallic": 0.949999988079071,
+        "roughness": 0.33000001311302185
+      },
+      "Atlas_InsulatorCeramic": {
+        "linear_color": [
+          0.5704815983772278,
+          0.5542217493057251,
+          0.47699978947639465,
+          1.0
+        ],
+        "metallic": 0.0,
+        "roughness": 0.44999998807907104
+      },
+      "Atlas_PaintSecondaryBarrel": {
+        "linear_color": [
+          0.03468407690525055,
+          0.04143557697534561,
+          0.0450764074921608,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6100000143051147
+      },
+      "Atlas_PaintPrimaryBarrel": {
+        "linear_color": [
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6600000262260437
+      },
+      "Atlas_PaintPrimary": {
+        "linear_color": [
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6600000262260437
+      },
+      "Atlas_GunMetal": {
+        "linear_color": [
+          0.04696420207619667,
+          0.05087608844041824,
+          0.05290079116821289,
+          1.0
+        ],
+        "metallic": 0.8500000238418579,
+        "roughness": 0.5
+      },
+      "Atlas_GunMetalBrake": {
+        "linear_color": [
+          0.04696420207619667,
+          0.05087608844041824,
+          0.05290079116821289,
+          1.0
+        ],
+        "metallic": 0.8500000238418579,
+        "roughness": 0.5
+      },
+      "Atlas_PaintSecondary": {
+        "linear_color": [
+          0.03468407690525055,
+          0.04143557697534561,
+          0.0450764074921608,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6100000143051147
+      },
+      "Atlas_OxidizedMetal": {
+        "linear_color": [
+          0.09462962299585342,
+          0.08088690787553787,
+          0.059253521263599396,
+          1.0
+        ],
+        "metallic": 0.800000011920929,
+        "roughness": 0.5699999928474426
+      },
+      "Atlas_EdgeSteel": {
+        "linear_color": [
+          0.36724647879600525,
+          0.38005632162094116,
+          0.3546920716762543,
+          1.0
+        ],
+        "metallic": 0.949999988079071,
+        "roughness": 0.30000001192092896
+      }
+    }
+  },
+  "approval": "Pending user visual approval"
+}

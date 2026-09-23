@@ -31,3 +31,7 @@ var gun_pitch := 0.0
 var nitro_active := false
 var jump_charge_fraction := 0.0
 var jump_cooldown := 0.0
+## Atlas roof turret: "cannon", "plasma" or empty. Yaw is chassis-relative;
+## elevation reuses gun_pitch. Shots reuse the shot_sequence/last_shot fields.
+var turret_kind := ""
+var turret_yaw := 0.0

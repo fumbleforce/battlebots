@@ -48,6 +48,15 @@ var last_shot_to := Vector3.ZERO
 var last_shot_tick := -1
 var gun_pitch := 0.0
 var _gun_cooldown := 0.0
+## Atlas roof turret. Yaw is chassis-relative; elevation reuses gun_pitch and
+## shots reuse the gun shot fields (the turret excludes both miniguns).
+const CANNON_RELOAD := 2.4
+const CANNON_COST := 14.0
+const CANNON_HEAT := 16.0
+const PLASMA_CADENCE := 0.22
+const PLASMA_COST := 3.0
+const PLASMA_HEAT := 4.5
+var turret_yaw := 0.0
 
 func _init(derived: Dictionary) -> void:
 	stats = derived.duplicate(true)
@@ -99,7 +108,14 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 		secondary_charge = 0.0
 		_gun_cooldown = 0.0
 		return
-	if stats.get("secondary_weapon", "") == "minigun":
+	if is_turret():
+		# Holding the turret trigger is weapon activity: the primary's idle branch
+		# must not cool or recharge underneath a firing turret on this tick.
+		if command.auxiliary_held and zones.weapon > 0 and not overheated:
+			battery = minf(battery, previous_battery)
+			heat = maxf(heat, previous_heat)
+		_tick_turret(delta, command.auxiliary_held)
+	elif stats.get("secondary_weapon", "") == "minigun":
 		# The primary's idle branch cannot cool/recharge while the gun is powered.
 		# Preserve its genuine activation costs/heat, then pay the gun separately.
 		if command.auxiliary_held and zones.weapon > 0 and not overheated \
@@ -108,8 +124,41 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 			heat = maxf(heat, previous_heat)
 		_tick_minigun(delta, command.auxiliary_held, true, false)
 
+func is_turret() -> bool:
+	return stats.get("secondary_weapon", "") in ["cannon", "plasma"]
+
 func _secondary_brake(command: BotCommand) -> bool:
-	return command.secondary_held and not (stats.get("secondary_weapon", "") == "minigun" and command.auxiliary_held)
+	return command.secondary_held and not (stats.get("secondary_weapon", "") != "" and command.auxiliary_held)
+
+## One paid shot per reload (cannon) or cadence pulse (plasma). The world
+## resolves the ray along the actual barrel; holding repeats when ready.
+func _tick_turret(delta: float, held: bool) -> void:
+	var cannon: bool = stats.secondary_weapon == "cannon"
+	var interval := CANNON_RELOAD if cannon else PLASMA_CADENCE
+	_gun_cooldown = maxf(0.0, _gun_cooldown - delta)
+	if _gun_cooldown < 0.000001:
+		_gun_cooldown = 0.0
+	var eligible: bool = zones.weapon > 0.0 and not overheated
+	if held and not eligible:
+		failure_reason = "disabled" if zones.weapon <= 0.0 else "overheated"
+	elif held and _gun_cooldown <= 0.0:
+		var cost := CANNON_COST if cannon else PLASMA_COST
+		if battery >= cost:
+			battery -= cost
+			heat = minf(100.0, heat + (CANNON_HEAT if cannon else PLASMA_HEAT))
+			overheated = heat >= 100.0
+			gun_shot = true
+			shot_sequence += 1
+			_gun_cooldown = interval
+			_inactive = 0.0
+		else:
+			failure_reason = "battery_empty"
+	if held and eligible:
+		_inactive = 0.0
+	if zones.weapon <= 0.0:
+		_gun_cooldown = interval
+	secondary_charge = 0.0 if zones.weapon <= 0.0 or overheated else 1.0 - _gun_cooldown / interval
+	secondary_active = gun_shot if cannon else held and eligible and not overheated
 
 func _tick_primary(delta: float, command: BotCommand, active: bool) -> void:
 	launch = false
@@ -389,7 +438,7 @@ func snapshot() -> Dictionary:
 		"secondary_charge":secondary_charge, "secondary_active":secondary_active,
 		"shot_sequence":shot_sequence, "last_shot_from":last_shot_from,
 		"last_shot_to":last_shot_to, "last_shot_tick":last_shot_tick,
-		"gun_pitch":gun_pitch,
+		"gun_pitch":gun_pitch, "turret_yaw":turret_yaw,
 		"nitro_active":nitro_active, "jump_charge":jump_charge, "jump_cooldown":jump_cooldown,
 		"cooldown":cooldown, "recovery_available":can_recover(), "recovery_remaining":recovery_remaining,
 		"recovery_cooldown":recovery_cooldown, "immobilized_remaining":maxf(0, 10 - immobilized_seconds) if immobilized_seconds > 0 else 0.0,

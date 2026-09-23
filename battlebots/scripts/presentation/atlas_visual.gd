@@ -4,6 +4,9 @@ extends Node3D
 ## No collision, authoritative damage, input or simulated weapon state lives here.
 const MODEL := "res://assets/models/atlas_runtime/atlas_mx.glb"
 const LIFTER := "res://assets/models/atlas_runtime/atlas_lifter.glb"
+const TURRET := "res://assets/models/atlas_runtime/atlas_turret.glb"
+## Deck modules the fitted turret occupies or sweeps through (clearance audit).
+const TURRET_HIDDEN := ["ArmorTop", "ExhaustSmall", "ExhaustMedium", "ExhaustLarge"]
 const PAINT := preload("res://scripts/presentation/atlas_paint.gdshader")
 var model: Node3D
 var nodes: Dictionary = {}
@@ -16,6 +19,14 @@ var _travel := [0.0, 0.0]
 var _previous_pose := Transform3D.IDENTITY
 var _have_pose := false
 var _size := Vector3.ZERO
+var turret: Node3D
+var turret_kind := ""
+var turret_effects: TurretShotEffects
+var _turret_yaw: Node3D
+var _turret_pitch: Node3D
+var _turret_rest := {}
+var _turret_display := Vector2.ZERO
+var _turret_shown := false
 
 func assemble(draft: Dictionary, size: Vector3) -> void:
 	_size = size
@@ -46,7 +57,49 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	if draft.parts.utility == "minigun_pod":
 		auxiliary = _weapon("minigun")
 		auxiliary.position = AtlasGeometry.GUN_OFFSET
+	turret_kind = AtlasGeometry.turret_kind(draft)
+	if not turret_kind.is_empty() and ResourceLoader.exists(TURRET):
+		_assemble_turret()
 	_apply_paint(draft.cosmetics.get("sawblade", AtlasGeometry.paint_defaults()))
+
+func _assemble_turret() -> void:
+	turret = load(TURRET).instantiate()
+	turret.name = "AtlasTurretModule"
+	add_child(turret)
+	var found := {}
+	for node: Node in turret.find_children("*", "Node3D", true, false):
+		found[str(node.name)] = node
+	_turret_yaw = found.get("TurretYaw")
+	_turret_pitch = found.get("TurretPitch")
+	for label: String in ["AttachmentCannon", "AttachmentPlasma"]:
+		if found.has(label): found[label].visible = label == ("AttachmentCannon" if turret_kind == "cannon" else "AttachmentPlasma")
+	for node: Node3D in [_turret_yaw, _turret_pitch]:
+		if node != null: _turret_rest[node] = node.transform
+	for label: String in TURRET_HIDDEN:
+		if nodes.has(label): nodes[label].visible = false
+	turret_effects = TurretShotEffects.new()
+	turret_effects.name = "TurretShotEffects"
+	add_child(turret_effects)
+	var muzzle: Node3D = found.get("MuzzleCannon" if turret_kind == "cannon" else "MuzzlePlasma")
+	turret_effects.configure(turret_kind, muzzle, found.get("CannonRecoil") if turret_kind == "cannon" else null, _size.y / BotScale.AUTHORING_HEIGHT)
+
+## Presentation only: follow the accepted servo state. Stepping faster than the
+## authoritative slew smooths 20 Hz remote snapshots without adding lag.
+func _show_turret(view: BotView, delta: float) -> void:
+	var target := Vector2(view.turret_yaw, view.gun_pitch)
+	if not _turret_shown or absf(wrapf(target.x - _turret_display.x, -PI, PI)) > 1.2:
+		_turret_display = target
+	else:
+		var yaw_step := AtlasGeometry.TURRET_YAW_RATE * 1.6 * maxf(delta, 0.0)
+		var pitch_step := AtlasGeometry.TURRET_PITCH_RATE * 1.6 * maxf(delta, 0.0)
+		_turret_display.x = wrapf(_turret_display.x + clampf(wrapf(target.x - _turret_display.x, -PI, PI), -yaw_step, yaw_step), -PI, PI)
+		_turret_display.y = move_toward(_turret_display.y, target.y, pitch_step)
+	_turret_shown = true
+	if _turret_yaw != null:
+		_turret_yaw.transform = _turret_rest[_turret_yaw] * Transform3D(Basis(Vector3.UP, _turret_display.x))
+	if _turret_pitch != null:
+		_turret_pitch.transform = _turret_rest[_turret_pitch] * Transform3D(Basis(Vector3.RIGHT, _turret_display.y))
+	turret_effects.show_state(view, delta)
 
 func _track_part(node: Node3D, side: int) -> Dictionary:
 	var rest := _relative_transform(node)
@@ -177,6 +230,8 @@ func show_state(view: BotView, delta: float) -> void:
 	primary.show_state(view, delta)
 	if auxiliary != null:
 		auxiliary.gun_effects.show_state(view, delta, false)
+	if turret != null:
+		_show_turret(view, delta)
 	if _have_pose and delta > 0.0:
 		var displacement := view.pose.origin - _previous_pose.origin
 		if displacement.length() < 2.0 and not view.eliminated:
@@ -191,6 +246,7 @@ func component_meshes() -> Dictionary:
 	var groups := {"weapon":[], "drive_left":[], "drive_right":[]}
 	_collect(primary, groups.weapon)
 	if auxiliary != null: _collect(auxiliary, groups.weapon)
+	if _turret_yaw != null: _collect(_turret_yaw, groups.weapon)
 	if nodes.has("DriveLeft"): _collect(nodes.DriveLeft, groups.drive_left)
 	if nodes.has("DriveRight"): _collect(nodes.DriveRight, groups.drive_right)
 	return groups
@@ -205,3 +261,5 @@ func reset_observation() -> void:
 	_have_pose = false
 	if primary.gun_effects != null: primary.gun_effects.clear_effects()
 	if auxiliary != null: auxiliary.gun_effects.clear_effects()
+	if turret_effects != null: turret_effects.clear_effects()
+	_turret_shown = false

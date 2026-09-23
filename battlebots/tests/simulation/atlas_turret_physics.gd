@@ -1,0 +1,233 @@
+extends Node3D
+## Atlas turret: catalogue rules, wire records, bounded servo and real Jolt rays.
+## Frozen bodies isolate weapon contact from driving, as in minigun_physics.
+const STEP := 1.0 / 60.0
+const ORIGIN := Vector3(0, 20, 0)
+const SIDE_TARGET := Vector3(-30, 20, 0)
+var failures := 0
+var registry := ContentRegistry.new()
+var attacker: MvpBot
+var victim: MvpBot
+var weapons: CombatWorld
+var bots: Dictionary
+var tick := 0
+
+func _ready() -> void:
+	run.call_deferred()
+
+func check(ok: bool, message: String) -> void:
+	if not ok:
+		failures += 1
+		push_error(message)
+
+func turret_build(kind: String, weapon := "lifter") -> Dictionary:
+	var draft := registry.atlas()
+	draft.parts.utility = "turret_" + kind
+	draft.parts.weapon = weapon
+	return draft
+
+func catalogue_rules() -> void:
+	for kind: String in ["cannon", "plasma"]:
+		var result := registry.validate(turret_build(kind))
+		check(result.valid, "Default Atlas accepts the %s turret: %s" % [kind, result.reasons])
+		check(result.stats.get("secondary_weapon") == kind, "Turret publishes secondary weapon " + kind)
+		check(AtlasGeometry.turret_kind(turret_build(kind)) == kind, "Geometry resolves the fitted turret")
+		var minigun := registry.validate(turret_build(kind, "minigun"))
+		check(not minigun.valid and "The turret occupies the Atlas roof gun mount; select another primary weapon" in minigun.reasons,
+			"Turret and primary minigun share the roof mount")
+		for other: Dictionary in [registry.scorpion(), registry.starter()]:
+			other.parts.utility = "turret_" + kind
+			if other.parts.chassis == "scorpion_hex": other.parts.weapon = "hammer"
+			var rejected := registry.validate(other)
+			check(not rejected.valid and "Turret modules require the Atlas MX roof traverse race" in rejected.reasons,
+				"Turret is rejected off Atlas: " + str(other.parts.chassis))
+	check(registry.validate(registry.atlas()).stats.secondary_weapon == "", "Plain Atlas has no auxiliary weapon")
+	var old := registry.atlas()
+	var migrated: Dictionary
+	old = registry.atlas()
+	old.content_hash = LoadoutStore.REVISION_TEN_HASHES[0]
+	migrated = LoadoutStore.new("user://turret_migration_unused.json").migrate({"schema_version":1, "loadouts":[old]})
+	check(migrated.loadouts[0].content_hash == registry.content_hash and registry.validate(migrated.loadouts[0]).valid,
+		"Revision-ten Atlas saves migrate to the current catalogue")
+
+func wire_records() -> void:
+	var command := BotCommand.new()
+	command.sequence = 7
+	command.aim_valid = true
+	command.aim_yaw = -2.5
+	command.aim_pitch = 0.3
+	command.auxiliary_held = true
+	var decoded := WireCodec.command_from_array(WireCodec.command_to_array(command))
+	check(decoded != null and decoded.aim_valid and is_equal_approx(decoded.aim_yaw, -2.5)
+		and is_equal_approx(decoded.aim_pitch, 0.3) and decoded.auxiliary_held, "Aim survives the command wire")
+	var legacy := [1, 0.0, 0.0, 0]
+	check(WireCodec.command_from_array(legacy) == null, "Protocol-six four-field commands are rejected")
+	for bad: Array in [[1, 0.0, 0.0, 0, NAN, 0.0], [1, 0.0, 0.0, 0, 0.0, 2.0], [1, 0.0, 0.0, 0, 4.0, 0.0],
+			[1, 0.0, 0.0, 1024, 0.0, 0.0], [1, 0.0, 0.0, 0, "x", 0.0]]:
+		check(WireCodec.command_from_array(bad) == null, "Malformed aim is rejected: " + str(bad))
+	attacker.combat.turret_yaw = 2.0
+	attacker.combat.gun_pitch = 0.25
+	var state := WireCodec.decode_bot(WireCodec.encode_bot(attacker, "m:1"), attacker.combat.stats)
+	check(not state.is_empty() and is_equal_approx(state.turret_yaw, 2.0) and is_equal_approx(state.gun_pitch, 0.25),
+		"Snapshot carries turret yaw and elevation")
+
+func flush_physics() -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	await get_tree().process_frame
+
+func setup(kind: String) -> void:
+	for bot: MvpBot in [attacker, victim]:
+		if bot != null: bot.queue_free()
+	attacker = MvpBot.create(1, 0, turret_build(kind), registry)
+	victim = MvpBot.create(2, 1, registry.starter(), registry)
+	for bot: MvpBot in [attacker, victim]:
+		add_child(bot)
+		bot.body.gravity_scale = 0
+		bot.body.collision_mask = 0
+		bot.body.freeze = true
+	bots = {1: attacker, 2: victim}
+
+func reset_case(target := SIDE_TARGET, chassis_yaw := 0.0) -> void:
+	weapons = CombatWorld.new()
+	for bot: MvpBot in [attacker, victim]:
+		bot.combat = CombatState.new(bot.combat.stats)
+		bot.command = BotCommand.new()
+	attacker.body.global_transform = Transform3D(Basis(Vector3.UP, chassis_yaw), ORIGIN)
+	victim.body.global_transform = Transform3D(Basis.IDENTITY, target)
+	attacker.team = 0
+	victim.team = 1
+	await flush_physics()
+	attacker.previous_pose = attacker.body.global_transform
+	victim.previous_pose = victim.body.global_transform
+
+func aim_at(point: Vector3, held := false) -> BotCommand:
+	var command := BotCommand.new()
+	var breech := attacker.body.global_transform * AtlasGeometry.turret_breech(attacker.combat.stats.size, attacker.combat.turret_yaw)
+	var direction := point - breech
+	command.aim_valid = true
+	command.aim_yaw = atan2(-direction.x, -direction.z)
+	command.aim_pitch = atan2(direction.y, Vector2(direction.x, direction.z).length())
+	command.auxiliary_held = held
+	command.secondary_held = held
+	return command
+
+func run_ticks(count: int, point: Vector3, held: bool) -> Array:
+	var events: Array = []
+	for index: int in count:
+		attacker.command = aim_at(point, held)
+		attacker.combat.tick(STEP, attacker.command, true)
+		tick += 1
+		weapons.step(STEP, bots, tick, 1)
+		events.append_array(weapons.events.duplicate(true))
+	return events
+
+func servo_and_cannon() -> void:
+	setup("cannon")
+	wire_records()
+	await reset_case()
+	run_ticks(10, SIDE_TARGET, false)
+	check(absf(attacker.combat.turret_yaw - AtlasGeometry.TURRET_YAW_RATE * STEP * 10) < 0.001,
+		"Traverse is rate-limited toward the crosshair: %f" % attacker.combat.turret_yaw)
+	var early := run_ticks(1, SIDE_TARGET, true)
+	check(early.is_empty() and victim.combat.core == victim.combat.stats.core,
+		"A shot fired before the turret arrives travels along the actual barrel and misses")
+	check(attacker.combat.shot_sequence == 1 and attacker.combat.last_shot_tick == tick,
+		"The miss still publishes an authoritative visual shot")
+	run_ticks(60, SIDE_TARGET, false)
+	check(absf(attacker.combat.turret_yaw - PI * 0.5) < 0.03, "Turret settles on the side target bearing (trunnion parallax)")
+	var battery := attacker.combat.battery
+	var hits := run_ticks(150, SIDE_TARGET, true)
+	check(hits.size() == 1 and hits[0].kind == "cannon" and hits[0].attack_id == attacker.combat.shot_sequence,
+		"Held fire waits for the 2.4 s reload, then lands one confirmed cannon hit: %d" % hits.size())
+	check(victim.combat.core < victim.combat.stats.core, "Cannon hit damages through zone rules")
+	check(attacker.combat.battery < battery, "Cannon shots spend battery")
+	# Chassis turns under a held aim: the servo keeps the world bearing.
+	await reset_case()
+	run_ticks(90, SIDE_TARGET, false)
+	attacker.body.global_transform = Transform3D(Basis(Vector3.UP, 0.4), ORIGIN)
+	await flush_physics()
+	run_ticks(20, SIDE_TARGET, false)
+	var barrel := attacker.body.global_basis * AtlasGeometry.turret_direction(attacker.combat.turret_yaw, attacker.combat.gun_pitch)
+	check(barrel.normalized().dot(Vector3.LEFT) > 0.99, "Turret stabilises its world aim while the hull turns")
+	# Elevation stops.
+	await reset_case()
+	run_ticks(90, ORIGIN + Vector3(0, 200, -20), false)
+	check(is_equal_approx(attacker.combat.gun_pitch, AtlasGeometry.TURRET_PITCH_MAX), "Elevation stops at +30 degrees")
+	run_ticks(90, ORIGIN + Vector3(0, -40, -6), false)
+	check(is_equal_approx(attacker.combat.gun_pitch, deg_to_rad(-20.0)), "Nose-arc depression reaches -20 degrees: %f" % rad_to_deg(attacker.combat.gun_pitch))
+	# Swinging a fully depressed barrel onto the flank elevates it before it can
+	# sweep through the corner socket; at no step is it below the local floor.
+	var lowest_margin := INF
+	for index: int in 90:
+		run_ticks(1, ORIGIN + Vector3(-6, -40, 0), false)
+		lowest_margin = minf(lowest_margin, attacker.combat.gun_pitch - AtlasGeometry.turret_pitch_min("cannon", attacker.combat.turret_yaw))
+	check(lowest_margin >= -0.0002, "Barrel never dips below the audited floor while traversing: %f" % lowest_margin)
+	check(is_equal_approx(attacker.combat.gun_pitch, AtlasGeometry.turret_pitch_min("cannon", attacker.combat.turret_yaw)),
+		"Flank aim settles on the flank depression floor")
+	check(AtlasGeometry.turret_pitch_min("cannon", PI * 0.5) > deg_to_rad(-12.0) and AtlasGeometry.turret_pitch_min("cannon", 0.0) <= deg_to_rad(-19.9),
+		"Profile allows deep frontal depression and restricts the flank")
+	# Neutral or stale input brings the turret home.
+	var neutral := BotCommand.new()
+	for index: int in 120:
+		attacker.command = neutral
+		weapons.step(STEP, bots, tick, 1)
+	check(absf(attacker.combat.turret_yaw) < 0.001 and absf(attacker.combat.gun_pitch) < 0.001,
+		"Without aim the turret returns to the front")
+	# Walls and allies occlude; allies take no damage.
+	await reset_case()
+	run_ticks(60, SIDE_TARGET, false)
+	var wall := StaticBody3D.new()
+	wall.collision_layer = BaselineConfig.WORLD_LAYER
+	var shape := CollisionShape3D.new()
+	shape.shape = BoxShape3D.new()
+	shape.shape.size = Vector3(0.5, 20, 20)
+	wall.add_child(shape)
+	add_child(wall)
+	wall.global_position = Vector3(-15, 20, 0)
+	await flush_physics()
+	check(run_ticks(1, SIDE_TARGET, true).is_empty() and victim.combat.core == victim.combat.stats.core,
+		"A wall between turret and target blocks the shell")
+	check(attacker.combat.last_shot_to.x > -15.6, "Shell presentation ends on the wall")
+	wall.queue_free()
+	await reset_case()
+	run_ticks(60, SIDE_TARGET, false)
+	victim.team = attacker.team
+	check(run_ticks(1, SIDE_TARGET, true).is_empty(), "Friendly target is never damaged")
+	# Disabled or eliminated turrets cannot fire.
+	await reset_case()
+	attacker.combat.zones.weapon = 0.0
+	check(run_ticks(30, SIDE_TARGET, true).is_empty() and attacker.combat.shot_sequence == 0,
+		"A disabled weapon zone disables the turret")
+	await reset_case()
+	attacker.combat.battery = 5.0
+	check(run_ticks(5, SIDE_TARGET, true).is_empty() and attacker.combat.failure_reason == "battery_empty",
+		"An unaffordable shell reports empty battery")
+	# The turret trigger does not brake a lifter primary (secondary cancellation).
+	await reset_case()
+	var both := aim_at(SIDE_TARGET, true)
+	both.primary_held = true
+	for index: int in 30:
+		attacker.combat.tick(STEP, both, true)
+	check(attacker.combat.charge > 0.4, "Holding the turret trigger does not lower the primary lifter")
+
+func plasma() -> void:
+	setup("plasma")
+	await reset_case(Vector3(-20, 20, 0))
+	run_ticks(60, Vector3(-20, 20, 0), false)
+	var hits := run_ticks(60, Vector3(-20, 20, 0), true)
+	check(hits.size() == 5 and hits.all(func(hit: Dictionary) -> bool: return hit.kind == "plasma"),
+		"One second of plasma fire lands five bolts: %d" % hits.size())
+	check(attacker.combat.heat > 15.0 and attacker.combat.secondary_active, "Plasma builds heat while firing")
+	await reset_case(Vector3(-20, 20, 0))
+	run_ticks(60, Vector3(-20, 20, 0), false)
+	attacker.combat.heat = 99.0
+	var locked := run_ticks(30, Vector3(-20, 20, 0), true)
+	check(locked.size() <= 1 and attacker.combat.overheated, "Plasma overheats and locks out")
+
+func run() -> void:
+	catalogue_rules()
+	await servo_and_cannon()
+	await plasma()
+	print("ATLAS TURRET PHYSICS PASS" if failures == 0 else "ATLAS TURRET PHYSICS FAIL")
+	get_tree().quit(0 if failures == 0 else 1)

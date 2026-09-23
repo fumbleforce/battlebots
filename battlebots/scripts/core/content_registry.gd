@@ -86,6 +86,11 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Scorpion hex body requires the articulated walking drive")
 	if selected.get("chassis") == "atlas_mx" and selected.get("drive") != "traction":
 		result.reasons.append("Atlas MX requires its tracked traction drive")
+	if selected.get("utility") in AtlasGeometry.TURRET_PARTS:
+		if selected.get("chassis") != "atlas_mx":
+			result.reasons.append("Turret modules require the Atlas MX roof traverse race")
+		elif selected.get("weapon") == "minigun":
+			result.reasons.append("The turret occupies the Atlas roof gun mount; select another primary weapon")
 	if selected.get("weapon") == "minigun" or selected.get("utility") == "minigun_pod":
 		if selected.get("utility") == "minigun_pod" and selected.get("chassis") not in ["scorpion_hex", "atlas_mx"]:
 			result.reasons.append("Auxiliary minigun requires a Scorpion or Atlas MX gun socket")
@@ -106,7 +111,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		"size": Vector3(chassis.size[0], chassis.size[1], chassis.size[2]),
 		"speed": float(drive.speed), "grip": float(drive.grip),
 		"plate_integrity": float(armor.integrity), "reduction": float(armor.reduction),
-		"weapon": selected.weapon, "secondary_weapon": "minigun" if selected.utility == "minigun_pod" else "",
+		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.TURRET_PARTS.get(selected.utility,
+			"minigun" if selected.utility == "minigun_pod" else ""),
 		"battery": 125.0 if selected.utility == "battery_pack" else 100.0,
 		"cooling": 15.0 if selected.utility == "cooling_pack" else 12.0,
 		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0,

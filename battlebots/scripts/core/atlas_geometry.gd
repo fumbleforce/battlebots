@@ -10,6 +10,23 @@ const TRACK_RADIUS := 0.44
 const TRACK_HALF_LENGTH := 0.76
 const TRACK_CENTER_Y := -0.08
 const TRACK_LENGTH := 4.0 * TRACK_HALF_LENGTH + TAU * TRACK_RADIUS
+## Roof turret (atlas_turret.glb): pivots in Atlas source meters. Positive yaw
+## turns the barrel toward -X (Godot Y rotation); positive pitch elevates.
+const TURRET_PARTS := {"turret_cannon":"cannon", "turret_plasma":"plasma"}
+const TURRET_YAW_PIVOT := Vector3(0.0, 0.52, -0.14)
+const TURRET_PITCH_PIVOT := Vector3(0.0, 0.77345, -0.546)
+## +30 degrees is the mechanical elevation stop. Depression is limited per
+## bearing by the measured hull clearance (tools/build-atlas-turret.py audit,
+## atlas_turret_manifest.json): degrees at yaw 0, 5, ... 355. The deck and
+## corner sockets restrict the flanks; the nose and rear allow -20/-18.
+const TURRET_PITCH_MAX := 0.5235988
+const TURRET_DEPRESSION_STEP := 5.0
+const TURRET_DEPRESSION := {
+	"cannon":[-20, -20, -20, -20, -20, -20, -20, -20, -14, -11, -10, -7, -7, -8, -9, -10, -10, -11, -11, -11, -10, -10, -10, -9, -9, -8, -6, -6, -9, -10, -13, -14, -15, -17, -18, -18, -18, -18, -18, -17, -15, -14, -13, -10, -9, -6, -6, -8, -9, -9, -10, -10, -10, -11, -11, -11, -10, -10, -9, -8, -7, -7, -10, -11, -14, -20, -20, -20, -20, -20, -20, -20],
+	"plasma":[-20, -20, -20, -20, -20, -20, -20, -20, -13, -10, -9, -6, -6, -7, -8, -9, -9, -10, -10, -10, -9, -9, -9, -8, -8, -8, -5, -5, -7, -8, -11, -12, -13, -14, -14, -15, -15, -15, -14, -14, -13, -12, -11, -8, -7, -5, -5, -8, -8, -8, -9, -9, -9, -10, -10, -10, -9, -9, -8, -7, -6, -6, -9, -10, -13, -20, -20, -20, -20, -20, -20, -20]}
+const TURRET_YAW_RATE := 1.9
+const TURRET_PITCH_RATE := 1.2
+const TURRET_MUZZLE := {"cannon":1.37025, "plasma":0.957}
 
 static func enabled(draft: Dictionary) -> bool:
 	return draft.get("parts", {}).get("chassis") == "atlas_mx"
@@ -60,3 +77,44 @@ static func track_distance(at: Vector3) -> float:
 	if at.y >= TRACK_CENTER_Y:
 		return at.z + TRACK_HALF_LENGTH
 	return straight + arc + TRACK_HALF_LENGTH - at.z
+
+static func turret_kind(draft: Dictionary) -> String:
+	return TURRET_PARTS.get(draft.get("parts", {}).get("utility", ""), "") if enabled(draft) else ""
+
+## Barrel direction in the chassis frame, -Z forward at zero yaw and pitch.
+static func turret_direction(yaw: float, pitch: float) -> Vector3:
+	return Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch) * Vector3.FORWARD
+
+## Elevation trunnion in the chassis frame at game scale; the breech of the ray.
+static func turret_breech(size: Vector3, yaw: float) -> Vector3:
+	var local := TURRET_YAW_PIVOT + Basis(Vector3.UP, yaw) * (TURRET_PITCH_PIVOT - TURRET_YAW_PIVOT)
+	return local * BotScale.from_size(size)
+
+static func turret_muzzle(size: Vector3, kind: String, yaw: float, pitch: float) -> Vector3:
+	return turret_breech(size, yaw) + turret_direction(yaw, pitch) * float(TURRET_MUZZLE.get(kind, 0.7)) * BotScale.from_size(size)
+
+## Lowest clear elevation at a bearing: the stricter of the two surrounding
+## audit samples, matching the audit's own verification rule.
+static func turret_pitch_min(kind: String, yaw: float) -> float:
+	var table: Array = TURRET_DEPRESSION.get(kind, TURRET_DEPRESSION.cannon)
+	var index := int(fposmod(rad_to_deg(yaw), 360.0) / TURRET_DEPRESSION_STEP) % table.size()
+	return deg_to_rad(maxf(float(table[index]), float(table[(index + 1) % table.size()])))
+
+## Chassis-frame yaw/pitch that point the barrel at a world direction, pitch
+## clamped to the stops at that bearing. Yaw is unbounded (continuous traverse).
+static func turret_target(chassis: Basis, world_direction: Vector3, kind: String) -> Vector2:
+	var local := chassis.orthonormalized().inverse() * world_direction
+	var yaw := atan2(-local.x, -local.z)
+	var pitch := atan2(local.y, Vector2(local.x, local.z).length())
+	return Vector2(yaw, clampf(pitch, turret_pitch_min(kind, yaw), TURRET_PITCH_MAX))
+
+## Bounded servo step shared by authority and tests. A depressed barrel first
+## elevates before traversing into a bearing whose hull clearance needs it.
+static func turret_slew(current: Vector2, target: Vector2, delta: float, kind: String) -> Vector2:
+	var yaw_step := TURRET_YAW_RATE * maxf(0.0, delta)
+	var candidate := wrapf(current.x + clampf(wrapf(target.x - current.x, -PI, PI), -yaw_step, yaw_step), -PI, PI)
+	var candidate_floor := turret_pitch_min(kind, candidate)
+	var yaw := candidate if current.y >= candidate_floor - 0.0001 else current.x
+	var goal := clampf(maxf(target.y, candidate_floor), turret_pitch_min(kind, yaw), TURRET_PITCH_MAX)
+	var pitch := move_toward(current.y, goal, TURRET_PITCH_RATE * maxf(0.0, delta))
+	return Vector2(yaw, pitch)

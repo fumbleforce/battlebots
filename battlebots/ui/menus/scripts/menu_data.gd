@@ -65,7 +65,7 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Authored chassis body. Changing the body preserves all other selected parts and appearance options."
 			elif item.id == "atlas_mx":
 				item.name = "Atlas MX modular chassis"
-				item.desc = "Wide tracked platform with an open equipment deck, front tool coupler, roof rails and auxiliary gun socket. Requires Tracks · Traction. All primary weapons and utilities fit within normal build budgets."
+				item.desc = "Wide tracked platform with an open equipment deck, front tool coupler, roof rails, auxiliary gun socket and a turret race for a cannon or plasma turret. Requires Tracks · Traction. All primary weapons and utilities fit within normal build budgets."
 			elif item.id == "traction": item.name = "Tracks · Traction"
 			elif item.id == "standard_wheels": item.name = "Four wheels · Standard"
 			elif item.id == "agile": item.name = "Four wheels · Agile"
@@ -79,6 +79,12 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 			elif item.id == "minigun_pod":
 				item.name = "Minigun • Auxiliary"
 				item.desc = "Scorpion / Atlas MX gun socket · 14 kg · 25 power. Hold secondary fire to spool and fire while operating the primary hammer. Uses battery and builds heat. Swap for another utility to remove."
+			elif item.id == "turret_cannon":
+				item.name = "Turret · Cannon"
+				item.desc = "Atlas MX roof turret · 16 kg · 25 power. Aim with the mouse; the turret traverses toward your crosshair. Hold secondary fire for a heavy shell every 2.4 s that knocks targets back. Uses battery and heat. Replaces the roof gun mount, so it excludes the minigun."
+			elif item.id == "turret_plasma":
+				item.name = "Turret · Plasma gun"
+				item.desc = "Atlas MX roof turret · 14 kg · 25 power. Aim with the mouse; hold secondary fire for rapid plasma bolts. Light hits that build heat quickly. Replaces the roof gun mount, so it excludes the minigun."
 			elif item.id == "minigun":
 				item.name = "Minigun • Primary"
 				item.desc = "Primary weapon module · 24 kg · 35 power. Hold primary fire for sustained ranged fire. On Scorpion it replaces the dorsal hammer; choose a separate utility."

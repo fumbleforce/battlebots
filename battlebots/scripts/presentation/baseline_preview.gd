@@ -25,9 +25,15 @@ var _input_map_before: Dictionary = {}
 var _diagnostics_epoch := ""
 var _diagnostics_initial_samples := 0.0
 var _diagnostics_fresh := false
+## Turret aim: the camera crosshair ray, re-aimed from the turret trunnion.
+const TURRET_AIM_DISTANCE := 220.0
+var turret_reticle := TurretReticle.new()
+var _turret_aim_point := Vector3.ZERO
 
 func _ready() -> void:
 	hud.set_context(fixture_title)
+	$CanvasLayer.add_child(turret_reticle)
+	$CanvasLayer.move_child(turret_reticle, 0)
 	rig.bind_source(source)
 	var preferences := CameraPreferences.load_file(settings_path)
 	preferences.apply_to(rig)
@@ -162,12 +168,70 @@ func _physics_process(_delta: float) -> void:
 	# Clear toggle intent during A's countdown/elimination/lifecycle suppression too.
 	if source is SessionBotSource and source.input_allowed.is_valid():
 		enabled = enabled and bool(source.input_allowed.call())
-	input_gate.auxiliary_weapon = _source_view().has_auxiliary_weapon
+	var view := _source_view()
+	input_gate.auxiliary_weapon = view.has_auxiliary_weapon
 	var command := input_gate.sample(strengths, edges, enabled)
 	command.sequence = sequence
 	sequence += 1
-	rig.driving = absf(command.throttle) > 0.05 or absf(command.steering) > 0.05
+	var turret := view.turret_kind != ""
+	if enabled and turret and not view.eliminated:
+		_apply_turret_aim(command, view)
+	# The camera is the turret sight: never auto-recenter it away from the aim.
+	rig.driving = not turret and (absf(command.throttle) > 0.05 or absf(command.steering) > 0.05)
 	source.submit_command(command)
+
+func _turret_scale() -> float:
+	var anchor := source.camera_anchor()
+	return float(anchor.get_meta("bot_scale", BotScale.FACTOR)) if is_instance_valid(anchor) else BotScale.FACTOR
+
+## World bearing/elevation from the turret trunnion to whatever the crosshair
+## ray meets (world or bot, excluding this bot), else a far point along it.
+func _apply_turret_aim(command: BotCommand, view: BotView) -> void:
+	var camera := rig.camera
+	if not is_instance_valid(camera) or not camera.is_inside_tree():
+		return
+	var size := Vector3(0.0, _turret_scale() * BotScale.AUTHORING_HEIGHT, 0.0)
+	var breech := view.pose * AtlasGeometry.turret_breech(size, view.turret_yaw)
+	var origin := camera.global_position
+	var forward := -camera.global_basis.z
+	var target := origin + forward * TURRET_AIM_DISTANCE
+	var query := PhysicsRayQueryParameters3D.create(origin, target,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, source.camera_exclusions())
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		target = hit.position
+	# A near or behind-the-turret contact (ground under a steep camera) would
+	# swing the turret wildly; aim along the sight line instead.
+	if (target - breech).dot(forward) < 2.0 * size.y:
+		target = breech + forward * TURRET_AIM_DISTANCE
+	_turret_aim_point = target
+	var direction := target - breech
+	command.aim_valid = true
+	command.aim_yaw = atan2(-direction.x, -direction.z)
+	command.aim_pitch = atan2(direction.y, Vector2(direction.x, direction.z).length())
+
+func _render_turret_reticle(view: BotView) -> void:
+	var camera := rig.camera
+	var show := controls_enabled and view != null and view.turret_kind != "" and not view.eliminated \
+		and is_instance_valid(camera) and camera.is_inside_tree() and not pause_menu.visible
+	if not show:
+		turret_reticle.render(false, false, Vector2.ZERO, 0.0)
+		return
+	# Where the barrel actually points: first world/bot contact along it.
+	var size := Vector3(0.0, _turret_scale() * BotScale.AUTHORING_HEIGHT, 0.0)
+	var muzzle := view.pose * AtlasGeometry.turret_muzzle(size, view.turret_kind, view.turret_yaw, view.gun_pitch)
+	var direction := (view.pose.basis * AtlasGeometry.turret_direction(view.turret_yaw, view.gun_pitch)).normalized()
+	var end := muzzle + direction * float(CombatWorld.TURRET_RANGE.get(view.turret_kind, 60.0))
+	var query := PhysicsRayQueryParameters3D.create(muzzle, end,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, source.camera_exclusions())
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		end = hit.position
+	var on_screen := not camera.is_position_behind(end)
+	var point := camera.unproject_position(end) if on_screen else Vector2.ZERO
+	# The canvas may be scaled; convert viewport pixels into reticle space.
+	point = turret_reticle.get_global_transform_with_canvas().affine_inverse() * point
+	turret_reticle.render(true, on_screen, point, view.secondary_charge)
 
 func _action_strength(action: StringName) -> float:
 	var strength := Input.get_action_strength(action)
@@ -183,14 +247,17 @@ func _action_strength(action: StringName) -> float:
 func _process(_delta: float) -> void:
 	var view := _source_view()
 	hud.show_view(view)
+	_render_turret_reticle(view)
 	refresh_diagnostics()
 	hint.text = "Mouse  Orbit  |  %s / %s  Zoom  |  %s  Recenter  |  Esc  Menu" % [
 		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),
 		input_preferences.label_for(&"camera_recenter")] \
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
 	if controls_enabled and view != null and view.has_auxiliary_weapon:
-		hint.text = "%s  Primary weapon  |  %s  Minigun  |  Mouse  Orbit  |  Esc  Menu" % [
-			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary")]
+		var auxiliary: String = {"cannon":"Turret cannon", "plasma":"Turret plasma gun"}.get(view.turret_kind, "Minigun")
+		hint.text = "%s  Primary weapon  |  %s  %s  |  Mouse  %s  |  Esc  Menu" % [
+			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary"), auxiliary,
+			"Aim turret" if view.turret_kind != "" else "Orbit"]
 
 func _source_view() -> BotView:
 	if not is_instance_valid(source):

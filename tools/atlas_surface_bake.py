@@ -259,7 +259,7 @@ def _geometry_edge_image(representatives, family, size):
     return image
 
 
-def _procedural(material, family, ao_image, primary_color, edge_image=None):
+def _procedural(material, family, ao_image, primary_color, edge_image=None, face_wear=0.70):
     """World-space wear becomes UV texture data; no procedural export required."""
     old = next((node for node in material.node_tree.nodes if node.type == "BSDF_PRINCIPLED"), None)
     color = tuple(old.inputs["Base Color"].default_value) if old else tuple(material.diffuse_color)
@@ -277,6 +277,12 @@ def _procedural(material, family, ao_image, primary_color, edge_image=None):
     # Painted secondary is enamel, not a partially metallic pseudo-material.
     if family in ("Primary", "Secondary"):
         metallic = 0.08
+    # Optional per-material wear for later Atlas assets (the turret barrel).
+    # Hull materials carry none of these properties and bake exactly as before.
+    face_wear = float(material.get("atlas_face_wear", face_wear))
+    scratch_threshold = float(material.get("atlas_scratch", 0.71))
+    streak_scale = tuple(material["atlas_streak"]) if "atlas_streak" in material else None
+    grime = float(material.get("atlas_grime", 0.0))
     nodes, links = material.node_tree.nodes, material.node_tree.links
     nodes.clear()
     output = nodes.new("ShaderNodeOutputMaterial")
@@ -325,8 +331,8 @@ def _procedural(material, family, ao_image, primary_color, edge_image=None):
         abrasion_vector.inputs[1].default_value = (10.0, 72.0, 190.0)
         abrasion = _noise(nodes, links, abrasion_vector.outputs[0], 1.0, 1.0)
         sparse_region = _math(nodes, links, "LESS_THAN", broad, 0.42)
-        face_chip = _math(nodes, links, "MULTIPLY", sparse_region, _math(nodes, links, "GREATER_THAN", abrasion, 0.70))
-        face_primer = _math(nodes, links, "MULTIPLY", sparse_region, _math(nodes, links, "GREATER_THAN", abrasion, 0.685))
+        face_chip = _math(nodes, links, "MULTIPLY", sparse_region, _math(nodes, links, "GREATER_THAN", abrasion, face_wear))
+        face_primer = _math(nodes, links, "MULTIPLY", sparse_region, _math(nodes, links, "GREATER_THAN", abrasion, face_wear - 0.015))
         chip = _math(nodes, links, "MAXIMUM", chip, face_chip)
         primer = _math(nodes, links, "MAXIMUM", primer, face_primer)
         base = _mix(nodes, links, primer, base, _linear((0.23, 0.205, 0.17)))
@@ -344,7 +350,7 @@ def _procedural(material, family, ao_image, primary_color, edge_image=None):
         links.new(position, vector.inputs[0])
         vector.inputs[1].default_value = (12.0, 78.0, 126.0) if family == "Track" else (9.0, 280.0, 170.0)
         scratch = _noise(nodes, links, vector.outputs[0], 1.0, 1.0)
-        scratch = _math(nodes, links, "GREATER_THAN", scratch, 0.71)
+        scratch = _math(nodes, links, "GREATER_THAN", scratch, scratch_threshold)
         scratch = _math(nodes, links, "MULTIPLY", scratch, 0.48 if family == "Track" else 0.23)
         base = _mix(nodes, links, scratch, base, _linear((0.66, 0.675, 0.68)))
         rough = _math(nodes, links, "SUBTRACT", rough, _math(nodes, links, "MULTIPLY", scratch, 0.22), True)
@@ -353,10 +359,30 @@ def _procedural(material, family, ao_image, primary_color, edge_image=None):
             base = _mix(nodes, links, polish, base, _linear((.53,.545,.55)))
             rough = _mix(nodes, links, polish, rough, (.43,.43,.43,1))
             metal = _mix(nodes, links, polish, (metallic,metallic,metallic,1), (.87,.87,.87,1))
+    relief = None
+    if streak_scale:
+        # Drawn/turned tube streaks: stretched noise along the part's long axis
+        # varies roughness, value and relief, like the machined hull hardware.
+        vector = nodes.new("ShaderNodeVectorMath")
+        vector.operation = "MULTIPLY"
+        links.new(position, vector.inputs[0])
+        vector.inputs[1].default_value = streak_scale
+        streak = _math(nodes, links, "SUBTRACT", _noise(nodes, links, vector.outputs[0], 1.0, 3.0), 0.5)
+        rough = _math(nodes, links, "ADD", rough, _math(nodes, links, "MULTIPLY", streak, 0.22), True)
+        bright = _math(nodes, links, "MULTIPLY", _math(nodes, links, "GREATER_THAN", streak, 0.20), 0.18)
+        base = _mix(nodes, links, bright, base, _linear((0.50, 0.52, 0.53)))
+        relief = _math(nodes, links, "MULTIPLY", streak, 0.6)
+    if grime:
+        patches = _math(nodes, links, "GREATER_THAN", _noise(nodes, links, position, 11.0, 4.0), 1.0 - grime)
+        patches = _math(nodes, links, "MULTIPLY", patches, 0.75)
+        base = _mix(nodes, links, patches, base, _linear((0.30, 0.25, 0.19)))
+        rough = _mix(nodes, links, patches, rough, (0.74, 0.74, 0.74, 1))
     base = _mix(nodes, links, dirty, base, _linear((0.125, 0.105, 0.075)))
     rough = _math(nodes, links, "ADD", rough, _math(nodes, links, "MULTIPLY", dirty, 0.16), True)
     height = _math(nodes, links, "MULTIPLY", micro, 0.12)
     height = _math(nodes, links, "SUBTRACT", height, _math(nodes, links, "MULTIPLY", chip, 0.65))
+    if relief is not None:
+        height = _math(nodes, links, "ADD", height, relief)
     bump = nodes.new("ShaderNodeBump")
     bump.inputs["Strength"].default_value = 0.4
     bump.inputs["Distance"].default_value = 0.0005
@@ -427,15 +453,21 @@ def _wire_final(material, maps, family, coverage_name):
         material["atlas_paint_coverage"] = coverage_name
 
 
-def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False):
-    """Bake unique UV1 atlases and return JSON-serializable export metadata."""
+def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False,
+                         prefix="Atlas_Surface", families=FAMILIES, sizes=None, face_wear=0.70):
+    """Bake unique UV1 atlases and return JSON-serializable export metadata.
+
+    Additional Atlas assets (the turret) pass their own map prefix, the subset
+    of families they actually use and their resolutions. Defaults are the hull.
+    """
     output = Path(runtime_path)
     output.mkdir(parents=True, exist_ok=True)
     scene = bpy.context.scene
     objects = list(dict.fromkeys([*_descendants(root), *_descendants(lifter)]))
     meshes = [obj for obj in objects if obj.type == "MESH"]
     representatives = _unique_meshes(meshes)
-    sizes = {family: (1024 if family == "Primary" else 512) if quick else SIZES[family] for family in FAMILIES}
+    full = sizes or SIZES
+    sizes = {family: (1024 if family == "Primary" else 512) if quick else full[family] for family in families}
     state = {"engine": scene.render.engine, "samples": scene.cycles.samples,
              "device": scene.cycles.device, "active": bpy.context.view_layer.objects.active,
              "selected": list(bpy.context.selected_objects),
@@ -459,7 +491,7 @@ def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False):
         for obj in objects:
             obj.hide_set(False)
             obj.hide_render = False
-        for family in FAMILIES:
+        for family in families:
             count = _atlas_uvs(representatives, family, sizes[family])
             metadata["families"][family] = {"resolution": sizes[family], "faces": count}
             print("ATLAS_BAKE_UV", family, sizes[family], count, flush=True)
@@ -481,11 +513,11 @@ def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False):
             scene.cycles.device = "CPU"
         images = {family: {role: _image("AtlasBake_%s_%s" % (family, role), sizes[family],
                    color=(1, 1, 1, 1) if role == "ao" else ((0.5, 0.5, 1, 1) if role == "normal" else (0, 0, 0, 1)),
-                   data=role != "base") for role in ("ao", "base", "params", "normal")} for family in FAMILIES}
+                   data=role != "base") for role in ("ao", "base", "params", "normal")} for family in families}
         primary = next((m for m in active_materials if m.name == "Atlas_PaintPrimary"), None)
         primary_color = tuple(primary.diffuse_color) if primary else _linear((.86, .51, .055))
-        edges = {family: _geometry_edge_image(representatives, family, sizes[family]) for family in ("Primary", "Secondary")}
-        graphs = {material: _procedural(material, family, images[family]["ao"], primary_color, edges.get(family))
+        edges = {family: _geometry_edge_image(representatives, family, sizes[family]) for family in ("Primary", "Secondary") if family in families}
+        graphs = {material: _procedural(material, family, images[family]["ao"], primary_color, edges.get(family), face_wear)
                   for material, family in active_materials.items()}
         metadata["material_references"] = {material.name: {"linear_color": list(graph["original_color"]),
             "metallic": graph["metallic"], "roughness": graph["roughness"]} for material, graph in graphs.items()}
@@ -525,8 +557,8 @@ def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False):
             print("ATLAS_BAKE_PASS", role, flush=True)
             bpy.ops.object.bake(type=bake_type)
         final_maps = {}
-        for family in FAMILIES:
-            prefix = "Atlas_Surface" + family
+        for family in families:
+            name = prefix + family
             source = images[family]
             params, ao = _pixels(source["params"]), _pixels(source["ao"])
             occupied = params[:, :, 1] > 0.05
@@ -536,16 +568,16 @@ def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False):
             params[:, :, 0] = ao[:, :, 0]
             params[:, :, 3] = 1.0
             _write_pixels(source["params"], params)
-            maps = {"base": _save(source["base"], output, prefix + "_base"),
-                    "orm": _save(source["params"], output, prefix + "_orm"),
-                    "normal": _save(source["normal"], output, prefix + "_normal")}
+            maps = {"base": _save(source["base"], output, name + "_base"),
+                    "orm": _save(source["params"], output, name + "_orm"),
+                    "normal": _save(source["normal"], output, name + "_normal")}
             if family in ("Primary", "Secondary"):
-                mask = _image(prefix + "_coverage", sizes[family])
+                mask = _image(name + "_coverage", sizes[family])
                 channels = np.repeat(coverage[:, :, None], 4, axis=2)
                 channels[:, :, 3] = 1.0
                 _write_pixels(mask, channels)
-                maps["coverage"] = _save(mask, output, prefix + "_coverage")
-                metadata["paint_coverage"][family] = prefix + "_coverage.png"
+                maps["coverage"] = _save(mask, output, name + "_coverage")
+                metadata["paint_coverage"][family] = name + "_coverage.png"
             final_maps[family] = maps
             metadata["families"][family].update({"images": {key: image.name + ".png" for key, image in maps.items()},
                 "occupied_fraction": round(float(occupied.mean()), 5),
