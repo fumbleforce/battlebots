@@ -55,7 +55,9 @@ for initial window-manager focus before testing the production focus gate.
 
 Baseline, existing input-menu/preferences/settings, camera-settings, Atlas
 turret and Scorpion input checks pass after rebasing onto the new weapon,
-walker and practice-respawn work. The settings layout matrix covers 720p/4K
+walker and practice-respawn work. Final integration also preserves #64 local
+part shortcuts, its keyboard defaults/migration and the Local dev settings
+page; baseline, input and native layout checks pass on that combined tree. The settings layout matrix covers 720p/4K
 at 100/125/150% text and restoration to 100%; each controller label must fit.
 Native Forward+ on RTX 3080 verifies the same layout and retained capture:
 [Controller guide at 720p/150%](evidence/controller-input/controller-guide-150.png).
