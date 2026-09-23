@@ -32,6 +32,9 @@ const TRACK_MID_PROBES: Array[Vector3] = [Vector3(-0.65, 0, 0.0), Vector3(0.65, 
 var grounded: bool = false
 var walker := false
 var walker_rows := 2
+## Four-legged walker footholds (lateral, fore/aft) from the hull centre in game
+## metres; zero derives them from the probe box plus WalkerDrive.FOOT_SPREAD.
+var walker_footholds := Vector2.ZERO
 var walker_contacts: Array[Dictionary] = []
 var drive_multiplier: float = 1.0
 var nitro_equipped := false

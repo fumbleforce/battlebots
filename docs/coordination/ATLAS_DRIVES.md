@@ -37,13 +37,24 @@ sponsons keep the approved hull maps. The runtime hides the hull's
   bead protectors, painted rim barrel, six forged spokes with real windows onto
   the hub motor, bolted machined beadlock, eight hex lug nuts and the approved
   domed hub cap. A static finned hub motor with caliper bolts to each axle boss.
-- **Legs.** A static slewing mount (web plate on the boss end face, two bearing
-  collars) carries a coxa spindle. The coxa fork holds the femur pin and a
+- **Legs** (revised after user review: the first legs were far too spindly).
+  Parts are modelled in authoring units and scaled ×1.5 about their joint
+  origins, so every section, pin, planetary hip drive, knee ram and foot is
+  heavier while the published lengths and pivots stay exact (femur .60,
+  tibia .80, ankle .24 above the sole). A static slewing mount (web plate on the
+  axle boss end face, two bearing collars) carries a coxa spindle at
+  (±1.19, −.03, ±.86); the coxa fork holds the femur pin .235 out and the
   planetary hip drive on its outboard plate (left/right variants keep it
   outboard). Box-section femur with bolted top armour, knee fork and hose;
   tapered tibia with ram horn, bolted shin guard and ankle socket; ball ankle,
-  rubber dust boot and bolted pad foot with a cleated sole. A single knee ram
-  (barrel .423 / rod .433, eye stroke .473–.676 m, ≥ .18 m gland overlap).
+  rubber dust boot and a .31 m bolted pad foot with a cleated sole. A single
+  knee ram (≥ .09 m gland overlap).
+- **Walker footholds.** The heavier hips sit outboard of the axle bosses, so
+  Atlas on legs stands on its own footholds just outside the hull corners,
+  (±1.40, ±1.20) source metres (4.2 × 3.6 m game), instead of the chassis-derived
+  default (±1.12, ±1.04). `AtlasDriveRig.foothold` is authoritative: MvpBot sets
+  `DriveBody.walker_footholds` and `WalkerDrive.support` probes there; the legs
+  are drawn on the same points. Wider stance = steadier on slopes (gameplay).
 - Materials reuse the approved classes (primary/secondary enamel, machined,
   oxidised, recess, rubber) plus a tyre compound with dried-mud grime and
   hard-chromed ram rods, baked by `atlas_surface_bake.py` into a separate
@@ -55,15 +66,15 @@ sponsons keep the approved hull maps. The runtime hides the hull's
 - `data/atlas_drive_rig.json` (generated with the GLB; do not edit) is read by
   the typed [`AtlasDriveRig`](../../battlebots/scripts/core/atlas_drive_rig.gd)
   loader, which rejects missing fields. It carries the wheel radius and leg
-  dimensions, coxa yaw stops (−4°/+60° from fore/aft) and the ankle rise limit.
+  dimensions, footholds, coxa yaw stops (−10°/+60° from fore/aft) and the ankle rise limit.
 - [`AtlasLegs`](../../battlebots/scripts/presentation/atlas_legs.gd) extends the
   shared `WalkerLegs` planted-foot gait. `AtlasLegs.solve()` is the same
   construction as `pose()` in the generator: heading from the slewing axis to the
   ankle (clamped to the yaw stops), femur/tibia two-link solve in that vertical
   plane with the knee up and outboard, foot aligned to the ground normal, knee
-  ram aimed eye to eye. Feet use the WalkerDrive footholds (40 % of chassis size
-  plus `FOOT_SPREAD`, at `RIDE_HEIGHT`); presentation never moves authority.
-- The ankle folds at most `ankle_rise_limit` (.30 m) above stance: WalkerDrive
+  ram aimed eye to eye. Feet use the rig footholds at `RIDE_HEIGHT`, the same
+  points WalkerDrive supports the hull on; presentation never moves authority.
+- The ankle folds at most `ankle_rise_limit` (.20 m) above stance: WalkerDrive
   lifts the hull onto a higher foothold, so taller rises are brief, and folding
   further would put the tibia into the slewing mount.
 - `AtlasVisual.drive_gear`, `.drives` and `.legs` expose the fitted gear. Wheel
@@ -75,8 +86,10 @@ sponsons keep the approved hull maps. The runtime hides the hull's
 - Generator clearance audit (manifest `clearance`): sampled triangle overlap
   against the imported hull and the trimmed sponsons. Wheels: 0 contacts over 8
   spin phases per wheel. Legs: 0 contacts over 63 foot offsets per leg (fore/aft
-  ±.20, lateral ±.08, height −.45…+.41 m, the WalkerDrive reach and step range),
-  including non-adjacent part pairs. Only the bolted hub motors and slewing
+  ±.16 — the gait's maximum step lead — lateral ±.08, height −.45…+.41 m, the
+  WalkerDrive reach and step range), including non-adjacent part pairs and the
+  rotating coxa against its own mount (added after it exposed collar arms that
+  reached through the spindle in the first version). Only the bolted hub motors and slewing
   mounts touch the axle bosses (reported as intended contacts). This is a
   sampled surface test, not continuous or volumetric proof.
 - Design lesson: an under-femur lift ram needed a 2.1× eye-distance range over

@@ -46,42 +46,42 @@
   },
   "legs": {
     "yaw_axis": [
-      1.065,
-      0.76
+      1.19,
+      0.86
     ],
     "pin_height": -0.03,
-    "coxa_reach": 0.14,
+    "coxa_reach": 0.235,
     "femur": 0.6,
     "tibia": 0.8,
-    "ankle": 0.16,
+    "ankle": 0.24,
     "foot_neutral": [
-      1.116,
+      1.4,
       -0.95,
-      1.04
+      1.2
     ],
     "coxa_yaw_limits_degrees": [
-      -4.0,
+      -10.0,
       60.0
     ],
-    "ankle_rise_limit": 0.3,
+    "ankle_rise_limit": 0.2,
     "anchors": {
       "knee_femur": [
-        0.115,
-        0.1
+        0.1725,
+        0.15
       ],
       "knee_tibia": [
-        0.08,
-        -0.15
+        0.12,
+        -0.225
       ]
     },
     "hip_drive_depth": 0.1,
     "rams": {
       "Knee": {
-        "barrel": 0.4234,
-        "rod": 0.4334,
-        "eye_min": 0.4734,
-        "eye_max": 0.6755,
-        "min_overlap": 0.1813
+        "barrel": 0.3991,
+        "rod": 0.4141,
+        "eye_min": 0.4741,
+        "eye_max": 0.7148,
+        "min_overlap": 0.0984
       }
     },
     "nodes": "Leg{Mount|Coxa|Femur|Tibia|Foot|KneeBarrel|KneeRod}_{L|R}_{Front|Rear}"
@@ -94,7 +94,7 @@
     "leg_each": 29156
   },
   "clearance": {
-    "scope": "Sampled triangle-overlap audit against the imported atlas_mx.glb HullSurface and the trimmed sponsons. Wheels: 8 spin phases over one tread pitch. Legs: 63 foot offsets per leg (fore/aft +-.20, lateral +-.08, height -0.45..+0.41).",
+    "scope": "Sampled triangle-overlap audit against the imported atlas_mx.glb HullSurface and the trimmed sponsons. Wheels: 8 spin phases over one tread pitch. Legs: 63 foot offsets per leg (fore/aft +-0.16, lateral +-.08, height -0.45..+0.41).",
     "wheels": {
       "L_Front": 0,
       "L_Rear": 0,
@@ -112,10 +112,10 @@
       "HubMotor_L_Rear": 46,
       "HubMotor_R_Front": 47,
       "HubMotor_R_Rear": 47,
-      "LegMount_L_Front": 32,
-      "LegMount_L_Rear": 32,
-      "LegMount_R_Front": 32,
-      "LegMount_R_Rear": 32
+      "LegMount_L_Front": 35,
+      "LegMount_L_Rear": 35,
+      "LegMount_R_Front": 35,
+      "LegMount_R_Rear": 35
     },
     "wheels_clear": true,
     "legs_clear": true
@@ -128,16 +128,16 @@
     "families": {
       "Primary": {
         "resolution": 2048,
-        "faces": 2862,
+        "faces": 2854,
         "images": {
           "base": "Atlas_DrivePrimary_base.png",
           "orm": "Atlas_DrivePrimary_orm.png",
           "normal": "Atlas_DrivePrimary_normal.png",
           "coverage": "Atlas_DrivePrimary_coverage.png"
         },
-        "occupied_fraction": 0.52884,
+        "occupied_fraction": 0.55539,
         "ao_min": 0.0,
-        "ao_mean": 0.65032,
+        "ao_mean": 0.66862,
         "roughness_min": 0.37,
         "roughness_max": 0.8308
       },
@@ -150,9 +150,9 @@
           "normal": "Atlas_DriveSecondary_normal.png",
           "coverage": "Atlas_DriveSecondary_coverage.png"
         },
-        "occupied_fraction": 0.56927,
+        "occupied_fraction": 0.53252,
         "ao_min": 0.0,
-        "ao_mean": 0.58954,
+        "ao_mean": 0.61797,
         "roughness_min": 0.37,
         "roughness_max": 0.8308
       },
@@ -164,11 +164,11 @@
           "orm": "Atlas_DriveHardware_orm.png",
           "normal": "Atlas_DriveHardware_normal.png"
         },
-        "occupied_fraction": 0.50774,
+        "occupied_fraction": 0.53097,
         "ao_min": 0.0,
-        "ao_mean": 0.576,
-        "roughness_min": 0.11133,
-        "roughness_max": 0.99536
+        "ao_mean": 0.60094,
+        "roughness_min": 0.10519,
+        "roughness_max": 0.99495
       }
     },
     "paint_coverage": {
@@ -180,35 +180,25 @@
       "distance_metres": 0.06
     },
     "material_references": {
-      "Atlas_Rubber": {
+      "Atlas_PaintPrimaryEdge": {
         "linear_color": [
-          0.0035010159481316805,
+          0.7105664610862732,
+          0.22341398894786835,
           0.004400849808007479,
-          0.004896310158073902,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.66
+      },
+      "Atlas_TyreRubber": {
+        "linear_color": [
+          0.0051031713373959064,
+          0.005531959235668182,
+          0.005753953941166401,
           1.0
         ],
         "metallic": 0.0,
-        "roughness": 0.8399999737739563
-      },
-      "Atlas_OxidizedMetal": {
-        "linear_color": [
-          0.09462962299585342,
-          0.08088690787553787,
-          0.059253521263599396,
-          1.0
-        ],
-        "metallic": 0.800000011920929,
-        "roughness": 0.5699999928474426
-      },
-      "Atlas_ConnectorBrass": {
-        "linear_color": [
-          0.33034372329711914,
-          0.13286831974983215,
-          0.01960664801299572,
-          1.0
-        ],
-        "metallic": 0.800000011920929,
-        "roughness": 0.30000001192092896
+        "roughness": 0.8999999761581421
       },
       "Atlas_PaintSecondary": {
         "linear_color": [
@@ -220,16 +210,6 @@
         "metallic": 0.08,
         "roughness": 0.6100000143051147
       },
-      "Atlas_Recess": {
-        "linear_color": [
-          0.0020123838912695646,
-          0.0027089782524853945,
-          0.0030185759533196688,
-          1.0
-        ],
-        "metallic": 0.41999998688697815,
-        "roughness": 0.5099999904632568
-      },
       "Atlas_Metal": {
         "linear_color": [
           0.23302200436592102,
@@ -239,6 +219,16 @@
         ],
         "metallic": 0.9200000166893005,
         "roughness": 0.36000001430511475
+      },
+      "Atlas_OxidizedMetal": {
+        "linear_color": [
+          0.09462962299585342,
+          0.08088690787553787,
+          0.059253521263599396,
+          1.0
+        ],
+        "metallic": 0.800000011920929,
+        "roughness": 0.5699999928474426
       },
       "Atlas_PaintPrimary": {
         "linear_color": [
@@ -260,25 +250,25 @@
         "metallic": 0.949999988079071,
         "roughness": 0.30000001192092896
       },
-      "Atlas_TyreRubber": {
+      "Atlas_ConnectorBrass": {
         "linear_color": [
-          0.0051031713373959064,
-          0.005531959235668182,
-          0.005753953941166401,
+          0.33034372329711914,
+          0.13286831974983215,
+          0.01960664801299572,
+          1.0
+        ],
+        "metallic": 0.800000011920929,
+        "roughness": 0.30000001192092896
+      },
+      "Atlas_Rubber": {
+        "linear_color": [
+          0.0035010159481316805,
+          0.004400849808007479,
+          0.004896310158073902,
           1.0
         ],
         "metallic": 0.0,
-        "roughness": 0.8999999761581421
-      },
-      "Atlas_PaintPrimaryEdge": {
-        "linear_color": [
-          0.7105664610862732,
-          0.22341398894786835,
-          0.004400849808007479,
-          1.0
-        ],
-        "metallic": 0.08,
-        "roughness": 0.66
+        "roughness": 0.8399999737739563
       },
       "Atlas_ChromeRod": {
         "linear_color": [
@@ -289,6 +279,16 @@
         ],
         "metallic": 0.9800000190734863,
         "roughness": 0.1599999964237213
+      },
+      "Atlas_Recess": {
+        "linear_color": [
+          0.0020123838912695646,
+          0.0027089782524853945,
+          0.0030185759533196688,
+          1.0
+        ],
+        "metallic": 0.41999998688697815,
+        "roughness": 0.5099999904632568
       }
     }
   },

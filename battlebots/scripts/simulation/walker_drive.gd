@@ -23,6 +23,8 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 		if body.walker_rows == 3:
 			local_support = ScorpionStance.foot(int(probe.z) + 1, int(probe.x)) * body.geometry_scale
 			local_support.y = 0.0
+		elif body.walker_footholds != Vector2.ZERO:
+			local_support = Vector3(signf(probe.x) * body.walker_footholds.x, 0, signf(probe.z) * body.walker_footholds.y)
 		var hip := state.transform * local_support
 		var foot := hip + lead
 		var start := Vector3(foot.x, state.transform.origin.y - (RIDE_HEIGHT - MAX_STEP) * scale_ratio + 0.08 * body.geometry_scale, foot.z)

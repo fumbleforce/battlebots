@@ -57,29 +57,27 @@ random.seed(47047)
 WHEEL_RADIUS = .467          # lug tips; bottom at Y -.552 like the track shoes
 WHEEL_CENTER = (.945, -.085, .76)
 WHEEL_WIDTH = .36
-LEG_YAW_AXIS = (1.065, .76)   # X, Z of the vertical slewing axis (per side/end sign)
+LEG_YAW_AXIS = (1.19, .86)    # X, Z of the vertical slewing axis (per side/end sign)
 LEG_YAW_Y = -.03             # height of the femur pitch pin
-COXA_REACH = .140            # slewing axis -> femur pitch pin, along the leg heading
+COXA_REACH = .235            # slewing axis -> femur pitch pin, along the leg heading
 FEMUR = .60
 TIBIA = .80
-ANKLE = .16                  # ankle ball centre above the sole contact
-# Feet plant at the shared WalkerDrive footholds (MvpBot probes at 40% of the
-# catalogue chassis size plus FOOT_SPREAD, at RIDE_HEIGHT), read from source.
+ANKLE = .24                  # ankle ball centre above the sole contact
+# Feet plant at Atlas's own walker footholds, just outside the hull corners so
+# the heavy hips (outboard of the axle bosses) splay their legs outward. The
+# rig publishes them and MvpBot hands them to WalkerDrive (authoritative).
 import re
 _walker = (ROOT / 'battlebots/scripts/simulation/walker_drive.gd').read_text()
 def _walker_const(name): return float(re.search(r'const %s := ([0-9.]+) \* BotScale.FACTOR' % name, _walker).group(1))
-_atlas_size = next(p for p in json.loads((ROOT / 'battlebots/data/mvp_parts.json').read_text())['parts'] if p['id'] == 'atlas_mx')['size']
-FOOTHOLD_FRACTION = .4
-BOT_SCALE_FACTOR = 3.0      # BotScale.FACTOR: catalogue size = source metres x 3
-FOOT_NEUTRAL = (round(_atlas_size[0] / BOT_SCALE_FACTOR * FOOTHOLD_FRACTION + _walker_const('FOOT_SPREAD'), 4), -_walker_const('RIDE_HEIGHT'),
-                round(_atlas_size[2] / BOT_SCALE_FACTOR * FOOTHOLD_FRACTION, 4))
+FOOTHOLD = (1.40, 1.20)      # lateral, fore/aft from the hull centre
+FOOT_NEUTRAL = (FOOTHOLD[0], -_walker_const('RIDE_HEIGHT'), FOOTHOLD[1])
 # Coxa yaw stops, degrees from straight fore/aft: the inner fork plate clears
 # the axle boss up to 4 degrees inboard; outboard travel is limited by the skirt.
-COXA_YAW_LIMITS = (-4.0, 60.0)
+COXA_YAW_LIMITS = (-10.0, 60.0)
 # Highest ankle rise above stance the legs fold to; WalkerDrive lifts the hull
 # onto a higher foothold, so taller rises are brief. Beyond it the foot stays
 # at this height rather than folding the tibia into the slewing mount.
-ANKLE_RISE_LIMIT = .30
+ANKLE_RISE_LIMIT = .20
 
 def gv(p): return Vector((p[0], -p[2], p[1]))
 def gd(v): return (v.x, v.z, -v.y)
@@ -469,12 +467,21 @@ for obj in (wheel_mesh, hub_mesh, wheel_t, hub_t): bpy.data.objects.remove(obj, 
 # The runtime (AtlasLegs) and pose() below build the same frames:
 #   h = horizontal heading slewing axis -> ankle, hinge Z = up x h,
 #   segment X = Y x Z; coxa X = h, Y = up; foot Y = ground normal, X = heading.
-T = 1.35                     # section scale: Atlas-weight members, lengths unchanged
+T = 1.35                     # section proportion of the members (authoring units)
+# Leg parts are modelled in authoring units and scaled by LEG_SCALE about their
+# joint origins: every section, pin, drive, ram and foot grows while the
+# published lengths and pivots (real metres) stay exact. The user found the
+# first legs far too spindly for the hull (#47).
+LEG_SCALE = 1.5
+def au(v): return v / LEG_SCALE
 # The femur pitches on a planetary hip drive on the coxa fork's outboard plate:
 # no fixed-eye ram can cover the femur's swing across the terrain envelope.
 HIP_DRIVE_DEPTH = .10        # outboard protrusion of the drive beyond the fork plate
-KNEE_FEMUR = (.115, .10)     # knee ram eye on the femur top (X, Y)
-KNEE_TIBIA = (.08, -.15)     # knee ram eye on the tibia horn (X, Y), above the knee
+KNEE_FEMUR_A = (.115, .10)   # knee ram eye on the femur top (X, Y), authoring units
+KNEE_TIBIA_A = (.08, -.15)   # knee ram eye on the tibia horn (X, Y), above the knee
+KNEE_FEMUR = tuple(round(v * LEG_SCALE, 5) for v in KNEE_FEMUR_A)
+KNEE_TIBIA = tuple(round(v * LEG_SCALE, 5) for v in KNEE_TIBIA_A)
+CR = au(COXA_REACH)
 mount_t = part('LegMountTemplate'); coxa_t = part('LegCoxaTemplate'); femur_t = part('LegFemurTemplate')
 tibia_t = part('LegTibiaTemplate'); foot_t = part('LegFootTemplate')
 
@@ -499,14 +506,15 @@ def section(hx, hz, c):
 
 # Static slewing mount bolted to the approved axle boss end face (local X
 # WEB = hull X .94). Two bearing collars carry the coxa spindle.
-WEB = .94 - LEG_YAW_AXIS[0]
+WEB = au(.94 - LEG_YAW_AXIS[0])
 # Bearing collar centres: spread above and below the pin so the femur and
 # lift ram clear them across the terrain envelope.
-UPPER_COLLAR, LOWER_COLLAR = .17, -.27
-box('Slewing mount web plate', (WEB + .008, (UPPER_COLLAR + LOWER_COLLAR) * .5, 0), (.018, UPPER_COLLAR - LOWER_COLLAR + .26, .22), secondary, mount_t, .004)
+UPPER_COLLAR, LOWER_COLLAR = au(.20), au(-.25)
+box('Slewing mount web plate', (WEB + .008, (UPPER_COLLAR + LOWER_COLLAR) * .5, 0), (.018, UPPER_COLLAR - LOWER_COLLAR + .12, .22), secondary, mount_t, .004)
 for y in (UPPER_COLLAR, LOWER_COLLAR):
     ring('Slewing bearing collar', (0, y, 0), (0, 1, 0), .100, .062, .056, steel, mount_t, 48)
-    box('Collar support arm', ((WEB + .018 - .05) * .5, y, 0), (-WEB - .018 + .05, .056, .13), secondary, mount_t, .006)
+    # The arm runs from the web into the collar ring, stopping short of its bore.
+    box('Collar support arm', ((WEB + .018 - .075) * .5, y, 0), (-.075 - WEB - .018, .056, .13), secondary, mount_t, .006)
     cylinder('Collar grease nipple', (.07, y + .022, .07), (.08, y + .032, .08), .006, brass, mount_t, 10, 0)
 for y in (-.13, .03):
     for z in (-.075, .075):
@@ -514,7 +522,8 @@ for y in (-.13, .03):
 # Triangular stiffeners above the upper arm and below the lower arm, outside
 # the femur and ram sweep between the collars.
 for sgn in (-1, 1):
-    for y0, y1 in ((UPPER_COLLAR + .028, UPPER_COLLAR + .125), (LOWER_COLLAR - .028, LOWER_COLLAR - .125)):
+    # Kept below the sponson hood underside (about Y .33 m) once scaled.
+    for y0, y1 in ((UPPER_COLLAR + .028, UPPER_COLLAR + .06), (LOWER_COLLAR - .028, LOWER_COLLAR - .06)):
         slab('Web stiffening gusset', [(WEB + .018, y0), (WEB + .018, y1), (-.07, y0)], None, sgn * .05 - .006, sgn * .05 + .006, secondary, mount_t, .002,
              frame=((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)))
 
@@ -524,21 +533,21 @@ for sgn in (-1, 1):
 # left-rear legs, inboard on the others (hinge Z = up x heading).
 def build_coxa(group, drive_sign):
     cylinder('Coxa slewing spindle', (0, LOWER_COLLAR - .055, 0), (0, UPPER_COLLAR + .055, 0), .058, steel, group, 40, .003)
-    cylinder('Coxa hub sleeve', (0, LOWER_COLLAR + .030, 0), (0, UPPER_COLLAR - .030, 0), .082, secondary, group, 48, .006)
+    cylinder('Coxa hub sleeve', (0, LOWER_COLLAR + .030, 0), (0, UPPER_COLLAR - .030, 0), .060, secondary, group, 48, .006)
     for y, sgn in ((UPPER_COLLAR + .029, 1), (LOWER_COLLAR - .029, -1)):
         turned('Spindle retaining nut', (0, y, 0), (0, sgn, 0), [(0, .074), (.018, .074), (.025, .060), (.026, 0)], steel, group, 24)
-    fork = rounded([(.0, -.20), (.07, -.20)], (COXA_REACH, 0), .074 * T, -math.pi * .62, math.pi * .5, [(.0, .074 * T)], 12)
+    fork = rounded([(.0, -.12), (.07, -.12)], (CR, 0), .074 * T, -math.pi * .62, math.pi * .5, [(.0, .074 * T)], 12)
     face = .082 * T
     for sgn in (-1, 1):
         plate_xy('Coxa fork plate', fork, sgn * .056 * T, sgn * face, paint, group, .006)
         # Plate bolts sit above and below the axle boss the fork sweeps past.
-        for y in (-.185, .05): bolt((.04, y, sgn * face), (0, 0, sgn), group, .009)
-    pin(group, (COXA_REACH, 0), face + .006, .026 * T, nut=False)
-    turned('Castellated pin retaining nut', (COXA_REACH, 0, -drive_sign * (face + .006)), (0, 0, -drive_sign),
+        for y in (-.09, .05): bolt((.04, y, sgn * face), (0, 0, sgn), group, .009)
+    pin(group, (CR, 0), face + .006, .026 * T, nut=False)
+    turned('Castellated pin retaining nut', (CR, 0, -drive_sign * (face + .006)), (0, 0, -drive_sign),
            [(0, .026 * T * 1.3), (.008, .026 * T * 1.3), (.012, .026 * T * 1.1), (.013, 0)], steel, group, 24)
     # Planetary hip drive: bolted flange, finned ring-gear drum, end cap and a
     # hydraulic motor with its supply port, coaxial with the femur pin.
-    at = Vector((COXA_REACH, 0, drive_sign * face)); axis = (0, 0, drive_sign); d = HIP_DRIVE_DEPTH
+    at = Vector((CR, 0, drive_sign * face)); axis = (0, 0, drive_sign); d = HIP_DRIVE_DEPTH
     turned('Hip drive bolting flange', at, axis, [(0, .110), (.012, .110), (.014, .102), (.014, .0)], steel, group, 48)
     turned('Hip drive ring-gear drum', at, axis, [(.012, .094), (d * .55, .094), (d * .60, .088), (d * .64, .070), (d * .64, .0)], secondary, group, 48)
     for k in range(3):
@@ -554,7 +563,7 @@ coxa_mirror_t = part('LegCoxaMirrorTemplate')
 build_coxa(coxa_mirror_t, -1)
 
 # Femur: box-section beam, pin boss, knee fork, bolted armour and ram lugs.
-L1 = FEMUR
+L1 = au(FEMUR)
 cylinder('Femur root pin boss', (0, 0, -.052 * T), (0, 0, .052 * T), .062 * T, secondary, femur_t, 48, .005)
 loft('Femur box-section beam', [(.04, section(.055 * T, .048 * T, .018)), (.30, section(.064 * T, .050 * T, .020)), (L1 - .09, section(.050 * T, .046 * T, .016))], paint, femur_t, .012)
 box('Femur knee crossbar', (0, L1 - .11, 0), (.10 * T, .05, .156 * T), secondary, femur_t, .006)
@@ -569,7 +578,7 @@ slab('Femur top armour plate', section(.040 * T, .15, .02), None, .0, .012, seco
 for y in (.20, .30, .40):
     for z in (-.034, .034): bolt((.064 * T + .012, y, z), (1, 0, 0), femur_t, .0085)
 # Knee ram lug: paired plates with a cross pin, clear of the ram eye.
-for (lx, ly), sgn_x in ((KNEE_FEMUR, 1),):
+for (lx, ly), sgn_x in ((KNEE_FEMUR_A, 1),):
     for sgn in (-1, 1):
         plate_xy('Ram lug plate', rounded([(sgn_x * .055, ly - .05), (sgn_x * .055, ly + .05)], (lx, ly), .034, math.pi * .5 * sgn_x, -math.pi * .5 * sgn_x, [], 8),
                  sgn * .030, sgn * .045, secondary, femur_t, .003)
@@ -577,12 +586,12 @@ for (lx, ly), sgn_x in ((KNEE_FEMUR, 1),):
 tube('Femur hydraulic hose', [(.040, .06, .070), (.075, .20, .070), (.075, .46, .070), (.045, L1 - .12, .080)], .011, rubber, femur_t, 10)
 
 # Tibia: pin boss, ram horn, tapered beam, bolted shin armour, ankle socket.
-L2 = TIBIA
+L2 = au(TIBIA)
 cylinder('Tibia knee pin boss', (0, 0, -.050 * T), (0, 0, .050 * T), .056 * T, secondary, tibia_t, 48, .005)
-horn = [(-.06, .025), (.06, .045), (KNEE_TIBIA[0] + .034, KNEE_TIBIA[1] + .012), (KNEE_TIBIA[0] + .012, KNEE_TIBIA[1] - .034), (KNEE_TIBIA[0] - .028, KNEE_TIBIA[1] - .014), (-.055, -.04)]
+horn = [(-.06, .025), (.06, .045), (KNEE_TIBIA_A[0] + .034, KNEE_TIBIA_A[1] + .012), (KNEE_TIBIA_A[0] + .012, KNEE_TIBIA_A[1] - .034), (KNEE_TIBIA_A[0] - .028, KNEE_TIBIA_A[1] - .014), (-.055, -.04)]
 for sgn in (-1, 1):
     plate_xy('Tibia ram horn plate', horn, sgn * .030, sgn * .050, paint, tibia_t, .005)
-pin(tibia_t, KNEE_TIBIA, .058, .019, nut=False)
+pin(tibia_t, KNEE_TIBIA_A, .058, .019, nut=False)
 loft('Tibia tapered beam', [(.05, section(.052 * T, .044 * T, .016)), (.35, section(.050 * T, .042 * T, .015)), (L2 - .16, section(.040 * T, .036 * T, .012))], secondary, tibia_t, .009)
 slab('Shin guard armour plate', [(-.07, .11), (.07, .11), (.076, .17), (.066, L2 * .62), (0, L2 * .62 + .06), (-.066, L2 * .62), (-.076, .17)], None, .0, .014, paint, tibia_t, .006,
      frame=((.052 * T + .012, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0)))
@@ -610,6 +619,10 @@ for i in range(6):
 
 MOUNT = finalize(mount_t, 'AtlasLegMount'); COXA = finalize(coxa_t, 'AtlasLegCoxa'); COXA_MIRROR = finalize(coxa_mirror_t, 'AtlasLegCoxaMirror')
 FEMUR_MESH = finalize(femur_t, 'AtlasLegFemur'); TIBIA_MESH = finalize(tibia_t, 'AtlasLegTibia'); FOOT = finalize(foot_t, 'AtlasLegFoot')
+def to_real(obj):
+    """Authoring units -> metres about the part's joint origin."""
+    obj.data.transform(Matrix.Scale(LEG_SCALE, 4)); obj.data.update()
+for obj in (MOUNT, COXA, COXA_MIRROR, FEMUR_MESH, TIBIA_MESH, FOOT): to_real(obj)
 
 C = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))
 def to_blender(origin, x, y, z):
@@ -654,8 +667,11 @@ def neutral_ankle(side, end):
     return Vector((side * FOOT_NEUTRAL[0], FOOT_NEUTRAL[1] + ANKLE, end * FOOT_NEUTRAL[2]))
 # Sampled envelope: fore/aft and lateral foot travel, swing lift and terrain
 # footholds between WalkerDrive's step ceiling and its reach below the stance.
+# WalkerLegs leads a step by 0.12 s of travel; at the walker's 4 m/s (game) that
+# is .16 m of foot travel ahead or behind the stance.
+STEP_LEAD = .16
 _step = _walker_const('MAX_STEP'); _reach = _walker_const('REACH') - _walker_const('RIDE_HEIGHT')
-GAIT = [(dx, dy, dz) for dx in (-.08, 0, .08) for dy in (-_reach * .9, -.2, 0, .12, .25, ANKLE_RISE_LIMIT, _step * .9) for dz in (-.20, 0, .20)]
+GAIT = [(dx, dy, dz) for dx in (-.08, 0, .08) for dy in (-_reach * .9, -.2, 0, .12, .25, ANKLE_RISE_LIMIT, _step * .9) for dz in (-STEP_LEAD, 0, STEP_LEAD)]
 ranges = {'Knee': [9, 0]}
 for side, end, _, _ in LEGS:
     for dx, dy, dz in GAIT:
@@ -663,7 +679,7 @@ for side, end, _, _ in LEGS:
         for k, v in lengths.items(): ranges[k][0] = min(ranges[k][0], v); ranges[k][1] = max(ranges[k][1], v)
 # The longest barrel and rod that never meet an eye at the shortest eye
 # distance; the rod must still overlap the gland at the longest.
-RAM_EYE_CLEARANCE = {'barrel': .05, 'rod': .04}; RAM_MIN_OVERLAP = .02
+RAM_EYE_CLEARANCE = {'barrel': .05 * LEG_SCALE, 'rod': .04 * LEG_SCALE}; RAM_MIN_OVERLAP = .02
 RAMS = {}
 for label, (lo, hi) in ranges.items():
     barrel = round(lo - RAM_EYE_CLEARANCE['barrel'], 4); rod = round(lo - RAM_EYE_CLEARANCE['rod'], 4)
@@ -678,15 +694,15 @@ for label, spec in RAMS.items():
     ring('Ram barrel eye', (0, 0, 0), (0, 0, 1), .036, .0195, .054, steel, g, 32)
     cylinder('Ram barrel eye neck', (0, .026, 0), (0, .044, 0), .028, steel, g, 24, .002)
     turned('Ram barrel base collar', (0, .042, 0), (0, 1, 0), [(0, rb + .004), (.016, rb + .004), (.020, rb)], steel, g, 40)
-    cylinder('Hydraulic ram barrel', (0, .060, 0), (0, spec['barrel'] - .02, 0), rb, secondary, g, 40, .002)
-    turned('Ram gland nut', (0, spec['barrel'] - .022, 0), (0, 1, 0), [(0, rb + .005), (.018, rb + .005), (.022, rb * .8), (.022, rr + .002)], steel, g, 6 * 6)
+    cylinder('Hydraulic ram barrel', (0, .060, 0), (0, au(spec['barrel']) - .02, 0), rb, secondary, g, 40, .002)
+    turned('Ram gland nut', (0, au(spec['barrel']) - .022, 0), (0, 1, 0), [(0, rb + .005), (.018, rb + .005), (.022, rb * .8), (.022, rr + .002)], steel, g, 6 * 6)
     cylinder('Ram hose port', (rb - .004, .085, 0), (rb + .018, .085, 0), .011, brass, g, 12, .001)
-    ram_meshes[label + 'Barrel'] = finalize(g, 'AtlasLeg%sBarrel' % label)
+    ram_meshes[label + 'Barrel'] = finalize(g, 'AtlasLeg%sBarrel' % label); to_real(ram_meshes[label + 'Barrel'])
     g = part('Leg%sRodTemplate' % label)
     ring('Ram rod eye', (0, 0, 0), (0, 0, 1), .032, .0195, .050, steel, g, 32)
     cylinder('Ram rod eye neck', (0, .024, 0), (0, .040, 0), rr + .004, steel, g, 24, .002)
-    cylinder('Hard-chromed ram rod', (0, .040, 0), (0, spec['rod'], 0), rr, chrome, g, 32, .0015)
-    ram_meshes[label + 'Rod'] = finalize(g, 'AtlasLeg%sRod' % label)
+    cylinder('Hard-chromed ram rod', (0, .040, 0), (0, au(spec['rod']), 0), rr, chrome, g, 32, .0015)
+    ram_meshes[label + 'Rod'] = finalize(g, 'AtlasLeg%sRod' % label); to_real(ram_meshes[label + 'Rod'])
 
 LEG_TEMPLATES = {'Coxa': COXA, 'Femur': FEMUR_MESH, 'Tibia': TIBIA_MESH, 'Foot': FOOT, **ram_meshes}
 # +Z of the coxa faces outboard where side * end < 0 (see build_coxa).
@@ -804,7 +820,7 @@ def audit():
     static = {-1: world_tree(hull_surface + [sponson_objects[-1]]), 1: world_tree(hull_surface + [sponson_objects[1]])}
     hull_tree = world_tree(hull_surface)
     report = {'scope': 'Sampled triangle-overlap audit against the imported atlas_mx.glb HullSurface and the trimmed sponsons. '
-                       'Wheels: 8 spin phases over one tread pitch. Legs: %d foot offsets per leg (fore/aft +-.20, lateral +-.08, height -%.2f..+%.2f).' % (len(GAIT), _reach * .9, _step * .9),
+                       'Wheels: 8 spin phases over one tread pitch. Legs: %d foot offsets per leg (fore/aft +-%.2f, lateral +-.08, height -%.2f..+%.2f).' % (len(GAIT), STEP_LEAD, _reach * .9, _step * .9),
               'wheels': {}, 'legs': {}, 'intended_contacts': {}}
     step = math.tau / PITCHES / 8
     for side, sl in ((-1, 'L'), (1, 'R')):
@@ -835,9 +851,9 @@ def audit():
             trees['Mount'] = world_tree([mount])
             for label in moving:
                 count = len(trees[label].overlap(static[side]))
-                if label != 'Coxa': count += len(trees[label].overlap(trees['Mount']))
+                count += len(trees[label].overlap(trees['Mount']))
                 if count:
-                    where = 'hull' if trees[label].overlap(hull_tree) else ('mount' if label != 'Coxa' and trees[label].overlap(trees['Mount']) else 'sponson')
+                    where = 'hull' if trees[label].overlap(hull_tree) else ('mount' if trees[label].overlap(trees['Mount']) else 'sponson')
                     target = hull_tree if where == 'hull' else (trees['Mount'] if where == 'mount' else static[side])
                     result['static'].setdefault(label + '_vs_' + where, []).append([dx, dy, dz, count, overlap_at(trees[label], target)])
             for a, b in apart:
@@ -929,9 +945,10 @@ manifest = {'name': 'Atlas MX drive configurations', 'id': 'atlas_drives', 'runt
             'triangles': stats, 'clearance': clearance, 'surface_atlases': surface, 'approval': 'Pending user visual approval'}
 (RUNTIME / 'atlas_drives_manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
 # Runtime rig: the exported data file AtlasDriveRig reads (typed, no defaults).
-rig = {'_comment': 'Generated by tools/build-atlas-drives.py from the authored atlas_drives.glb; regenerate instead of editing. Atlas source metres in the hull frame (X right, Y up, -Z forward; the runtime applies the shared factor-three scale). Presentation only: authoritative walker footholds stay in WalkerDrive.',
+rig = {'_comment': 'Generated by tools/build-atlas-drives.py from the authored atlas_drives.glb; regenerate instead of editing. Atlas source metres in the hull frame (X right, Y up, -Z forward; the runtime applies the shared factor-three scale). Presentation data except legs.foothold_x/z, which WalkerDrive uses as the authoritative Atlas walker footholds.',
        'wheels': {'_comment': 'Large off-road wheels spin about local X at this lug-tip radius.', 'radius': WHEEL_RADIUS},
-       'legs': {'_comment': 'Yaw/pitch/pitch hydraulic legs. The coxa slews about a vertical axis at (+-yaw_axis_x, pin_height, +-yaw_axis_z); the femur pin sits coxa_reach along the heading. Heading yaw is limited to [coxa_yaw_min_degrees, coxa_yaw_max_degrees] from straight fore/aft (positive outboard); the ankle rises at most ankle_rise_limit above its stance height. The femur pitches on a planetary hip drive; the knee ram eyes are (X, Y) in the femur and tibia segment frames.',
+       'legs': {'_comment': 'Yaw/pitch/pitch hydraulic legs. foothold_x/z are the authoritative walker footholds per corner (WalkerDrive supports the hull there). The coxa slews about a vertical axis at (+-yaw_axis_x, pin_height, +-yaw_axis_z); the femur pin sits coxa_reach along the heading. Heading yaw is limited to [coxa_yaw_min_degrees, coxa_yaw_max_degrees] from straight fore/aft (positive outboard); the ankle rises at most ankle_rise_limit above its stance height. The femur pitches on a planetary hip drive; the knee ram eyes are (X, Y) in the femur and tibia segment frames.',
+                'foothold_x': FOOTHOLD[0], 'foothold_z': FOOTHOLD[1],
                 'yaw_axis_x': LEG_YAW_AXIS[0], 'yaw_axis_z': LEG_YAW_AXIS[1], 'pin_height': LEG_YAW_Y, 'coxa_reach': COXA_REACH,
                 'femur': FEMUR, 'tibia': TIBIA, 'ankle': ANKLE, 'ankle_rise_limit': ANKLE_RISE_LIMIT,
                 'coxa_yaw_min_degrees': COXA_YAW_LIMITS[0], 'coxa_yaw_max_degrees': COXA_YAW_LIMITS[1],

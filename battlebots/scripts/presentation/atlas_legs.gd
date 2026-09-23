@@ -6,8 +6,6 @@ extends WalkerLegs
 ## The frames match pose() in tools/build-atlas-drives.py; dimensions come from
 ## AtlasDriveRig. No collision, damage or authoritative footholds live here.
 const PARTS := ["Coxa", "Femur", "Tibia", "Foot", "KneeBarrel", "KneeRod"]
-## MvpBot's walker ground probes sit at this fraction of the chassis size.
-const FOOTHOLD_FRACTION := 0.4
 ## Below this horizontal reach the heading keeps the leg's neutral yaw.
 const MIN_HEADING_REACH := 0.02
 ## Kept from full extension so the knee never locks straight.
@@ -23,7 +21,6 @@ var _was_eliminated := false
 func attach(size: Vector3, parts: Dictionary) -> void:
 	rig = AtlasDriveRig.settings()
 	_geometry_scale = BotScale.from_size(size)
-	size /= _geometry_scale
 	scale *= _geometry_scale
 	for side: int in [-1, 1]:
 		for end: int in [-1, 1]:
@@ -31,8 +28,8 @@ func attach(size: Vector3, parts: Dictionary) -> void:
 			var nodes := {}
 			for part: String in PARTS:
 				nodes[part] = parts["Leg%s_%s" % [part, tag]]
-			var neutral := Vector3(side * (size.x * FOOTHOLD_FRACTION + WalkerDrive.FOOT_SPREAD / BotScale.FACTOR),
-				-WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR, end * size.z * FOOTHOLD_FRACTION)
+			# The same footholds WalkerDrive supports the hull on (AtlasDriveRig).
+			var neutral := Vector3(side * rig.foothold.x, -WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR, end * rig.foothold.y)
 			var axis := Vector3(side * rig.yaw_axis.x, rig.pin_height, end * rig.yaw_axis.y)
 			legs.append({"side":side, "end":end, "tag":tag, "nodes":nodes, "neutral":neutral, "hip":axis,
 				"neutral_yaw":atan2(side * (neutral.x - axis.x), end * (neutral.z - axis.z)),

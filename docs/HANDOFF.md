@@ -5,6 +5,15 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Heavier Atlas legs and wider walker stance (#47) — 23 September 2026
+
+After user review ("way too spindly"), every Atlas leg member, joint, hip drive,
+knee ram and foot is modelled ×1.5 heavier with the same articulation. The hips
+moved outboard, so Atlas on legs now stands on its own wider footholds
+(authoritative via `AtlasDriveRig.foothold` → `DriveBody.walker_footholds`).
+Clearance re-audited including hip-vs-mount; gameplay build `mvp-ab-33`.
+[Details](coordination/ATLAS_DRIVES.md).
+
 ## Visible online and host actions at enlarged text (#7) — 23 September 2026
 
 Online entry now fits Quick Play/Create/Join together; compact host cards keep

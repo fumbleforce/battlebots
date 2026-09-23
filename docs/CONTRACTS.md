@@ -1,5 +1,14 @@
 # Shared contracts — local records and current MVP session API
 
+## Atlas leg footholds — build mvp-ab-33 (#47)
+
+An Atlas MX on `walker` is supported at `AtlasDriveRig.foothold` (±1.40, ±1.20
+source m from the hull centre) instead of the chassis-derived walker footholds:
+`MvpBot` sets `DriveBody.walker_footholds` (game metres, zero = default) and
+`WalkerDrive.support` probes there. Other walkers are unchanged. Gameplay
+change (wider stance), no wire/schema change; peers need the matching build.
+[Details](coordination/ATLAS_DRIVES.md).
+
 ## Applied correction diagnostic (#57)
 
 `MvpSession.diagnostics.correction_m` is the latest actual local-body displacement

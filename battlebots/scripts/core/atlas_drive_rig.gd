@@ -2,7 +2,8 @@ class_name AtlasDriveRig
 extends RefCounted
 ## Typed view of data/atlas_drive_rig.json, generated with atlas_drives.glb by
 ## tools/build-atlas-drives.py: large-wheel and hydraulic-leg dimensions in
-## Atlas source metres. Presentation only; walker footholds stay in WalkerDrive.
+## Atlas source metres. The leg footholds are authoritative: MvpBot hands them
+## to WalkerDrive for an Atlas on legs; everything else is presentation.
 const PATH := "res://data/atlas_drive_rig.json"
 
 static var _loaded: AtlasDriveRig
@@ -10,6 +11,8 @@ static var _loaded: AtlasDriveRig
 # wheels
 var wheel_radius: float
 # legs
+## Walker footholds (lateral, fore/aft) from the hull centre, per corner.
+var foothold: Vector2
 ## Vertical slewing axis at (+-yaw_axis.x, pin_height, +-yaw_axis.y).
 var yaw_axis: Vector2
 var pin_height: float
@@ -28,7 +31,7 @@ var knee_tibia: Vector2
 
 const SCALARS := {
 	"wheels": ["radius"],
-	"legs": ["yaw_axis_x", "yaw_axis_z", "pin_height", "coxa_reach", "femur", "tibia", "ankle", "ankle_rise_limit",
+	"legs": ["foothold_x", "foothold_z", "yaw_axis_x", "yaw_axis_z", "pin_height", "coxa_reach", "femur", "tibia", "ankle", "ankle_rise_limit",
 		"coxa_yaw_min_degrees", "coxa_yaw_max_degrees"],
 }
 const PAIRS := ["knee_femur", "knee_tibia"]
@@ -67,6 +70,7 @@ static func from_json(source: String, problems: Array[String] = []) -> AtlasDriv
 		values[field] = Vector2(float(pair[0]), float(pair[1]))
 	var result := AtlasDriveRig.new()
 	result.wheel_radius = values.radius
+	result.foothold = Vector2(values.foothold_x, values.foothold_z)
 	result.yaw_axis = Vector2(values.yaw_axis_x, values.yaw_axis_z)
 	result.pin_height = values.pin_height
 	result.coxa_reach = values.coxa_reach

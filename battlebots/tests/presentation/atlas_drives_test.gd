@@ -33,6 +33,7 @@ func run() -> void:
 	wheels_case(registry, base)
 	legs_case(registry, base)
 	await floor_case(registry, base)
+	await foothold_case(registry, base)
 	if DisplayServer.get_name() != "headless": await paint_case(registry, base)
 	if failures.is_empty(): print("ATLAS DRIVES PASS")
 	else:
@@ -165,6 +166,21 @@ func floor_case(registry: ContentRegistry, base: Dictionary) -> void:
 		check(absf(sole - floor_y) < FLOOR_TOLERANCE, "Leg %s plants its sole on the floor (%.3f)" % [leg.tag, sole - floor_y])
 	visual.free()
 	floor_body.free()
+
+## An Atlas on legs is supported at the rig footholds its legs are drawn on;
+## other walkers keep the chassis-derived footholds.
+func foothold_case(registry: ContentRegistry, base: Dictionary) -> void:
+	var bot := MvpBot.create(1, 0, visual_draft(base, "walker"), registry)
+	add_child(bot)
+	await get_tree().process_frame
+	check(bot.body.walker and bot.body.walker_footholds.is_equal_approx(AtlasDriveRig.settings().foothold * bot.body.geometry_scale),
+		"WalkerDrive supports the Atlas at the rig footholds")
+	bot.free()
+	var scorpion := MvpBot.create(2, 0, registry.scorpion(), registry)
+	add_child(scorpion)
+	await get_tree().process_frame
+	check(scorpion.body.walker_footholds == Vector2.ZERO, "Other walkers keep their own footholds")
+	scorpion.free()
 
 func visual_draft(base: Dictionary, drive: String) -> Dictionary:
 	var draft := base.duplicate(true)
