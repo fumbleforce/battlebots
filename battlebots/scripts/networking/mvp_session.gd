@@ -70,6 +70,10 @@ var _reconnect_deadline := 0
 var _reconnecting := false
 var _tearing_down := false
 var practice_director: PracticeBotDirector
+## Authority only: stock item pickups when a match or practice starts. Fixtures
+## that hold MvpBot references across frames disable this, since a part pickup
+## replaces the bot node.
+var pickups_enabled := true
 var _pickup_revision := -1
 
 func _ready() -> void:
@@ -192,7 +196,8 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	bot.owner_id = 1
 	practice_director = PracticeBotDirector.new()
 	_next_entity = practice_director.configure(world, local_entity, _next_entity)
-	world.begin_pickups(randi())
+	if pickups_enabled:
+		world.begin_pickups(randi())
 	match_state.match_id = "practice"
 	match_state.round_index = 1
 	match_state.transition("active", 0)
@@ -575,7 +580,8 @@ func _start() -> void:
 		_input_queue[id] = []
 		if p.peer == 1:
 			_loaded[id] = true
-	world.begin_pickups(randi())
+	if pickups_enabled:
+		world.begin_pickups(randi())
 	_pickup_revision = world.pickups.revision
 	pickup_view = _pickup_state(false)
 	pickups_changed.emit(pickup_view.duplicate(true))

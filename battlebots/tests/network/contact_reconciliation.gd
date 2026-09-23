@@ -23,6 +23,8 @@ func make_session(label: String) -> MvpSession:
 	get_tree().set_multiplayer(SceneMultiplayer.new(), viewport.get_path())
 	var session := MvpSession.new()
 	session.name = "Session"
+	# Combat fixtures hold MvpBot references; a part pickup would replace them.
+	session.pickups_enabled = false
 	viewport.add_child(session)
 	sessions.append(session)
 	return session
