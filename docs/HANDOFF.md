@@ -1,5 +1,18 @@
 # Current A/B handoff
 
+## Garage loadout links — B, 23 September 2026
+
+Clicking a Garage LOADOUT row now opens Customize at that part slot: WEAPON,
+UTILITY / AUXILIARY GUN, or PERKS (Nitro). The perks row is no longer
+mislabelled BRAKE. The hand-off is B's small CustomizeRequest holder class, and
+A's MenuRouter is unchanged.
+
+Note for everyone: a `static var` on a script that preloads scenes or models
+keeps them alive until exit. That leaked renderer resources at editor-import
+exit and failed the baseline. See
+[details](coordination/B_GARAGE_LOADOUT_LINKS.md) and
+[#37](https://github.com/fumbleforce/battlebots/issues/37).
+
 ## Graphics quality and settings overhaul — A, 23 September 2026
 
 Issue [#29](https://github.com/fumbleforce/battlebots/issues/29) adds a cohesive

@@ -87,6 +87,7 @@ $checks = @(
     @('garage_history_test.gd', 'GARAGE HISTORY PASS'),
     @('menu_customization_screens_test.gd', 'MENU CUSTOMIZATION SCREENS PASS'),
     @('garage_compatible_parts_test.gd', 'GARAGE COMPATIBLE PARTS PASS'),
+    @('garage_loadout_links_test.gd', 'GARAGE LOADOUT LINKS PASS'),
     @('menu_kit_test.gd', 'MENU KIT PASS'),
     @('menu_flow_test.gd', 'MENU FLOW PASS'),
     @('menu_music_test.gd', 'MENU MUSIC PASS'),

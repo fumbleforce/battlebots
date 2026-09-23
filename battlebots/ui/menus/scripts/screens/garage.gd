@@ -49,6 +49,10 @@ func _ready() -> void:
 	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%BotList.get_parent().add_child(notice)
 	%Customize.pressed.connect(MenuRouter.goto.bind("customize"))
+	# Each loadout row opens Customize at the part slot it summarises.
+	for link: Array in [[%WeaponSlot, "weapon"], [%AbilitySlot, "utility"], [%BoostSlot, "nitro"]]:
+		link[0].pressed.connect(_open_customize.bind(link[1]))
+		link[0].tooltip_text = "Change in Customize"
 	%NewBot.pressed.connect(func(): PlayerProfile.new_build(); MenuRouter.goto("customize"))
 	%Steps.hide()
 	%Eyebrow.text = "YOUR BOTS · SELECT OR CUSTOMIZE"
@@ -78,6 +82,11 @@ func _ready() -> void:
 	_refresh_builds()
 	apply_text_scale(_text_factor)
 	_focus_selected.call_deferred()
+
+func _open_customize(slot: String) -> void:
+	CustomizeRequest.slot = slot
+	MenuRouter.goto("customize")
+
 
 func _focus_selected() -> void:
 	if not is_inside_tree() or recovery_panel.visible: return

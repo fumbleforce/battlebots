@@ -226,6 +226,7 @@ func _ready() -> void:
 	%TabParts.button_pressed = true
 	%Save.pressed.connect(_save_build)
 	PlayerProfile.inventory_changed.connect(_refresh)
+	_open_requested_slot()
 	_refocus = "item"
 	_refresh()
 	recovery_panel = GarageRecoveryPanel.new()
@@ -242,6 +243,14 @@ func _ready() -> void:
 		_commit_name()
 		recovery_panel.open(PlayerProfile))
 	apply_text_scale(_text_scale)
+
+
+func _open_requested_slot() -> void:
+	var slot := CustomizeRequest.slot
+	CustomizeRequest.slot = ""
+	var categories: Array = PlayerProfile.catalogue.parts
+	for index: int in categories.size():
+		if categories[index].slot == slot: _cat.parts = index
 
 
 func _style_utility_button(button: Button) -> void:
