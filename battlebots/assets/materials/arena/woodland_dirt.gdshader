@@ -7,6 +7,48 @@ uniform vec4 clusters[8];
 uniform float water_level = -10.0;
 varying vec3 wnormal; // Undisplaced terrain normal: drives material masks.
 varying vec3 wpos;
+// Photoscanned CC0 layers (assets/textures/woodland/CREDITS.md).
+uniform sampler2D mud_diff : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D mud_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D mud_arm : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rocky_diff : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rocky_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rocky_arm : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D ground_diff : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D ground_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D ground_arm : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D grass_diff : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D grass_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D grass_arm : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_diff : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_arm : filter_linear_mipmap_anisotropic, repeat_enable;
+
+struct Layer {
+	vec3 albedo;
+	vec3 normal; // Tangent-space xy offsets in world x/z (y unused).
+	vec3 arm;
+	float height;
+};
+
+// Two differently rotated samples blended by noise hide tile repetition.
+Layer sample_layer(sampler2D d, sampler2D n, sampler2D a, vec2 p, float tile) {
+	vec2 uv1 = p / tile;
+	vec2 uv2 = mat2(vec2(0.766, 0.643), vec2(-0.643, 0.766)) * (p / (tile * 1.37)) + vec2(0.31, 0.57);
+	float m = smoothstep(0.3, 0.7, wl_noise(p / (tile * 2.3)));
+	vec3 c = mix(texture(d, uv1).rgb, texture(d, uv2).rgb, m);
+	vec3 t1 = texture(n, uv1).rgb * 2.0 - 1.0;
+	vec3 t2 = texture(n, uv2).rgb * 2.0 - 1.0;
+	t2.xy = mat2(vec2(0.766, -0.643), vec2(0.643, 0.766)) * t2.xy;
+	vec3 t = mix(t1, t2, m);
+	Layer l;
+	l.albedo = c;
+	l.normal = vec3(t.x, 0.0, -t.y);
+	l.arm = mix(texture(a, uv1).rgb, texture(a, uv2).rgb, m);
+	l.height = dot(c, vec3(0.333));
+	return l;
+}
+
 float octagon_distance(vec2 p) {
 	return arena_half_extent - max(max(abs(p.x), abs(p.y)), (abs(p.x) + abs(p.y)) * 0.70710678);
 }
@@ -94,82 +136,77 @@ void fragment() {
 	float big = wl_fbm(p * 0.018, 4);
 	float mid = wl_fbm(p * 0.21 + 3.1, 4);
 	float fine = wl_fbm(p * 2.4, 3);
-	float grain = wl_noise(p * 31.0);
 	float edge = octagon_distance(p);
 	float tread;
 	float rut = ruts(p, tread);
-	// Gravel stones pressed into the surface.
-	vec2 cell = wl_cells(p * 7.0);
-	// Sub-pixel gravel shimmers; it fades out before it gets that small.
-	float stone = (1.0 - smoothstep(0.16, 0.3, cell.x)) * step(0.62, cell.y) * (1.0 - rut * 0.7) * fade;
-	vec2 cell2 = wl_cells(p * 2.1 + 9.0);
-	float cobble = (1.0 - smoothstep(0.06, 0.24, cell2.x)) * step(0.9, cell2.y) * (1.0 - smoothstep(20.0, 60.0, dist));
-	// Hollows collect water; puddles sit in the deepest parts and in the ruts.
 	float hollow = big * 0.72 + mid * 0.28 + rut * 0.08;
 	float wet = smoothstep(0.55, 0.67, hollow);
-	// Rain pools in the deepest stretches of the ruts and in flat hollows.
 	float flat_ground = smoothstep(0.9, 0.985, wnormal.y);
 	float puddle = smoothstep(0.75, 1.0, rut) * smoothstep(0.5, 0.7, wl_noise(p * 0.12 + 3.0)) * flat_ground * 0.85;
-	puddle = clamp(puddle, 0.0, 1.0);
-	// Grass survives along the walls and around the outcrops.
+	// Grass survives along the walls, around outcrops and on raised, undriven ground.
 	float grass = 1.0 - smoothstep(1.0, 4.0 + mid * 5.0, edge);
 	for (int i = 0; i < 8; i++) {
 		float d = distance(p, clusters[i].xy);
 		grass = max(grass, 1.0 - smoothstep(clusters[i].z, clusters[i].z + 2.5 + mid * 4.0, d));
 	}
-	// Raised, undriven ground grows grass; banks and water edges stay green.
 	grass = max(grass, smoothstep(0.5, 1.4, wpos.y) * 0.9);
-	float bank = (1.0 - smoothstep(0.4, 1.2, wpos.y - water_level)) * step(water_level - 0.3, wpos.y);
-	grass = max(grass, bank * 0.7);
 	grass = max(grass, smoothstep(0.55, 0.8, wl_fbm(p * 0.045 + 7.0, 4)) * 0.8);
 	grass *= smoothstep(0.32, 0.55, mid + fine * 0.35) * (1.0 - rut) * (1.0 - wet * 0.6);
-	vec3 packed = vec3(0.15, 0.108, 0.072);
-	vec3 dusty = vec3(0.23, 0.175, 0.125);
-	vec3 loam = vec3(0.11, 0.08, 0.055);
-	vec3 col = mix(packed, dusty, smoothstep(0.3, 0.75, big + fine * 0.35 - wet * 0.3));
-	col = mix(col, loam, smoothstep(0.5, 0.8, mid) * 0.6);
-	col *= 0.84 + grain * 0.2 + (fine - 0.5) * 0.3;
-	// Churned mud in the ruts, with wet dark cleat prints.
-	col = mix(col, vec3(0.16, 0.115, 0.08), smoothstep(0.0, 0.6, rut) * 0.55);
-	col = mix(col, vec3(0.1, 0.075, 0.05), tread * 0.3 * fade);
-	col = mix(col, col * 1.25, smoothstep(0.0, 0.3, rut) * (1.0 - smoothstep(0.3, 0.6, rut)) * 0.5);
+	float steep = 1.0 - smoothstep(0.55, 0.8, wnormal.y);
+	grass *= 1.0 - steep;
+
+	Layer mud = sample_layer(mud_diff, mud_nor, mud_arm, p, 3.2);
+	// The scan is ochre clay; the reference mud is a dark, desaturated brown.
+	float mud_lum = dot(mud.albedo, vec3(0.299, 0.587, 0.114));
+	mud.albedo = mix(vec3(mud_lum), mud.albedo, 0.45) * vec3(0.92, 0.82, 0.72);
+	Layer rocky = sample_layer(rocky_diff, rocky_nor, rocky_arm, p, 2.6);
+	Layer ground = sample_layer(ground_diff, ground_nor, ground_arm, p, 3.0);
+	Layer turf = sample_layer(grass_diff, grass_nor, grass_arm, p, 2.2);
+	// Weights: worn rocky ground, lighter trodden dirt, churned mud, turf, rock.
+	float w_rocky = 1.0;
+	float w_ground = smoothstep(0.35, 0.7, big + (mid - 0.5) * 0.6) * 1.2;
+	float w_mud = smoothstep(0.05, 0.6, rut) * 2.5 + wet * 1.5 + (1.0 - smoothstep(0.0, 2.5, edge)) * 0.8;
+	float w_turf = grass * 3.0;
+	// Height-aware blending: stones poke through mud, turf fills the hollows.
+	vec4 w = vec4(w_rocky * (rocky.height + 0.3), w_ground * (ground.height + 0.3), w_mud * (1.1 - mud.height), w_turf * (turf.height + 0.4));
+	w = pow(max(w, vec4(0.0001)), vec4(4.0));
+	w /= w.x + w.y + w.z + w.w;
+	vec3 col = rocky.albedo * w.x + ground.albedo * w.y + mud.albedo * w.z + turf.albedo * w.w;
+	vec3 tn = rocky.normal * w.x + ground.normal * w.y + mud.normal * w.z + turf.normal * w.w;
+	vec3 arm = rocky.arm * w.x + ground.arm * w.y + mud.arm * w.z + turf.arm * w.w;
+	// Macro variation so the bowl never reads as one repeated swatch.
+	col *= 0.82 + big * 0.3 + (mid - 0.5) * 0.18;
+	// Cleat prints and churned lips in the ruts.
+	col = mix(col, col * 0.6, tread * 0.35 * fade);
+	col = mix(col, col * 1.12, smoothstep(0.0, 0.3, rut) * (1.0 - smoothstep(0.3, 0.6, rut)) * 0.5);
+	col = mix(col, col * vec3(0.55, 0.5, 0.45), wet * 0.6);
 	// Scorch marks from past fights.
 	vec2 sc = wl_cells(p * 0.045 + 5.0);
 	float scorch = (1.0 - smoothstep(0.05, 0.28, sc.x)) * step(0.72, sc.y);
 	float rays = 0.6 + 0.4 * sin(atan(p.y, p.x) * 23.0 + sc.y * 40.0);
-	col = mix(col, vec3(0.04, 0.035, 0.03), scorch * rays * 0.75);
-	col = mix(col, col * vec3(1.18, 1.14, 1.08) * (0.85 + grain * 0.25), stone * 0.7);
-	col = mix(col, col * vec3(1.1, 1.08, 1.04) * (0.8 + fine * 0.3), cobble * 0.8);
-	col = mix(col, vec3(0.08, 0.06, 0.04), wet * 0.8);
-	vec3 green = mix(vec3(0.1, 0.13, 0.045), vec3(0.3, 0.27, 0.12), smoothstep(0.35, 0.75, fine + grain * 0.2));
-	col = mix(col, green * (0.8 + grain * 0.3), grass * 0.92);
-	vec3 water = vec3(0.07, 0.055, 0.04);
-	col = mix(col, water, puddle);
-	// Submerged beds are dark silt; steep banks show wet clay.
-	float under = 1.0 - smoothstep(water_level - 0.05, water_level + 0.35, wpos.y);
-	col = mix(col, vec3(0.09, 0.075, 0.05), under);
-	// Steep faces are exposed bedrock: layered, cracked granite.
-	float steep = 1.0 - smoothstep(0.55, 0.8, wnormal.y);
-	float strata = wl_noise(vec2(wpos.y * 3.5 + wl_noise(p * 0.4) * 2.0, (p.x + p.y) * 0.25));
-	float crack = pow(1.0 - abs(wl_noise(p * 1.3 + wpos.y) * 2.0 - 1.0), 8.0);
-	vec3 bedrock = vec3(0.36, 0.35, 0.33) * (0.7 + strata * 0.45) * (1.0 - crack * 0.6);
-	col = mix(col, bedrock, steep);
-	grass *= 1.0 - steep;
-	puddle *= 1.0 - under;
-	// Water at the wall foot darkens the soil.
-	col *= 1.0 - (1.0 - smoothstep(0.0, 1.2, edge)) * 0.3;
+	col = mix(col, col * 0.18, scorch * rays * 0.8);
+	// Standing water in the deepest ruts: dark, with a soft (never mirror) sheen.
+	col = mix(col, col * 0.35 + vec3(0.02, 0.02, 0.018), puddle);
+	// Steep faces are exposed granite, projected from the side.
+	vec3 an = abs(wnormal);
+	vec2 uvx = wpos.zy;
+	vec2 uvz = wpos.xy;
+	float bx = an.x / max(an.x + an.z, 0.001);
+	vec3 rock_c = mix(texture(rock_diff, uvz / 5.0).rgb, texture(rock_diff, uvx / 5.0).rgb, bx);
+	vec3 rock_arm_s = mix(texture(rock_arm, uvz / 5.0).rgb, texture(rock_arm, uvx / 5.0).rgb, bx);
+	vec3 rock_t = mix(texture(rock_nor, uvz / 5.0).rgb, texture(rock_nor, uvx / 5.0).rgb, bx) * 2.0 - 1.0;
+	col = mix(col, rock_c * 0.85, steep);
+	arm = mix(arm, rock_arm_s, steep);
+	col *= 1.0 - (1.0 - smoothstep(0.0, 1.2, edge)) * 0.25;
 	ALBEDO = col;
-	float rough = mix(0.94, 0.72, wet);
-	rough = mix(rough, 0.8, stone * 0.5);
-	// Muddy water, not a mirror: broad soft sheen instead of sun sparkles.
-	// Puddles are wet, silty mud rather than mirrors: a mirror in a displaced rut
-	// catches the low sun as a blooming white point and flickers under TAA.
-	ROUGHNESS = mix(rough, 0.55, puddle);
-	SPECULAR = mix(0.36, 0.3, puddle);
-	float ripple = (sin(dot(p, vec2(3.0, 2.3)) + TIME * 1.2) + sin(dot(p, vec2(-2.0, 3.7)) + TIME * 1.6)) * 0.0003;
-	float h = tread * 0.006 * fade + (fine - 0.5) * 0.02 + stone * 0.012 * fade + cobble * 0.008 * fade
-		+ (grain - 0.5) * 0.003 * fade + grass * (wl_noise(p * 45.0) - 0.5) * 0.01 * fade;
-	h = mix(h, ripple * fade, puddle);
-	NORMAL = wl_bump(VERTEX, NORMAL, h, 1.0);
-	AO = 1.0 - rut * 0.25 - stone * 0.1;
+	ROUGHNESS = mix(clamp(arm.g * (1.0 - wet * 0.25), 0.35, 1.0), 0.45, puddle);
+	SPECULAR = 0.4;
+	AO = arm.r;
+	AO_LIGHT_AFFECT = 0.25;
+	// World-space normal: terrain + rut tilt, plus scanned detail (flattened in puddles).
+	vec3 base = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	vec3 detail = tn * (1.0 - puddle) * mix(0.6, 1.0, fade);
+	vec3 side = vec3(0.0, rock_t.y, rock_t.x) * steep;
+	vec3 nw = normalize(base + vec3(detail.x, 0.0, detail.z) + side * 0.8);
+	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 }

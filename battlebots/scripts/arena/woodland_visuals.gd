@@ -133,6 +133,18 @@ func _terrain(arena: Node) -> void:
 			var z1 := mini(gz + 1, grid - 1)
 			samples[z * res + x] = lerpf(lerpf(heights[gz * grid + gx], heights[gz * grid + x1], fx),
 				lerpf(heights[z1 * grid + gx], heights[z1 * grid + x1], fx), fz)
+	# Smooth normals: central differences on the physics grid, interpolated to
+	# the render vertices. Per-triangle slopes of the linear height field would
+	# otherwise show as a faceted diamond pattern in the low sun.
+	var grid_normals := PackedVector3Array()
+	grid_normals.resize(grid * grid)
+	for z: int in range(grid):
+		for x: int in range(grid):
+			var hl := heights[z * grid + maxi(x - 1, 0)]
+			var hr := heights[z * grid + mini(x + 1, grid - 1)]
+			var hd := heights[maxi(z - 1, 0) * grid + x]
+			var hu := heights[mini(z + 1, grid - 1) * grid + x]
+			grid_normals[z * grid + x] = Vector3(hl - hr, 2.0 * GROUND.STEP, hd - hu).normalized()
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	vertices.resize(res * res)
@@ -141,11 +153,14 @@ func _terrain(arena: Node) -> void:
 		for x: int in range(res):
 			var i := z * res + x
 			vertices[i] = Vector3(-HALF + x * step, samples[i], -HALF + z * step)
-			var hl := samples[z * res + maxi(x - 1, 0)]
-			var hr := samples[z * res + mini(x + 1, res - 1)]
-			var hd := samples[maxi(z - 1, 0) * res + x]
-			var hu := samples[mini(z + 1, res - 1) * res + x]
-			normals[i] = Vector3(hl - hr, 2.0 * step, hd - hu).normalized()
+			var gx := x >> 1
+			var gz := z >> 1
+			var x1 := mini(gx + 1, grid - 1)
+			var z1 := mini(gz + 1, grid - 1)
+			var fx := (x & 1) * 0.5
+			var fz := (z & 1) * 0.5
+			normals[i] = (grid_normals[gz * grid + gx].lerp(grid_normals[gz * grid + x1], fx)).lerp(
+				grid_normals[z1 * grid + gx].lerp(grid_normals[z1 * grid + x1], fx), fz).normalized()
 	var indices := PackedInt32Array()
 	indices.resize((res - 1) * (res - 1) * 6)
 	var k := 0
@@ -175,6 +190,10 @@ func _terrain(arena: Node) -> void:
 			clusters.append(Vector4(at.x * sign, at.y * sign, float(outcrop.size) * 4.0, 0))
 	dirt.set_shader_parameter("clusters", clusters)
 	dirt.set_shader_parameter("arena_half_extent", HALF)
+	for layer: Array in [["mud", "muddy_tracks"], ["rocky", "brown_mud_rocks_01"], ["ground", "forest_ground_04"],
+			["grass", "sparse_grass"], ["rock", "rock_boulder_dry"]]:
+		for map: String in ["diff", "nor", "arm"]:
+			dirt.set_shader_parameter(layer[0] + "_" + map, scan(layer[1], map))
 	mesh.surface_set_material(0, dirt)
 	var visual := MeshInstance3D.new()
 	visual.name = "TerrainSurface"
@@ -182,6 +201,14 @@ func _terrain(arena: Node) -> void:
 	add_child(visual)
 
 # --- Materials -----------------------------------------------------------
+
+const SCAN_RESOLUTION := {"muddy_tracks":"2k", "brown_mud_rocks_01":"2k", "forest_ground_04":"2k", "rock_face":"2k",
+	"rock_boulder_dry":"2k", "weathered_planks":"1k", "medieval_wood":"1k", "pine_bark":"1k", "concrete_wall_008":"1k",
+	"rusty_metal_02":"1k", "metal_plate":"1k", "sparse_grass":"1k"}
+
+## A CC0 photoscanned map; see assets/textures/woodland/CREDITS.md.
+static func scan(id: String, map: String) -> Texture2D:
+	return load("res://assets/textures/woodland/%s_%s_%s.jpg" % [id, map, SCAN_RESOLUTION[id]])
 
 func _shader(key: String, shader: Shader, params: Dictionary) -> void:
 	var mat := ShaderMaterial.new()
@@ -220,6 +247,19 @@ func _make_materials() -> void:
 	slit.albedo_color = Color(0.015, 0.014, 0.013)
 	slit.roughness = 1.0
 	_materials.dark_slit = slit
+	for key: String in ["plank", "timber", "rail", "deck", "log"]:
+		var wood := _materials[key] as ShaderMaterial
+		wood.set_shader_parameter("grain_diff", scan("medieval_wood", "diff"))
+		wood.set_shader_parameter("grain_nor", scan("medieval_wood", "nor"))
+	for key: String in ["iron", "rusty", "steel"]:
+		var metal := _materials[key] as ShaderMaterial
+		metal.set_shader_parameter("plate_diff", scan("metal_plate", "diff"))
+		metal.set_shader_parameter("plate_nor", scan("metal_plate", "nor"))
+		metal.set_shader_parameter("plate_arm", scan("metal_plate", "arm"))
+		metal.set_shader_parameter("rust_diff", scan("rusty_metal_02", "diff"))
+	var concrete := _materials.concrete as ShaderMaterial
+	for map: String in ["diff", "nor", "arm"]:
+		concrete.set_shader_parameter("scan_" + map, scan("concrete_wall_008", map))
 	var lamp := StandardMaterial3D.new()
 	lamp.albedo_color = Color(1.0, 0.93, 0.8)
 	lamp.emission_enabled = true

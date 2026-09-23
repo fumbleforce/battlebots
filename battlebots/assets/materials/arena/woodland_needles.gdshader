@@ -6,6 +6,10 @@ render_mode cull_disabled;
 uniform vec3 deep_color : source_color = vec3(0.05, 0.09, 0.05);
 uniform vec3 tip_color : source_color = vec3(0.19, 0.28, 0.1);
 uniform float density = 1.0;
+// Only the far, non-shadow-casting forest may solidify with distance: in the
+// shadow pass "distance" is measured from the sun, which would turn every card
+// into a solid triangle in the cast shadows.
+uniform bool solidify_far = false;
 varying float seed;
 varying float dist;
 void vertex() {
@@ -18,7 +22,7 @@ void fragment() {
 	float taper = mix(0.95, 0.35, smoothstep(0.55, 1.0, uv.y)) * smoothstep(0.0, 0.12, uv.y);
 	float lump = wl_noise(uv * vec2(5.0, 9.0) + seed * 13.0);
 	float needles = wl_noise(uv * vec2(38.0, 70.0) + seed * 7.0);
-	float solid = smoothstep(18.0, 70.0, dist);
+	float solid = solidify_far ? smoothstep(18.0, 70.0, dist) : 0.0;
 	float shape = taper - across * 0.85 + (lump - 0.5) * 0.55 * (1.0 - solid * 0.6) + (needles - 0.5) * 0.35 * (1.0 - solid) + 0.08;
 	shape += solid * 0.18 + density * 0.12 - 0.12;
 	ALPHA = step(0.0, shape);

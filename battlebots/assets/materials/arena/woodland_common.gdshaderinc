@@ -59,5 +59,30 @@ vec3 wl_bump(vec3 vertex, vec3 normal, float height, float strength) {
 	vec3 r1 = cross(dpdy, normal), r2 = cross(normal, dpdx);
 	float det = dot(dpdx, r1);
 	vec3 grad = sign(det) * (dhx * r1 + dhy * r2);
-	return normalize(abs(det) * normal - grad * strength);
+	vec3 bumped = abs(det) * normal - grad * strength;
+	// Degenerate derivatives (grazing angles, helper lanes, tiny triangles)
+	// would normalize a zero vector into NaN, which bloom and TAA smear into
+	// flickering white blobs. Fall back to the unperturbed normal instead.
+	float len2 = dot(bumped, bumped);
+	return len2 > 1e-20 && !isnan(len2) && !isinf(len2) ? bumped * inversesqrt(len2) : normal;
+}
+// World-space triplanar sampling for scanned maps. Returns the blended colour.
+vec3 wl_triplanar(sampler2D t, vec3 p, vec3 n, float tile) {
+	vec3 w = pow(abs(n), vec3(4.0)) + 1e-5;
+	w /= w.x + w.y + w.z;
+	return texture(t, p.zy / tile).rgb * w.x + texture(t, p.xz / tile).rgb * w.y + texture(t, p.xy / tile).rgb * w.z;
+}
+// Triplanar tangent-space normal map, returned as a world-space normal (UDN blend).
+vec3 wl_triplanar_normal(sampler2D t, vec3 p, vec3 n, float tile, float strength) {
+	vec3 w = pow(abs(n), vec3(4.0)) + 1e-5;
+	w /= w.x + w.y + w.z;
+	vec3 tx = (texture(t, p.zy / tile).rgb * 2.0 - 1.0) * strength;
+	vec3 ty = (texture(t, p.xz / tile).rgb * 2.0 - 1.0) * strength;
+	vec3 tz = (texture(t, p.xy / tile).rgb * 2.0 - 1.0) * strength;
+	vec3 nx = vec3(0.0, tx.y, tx.x) * sign(n.x);
+	vec3 ny = vec3(ty.x, 0.0, -ty.y);
+	vec3 nz = vec3(tz.x, tz.y, 0.0) * sign(n.z);
+	vec3 r = n + nx * w.x + ny * w.y + nz * w.z;
+	float len2 = dot(r, r);
+	return len2 > 1e-12 ? r * inversesqrt(len2) : n;
 }

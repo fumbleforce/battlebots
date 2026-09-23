@@ -11,6 +11,10 @@ uniform float pith_offset : hint_range(0.0, 1.0) = 1.0;
 uniform float hewn : hint_range(0.0, 1.0) = 0.0;
 uniform float moss : hint_range(0.0, 1.0) = 0.35;
 uniform float mud_height = 1.1;
+uniform sampler2D grain_diff : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D grain_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float grain_tile = 1.6;
+uniform float grain_strength : hint_range(0.0, 1.0) = 0.8;
 varying vec3 gp;
 varying vec3 half_dims;
 varying vec3 gnormal;
@@ -75,6 +79,15 @@ void fragment() {
 	wood *= 1.0 + arris * 0.22 * (1.0 - moss_mask);
 	wood *= 1.0 - check * 0.65;
 	wood = mix(wood, vec3(0.1, 0.06, 0.035), knot * 0.85);
+	// Scanned grain, laid along each board: faces map (across, along).
+	vec2 guv = abs(gnormal.y) > abs(gnormal.z) ? vec2(gp.z, gp.x) : vec2(gp.y, gp.x);
+	if (end_grain > 0.5) { guv = gp.yz; }
+	guv = guv / grain_tile + vec2(seed * 7.13, seed * 3.71);
+	vec3 scan = texture(grain_diff, guv).rgb;
+	float scan_l = dot(scan, vec3(0.333));
+	// Normalise by the scan's own mean so the procedural palette keeps its tone.
+	float scan_mean = max(dot(textureLod(grain_diff, vec2(0.5), 12.0).rgb, vec3(0.333)), 0.02);
+	wood *= mix(1.0, clamp(scan_l / scan_mean, 0.5, 1.6), grain_strength);
 	ALBEDO = wood * COLOR.rgb;
 	ROUGHNESS = clamp(mix(0.68, 0.9, aged_mask) - tar * 0.18 + moss_mask * 0.05, 0.3, 1.0);
 	SPECULAR = 0.35;
@@ -83,5 +96,7 @@ void fragment() {
 	float adze = hewn * (wl_noise(vec2(along * 2.6 + seed * 3.0, across * 5.0)) - 0.5) * 0.012;
 	float h = (-late * 0.0012 * aged_mask - fiber2 * 0.0006 - check * 0.004 - knot * 0.002) * fade
 		- arris * 0.006 + adze + moss_mask * 0.004 * fade;
-	NORMAL = wl_bump(VERTEX, NORMAL, h, 1.0);
+	vec3 bumped = wl_bump(VERTEX, NORMAL, h, 1.0);
+	vec3 gt = (texture(grain_nor, guv).rgb * 2.0 - 1.0) * grain_strength * fade;
+	NORMAL = normalize(bumped + (TANGENT * gt.x + BINORMAL * gt.y) * 0.7);
 }
