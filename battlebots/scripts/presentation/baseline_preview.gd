@@ -1,4 +1,5 @@
 extends Node3D
+const GAMEPAD_INPUT = preload("res://scripts/presentation/gamepad_input.gd")
 ## B-owned input/presentation adapter; never writes authoritative bot transforms.
 
 @export var source_path: NodePath
@@ -18,7 +19,7 @@ var sequence: int = 0
 var controls_enabled: bool = false
 var _resume_on_focus := false
 var input_gate := GameplayInputGate.new()
-var gamepad := GamepadInput.new()
+var gamepad := GAMEPAD_INPUT.new()
 var _controller_device := -1
 var _used_controllers: Dictionary = {}
 var _load_notice: String = ""

@@ -5,6 +5,15 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Direct-launch startup regression (#65) — 23 September 2026
+
+Fixed the controller helper's reliance on a refreshed editor class cache. Both
+runtime consumers explicitly preload it, preventing the failed initialization
+that cascaded into `menu_game.gd` calling `observe_match` on Nil. Baseline now
+includes launch/menu/Practice validation with that new class deliberately absent
+from the cache; native default-main launch passes under the same condition.
+[Cause, missed test state and evidence](coordination/CONTROLLER_INPUT.md).
+
 ## Standard controller input and settings guide (#22) — 23 September 2026
 
 Analog driving and right-stick camera/aim now use the existing gameplay actions,

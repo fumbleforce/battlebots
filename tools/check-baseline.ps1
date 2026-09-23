@@ -20,3 +20,4 @@ function Invoke-GodotCheck {
 }
 Invoke-GodotCheck -EngineArgs @('--headless', '--path', $projectRoot, '--editor', '--import', '--quit')
 Invoke-GodotCheck -EngineArgs @('--headless', '--path', $projectRoot, '--script', 'res://tests/baseline_smoke.gd')
+& (Join-Path $PSScriptRoot 'check-gamepad-startup.ps1') -GodotPath $GodotPath

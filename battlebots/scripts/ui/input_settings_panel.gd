@@ -1,5 +1,6 @@
 class_name InputSettingsPanel
 extends VBoxContainer
+const GAMEPAD_INPUT = preload("res://scripts/presentation/gamepad_input.gd")
 ## Draft edits remain local until Save. The enclosing camera modal owns navigation.
 signal finished
 signal applied(preferences: InputPreferences)
@@ -62,7 +63,7 @@ func _ready() -> void:
 	controller_guide.add_theme_constant_override("h_separation", 24)
 	controller_guide.add_theme_constant_override("v_separation", 8)
 	rows.add_child(controller_guide)
-	for entry: String in GamepadInput.GUIDE:
+	for entry: String in GAMEPAD_INPUT.GUIDE:
 		var label := Label.new()
 		label.text = entry
 		label.add_theme_font_size_override("font_size", 16)

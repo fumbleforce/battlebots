@@ -74,3 +74,26 @@ check is registered in the presentation runner. Human physical-controller,
 driving/camera/spectator feel and controller rebinding remain open on #22.
 The normal coordinated workflow produces clients containing this presentation
 increment; its existing compatible server needs no new protocol or gameplay.
+
+## Direct launch after pulling the controller change (#65)
+
+The first controller integration relied on the editor-generated global script
+class cache for `GamepadInput`. A checkout imported before #22 could therefore
+fail immediately when launched after pulling it, before another editor import.
+The first error was `Identifier GamepadInput not declared`; failed preview and
+settings initialization then left `menu_game.gd:658` calling `observe_match` on
+Nil. The earlier tests all ran after import and missed this launch state.
+
+Both runtime consumers now explicitly preload the controller helper. The new
+`tools/check-gamepad-startup.ps1`, run by the baseline gate, temporarily removes
+only GamepadInput's cache entry, runs the actual menu/host/garage/Practice flow
+without an editor rescan, rejects script errors even if Godot exits zero, and
+restores the exact original cache bytes in `finally`. Run sequentially with
+imports. This reproduced the reported parse/observe_match failure before the
+fix and passes afterward. Native default-main launch with the same stale cache
+also passes. Controller behavior and compatibility versions are unchanged.
+
+The broader validation run separately found the existing 150 ms network-contact
+CI failure (#13) and a Practice fixture bounds assertion comparing a hidden HUD
+in logical canvas coordinates with physical window dimensions. Those are not
+proof of a passing full suite and are separate from this startup regression.
