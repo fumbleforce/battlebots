@@ -12,6 +12,7 @@ var weapon_visual: MvpWeaponVisual
 var sawblade_visual: SawbladeVisual
 var scorpion_visual: ScorpionVisual
 var atlas_visual: AtlasVisual
+var nimble_visual: NimbleVisual
 var status: Label
 var yaw := 0.6
 var pitch := 0.45
@@ -241,6 +242,7 @@ func show_loadout(draft: Dictionary) -> void:
 	sawblade_visual = null
 	scorpion_visual = null
 	atlas_visual = null
+	nimble_visual = null
 	var validation := _registry.validate(draft)
 	if not validation.valid:
 		_invalid_status("; ".join(validation.reasons))
@@ -255,6 +257,14 @@ func show_loadout(draft: Dictionary) -> void:
 	_turntable.add_child(model)
 	# This isolated workshop keeps its original framing regardless of arena scale.
 	var size: Vector3 = validation.stats.size / BotScale.FACTOR
+	if NimbleBots.enabled(draft):
+		model.position.y = float(NimbleBots.spec(draft).ride_height) / BotScale.FACTOR - 0.12
+		nimble_visual = NimbleVisual.new()
+		nimble_visual.terrain = false
+		model.add_child(nimble_visual)
+		nimble_visual.assemble(draft, size)
+		_valid_status()
+		return
 	if AtlasGeometry.enabled(draft):
 		model.position.y = AtlasGeometry.GROUND_DEPTH - 0.12
 		if draft.parts.drive == "walker": model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
@@ -344,6 +354,10 @@ func _update_camera() -> void:
 		# FeaturedVehicle starts closer for the low wheeled hulls. Keep the tall
 		# hammer and radial feet inside that same selection card through its orbit.
 		orbit_distance += 2.6 if _auto_rotate else 0.8
+	if nimble_visual != null:
+		# The quick bots stand on legs, a wheel or a spring: frame their full height.
+		target = Vector3(0, 0.75, -0.10)
+		orbit_distance += 1.2 if _auto_rotate else 0.4
 	camera.position = target + Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)) * orbit_distance
 	camera.look_at(target)
 

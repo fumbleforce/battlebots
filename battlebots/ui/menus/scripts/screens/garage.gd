@@ -157,6 +157,13 @@ func _select(i: int) -> void:
 	MenuRouter.match_setup.bot = i
 	var b: Dictionary = PlayerProfile.bots[i]
 	readout.show_build(b, PlayerProfile.loadouts[i])
+	# Factory builds drive in practice and matches but stay out of Customize (#61).
+	var sealed := PlayerProfile.sealed(i)
+	customize_button.disabled = sealed
+	customize_button.tooltip_text = "Factory build: customization is not available yet." if sealed else ""
+	for slot: Button in [%WeaponSlot, %AbilitySlot, %BoostSlot]:
+		slot.disabled = sealed
+		slot.tooltip_text = "Factory build: parts are fixed for now." if sealed else "Change in Customize"
 	%Next.disabled = false
 	%Bays.tooltip_text = "; ".join(PlayerProfile.errors)
 	_update_save_status(i)

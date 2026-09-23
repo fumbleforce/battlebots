@@ -11,6 +11,10 @@ var world: AuthorityWorld
 var player_id := 0
 var target_id := 0
 var records: Array[Dictionary] = []
+## The four nimble bots (#61) roam wide loops and engage a player who comes
+## close. Kept apart from the authored records, which other practice fixtures
+## (Woodland edge starts) place by index.
+var roamers: Array[Dictionary] = []
 var elapsed := 0.0
 var player_wreck_age := 0.0
 ## Counts completed player respawns so presentation can react to each one.
@@ -48,7 +52,30 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 		records.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":index,
 			"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
 	_player_home = player.spawn_pose
-	return first_id + VARIANTS.size()
+	return _add_roamers(first_id + VARIANTS.size())
+
+func _add_roamers(next_id: int) -> int:
+	var tuning := NimbleBots.practice()
+	if world.arena_id not in tuning.arenas: return next_id
+	var radius := ArenaBounds.half_extent(world.arena_id) * float(tuning.home_radius_fraction)
+	for index: int in NimbleBots.ORDER.size():
+		var chassis: String = NimbleBots.ORDER[index]
+		var bot := MvpBot.create(next_id, 1, NimbleBots.preset(world.registry, chassis), world.registry)
+		assert(bot != null, "Nimble presets must pass canonical validation")
+		bot.name = "Practice_%s_%d" % [chassis, bot.entity_id]
+		world.add_child(bot)
+		bot.arena_half_extent = ArenaBounds.half_extent(world.arena_id)
+		bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
+		world.bots[bot.entity_id] = bot
+		bot.body.gravity_scale = 1.62 / 9.8 if world.arena_id == "moon" else 1.0
+		# Diagonal ring positions, each facing the arena centre.
+		var angle := TAU * (index + 0.5) / NimbleBots.ORDER.size()
+		var home := Vector3(cos(angle), 0, sin(angle)) * radius
+		_place(bot, Transform3D(Basis(Vector3.UP, atan2(home.x, home.z)), home))
+		roamers.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":VARIANTS.size() + index, "roamer":true,
+			"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
+		next_id += 1
+	return next_id
 
 func _place(bot: MvpBot, authored: Transform3D) -> void:
 	bot.spawn_pose = world.clear_spawn_pose(bot, authored)
@@ -61,7 +88,7 @@ func restart() -> void:
 	player_wreck_age = 0.0
 	# A fallback respawn may have moved the player's spawn; restore the original.
 	_place(world.bots[player_id], _player_home)
-	for record: Dictionary in records:
+	for record: Dictionary in records + roamers:
 		record.wreck_age = 0.0
 		record.previous_primary = false
 		record.patrol = 0
@@ -79,7 +106,7 @@ func step(delta: float) -> void:
 			_respawn_player(player)
 	else:
 		player_wreck_age = 0.0
-	for record: Dictionary in records:
+	for record: Dictionary in records + roamers:
 		var bot: MvpBot = world.bots[record.id]
 		if bot.combat.eliminated:
 			record.wreck_age += delta
@@ -103,21 +130,29 @@ func _pilot(bot: MvpBot, player: MvpBot, record: Dictionary, intent: BotCommand)
 	var offset := player.body.global_position - bot.body.global_position
 	offset.y = 0.0
 	var distance := offset.length()
-	var engaging := distance < (17.0 if record.index == 2 else 11.0)
+	var roaming: bool = record.get("roamer", false)
+	var tuning := NimbleBots.practice()
+	var engaging := distance < (float(tuning.engage_distance) if roaming else (17.0 if record.index == 2 else 11.0))
 	var desired := player.body.global_position
 	if not engaging:
-		# Small loops keep both moving targets visible inside the playable octagon.
+		# Small loops keep both moving targets visible inside the playable octagon;
+		# the quick roamers race wider loops around their own homes.
 		var centre: Vector3 = record.home.origin
 		var waypoints := [centre + Vector3(0, 0, 4), centre + Vector3(3, 0, 0), centre + Vector3(0, 0, -4), centre + Vector3(-3, 0, 0)]
-		desired = waypoints[int(record.patrol)]
-		if bot.body.global_position.distance_to(desired) < 2.0:
+		if roaming:
+			waypoints.clear()
+			for point: int in int(tuning.patrol_points):
+				var angle := TAU * point / float(tuning.patrol_points)
+				waypoints.append(centre + Vector3(cos(angle), 0, sin(angle)) * float(tuning.patrol_radius))
+		desired = waypoints[int(record.patrol) % waypoints.size()]
+		if bot.body.global_position.distance_to(desired) < (4.0 if roaming else 2.0):
 			record.patrol = (int(record.patrol) + 1) % waypoints.size()
 			desired = waypoints[int(record.patrol)]
 	var local := bot.body.global_basis.inverse() * (desired - bot.body.global_position)
 	var angle := atan2(local.x, -local.z)
 	var contact: float = (bot.combat.stats.size.z + player.combat.stats.size.z) * 0.5
 	var reach := 11.0 if bot.combat.stats.weapon == "minigun" else contact + 0.4
-	intent.throttle = 0.42 if absf(angle) < 0.9 else 0.10
+	intent.throttle = (float(tuning.patrol_throttle) if roaming else 0.42) if absf(angle) < 0.9 else 0.10
 	if engaging:
 		intent.throttle = clampf((distance - reach) * 0.2, -0.20, 0.50) if absf(angle) < 0.9 else 0.0
 		intent.primary_held = absf(angle) < 0.18 and distance < reach + 2.2

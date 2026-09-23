@@ -1,5 +1,23 @@
 # Shared contracts — local records and current MVP session API
 
+## Nimble bots — build mvp-ab-37, catalogue 17 (#61)
+
+Four sealed factory presets (`ContentRegistry.nimble()`, `NimbleBots.ORDER`):
+chassis `strider_09`, `monowheel_07`, `pogo_03`, `skater_12`, each with its
+built-in drive (`stride_legs`, `mono_wheel`, `pogo_spring`, `skate_legs`).
+`ContentRegistry.validate` requires a nimble chassis to keep its drive, weapon
+and utility and a paint-only cosmetics record (no armour pieces); perks stay
+free; a nimble drive on another body is invalid. Customize never lists these
+parts, pickups never drop them, and `PlayerProfile.sealed()` blocks edits.
+
+`DriveBody.gait`/`gait_spec` select `GaitDrive` hover support and gait shaping
+(tuning in `data/nimble_bots.json` through `NimbleBots`). `MvpBot.ground_clearance()`
+returns the gait ride height. `AtlasGeometry.gun_offset` also returns the
+nimble gun offset; the generic hammer sweep adds `NimbleBots.hammer_socket`.
+No command, snapshot, schema or protocol change; revision-16 saves migrate.
+Peers need the matching build. Client replay does not model gait shaping.
+[Details](coordination/NIMBLE_BOTS.md).
+
 ## Local part shortcuts and control defaults (#64)
 
 `InputPreferences` version 3 adds three rebindable actions: `dev_weapon` (V),

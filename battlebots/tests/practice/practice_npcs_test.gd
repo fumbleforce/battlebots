@@ -21,7 +21,9 @@ func run() -> void:
 	check(session.practice(session.registry.starter()) == OK, "Practice starts canonical build")
 	session.combat_event.connect(func(event: Dictionary) -> void: events.append(event))
 	await frames(5)
-	check(session.world.bots.size() == 4, "Practice spawns one player and exactly three authored NPCs")
+	var roamers := session.practice_director.roamers
+	check(session.world.bots.size() == 4 + NimbleBots.ORDER.size() and roamers.size() == NimbleBots.ORDER.size(),
+		"Foundry practice spawns one player, three authored NPCs and the four nimble roamers")
 	var target := session.practice_target() as MvpBot
 	var player: MvpBot = session.local_source()
 	check(target.get_meta("practice_variant") == "wedge", "Stable HUD target is the stationary calibration wedge")
@@ -39,6 +41,15 @@ func run() -> void:
 		if record.index != 0:
 			check(bot.last_sequence > 100 and bot.body.global_position.distance_to(start[record.id]) > 0.4,
 				"Mobile NPC submits normal valid commands and moves through live physics")
+	for record: Dictionary in roamers:
+		var roamer: MvpBot = session.world.bots[record.id]
+		check(NimbleBots.enabled(roamer.loadout) and roamer.body.gait != "", "Roamer %s runs its own gait" % roamer.loadout.name)
+		check(roamer.last_sequence > 100 and roamer.body.global_position.distance_to(start[record.id]) > 5.0,
+			"Roamer %s patrols through live physics with normal commands" % roamer.loadout.name)
+	# The remaining fixtures isolate the authored NPCs: park the roamers at home.
+	for record: Dictionary in roamers:
+		record.grace = 100000.0
+		session.world.bots[record.id].body.reset_pose = record.home
 	# Put the player into the sentry's authored fire lane; damage must then result
 	# exclusively from pilot commands and the accepted minigun query/cadence.
 	var sentry: MvpBot = session.world.bots[session.practice_director.records[2].id]
@@ -81,7 +92,7 @@ func run() -> void:
 	session.practice_director.step(1.0/60.0)
 	check(target.combat.eliminated, "Occupied home defers regeneration")
 	check(session.restart_practice() == OK, "Full practice restart remains available")
-	check(session.practice_target() == target and session.world.bots.size() == 4,
+	check(session.practice_target() == target and session.world.bots.size() == 4 + NimbleBots.ORDER.size(),
 		"Restart preserves all NPC instances and bounded count")
 	check(session.practice_director.elapsed == 0.0 and rec.wreck_age == 0.0,
 		"Restart clears pilot clocks and pending respawns")
@@ -98,7 +109,7 @@ func run() -> void:
 	check(not player.combat.eliminated and player.combat.core == player.combat.stats.core and not player.body.freeze
 		and player.spawn_pose.origin.is_equal_approx(player_home.origin) and director.player_respawns == 1,
 		"Player respawns repaired at its own spawn")
-	check(session.local_source() == player and session.world.bots.size() == 4, "Player respawn keeps the same entity and bot count")
+	check(session.local_source() == player and session.world.bots.size() == 4 + roamers.size(), "Player respawn keeps the same entity and bot count")
 	# An NPC parked on the player's spawn moves the respawn rather than blocking it.
 	await frames(4)
 	target.body.reset_pose = player_home

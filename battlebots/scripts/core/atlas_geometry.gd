@@ -122,6 +122,7 @@ static func enabled(draft: Dictionary) -> bool:
 	return draft.get("parts", {}).get("chassis") == "atlas_mx"
 
 static func gun_offset(draft: Dictionary, size: Vector3) -> Vector3:
+	if NimbleBots.enabled(draft): return NimbleBots.gun_offset(draft, size)
 	return GUN_OFFSET * BotScale.from_size(size) if enabled(draft) else Vector3.ZERO
 
 static func paint_defaults() -> Dictionary:

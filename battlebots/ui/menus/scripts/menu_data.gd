@@ -40,7 +40,8 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		var items: Array = []
 		for id: String in registry.parts:
 			var part: Dictionary = registry.parts[id]
-			if part.category == slot and (slot != "chassis" or id in ["balanced", "scorpion_hex", "atlas_mx"]):
+			# Nimble bodies and their built-in drives are sealed factory parts (#61).
+			if part.category == slot and (slot != "chassis" or id in ["balanced", "scorpion_hex", "atlas_mx"]) and not NimbleBots.locked_part(id):
 				items.append({"id":id,"name":id.capitalize(),"default":"own","desc":"%s · %.0f kg · %.0f installed power. All functional parts are available." % [id.capitalize(),part.mass,part.power],"d":{}})
 		categories.append({"label":slot.to_upper(),"slot":slot,"items":items})
 		if slot == "utility": categories.back().label = "AUXILIARY / UTILITY"

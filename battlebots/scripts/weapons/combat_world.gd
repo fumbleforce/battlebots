@@ -368,7 +368,9 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := SphereShape3D.new()
 	shape.radius = 0.2 * linear_scale
-	var pivot := Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15 * linear_scale)
+	# The Strider (#61) swings its hammer from a low shoulder socket.
+	var pivot := Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15 * linear_scale) \
+		+ NimbleBots.hammer_socket(bot.loadout)
 	var arm := Vector3(0, 0, -1.2 * linear_scale)
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform

@@ -1,0 +1,74 @@
+{
+  "generator": "tools/build-nimble-bots.py",
+  "authoring": "Godot metres in each hull frame, X right Y up -Z forward; runtime factor three applied by NimbleVisual",
+  "look": "First-pass look development: flat PBR enamel/steel/rubber classes, no baked maps",
+  "approval": "Pending user visual approval",
+  "bots": {
+    "strider_09": {
+      "runtime": "strider_09.glb",
+      "triangles": 16888,
+      "nodes": [
+        "Arm",
+        "FootL",
+        "FootR",
+        "Hull",
+        "NimbleStrider",
+        "ShinL",
+        "ShinR",
+        "ThighL",
+        "ThighR"
+      ]
+    },
+    "monowheel_07": {
+      "runtime": "monowheel_07.glb",
+      "triangles": 15008,
+      "nodes": [
+        "GunBarrels",
+        "GunFrame",
+        "GunMount",
+        "Hull.001",
+        "Muzzle",
+        "NimbleMonowheel",
+        "Wheel"
+      ]
+    },
+    "pogo_03": {
+      "runtime": "pogo_03.glb",
+      "triangles": 10324,
+      "nodes": [
+        "Coil",
+        "GunBarrels.001",
+        "GunFrame.001",
+        "GunMount.001",
+        "Hub",
+        "Hull.002",
+        "Muzzle.001",
+        "NimblePogo"
+      ]
+    },
+    "skater_12": {
+      "runtime": "skater_12.glb",
+      "triangles": 38960,
+      "nodes": [
+        "GunBarrels.002",
+        "GunFrame.002",
+        "GunMount.002",
+        "Hull.003",
+        "Muzzle.002",
+        "NimbleSkater",
+        "ShinBL",
+        "ShinBR",
+        "ShinFL",
+        "ShinFR",
+        "ThighBL",
+        "ThighBR",
+        "ThighFL",
+        "ThighFR",
+        "WheelBL",
+        "WheelBR",
+        "WheelFL",
+        "WheelFR"
+      ]
+    }
+  }
+}

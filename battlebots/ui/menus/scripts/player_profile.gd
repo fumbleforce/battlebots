@@ -10,7 +10,7 @@ var wallet := CreditWallet.new()
 var credits: int:
 	get: return wallet.balance
 var active_bot := 0
-const PRESET_COUNT := 14
+const PRESET_COUNT := 18
 var bots: Array = []
 var registry := ContentRegistry.new()
 var save_path := "user://loadouts.json"
@@ -47,6 +47,8 @@ func reload() -> void:
 	loadouts.append(registry.atlas())
 	loadouts.append(registry.atlas_turret())
 	loadouts.append_array(registry.atlas_showcase())
+	# Four quick bots with their own gaits (#61): drivable, not yet customisable.
+	loadouts.append_array(registry.nimble())
 	assert(loadouts.size() == PRESET_COUNT, "PRESET_COUNT must match the built-in presets")
 	_save_indices.clear()
 	for index: int in PRESET_COUNT: _save_indices.append(-1)
@@ -55,7 +57,7 @@ func reload() -> void:
 		_save_indices.append(index)
 	# Retained legacy part IDs remain readable; only the offered body appearance changes.
 	for draft: Dictionary in loadouts:
-		if registry.validate(draft).valid: _ensure_body(draft)
+		if registry.validate(draft).valid and not NimbleBots.enabled(draft): _ensure_body(draft)
 	if loaded.restored_backup: errors.append("Backup loaded for review. Open Saved File to restore it before saving.")
 	active_bot = clampi(active_bot,0,loadouts.size()-1)
 	_draft_baseline = loadouts.duplicate(true)
@@ -124,6 +126,12 @@ func restore_reviewed_backup(token: Dictionary) -> Dictionary:
 		result["retained"] = reload_retaining_drafts()
 	return result
 
+## Factory-sealed builds (the nimble bots, #61) can be selected and driven but
+## not edited, renamed or saved over in Customize yet.
+func sealed(index := -1) -> bool:
+	var at := active_bot if index < 0 else index
+	return at >= 0 and at < loadouts.size() and loadouts[at] is Dictionary and NimbleBots.enabled(loadouts[at])
+
 func active_loadout() -> Dictionary:
 	if active_bot < 0 or active_bot >= loadouts.size(): return {}
 	var result := registry.validate(loadouts[active_bot])
@@ -131,6 +139,9 @@ func active_loadout() -> Dictionary:
 
 func save_active(name: String) -> Error:
 	errors.clear()
+	if sealed():
+		errors.append("Factory builds cannot be customised or saved yet.")
+		return ERR_UNAUTHORIZED
 	if _read_errors:
 		errors.append("Save file could not be read safely. Open Saved File to review a backup or reload; your draft is retained.")
 		return ERR_FILE_CORRUPT
@@ -291,7 +302,7 @@ func part_name(slot: String, id: String) -> String:
 	return id.capitalize()
 
 func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
-	if tab not in ["parts","paint","decals"]: return
+	if tab not in ["parts","paint","decals"] or sealed(): return
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
 	if tab == "parts" and cat.slot == "chassis":
 		var leaving: String = str(draft.get("parts", {}).get("chassis", ""))
@@ -339,7 +350,7 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 	inventory_changed.emit()
 
 func set_sawblade_color(channel: String, color: Color) -> void:
-	if channel not in SawbladeConfig.COLORS: return
+	if channel not in SawbladeConfig.COLORS or sealed(): return
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
 	_ensure_body(draft)
 	var linear := color.srgb_to_linear()
@@ -349,6 +360,7 @@ func set_sawblade_color(channel: String, color: Color) -> void:
 	_draft_changed()
 
 func rename_draft(value: String) -> void:
+	if sealed(): return
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
 	draft.name = value.strip_edges()
 	if not _record_edit(draft): return
@@ -421,6 +433,8 @@ func _refresh_bots() -> void:
 		if parts.get("suspension") == "charged_jump": perk_labels.append("Jump · Space")
 		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":" / ".join(perk_labels) if not perk_labels.is_empty() else "No perks equipped","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":snappedf(float(stats.get("speed",0)), 0.1),"ARMOR HP":int(stats.get("armor_total",0))}})
 		bots[-1]["retained"] = _retained_drafts.has(index)
+		bots[-1]["sealed"] = sealed(index)
+		if bots[-1].sealed and validation.valid: bots[-1].cls = "FACTORY BUILD · LOCKED"
 		if _retained_drafts.has(index): bots[-1].cls = "UNSAVED COPY" + (" · REPAIR REQUIRED" if not validation.valid else "")
 
 func _same_draft(a: Dictionary, b: Dictionary) -> bool:

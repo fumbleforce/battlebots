@@ -46,7 +46,8 @@ func _init() -> void:
 	registry.enforce_budget = false
 	for id: String in registry.parts:
 		var slot: String = registry.parts[id].category
-		if id in EXCLUDED_PARTS or (slot == "chassis" and id not in OFFERED_CHASSIS):
+		# Nimble drives are built into their sealed factory bodies (#61).
+		if id in EXCLUDED_PARTS or (slot == "chassis" and id not in OFFERED_CHASSIS) or NimbleBots.locked_part(id):
 			continue
 		pool.append(id)
 	pool.sort()
@@ -145,12 +146,16 @@ func _refuse(item: Dictionary, entity_id: int, loadout: Dictionary) -> void:
 
 ## The picked part replaces the one in its slot. A new body brings the drive it
 ## requires and drops a utility it has no socket for; any other conflict
-## (for example a wheeled drive on a Scorpion) leaves the pickup unused.
+## (for example a wheeled drive on a Scorpion, or any part for a sealed nimble
+## bot) leaves the pickup unused.
 func swapped(loadout: Dictionary, part: String) -> Dictionary:
 	if not registry.parts.has(part) or not loadout.get("parts") is Dictionary:
 		return {}
 	var slot: String = registry.parts[part].category
 	if loadout.parts.get(slot) == part:
+		return {}
+	# Sealed factory builds (#61) take perks only; their parts are fixed.
+	if NimbleBots.enabled(loadout) and slot not in PERK_SLOTS:
 		return {}
 	var next: Dictionary = loadout.duplicate(true)
 	next.parts[slot] = part

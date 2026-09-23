@@ -124,6 +124,10 @@ func atlas_showcase() -> Array[Dictionary]:
 	shredder.parts.weapon = "grinder_drum"
 	return [fortress, inferno, rail, whaler, artillery, breaker, impaler, shredder]
 
+## Showcase quick bots with their own gaits: biped, monowheel, pogo, skater.
+func nimble() -> Array[Dictionary]:
+	return NimbleBots.presets(self)
+
 func validate(draft: Dictionary) -> LoadoutValidation:
 	var result := LoadoutValidation.new()
 	if draft.size() != 5 or draft.get("schema_version") != SCHEMA:
@@ -157,6 +161,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Scorpion hex body requires the articulated walking drive")
 	if selected.get("chassis") == "atlas_mx" and not AtlasGeometry.DRIVE_GEAR.has(selected.get("drive")):
 		result.reasons.append("Atlas MX drives on tracks, large wheels or hydraulic legs")
+	# The four nimble bots (#61) are sealed factory builds for now.
+	result.reasons.append_array(NimbleBots.reasons(draft))
 	if selected.get("weapon") in AtlasGeometry.TOOL_PARTS and selected.get("chassis") != "atlas_mx":
 		result.reasons.append("Ram, spear and grinder tools mount on the Atlas MX front coupler")
 	if selected.get("utility") in AtlasGeometry.TURRET_PARTS:

@@ -64,6 +64,7 @@ func _capture_pending() -> void:
 		_preview.pitch = 0.34
 		_preview.distance = 4.0 if _preview.scorpion_visual != null else 3.1
 		if _preview.atlas_visual != null: _preview.distance = 5.3
+		if _preview.nimble_visual != null: _preview.distance = 4.0
 		_preview._update_camera()
 		_preview.viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		await get_tree().process_frame

@@ -25,6 +25,7 @@ var sawblade_visual: SawbladeVisual
 var scorpion_visual: ScorpionVisual
 var atlas_visual: AtlasVisual
 var practice_npc_visual: PracticeNpcVisual
+var nimble_visual: NimbleVisual
 var damage_visual: BotDamageVisual
 var destruction_visual: BotDestructionVisual
 var nitro_visual: NitroFlameVisual
@@ -81,6 +82,33 @@ func _ready() -> void:
 		body.probe_depth = AtlasGeometry.GROUND_DEPTH * body.geometry_scale + 0.07
 		if AtlasGeometry.drive_gear(loadout) == "legs":
 			body.walker_footholds = AtlasDriveRig.settings().foothold * body.geometry_scale
+	var nimble := NimbleBots.spec(loadout)
+	if not nimble.is_empty():
+		# Quick bots hover on their gait support; handling comes from their record.
+		body.gait = nimble.gait
+		body.gait_spec = nimble
+		body.turn_speed = nimble.turn_speed
+		body.lateral_response = nimble.lateral_response
+		body.coast_acceleration = nimble.coast_acceleration
+		if nimble.has("wheel"):
+			# The monowheel's tyre is solid: rams and weapons meet it below the hull.
+			var wheel := CollisionShape3D.new()
+			wheel.name = "WheelCollision"
+			var tyre := CylinderShape3D.new()
+			tyre.radius = nimble.wheel.radius
+			tyre.height = nimble.wheel.width
+			wheel.shape = tyre
+			wheel.transform = Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0, nimble.wheel.centre_y, 0))
+			body.add_child(wheel)
+		if nimble.has("leg_collision"):
+			# Legs and spring are solid down to a floor clearance: walls stop them.
+			var legs := CollisionShape3D.new()
+			legs.name = "LegCollision"
+			var column := BoxShape3D.new()
+			column.size = NimbleBots.vector(nimble.leg_collision.size)
+			legs.shape = column
+			legs.position.y = nimble.leg_collision.centre_y
+			body.add_child(legs)
 	if ScorpionGeometry.enabled(loadout):
 		var hull := ConvexPolygonShape3D.new()
 		hull.points = ScorpionStance.collision_points(body.geometry_scale)
@@ -128,7 +156,14 @@ func _ready() -> void:
 	for path: String in ["Visual", "ForwardStripe", "CameraAnchor"]:
 		body.get_node(path).reparent(presentation, false)
 	presentation.global_transform = body.global_transform
-	if DisplayServer.get_name() != "headless" and has_meta("practice_variant"):
+	if DisplayServer.get_name() != "headless" and not nimble.is_empty():
+		presentation.get_node("Visual").hide()
+		presentation.get_node("ForwardStripe").hide()
+		nimble_visual = NimbleVisual.new()
+		presentation.add_child(nimble_visual)
+		nimble_visual.exclusions = [body.get_rid()]
+		nimble_visual.assemble(loadout, stats.size)
+	elif DisplayServer.get_name() != "headless" and has_meta("practice_variant"):
 		presentation.get_node("Visual").hide()
 		presentation.get_node("ForwardStripe").hide()
 		practice_npc_visual = PracticeNpcVisual.new()
@@ -205,7 +240,7 @@ func _process(delta: float) -> void:
 	var decay := 30.0 if visual_error.length_squared() > 0.25 * 0.25 else 20.0
 	visual_error = visual_error.lerp(Vector3.ZERO, 1.0 - exp(-delta * decay))
 	var view: BotView
-	if weapon_visual != null or sawblade_visual != null or scorpion_visual != null or atlas_visual != null or practice_npc_visual != null or damage_visual != null:
+	if weapon_visual != null or sawblade_visual != null or scorpion_visual != null or atlas_visual != null or practice_npc_visual != null or nimble_visual != null or damage_visual != null:
 		view = read_view()
 	if weapon_visual != null:
 		weapon_visual.show_state(view, delta)
@@ -217,6 +252,8 @@ func _process(delta: float) -> void:
 		atlas_visual.show_state(view, delta)
 	if practice_npc_visual != null:
 		practice_npc_visual.show_state(view, delta)
+	if nimble_visual != null:
+		nimble_visual.show_state(view, delta)
 	if damage_visual != null:
 		damage_visual.show_state(view)
 	if nitro_visual != null:
@@ -232,6 +269,8 @@ func _create_damage_visual(size: Vector3) -> void:
 	var groups: Dictionary
 	if practice_npc_visual != null:
 		groups = practice_npc_visual.component_meshes()
+	elif nimble_visual != null:
+		groups = nimble_visual.component_meshes()
 	elif atlas_visual != null:
 		groups = atlas_visual.component_meshes()
 	elif scorpion_visual != null:
@@ -334,6 +373,7 @@ func step(delta: float, active: bool) -> void:
 func reset_round() -> void:
 	if destruction_visual != null: destruction_visual.reset_observation()
 	if scorpion_visual != null: scorpion_visual.reset_observation()
+	if nimble_visual != null: nimble_visual.reset_observation()
 	if atlas_visual != null: atlas_visual.reset_observation()
 	combat = CombatState.new(combat.stats)
 	command = BotCommand.new()
@@ -357,6 +397,8 @@ func collision_bounds() -> AABB:
 func ground_clearance() -> float:
 	if body.walker:
 		return WalkerDrive.RIDE_HEIGHT * body.geometry_scale / BotScale.FACTOR
+	if body.gait != "":
+		return float(body.gait_spec.ride_height)
 	return -collision_bounds().position.y
 
 func zone_at(world_point: Vector3) -> String:

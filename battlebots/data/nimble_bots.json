@@ -1,0 +1,120 @@
+{
+	"_comment": "Four factory-sealed quick bots (#61). Chassis/drive mass, core, size, speed and grip live in mvp_parts.json; this file locks each chassis to its loadout and tunes its gait. Authoritative gameplay data read by server simulation and client prediction through NimbleBots: changing any value is a gameplay change (bump WireCodec.BUILD). Distances are game metres in the hull frame (X right, Y up, -Z forward; the factor-three runtime scale is already applied), speeds m/s, angles degrees, times seconds.",
+	"support": {
+		"_comment": "Hover support shared by every gait. Down rays under the footholds find the floor; a damped spring holds the hull centre ride_height above the highest one (bots do not stand on their thin legs, wheel or spring). Tall bots add a solid leg_collision box under the hull with the hull's footprint, ending well above the floor, so an arena wall meets a flat face (a hull edge would ride up over the wall top) and a pogo cannot bound over it; the monowheel adds its tyre cylinder. A bounded torque keeps the hull aligned with the floor plus the gait's lean. lift_headroom is the upward acceleration the spring may add beyond carrying the heft weight.",
+		"spring": 80.0,
+		"damping": 16.0,
+		"lift_headroom": 35.0,
+		"upright_gain": 55.0,
+		"upright_damping": 10.0,
+		"upright_torque_limit": 35.0,
+		"lean_response": 6.0
+	},
+	"practice": {
+		"_comment": "Offline practice roamers: in the listed arenas the four bots start on a ring (home_radius_fraction of the arena half extent) facing the centre, race patrol loops of patrol_points around their homes at patrol_throttle, and engage the player inside engage_distance with the ordinary pilot.",
+		"arenas": ["foundry", "woodland"],
+		"home_radius_fraction": 0.55,
+		"patrol_radius": 9.0,
+		"patrol_points": 6,
+		"patrol_throttle": 0.8,
+		"engage_distance": 20.0
+	},
+	"bots": {
+		"strider_09": {
+			"_comment": "Camouflaged reverse-knee biped with a hammer arm. Stride gait: the stride surges the target speed once per step (push-off then swing) and bobs and sways the hull with each footfall (the legs may lift by lift_headroom beyond the heft weight to follow the bob); pivots quickly on the spot.",
+			"name": "STRIDER • 09",
+			"paint": "white",
+			"parts": {"drive": "stride_legs", "weapon": "hammer", "utility": "cooling_pack"},
+			"gait": "stride",
+			"ride_height": 3.6,
+			"reach": 5.1,
+			"max_step": 1.35,
+			"footholds": [[-1.26, 0.0], [1.26, 0.0], [0.0, -0.9], [0.0, 0.9]],
+			"turn_speed": 2.7,
+			"lateral_response": 0.14,
+			"coast_acceleration": 1.1,
+			"hammer_socket": [1.92, -1.05, 0.45],
+			"leg_collision": {"size": [3.0, 2.1, 3.3], "centre_y": -1.8},
+			"stride": {
+				"step_length": 4.5,
+				"pivot_steps_per_radian": 0.9,
+				"speed_surge": 0.14,
+				"bob": 0.3,
+				"sway_degrees": 4.0,
+				"lift_headroom": 140.0
+			}
+		},
+		"monowheel_07": {
+			"_comment": "Red monowheel with a minigun. Roll gait: the fastest bot; it leans into turns like a rider (lean = atan(lateral acceleration / 9.8), scaled and capped), pitches with throttle, slides wide on a loose tyre, and barely turns on the spot (pivot_fraction of full turn rate until full_turn_speed).",
+			"name": "HELLWHEEL • 07",
+			"paint": "red",
+			"parts": {"drive": "mono_wheel", "weapon": "minigun", "utility": "cooling_pack"},
+			"gait": "roll",
+			"ride_height": 2.1,
+			"reach": 3.6,
+			"max_step": 1.0,
+			"footholds": [[0.0, -0.9], [0.0, 0.9], [-0.3, 0.0], [0.3, 0.0]],
+			"turn_speed": 2.3,
+			"lateral_response": 0.45,
+			"coast_acceleration": 0.5,
+			"gun_pivot": [-0.96, 0.9, 0.9],
+			"wheel": {"radius": 1.35, "width": 0.9, "centre_y": -0.66},
+			"roll": {
+				"lean_scale": 1.0,
+				"max_lean_degrees": 30.0,
+				"pitch_per_acceleration": 0.5,
+				"max_pitch_degrees": 12.0,
+				"pivot_fraction": 0.3,
+				"full_turn_speed": 7.0
+			}
+		},
+		"pogo_03": {
+			"_comment": "Yellow pogo on a coil spring over a tripod. Hop gait: while driving it bounds; after stance time on the spring it launches at hop_speed (1 g equivalent, scaled like jumps) carrying the driven speed forward; in the air it turns at air_turn_rate and trims its heading speed by air_acceleration. The spring lands it with landing_headroom of extra lift.",
+			"name": "POGO • 03",
+			"paint": "orange",
+			"parts": {"drive": "pogo_spring", "weapon": "minigun", "utility": "cooling_pack"},
+			"gait": "hop",
+			"ride_height": 3.6,
+			"reach": 4.5,
+			"max_step": 1.2,
+			"footholds": [[0.0, -1.5], [1.3, 0.75], [-1.3, 0.75]],
+			"turn_speed": 3.0,
+			"lateral_response": 0.2,
+			"coast_acceleration": 1.1,
+			"gun_pivot": [-1.65, 0.36, 0.75],
+			"leg_collision": {"size": [3.3, 2.3, 3.0], "centre_y": -1.9},
+			"hop": {
+				"hop_speed": 5.5,
+				"stance_seconds": 0.12,
+				"carry": 0.85,
+				"air_turn_rate": 3.2,
+				"air_acceleration": 10.0,
+				"landing_headroom": 120.0
+			}
+		},
+		"skater_12": {
+			"_comment": "Red four-legged skater on leg-end wheels with twin cannons. Skate gait: alternating kick strokes (push_seconds of each stroke_seconds) drive it; between kicks it glides on glide_drive of its motor with a very low coast drag, carving hard with a modest lean and crouching as it speeds up.",
+			"name": "SKATER • 12",
+			"paint": "red",
+			"parts": {"drive": "skate_legs", "weapon": "minigun", "utility": "cooling_pack"},
+			"gait": "skate",
+			"ride_height": 2.25,
+			"reach": 3.9,
+			"max_step": 1.0,
+			"footholds": [[-2.55, -2.25], [2.55, -2.25], [-2.55, 2.25], [2.55, 2.25]],
+			"turn_speed": 2.5,
+			"lateral_response": 0.1,
+			"coast_acceleration": 0.12,
+			"gun_pivot": [0.96, 0.84, 0.6],
+			"skate": {
+				"stroke_seconds": 0.62,
+				"push_seconds": 0.28,
+				"push_drive": 1.5,
+				"glide_drive": 0.25,
+				"lean_scale": 0.6,
+				"max_lean_degrees": 16.0,
+				"crouch": 0.45
+			}
+		}
+	}
+}

@@ -38,6 +38,22 @@ var walker_footholds := Vector2.ZERO
 var walker_contacts: Array[Dictionary] = []
 ## Held crouch intent; only the four-legged walker lowers its stance.
 var crouched := false
+## Nimble bot gait (#61): a NimbleBots gait name with its tuning record, or ""
+## for every other drive. Phase, stance timer, lean and crouch are local
+## GaitDrive state; authoritative snapshots correct the resulting pose.
+var gait := ""
+var gait_spec: Dictionary = {}
+var gait_phase := 0.0
+## Stride cadence in steps per second (GaitDrive feeds the bob forward).
+var gait_rate := 0.0
+var gait_timer := 0.0
+## True from a pogo launch until it starts falling (GaitDrive skips support).
+var gait_launched := false
+var gait_lean := Vector2.ZERO
+var gait_crouch := 0.0
+var gait_previous_speed := 0.0
+## Height of the last floor the gait stood on (NAN until the first support).
+var gait_floor := NAN
 var drive_multiplier: float = 1.0
 var nitro_equipped := false
 var jump_equipped := false
@@ -157,6 +173,14 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_drive_input = 0
 		_turn_input = 0
 		_jump_queued = 0.0
+		gait_phase = 0.0
+		gait_rate = 0.0
+		gait_timer = 0.0
+		gait_launched = false
+		gait_lean = Vector2.ZERO
+		gait_crouch = 0.0
+		gait_previous_speed = 0.0
+		gait_floor = NAN
 	contact_bodies.clear()
 	static_contacts.clear()
 	for index: int in range(state.get_contact_count()):
@@ -178,7 +202,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var braking := _brake or stale
 	_drive_input = move_toward(_drive_input, 0.0 if braking else _throttle, throttle_response * state.step)
 	_turn_input = move_toward(_turn_input, 0.0 if braking else _steering, steering_response * state.step)
-	var normal := WalkerDrive.support(state, self) if walker else _ground_normal(state)
+	var normal: Vector3
+	if walker: normal = WalkerDrive.support(state, self)
+	elif gait != "": normal = GaitDrive.support(state, self)
+	else: normal = _ground_normal(state)
 	grounded = not normal.is_zero_approx()
 	_update_hull_friction()
 	if grounded and _jump_queued > 0.0:
@@ -187,11 +214,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		grounded = false
 		return
 	_jump_queued = 0.0
+	if GaitDrive.hop(state, self, braking):
+		grounded = false
+		return
 	if not grounded:
+		GaitDrive.airborne(state, self, braking)
 		return
 	_hold_slope(state, normal)
+	var config := model_config()
+	if gait != "": GaitDrive.tune(config, self, state, normal, braking)
 	var response := DriveModel.forces(state.transform.basis, state.linear_velocity, state.angular_velocity,
-		normal, _drive_input, _turn_input, braking, state.step, model_config())
+		normal, _drive_input, _turn_input, braking, state.step, config)
 	state.apply_central_force(response.acceleration * mass)
 	var yaw_acceleration: float = response.yaw_acceleration
 	var inverse_yaw_inertia := normal.dot(state.inverse_inertia_tensor * normal)
