@@ -39,6 +39,21 @@
       "log": "/tmp/lunar-driving-review-exhaust.log",
       "pass_marker": "LUNAR DRIVING REVIEW PASS",
       "sha256": "5a96e035ad3c6d14122589d8888418ec0a0fc5eb11920cee756e9ec982d5a72d"
+    },
+    {
+      "log": "/tmp/lunar-prepare.log",
+      "pass_marker": "MATCHING CLIENT/SERVER RELEASE PREPARED: 2d030fd",
+      "sha256": "930c402bc1d46af228c6239eb6b83e00533682cbf36af7542f95f2680ea82c6e"
+    },
+    {
+      "log": "/tmp/lunar-exported-client-final.log",
+      "pass_marker": "Vulkan",
+      "sha256": "e3da62522c87d2720d9ef0ab7e5ad57026eacf7e6c1076d38f3c54788447fed8"
+    },
+    {
+      "log": "/tmp/lunar-source-client.log",
+      "pass_marker": "Vulkan",
+      "sha256": "e3da62522c87d2720d9ef0ab7e5ad57026eacf7e6c1076d38f3c54788447fed8"
     }
   ],
   "engine": "4.7.2.stable.official.ed1daf0bf",
@@ -46,5 +61,13 @@
     "Seven native Texture RIDs at full authored-bot fixture shutdown (#18)",
     "Headless diesel fixture: AudioStreamWAV and two AudioStreamPlaybackWAV shutdown references; audio unchanged"
   ],
-  "initial_native_moon_run": "Wall-clock --max-fps60 run failed frame-count-sensitive replay velocity assertion. Same physics fixture passes headless and native --fixed-fps60; no physics source changed."
+  "initial_native_moon_run": "Wall-clock --max-fps60 run failed frame-count-sensitive replay velocity assertion. Same physics fixture passes headless and native --fixed-fps60; no physics source changed.",
+  "client_launch_diagnostic": {
+    "initial": [
+      "/tmp/lunar-exported-client.log",
+      "/tmp/lunar-exported-client-recheck.log"
+    ],
+    "detail": "Two initial automated quit-after launches logged native root Window focus_entered/tree_exited disconnection diagnostics. Prior export comparison, current source launch, current verbose export and final ordinary export launch were clean. No UI source changed and no fix claimed; tracked in #8.",
+    "follow_up": "https://github.com/fumbleforce/battlebots/issues/8#issuecomment-5795267714"
+  }
 }

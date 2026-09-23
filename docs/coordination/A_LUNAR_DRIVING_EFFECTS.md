@@ -101,6 +101,38 @@ godot --path battlebots --fixed-fps 60 res://tests/presentation/scorpion_diesel_
 godot --path battlebots --script res://tools/review_lunar_driving.gd
 ```
 
-Matching release evidence will be appended after packaging and acceptance.
+## Matching release
+
+Runtime source `2d030fd00c9e5fb4bae0320a658e2279c540c647`: Linux server and
+Linux/Windows clients built from the same clean source with pinned Godot 4.7.2.
+Artifact hashes verified independently; Linux exported client launch/exit passes.
+Windows is exported, not natively verified here. Two initial automated launches
+printed native Window focus/tree signal disconnect diagnostics; current source,
+verbose export and final ordinary export reruns were clean. No UI fix is claimed;
+the intermittent observation is tracked on #8 and in validation evidence.
+
+Production-container private/Quick Play duels passed before deployment. Deployed
+that exact tested image to the existing single Fly Machine `287e605ad7d578` in
+Stockholm during the authorized playtest break:
+`registry.fly.io/battlebots-fumbleforce@sha256:11cbf0c2bbab30710a63065f943ce57401dcee8d55b83fb805c6578ce62f831d`.
+Rollback retained:
+`registry.fly.io/battlebots-fumbleforce@sha256:99e3d41900bc524d9ecf47978aba5408b7d231e5c787db218e919a52ec54aad8`.
+The live worker build record exactly matches the local server. All clients match
+`/healthz`: build `mvp-ab-15`, protocol 6, content hash
+`623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414945bec8404bd0ed`.
+One Machine is started with the expected digest.
+
+External private and Quick Play duels passed driving, actual transport reconnect,
+two rounds resolved through public forfeits, matching results and active rematch.
+These are deployment/lifecycle checks, not natural combat/human acceptance (#6).
+Moon visual behavior is covered by the separate native fixtures above; public
+Quick Play continues to use Foundry.
+
+[Artifact/image/rollback records](evidence/lunar-driving-2026-09-23/release.json),
+[container report](evidence/lunar-driving-2026-09-23/container-acceptance.json),
+[external report](evidence/lunar-driving-2026-09-23/external-acceptance.json).
+Local archives in this worktree: `battlebots/exports/battlebots-linux-2d030fd.tar.gz`
+and `battlebots/exports/battlebots-windows-2d030fd.zip`.
+Subsequent evidence-only commits do not change the exported runtime.
 Other agents' #32 nitro/combat effects, #34 Woodland, #35 pickups and #36 turret
 remain separate in-progress work at this checkpoint.

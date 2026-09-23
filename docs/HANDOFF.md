@@ -10,7 +10,12 @@ stack/load interface. Fog/particle quality settings apply; headless is inert.
 Native lifecycle/geometry/quality checks, real Jolt diesel checks, Moon fixed-frame
 physics regression and bounded moving-camera rendering review pass.
 See [scope, screenshots, measurements and handoff](coordination/A_LUNAR_DRIVING_EFFECTS.md).
-Matching release acceptance is being prepared. Other ongoing agents’ #32/#34/#35/#36
+Runtime `2d030fd` has matching Linux/Windows clients and Linux server artifacts.
+The tested container is deployed on the existing Fly Machine; live worker record
+and health match. Container and external private/Quick Play driving/reconnect/
+results/rematch checks pass. [Exact release and rollback](coordination/evidence/lunar-driving-2026-09-23/release.json).
+Final Linux export launch passes; intermittent native window-signal diagnostics
+are recorded on #8, with no UI fix claimed. Other ongoing agents’ #32/#34/#35/#36
 work is separate; no nitro, camera, controls, wire or catalogue changes are included.
 
 ## Garage loadout links — B, 23 September 2026
