@@ -192,13 +192,42 @@ func _ensure_body(draft: Dictionary) -> void:
 	if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {"paint":"cyan"}
 	if not SawbladeConfig.enabled(draft): draft.cosmetics["sawblade"] = SawbladeConfig.defaults()
 
+## True when this part works with the rest of the active draft: choosing it leaves
+## only validation reasons that every choice for the slot would leave. Customize
+## lists just these parts. The equipped part always fits, keeping saved or
+## body-changed invalid builds repairable.
+func part_fits(slot: String, id: String) -> bool:
+	var draft: Dictionary = loadouts[active_bot]
+	if draft.get("parts") is Dictionary and draft.parts.get(slot) == id: return true
+	var trial := _with_part(draft, slot, id)
+	if trial.is_empty(): return false
+	var unavoidable: Variant = null
+	for cat: Dictionary in catalogue.get("parts", []):
+		if cat.slot != slot: continue
+		for item: Dictionary in cat.items:
+			var choice := _with_part(draft, slot, item.id)
+			if choice.is_empty(): continue
+			var reasons := registry.validate(choice).reasons
+			if unavoidable == null: unavoidable = reasons
+			else: unavoidable = Array(unavoidable).filter(func(reason: String) -> bool: return reasons.has(reason))
+	for reason: String in registry.validate(trial).reasons:
+		if unavoidable == null or not Array(unavoidable).has(reason): return false
+	return true
+
+func _with_part(source: Dictionary, slot: String, id: String) -> Dictionary:
+	if not registry.parts.has(id) or registry.parts[id].category != slot: return {}
+	var draft := source.duplicate(true)
+	if not draft.get("parts") is Dictionary: draft.parts = {}
+	draft.parts[slot] = id
+	if slot == "chassis": _ensure_body(draft)
+	return draft
+
 func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 	if tab not in ["parts","paint","decals"]: return
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
 	if tab == "parts":
-		if not registry.parts.has(item.id) or registry.parts[item.id].category != cat.slot: return
-		if not draft.get("parts") is Dictionary: draft.parts = {}
-		draft.parts[cat.slot] = item.id
+		draft = _with_part(draft, cat.slot, item.id)
+		if draft.is_empty(): return
 	elif tab == "decals":
 		if cat.slot == "model":
 			if item.id != "sawblade": return
@@ -218,7 +247,6 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 		var color := Color(colors[item.id]).srgb_to_linear()
 		for channel: String in ["paint_primary", "paint_secondary"]:
 			draft.cosmetics.sawblade[channel] = [color.r, color.g, color.b, 1.0]
-	if tab == "parts" and cat.slot == "chassis": _ensure_body(draft)
 
 	# Preserve invalid combinations for repair; never silently replace selected parts.
 	if not _record_edit(draft): return

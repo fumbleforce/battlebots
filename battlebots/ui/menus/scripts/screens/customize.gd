@@ -37,6 +37,8 @@ var _choice_layout_capacity: Dictionary = {}
 var _category_ranges: Array[Vector2i] = [Vector2i(0, 3)]
 var _choice_ranges: Array[Vector2i] = [Vector2i(0, 2)]
 var _color_picker: ColorPickerButton
+## Catalogue indices of the choice tiles, in display order.
+var _shown_items: Array[int] = []
 
 func apply_text_scale(factor: float) -> void:
 	_pagination_frames = 4
@@ -307,7 +309,18 @@ func _refresh() -> void:
 		var rgba: Array = PlayerProfile.loadouts[PlayerProfile.active_bot].cosmetics.sawblade[cat.slot]
 		_color_picker.color = Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb()
 	var key := "%s:%d" % [_tab, ci]
+	_shown_items.clear()
+	var equipped_index := 0
+	for i in cat.items.size():
+		# Bodies stay selectable; other part slots list only choices that fit this build.
+		if _tab == "parts" and cat.slot != "chassis" and not PlayerProfile.part_fits(cat.slot, cat.items[i].id): continue
+		if PlayerProfile.item_state(_tab, cat, cat.items[i]) == "eq": equipped_index = i
+		_shown_items.append(i)
+	if _shown_items.is_empty(): _shown_items.assign(range(cat.items.size()))
 	var ii: int = _item.get(key, 0)
+	if ii not in _shown_items:
+		ii = equipped_index if equipped_index in _shown_items else _shown_items.front()
+		_item[key] = ii
 	var choice_page: int = _choice_pages.get(key, 0)
 	_choice_page_label.text = "%d / %d" % [choice_page + 1, _choice_ranges.size()]
 	%SlotHeading.text = SLOT_HEADINGS[_tab]
@@ -332,7 +345,8 @@ func _refresh() -> void:
 	clear_children(%Items)
 	var ig := ButtonGroup.new()
 	var owned_count := 0
-	for i in cat.items.size():
+	for position in _shown_items.size():
+		var i: int = _shown_items[position]
 		var it: Dictionary = PlayerProfile.resolved_item(_tab, cat, cat.items[i])
 		var st := PlayerProfile.item_state(_tab, cat, it)
 		if st == "eq" or st == "own":
@@ -343,10 +357,10 @@ func _refresh() -> void:
 		tile.button_group = ig
 		tile.button_pressed = i == ii
 		var shown_choices := _choice_ranges[clampi(choice_page, 0, _choice_ranges.size() - 1)]
-		tile.visible = i >= shown_choices.x and i < shown_choices.y
+		tile.visible = position >= shown_choices.x and position < shown_choices.y
 		tile.pressed.connect(func():
 			_item[key] = i
-			_choice_pages[key] = _page_for_item(_choice_ranges, i)
+			_choice_pages[key] = _page_for_item(_choice_ranges, position)
 			_refocus = "item"
 			if PlayerProfile.item_state(_tab, cat, it) == "own":
 				PlayerProfile.equip(_tab, cat, it)
@@ -425,7 +439,7 @@ func _process(_delta: float) -> void:
 	var choice_key := "%s:%d" % [_tab, _cat[_tab]]
 	if _choice_layout_capacity.get(choice_key, []) != _choice_ranges:
 		_choice_layout_capacity[choice_key] = _choice_ranges.duplicate()
-		_choice_pages[choice_key] = _page_for_item(_choice_ranges, int(_item.get(choice_key, 0)))
+		_choice_pages[choice_key] = _page_for_item(_choice_ranges, maxi(0, _shown_items.find(int(_item.get(choice_key, 0)))))
 	var category_page: int = _category_page[_tab]
 	var category_range := _category_ranges[category_page]
 	_category_capacity = category_range.y - category_range.x

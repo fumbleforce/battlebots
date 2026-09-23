@@ -21,11 +21,11 @@ func choose(slot: String, id: String) -> void:
 	await settle()
 	var category: Dictionary = profile.catalogue.parts[index]
 	for item_index: int in category.items.size():
-		if category.items[item_index].id == id:
-			screen.get_node("%Items").get_child(item_index).pressed.emit()
+		if category.items[item_index].id == id and item_index in screen._shown_items:
+			screen.get_node("%Items").get_child(screen._shown_items.find(item_index)).pressed.emit()
 			await settle()
 			return
-	check(false, "Missing test catalogue part " + id)
+	check(false, "Customize does not list part " + id)
 
 func cell(grid: GridContainer, index: int) -> String:
 	return grid.get_child(index).text
@@ -58,9 +58,14 @@ func run() -> void:
 	check(profile.loadouts[0] == original and cell(panel.budgets, 3) == "101", "Undo restores the current build stats")
 	for part: Array in [["drive", "traction"], ["weapon", "horizontal_spinner"], ["utility", "battery_pack"]]:
 		await choose(part[0], part[1])
-	await choose("armor", "heavy")
+	await choose("armor", "light")
+	check("heavy" not in screen._shown_items.map(func(index: int) -> String: return profile.catalogue.parts[ContentRegistry.SLOTS.find("armor")].items[index].id), "Customize omits armor that would exceed 120 kg")
+	# Saved builds can still be over budget; the panel must report them without derived stats.
+	var armor: Dictionary = profile.catalogue.parts[ContentRegistry.SLOTS.find("armor")]
+	for item: Dictionary in armor.items:
+		if item.id == "heavy": profile.equip("parts", armor, item)
 	await settle()
-	check(cell(panel.budgets, 3) == "121", "Overbudget choice immediately updates current mass")
+	check(cell(panel.budgets, 3) == "121", "Over-budget draft immediately updates current mass")
 	check(cell(panel.details, 1) == "—", "Invalid build has no invented derived stats")
 	check(screen.get_node("%SelDesc").text.contains("Mass exceeds 120 kg"), "Specific current build error is visible")
 	check(screen.get_node("%Save").disabled, "Invalid draft disables Save")
