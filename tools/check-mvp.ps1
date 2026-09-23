@@ -36,6 +36,7 @@ Invoke-MvpTest 'res://tests/presentation/scorpion_garage_test.tscn' 'SCORPION GA
 Invoke-MvpTest 'res://tests/practice/practice_npcs_test.gd' 'PRACTICE NPC PASS'
 Invoke-MvpTest 'res://tests/simulation/hammer_visual.gd' 'HAMMER VISUAL PASS'
 Invoke-MvpTest 'res://tests/simulation/hammer_physics.tscn' 'HAMMER PHYSICS PASS' -Scene
+Invoke-MvpTest 'res://tests/simulation/armour_layout_test.gd' 'ARMOUR LAYOUT PASS'
 Invoke-MvpTest 'res://tests/simulation/saw_state.gd' 'SAW STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/saw_visual.gd' 'SAW VISUAL PASS'
 Invoke-MvpTest 'res://tests/simulation/saw_physics.tscn' 'SAW PHYSICS PASS' -Scene
