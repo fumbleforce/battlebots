@@ -7,6 +7,7 @@ const PROJECTILES := 6
 const IMPACTS := 4
 const BLASTS := 2
 const FOG_PUFFS := 6
+const MAX_EFFECT_SCALE := 4.0
 const FOG_LIFETIME := 2.6
 const BURN_LIFETIME := 3.2
 const RATE := 24000
@@ -53,7 +54,9 @@ func configure(weapon: String, muzzle_nodes: Array[Node3D], recoil_nodes: Array[
 	kind = weapon
 	muzzles = muzzle_nodes
 	recoils = recoil_nodes
-	_scale = geometry_scale
+	# Effects stop growing past a normal hull (scale 3): the Woodland giant's
+	# shell smoke and fireballs would otherwise fill the screen and stall the GPU.
+	_scale = minf(geometry_scale, MAX_EFFECT_SCALE)
 	for node: Node3D in recoils:
 		_recoil_rest.append(node.transform if node != null else Transform3D.IDENTITY)
 		_recoil_age.append(1.0)

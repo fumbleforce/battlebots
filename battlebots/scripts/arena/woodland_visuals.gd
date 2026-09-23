@@ -139,11 +139,53 @@ func _terrain(arena: Node) -> void:
 			["grass", "sparse_grass"], ["rock", "rock_boulder_dry"]]:
 		for map: String in ["diff", "nor", "arm"]:
 			terrain.set_shader_parameter(layer[0] + "_" + map, scan(layer[1], map))
-	plane.material = terrain
-	var visual := MeshInstance3D.new()
-	visual.name = "TerrainSurface"
-	visual.mesh = plane
-	add_child(visual)
+	# 30 m chunks with three detail levels by camera distance (0.25 m near,
+	# 0.75 m mid, 2 m far). The shader displaces from world position, so levels
+	# line up; a short skirt hides T-junction cracks. Shadows come from one
+	# coarse shadow-only copy instead of the full-detail surface in every cascade.
+	var root := Node3D.new()
+	root.name = "TerrainSurface"
+	add_child(root)
+	const CHUNK := 30.0
+	var levels := [[0.25, 0.0, 70.0], [0.75, 70.0, 170.0], [2.0, 170.0, 0.0]]
+	var meshes: Array[Mesh] = []
+	for level: Array in levels:
+		var chunk := PlaneMesh.new()
+		chunk.size = Vector2(CHUNK, CHUNK)
+		chunk.subdivide_width = int(CHUNK / float(level[0])) - 1
+		chunk.subdivide_depth = int(CHUNK / float(level[0])) - 1
+		chunk.custom_aabb = AABB(Vector3(-CHUNK * 0.5, -4.0, -CHUNK * 0.5), Vector3(CHUNK, 20.0, CHUNK))
+		chunk.material = terrain
+		meshes.append(chunk)
+	var count := int(HALF * 2.0 / CHUNK)
+	for cz: int in range(count):
+		for cx: int in range(count):
+			var centre := Vector3(-HALF + (cx + 0.5) * CHUNK, 0.0, -HALF + (cz + 0.5) * CHUNK)
+			if GROUND.octagon_distance(Vector2(centre.x, centre.z)) < -CHUNK * 0.75:
+				continue
+			for index: int in levels.size():
+				var level: Array = levels[index]
+				var part := MeshInstance3D.new()
+				part.name = "Chunk%d_%d_L%d" % [cx, cz, index]
+				part.mesh = meshes[index]
+				part.position = centre
+				part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				part.visibility_range_begin = level[1]
+				part.visibility_range_end = level[2]
+				part.visibility_range_begin_margin = 4.0
+				part.visibility_range_end_margin = 4.0
+				root.add_child(part)
+	var shadow_plane := PlaneMesh.new()
+	shadow_plane.size = Vector2(HALF * 2.0, HALF * 2.0)
+	shadow_plane.subdivide_width = int(HALF) - 1
+	shadow_plane.subdivide_depth = int(HALF) - 1
+	shadow_plane.custom_aabb = AABB(Vector3(-HALF, -4.0, -HALF), Vector3(HALF * 2.0, 20.0, HALF * 2.0))
+	shadow_plane.material = terrain
+	var shadow := MeshInstance3D.new()
+	shadow.name = "ShadowProxy"
+	shadow.mesh = shadow_plane
+	shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	root.add_child(shadow)
 
 # --- Materials -----------------------------------------------------------
 
@@ -426,7 +468,10 @@ func _text(words: String, at: Vector3, size: int, pixel: float, color: Color, ou
 
 # --- Palisade ------------------------------------------------------------
 
+var _face_index := 0
+
 func _face(side: int) -> void:
+	_face_index = side
 	var bay_width := FACE * 2.0 / BAYS
 	# Faces 2 and 6 are the east/west gates; face 0 carries the scoreboard.
 	var gate := side == 2 or side == 6
@@ -558,38 +603,68 @@ func _person(at: Vector3, height: float, seated: bool = false) -> void:
 	trousers.a = (_rng.randi() % 4) / 4.0 + 0.1
 	var s := height * _rng.randf_range(0.95, 1.05)
 	var pose := Transform3D(Basis(Vector3.UP, _rng.randf_range(-0.25, 0.25)).scaled(Vector3(s * _rng.randf_range(0.9, 1.12), s, s)), at + Vector3(0, -0.02 if seated else 0.0, 0))
-	_fans["fan_seated" if seated else "fan_standing"].append([_side * pose, shirt, trousers])
+	# Bucket by face and a third of its length so each batch can be culled
+	# and switch to the low-detail figure by distance.
+	var third := clampi(int((at.x + FACE) / (FACE * 2.0 / 3.0)), 0, 2)
+	_fans["fan_seated" if seated else "fan_standing"].append([_side * pose, shirt, trousers, _face_index * 3 + third])
 
+func _crowd_mesh(name: String, parts: Dictionary) -> Mesh:
+	var scene: Node = load("res://assets/models/woodland/stadium_%s.gltf" % name).instantiate()
+	var mesh := (scene.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate() as Mesh
+	scene.free()
+	for surface: int in range(mesh.get_surface_count()):
+		var mat := ShaderMaterial.new()
+		mat.shader = CROWD
+		var source := mesh.surface_get_material(surface)
+		mat.set_shader_parameter("part", parts.get(source.resource_name if source else "shirt", 0))
+		mesh.surface_set_material(surface, mat)
+	return mesh
+
+## Spectators in batches of a third of a face: full figures within 75 m of the
+## camera, 50-triangle blocks beyond.
 func _flush_fans() -> void:
 	var parts := {"shirt":0, "trousers":1, "skin":2, "hair":3}
+	const NEAR := 75.0
 	for name: String in _fans:
 		var list: Array = _fans[name]
 		if list.is_empty():
 			continue
-		var scene: Node = load("res://assets/models/woodland/stadium_%s.gltf" % name).instantiate()
-		var mesh := (scene.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate() as Mesh
-		scene.free()
-		for surface: int in range(mesh.get_surface_count()):
-			var mat := ShaderMaterial.new()
-			mat.shader = CROWD
-			var source := mesh.surface_get_material(surface)
-			mat.set_shader_parameter("part", parts.get(source.resource_name if source else "shirt", 0))
-			mesh.surface_set_material(surface, mat)
-		var multi := MultiMesh.new()
-		multi.transform_format = MultiMesh.TRANSFORM_3D
-		multi.use_colors = true
-		multi.use_custom_data = true
-		multi.mesh = mesh
-		multi.instance_count = list.size()
-		for i: int in range(list.size()):
-			multi.set_instance_transform(i, list[i][0])
-			multi.set_instance_color(i, list[i][1])
-			multi.set_instance_custom_data(i, list[i][2])
-		var visual := MultiMeshInstance3D.new()
-		visual.name = "Crowd_" + name
-		visual.multimesh = multi
-		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(visual)
+		var meshes := [_crowd_mesh(name, parts), _crowd_mesh(name + "_low", parts)]
+		var buckets: Dictionary = {}
+		for entry: Array in list:
+			if not buckets.has(entry[3]):
+				buckets[entry[3]] = []
+			buckets[entry[3]].append(entry)
+		for key: int in buckets:
+			var group: Array = buckets[key]
+			var centre := Vector3.ZERO
+			for entry: Array in group:
+				centre += (entry[0] as Transform3D).origin
+			centre /= group.size()
+			for level: int in 2:
+				var multi := MultiMesh.new()
+				multi.transform_format = MultiMesh.TRANSFORM_3D
+				multi.use_colors = true
+				multi.use_custom_data = true
+				multi.mesh = meshes[level]
+				multi.instance_count = group.size()
+				for i: int in range(group.size()):
+					var pose: Transform3D = group[i][0]
+					multi.set_instance_transform(i, Transform3D(pose.basis, pose.origin - centre))
+					multi.set_instance_color(i, group[i][1])
+					multi.set_instance_custom_data(i, group[i][2])
+				var visual := MultiMeshInstance3D.new()
+				visual.name = "Crowd_%s_%d_L%d" % [name, key, level]
+				visual.multimesh = multi
+				visual.position = centre
+				visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				if level == 0:
+					visual.visibility_range_end = NEAR
+				else:
+					visual.visibility_range_begin = NEAR
+				visual.visibility_range_begin_margin = 5.0
+				visual.visibility_range_end_margin = 5.0
+				add_child(visual)
 		list.clear()
 
 func _stands(side: int) -> void:

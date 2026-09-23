@@ -79,12 +79,12 @@ func configure(authority: AuthorityWorld, player_id: int, director: PracticeBotD
 	_place(boss, home)
 	return first_id + 1
 
-## Presentation dressing for the giant: capped blast fog and a title.
+## Presentation dressing for the giant: normal-sized damage smoke and a title.
+## (Turret effects cap their own scale in TurretShotEffects.MAX_EFFECT_SCALE.)
 static func _dress(bot: MvpBot) -> void:
-	# The muzzle fog volumes and smoke billows read _scale every frame; cap it
-	# so giant blasts stay readable instead of fogging the arena.
-	for node: Node in bot.find_children("*", "TurretShotEffects", true, false):
-		(node as TurretShotEffects)._scale = minf((node as TurretShotEffects)._scale, 3.0)
+	# Burning/smoking damage effects scale with the hull; keep them normal-sized.
+	if bot.damage_visual != null:
+		bot.damage_visual.set_geometry_scale(4.0)
 	var label := Label3D.new()
 	label.name = "GiantTitle"
 	label.text = "WARDEN OF THE WOODS"

@@ -243,6 +243,7 @@ func _interior_grass() -> void:
 	var fern_poses: Array = []
 	var pebble_poses: Array = []
 	var rock_poses: Array = []
+	var stone_poses: Array = []
 	# One jittered candidate per 0.45 m cell, accepted by the baked masks.
 	var cell := 0.42
 	var n := int(HALF * 2.0 / cell)
@@ -287,7 +288,7 @@ func _interior_grass() -> void:
 				if rng.randf() < 0.25:
 					# Fist-to-knee sized mossy stones among the pebbles.
 					var r := rng.randf_range(0.08, 0.22) * (1.0 + near)
-					rock_poses.append([rng.randi() % small_rocks.size(), Transform3D(tilt.scaled(Vector3.ONE * r), Vector3(p.x, ground_y(p.x, p.y) - 0.12 * r, p.y))])
+					stone_poses.append([rng.randi() % small_rocks.size(), Transform3D(tilt.scaled(Vector3.ONE * r), Vector3(p.x, ground_y(p.x, p.y) - 0.12 * r, p.y))])
 				else:
 					var s := rng.randf_range(0.8, 2.6) * (1.0 + near * 1.5)
 					pebble_poses.append([rng.randi() % pebbles.size(), Transform3D(tilt.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.03 * s, p.y))])
@@ -312,6 +313,8 @@ func _interior_grass() -> void:
 	_scatter("Ferns", ferns, fern_poses, 120.0, true)
 	_scatter("Pebbles", pebbles, pebble_poses, 80.0, false)
 	_scatter("MossRocks", rocks, rock_poses, 160.0, true)
+	# Fist-to-knee stones: same scans, only drawn near the camera, no shadows.
+	_scatter("MossStones", small_rocks, stone_poses, 45.0, false)
 	print_verbose("Woodland scatter: grass %d, ferns %d, pebbles %d, rocks %d" % [grass_poses.size(), fern_poses.size(), pebble_poses.size(), rock_poses.size()])
 
 func _multimesh(label: String, mesh: Mesh, material: Material, poses: Array[Transform3D], shadows: bool) -> MultiMeshInstance3D:

@@ -185,7 +185,8 @@ func _forest() -> void:
 	var near_meshes: Array[Mesh] = []
 	var far_meshes: Array[Mesh] = []
 	for v: int in range(4):
-		near_meshes.append(flora.pine(9100 + v, 20.0 + v * 2.0, 1))
+		# Valley pines stand behind the 16 m palisade and stands: cards only.
+		near_meshes.append(flora.pine(9100 + v, 20.0 + v * 2.0, 0))
 		var far: ArrayMesh = flora.pine(9200 + v, 20.0 + v * 2.0, 0)
 		far_meshes.append(far)
 	# Sixteen sectors per band so frustum culling drops what is behind the camera.

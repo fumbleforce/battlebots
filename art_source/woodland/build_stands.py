@@ -284,10 +284,28 @@ def fan(seated):
 	blob((0, hip + 0.86, -0.02), (0.2, 0.18, 0.2), "hair", 7)
 	P.export("fan_seated" if seated else "fan_standing", "stadium_")
 
+def fan_low(seated):
+	"""Distant-crowd LOD: a few boxes with the same slots and silhouette."""
+	P.reset()
+	hip = 0.48 if seated else 0.92
+	def block(center, size, material):
+		P.timber(center, size, material, bevel=0.0)
+	if seated:
+		block((0, hip, 0.2), (0.34, 0.14, 0.44), "trousers")
+		block((0, hip * 0.5, 0.42), (0.3, hip, 0.14), "trousers")
+	else:
+		block((0, hip * 0.5, 0), (0.32, hip, 0.2), "trousers")
+	block((0, hip + 0.3, 0), (0.42, 0.58, 0.24), "shirt")
+	block((0, hip + 0.8, 0.01), (0.2, 0.24, 0.21), "skin")
+	block((0, hip + 0.93, -0.01), (0.21, 0.07, 0.22), "hair")
+	P.export("fan_seated_low" if seated else "fan_standing_low", "stadium_")
+
 stands(True)
 stands(False)
 tower()
 scoreboard()
 fan(True)
 fan(False)
+fan_low(True)
+fan_low(False)
 print("STADIUM DONE")
