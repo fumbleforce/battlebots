@@ -4,7 +4,7 @@ extends Node3D
 ## column and a floating, rotating token labelled with its contents. Colour
 ## identifies the kind (amber part, cyan perk, green credits). Presentation only.
 const TOKEN_HEIGHT := 2.4
-const BEAM_HEIGHT := 9.0
+const BEAM_HEIGHT := MatchPickups.REACH_UP
 var session: MvpSession
 var names: Dictionary = {}
 var markers: Dictionary = {}

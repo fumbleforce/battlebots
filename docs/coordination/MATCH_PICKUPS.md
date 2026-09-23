@@ -30,8 +30,10 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
   automatically. Moon and Woodland points sit on their terrain.
 - Contents are random. There is a 30% chance of credits (25/50/100); otherwise a uniformly random
   catalogue part or perk. A collected point restocks after 20 s, and every point restocks at a new round.
-- Collection requires the hull footprint to overlap the point (horizontal radius half the longest hull
-  side + 0.5 m). Eliminated bots and practice NPCs never collect.
+- Collection is a vertical column. Horizontally, the hull footprint must overlap the point (radius: half
+  the longest hull side + 0.5 m). Vertically, some part of the hull must lie between 1.5 m below the point
+  and the top of the 9 m light beam (`MatchPickups.REACH_DOWN`/`REACH_UP`; the beam is drawn from the same
+  constant). Jumping and launched bots therefore collect. Eliminated bots and practice NPCs never collect.
 - **Swap state.** The bot keeps its pose, motion, owner, input sequence, score counters, attacker
   credit, timers, and its core, plate and battery fractions. The component in the *changed* slot arrives
   intact: a new weapon, new drive pods or new plates. A taller body is lifted clear of the floor.

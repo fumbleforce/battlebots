@@ -218,10 +218,17 @@ func _collect_pickups(delta: float) -> void:
 				apply_loadout(id, event.loadout)
 			break
 
+## A pickup is a vertical column: the hull footprint must overlap the point
+## horizontally, and some part of the hull must lie between REACH_DOWN below the
+## point and the top of its REACH_UP light beam, so jumping and launched bots
+## still collect it.
 func touches_pickup(bot: MvpBot, point: Vector3) -> bool:
 	var size: Vector3 = bot.collision_bounds().size
 	var at := bot.body.global_position
-	return Vector2(at.x - point.x, at.z - point.z).length() <= maxf(size.x, size.z) * 0.5 + 0.5 		and absf(at.y - point.y) <= size.y + 1.5
+	if Vector2(at.x - point.x, at.z - point.z).length() > maxf(size.x, size.z) * 0.5 + 0.5:
+		return false
+	var above := at.y - point.y
+	return above >= -(size.y * 0.5 + MatchPickups.REACH_DOWN) and above <= MatchPickups.REACH_UP + size.y * 0.5
 
 ## Applies a match loadout to a live bot. Perk-only changes update the existing
 ## bot; any other slot rebuilds it in place, keeping pose, motion, owner, score

@@ -136,6 +136,17 @@ func world_swaps(arena_id: String) -> void:
 	place(world, picker, center)
 	await frames(3)
 	check(world.touches_pickup(picker, center) and not world.touches_pickup(rival, center), arena_id + " contact test uses hull footprint")
+	var standing := picker.body.global_position
+	var half_height: float = picker.collision_bounds().size.y * 0.5
+	picker.body.global_position = standing + Vector3.UP * 8.0
+	check(world.touches_pickup(picker, center), arena_id + " a jumping bot inside the light beam collects")
+	picker.body.global_position = Vector3(center.x, center.y + MatchPickups.REACH_UP + half_height - 0.1, center.z)
+	check(world.touches_pickup(picker, center), arena_id + " the hull touching the top of the beam collects")
+	picker.body.global_position = Vector3(center.x, center.y + MatchPickups.REACH_UP + half_height + 0.5, center.z)
+	check(not world.touches_pickup(picker, center), arena_id + " a bot above the beam does not collect")
+	picker.body.global_position = Vector3(center.x, center.y - half_height - MatchPickups.REACH_DOWN - 0.5, center.z)
+	check(not world.touches_pickup(picker, center), arena_id + " a bot well below the point does not collect")
+	picker.body.global_position = standing
 	await step(world)
 	check(world.pickups.credits.get(1, 0) == 100 and world.bots[1] == picker and changes.is_empty(),
 		arena_id + " credit pickup tallies without touching the bot")

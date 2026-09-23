@@ -14,6 +14,10 @@ const EXCLUDED_PARTS := ["nitro_off", "jump_off"]
 const PERK_SLOTS := ["nitro", "suspension"]
 const REQUIRED_DRIVE := {"scorpion_hex":"walker", "atlas_mx":"traction"}
 const FALLBACK_UTILITY := "recovery_assist"
+## Vertical pickup column in metres from the point; REACH_UP is also the height of
+## the marker's light beam, so a bot collects anywhere it visibly overlaps.
+const REACH_UP := 9.0
+const REACH_DOWN := 1.5
 const REWARD_PARTICIPATION := 50
 const REWARD_VICTORY := 150
 const REWARD_PER_ELIMINATION := 50
