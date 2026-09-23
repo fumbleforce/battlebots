@@ -145,6 +145,7 @@ func _ready() -> void:
 	pickup_notice.name = "PickupNotice"
 	combat_hud.canvas.add_child(pickup_notice)
 	session.pickup_refused.connect(func(event: Dictionary) -> void: pickup_notice.notify(event, pickup_visuals.names))
+	preview.dev_part_cycled.connect(_dev_part_cycled)
 	_diagnostics_canvas = Control.new()
 	_diagnostics_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$MatchLayer.add_child(_diagnostics_canvas)
@@ -311,6 +312,16 @@ func _update_practice(bot: BotSource) -> void:
 	if practice:
 		var target := session.practice_target()
 		practice_hud.render(view, target.read_view() if target != null else null)
+
+## Local part shortcuts (#64): name the fitted part, or say why nothing changed.
+func _dev_part_cycled(slot: String, result: Dictionary) -> void:
+	var label: String = {"weapon":"WEAPON", "chassis":"BODY", "drive":"DRIVE"}.get(slot, slot.to_upper())
+	if result.has("part"):
+		pickup_notice.show_text("%s: %s" % [label, PickupFeed.describe({"part":result.part}, pickup_visuals.names)])
+	elif result.get("refused") == "remote":
+		pickup_notice.show_text("PART SHORTCUTS ONLY WORK IN GAMES HOSTED ON THIS COMPUTER")
+	elif result.get("refused") == "no_fit":
+		pickup_notice.show_text("NO OTHER %s FITS THIS BUILD" % label)
 
 func restart_practice() -> void:
 	if session.connection_state != "practice" or preview.settings_panel.visible or _general_settings_open():

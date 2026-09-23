@@ -3,9 +3,17 @@ extends RefCounted
 ## Local keyboard/mouse preferences. Never writes project settings or controller bindings.
 
 const DEFAULT_PATH := "user://presentation_input.cfg"
-const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover", &"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"ping", &"scoreboard"]
-const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"nitro": "Nitro", &"jump": "Charge jump", &"primary": "Primary weapon", &"secondary": "Lower / auxiliary gun", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard"}
-const KEYS := {&"drive_forward": KEY_W, &"drive_reverse": KEY_S, &"steer_left": KEY_A, &"steer_right": KEY_D, &"brake": KEY_B, &"nitro": KEY_SHIFT, &"jump": KEY_SPACE, &"recover": KEY_R, &"camera_toggle": KEY_C, &"ping": KEY_Q, &"scoreboard": KEY_TAB}
+const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover", &"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"ping", &"scoreboard", &"dev_weapon", &"dev_body", &"dev_drive"]
+## Local-game development shortcuts (#64): cycle the fitted weapon, body or
+## drive. Only a process that runs its own match honours them.
+const DEV_ACTIONS: Array[StringName] = [&"dev_weapon", &"dev_body", &"dev_drive"]
+const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"nitro": "Nitro", &"jump": "Charge jump", &"primary": "Primary weapon", &"secondary": "Lower / auxiliary gun", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard", &"dev_weapon": "Next weapon (local games)", &"dev_body": "Next body (local games)", &"dev_drive": "Next drive (local games)"}
+const KEYS := {&"drive_forward": KEY_W, &"drive_reverse": KEY_S, &"steer_left": KEY_A, &"steer_right": KEY_D, &"brake": KEY_X, &"nitro": KEY_SHIFT, &"jump": KEY_SPACE, &"recover": KEY_R, &"camera_toggle": KEY_T, &"ping": KEY_Q, &"scoreboard": KEY_TAB, &"dev_weapon": KEY_V, &"dev_body": KEY_B, &"dev_drive": KEY_C}
+## Version-3 defaults gave V/B/C to the local part shortcuts; saves still on the
+## old brake B and camera C defaults move those to X and T when free.
+const V2_MOVES := {&"brake": [KEY_B, KEY_X], &"camera_toggle": [KEY_C, KEY_T]}
+const SPARE_KEYS := [KEY_N, KEY_M, KEY_F, KEY_G, KEY_H, KEY_J, KEY_K, KEY_L, KEY_O, KEY_P, KEY_U, KEY_Y, KEY_Z, KEY_I, KEY_E,
+	KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 const MOUSE := {&"primary": MOUSE_BUTTON_LEFT, &"secondary": MOUSE_BUTTON_RIGHT, &"camera_recenter": MOUSE_BUTTON_MIDDLE, &"camera_zoom_in": MOUSE_BUTTON_WHEEL_UP, &"camera_zoom_out": MOUSE_BUTTON_WHEEL_DOWN}
 var bindings: Dictionary = {}
 var toggle_primary := false
@@ -99,7 +107,7 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 		return result
 	var data: Variant = parser.data
 	var version: Variant = data.get("version") if data is Dictionary else null
-	if not data is Dictionary or not (version is float or version is int) or int(version) not in [1, 2] or float(version) != float(int(version)) or not data.get("toggle_primary") is bool or not data.get("bindings") is Dictionary:
+	if not data is Dictionary or not (version is float or version is int) or int(version) not in [1, 2, 3] or float(version) != float(int(version)) or not data.get("toggle_primary") is bool or not data.get("bindings") is Dictionary:
 		result.load_error = ERR_FILE_UNRECOGNIZED
 		return result
 	var saved: Dictionary = data.bindings
@@ -124,6 +132,9 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 				break
 		saved["nitro"] = {"kind":"key", "code":KEY_SHIFT}
 		saved["jump"] = {"kind":"key", "code":KEY_SPACE}
+	if int(version) < 3 and not _migrate_dev_actions(saved):
+		result.load_error = ERR_INVALID_DATA
+		return result
 	if saved.size() != ACTIONS.size():
 		result.load_error = ERR_INVALID_DATA
 		return result
@@ -153,10 +164,35 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 	result.toggle_primary = data.toggle_primary
 	return result
 
+## Version 2 -> 3: add the local part shortcuts on V/B/C, moving the old
+## brake/camera defaults aside; customised keys are kept and a shortcut whose
+## default key is taken gets the first spare key.
+static func _migrate_dev_actions(saved: Dictionary) -> bool:
+	var used := func(code: int) -> bool:
+		for binding: Variant in saved.values():
+			if binding is Dictionary and binding.get("kind") == "key" and binding.get("code") == code:
+				return true
+		return false
+	for action: StringName in V2_MOVES:
+		var binding: Variant = saved.get(String(action))
+		var move: Array = V2_MOVES[action]
+		if binding is Dictionary and binding.get("kind") == "key" and binding.get("code") == move[0] and not used.call(move[1]):
+			saved[String(action)] = {"kind":"key", "code":move[1]}
+	for action: StringName in DEV_ACTIONS:
+		var choice := 0
+		for candidate: int in [KEYS[action]] + SPARE_KEYS:
+			if not used.call(candidate):
+				choice = candidate
+				break
+		if choice == 0:
+			return false
+		saved[String(action)] = {"kind":"key", "code":choice}
+	return true
+
 func save_file(path: String = DEFAULT_PATH) -> Error:
 	if path.is_empty():
 		return ERR_UNCONFIGURED
-	var data := {"version": 2, "toggle_primary": toggle_primary, "bindings": {}}
+	var data := {"version": 3, "toggle_primary": toggle_primary, "bindings": {}}
 	var identities := {}
 	if bindings.size() != ACTIONS.size():
 		return ERR_INVALID_DATA

@@ -80,6 +80,8 @@ var woodland_boss: WoodlandBoss
 ## replaces the bot node.
 var pickups_enabled := true
 var _pickup_revision := -1
+## Catalogue slots the local part shortcuts cycle.
+const DEV_SLOTS := ["weapon", "chassis", "drive"]
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
@@ -212,6 +214,44 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	match_view = match_state.snapshot()
 	session_event.emit("practice", {})
 	return OK
+
+## Local development shortcut (#64): replace the local bot's weapon, body or
+## drive with the next one that fits, mid-match. Honoured only where this
+## process runs the match itself (practice or a self-hosted listen game),
+## never on a hosted worker or as a joined client. The swap reuses the pickup
+## path, so peers of a local host receive it like a picked-up part.
+## Returns {"part": id} after a swap, else {"refused": reason} with reason
+## "remote" (not this computer's game), "unavailable" or "no_fit".
+func dev_cycle_part(slot: String) -> Dictionary:
+	if slot not in DEV_SLOTS:
+		return {"refused":"unavailable"}
+	if not _server or hosted_admission != null or connection_state not in ["practice", "hosting"] or not is_instance_valid(world):
+		return {"refused":"remote"}
+	var bot: MvpBot = world.bots.get(local_entity)
+	if bot == null or bot.combat.eliminated:
+		return {"refused":"unavailable"}
+	var pickups := world.pickups
+	var options: Array[String] = []
+	for id: String in pickups.registry.parts:
+		if pickups.registry.parts[id].category == slot and (slot != "chassis" or id in MatchPickups.OFFERED_CHASSIS):
+			options.append(id)
+	var current: String = bot.loadout.parts.get(slot, "")
+	var start := options.find(current)
+	for step: int in range(1, options.size()):
+		var part := options[(start + step) % options.size()]
+		var next := pickups.swapped(bot.loadout, part)
+		if next.is_empty() and slot == "chassis":
+			# A body that cannot carry the fitted weapon takes the lifter.
+			var fallback: Dictionary = bot.loadout.duplicate(true)
+			fallback.parts.weapon = "lifter"
+			next = pickups.swapped(fallback, part)
+		if next.is_empty():
+			continue
+		world.apply_loadout(local_entity, next)
+		# Publish like a pickup so a local host's guests rebuild the same bot.
+		pickups.revision += 1
+		return {"part":part}
+	return {"refused":"no_fit"}
 
 func practice_target() -> BotSource:
 	if connection_state != "practice" or not is_instance_valid(world):

@@ -64,7 +64,7 @@ steer_right={
 }
 brake={
 "deadzone": 0.2,
-"events": [Object(InputEventKey, "physical_keycode":66)]
+"events": [Object(InputEventKey, "physical_keycode":88)]
 }
 nitro={
 "deadzone": 0.2,
@@ -83,6 +83,18 @@ recover={
 "events": [Object(InputEventKey, "physical_keycode":82)]
 }
 camera_toggle={
+"deadzone": 0.2,
+"events": [Object(InputEventKey, "physical_keycode":84)]
+}
+dev_weapon={
+"deadzone": 0.2,
+"events": [Object(InputEventKey, "physical_keycode":86)]
+}
+dev_body={
+"deadzone": 0.2,
+"events": [Object(InputEventKey, "physical_keycode":66)]
+}
+dev_drive={
 "deadzone": 0.2,
 "events": [Object(InputEventKey, "physical_keycode":67)]
 }

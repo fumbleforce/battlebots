@@ -31,6 +31,9 @@ const TURRET_AIM_DISTANCE := 220.0
 var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
 var mortar_aim := MortarAimVisual.new()
+## A local part shortcut was used (#64): slot and the session's result.
+signal dev_part_cycled(slot: String, result: Dictionary)
+const DEV_SLOTS := {&"dev_weapon":"weapon", &"dev_body":"chassis", &"dev_drive":"drive"}
 var _turret_aim_point := Vector3.ZERO
 var _reticle_point := Vector2.ZERO
 var _kick_sequence := -1
@@ -201,6 +204,10 @@ func _physics_process(_delta: float) -> void:
 	var view := _source_view()
 	input_gate.auxiliary_weapon = view.has_auxiliary_weapon
 	input_gate.turret_main_gun = view.turret_kind != ""
+	if enabled and source is SessionBotSource and is_instance_valid(source.session):
+		for action: StringName in DEV_SLOTS:
+			if InputMap.has_action(action) and Input.is_action_just_pressed(action):
+				dev_part_cycled.emit(DEV_SLOTS[action], source.session.dev_cycle_part(DEV_SLOTS[action]))
 	var command := input_gate.sample(strengths, edges, enabled)
 	command.sequence = sequence
 	sequence += 1

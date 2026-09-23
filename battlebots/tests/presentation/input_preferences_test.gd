@@ -48,15 +48,19 @@ func run() -> void:
 	legacy.version = 1
 	legacy.bindings.erase("nitro")
 	legacy.bindings.erase("jump")
+	# Version-1 files predate the part shortcuts and had camera on C.
+	for action: String in ["dev_weapon", "dev_body", "dev_drive"]: legacy.bindings.erase(action)
+	legacy.bindings.camera_toggle = {"kind":"key", "code":KEY_C}
 	legacy.bindings.brake = {"kind":"key", "code":KEY_SPACE}
 	var file := FileAccess.open(PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(legacy))
 	file.close()
 	loaded = InputPreferences.load_file(PATH)
-	check(loaded.load_error == OK and loaded.bindings[&"brake"].physical_keycode == KEY_B
+	check(loaded.load_error == OK and loaded.bindings[&"brake"].physical_keycode == KEY_X
 		and loaded.bindings[&"jump"].physical_keycode == KEY_SPACE
-		and loaded.bindings[&"nitro"].physical_keycode == KEY_SHIFT,
-		"Legacy controls migrate brake to B and reserve Space/Shift for perks")
+		and loaded.bindings[&"nitro"].physical_keycode == KEY_SHIFT
+		and loaded.bindings[&"dev_body"].physical_keycode == KEY_B,
+		"Legacy controls migrate brake (via B) to X, reserve Space/Shift for perks and give B to the body shortcut")
 	legacy.bindings.brake = {"kind":"key", "code":KEY_B}
 	legacy.bindings.primary = {"kind":"key", "code":KEY_SPACE}
 	file = FileAccess.open(PATH, FileAccess.WRITE)
@@ -65,6 +69,31 @@ func run() -> void:
 	loaded = InputPreferences.load_file(PATH)
 	check(loaded.load_error == OK and loaded.bindings[&"primary"].physical_keycode == KEY_V,
 		"Legacy custom Space action moves to a free key")
+	# Version 2 (#64): old defaults brake B / camera C move to X / T and the
+	# local part shortcuts take V/B/C; a customised key keeps its action.
+	var v2: Dictionary = JSON.parse_string(saved_text)
+	v2.version = 2
+	for action: String in ["dev_weapon", "dev_body", "dev_drive"]: v2.bindings.erase(action)
+	v2.bindings.brake = {"kind":"key", "code":KEY_B}
+	v2.bindings.camera_toggle = {"kind":"key", "code":KEY_C}
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(v2))
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error == OK and loaded.bindings[&"brake"].physical_keycode == KEY_X
+		and loaded.bindings[&"camera_toggle"].physical_keycode == KEY_T
+		and loaded.bindings[&"dev_weapon"].physical_keycode == KEY_V
+		and loaded.bindings[&"dev_body"].physical_keycode == KEY_B
+		and loaded.bindings[&"dev_drive"].physical_keycode == KEY_C, "Version-2 defaults gain the V/B/C part shortcuts")
+	v2.bindings.recover = {"kind":"key", "code":KEY_V}
+	v2.bindings.brake = {"kind":"key", "code":KEY_X}
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(v2))
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error == OK and loaded.bindings[&"recover"].physical_keycode == KEY_V
+		and loaded.bindings[&"dev_weapon"].physical_keycode == KEY_N, "A customised V keeps its action; the weapon shortcut takes a spare key")
+	check(InputPreferences.new().try_bind(&"dev_body", _key(KEY_G)) == "" , "Part shortcuts are rebindable")
 	var malformed: Dictionary = JSON.parse_string(saved_text)
 	malformed.bindings.drive_forward = malformed.bindings.drive_reverse.duplicate()
 	file = FileAccess.open(PATH, FileAccess.WRITE)
@@ -111,3 +140,8 @@ func run() -> void:
 	if failures.is_empty():
 		print("INPUT PREFERENCES PASS")
 	quit(0 if failures.is_empty() else 1)
+
+func _key(code: int) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = code
+	return event

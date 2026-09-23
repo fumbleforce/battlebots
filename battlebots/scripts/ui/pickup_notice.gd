@@ -43,6 +43,13 @@ func notify(event: Dictionary, names: Dictionary) -> void:
 	modulate.a = 1.0
 	show()
 
+## Arbitrary short notice (local part shortcuts).
+func show_text(value: String) -> void:
+	text = value
+	_age = 0.0
+	modulate.a = 1.0
+	show()
+
 func clear() -> void:
 	_age = SECONDS
 	hide()

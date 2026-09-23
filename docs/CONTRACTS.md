@@ -1,5 +1,18 @@
 # Shared contracts — local records and current MVP session API
 
+## Local part shortcuts and control defaults (#64)
+
+`InputPreferences` version 3 adds three rebindable actions: `dev_weapon` (V),
+`dev_body` (B) and `dev_drive` (C). The defaults of brake and the planned
+camera toggle move to X and T. Version-2 saves still on B/C migrate; custom
+keys are kept, and a taken default key falls back to a spare key.
+
+`MvpSession.dev_cycle_part(slot)` swaps the local bot to the next fitting
+weapon, body or drive through the pickup swap. It returns `{part}` or
+`{refused: remote|unavailable|no_fit}` and acts only when this process runs
+the match (practice or a self-hosted listen game). No wire, catalogue or
+gameplay build change.
+
 ## Walker hard-landing recovery — build mvp-ab-36 (#62)
 
 `WalkerDrive.support` first casts one ray down from the hull centre. If the
