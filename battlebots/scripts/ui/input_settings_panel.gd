@@ -10,8 +10,10 @@ var mode: CheckButton
 var message: Label
 var save_button: Button
 var _path: String
-const GROUPS := [[&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake"], [&"nitro", &"jump"], [&"primary", &"secondary", &"recover", &"ping"], [&"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"scoreboard"], [&"dev_weapon", &"dev_body", &"dev_drive"]]
+const GROUPS := [[&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake"], [&"nitro", &"jump"], [&"primary", &"secondary", &"recover", &"ping"], [&"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"scoreboard"], [&"dev_weapon", &"dev_body", &"dev_drive"], []]
 var page_buttons: Array[Button] = []
+var controller_guide: GridContainer
+var help_text: Label
 var page_index := 0
 var _footer: Array[Control] = []
 var _text_scale: float = 1.0
@@ -24,13 +26,14 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 26)
 	add_child(title)
 	var help := Label.new()
-	help.text = "Select a binding, then press a key or mouse button.\nEscape cancels capture. Duplicate bindings are rejected."
+	help_text = help
+	help.text = "Select a keyboard/mouse binding, then press an input.\nEscape / B cancels capture. See Controller for gamepad bindings."
 	help.add_theme_font_size_override("font_size", 14)
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(help)
-	var pages := HBoxContainer.new()
+	var pages := HFlowContainer.new()
 	add_child(pages)
-	for title_text: String in ["Driving", "Perks", "Weapons", "Camera & HUD", "Local dev"]:
+	for title_text: String in ["Driving", "Perks", "Weapons", "Camera & HUD", "Local dev", "Controller"]:
 		var page := Button.new()
 		page.text = title_text
 		page.toggle_mode = true
@@ -54,6 +57,18 @@ func _ready() -> void:
 		button.pressed.connect(begin_capture.bind(action))
 		row.add_child(button)
 		binding_buttons[action] = button
+	controller_guide = GridContainer.new()
+	controller_guide.columns = 2
+	controller_guide.add_theme_constant_override("h_separation", 24)
+	controller_guide.add_theme_constant_override("v_separation", 8)
+	rows.add_child(controller_guide)
+	for entry: String in GamepadInput.GUIDE:
+		var label := Label.new()
+		label.text = entry
+		label.add_theme_font_size_override("font_size", 16)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		controller_guide.add_child(label)
 	mode = CheckButton.new()
 	mode.text = "Toggle primary weapon (otherwise hold)"
 	mode.toggled.connect(func(value: bool) -> void: draft.toggle_primary = value)
@@ -100,6 +115,8 @@ func apply_text_scale(factor: float) -> void:
 func show_page(index: int) -> void:
 	cancel_capture()
 	page_index = clampi(index, 0, GROUPS.size() - 1)
+	controller_guide.visible = page_index == GROUPS.size() - 1
+	help_text.text = "Standard gamepad layout. Bindings are fixed.\nCamera sensitivity and inversion apply to mouse and right stick." if controller_guide.visible else "Select a keyboard/mouse binding, then press an input.\nEscape / B cancels capture. See Controller for gamepad bindings."
 	var navigation: Array[Control] = []
 	navigation.append_array(page_buttons)
 	for action: StringName in InputPreferences.ACTIONS:
@@ -155,6 +172,13 @@ func cancel_capture() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not is_visible_in_tree() or capture_action.is_empty():
+		return
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		cancel_capture()
+		return
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		get_viewport().set_input_as_handled()
 		return
 	if not (event is InputEventKey or event is InputEventMouseButton):
 		return

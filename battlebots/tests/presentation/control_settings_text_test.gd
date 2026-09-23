@@ -61,6 +61,12 @@ func _ready() -> void:
 				controls.show_page(group)
 				await settle()
 				check(Rect2(Vector2.ZERO, Vector2(dimensions)).encloses(panel.get_node("Center/Panel").get_global_rect()), "Every binding page fits viewport")
+				if controls.controller_guide.visible:
+					for label: Label in controls.controller_guide.get_children():
+						check(Rect2(Vector2.ZERO, Vector2(dimensions)).encloses(label.get_global_rect()), "Every controller binding is readable")
+					if "--capture" in OS.get_cmdline_user_args() and dimensions.x == 1280 and factor == 1.5:
+						await RenderingServer.frame_post_draw
+						get_viewport().get_texture().get_image().save_png(OS.get_environment("TEMP") + "/controller-guide-150.png")
 				for action: StringName in controls.GROUPS[group]:
 					var binding: Button = controls.binding_buttons[action]
 					check(binding.is_visible_in_tree(), "Every grouped action remains available")

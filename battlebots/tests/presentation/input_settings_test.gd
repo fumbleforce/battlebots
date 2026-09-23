@@ -51,7 +51,7 @@ func run() -> void:
 	panel.begin_capture(&"drive_forward")
 	dispatch(KEY_I)
 	check(panel.draft.label_for(&"drive_forward") == "I", "Raw key updates draft")
-	check(InputMap.action_get_events(&"drive_forward")[0].physical_keycode == KEY_W,
+	check(InputMap.action_get_events(&"drive_forward").any(func(event: InputEvent) -> bool: return event is InputEventKey and event.physical_keycode == KEY_W),
 		"Draft cannot change live input map")
 	panel.begin_capture(&"primary")
 	var mouse := InputEventMouseButton.new()
@@ -69,7 +69,7 @@ func run() -> void:
 	check(not panel.visible and camera.form.visible and camera.visible, "Save returns to camera page")
 	check(preview.input_preferences.toggle_primary and preview.input_gate.toggle_primary,
 		"Saved toggle preference reaches input gate")
-	check(InputMap.action_get_events(&"drive_forward")[0].physical_keycode == KEY_I,
+	check(InputMap.action_get_events(&"drive_forward").any(func(event: InputEvent) -> bool: return event is InputEventKey and event.physical_keycode == KEY_I),
 		"Saved binding reaches runtime action map")
 	var loaded := InputPreferences.load_file(path + ".input")
 	check(loaded.load_error == OK and loaded.toggle_primary and

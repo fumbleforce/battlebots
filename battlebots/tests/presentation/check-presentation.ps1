@@ -80,6 +80,7 @@ $checks = @(
     @('foundry_arena_test.gd', 'FOUNDRY PASS'),
     @('camera_settings_test.gd', 'CAMERA SETTINGS PASS'),
     @('input_menu_test.gd', 'INPUT MENU PASS'),
+    @('gamepad_input_test.gd', 'GAMEPAD INPUT PASS'),
     @('input_preferences_test.gd', 'INPUT PREFERENCES PASS'),
     @('weapon_toggle_test.gd', 'WEAPON TOGGLE PASS'),
     @('input_settings_test.gd', 'INPUT SETTINGS PASS'),

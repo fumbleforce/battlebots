@@ -18,6 +18,8 @@ var sequence: int = 0
 var controls_enabled: bool = false
 var _resume_on_focus := false
 var input_gate := GameplayInputGate.new()
+var gamepad := GamepadInput.new()
+var _controller_device := -1
 var _load_notice: String = ""
 var _control_generation: int = 0
 var _leaving: bool = false
@@ -66,6 +68,7 @@ func _ready() -> void:
 	settings_button.pressed.connect(open_settings)
 	return_button.pressed.connect(return_to_launcher)
 	settings_panel.closed.connect(_on_settings_closed)
+	Input.joy_connection_changed.connect(_on_controller_connection_changed)
 	get_window().focus_exited.connect(_on_focus_lost)
 	get_window().focus_entered.connect(_on_focus_regained)
 	if DisplayServer.get_name() != "headless":
@@ -80,6 +83,7 @@ func capture_controls() -> void:
 	controls_enabled = true
 	pause_menu.hide()
 	input_gate.require_release()
+	gamepad.require_release()
 	get_viewport().gui_release_focus()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -105,6 +109,7 @@ func _apply_input_preferences(preferences: InputPreferences) -> void:
 	input_preferences.apply_to_input_map()
 	input_gate.toggle_primary = preferences.toggle_primary
 	input_gate.require_release()
+	gamepad.require_release()
 
 func _on_diagnostics_interaction() -> void:
 	release_controls(false)
@@ -152,7 +157,22 @@ func _resume_after_settings(generation: int) -> void:
 	if generation == _control_generation and get_window().has_focus():
 		capture_controls()
 
+func _on_controller_connection_changed(device: int, connected: bool) -> void:
+	if not connected and device == _controller_device:
+		_controller_device = -1
+		gamepad.require_release()
+		if controls_enabled:
+			release_controls()
+
 func _input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton and event.pressed:
+		_controller_device = event.device
+	elif event is InputEventJoypadMotion and absf(event.axis_value) > InputMap.action_get_deadzone("camera_look_right"):
+		_controller_device = event.device
+	elif (event is InputEventKey or event is InputEventMouseButton) and event.is_pressed():
+		_controller_device = -1
+	elif event is InputEventMouseMotion and not event.screen_relative.is_zero_approx():
+		_controller_device = -1
 	if settings_panel.visible and event.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
 		settings_panel.cancel()
@@ -337,9 +357,27 @@ func _action_strength(action: StringName) -> float:
 			strength = 1.0
 		elif event is InputEventMouseButton and Input.is_mouse_button_pressed(event.button_index):
 			strength = 1.0
+		elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
+			var devices := Input.get_connected_joypads()
+			if _controller_device >= 0 and not devices.has(_controller_device): devices.append(_controller_device)
+			for device: int in devices:
+				if event.device >= 0 and event.device != device: continue
+				if event is InputEventJoypadButton:
+					if Input.is_joy_button_pressed(device, event.button_index): strength = 1.0
+				else:
+					var physical := InputEventJoypadMotion.new()
+					physical.device = device
+					physical.axis = event.axis
+					physical.axis_value = Input.get_joy_axis(device, event.axis)
+					strength = maxf(strength, physical.get_action_strength(action))
 	return strength
 
 func _process(delta: float) -> void:
+	var stick := Input.get_vector("camera_look_left", "camera_look_right", "camera_look_up", "camera_look_down")
+	var movement := gamepad.look_delta(stick, delta, controls_enabled and not settings_panel.visible and not _leaving and get_window().has_focus())
+	if not movement.is_zero_approx():
+		rig.orbit(movement)
+		if tank_sight.active: rig.pitch = tank_sight.clamp_pitch(rig.pitch)
 	var view := _source_view()
 	hud.show_view(view)
 	_update_tank_sight(view, delta)
@@ -360,6 +398,14 @@ func _process(delta: float) -> void:
 	elif controls_enabled and view != null and view.has_auxiliary_weapon:
 		hint.text = "%s  Primary weapon  |  %s  Minigun  |  Mouse  Orbit  |  Esc  Menu" % [
 			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary")]
+
+	if _controller_device >= 0:
+		hint.text = "Left stick  Drive  |  Right stick  Orbit  |  RB  Nitro  |  A  Jump  |  Start  Menu" \
+			if controls_enabled else "D-pad  Select  |  A  Confirm  |  B  Back  |  Start  Resume"
+		if controls_enabled and view != null and view.turret_kind != "":
+			hint.text = "Right stick  Aim  |  RT  Turret  |  LT  Hull weapon  |  Start  Menu"
+		elif controls_enabled and view != null and view.has_auxiliary_weapon:
+			hint.text = "RT  Primary weapon  |  LT  Auxiliary gun  |  Right stick  Orbit  |  Start  Menu"
 
 func _source_view() -> BotView:
 	if not is_instance_valid(source):
