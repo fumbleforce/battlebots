@@ -43,6 +43,13 @@
 		"minigun_impulse_multiplier": 0.65,
 		"lifter_hold_acceleration_at_1g": 0.0,
 		"ram_knockback_per_closing_speed": 0.25,
-		"ram_knockback_lift_fraction": 0.08
+		"ram_knockback_lift_fraction": 0.08,
+		"_pin_comment": "Wall pin: a rammed bot that touches static arena geometry on its far side (within ram_pin_window_seconds of the ram) while the face the rammer struck has no armour HP left takes one crushing hit of base + per_closing_speed * (closing - 4 m/s), capped at max. Wall contacts are those whose normal has |y| below ram_pin_wall_max_normal_y, lying on the far side (horizontal alignment with the ram direction at least ram_pin_far_side_min_alignment).",
+		"ram_pin_window_seconds": 0.5,
+		"ram_pin_damage_base": 60.0,
+		"ram_pin_damage_per_closing_speed": 8.0,
+		"ram_pin_damage_max": 150.0,
+		"ram_pin_wall_max_normal_y": 0.5,
+		"ram_pin_far_side_min_alignment": 0.5
 	}
 }

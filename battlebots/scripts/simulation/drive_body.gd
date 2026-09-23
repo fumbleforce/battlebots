@@ -45,6 +45,9 @@ var recovery_torque: Vector3 = Vector3.ZERO
 var probe_half_width: float = 0.65
 var probe_half_length: float = 0.8
 var contact_bodies: Array = []
+## This tick's contacts with static arena geometry as [global point, normal].
+## CombatWorld reads them to tell when a rammed hull is pinned against a wall.
+var static_contacts: Array = []
 var reset_pose: Variant = null
 var correction: Dictionary = {}
 var _throttle: float = 0.0
@@ -149,8 +152,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_turn_input = 0
 		_jump_queued = 0.0
 	contact_bodies.clear()
+	static_contacts.clear()
 	for index: int in range(state.get_contact_count()):
 		contact_bodies.append(state.get_contact_collider_id(index))
+		if state.get_contact_collider_object(index) is StaticBody3D:
+			static_contacts.append([state.get_contact_local_position(index), state.get_contact_local_normal(index)])
 	_grip_bot_contacts(state)
 	# Extra weight on top of Jolt's arena gravity (total_gravity already
 	# includes gravity_scale). Walker lift supports the same heavier weight.

@@ -67,7 +67,8 @@ func _ready() -> void:
 	# Enlarge the hull reach, not the contact tolerance: a bigger robot must not
 	# continue applying tire forces during a shallow airborne weapon launch.
 	body.probe_depth = stats.size.y * 0.5 + 0.07
-	body.max_contacts_reported = 8
+	# Floor contacts must not crowd out the wall contacts that mark a pin.
+	body.max_contacts_reported = 16
 	body.contact_monitor = true
 	body.probe_half_width = stats.size.x * 0.4
 	body.probe_half_length = stats.size.z * 0.4

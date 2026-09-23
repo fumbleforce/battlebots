@@ -23,6 +23,16 @@ const CLIMB_DEGREES := 30.0
 const CLIMB_FRAMES := 120
 const MIN_CLIMB_SPEED_FRACTION := 0.9
 const MAX_PARKED_DRIFT := 0.3
+## Wall pin: the victim waits just in front of a test wall for a nitro ram.
+const PIN_WALL_SIZE := Vector3(20, 4, 1)
+const PIN_WALL_GAP := 0.05
+const PIN_VICTIM_Z := -10.0
+const PIN_RUN_UP := 14.0
+const PIN_FRAMES := 240
+## Frames observed after the first ram: past the pin window, before the pushed
+## victim could reach the arena's own walls.
+const PIN_FOLLOW_FRAMES := 45
+const PIN_ARMOUR_HP := 500.0
 var failures := 0
 var world: AuthorityWorld
 var physics := BotPhysics.settings()
@@ -54,6 +64,9 @@ func run() -> void:
 	await knock_slide(bot, Vector3.RIGHT)
 	await knock_slide(bot, Vector3.BACK)
 	await ram_rebound()
+	await wall_pin(false)
+	await wall_pin(false, false)
+	await wall_pin(true)
 	await flipper_launch()
 	await hill_climb()
 	if failures == 0:
@@ -134,6 +147,52 @@ func ram_rebound() -> void:
 	var separating := (a.body.linear_velocity - b.body.linear_velocity).dot(b.body.global_position - a.body.global_position)
 	print("Ram separation velocity dot: ", separating)
 	check(rammed and separating < 0.0, "Heavy rams rebound the hulls apart")
+
+## A bot rammed into a wall on a bare face takes a crushing hit; armour on the
+## struck face (the victim's rear here) or open space behind the victim prevents it.
+func wall_pin(armoured: bool, walled := true) -> void:
+	world.clear_bots()
+	await frames(2)
+	var a := world.spawn(1, 0, 0, world.registry.starter())
+	var b := world.spawn(2, 1, 0, world.registry.starter())
+	var length: float = b.combat.stats.size.z
+	var wall: StaticBody3D = null if not walled else world.make_box(PIN_WALL_SIZE, Vector3(0, PIN_WALL_SIZE.y * 0.5, PIN_VICTIM_Z - length * 0.5 - PIN_WALL_SIZE.z * 0.5 - PIN_WALL_GAP))
+	# Both face -Z: the rammer's nose meets the victim's rear, the wall its front.
+	a.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 1, PIN_VICTIM_Z + length + PIN_RUN_UP))
+	b.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 1, PIN_VICTIM_Z))
+	b.combat.zones.rear = PIN_ARMOUR_HP if armoured else 0.0
+	await frames(60)
+	var core_before := b.combat.core
+	var pin_damage := 0
+	var ram_damage := 0
+	var follow := -1
+	for index: int in range(PIN_FRAMES):
+		if follow == 0:
+			break
+		follow -= 1
+		var command := BotCommand.new()
+		command.sequence = a.last_sequence + 1
+		command.throttle = 1.0
+		command.nitro_held = true
+		a.submit_command(command)
+		world.step(1.0 / 60, true, 1)
+		await physics_frame
+		for event: Dictionary in world.weapons.events:
+			if event.kind == "ram" and event.target == b.entity_id:
+				ram_damage += int(event.damage)
+				if follow < 0:
+					follow = PIN_FOLLOW_FRAMES
+				if event.damage >= physics.ram_pin_damage_base:
+					pin_damage += int(event.damage)
+	print("Wall pin (armoured=%s, walled=%s): ram damage %d, pin damage %d, core %.0f -> %.0f" % [armoured, walled, ram_damage, pin_damage, core_before, b.combat.core])
+	check(ram_damage > 0, "The rammer reaches the victim at ram speed")
+	if armoured or not walled:
+		check(pin_damage == 0, "Armour on the struck face or no wall prevents the wall pin")
+	else:
+		check(pin_damage > 0 and b.combat.core <= core_before - physics.ram_pin_damage_base,
+			"A bare face rammed into a wall takes a crushing core hit")
+	if wall != null:
+		wall.free()
 
 ## Released-throttle hull knocked sideways or backward stops within MAX_KNOCK_SLIDE.
 func knock_slide(bot: MvpBot, direction: Vector3) -> void:

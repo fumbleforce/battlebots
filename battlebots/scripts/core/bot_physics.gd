@@ -46,6 +46,16 @@ var minigun_impulse_multiplier: float
 var lifter_hold_acceleration_at_1g: float
 var ram_knockback_per_closing_speed: float
 var ram_knockback_lift_fraction: float
+## Wall pin: seconds after a ram in which the victim touching a far-side wall
+## on a bare struck face takes a crushing hit (base + per m/s above the ram
+## threshold, capped). A wall contact has |normal.y| below wall_max_normal_y
+## and a horizontal offset aligned with the ram by at least far_side_min_alignment.
+var ram_pin_window_seconds: float
+var ram_pin_damage_base: float
+var ram_pin_damage_per_closing_speed: float
+var ram_pin_damage_max: float
+var ram_pin_wall_max_normal_y: float
+var ram_pin_far_side_min_alignment: float
 
 const SECTIONS := {
 	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g"],
@@ -56,7 +66,9 @@ const SECTIONS := {
 	"walker": ["lift_headroom_acceleration"],
 	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g", "lifter_min_release_charge",
 		"minigun_impulse_multiplier", "lifter_hold_acceleration_at_1g",
-		"ram_knockback_per_closing_speed", "ram_knockback_lift_fraction"],
+		"ram_knockback_per_closing_speed", "ram_knockback_lift_fraction",
+		"ram_pin_window_seconds", "ram_pin_damage_base", "ram_pin_damage_per_closing_speed", "ram_pin_damage_max",
+		"ram_pin_wall_max_normal_y", "ram_pin_far_side_min_alignment"],
 }
 
 static func settings() -> BotPhysics:

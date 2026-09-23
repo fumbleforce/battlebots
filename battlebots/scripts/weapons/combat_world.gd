@@ -13,6 +13,11 @@ var _hammer_hits: Dictionary = {}
 var _saw_contacts: Dictionary = {}
 var _saw_last_tick := -1
 var _saw_round := -1
+## Open wall-pin windows keyed "pin:attacker:victim": a recent ram whose victim
+## may still be driven into static geometry on the face the rammer struck.
+var _pin_windows: Dictionary = {}
+## Component zones lie on these armour faces for the wall-pin armour check.
+const COMPONENT_FACES := {"drive_left":"left", "drive_right":"right", "weapon":"front"}
 const MINIGUN_RANGE := 24.0
 ## [seconds, depth] of lost drive control while a bot is being shot or sawn.
 ## Only projectiles and the saw blade stagger; hammer, spinners, lifter and rams
@@ -39,6 +44,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	# in its tick sequence must not preserve partial maintained-contact damage.
 	if tick != _saw_last_tick + 1 or round_index != _saw_round:
 		_saw_contacts.clear()
+		_pin_windows.clear()
 	_saw_last_tick = tick
 	_saw_round = round_index
 	var saw_contacts: Dictionary = {}
@@ -165,6 +171,9 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				_hit(a, b, a.body.global_position, raw, (direction + lift) * knockback_speed * b.body.mass, tick, round_index, 0.2, "ram")
 				_hit(b, a, b.body.global_position, raw, (-direction + lift) * knockback_speed * a.body.mass, tick, round_index, 0.2, "ram")
 				cooldowns[key] = time + 0.5
+				_open_pin_window(a, b, direction, excess_closing)
+				_open_pin_window(b, a, -direction, excess_closing)
+	_resolve_pins(bots, tick, round_index)
 	# Collect every eligible attack before damage: mutual lethal hits share a tick.
 	for hit: Array in pending_hits:
 		_apply_hit.callv(hit)
@@ -172,6 +181,50 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		var bot: MvpBot = bots[id]
 		bot.previous_pose = bot.body.global_transform
 		bot.previous_velocity = bot.body.linear_velocity
+
+## Remembers which face of the victim a ram struck, for the wall-pin check.
+func _open_pin_window(attacker: MvpBot, victim: MvpBot, direction: Vector3, excess_closing: float) -> void:
+	var face := victim.zone_at(attacker.body.global_position)
+	face = COMPONENT_FACES.get(face, face)
+	var flat := Vector3(direction.x, 0.0, direction.z)
+	if flat.is_zero_approx():
+		return
+	_pin_windows["pin:%d:%d" % [attacker.entity_id, victim.entity_id]] = {"attacker":attacker.entity_id,
+		"victim":victim.entity_id, "face":face, "direction":flat.normalized(),
+		"excess":excess_closing, "expires":time + physics.ram_pin_window_seconds}
+
+## A rammed bot shoved into static geometry behind it, with no armour HP left on
+## the struck face, takes one crushing core hit per ram.
+func _resolve_pins(bots: Dictionary, tick: int, round_index: int) -> void:
+	for key: String in _pin_windows.keys():
+		var pin: Dictionary = _pin_windows[key]
+		var attacker: MvpBot = bots.get(pin.attacker)
+		var victim: MvpBot = bots.get(pin.victim)
+		if pin.expires <= time or attacker == null or victim == null or victim.combat.eliminated:
+			_pin_windows.erase(key)
+			continue
+		if float(victim.combat.zones.get(pin.face, 0.0)) > 0.0:
+			continue
+		var wall := _far_wall_contact(victim, pin.direction)
+		if wall.is_empty():
+			continue
+		var raw := minf(physics.ram_pin_damage_max,
+			physics.ram_pin_damage_base + physics.ram_pin_damage_per_closing_speed * float(pin.excess))
+		_hit(attacker, victim, wall[0], raw, Vector3.ZERO, tick, round_index, 0.0, "ram", pin.face)
+		_pin_windows.erase(key)
+
+## The victim's contact with a wall-like static surface on the side facing away
+## from the rammer, as [point, normal], or [] when there is none.
+func _far_wall_contact(victim: MvpBot, direction: Vector3) -> Array:
+	for contact: Array in victim.body.static_contacts:
+		var normal: Vector3 = contact[1]
+		if absf(normal.y) >= physics.ram_pin_wall_max_normal_y:
+			continue
+		var offset: Vector3 = contact[0] - victim.body.global_position
+		offset.y = 0.0
+		if not offset.is_zero_approx() and offset.normalized().dot(direction) >= physics.ram_pin_far_side_min_alignment:
+			return contact
+	return []
 
 func _sweep(bot: MvpBot) -> Array:
 	_sweep_origins.clear()
@@ -645,14 +698,16 @@ func _hammer_impulse(attacker: MvpBot, victim: MvpBot) -> Vector3:
 	away = away.normalized() if away.length_squared() > 0.0001 else Vector3.FORWARD
 	return (away * HAMMER_KNOCKBACK + Vector3.UP * HAMMER_LIFT) * victim.body.mass
 
-func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "") -> void:
+func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "", zone := "") -> void:
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
-		attacker.combat.stats.weapon if kind.is_empty() else kind])
+		attacker.combat.stats.weapon if kind.is_empty() else kind, zone])
 
-func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "") -> void:
+## zone overrides the struck zone derived from point (wall pins name the face).
+func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "", zone := "") -> void:
 	if victim.combat.eliminated:
 		return
-	var zone := victim.zone_at(point)
+	if zone.is_empty():
+		zone = victim.zone_at(point)
 	var before: float = victim.combat.zones.get(zone, 0.0)
 	var dealt := victim.combat.damage(zone, raw)
 	attacker.combat.effective_damage += dealt
