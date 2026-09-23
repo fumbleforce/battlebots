@@ -124,7 +124,10 @@ on import.
 
 ## Not claimed / follow-up
 
-- User visual approval of the new configurations is pending (#47).
+- User visual approval: the user approved the heavier legs ("looks good") on
+  23 September 2026 after rejecting the first, spindly version; the wheels were
+  shown in the same review. The generated manifest still reads pending by design
+  (approval belongs to the reviewed artifact, not a regeneration).
 - A 6×6 option for `agile` is not modelled; `agile` stays rejected on Atlas.
 - Walker footfall audio uses no Atlas-specific samples yet.
 - Hosted play needs the matching automated release of the build that carries
