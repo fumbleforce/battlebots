@@ -108,7 +108,7 @@ func _capture(world: AuthorityWorld) -> void:
 		["wall", Vector3(-20, 5.0, -80), Vector3(-6, 10.0, -120)],
 		["corner", Vector3(-35, 7.0, -70), Vector3(-48, 18.0, -118)],
 		["gate", Vector3(70, 6.0, 12), Vector3(120, 8.0, 0)],
-		["outcrop", Vector3(-8, 10.0, -18), Vector3(-30, 3.0, -44)],
+		["outcrop", Vector3(-14, 7.0, -64), Vector3(-32, 2.0, -48)],
 		["mesa", Vector3(40, 14.0, 42), Vector3(0, 3.0, 0)],
 		["ramp", Vector3(-70, 6.0, 14), Vector3(-58, 2.0, -6)],
 		["bunker", Vector3(-28, 7.0, -92), Vector3(-48, 2.0, -76)],

@@ -846,35 +846,62 @@ func _barricade(length: float) -> void:
 # --- Outcrops ------------------------------------------------------------
 
 func _outcrops() -> void:
-	var rock := _materials.rock as Material
-	var detail := FastNoiseLite.new()
-	detail.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	detail.frequency = 0.9
-	detail.fractal_octaves = 4
-	var sphere := _icosphere(4)
+	# Scanned granite: every colliding boulder, plus a field of small loose rocks
+	# (visual only, low enough for giant tracks to roll over) around the features.
+	var groups: Dictionary = {}
+	for model: String in GROUND.BOULDER_MODELS:
+		groups[model] = []
 	for item: Dictionary in GROUND.obstacles():
 		if item.kind != "boulder":
 			continue
-		detail.seed = item.seed
-		var tool := SurfaceTool.new()
-		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-		var verts := PackedVector3Array()
-		for direction: Vector3 in sphere.vertices:
-			var p: Vector3 = GROUND.boulder_vertex(direction, item.radii, item.yaw, item.seed)
-			var n := detail.get_noise_3dv(p * 1.0)
-			var crack := absf(detail.get_noise_3dv(p * 2.3 + Vector3(9, 3, 1)))
-			# Fine relief only pushes inward, so the collision hull stays an envelope.
-			p -= direction.normalized() * (0.04 + n * 0.018 + (0.12 - minf(crack, 0.12)) * 0.12)
-			verts.append(p)
-		for index: int in sphere.indices:
-			tool.add_vertex(verts[index])
-		tool.index()
-		tool.generate_normals()
-		var visual := MeshInstance3D.new()
-		visual.name = String(item.name)
-		visual.mesh = tool.commit()
-		visual.material_override = rock
-		visual.position = item.at
+		var pose := GROUND.boulder_pose(item)
+		groups[pose.model].append(Transform3D(pose.basis, item.at - Vector3(0, pose.sink, 0)))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 60606
+	var anchors: Array[Vector3] = []
+	for item: Dictionary in GROUND.obstacles():
+		if item.kind in ["boulder", "bunker", "ramp", "plinth"]:
+			anchors.append(item.at)
+	var heights: PackedFloat32Array = get_node(arena_path).get_node("WoodlandTerrain").get_meta(&"heights")
+	var flora_height := func(x: float, z: float) -> float:
+		var gx := clampi(roundi(x + HALF), 0, GROUND.GRID - 1)
+		var gz := clampi(roundi(z + HALF), 0, GROUND.GRID - 1)
+		return heights[gz * GROUND.GRID + gx]
+	var loose := 0
+	var attempts := 0
+	while loose < 2200 and attempts < 30000:
+		attempts += 1
+		var anchor: Vector3 = anchors[rng.randi() % anchors.size()]
+		var a := rng.randf() * TAU
+		var r := rng.randf_range(3.0, 16.0) * sqrt(rng.randf())
+		var p := Vector2(anchor.x + cos(a) * r, anchor.z + sin(a) * r)
+		if GROUND.octagon_distance(p) < 1.0 or p.length() < 30.0:
+			continue
+		var near_spawn := false
+		for spawn: Vector2 in GROUND.spawn_points():
+			near_spawn = near_spawn or p.distance_to(spawn) < 14.0
+		if near_spawn:
+			continue
+		var model: String = GROUND.BOULDER_MODELS[rng.randi() % GROUND.BOULDER_MODELS.size()]
+		var box := GROUND.scan_mesh(model).get_aabb()
+		var height := rng.randf_range(0.12, 0.45)
+		var s := height / box.size.y
+		var basis := Basis.from_euler(Vector3(rng.randf_range(-0.25, 0.25), rng.randf() * TAU, rng.randf_range(-0.25, 0.25))).scaled_local(Vector3(s, s, s) * Vector3(rng.randf_range(0.9, 1.5), 1.0, rng.randf_range(0.9, 1.5)))
+		groups[model].append(Transform3D(basis, Vector3(p.x, flora_height.call(p.x, p.y) - height * 0.15, p.y)))
+		loose += 1
+	for model: String in groups:
+		var poses: Array = groups[model]
+		if poses.is_empty():
+			continue
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = GROUND.scan_mesh(model)
+		multi.instance_count = poses.size()
+		for i: int in range(poses.size()):
+			multi.set_instance_transform(i, poses[i])
+		var visual := MultiMeshInstance3D.new()
+		visual.name = "Granite_" + model
+		visual.multimesh = multi
 		add_child(visual)
 
 func _icosphere(subdivisions: int) -> Dictionary:

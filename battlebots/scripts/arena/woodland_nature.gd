@@ -133,9 +133,6 @@ func _forest() -> void:
 	for v: int in range(4):
 		near_meshes.append(flora.pine(9100 + v, 20.0 + v * 2.0, 1))
 		var far: ArrayMesh = flora.pine(9200 + v, 20.0 + v * 2.0, 0)
-		var far_needles := (far.surface_get_material(1) as ShaderMaterial).duplicate() as ShaderMaterial
-		far_needles.set_shader_parameter("solidify_far", true)
-		far.surface_set_material(1, far_needles)
 		far_meshes.append(far)
 	# Sixteen sectors per band so frustum culling drops what is behind the camera.
 	# Near stands use mid-detail pines and cast shadows; far ones are silhouettes.

@@ -5,20 +5,26 @@ extends Node3D
 
 const GROUND = preload("res://scripts/arena/woodland_ground.gd")
 const BARK = preload("res://assets/materials/arena/woodland_bark.gdshader")
-const NEEDLES = preload("res://assets/materials/arena/woodland_needles.gdshader")
 const GRASS = preload("res://assets/materials/arena/woodland_grass.gdshader")
 const ROCK = preload("res://assets/materials/arena/woodland_rock.gdshader")
+const CONIFER = preload("res://assets/materials/arena/woodland_conifer.gdshader")
 const HALF := GROUND.HALF
 var bark := ShaderMaterial.new()
-var needles := ShaderMaterial.new()
 var grass := ShaderMaterial.new()
 var stone := ShaderMaterial.new()
+var side_cards := ShaderMaterial.new()
+var whorl_discs := ShaderMaterial.new()
 
 func _init() -> void:
 	bark.shader = BARK
-	needles.shader = NEEDLES
+	for map: String in ["diff", "nor", "arm"]:
+		bark.set_shader_parameter("bark_" + map, load("res://assets/textures/woodland/pine_bark_%s_1k.jpg" % map))
 	grass.shader = GRASS
 	stone.shader = ROCK
+	side_cards.shader = CONIFER
+	side_cards.set_shader_parameter("atlas", load("res://assets/textures/woodland/conifer_sides.png"))
+	whorl_discs.shader = CONIFER
+	whorl_discs.set_shader_parameter("atlas", load("res://assets/textures/woodland/conifer_whorls.png"))
 
 var _heights := PackedFloat32Array()
 var _pines: Dictionary = {}
@@ -149,8 +155,10 @@ func _tuft_mesh() -> ArrayMesh:
 			tool.add_vertex(corners[index])
 	return tool.commit()
 
-## A seeded pine: detail 2 is a hero tree, 1 mid-distance, 0 a far silhouette.
-## Surface 0 is bark, surface 1 needle cards. The trunk base is the origin.
+## A seeded conifer: detail 2 is a hero tree, 1 mid-distance, 0 a far silhouette.
+## Surface 0 is bark, surface 1 crossed side cards, surface 2 (detail > 0) whorl
+## discs; both foliage surfaces use Blender renders of a CC0 fir scan. The trunk
+## base is the origin.
 func pine(seed: int, height: float, detail: int) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
@@ -181,55 +189,70 @@ func pine(seed: int, height: float, detail: int) -> ArrayMesh:
 			var quad := [ring_points[r][s], ring_points[r][s + 1], ring_points[r + 1][s + 1], ring_points[r + 1][s]]
 			_tri(trunk, quad[0], quad[1], quad[2])
 			_tri(trunk, quad[0], quad[2], quad[3])
+	trunk.generate_tangents()
 	trunk.set_material(bark)
 	trunk.commit(mesh)
-	# Needle sprays in whorls; the crown narrows to a leader at the top.
-	var foliage := SurfaceTool.new()
-	foliage.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var crown_base := height * rng.randf_range(0.2, 0.32)
-	var reach := height * rng.randf_range(0.19, 0.24)
-	var spacing: float = [1.6, 1.0, 0.62][detail]
-	var levels := maxi(4, int((height - crown_base) / spacing))
-	var per_level: int = [6, 9, 12][detail]
-	var segments: int = [2, 3, 4][detail]
-	var crown_centre := Vector3(0, (crown_base + height) * 0.5, 0)
-	for level: int in range(levels):
-		var t := float(level) / (levels - 1)
-		var y := lerpf(crown_base, height - 0.4, t) + rng.randf_range(-0.15, 0.15)
-		var radius := reach * pow(1.0 - t, 0.9) + 0.45
-		var count := maxi(3, int(round(per_level * (1.0 - t * 0.45))))
-		for b: int in range(count):
-			var az := TAU * b / count + level * 2.39996 + rng.randf_range(-0.3, 0.3)
-			var dir := Vector3(sin(az), 0, cos(az))
-			var length := radius * rng.randf_range(0.8, 1.12)
-			var droop := length * rng.randf_range(0.28, 0.5) * (1.0 - t * 0.6)
-			var lift := length * 0.22
-			var base: Vector3 = axis.call(y)
-			var strips := 3 if detail > 1 else (2 if detail > 0 else 1)
-			for strip: int in range(strips):
-				var side := dir.cross(Vector3.UP)
-				var across := side if strip == 0 else ((Vector3.UP * 0.9 + side * 0.3).normalized() if strip == 1 else (side + Vector3.UP * 0.6).normalized())
-				var previous: Array = []
-				for k: int in range(segments + 1):
-					var u := float(k) / segments
-					var centre := base + dir * length * u + Vector3.UP * (lift * u - droop * u * u)
-					var width := length * (0.72 if strip == 0 else 0.48) * (0.35 + 0.65 * sin(PI * minf(1.0, u * 0.95 + 0.12)))
-					var normal := ((centre - crown_centre) * Vector3(1, 0.6, 1) + Vector3.UP * radius * 0.6).normalized()
-					var left := [centre - across * width * 0.5, normal, Vector2(0, u)]
-					var right := [centre + across * width * 0.5, normal, Vector2(1, u)]
-					if k > 0:
-						_tri(foliage, previous[0], previous[1], right)
-						_tri(foliage, previous[0], right, left)
-					previous = [left, right]
-	# Leader tip.
-	var tip: Vector3 = axis.call(height)
-	for b: int in range(3):
-		var az := TAU * b / 3.0
-		var across := Vector3(cos(az), 0, sin(az)) * 0.45
-		var n := Vector3(-across.z, 0.5, across.x).normalized()
-		_tri(foliage, [tip - across - Vector3(0, 1.4, 0), n, Vector2(0, 0)], [tip + across - Vector3(0, 1.4, 0), n, Vector2(1, 0)], [tip + Vector3(0, 0.5, 0), n, Vector2(0.5, 1)])
-	foliage.set_material(needles)
-	foliage.commit(mesh)
+	# Crossed side cards of the scanned fir, from the Blender-rendered atlas.
+	var width := height * 0.56
+	var crown_centre := height * 0.55
+	var cross := SurfaceTool.new()
+	cross.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cards: int = [2, 3, 4][detail]
+	for k: int in range(cards):
+		var cell := (seed + k * 2) % 6
+		var u0 := float(cell % 3) / 3.0
+		var v0 := float(cell / 3) / 2.0
+		var yaw := PI * k / cards + rng.randf_range(-0.2, 0.2)
+		var across := Vector3(cos(yaw), 0, sin(yaw))
+		var columns := 4
+		var rows := 4
+		var grid: Array = []
+		for r: int in range(rows + 1):
+			var row: Array = []
+			for c: int in range(columns + 1):
+				var fx := float(c) / columns
+				var fy := float(r) / rows
+				var at := across * (fx - 0.5) * width + Vector3(0, fy * height * 1.03 - 0.3, 0)
+				var normal := (Vector3(at.x, (at.y - crown_centre) * 0.35, at.z) + Vector3.UP * height * 0.12).normalized()
+				row.append([at, normal, Vector2(u0 + fx / 3.0, v0 + (1.0 - fy) / 2.0)])
+			grid.append(row)
+		for r: int in range(rows):
+			for c: int in range(columns):
+				_tri(cross, grid[r][c], grid[r][c + 1], grid[r + 1][c + 1])
+				_tri(cross, grid[r][c], grid[r + 1][c + 1], grid[r + 1][c])
+	cross.set_material(side_cards)
+	cross.commit(mesh)
+	# Drooping whorl discs give near trees volume from above and at an angle.
+	var whorls: int = [0, 3, 6][detail]
+	if whorls > 0:
+		var discs := SurfaceTool.new()
+		discs.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for n: int in range(whorls):
+			var t := lerpf(0.3, 0.82, float(n) / maxf(whorls - 1, 1))
+			var y := height * t
+			var radius := width * 0.5 * (1.12 - t) * 1.35 + 0.4
+			var cell := (seed + n) % 4
+			var centre_uv := Vector2(0.25 + 0.5 * (cell % 2), 0.25 + 0.5 * float(cell / 2))
+			var spin := rng.randf() * TAU
+			var disc_rings := 3
+			var disc_segments := 14
+			var disc: Array = []
+			for ring: int in range(disc_rings + 1):
+				var fr := float(ring) / disc_rings
+				var circle: Array = []
+				for sgm: int in range(disc_segments + 1):
+					var a := TAU * sgm / disc_segments
+					var at := Vector3(cos(a) * radius * fr, y - radius * 0.28 * fr * fr + radius * 0.06, sin(a) * radius * fr)
+					var normal := (Vector3(at.x, radius * 0.9, at.z)).normalized()
+					var uv := centre_uv + Vector2(cos(a + spin), sin(a + spin)) * fr * 0.25
+					circle.append([at + Vector3(axis.call(y).x, 0, axis.call(y).z), normal, uv])
+				disc.append(circle)
+			for ring: int in range(disc_rings):
+				for sgm: int in range(disc_segments):
+					_tri(discs, disc[ring][sgm], disc[ring][sgm + 1], disc[ring + 1][sgm + 1])
+					_tri(discs, disc[ring][sgm], disc[ring + 1][sgm + 1], disc[ring + 1][sgm])
+		discs.set_material(whorl_discs)
+		discs.commit(mesh)
 	return mesh
 
 func _tri(tool: SurfaceTool, a: Array, b: Array, c: Array) -> void:

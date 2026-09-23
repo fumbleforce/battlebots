@@ -70,7 +70,11 @@ const BARRICADES := [
 	{"at":Vector2(-66, -50), "yaw":1.1, "length":12.0},
 ]
 const LOG_RADIUS := 0.75
+## Decimated CC0 granite scans (art_source/woodland/build_boulders.py). The same
+## low mesh is rendered and, as a convex hull, collides on server and clients.
+const BOULDER_MODELS := ["granite_boulder_a", "granite_boulder_b", "granite_boulder_c", "granite_boulder_d", "granite_boulder_e"]
 static var _obstacles: Array[Dictionary] = []
+static var _scan_meshes: Dictionary = {}
 
 # --- Shared terrain --------------------------------------------------------
 
@@ -146,6 +150,35 @@ static func boulder_radius(direction: Vector3, seed: int) -> float:
 	n += sin(direction.y*3.1+direction.x*1.4+s*0.37)*0.10
 	n += cos(direction.z*4.3-direction.y*2.2+s*2.9)*0.06
 	return 1.0 + n
+
+static func scan_mesh(model: String) -> Mesh:
+	if not _scan_meshes.has(model):
+		var scene: Node = load("res://assets/models/woodland/%s.gltf" % model).instantiate()
+		var found: Array[Node] = scene.find_children("*", "MeshInstance3D", true, false)
+		_scan_meshes[model] = (found[0] as MeshInstance3D).mesh
+		scene.free()
+	return _scan_meshes[model]
+
+## Scan variant and placement basis for a boulder item: horizontal scale fits the
+## authored radii, height follows within 30% so the scan keeps its character.
+static func boulder_pose(item: Dictionary) -> Dictionary:
+	var model: String = BOULDER_MODELS[int(item.seed) % BOULDER_MODELS.size()]
+	var box := scan_mesh(model).get_aabb()
+	var radii: Vector3 = item.radii
+	var horizontal := (radii.x + radii.z) / maxf((box.size.x + box.size.z) * 0.5, 0.01)
+	var vertical := clampf(radii.y / maxf(box.size.y, 0.01), horizontal * 0.7, horizontal * 1.3)
+	var basis := Basis(Vector3.UP, float(item.yaw)).scaled_local(Vector3(horizontal, vertical, horizontal))
+	# Sink the footing a little so no scan edge floats on uneven ground.
+	return {"model":model, "basis":basis, "sink":box.size.y * vertical * 0.06}
+
+static func scan_hull(item: Dictionary) -> PackedVector3Array:
+	var pose := boulder_pose(item)
+	var basis: Basis = pose.basis
+	var points := PackedVector3Array()
+	var vertices: PackedVector3Array = scan_mesh(pose.model).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	for v: Vector3 in vertices:
+		points.append(basis * v - Vector3(0, pose.sink, 0))
+	return points
 
 static func boulder_points(radii: Vector3, yaw: float, seed: int, count: int = HULL_POINTS) -> PackedVector3Array:
 	var points := PackedVector3Array()
@@ -344,7 +377,7 @@ func _ready() -> void:
 		match item.kind:
 			"boulder":
 				var hull := ConvexPolygonShape3D.new()
-				hull.points = boulder_points(item.radii, item.yaw, item.seed)
+				hull.points = scan_hull(item)
 				_shape(body, hull, Transform3D.IDENTITY)
 			"tree":
 				var trunk := CylinderShape3D.new()
