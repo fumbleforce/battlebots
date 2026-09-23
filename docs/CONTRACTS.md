@@ -1,5 +1,14 @@
 # Shared contracts — local records and current MVP session API
 
+## Walker hard-landing recovery — build mvp-ab-36 (#62)
+
+`WalkerDrive.support` first casts one ray down from the hull centre. If the
+floor under the hull lies above the nominal foot-ray start (a hard landing
+bottomed the hull out), foot rays start `WalkerDrive.BOTTOMED_PROBE_CLEARANCE`
+above that floor instead, so the stance finds its footholds and stands back up.
+Standing walkers never trigger it, so their step limit is unchanged. Footholds
+must still lie below the ray start. No wire change.
+
 ## Walker crouch — protocol 13, build mvp-ab-35 (#60)
 
 `BotCommand.crouch_held` (project input action `crouch`, Left Ctrl) travels as

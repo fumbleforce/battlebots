@@ -5,6 +5,14 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Walker stands up after a hard landing (#62) — 23 September 2026
+
+A four-legged walker that fell far enough to bottom its hull out on the floor
+never found footholds again and stayed down. While the hull is that low, its
+foot rays now start just above the floor under it, so it stands back up. The
+walker test covers an 18 m drop. Build mvp-ab-36 needs the matching automatic
+hosted release. Hard landings are not cushioned; the stance spring stays bounded.
+
 ## Predictive walker legs, airborne hang and crouch (#60) — 23 September 2026
 
 Walker feet now step to where the hull will be half a stance after touchdown

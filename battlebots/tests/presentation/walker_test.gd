@@ -132,6 +132,13 @@ func run() -> void:
 	await wait_ticks(20)
 	check(not bot.body.grounded and bot.body.walker_contacts.is_empty(), "Inversion disables foot support")
 	check(bot.body.global_position.y < 3.0 * SCALE - 0.3, "Unsupported legs obey gravity")
+	# A hard landing may bottom the hull out on the floor (the bounded stance
+	# spring cannot stop every fall); the legs must still find footholds and stand.
+	bot.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(7, 6, 3) * SCALE)
+	await wait_ticks(150)
+	print("WALKER HARD LANDING pose=", bot.body.global_position, " grounded=", bot.body.grounded)
+	check(bot.body.grounded and bot.body.walker_contacts.size() == 4, "Bottomed-out walker finds its footholds")
+	check(absf(bot.body.global_position.y - WalkerDrive.RIDE_HEIGHT) < 0.08, "Walker stands back up after a hard landing")
 	bot.body.gravity_scale = 1.62 / 9.8
 	bot.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(7, 1, 3) * SCALE)
 	await wait_ticks(90)

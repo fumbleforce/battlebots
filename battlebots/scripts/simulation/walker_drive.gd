@@ -5,6 +5,8 @@ const RIDE_HEIGHT := 0.95 * BotScale.FACTOR
 const MAX_STEP := 0.45 * BotScale.FACTOR
 const REACH := 1.45 * BotScale.FACTOR
 const FOOT_SPREAD := 0.18 * BotScale.FACTOR
+## Height above the floor under a bottomed-out hull where foot rays start.
+const BOTTOMED_PROBE_CLEARANCE := 0.08 * BotScale.FACTOR
 ## Damped stance spring (per second squared / per second) holding the ride height.
 const STANCE_STIFFNESS := 80.0
 const STANCE_DAMPING := 16.0
@@ -27,6 +29,18 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 	var ride := ride_height(body)
 	var normal_sum := Vector3.ZERO
 	var floor_height := -INF
+	var start_y := state.transform.origin.y - (ride - MAX_STEP) * scale_ratio + 0.08 * body.geometry_scale
+	# A hard landing can bottom the hull out, which leaves that start below the
+	# floor under it. Start rays just above the floor under the hull centre until
+	# the rising stance lifts the nominal start clear again. Footholds must still
+	# lie below the start, so wall faces and step ceilings stay excluded.
+	var clearance := BOTTOMED_PROBE_CLEARANCE * scale_ratio
+	var below := PhysicsRayQueryParameters3D.create(state.transform.origin,
+		Vector3(state.transform.origin.x, start_y - clearance, state.transform.origin.z),
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [body.get_rid()])
+	var under := state.get_space_state().intersect_ray(below)
+	if not under.is_empty() and Vector3(under.normal).dot(Vector3.UP) >= 0.65:
+		start_y = maxf(start_y, Vector3(under.position).y + clearance)
 	var probes: Array[Vector3] = DriveBody.PROBES
 	if body.walker_rows == 3:
 		probes = [Vector3(-1,0,-1), Vector3(1,0,-1), Vector3(-1,0,0), Vector3(1,0,0), Vector3(-1,0,1), Vector3(1,0,1)]
@@ -39,7 +53,7 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 			local_support = Vector3(signf(probe.x) * body.walker_footholds.x, 0, signf(probe.z) * body.walker_footholds.y)
 		var hip := state.transform * local_support
 		var foot := hip + lead
-		var start := Vector3(foot.x, state.transform.origin.y - (ride - MAX_STEP) * scale_ratio + 0.08 * body.geometry_scale, foot.z)
+		var start := Vector3(foot.x, start_y, foot.z)
 		var end := Vector3(foot.x, state.transform.origin.y - REACH * scale_ratio, foot.z)
 		var query := PhysicsRayQueryParameters3D.create(start, end,
 			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [body.get_rid()])
