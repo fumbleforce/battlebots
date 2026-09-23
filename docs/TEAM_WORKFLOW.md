@@ -1,5 +1,24 @@
 # Two-developer workflow — Project Battlebots
 
+## Live coordination across all harnesses
+
+The user requires GitHub Issues for every new and updated task. **ALWAYS** read
+the [pinned coordination board #2](https://github.com/fumbleforce/battlebots/issues/2),
+active/blocked issues and your task/comments before starting/resuming work, after
+compaction, before expanding scope and before integration. Run
+`node tools/check-collaboration.mjs --issue <number>` on every developer machine
+and harness. Claim exact paths with a unique session/harness/machine identity,
+branch and next update; re-read claims before editing and resolve overlaps first.
+Update at meaningful checkpoints and at least every 30 minutes while active.
+Post handoffs, dependencies and ideas on #2; close tasks after tested integration
+and required release. Permanent decisions/learnings still belong in docs.
+
+See [the complete issue workflow](ISSUE_WORKFLOW.md),
+[migrated task index](ISSUE_INDEX.md) and
+[machine setup verification #26](https://github.com/fumbleforce/battlebots/issues/26).
+Historical local TODO and handoff status is superseded by current issue claims.
+The A/B ownership split below applies regardless of harness or shared login.
+
 ## Current division of labor
 
 The user's revised split supersedes the original phase assignments and historical

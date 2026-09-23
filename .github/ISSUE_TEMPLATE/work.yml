@@ -1,0 +1,53 @@
+name: Feature, investigation or documentation task
+description: Define separately claimable work with ownership, affected areas and acceptance.
+labels: ["status:backlog"]
+body:
+  - type: markdown
+    attributes:
+      value: "Read [coordination board #2](https://github.com/fumbleforce/battlebots/issues/2) and search existing issues first. Creating a task does not reserve paths. Post a session claim before editing."
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Problem and intended outcome
+      description: State current behavior, requested change and scope. Separate implemented foundations from remaining work.
+    validations:
+      required: true
+  - type: dropdown
+    id: owner
+    attributes:
+      label: Feature responsibility
+      options:
+        - "A — menus, networking, rules, world, audio, release"
+        - "B — combat, bot assets, garage, controls, camera"
+        - "A/B — shared interface or coordinated task"
+        - "Project coordination/documentation"
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Affected paths, contracts and dependencies
+      description: Link related issues and owners. These are proposed scope, not a live reservation.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and validation
+      description: Use checkboxes. Include main integration, matching hosted release and human checks when required.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Evidence and permanent documentation
+      description: Link source docs, decisions, measurements and relevant prior work.
+  - type: checkboxes
+    id: coordination
+    attributes:
+      label: Coordination
+      options:
+        - label: I checked the board and existing open/closed issues for duplicate or overlapping work.
+          required: true
+        - label: Before editing I will pass local gh preflight, post a unique session/path claim and re-read overlapping claims.
+          required: true

@@ -1,5 +1,21 @@
 # Current A/B handoff
 
+## GitHub is the live task/coordination tracker — 23 September 2026
+
+All developers and harnesses must ALWAYS consult [board #2](https://github.com/fumbleforce/battlebots/issues/2),
+active/blocked tasks and their own issue/comments before work and before integration.
+Unique session/harness/machine claims reserve paths; old sections below do not.
+New work gets an issue, current work gets progress comments, and finished work
+closes after required integration/release. Permanent learnings remain in docs.
+See [workflow](ISSUE_WORKFLOW.md), [migrated index](ISSUE_INDEX.md) and
+[setup verification #26](https://github.com/fumbleforce/battlebots/issues/26).
+This Linux Codex checkout has verified gh authentication/write access; other
+machines must attest locally and are not assumed verified. All 29 prior open A/B
+TODO entries map to issues/ownership or completed integrated releases. The native
+preflight passed authenticated access and rejects invalid arguments, isolated
+unauthenticated setup and closed task selection. All four issue-template YAML
+files parse; GitHub confirms the board is pinned and task status labels are valid.
+
 ## Foundry 100 m, heavier impacts and native previews — coordinated A/B, 23 September 2026
 
 Foundry now spans 100 m across opposing faces; Moon remains 50 m. Walls, spawns,

@@ -1,0 +1,25 @@
+name: Idea or design discussion
+description: Share a proposal, evidence and tradeoffs before committing to implementation.
+labels: ["kind:idea", "status:backlog"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea and player/developer benefit
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Evidence, alternatives and tradeoffs
+      description: Include affected A/B areas and shared contracts, uncertainties and related work.
+    validations:
+      required: true
+  - type: textarea
+    id: next
+    attributes:
+      label: Suggested experiment or decision
+      description: Keep the next step bounded; a proposal is not an implementation reservation.
+  - type: markdown
+    attributes:
+      value: "Announce cross-team ideas on [board #2](https://github.com/fumbleforce/battlebots/issues/2). Record accepted decisions and permanent learnings in docs; create separately scoped implementation issues."

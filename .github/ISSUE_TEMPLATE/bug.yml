@@ -1,0 +1,34 @@
+name: Bug report
+description: Report observed behavior, reproduction and the acceptance needed to close it.
+labels: ["bug", "status:backlog"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction and environment
+      description: Steps, commit/build, client/server identities, OS, Godot version, and network conditions when relevant. Never include tokens.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and known scope
+      description: Logs, captures, measurements, affected paths and related issues. Distinguish observed failures from hypotheses.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Fix acceptance
+      description: Reproduction must pass after the fix; include relevant regression checks and release/human acceptance.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: "Before fixing, read [board #2](https://github.com/fumbleforce/battlebots/issues/2), run tools/check-collaboration.mjs, and post your unique session, branch and path claim. Reporting a bug does not claim it."

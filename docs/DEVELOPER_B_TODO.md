@@ -1,5 +1,12 @@
 # Worker B — shared task list
 
+Live work and reservations moved to [GitHub Issues](https://github.com/fumbleforce/battlebots/issues)
+on 23 September 2026. ALWAYS consult [coordination board #2](https://github.com/fumbleforce/battlebots/issues/2)
+and the linked task/comments before editing. The sections below retain historical
+implementation/acceptance context; old "active", "latest" and branch claims do
+not reserve paths. Update issues for current work, and docs for permanent learnings.
+See [migration index](ISSUE_INDEX.md) and [workflow](ISSUE_WORKFLOW.md).
+
 ## Coordinated Foundry/weight/preview request — 23 September 2026
 
 The combined world and bot-impact request is complete on
@@ -32,14 +39,10 @@ saved-control migration and client prediction in `codex/b-nitro-jump`.
 `tools/check-drive.ps1`, focused garage/input checks and the full MVP suite pass
 on pinned Godot 4.7.2. See [the handoff](coordination/B_NITRO_JUMP.md).
 
-- [ ] **A — hosted release.** During a playtest break, deploy workers and client
-  built from the same tested commit. Required identity is build `mvp-ab-14`,
-  protocol 6, catalogue hash
-  `e8d254c8f6d2636fc2c1db7b329a78b04727f5061261a9dd8f437e9021b64bda`.
-  Compare live `/healthz` and complete private/Quick Play results and rematch.
-- [ ] **A — match HUD.** Consume the published Nitro activity, jump charge and
+- [x] **Hosted release/automated acceptance completed — [#5](https://github.com/fumbleforce/battlebots/issues/5).** Integrated catalogue10 workers and matching clients supersede these historical build13/14 deployment requests. See docs/coordination/A_HOSTED_LINUX_RELEASE.md and the subsequent Foundry release [#4](https://github.com/fumbleforce/battlebots/issues/4). Human hosted acceptance remains [#6](https://github.com/fumbleforce/battlebots/issues/6).
+- **Tracked in [#9](https://github.com/fumbleforce/battlebots/issues/9):** **A — match HUD.** Consume the published Nitro activity, jump charge and
   cooldown in the existing match HUD without changing B's input contract.
-- [ ] **B — next design.** Evaluate the supplied armour/weapon/locomotion sketch
+- **Tracked in [#19](https://github.com/fumbleforce/battlebots/issues/19):** **B — next design.** Evaluate the supplied armour/weapon/locomotion sketch
   as the [next direction](coordination/B_ARMOUR_WEAPON_DIRECTION.md).
 
 ## Scorpion shutdown checkpoint — 20 September 2026
@@ -52,19 +55,12 @@ See [complete checkpoint and artifact paths](coordination/B_SCORPION.md).
 
 Remaining work when resumed:
 
-- [ ] **A — matching hosted release.** During an established playtest break,
-  deploy the prepared server from clean commit `8734d2f`, retaining the previous
-  release for rollback. Client/server artifacts and hashes are in
-  `battlebots/exports/scorpion-8734d2f/`. Required compatibility is build
-  `mvp-ab-13`, protocol 5, content hash
-  `bf965dc8fdd5456ccddb23873d40f490885006eb70424a6a7c53c3db1fa4bf73`.
-- [ ] **A — external acceptance.** Compare live `/healthz`, then run private
-  and Quick Play duels through results/rematch using the matching client and
-  `tools/check-hosted.mjs --duel-only`. Hosted readiness remains unverified.
-- [ ] **B — user playtest.** Review the completed bot against the supplied
+- [x] **Hosted release/automated acceptance completed — [#5](https://github.com/fumbleforce/battlebots/issues/5).** Integrated catalogue10 workers and matching clients supersede these historical build13/14 deployment requests. See docs/coordination/A_HOSTED_LINUX_RELEASE.md and the subsequent Foundry release [#4](https://github.com/fumbleforce/battlebots/issues/4). Human hosted acceptance remains [#6](https://github.com/fumbleforce/battlebots/issues/6).
+- [x] **Hosted release/automated acceptance completed — [#5](https://github.com/fumbleforce/battlebots/issues/5).** Integrated catalogue10 workers and matching clients supersede these historical build13/14 deployment requests. See docs/coordination/A_HOSTED_LINUX_RELEASE.md and the subsequent Foundry release [#4](https://github.com/fumbleforce/battlebots/issues/4). Human hosted acceptance remains [#6](https://github.com/fumbleforce/battlebots/issues/6).
+- **Tracked in [#17](https://github.com/fumbleforce/battlebots/issues/17):** **B — user playtest.** Review the completed bot against the supplied
   reference in Practice: silhouette, weapon swaps, leg motion, thick diesel
   smoke and supplied audio levels. Address concrete playtest feedback.
-- [ ] **B — renderer cleanup follow-up.** Investigate the seven Texture RID
+- **Tracked in [#18](https://github.com/fumbleforce/battlebots/issues/18):** **B — renderer cleanup follow-up.** Investigate the seven Texture RID
   allocations reported at native full-bot shutdown. Tests exit successfully
   without script/shader errors; runtime impact has not been established.
 
@@ -135,30 +131,30 @@ A's high-priority menu scope also includes finished 1v1 win/score screens and an
 in-game menu page matching the other panels. Existing results code does not close
 these newly requested presentation tasks.
 
-- [ ] **Combat and bots:** Maintain damage/resources/recovery, weapon mechanics
+- **Ownership reference [#2](https://github.com/fumbleforce/battlebots/issues/2):** **Combat and bots:** Maintain damage/resources/recovery, weapon mechanics
   and visuals, bot assembly/catalogue and model integration. Investigate combat
   defects handed off by A's network/match-flow checks.
-- [ ] **Controls and camera:** Player input/driving, camera and spectator control
+- **Tracked in [#22](https://github.com/fumbleforce/battlebots/issues/22):** **Controls and camera:** Player input/driving, camera and spectator control
   behavior, including control-specific settings. Consume A's match phase and
   spectator sources; do not calculate local winners or ready state.
-- [ ] **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live 3D preview, comparisons, individual invalid-build repair, explicit disk/backup recovery, 150% text and direct unsaved-build Test Drive are implemented. Authored Sawblade modules, paint, drive variants and walking legs are now integrated on main `7ce48ab`; human build/handling acceptance remains open. APIs: ContentRegistry.validate/starter and
+- **Tracked in [#20](https://github.com/fumbleforce/battlebots/issues/20):** **B-09: Full garage.** Supplied kit edits/saves canonical builds with validation and paint; per-build undo/redo, live 3D preview, comparisons, individual invalid-build repair, explicit disk/backup recovery, 150% text and direct unsaved-build Test Drive are implemented. Authored Sawblade modules, paint, drive variants and walking legs are now integrated on main `7ce48ab`; human build/handling acceptance remains open. APIs: ContentRegistry.validate/starter and
   LoadoutStore.save/load_saved; preview unsaved builds, show specific validation
   reasons, preserve invalid builds for repair. These APIs are available now.
 
 ## Later B scope and acceptance still open
 
-- [ ] **B-10:** Weapon animation/VFX from authoritative state/events. A owns audio.
+- **Tracked in [#21](https://github.com/fumbleforce/battlebots/issues/21):** **B-10:** Weapon animation/VFX from authoritative state/events. A owns audio.
   Authored Sawblade weapon animations and drive variants are integrated on main `7ce48ab`; snapshot-driven damaged/disabled component stages are integrated on `7026da6`. Confirmed impact sparks/fragments now have bounded pools and lifecycle checks. Larger-scene budgets, human readability and legacy CLI mounting remain open. Coordinate shared content identity and network-state changes with A.
-- [ ] **B-11:** Control accessibility/controller behavior and bot-customisation
+- **Tracked in [#22](https://github.com/fumbleforce/battlebots/issues/22):** **B-11:** Control accessibility/controller behavior and bot-customisation
   polish. A owns general tutorial/menu presentation and audio.
-- [ ] **B-12:** Optional first-person camera after third-person feel is accepted.
+- **Tracked in [#23](https://github.com/fumbleforce/battlebots/issues/23):** **B-12:** Optional first-person camera after third-person feel is accepted.
 - [x] **AB-02 human multiplayer:** User reports successful multiplayer through a
   tunnel on 2026-09-20. This does not certify external hosting or specific measured
   contact/camera/recovery thresholds.
-- [ ] **Gameplay acceptance:** Fully working 1v1 combat with clear weapon/damage
-  feedback and complete hosted round/results/rematch flow. Human tunnel play has
-  succeeded; externally hosted play remains outstanding.
-- [ ] **Deferred tutorial:** B's control exercises/progression and A's menu entry
+- **Tracked in [#6](https://github.com/fumbleforce/battlebots/issues/6):** **Gameplay acceptance:** Fully working 1v1 combat with clear weapon/damage
+  feedback and complete hosted round/results/rematch flow. Human tunnel play and automated external hosted checks have
+  succeeded; two-computer human hosted acceptance remains outstanding.
+- **Tracked in [#25](https://github.com/fumbleforce/battlebots/issues/25):** **Deferred tutorial:** B's control exercises/progression and A's menu entry
   wait until the 1v1 game is fully working, alongside 2v2 and other modes.
 
 ## Editing and branch boundaries

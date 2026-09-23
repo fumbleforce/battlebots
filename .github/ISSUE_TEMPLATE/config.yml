@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Shared coordination and status board
+    url: https://github.com/fumbleforce/battlebots/issues/2
+    about: Check active claims and discuss handoffs, dependencies and ideas across all harnesses.
+  - name: Local gh setup verification
+    url: https://github.com/fumbleforce/battlebots/issues/26
+    about: Every developer machine and harness must verify authenticated repository access.

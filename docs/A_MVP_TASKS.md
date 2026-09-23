@@ -1,5 +1,12 @@
 # Developer A MVP work
 
+Live work and reservations moved to [GitHub Issues](https://github.com/fumbleforce/battlebots/issues)
+on 23 September 2026. ALWAYS consult [coordination board #2](https://github.com/fumbleforce/battlebots/issues/2)
+and the linked task/comments before editing. The sections below retain historical
+implementation/acceptance context; old "active", "latest" and branch claims do
+not reserve paths. Update issues for current work, and docs for permanent learnings.
+See [migration index](ISSUE_INDEX.md) and [workflow](ISSUE_WORKFLOW.md).
+
 Owner: A — menus, networking, game rules, game world and audio. B owns combat,
 bot models/weapons, bot-customisation menus and player controls. Earlier playable
 checkpoint: `codex/a-b-integration` at `bdb42ef`.
@@ -18,7 +25,7 @@ active expansion or acceptance work.
 These user-reported defects reopen presentation acceptance. Earlier automated
 layout passes do not close them. Prioritize these alongside the working 1v1 loop.
 
-- [ ] **A: Responsive menus without scrolling.** Fit navigation and actions to
+- **Tracked in [#7](https://github.com/fumbleforce/battlebots/issues/7):** **A: Responsive menus without scrolling.** Fit navigation and actions to
   the actual window, including 720p, 1080p and wide aspect ratios. Replace oversized
   fixed layout and scrolling with adaptive composition; preserve readable text.
   Main navigation and A's settings categories now fit without scrolling in
@@ -30,7 +37,7 @@ layout passes do not close them. Prioritize these alongside the working 1v1 loop
   Main host/background now cover both axes in actual composed-game checks.
 - [x] **A: Correct button emphasis.** Only Play Online is solid yellow on the
   main menu. LAN and other secondary actions use subdued hover/focus treatment.
-- [ ] **A: Complete settings presentation overhaul and video settings.** Use the
+- **Tracked in [#8](https://github.com/fumbleforce/battlebots/issues/8):** **A: Complete settings presentation overhaul and video settings.** Use the
   established menu theme and clear category navigation, with display/window mode,
   resolution and appropriate graphics options. Integrate B's existing camera and
   controls pages without changing their behavior; coordinate their restyling.
@@ -55,9 +62,9 @@ See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK
 
 ### Existing 1v1 delivery work
 
-- [ ] Complete the end-to-end 1v1 game: online entry, combat, round completion,
+- **Tracked in [#6](https://github.com/fumbleforce/battlebots/issues/6):** Complete the end-to-end 1v1 game: online entry, combat, round completion,
   results and rematch, with clear feedback and reliable recovery/reconnect.
-- [ ] Finish presentation refinement across multiplayer/networking menus, the
+- **Tracked in [#7](https://github.com/fumbleforce/battlebots/issues/7):** Finish presentation refinement across multiplayer/networking menus, the
   win screen, score screen and in-game menu (A, high priority). The user requests
   these pages as part of a complete 1v1 game, with the game menu consistent with
   the other panels. Existing implemented pages below are the starting point;
@@ -74,7 +81,7 @@ See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK
   Quick Play duels passed assigned UDP connectivity, driving, two-round results
   and rematch; the current game uses its HTTPS endpoint. See
   [live deployment evidence](coordination/A_FLY_DUEL_LIVE.md).
-- [ ] Conduct a two-computer human duel on the deployed Fly service, including
+- **Tracked in [#6](https://github.com/fumbleforce/battlebots/issues/6):** Conduct a two-computer human duel on the deployed Fly service, including
   natural combat, results/rematch and recovery. Automated public forfeit-driven
   lifecycle checks do not replace this human acceptance.
 - [x] Add 1v1 Quick Play, isolated from the legacy four-player queue, with
@@ -84,7 +91,7 @@ See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK
 - [x] Run private 1v1 through the production Linux container's real release worker,
   including results/rematch. [Linux CI evidence](coordination/A_LINUX_HOSTED_RUNTIME.md)
   closes the runtime packaging gap, not external deployment.
-- [ ] Resolve the intermittent Windows native shutdown crash. CI and local runs
+- **Tracked in [#10](https://github.com/fumbleforce/battlebots/issues/10):** Resolve the intermittent Windows native shutdown crash. CI and local runs
   reproduced `0xC0000005` after DRIVE PASS, including run35504840930 at0023ad9.
   Earlier Windows run35502338810 at35ef6a6 passed the full workflow; a clean run
   does not establish a fix.
@@ -115,9 +122,9 @@ See [implementation and ownership handoff](coordination/A_PLAYTEST_MENU_FEEDBACK
 - [x] B garage/customisation/catalogue/recovery and camera/input settings consume
   the shared text scale with reflow and keyboard-accessible pages; independent/composed
   checks and rendered 720p evidence are in [B text accessibility](coordination/B_MENU_TEXT_ACCESSIBILITY.md).
-- [ ] Remaining accessibility and communication: human world/team marker
+- **Tracked in [#11](https://github.com/fumbleforce/battlebots/issues/11):** Remaining accessibility and communication: human world/team marker
   recognition and color-vision acceptance; ping
-  presentation after the coordinated input/network interfaces exist.
+  presentation after the coordinated input/network interfaces exist (ping task [#12](https://github.com/fumbleforce/battlebots/issues/12)).
 - [x] Refine the general menus, especially multiplayer/networking screens (A).
   User feedback (2026-09-20): these screens are poorly integrated into the
   original menu system. Make online entry, host/join, connection progress,
@@ -155,8 +162,8 @@ round completion, rematch and easy online play over population scaling.
 - [x] Four-client lifecycle/reconnect/rematch under whole-UDP impairment, including reliable control and lost initial connect packet.
 - [x] Sustained wall/chamfer collision bounds and settling; inactive/eliminated remote extrapolation regression.
 - [x] Reliable match transitions and one-second state recovery under total unreliable-snapshot loss; independent actual-ENet regression.
-- [ ] Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
-- [ ] Diagnose intermittent CI observer convergence failure (FFA damage in 35466215676) when relevant to gameplay work. Existing strict tests remain.
+- **Tracked in [#13](https://github.com/fumbleforce/battlebots/issues/13):** Broaden collision/transport acceptance beyond the scripted scenarios; retain the 250 ms gate.
+- **Tracked in [#14](https://github.com/fumbleforce/battlebots/issues/14):** Diagnose intermittent CI observer convergence failure (FFA damage in 35466215676) when relevant to gameplay work. Existing strict tests remain.
 
 Human multiplayer is no longer an unperformed gate: the user reports successful
 tunnel play. Specific unmeasured feel/transport checks remain separate; hosted
@@ -168,7 +175,7 @@ internet acceptance must still be performed after deployment.
 - [x] User-supplied menu melody integrated and included in playtest exports.
 - [x] Arena/world integration, spawn lifecycle and authoritative match rules.
 - [x] Four-to-eight-player FFA, elimination-tick placements and shared wins; historical implemented mode.
-- [ ] Arena readability for 1v1; menu refinement and HUD are prioritized above.
+- **Tracked in [#11](https://github.com/fumbleforce/battlebots/issues/11):** Arena readability for 1v1; menu refinement and HUD are prioritized above.
 - [x] Practice target damage/knockout readout and direct restart with both bots repaired.
 - [x] First-pass impact/round/warning/recovery audio from authoritative events,
   with captions and saved master/music/effects/announcement volume and mute.
@@ -182,10 +189,10 @@ internet acceptance must still be performed after deployment.
   first-pass round/match crowd reactions, with bounded playback, local ducking
   and lifecycle/dedup guards. Actual engine audio capture verifies stereo and
   distance attenuation; see [impact/crowd evidence](coordination/A_IMPACT_CROWD_AUDIO.md).
-- [ ] Finish material-specific impact variation and human listening/mix acceptance.
+- **Tracked in [#15](https://github.com/fumbleforce/battlebots/issues/15):** Finish material-specific impact variation and human listening/mix acceptance.
   Current sliding audio approximates grounded sideways motion; it is not a
   measured tire-slip simulation. Hammer/lifter have no continuous rotor sound.
-- [ ] Public allocation/identity/result services, deployment and verified persistence.
+- **Tracked in [#16](https://github.com/fumbleforce/battlebots/issues/16):** Public allocation/identity/result services, deployment and verified persistence.
   Hosted playtest increment `codex/a-hosted-matchmaking` adds guest identity,
   private codes, solo 2v2 queue, dedicated allocation and admission. Persistent
   accounts/results, parties, region/skill matching and release acceptance remain open.
@@ -198,7 +205,7 @@ A retains network prediction/integration and consumes B's public bot interfaces.
 
 ## Deferred until the 1v1 game is fully working
 
-- [ ] 2v2, FFA and other multiplayer-mode development and acceptance, including
+- **Tracked in [#24](https://github.com/fumbleforce/battlebots/issues/24):** 2v2, FFA and other multiplayer-mode development and acceptance, including
   the existing 2v2 matchmaking queue. Ten-player optimization/soak stays deferred.
-- [ ] Tutorial: B owns control exercises and progression; A integrates its menu
+- **Tracked in [#25](https://github.com/fumbleforce/battlebots/issues/25):** Tutorial: B owns control exercises and progression; A integrates its menu
   entry when this deferred work resumes.
