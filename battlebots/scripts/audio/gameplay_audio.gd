@@ -219,6 +219,14 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	elif event.target == local_entity: caption = "Hit by " + kind
 	_play("impact_" + kind, caption, false, false, false, -1, event.position)
 
+## Local credit pickups ring a short coin cue. Other players' pickups are silent.
+func pickup_collected(event: Dictionary, local_entity: int) -> void:
+	if event.get("entity") != local_entity or event.get("kind") != "credits":
+		return
+	var amount: Variant = event.get("amount")
+	_play("credit_pickup", "+%d credits" % int(amount) if _integer(amount, 1) else "Credits collected",
+		true, true, false, 1)
+
 func _play_crowd(cue: String) -> void:
 	if not is_instance_valid(_crowd):
 		return

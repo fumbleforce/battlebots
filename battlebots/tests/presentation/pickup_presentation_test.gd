@@ -19,6 +19,7 @@ func run() -> void:
 	await results()
 	await markers()
 	await notice()
+	await credit_sound()
 	print("PICKUP PRESENTATION PASS" if failures == 0 else "PICKUP PRESENTATION FAIL")
 	quit(0 if failures == 0 else 1)
 
@@ -149,3 +150,27 @@ func notice() -> void:
 	label._process(PickupNotice.SECONDS + 0.1)
 	check(not label.visible, "Notice fades away")
 	label.queue_free()
+
+func credit_sound() -> void:
+	var stream := GameplaySoundBank.new().stream("credit_pickup")
+	var peak := 0
+	for index: int in range(0, stream.data.size(), 2):
+		peak = maxi(peak, absi(stream.data.decode_s16(index)))
+	check(stream != null and is_equal_approx(stream.get_length(), 0.42) and peak > 3000 and peak < 32767,
+		"Credit pling is a short, audible, unclipped cue")
+	var audio := GameplayAudio.new()
+	root.add_child(audio)
+	await process_frame
+	var cues: Array[String] = []
+	var captions: Array[String] = []
+	audio.cue_played.connect(func(cue: String) -> void: cues.append(cue))
+	audio.caption_changed.connect(func(text: String) -> void: captions.append(text))
+	audio.pickup_collected({"entity":2, "kind":"credits", "amount":50}, 1)
+	audio.pickup_collected({"entity":1, "kind":"part", "part":"hammer", "amount":0}, 1)
+	check(cues.is_empty(), "Only the local player's credit pickups ring")
+	audio.pickup_collected({"entity":1, "kind":"credits", "amount":50}, 1)
+	await process_frame
+	check(cues == ["credit_pickup"], "Local credit pickup plays the pling")
+	check(captions.any(func(text: String) -> bool: return text.contains("+50 credits")), "Pling has an accessible caption")
+	audio.queue_free()
+	await process_frame

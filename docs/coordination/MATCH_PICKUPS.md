@@ -60,6 +60,9 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
   only to that bot's owner.
 - **Camera.** A part pickup rebuilds the local bot node. `menu_game`/`lobby_game` re-bind the orbit
   camera, which recentres it, only when the match or entity changes, so a pickup keeps the player's orbit.
+- **Sound.** Collecting credits plays a short coin "pling" for the local player only: the procedural
+  `credit_pickup` cue in `GameplaySoundBank`, triggered by `GameplayAudio.pickup_collected()` with the
+  caption "+N credits". Other players' pickups and part/perk pickups are silent.
 - Results overview shows `+N CREDITS EARNED · performance · pickups`. The menu header shows the
   wallet balance (`%ScrapAmount`, `%ProfileMeta`) in place of the old placeholder scrap readout.
 

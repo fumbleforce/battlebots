@@ -8,9 +8,9 @@ const SAMPLES := {
 const RATE := 16000
 const CUES := ["impact_hammer", "impact_spinner", "impact_lifter", "impact_saw", "impact_ram",
 	"countdown", "start", "round_end", "results", "low_core", "recovery", "weapon_ready", "armor_break",
-	"crowd_round", "crowd_match"]
-const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34, 0.24, 0.30, 1.0, 1.5]
-const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0, 740.0, 730.0, 165.0, 190.0]
+	"crowd_round", "crowd_match", "credit_pickup"]
+const LENGTHS := [0.28, 0.20, 0.26, 0.14, 0.18, 0.10, 0.32, 0.38, 0.50, 0.28, 0.34, 0.24, 0.30, 1.0, 1.5, 0.42]
+const PITCHES := [140.0, 510.0, 230.0, 950.0, 85.0, 660.0, 440.0, 440.0, 523.25, 260.0, 330.0, 740.0, 730.0, 165.0, 190.0, 1318.51]
 var _streams: Dictionary = {}
 
 func stream(cue: String) -> AudioStreamWAV:
@@ -73,6 +73,17 @@ func stream(cue: String) -> AudioStreamWAV:
 				+ sin(TAU * 1907.0 * time) * 0.19 * exp(-time * 17.0) \
 				+ sin(TAU * 3181.0 * time) * 0.11 * exp(-time * 24.0)
 			value = (crack + shards) * envelope * 0.55
+		elif cue == "credit_pickup":
+			# Bright coin "pling": a short E6 tap rising to a ringing B6 bell.
+			var second := time >= 0.055
+			var note: float = pitch * (1.4983 if second else 1.0)
+			var local_time := time - (0.055 if second else 0.0)
+			var tap := minf(1.0, local_time / 0.002)
+			var bell := sin(TAU * note * local_time) * 0.62 + sin(TAU * note * 2.76 * local_time) * 0.20 \
+				+ sin(TAU * note * 5.40 * local_time) * 0.07
+			value = bell * tap * exp(-local_time * (38.0 if not second else 9.0)) * 0.34
+			# Fade the ring tail so the cue ends in silence instead of a click.
+			value *= minf(1.0, (1.0 - progress) / 0.15)
 		elif cue == "weapon_ready":
 			# A consonant, compact confirmation, distinct from damage transients.
 			value = (sin(TAU * pitch * time) * 0.75 \

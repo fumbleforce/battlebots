@@ -137,7 +137,9 @@ func _ready() -> void:
 	pickup_feed.position = Vector2(28, 28)
 	pickup_feed.size = Vector2(320, 0)
 	pickup_feed.bind_names(pickup_visuals.names)
-	session.pickup_collected.connect(func(event: Dictionary) -> void: pickup_feed.notify(event, session.local_entity))
+	session.pickup_collected.connect(func(event: Dictionary) -> void:
+		pickup_feed.notify(event, session.local_entity)
+		gameplay_audio.pickup_collected(event, session.local_entity))
 	pickup_notice = PickupNotice.new()
 	pickup_notice.name = "PickupNotice"
 	combat_hud.canvas.add_child(pickup_notice)
