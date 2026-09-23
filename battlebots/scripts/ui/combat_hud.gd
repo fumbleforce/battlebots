@@ -5,7 +5,7 @@ const AMBER := Color("f5b82e")
 const RED := Color("ff8a80")
 const TEXT := Color("e8ecf1")
 const MUTED := Color("9aa6b5")
-const ZONES := {"front":"FRONT", "rear":"REAR", "left":"LEFT", "right":"RIGHT", "drive_left":"L DRIVE", "drive_right":"R DRIVE", "weapon":"WEAPON"}
+const ZONES := {"front":"FRONT", "rear":"REAR", "left":"LEFT", "right":"RIGHT", "top":"TOP", "underside":"BOTTOM", "drive_left":"L DRIVE", "drive_right":"R DRIVE", "weapon":"WEAPON"}
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
 var text_scale := 1.0
 var palette := "standard"
@@ -286,7 +286,7 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		var valid: bool = _number(integrity) and integrity >= 0
 		var detail := "--"
 		if valid:
-			detail = str(ceili(float(integrity))) if integrity > 0 else ("BREACHED" if key in ["front", "rear", "left", "right"] else "DISABLED")
+			detail = str(ceili(float(integrity))) if integrity > 0 else ("BREACHED" if key in ["front", "rear", "left", "right", "top", "underside"] else "DISABLED")
 		components[key].text = ZONES[key] + "\n" + detail
 		components[key].modulate = danger if valid and integrity == 0 else (_text_color() if valid else (Color.WHITE if high_contrast else MUTED))
 		components[key].visible = valid and integrity == 0

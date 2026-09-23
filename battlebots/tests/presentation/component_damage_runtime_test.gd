@@ -31,7 +31,6 @@ func run() -> void:
 		var draft := SawbladeConfig.starter(registry) if config[0] else registry.starter()
 		draft.parts.weapon = config[1]
 		draft.parts.drive = config[2]
-		draft.parts.armor = "light"
 		var bot := MvpBot.create(1, 0, draft, registry)
 		check(bot != null, "Fixture build valid")
 		if bot == null: continue

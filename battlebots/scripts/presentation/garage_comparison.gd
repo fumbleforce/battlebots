@@ -26,6 +26,19 @@ static func compare(registry: ContentRegistry, draft: Dictionary, slot: String, 
 	return {"current": current, "proposed": _summary(registry, candidate),
 		"draft": candidate, "changed": changed}
 
+## Proposed armour piece for one section (index into ContentRegistry.armor_pieces).
+static func compare_armor(registry: ContentRegistry, draft: Dictionary, section: String, index: int) -> Dictionary:
+	var candidate := draft.duplicate(true)
+	var current := _summary(registry, draft)
+	var cosmetics: Variant = candidate.get("cosmetics")
+	if not registry.armor_pieces.has(section) or index < 0 or index >= registry.armor_pieces[section].size() \
+			or not cosmetics is Dictionary or not cosmetics.get("sawblade") is Dictionary:
+		return {"current": current, "proposed": {"valid": false,
+			"reasons": PackedStringArray(["Unknown armour piece"]), "stats": {}}, "draft": candidate, "changed": false}
+	var changed: bool = int(cosmetics.sawblade.get(section, 0)) != index
+	cosmetics.sawblade[section] = index
+	return {"current": current, "proposed": _summary(registry, candidate), "draft": candidate, "changed": changed}
+
 static func _summary(registry: ContentRegistry, draft: Dictionary) -> Dictionary:
 	var validation := registry.validate(draft)
 	var stats := validation.stats.duplicate(true)
@@ -45,5 +58,6 @@ static func _summary(registry: ContentRegistry, draft: Dictionary) -> Dictionary
 				mass += float(registry.parts[id].mass)
 				power += float(registry.parts[id].power)
 			if complete:
+				mass += registry.armor_mass(draft)
 				stats = {"mass": mass, "power": power}
 	return {"valid": validation.valid, "reasons": validation.reasons.duplicate(), "stats": stats}

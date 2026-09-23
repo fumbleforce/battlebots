@@ -118,7 +118,6 @@ func check_preview(registry: ContentRegistry) -> void:
 	for drive: String in ["traction", "walker"]:
 		var draft := SawbladeConfig.starter(registry)
 		draft.parts.drive = drive
-		draft.parts.armor = "light"
 		preview.show_loadout(draft)
 		var reference := SawbladeVisual.new()
 		add_child(reference)

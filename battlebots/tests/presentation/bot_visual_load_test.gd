@@ -30,7 +30,6 @@ func run() -> void:
 	for count: int in [2,10]:
 		for index: int in count:
 			var draft := SawbladeConfig.starter(registry)
-			draft.parts.armor = "light"
 			draft.parts.drive = ["traction","agile","standard_wheels","walker"][index % 4]
 			draft.parts.weapon = ["saw","hammer","lifter","vertical_spinner","horizontal_spinner"][index % 5]
 			var bot := MvpBot.create(index + 1,index % 2,draft,registry)

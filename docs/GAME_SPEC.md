@@ -178,7 +178,7 @@ The camera sits on a standardized chassis sensor mount. It keeps a stabilized ho
 
 ### Builder model
 
-Use authored chassis sockets and compatible modules, not freeform geometry. Every legal build contains one chassis, one drive package, one primary weapon, one armor package, and one utility. Cosmetic elements have no mass, collision, visibility advantage, or gameplay effects.
+Use authored chassis sockets and compatible modules, not freeform geometry. Every legal build contains one chassis, one drive package, one primary weapon and one utility, plus optional armour pieces per body area (#46). Cosmetic elements have no mass, collision, visibility advantage, or gameplay effects; armour pieces are gameplay parts.
 
 All builds share a **120 kg** mass ceiling and a **100-unit installed power** budget. Power budget controls legal construction; heat is the sole runtime operating resource. Chassis fixes socket locations, collision envelope, core integrity, and recovery mechanism. No part can extend beyond its permitted weapon sweep or deployment envelope.
 
@@ -193,7 +193,7 @@ All statistics in these tables are authoring seeds, subject to the balancing pro
 | Category | Part | Mass kg | Installed power | Identity |
 |---|---|---:|---:|---|
 | Chassis | Compact | 25 | 0 | 220 core; tight turning, narrow frontage |
-| Chassis | Balanced | 30 | 0 | 260 core; versatile footprint |
+| Chassis | Balanced (Sawblade body) | 30 | 0 | 240 core; smallest offered body |
 | Chassis | Wide | 35 | 0 | 300 core; stable platform, broader target |
 | Drive | Agile wheels | 18 | 25 | 12 m/s top speed; lower grip |
 | Drive | Standard wheels | 22 | 25 | 10 m/s; balanced grip |
@@ -203,13 +203,10 @@ All statistics in these tables are authoring seeds, subject to the balancing pro
 | Weapon | Lifter/flipper | 22 | 30 | Hold to lift; charged release flips |
 | Weapon | Hammer | 24 | 35 | Timed overhead strike |
 | Weapon | Saw arm | 20 | 30 | Sustained contact damage |
-| Armor | Light | 10 | 0 | 10% core reduction; 60 integrity per plate |
-| Armor | Standard | 18 | 0 | 25% core reduction; 90 integrity per plate |
-| Armor | Heavy | 25 | 0 | 40% core reduction; 120 integrity per plate |
 | Utility | Recovery assist | 5 | 10 | Recovery activation 1 second instead of 2 |
 | Utility | Cooling pack | 6 | 10 | Heat dissipation +25% |
 
-Armor packages consist of front, rear, left, and right plates. Top and underside retain chassis baseline protection of 5%. A destroyed side plate loses its reduction. Package mass is the total for all four plates, not the mass of one plate.
+**Armour (#46, user design 23 September 2026).** The chassis is the core: one HP pool that scales with body size (Sawblade body 240, Scorpion hex 300, Atlas MX 380). Armour packages no longer exist. Customize > PARTS > ARMOR offers one piece per area, each with its own HP and mass (catalogue `armor_pieces`, tunable seeds): side covers (left + right, 60 HP each, 6 kg) or heavy skirts (110 HP each, 12 kg), machinery guard (top, 70 HP, 5 kg), chin plate (front, 90 HP, 6 kg) and rear pack (rear, 80 HP, 6 kg). No underside piece exists yet, so the underside is always exposed. Piece mass counts toward the 120 kg budget.
 
 Drive packages expose four visual wheels but use two logical drive pods, each with 100 integrity. One disabled pod reduces drive force to 50% and maximum steering torque to 60%; input assistance compensates persistent drift. Both disabled pods start the immobilization sequence. The primary weapon has 140 integrity. Disabled weapons cannot activate; recovery remains available.
 
@@ -219,9 +216,9 @@ Unused mass is permitted. Final mass influences acceleration, resistance to impu
 
 | Build | Components | Mass | Power | Intended play |
 |---|---|---:|---:|---|
-| Striker | Balanced, standard wheels, vertical spinner, standard armor, recovery assist | 103 kg | 75 | Approach, strike, disengage |
-| Controller | Wide, traction wheels, lifter/flipper, standard armor, recovery assist | 108 kg | 70 | Lift and set up a teammate |
-| Duelist | Compact, agile wheels, hammer, standard armor, cooling pack | 91 kg | 70 | Flank and punish missed attacks |
+| Striker | Balanced, standard wheels, vertical spinner, no armour pieces, recovery assist | 85 kg | 75 | Approach, strike, disengage |
+| Controller | Wide, traction wheels, lifter/flipper, no armour pieces, recovery assist | 90 kg | 70 | Lift and set up a teammate |
+| Duelist | Balanced, agile wheels, hammer, no armour pieces, cooling pack | 78 kg | 70 | Flank and punish missed attacks |
 
 ### Garage experience
 
@@ -253,8 +250,8 @@ Spinners require at least 25% charge to deal weapon damage, then scale linearly 
 
 1. Resolve the contacted damage zone using the authoritative swept query or body contact.
 2. Compute authored raw weapon damage using weapon readiness. A normal chassis ram only damages at closing speed above 4 m/s: `min(12, 2 × (closing_speed − 4))`, with a 0.5-second pair cooldown. Ram damage applies independently to each struck zone; pushing below the threshold does no damage.
-3. A side-armor hit removes raw damage from that plate and applies `raw × (1 − reduction)` to core. Use the plate state at the start of the hit; its reduction disappears on subsequent hits after destruction.
-4. A direct top/underside hit applies baseline reduction to core. A direct exposed drive/weapon hit applies 75% raw damage to that component and 25% to core, without side-plate reduction.
+3. A hit on a body area (front, rear, left, right, top, underside) is absorbed by that area's armour piece up to its remaining HP; only the excess reaches the core. An area with no piece, or whose piece is destroyed, passes 100% of raw damage to the core.
+4. A direct exposed drive/weapon hit applies 75% raw damage to that component and 25% to core.
 5. Clamp actual damage to remaining integrity for scoring. Health never becomes negative. A single contact resolves one zone; overlapping colliders cannot multiply a hit.
 
 Contact direction, weapon charge, and armor matter; random critical hits do not exist. Apply capped attack impulses independently of health damage, and account for ordinary collision impulse when tuning them so effects are not accidentally doubled. Cap launch vertical speed at an initial 8 m/s and angular speed at 12 rad/s; adjust only after testing stable recovery and camera behavior.

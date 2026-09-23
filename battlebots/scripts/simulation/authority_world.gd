@@ -321,11 +321,14 @@ static func carry_combat(from: CombatState, to: CombatState, changed: Array[Stri
 	to.core = to.stats.core * clampf(from.core / float(from.stats.core), 0.0, 1.0)
 	var fixed := {"drive_left":100.0, "drive_right":100.0, "weapon":140.0}
 	for zone: String in to.zones:
-		var fresh := (zone == "weapon" and "weapon" in changed) 			or (zone.begins_with("drive_") and "drive" in changed) 			or (zone in ["front", "rear", "left", "right"] and "armor" in changed)
+		var fresh := (zone == "weapon" and "weapon" in changed) 			or (zone.begins_with("drive_") and "drive" in changed)
 		if fresh:
 			continue
-		var old_max: float = fixed.get(zone, float(from.stats.plate_integrity))
-		var new_max: float = fixed.get(zone, float(to.stats.plate_integrity))
+		var old_max: float = fixed.get(zone, float(from.stats.plates.get(zone, 0.0)))
+		var new_max: float = fixed.get(zone, float(to.stats.plates.get(zone, 0.0)))
+		# Armour that was not fitted before arrives intact; fitted armour keeps its wear.
+		if old_max <= 0.0 or not from.zones.has(zone):
+			continue
 		to.zones[zone] = new_max * clampf(float(from.zones[zone]) / old_max, 0.0, 1.0)
 	for field: String in ["heat", "overheated", "recovery_cooldown", "recovery_remaining",
 			"inverted_seconds", "immobilized_seconds", "driven_distance", "eliminated",

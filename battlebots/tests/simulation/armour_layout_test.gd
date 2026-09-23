@@ -1,6 +1,7 @@
 extends SceneTree
-## Proposed per-plate armour rules (#19): layouts, legacy parity with the live
-## CombatState, damage profiles, mass effects and the two-weapon budget.
+## Proposed per-plate armour rules (#19), standalone: layouts, legacy package
+## conversion, damage profiles, mass effects and the two-weapon budget. The live
+## game now uses #46 armour pieces instead (see rules_smoke/content_smoke).
 var failures := 0
 var registry := ContentRegistry.new()
 
@@ -43,29 +44,24 @@ func layouts() -> void:
 	check(not ArmourLayout.valid("standard"), "Non-dictionary layouts are rejected")
 	check(ArmourLayout.preset("light").front == "light" and ArmourLayout.default_layout().front == "standard", "Presets return detached layouts")
 
-## A migrated legacy package must deal exactly the damage the live rules deal.
+## Standalone legacy-package conversion. The live game retired armour packages
+## (#46: pieces from module choices, no reduction), so there is no live parity.
 func legacy_parity() -> void:
+	var package_mass := {"light": 10.0, "standard_armor": 18.0, "heavy": 25.0}
+	var package_integrity := {"light": 60.0, "standard_armor": 90.0, "heavy": 120.0}
 	for package: String in ArmourLayout.LEGACY_PACKAGES:
-		var draft := registry.starter()
-		draft.parts.armor = package
-		var result := registry.validate(draft)
-		check(result.valid, "Legacy %s starter validates" % package)
+		check(not registry.parts.has(package), "Retired %s package is absent from the live catalogue" % package)
 		var layout := ArmourLayout.from_legacy_package(package)
-		near(ArmourLayout.mass(layout), float(registry.parts[package].mass), "%s migrates at identical mass" % package)
-		var state := CombatState.new(result.stats)
+		check(ArmourLayout.valid(layout) and layout.top == "none" and layout.underside == "none", "%s converts to four sides" % package)
+		near(ArmourLayout.mass(layout), package_mass[package], "%s converts at the retired package mass" % package)
 		var zones := ArmourLayout.integrity(layout)
-		var core: float = result.stats.core
+		near(zones.left, package_integrity[package], "%s side integrity" % package)
+		var reduction: float = ArmourLayout.CLASSES[ArmourLayout.LEGACY_PACKAGES[package]].reduction
 		var profile := ArmourLayout.profile_for("hammer")
-		for hit: Array in [["front", 38.0], ["left", 45.0], ["top", 20.0], ["underside", 12.0], ["drive_left", 30.0], ["weapon", 40.0], ["front", 10.0]]:
-			zones.merge({"drive_left": state.zones.drive_left, "drive_right": state.zones.drive_right, "weapon": state.zones.weapon}, true)
-			var routed := ArmourLayout.route(layout, zones, hit[0], hit[1], profile)
-			var before: float = state.core
-			state.damage(hit[0], hit[1])
-			near(before - state.core, minf(core, routed.core), "%s %s core parity" % [package, hit[0]])
-			core -= minf(core, routed.core)
-			if zones.has(hit[0]) and state.zones.has(hit[0]):
-				zones[hit[0]] -= routed.zone
-				near(zones[hit[0]], state.zones[hit[0]], "%s %s zone parity" % [package, hit[0]])
+		var routed := ArmourLayout.route(layout, zones, "front", 38.0, profile)
+		near(routed.core, 38.0 * (1.0 - reduction), "%s front core share" % package)
+		near(routed.zone, 38.0, "%s front plate share" % package)
+		near(ArmourLayout.route(layout, zones, "top", 20.0, profile).core, 19.0, "%s bare top keeps the baseline" % package)
 
 func exposed_faces() -> void:
 	var layout := ArmourLayout.default_layout()

@@ -56,6 +56,15 @@ func run() -> void:
 	draft.parts.weapon = "saw"
 	if not await require(server.registry.validate(draft).valid, "Canonical saw build is legal"):
 		return
+	# The host victim fits the 80 HP rear pack armour so each cut is shielded by
+	# the rear plate and the replicated rear zone is present in BotView.
+	var armoured := server.registry.starter()
+	var pieces := SawbladeConfig.defaults()
+	pieces.armor_rear = 1
+	armoured.cosmetics = {"paint":"cyan", "sawblade":pieces}
+	server.set_loadout(armoured)
+	if not await require(server.players[server.local_entity].loadout.cosmetics.has("sawblade"), "Host victim fits rear armour"):
+		return
 	var client := make_session("SawClient")
 	clients.append(client)
 	client.combat_event.connect(func(event: Dictionary) -> void: received_effects.append(event.duplicate(true)))
@@ -140,8 +149,8 @@ func run() -> void:
 	for index: int in range(authority_effects.size()):
 		var event: Dictionary = authority_effects[index]
 		check(event.attacker == attacker_id and event.target == victim_id and event.zone == "rear", "Every cut strikes the intended rear armor")
-		check(is_equal_approx(event.core_after, initial_core - 4.5 * (index + 1))
-			and is_equal_approx(event.rear_after, initial_rear - 6.0 * (index + 1)), "Each cut applies exactly 6 raw: 6 rear plate and 4.5 core")
+		check(is_equal_approx(initial_rear, 80.0) and is_equal_approx(event.core_after, initial_core)
+			and is_equal_approx(event.rear_after, initial_rear - 6.0 * (index + 1)), "Each cut applies exactly 6 raw to the rear plate, which fully shields the core")
 		if index > 0:
 			check(event.event_id > authority_effects[index - 1].event_id and event.attack_id > authority_effects[index - 1].attack_id,
 				"Each actual saw cut advances authoritative effect and attack identity")

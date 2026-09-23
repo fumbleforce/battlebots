@@ -15,7 +15,6 @@ func run() -> void:
 	for weapon: String in ["lifter", "saw", "hammer", "vertical_spinner", "horizontal_spinner", "minigun"]:
 		var draft := original.duplicate(true)
 		draft.parts.weapon = weapon
-		draft.parts.armor = "light"
 		draft.parts.utility = "minigun_pod" if weapon != "minigun" else "cooling_pack"
 		var visual := AtlasVisual.new()
 		add_child(visual)

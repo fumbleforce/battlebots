@@ -57,7 +57,15 @@ func run() -> void:
 	var build := registry.starter()
 	build.parts.weapon = "horizontal_spinner"
 	attacker = MvpBot.create(1, 0, build, registry)
+	# Victim carries the default 60 HP side covers so side hits exercise plate
+	# shielding and overflow.
+	var armoured := registry.starter()
+	armoured.cosmetics = {"paint":"cyan", "sawblade":SawbladeConfig.defaults()}
 	victim = MvpBot.create(2, 1, registry.starter(), registry)
+	# Plain starter hull keeps the canonical hit geometry; only the combat state
+	# carries the armour pieces (a Sawblade loadout would add its rear-pack collider).
+	if victim != null:
+		victim.combat = CombatState.new(registry.validate(armoured).stats)
 	if attacker == null or victim == null:
 		push_error("Horizontal spinner must assemble from canonical catalogue")
 		get_tree().quit(1)
@@ -75,10 +83,10 @@ func run() -> void:
 	await reset_case(SIDE)
 	strike()
 	check(weapons.events.size() == 1, "Wide horizontal edge reaches a side-offset enemy")
-	check(is_equal_approx(victim.combat.zones.left, 50.0)
-		and is_equal_approx(victim.combat.core, 230.0),
-		"Full charge deals 40 raw: 40 left plate plus 30 core through standard armor")
-	check(attacker.combat.effective_damage == 70, "Damage credit matches actual plate/core loss")
+	check(is_equal_approx(victim.combat.zones.left, 20.0)
+		and is_equal_approx(victim.combat.core, 240.0),
+		"Full charge deals 40 raw to the intact left plate, which fully shields the core")
+	check(attacker.combat.effective_damage == 40, "Damage credit matches actual plate/core loss")
 	check(is_equal_approx(attacker.combat.charge, 0.4), "Registered hit consumes 60% charge")
 	if not weapons.events.is_empty():
 		var event: Dictionary = weapons.events[0]
@@ -88,7 +96,7 @@ func run() -> void:
 	await reset_case(Vector3(1.65, 10, -1.3) * BotScale.FACTOR)
 	strike()
 	check(is_equal_approx(victim.combat.zones.drive_left, 70.0)
-		and is_equal_approx(victim.combat.core, 250.0)
+		and is_equal_approx(victim.combat.core, 230.0)
 		and attacker.combat.effective_damage == 40,
 		"Drive-pod contact splits 40 raw into 30 component and 10 core damage")
 
@@ -107,17 +115,20 @@ func run() -> void:
 	check(weapons.events.is_empty(), "Below 25% charge cannot strike")
 	attacker.combat.charge = 0.25
 	strike()
-	check(weapons.events.size() == 1 and is_equal_approx(victim.combat.zones.left, 80.0)
-		and is_equal_approx(victim.combat.core, 252.5),
+	check(weapons.events.size() == 1 and is_equal_approx(victim.combat.zones.left, 50.0)
+		and is_equal_approx(victim.combat.core, 240.0),
 		"25% threshold deals exactly 10 raw damage")
 	var core_after := victim.combat.core
 	attacker.combat.charge = 1.0
 	strike(0.299)
 	check(weapons.events.is_empty() and victim.combat.core == core_after,
 		"Same-target cooldown lasts at least 0.3 seconds")
+	victim.combat.zones.left = 25.0
 	strike(0.002)
 	check(weapons.events.size() == 1 and victim.combat.core < core_after,
 		"Same-target contact can strike after cooldown expires")
+	check(is_equal_approx(victim.combat.zones.left, 0.0) and is_equal_approx(victim.combat.core, 225.0),
+		"40 raw strips a 25 HP left plate and overflows 15 into the core")
 
 	await reset_case(SIDE)
 	victim.team = attacker.team

@@ -1,9 +1,9 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 10
-const BUILD := "mvp-ab-24"
+const PROTOCOL := 11
+const BUILD := "mvp-ab-25"
 const SNAPSHOT_FIELDS := 40
-const ZONES := ["front", "rear", "left", "right", "drive_left", "drive_right", "weapon"]
+const ZONES := ["front", "rear", "left", "right", "top", "underside", "drive_left", "drive_right", "weapon"]
 
 static func snapshot_epoch(match_id: String, round_index: int) -> String:
 	return "%s:%d" % [match_id, round_index]
@@ -93,7 +93,7 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		zones[ZONES[index]] = values[8][index]
 	return {"epoch":values[0], "tick":values[1], "entity":values[2], "ack":values[3],
 		"pose":values[4], "velocity":values[5], "angular":values[6], "core":values[7], "zones":zones,
-		"core_max":stats.core, "plate_max":stats.plate_integrity, "weapon":stats.weapon,
+		"core_max":stats.core, "plate_max":stats.plates, "weapon":stats.weapon,
 		"overheated":values[9], "heat":values[10], "charge":values[11], "weapon_state":values[12], "cooldown":values[13],
 		"recovery_available":values[14], "recovery_remaining":values[15], "recovery_cooldown":values[16],
 		"immobilized_remaining":values[17], "eliminated":values[18], "elimination_reason":values[19], "failure":values[20],

@@ -1,7 +1,7 @@
 class_name CombatAudioStatus
 extends RefCounted
 ## Edges in accepted local state; this does not claim an attack is affordable.
-const PANELS := ["front", "rear", "left", "right"]
+const PANELS := ["front", "rear", "left", "right", "top", "underside"]
 const FAMILIES := ["vertical_spinner", "horizontal_spinner", "lifter", "saw", "hammer"]
 const STATES := [&"idle", &"active", &"launch", &"cooldown", &"disabled", &"overheated", &"strike", &"windup"]
 var _entity := 0

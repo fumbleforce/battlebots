@@ -13,12 +13,16 @@ func _ready() -> void:
 func settle() -> void:
 	for _frame in 5: await get_tree().process_frame
 
-func choose(slot: String, id: String) -> void:
+func open_category(slot: String) -> int:
 	screen.get_node("%TabParts").pressed.emit()
 	await settle()
-	var index := ContentRegistry.SLOTS.find(slot)
+	var index: int = profile.catalogue.parts.map(func(cat: Dictionary) -> String: return cat.slot).find(slot)
 	screen.get_node("%Categories").get_child(index).pressed.emit()
 	await settle()
+	return index
+
+func choose(slot: String, id: String) -> void:
+	var index: int = await open_category(slot)
 	var category: Dictionary = profile.catalogue.parts[index]
 	for item_index: int in category.items.size():
 		if category.items[item_index].id == id and screen.choice_tile("parts", index, item_index) != null:
@@ -26,6 +30,17 @@ func choose(slot: String, id: String) -> void:
 			await settle()
 			return
 	check(false, "Customize does not list part " + id)
+
+## Armour pieces are the PARTS > ARMOR section choices (module index per body area).
+func choose_armor(section: String, choice: int) -> void:
+	await open_category("armor")
+	var modules: Array = profile.catalogue.decals
+	for module: int in modules.size():
+		if modules[module].slot == section and screen.choice_tile("decals", module, choice) != null:
+			screen.choice_tile("decals", module, choice).pressed.emit()
+			await settle()
+			return
+	check(false, "Customize does not list armour %s %d" % [section, choice])
 
 func cell(grid: GridContainer, index: int) -> String:
 	return grid.get_child(index).text
@@ -51,33 +66,33 @@ func run() -> void:
 	await settle()
 	var panel: GarageComparisonPanel = screen.comparison_panel
 	check(profile.loadouts[0].parts.drive == "agile" and profile.can_undo(), "Clicking a choice immediately edits the draft")
-	check(cell(panel.budgets, 3) == "91", "Stats reflect the selected drive")
+	check(cell(panel.budgets, 3) == "79", "Stats reflect the selected drive")
 	check(cell(panel.details, 3) == "12", "Current speed uses the selected drive")
 	screen.undo_button.pressed.emit()
 	await settle()
-	check(profile.loadouts[0] == original and cell(panel.budgets, 3) == "101", "Undo restores the current build stats")
+	check(profile.loadouts[0] == original and cell(panel.budgets, 3) == "89", "Undo restores the current build stats")
 	for part: Array in [["drive", "walker"], ["weapon", "horizontal_spinner"], ["utility", "cooling_pack"]]:
 		await choose(part[0], part[1])
-	await choose("armor", "light")
-	check("heavy" not in screen._shown_items.map(func(index: int) -> String: return profile.catalogue.parts[ContentRegistry.SLOTS.find("armor")].items[index].id), "Customize omits armor that would exceed 120 kg")
-	# Saved builds can still be over budget; the panel must report them without derived stats.
-	var armor: Dictionary = profile.catalogue.parts[ContentRegistry.SLOTS.find("armor")]
-	for item: Dictionary in armor.items:
-		if item.id == "heavy": profile.equip("parts", armor, item)
-	await settle()
-	check(cell(panel.budgets, 3) == "123", "Over-budget draft immediately updates current mass")
+	await choose_armor("armor_front", 1)
+	await choose_armor("armor_rear", 1)
+	check(cell(panel.budgets, 3) == "116", "Armour pieces add their mass")
+	# Heavy side skirts push the build over budget; the panel must report it without derived stats.
+	await choose_armor("armor_side", 2)
+	check(cell(panel.budgets, 3) == "122", "Over-budget draft immediately updates current mass")
 	check(cell(panel.details, 1) == "—", "Invalid build has no invented derived stats")
 	check(screen.get_node("%SelDesc").text.contains("Mass exceeds 120 kg"), "Specific current build error is visible")
 	check(screen.get_node("%Save").disabled, "Invalid draft disables Save")
-	await choose("armor", "light")
+	await choose_armor("armor_side", 1)
 	await settle()
-	check(cell(panel.budgets, 3) == "108" and cell(panel.details, 1) == "260", "Repair choice restores valid current stats")
+	check(cell(panel.budgets, 3) == "116" and cell(panel.details, 1) == "240", "Repair choice restores valid current stats")
+	var armor_row: Array = range(panel.details.get_child_count()).filter(func(index: int) -> bool: return cell(panel.details, index) == "Armor HP (all pieces)")
+	check(armor_row.size() == 1 and cell(panel.details, armor_row[0] + 1) == "290", "Armor HP sums every fitted piece")
 	screen.get_node("%TabPaint").pressed.emit()
 	await settle()
 	screen.get_node("%Items").get_child(1).pressed.emit()
 	await settle()
 	check(panel.title.text == "CURRENT BUILD", "Stats show the current build")
-	check(cell(panel.budgets, 3) == "108", "Paint preserves stats")
+	check(cell(panel.budgets, 3) == "116", "Paint preserves stats")
 	check(profile.loadouts[0].cosmetics.paint != "cyan", "Selecting paint applies immediately")
 	await choose("chassis", "balanced")
 	await settle()

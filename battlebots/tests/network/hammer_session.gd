@@ -79,6 +79,15 @@ func run() -> void:
 	var draft := server.registry.duelist()
 	if not await require(server.registry.validate(draft).valid and draft.parts.weapon == "hammer", "Canonical Duelist hammer build is legal"):
 		return
+	# The host victim fits a 70 HP top guard: the first 38 raw blow is fully
+	# shielded, the second strips the remaining 32 HP and overflows 6 into the core.
+	var armoured := server.registry.starter()
+	var pieces := SawbladeConfig.defaults()
+	pieces.armor_top = 1
+	armoured.cosmetics = {"paint":"cyan", "sawblade":pieces}
+	server.set_loadout(armoured)
+	if not await require(server.players[server.local_entity].loadout.cosmetics.has("sawblade"), "Host victim fits the top guard"):
+		return
 	var client := make_session("HammerClient")
 	clients.append(client)
 	client.combat_event.connect(func(event: Dictionary) -> void: received_effects.append(event.duplicate(true)))
@@ -123,8 +132,9 @@ func run() -> void:
 	check(is_equal_approx(victim.combat.core, before), "Windup has not already damaged victim")
 	if not await require(await until(func() -> bool: return hit_count(attacker_id, victim_id) == 1, 120), "Committed first swing produces one authoritative hit"):
 		return
-	check(authority_effects.back().zone == "top" and is_equal_approx(victim.combat.core, before - 38.0 * 0.95),
-		"First overhead strike applies exactly 38 raw damage through the top multiplier")
+	check(authority_effects.back().zone == "top" and is_equal_approx(victim.combat.core, before)
+		and is_equal_approx(victim.combat.zones.top, 32.0),
+		"First overhead strike applies exactly 38 raw to the top guard, shielding the core")
 	# Continue holding beyond both the windup and full recovery. No synthesized
 	# edge or retry is allowed: this must remain the same one physical press.
 	await observe_recoil(client, attacker, victim_id, 150, "first strike")
@@ -146,8 +156,9 @@ func run() -> void:
 	if not await require(await until(func() -> bool: return hit_count(attacker_id, victim_id) == 2, 120), "Release and secondary do not cancel committed hammer swing"):
 		return
 	secondary = false
-	check(authority_effects.back().zone == "top" and is_equal_approx(victim.combat.core, after_first - 38.0 * 0.95),
-		"Second overhead strike applies exactly 38 raw damage through the top multiplier")
+	check(authority_effects.back().zone == "top" and is_equal_approx(victim.combat.core, after_first - 6.0)
+		and is_equal_approx(victim.combat.zones.top, 0.0),
+		"Second overhead strike strips the remaining 32 top HP and overflows 6 into the core")
 	await observe_recoil(client, attacker, victim_id, 120, "second strike")
 	check(attacker.combat.attack_id == 2 and hit_count(attacker_id, victim_id) == 2, "Exactly two accepted edges produce exactly two hits")
 	check(await until(func() -> bool:

@@ -64,6 +64,8 @@ func collect(model: Node3D) -> Dictionary:
 	return {"visible_equipped":visible,"hidden_unequipped":hidden,"largest_visible_meshes":top_meshes}
 func run() -> void:
 	var registry := ContentRegistry.new()
+	# Every armour piece can exceed 120 kg on the heaviest drives; the audit measures geometry, not budget.
+	registry.enforce_budget = false
 	var rows: Array[Dictionary] = []
 	for cosmetics: String in ["default","all_optional_modules"]:
 		for drive: String in DRIVES:

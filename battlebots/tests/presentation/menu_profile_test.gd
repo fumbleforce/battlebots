@@ -11,7 +11,7 @@ func run() -> void:
 	root.add_child(profile)
 	await process_frame
 	check(profile.bots.size() == profile.PRESET_COUNT and profile.active_loadout().parts.weapon == "saw" and SawbladeConfig.enabled(profile.active_loadout()),"Sawblade starter selected by default")
-	check(profile.bots[0].hp == 260 and profile.bots[0].stats["SPEED m/s"] == 8,"Canonical derived stats")
+	check(profile.bots[0].hp == 240 and profile.bots[0].stats["SPEED m/s"] == 8,"Canonical derived stats")
 	profile.active_bot = 2
 	check(profile.active_loadout().parts.weapon == "hammer" and profile.bots[2].name == "Duelist",
 		"Duelist is a selectable legal hammer starter")
@@ -31,12 +31,15 @@ func run() -> void:
 	profile.equip("parts",drive,drive.items[3])
 	var weapon: Dictionary = profile.catalogue.parts[2]
 	profile.equip("parts",weapon,weapon.items[1])
-	var armor: Dictionary = profile.catalogue.parts[3]
-	profile.equip("parts",armor,armor.items[2])
+	var armor := {}
+	for module: Dictionary in profile.catalogue.decals: armor[module.slot] = module
+	# Armouring every area with the heavy side skirts pushes this build over 120 kg.
+	for section: Array in [["armor_top",1],["armor_front",1],["armor_rear",1],["armor_side",2]]:
+		profile.equip("decals",armor[section[0]],armor[section[0]].items[section[1]])
 	check(profile.active_loadout().is_empty() and not profile.bots[profile.PRESET_COUNT].valid,"Overweight combination retained but cannot play")
 	check(profile.save_active("Overweight") == ERR_INVALID_DATA,"Invalid save rejected")
 	check(LoadoutStore.new(path).load_saved().loadouts[0].name == "Office Striker","Rejected save preserves disk")
-	profile.equip("parts",armor,armor.items[0])
+	profile.equip("decals",armor.armor_side,armor.armor_side.items[1])
 	check(not profile.active_loadout().is_empty(),"Build repair restores validity")
 	check(profile.save_active("Repaired") == OK,"Repaired build saves")
 	var detached: Dictionary = profile.active_loadout()

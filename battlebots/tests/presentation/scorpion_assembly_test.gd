@@ -28,7 +28,7 @@ func run() -> void:
 	var registry := ContentRegistry.new()
 	var draft := registry.scorpion()
 	check(registry.validate(draft).valid, "Complete hammer + minigun walker starter is canonical and legal")
-	check(registry.validate(draft).stats.mass == 118, "Both modules contribute installed mass")
+	check(registry.validate(draft).stats.mass == 106, "Both modules and default side covers contribute installed mass")
 	check(registry.validate(draft).stats.power == 95, "Both modules contribute installed power")
 	var invalid := draft.duplicate(true)
 	invalid.parts.drive = "traction"

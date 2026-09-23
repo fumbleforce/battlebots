@@ -48,7 +48,6 @@ func run() -> void:
 	var preview := GarageBotPreview.new()
 	add_child(preview)
 	draft.parts.chassis = "balanced"
-	draft.parts.armor = "light"
 	for drive: String in ["agile", "standard_wheels", "traction", "walker"]:
 		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
 			draft.parts.drive = drive

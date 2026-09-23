@@ -83,8 +83,9 @@ func run() -> void:
 		var rear_top: float = 1.57 * actual.combat.stats.size.z / 2.6 - actual.combat.stats.size.y * 0.5
 		check(label.global_position.y > actual.read_view().pose.origin.y + rear_top,
 			"Actual practice badge clears its enlarged authored rear pack")
-	target_bot.combat.damage("top", target_bot.combat.stats.core * 0.5 / 0.95)
-	local_bot.combat.damage("top", local_bot.combat.stats.core * 0.25 / 0.95)
+	# Neither build armours its top, so every point of a top hit reaches the core.
+	target_bot.combat.damage("top", target_bot.combat.stats.core * 0.5)
+	local_bot.combat.damage("top", local_bot.combat.stats.core * 0.25)
 	await frames()
 	check(is_equal_approx(target.read_view().core_fraction, 0.5), "Practice target damage reaches detached view")
 	check(is_equal_approx(local_bot.read_view().core_fraction, 0.75), "Local damage reaches detached view")

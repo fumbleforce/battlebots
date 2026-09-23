@@ -270,7 +270,7 @@ B's optional `cosmetics.sawblade` record has armor_side (0–2), armor_top/front
 RGBA channels in 0–1, alpha exactly 1). All nine keys are required when present.
 Weapon IDs remain saw/hammer/lifter; drive traction renders tracks, agile/standard
 render wheels, and new canonical `walker` supplies physical leg suspension and
-procedural IK. Walker requires this vehicle. Armor covers/exhaust are cosmetic.
+procedural IK. Walker requires this vehicle. Exhaust is cosmetic; armour covers are gameplay pieces since #46.
 Existing loadout schema 1 and command/view wire records are unchanged; catalogue
 hash changes separate old peers. Local revision-four saves migrate preserving
 parts/colors. A's hosted worker needs the matching updated catalogue/export.
@@ -533,7 +533,7 @@ B's existing mock inherits neutral defaults; its existing consumers need no edit
 `ContentRegistry.validate(draft) -> LoadoutValidation` returns `valid`, specific
 `reasons`, canonical `stats`, and a detached normalized `loadout`. `starter(false)`
 is Striker; `starter(true)` is Controller. Draft shape: `schema_version: 1`, `name`,
-`parts` (chassis/drive/weapon/armor/utility IDs), `cosmetics: {paint: id}`,
+`parts` (chassis/drive/weapon/utility IDs; schema 3 removed armor, see #46 below), `cosmetics: {paint: id}`,
 `content_hash: registry.content_hash`. All current parts fit their category socket;
 the implemented weapon IDs are `vertical_spinner`, `horizontal_spinner`, `lifter`,
 `hammer` and `saw`. `duelist()` adds the compact/agile/hammer/standard-armor/cooling-pack
@@ -967,3 +967,36 @@ stagger the victim's drive, steering and grip (`CombatWorld.STAGGER`,
 blows knock the target away and upward. Stagger is authority-only and not
 replicated. Needs a matching hosted server release before hosted play. Details and
 the presentation-only VFX live in `docs/coordination/B_IMPACT_FEEDBACK.md`.
+
+## Chassis core and per-area armour pieces (#46, 23 September 2026)
+
+Protocol 11, build `mvp-ab-25`, catalogue revision 15, loadout schema 3. Needs the
+matching hosted server release (automatic on the `main` push).
+
+- **Loadout schema 3.** `ContentRegistry.SLOTS` drops `armor`: `parts` holds
+  chassis/drive/weapon/utility/nitro/suspension. Armour packages (`light`,
+  `standard_armor`, `heavy`) are removed from the catalogue. `LoadoutStore.migrate`
+  upgrades known schema-2 saves (revision 13 and 14 hashes trusted) by erasing `parts.armor`.
+- **Armour pieces** are the `cosmetics.sawblade` module choices `armor_side`,
+  `armor_top`, `armor_front`, `armor_rear`, now gameplay. The server-owned catalogue
+  (`data/mvp_parts.json` `armor_faces` / `armor_pieces`) gives each choice its
+  `covers` faces, `integrity` (HP per covered face) and `mass`.
+  `ContentRegistry.armor_plates(draft)` / `armor_mass(draft)`; piece mass counts
+  toward the 120 kg budget. A draft without `cosmetics.sawblade` has no armour.
+  `exhaust` stays cosmetic.
+- **Stats.** `validate().stats.plates` maps front/rear/left/right/top/underside to
+  armour HP (0 = bare) and `stats.armor_total` sums it; `plate_integrity` and
+  `reduction` are removed. Chassis `core` scales with body size (Sawblade 240,
+  Scorpion 300, Atlas MX 380).
+- **Damage.** `CombatState` has one zone per face. A face hit is absorbed by that
+  face's armour up to its remaining HP; the excess and every hit on a bare face go
+  100% to the core. Drive/weapon routing is unchanged. `snapshot().plate_max` is the
+  plates dictionary.
+- **Wire.** `WireCodec.ZONES` adds `top` and `underside` (field count unchanged; the
+  zone array is longer). Decoded views take `plate_max` from local canonical stats.
+- **Views.** `MvpBot.read_view()` omits faces with no armour fitted, so `BotView.zones`
+  reports fitted armour plus drive/weapon components. `CombatHud` and
+  `CombatAudioStatus` treat all six faces as armour panels (0 = breached).
+- **Garage/Customize.** PARTS > ARMOR lists the per-area piece sections (no package
+  section). `GarageComparison.compare_armor()` previews a piece swap.
+  `BuildReadout` shows six area values with top/underside inside the core box.

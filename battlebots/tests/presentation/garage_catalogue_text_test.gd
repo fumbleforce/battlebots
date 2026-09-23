@@ -87,8 +87,10 @@ func run() -> void:
 	for label: Node in overview.readout.get_node("%Stats").find_children("*", "Label", true, false): summary += label.text.replace("\n", "  ") + "\n"
 	check(overview.readout.get_node("%CoolingValue").text == "15 heat/s" and "Battery" not in summary, "Canonical cooling replaces the removed battery stat")
 	check(overview.readout.get_node("%SpeedValue").text == "8 m/s", "Canonical max speed is displayed")
-	for side: String in ["Front", "Rear", "Left", "Right"]:
-		check(side + "  90" in summary, "Individual plate integrity: " + side)
+	# Default reference covers armour both sides; every other area is bare ("—").
+	var plates := {"Front": "—", "Rear": "—", "Left": "60", "Right": "60", "Top": "—", "Bottom": "—"}
+	for side: String in plates:
+		check(side + "  " + plates[side] in summary, "Individual armour piece HP: " + side)
 	overview.queue_free()
 	await get_tree().process_frame
 	profile.new_build()

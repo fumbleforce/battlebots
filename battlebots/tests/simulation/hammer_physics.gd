@@ -57,7 +57,17 @@ func run() -> void:
 	build.parts.chassis = "compact"
 	build.parts.weapon = "hammer"
 	attacker = MvpBot.create(1, 0, build, registry)
+	# Victim carries a 70 HP top machinery guard so the overhead blow exercises
+	# plate shielding and overflow into the core.
+	var armoured := registry.starter()
+	var pieces := SawbladeConfig.defaults()
+	pieces.armor_top = 1
+	armoured.cosmetics = {"paint":"cyan", "sawblade":pieces}
 	victim = MvpBot.create(2, 1, registry.starter(), registry)
+	# Plain starter hull keeps the canonical hit geometry; only the combat state
+	# carries the armour pieces (a Sawblade loadout would add its rear-pack collider).
+	if victim != null:
+		victim.combat = CombatState.new(registry.validate(armoured).stats)
 	if attacker == null or victim == null:
 		push_error("Hammer must assemble from the canonical catalogue")
 		get_tree().quit(1)
@@ -75,9 +85,10 @@ func run() -> void:
 	var armor_before := victim.combat.zones.duplicate()
 	resolve()
 	check(weapons.events.size() == 1, "Separated chassis still receive an overhead hammer strike")
-	check(is_equal_approx(victim.combat.core, 223.9) and victim.combat.zones == armor_before,
-		"Top contact applies 38 raw with 5% baseline reduction and leaves side armor/components intact")
-	check(attacker.combat.effective_damage == 36, "Hammer damage credit rounds effective core loss")
+	armor_before.top = 32.0
+	check(is_equal_approx(victim.combat.core, 240.0) and victim.combat.zones == armor_before,
+		"Top contact applies 38 raw to the intact top guard, shielding the core and leaving side armor/components intact")
+	check(attacker.combat.effective_damage == 38, "Hammer damage credit counts plate plus core loss")
 	if not weapons.events.is_empty():
 		var event: Dictionary = weapons.events[0]
 		check(event.zone == "top" and event.attack_id == 7 and event.attacker == 1
@@ -95,6 +106,8 @@ func run() -> void:
 	resolve()
 	check(weapons.events.size() == 1 and victim.combat.core < damaged,
 		"A distinct activation may strike the same target")
+	check(is_equal_approx(victim.combat.zones.top, 0.0) and is_equal_approx(victim.combat.core, 234.0),
+		"Second 38 raw strips the remaining 32 top HP and overflows 6 into the core")
 	await reset_case(Vector3(-0.7, 10, -2) * BotScale.FACTOR)
 	var second_target := MvpBot.create(3, 1, registry.starter(), registry)
 	add_child(second_target)

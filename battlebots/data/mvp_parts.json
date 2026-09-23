@@ -1,11 +1,11 @@
 {
-  "revision": 14,
+  "revision": 15,
   "parts": [
     {"id":"compact","category":"chassis","mass":25,"power":0,"core":220,"size":[3.6,1.5,4.5]},
-    {"id":"balanced","category":"chassis","mass":30,"power":0,"core":260,"size":[4.8,1.5,6.0]},
+    {"id":"balanced","category":"chassis","mass":30,"power":0,"core":240,"size":[4.8,1.5,6.0]},
     {"id":"wide","category":"chassis","mass":35,"power":0,"core":300,"size":[5.4,1.5,6.6]},
-    {"id":"scorpion_hex","category":"chassis","mass":30,"power":0,"core":280,"size":[4.8,1.5,6.0]},
-    {"id":"atlas_mx","category":"chassis","mass":30,"power":0,"core":280,"size":[7.02,1.5,7.8]},
+    {"id":"scorpion_hex","category":"chassis","mass":30,"power":0,"core":300,"size":[4.8,1.5,6.0]},
+    {"id":"atlas_mx","category":"chassis","mass":30,"power":0,"core":380,"size":[7.02,1.5,7.8]},
     {"id":"agile","category":"drive","mass":18,"power":25,"speed":12,"grip":7.5},
     {"id":"standard_wheels","category":"drive","mass":22,"power":25,"speed":10,"grip":9},
     {"id":"traction","category":"drive","mass":28,"power":30,"speed":8,"grip":11},
@@ -16,9 +16,6 @@
     {"id":"saw","category":"weapon","mass":20,"power":30},
     {"id":"lifter","category":"weapon","mass":22,"power":30},
     {"id":"minigun","category":"weapon","mass":24,"power":35},
-    {"id":"light","category":"armor","mass":10,"power":0,"reduction":0.1,"integrity":60},
-    {"id":"standard_armor","category":"armor","mass":18,"power":0,"reduction":0.25,"integrity":90},
-    {"id":"heavy","category":"armor","mass":25,"power":0,"reduction":0.4,"integrity":120},
     {"id":"recovery_assist","category":"utility","mass":5,"power":10},
     {"id":"cooling_pack","category":"utility","mass":6,"power":10},
     {"id":"minigun_pod","category":"utility","mass":14,"power":25},
@@ -35,5 +32,25 @@
     {"id":"nitro_boost","category":"nitro","mass":0,"power":0},
     {"id":"jump_off","category":"suspension","mass":0,"power":0},
     {"id":"charged_jump","category":"suspension","mass":0,"power":0}
-  ]
+  ],
+  "armor_faces": ["front", "rear", "left", "right", "top", "underside"],
+  "armor_pieces": {
+    "armor_side": [
+      {"name":"None", "covers":[], "integrity":0, "mass":0},
+      {"name":"Reference covers", "covers":["left", "right"], "integrity":60, "mass":6},
+      {"name":"Heavy skirts & fenders", "covers":["left", "right"], "integrity":110, "mass":12}
+    ],
+    "armor_top": [
+      {"name":"None", "covers":[], "integrity":0, "mass":0},
+      {"name":"Machinery guard", "covers":["top"], "integrity":70, "mass":5}
+    ],
+    "armor_front": [
+      {"name":"None", "covers":[], "integrity":0, "mass":0},
+      {"name":"Chin plate", "covers":["front"], "integrity":90, "mass":6}
+    ],
+    "armor_rear": [
+      {"name":"None", "covers":[], "integrity":0, "mass":0},
+      {"name":"Rear pack armor", "covers":["rear"], "integrity":80, "mass":6}
+    ]
+  }
 }

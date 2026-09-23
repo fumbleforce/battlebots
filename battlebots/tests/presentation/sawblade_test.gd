@@ -60,7 +60,8 @@ func run() -> void:
 	check(not preview.sawblade_visual.nodes.Module_drive_tracks.visible, "Wheels hide tracks")
 	var walking := draft.duplicate(true)
 	walking.parts.drive = "walker"
-	walking.parts.armor = "light"
+	walking.cosmetics.sawblade.armor_side = 1
+	check(registry.validate(walking).valid, "Walker build with lighter side armour is legal")
 	preview.show_loadout(walking)
 	preview.set_auto_rotate(true)
 	var assembly: Node3D = preview.model.get_parent()
@@ -117,7 +118,7 @@ func run() -> void:
 	get_window().content_scale_size = Vector2i(1920, 1080)
 	get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	add_child(screen)
-	screen._cat.parts = ContentRegistry.SLOTS.find("armor")
+	screen._cat.parts = profile.catalogue.parts.map(func(cat: Dictionary) -> String: return cat.slot).find("armor")
 	screen._refresh()
 	screen.apply_text_scale(1.5)
 	for frame: int in 4: await get_tree().process_frame

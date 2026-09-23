@@ -63,8 +63,9 @@ var _volley_timer := 0.0
 func _init(derived: Dictionary) -> void:
 	stats = derived.duplicate(true)
 	core = stats.core
-	for zone: String in ["front", "rear", "left", "right"]:
-		zones[zone] = stats.plate_integrity
+	# One zone per body face, holding the HP of the armour covering it (0 = bare).
+	for face: String in stats.plates:
+		zones[face] = float(stats.plates[face])
 	zones.merge({"drive_left":100.0, "drive_right":100.0, "weapon":140.0})
 
 ## A fresh hit extends and deepens an ongoing stagger; it never shortens it.
@@ -415,14 +416,14 @@ func damage(zone: String, raw: float) -> int:
 		return 0
 	var core_damage := 0.0
 	var component_damage := 0.0
-	if zone in ["front", "rear", "left", "right"]:
-		core_damage = raw * (1.0 - float(stats.reduction) if zones[zone] > 0 else 1.0)
+	if stats.plates.has(zone):
+		# Intact armour fully shields its face; only damage beyond its remaining
+		# HP reaches the core. A bare face passes every hit to the core.
 		component_damage = minf(zones[zone], raw)
+		core_damage = raw - component_damage
 	elif zone in ["drive_left", "drive_right", "weapon"]:
 		core_damage = raw * 0.25
 		component_damage = minf(zones[zone], raw * 0.75)
-	elif zone in ["top", "underside"]:
-		core_damage = raw * 0.95
 	else:
 		return 0
 	if zones.has(zone):
@@ -453,7 +454,7 @@ func eliminate(reason: String) -> void:
 
 func snapshot() -> Dictionary:
 	return {"core":core, "core_max":stats.core, "zones":zones.duplicate(),
-		"plate_max":stats.plate_integrity, "overheated":overheated,
+		"plate_max":stats.plates.duplicate(), "overheated":overheated,
 		"heat":heat, "charge":charge, "weapon":stats.weapon, "weapon_state":weapon_phase,
 		"secondary_charge":secondary_charge, "secondary_active":secondary_active,
 		"shot_sequence":shot_sequence, "last_shot_from":last_shot_from,

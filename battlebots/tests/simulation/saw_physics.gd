@@ -60,7 +60,17 @@ func run() -> void:
 	var build := registry.starter()
 	build.parts.weapon = "saw"
 	attacker = MvpBot.create(1, 0, build, registry)
+	# Victim carries the 80 HP rear pack armour so cadence hits exercise plate
+	# shielding; its top stays bare so top contact reaches the core directly.
+	var armoured := registry.starter()
+	var pieces := SawbladeConfig.defaults()
+	pieces.armor_rear = 1
+	armoured.cosmetics = {"paint":"cyan", "sawblade":pieces}
 	victim = MvpBot.create(2, 1, registry.starter(), registry)
+	# Plain starter hull keeps the canonical hit geometry; only the combat state
+	# carries the armour pieces (a Sawblade loadout would add its rear-pack collider).
+	if victim != null:
+		victim.combat = CombatState.new(registry.validate(armoured).stats)
 	if attacker == null or victim == null:
 		push_error("Saw must assemble from the canonical catalogue")
 		get_tree().quit(1)
@@ -75,32 +85,32 @@ func run() -> void:
 	bots = {1: attacker, 2: victim}
 
 	await reset_case()
-	check(resolve().is_empty() and victim.combat.core == 260.0, "First contact is not immediate damage")
+	check(resolve().is_empty() and victim.combat.core == 240.0, "First contact is not immediate damage")
 	check(resolve(18).is_empty(), "Nineteen contact ticks are shorter than one damage cadence")
 	var first := resolve()
-	check(first.size() == 1 and is_equal_approx(victim.combat.zones.rear, 84.0)
-		and is_equal_approx(victim.combat.core, 255.5),
-		"Twentieth contact tick deals exactly 6 raw to rear plate and 4.5 core through standard armor")
+	check(first.size() == 1 and is_equal_approx(victim.combat.zones.rear, 74.0)
+		and is_equal_approx(victim.combat.core, 240.0),
+		"Twentieth contact tick deals exactly 6 raw to the rear plate while it fully shields the core")
 	if not first.is_empty():
 		check(first[0].zone == "rear" and first[0].attacker == 1 and first[0].target == 2
 			and first[0].tick == tick and first[0].round == 4 and first[0].attack_id > 0,
 			"Cadence event identifies the actual zone, target, attack and server tick")
 	var next := resolve(40)
-	check(next.size() == 2 and is_equal_approx(victim.combat.zones.rear, 72.0)
-		and is_equal_approx(victim.combat.core, 246.5),
+	check(next.size() == 2 and is_equal_approx(victim.combat.zones.rear, 62.0)
+		and is_equal_approx(victim.combat.core, 240.0),
 		"One second of maintained contact yields three pulses and exactly 18 raw damage")
 	if first.size() == 1 and next.size() == 2:
 		check(first[0].attack_id != next[0].attack_id and next[0].attack_id != next[1].attack_id,
 			"Separate cadence impacts receive distinct deduplication identifiers")
 	await reset_case(Vector3(0.8, 10.1, -1.4) * BotScale.FACTOR)
 	check(resolve(20).size() == 1 and is_equal_approx(victim.combat.zones.drive_left, 95.5)
-		and is_equal_approx(victim.combat.core, 258.5),
+		and is_equal_approx(victim.combat.core, 238.5),
 		"Drive-pod contact routes 6 raw into 4.5 component and 1.5 core damage once")
 	await reset_case(Vector3(0, 9.6, -1.4) * BotScale.FACTOR)
 	var top := resolve(20)
-	check(top.size() == 1 and top[0].zone == "top" and is_equal_approx(victim.combat.core, 254.3)
-		and victim.combat.zones.rear == 90.0 and victim.combat.zones.weapon == 140.0,
-		"Blade contacting top applies baseline reduction without damaging unrelated zones")
+	check(top.size() == 1 and top[0].zone == "top" and is_equal_approx(victim.combat.core, 234.0)
+		and victim.combat.zones.rear == 80.0 and victim.combat.zones.weapon == 140.0,
+		"Blade contacting the bare top sends all 6 raw to the core without damaging unrelated zones")
 
 	await reset_case()
 	resolve(19)
@@ -115,7 +125,7 @@ func run() -> void:
 		passing_hits += resolve(10).size()
 		await place(victim, Vector3(0, 10, -5) * BotScale.FACTOR)
 		passing_hits += resolve().size()
-	check(passing_hits == 0 and victim.combat.core == 260,
+	check(passing_hits == 0 and victim.combat.core == 240,
 		"Repeated brief mobile contacts cannot accumulate into sustained-contact damage")
 	await reset_case()
 	resolve(19)

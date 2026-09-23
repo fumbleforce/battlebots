@@ -29,6 +29,7 @@ const PANEL := Color("151920")
 const AMBER := Color("f5b82e")
 const GOOD := Color("8fbf8f")
 const BAD := Color("f08375")
+const MUTED := Color("6f7883")
 const MASS_LIMIT := 120.0
 
 var preview: GarageBotPreview
@@ -108,7 +109,7 @@ func show_build(bot: Dictionary, draft: Dictionary) -> void:
 ## Shows target stats with each difference from base marked. Both are
 ## GarageComparison summaries; caption names the swap.
 func show_change(base: Dictionary, target: Dictionary, caption: String) -> void:
-	%ChangeCaption.visible = true
+	%ChangeBanner.visible = true
 	if not target.valid:
 		%ChangeCaption.text = caption + "  ·  " + "; ".join(target.reasons)
 		%ChangeCaption.add_theme_color_override("font_color", BAD)
@@ -124,12 +125,13 @@ func show_change(base: Dictionary, target: Dictionary, caption: String) -> void:
 	_mark(%MassDelta, before, after, "mass", true)
 	_mark(%SpeedDelta, before, after, "speed", false)
 	_mark(%CoolingDelta, before, after, "cooling", false)
-	_mark(%ArmorDelta, before, after, "plate_integrity", false)
+	_mark(%ArmorDelta, before, after, "armor_total", false)
+	if after.has("plates"): _show_armor(after.plates, before.get("plates", {}))
 
 
 ## Returns the strip to the displayed build without change marks.
 func clear_change() -> void:
-	%ChangeCaption.hide()
+	%ChangeBanner.hide()
 	for label: Label in [%CoreDelta, %MassDelta, %SpeedDelta, %CoolingDelta, %ArmorDelta]: label.hide()
 	if not _current.is_empty(): _show_values(_current)
 
@@ -148,13 +150,25 @@ func _show_values(stats: Dictionary) -> void:
 	%MassValue.add_theme_color_override("font_color", BAD if mass > MASS_LIMIT else Color("e9ebee"))
 	%SpeedValue.text = "%s m/s" % _n(stats.get("speed", 0))
 	%CoolingValue.text = "%s heat/s" % _n(stats.get("cooling", 0))
-	var plate := _n(stats.get("plate_integrity", 0))
-	%FrontArmor.text = "Front  " + plate
-	%RearArmor.text = "Rear  " + plate
-	%LeftArmor.text = "Left\n" + plate
-	%RightArmor.text = "Right\n" + plate
+	_show_armor(stats.get("plates", {}), {})
 	_tween_bar(%CoreBar, clampf(core / _max_core, 0.0, 1.0))
 	_tween_bar(%MassBar, minf(mass, MASS_LIMIT))
+
+
+## Armour HP per area; a bare area reads "—". Areas that differ from `before`
+## (a previewed or last swap) are tinted by whether they gained or lost armour.
+func _show_armor(plates: Dictionary, before: Dictionary) -> void:
+	var labels := {"front": [%FrontArmor, "Front  %s"], "rear": [%RearArmor, "Rear  %s"],
+		"left": [%LeftArmor, "Left\n%s"], "right": [%RightArmor, "Right\n%s"],
+		"top": [%TopArmor, "Top  %s"], "underside": [%BottomArmor, "Bottom  %s"]}
+	for face: String in labels:
+		var label: Label = labels[face][0]
+		var value := float(plates.get(face, 0.0))
+		label.text = labels[face][1] % (_n(value) if value > 0.0 else "—")
+		var color := Color("e9ebee") if value > 0.0 else MUTED
+		if before.has(face) and absf(value - float(before[face])) >= 0.5:
+			color = GOOD if value > float(before[face]) else BAD
+		label.add_theme_color_override("font_color", color)
 
 
 func _tween_bar(bar: ProgressBar, value: float) -> void:

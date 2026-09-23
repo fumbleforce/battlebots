@@ -50,17 +50,23 @@ func catalogue() -> void:
 	draft.parts.weapon = "horizontal_spinner"
 	var legal := registry.validate(draft)
 	check(legal.valid, "Balanced horizontal starter variant is legal")
-	near(legal.stats.mass, 105, "Horizontal starter mass")
+	near(legal.stats.mass, 87, "Horizontal starter mass")
 	near(legal.stats.power, 75, "Horizontal starter installed power")
 	draft.parts.chassis = "wide"
 	draft.parts.drive = "traction"
-	draft.parts.armor = "heavy"
 	draft.parts.utility = "cooling_pack"
+	var armour := SawbladeConfig.defaults()
+	armour.armor_side = 2
+	armour.armor_top = 1
+	armour.armor_front = 1
+	draft.cosmetics = {"paint":"cyan", "sawblade":armour}
 	var overweight := registry.validate(draft)
-	check(not overweight.valid and "Mass exceeds 120 kg" in overweight.reasons, "124kg horizontal build is rejected rather than clamped")
+	check(not overweight.valid and "Mass exceeds 120 kg" in overweight.reasons, "122kg horizontal build with heavy skirts is rejected rather than clamped")
 	draft.parts.utility = "recovery_assist"
 	draft.parts.chassis = "balanced"
-	check(registry.validate(draft).valid, "118kg horizontal heavy-armor build remains legal")
+	var heavy := registry.validate(draft)
+	check(heavy.valid, "116kg horizontal heavy-skirt build remains legal")
+	near(heavy.stats.mass, 116, "Heavy-skirt horizontal build includes 23kg of armour pieces")
 	check(registry.validate(registry.starter()).valid and registry.validate(registry.starter(true)).valid, "Both existing starter builds remain legal")
 
 func spinup_and_resources() -> void:

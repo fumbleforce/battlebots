@@ -41,7 +41,7 @@ func run() -> void:
 	world.reset_round()
 	await frames(60, false)
 	check(b.combat.core == b.combat.stats.core and b.combat.heat == 0 and not b.combat.overheated, "Round reset repairs/refills")
-	check(a.body.mass == 103 and b.body.mass == 108 and b.body.top_speed == 8, "Server assembly uses catalogue stats")
+	check(a.body.mass == 85 and b.body.mass == 90 and b.body.top_speed == 8, "Server assembly uses catalogue stats")
 	b.combat.eliminate("test")
 	world.step(1.0 / 60, true, 1)
 	check(b.body.collision_layer == 0 and b.body.freeze, "Wreck loses combat collision")

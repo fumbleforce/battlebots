@@ -53,7 +53,7 @@ func rules() -> void:
 		"A body without a gun socket drops the auxiliary gun and keeps a compatible drive")
 	check(pickups.swapped(gunner, "minigun").is_empty(), "A second minigun cannot share the gun socket")
 	var heavy := gunner.duplicate(true)
-	heavy.parts.armor = "heavy"
+	heavy.cosmetics.sawblade.merge({"armor_side":2, "armor_top":1, "armor_front":1, "armor_rear":1}, true)
 	heavy.parts.weapon = "horizontal_spinner"
 	check(not strict.validate(heavy).valid and pickups.registry.validate(heavy).valid,
 		"Pickups are a bonus above the build budget; lobby validation stays strict")
@@ -131,7 +131,11 @@ func world_swaps(arena_id: String) -> void:
 	world.arena_id = arena_id
 	root.add_child(world)
 	var registry := world.registry
-	var picker := world.spawn(1, 0, 0, registry.starter(), 1)
+	# The picker fits a front piece so plate wear can carry across swaps.
+	var armoured := registry.starter()
+	armoured.cosmetics = {"paint":"cyan", "sawblade":SawbladeConfig.defaults()}
+	armoured.cosmetics.sawblade.armor_front = 1
+	var picker := world.spawn(1, 0, 0, armoured, 1)
 	var rival := world.spawn(2, 1, 0, registry.starter(true), 1)
 	check(picker != null and rival != null, arena_id + " duel spawns")
 	world.begin_pickups(11)
@@ -169,7 +173,11 @@ func world_swaps(arena_id: String) -> void:
 		arena_id + " credit pickup tallies without touching the bot")
 
 	# Weapon swap: new node, fresh weapon, damage fractions and counters retained.
+	check(picker.combat.zones.front == 90.0 and picker.combat.zones.top == 0.0, arena_id + " picker fits its chosen pieces")
 	picker.combat.damage("front", 60.0)
+	picker.combat.damage("top", 24.0)
+	check(picker.combat.zones.front == 30.0 and picker.combat.core == picker.combat.stats.core - 24.0,
+		arena_id + " the front piece shields the core and a bare top does not")
 	picker.combat.zones.weapon = 0.0
 	picker.combat.effective_damage = 42
 	picker.combat.eliminations = 1
@@ -177,14 +185,14 @@ func world_swaps(arena_id: String) -> void:
 	picker.combat.overheated = true
 	picker.combat.heat = 80.0
 	var core_fraction: float = picker.combat.core / picker.combat.stats.core
-	var front_fraction: float = picker.combat.zones.front / picker.combat.stats.plate_integrity
+	var front_fraction: float = picker.combat.zones.front / picker.combat.stats.plates.front
 	force(world, "part", "hammer")
 	await step(world)
 	var armed: MvpBot = world.bots[1]
 	check(armed != picker, arena_id + " weapon swap rebuilds the bot")
 	check(armed.loadout.parts.weapon == "hammer" and armed.combat.stats.weapon == "hammer", arena_id + " picked weapon is installed")
 	check(is_equal_approx(armed.combat.core / armed.combat.stats.core, core_fraction), arena_id + " core fraction carries over")
-	check(is_equal_approx(armed.combat.zones.front / armed.combat.stats.plate_integrity, front_fraction), arena_id + " plate damage carries over")
+	check(is_equal_approx(armed.combat.zones.front / armed.combat.stats.plates.front, front_fraction), arena_id + " plate damage carries over")
 	check(armed.combat.zones.weapon == 140.0, arena_id + " the picked weapon arrives intact")
 	check(armed.combat.effective_damage == 42 and armed.combat.eliminations == 1 and armed.combat.recent_attackers.has(2),
 		arena_id + " score counters and attacker credit carry over")

@@ -1,9 +1,13 @@
 class_name ContentRegistry
 extends RefCounted
 ## Only this server-owned catalogue supplies gameplay stats and assembly dimensions.
-const SLOTS := ["chassis", "drive", "weapon", "armor", "utility", "nitro", "suspension"]
-const SCHEMA := 2
+const SLOTS := ["chassis", "drive", "weapon", "utility", "nitro", "suspension"]
+const SCHEMA := 3
 var parts: Dictionary = {}
+## Body faces an armour piece can cover, and the pieces per armour section
+## (keyed like SawbladeConfig.OPTIONS; the index is the saved module choice).
+var armor_faces: Array = []
+var armor_pieces: Dictionary = {}
 var content_hash: String = ""
 ## Match pickups are a bonus above the construction budget. Only the authority
 ## world sets this, on its own instance; lobby builds always use a strict registry.
@@ -16,13 +20,40 @@ func _init() -> void:
 	var data: Dictionary = JSON.parse_string(source)
 	for part: Dictionary in data.parts:
 		parts[part.id] = part
+	armor_faces = data.armor_faces
+	armor_pieces = data.armor_pieces
+
+## Armour HP per face for a draft's selected pieces; 0 means the face is bare
+## and hits there go straight to the core.
+func armor_plates(draft: Dictionary) -> Dictionary:
+	var plates := {}
+	for face: String in armor_faces: plates[face] = 0.0
+	for piece: Dictionary in _armor_selection(draft):
+		for face: String in piece.covers: plates[face] += float(piece.integrity)
+	return plates
+
+func armor_mass(draft: Dictionary) -> float:
+	var total := 0.0
+	for piece: Dictionary in _armor_selection(draft): total += float(piece.mass)
+	return total
+
+func _armor_selection(draft: Dictionary) -> Array[Dictionary]:
+	var selected: Array[Dictionary] = []
+	var cosmetics: Variant = draft.get("cosmetics")
+	var config: Variant = cosmetics.get("sawblade") if cosmetics is Dictionary else null
+	if not SawbladeConfig.valid(config): return selected
+	for section: String in armor_pieces:
+		var choices: Array = armor_pieces[section]
+		var index := int(config.get(section, 0))
+		if index >= 0 and index < choices.size(): selected.append(choices[index])
+	return selected
 
 func starter(controller := false) -> Dictionary:
 	return {"schema_version": SCHEMA, "name": "Controller" if controller else "Striker",
 		"parts": {"chassis": "wide" if controller else "balanced",
 		"drive": "traction" if controller else "standard_wheels",
 		"weapon": "lifter" if controller else "vertical_spinner",
-		"armor": "standard_armor", "utility": "recovery_assist",
+		"utility": "recovery_assist",
 		"nitro": "nitro_boost", "suspension": "charged_jump"},
 		"cosmetics": {"paint": "cyan"}, "content_hash": content_hash}
 
@@ -30,7 +61,7 @@ func duelist() -> Dictionary:
 	var draft := starter()
 	draft.name = "Duelist"
 	draft.parts = {"chassis":"balanced", "drive":"agile", "weapon":"hammer",
-		"armor":"standard_armor", "utility":"cooling_pack",
+		"utility":"cooling_pack",
 		"nitro":"nitro_boost", "suspension":"charged_jump"}
 	return draft
 
@@ -38,7 +69,7 @@ func scorpion() -> Dictionary:
 	var draft := starter()
 	draft.name = "SCORPION • HX-6"
 	draft.parts = {"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer",
-		"armor":"standard_armor", "utility":"minigun_pod",
+		"utility":"minigun_pod",
 		"nitro":"nitro_boost", "suspension":"charged_jump"}
 	draft.cosmetics = {"paint":"orange", "sawblade":SawbladeConfig.defaults()}
 	return draft
@@ -47,7 +78,7 @@ func atlas() -> Dictionary:
 	var draft := starter()
 	draft.name = "ATLAS MX"
 	draft.parts = {"chassis":"atlas_mx", "drive":"traction", "weapon":"lifter",
-		"armor":"standard_armor", "utility":"recovery_assist",
+		"utility":"recovery_assist",
 		"nitro":"nitro_boost", "suspension":"charged_jump"}
 	draft.cosmetics = {"paint":"orange", "sawblade":AtlasGeometry.paint_defaults()}
 	return draft
@@ -65,7 +96,6 @@ func atlas_showcase() -> Array[Dictionary]:
 	var fortress := atlas()
 	fortress.name = "ATLAS MX • FORTRESS"
 	fortress.parts.utility = "turret_cannon_quad"
-	fortress.parts.armor = "light"
 	var inferno := atlas()
 	inferno.name = "ATLAS MX • INFERNO"
 	inferno.parts.utility = "turret_flamer"
@@ -85,7 +115,7 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Name must contain 1–48 characters")
 	var selected: Variant = draft.get("parts")
 	if not selected is Dictionary or selected.size() != SLOTS.size():
-		result.reasons.append("Select one part for every chassis, drive, weapon, armor, utility, Nitro and suspension slot")
+		result.reasons.append("Select one part for every chassis, drive, weapon, utility, Nitro and suspension slot")
 		return result
 	var seen: Array = []
 	var mass := 0.0
@@ -101,6 +131,7 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		seen.append(id)
 		mass += float(part.mass)
 		power += float(part.power)
+	mass += armor_mass(draft)
 	if enforce_budget and mass > 120.0:
 		result.reasons.append("Mass exceeds 120 kg")
 	if enforce_budget and power > 100.0:
@@ -129,11 +160,13 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		return result
 	var chassis: Dictionary = parts[selected.chassis]
 	var drive: Dictionary = parts[selected.drive]
-	var armor: Dictionary = parts[selected.armor]
+	var plates := armor_plates(draft)
+	var armor_total := 0.0
+	for face: String in plates: armor_total += float(plates[face])
 	result.stats = {"mass": mass, "power": power, "core": float(chassis.core),
 		"size": Vector3(chassis.size[0], chassis.size[1], chassis.size[2]),
 		"speed": float(drive.speed), "grip": float(drive.grip),
-		"plate_integrity": float(armor.integrity), "reduction": float(armor.reduction),
+		"plates": plates, "armor_total": armor_total,
 		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.family(AtlasGeometry.TURRET_PARTS.get(selected.utility,
 			"minigun" if selected.utility == "minigun_pod" else "")),
 		"turret_model": AtlasGeometry.TURRET_PARTS.get(selected.utility, ""),

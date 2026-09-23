@@ -33,6 +33,7 @@ func reload() -> void:
 	_retained_drafts.clear()
 	_undo_history.clear()
 	_redo_history.clear()
+	_body_swaps.clear()
 	catalogue = MenuData.catalogue(registry)
 	var loaded := LoadoutStore.new(save_path).load_saved()
 	errors = loaded.errors
@@ -172,6 +173,12 @@ func new_build() -> void:
 
 func equipped_name(tab: String, cat: Dictionary) -> String:
 	var draft: Dictionary = loadouts[active_bot]
+	if tab == "parts" and cat.slot == "armor":
+		var covered: PackedStringArray = []
+		var plates := registry.armor_plates(draft)
+		for face: String in registry.armor_faces:
+			if float(plates[face]) > 0.0: covered.append(face.capitalize())
+		return "No armour · core exposed" if covered.is_empty() else " · ".join(covered)
 	if tab == "decals" or (tab == "paint" and cat.slot != "paint"):
 		if cat.slot == "model": return "Sawblade Tank" if SawbladeConfig.enabled(draft) else "Classic bot"
 		if not SawbladeConfig.enabled(draft): return "Choose Sawblade Tank"
@@ -234,10 +241,71 @@ func _with_part(source: Dictionary, slot: String, id: String) -> Dictionary:
 	if slot == "chassis": _ensure_body(draft)
 	return draft
 
+## Parts a body change replaced automatically, per build and per body left:
+## {build index: {chassis id: {slot: {"original": id, "replacement": id}}}}.
+var _body_swaps: Dictionary = {}
+
+## The active draft moved onto another body. Parts the new body cannot use are
+## swapped for compatible ones; parts this body lost to an earlier automatic swap
+## come back if they are still untouched. Returns {"draft", "swaps"} where swaps
+## maps each replaced slot to [old id, new id]. Nothing is recorded here.
+func fit_body(chassis: String) -> Dictionary:
+	var source: Dictionary = loadouts[active_bot]
+	var draft := _with_part(source, "chassis", chassis)
+	if draft.is_empty(): return {"draft": {}, "swaps": {}}
+	var swaps := {}
+	var remembered: Dictionary = _body_swaps.get(active_bot, {}).get(chassis, {})
+	for slot: String in remembered:
+		if draft.parts.get(slot) == remembered[slot].replacement:
+			swaps[slot] = [draft.parts[slot], remembered[slot].original]
+			draft.parts[slot] = remembered[slot].original
+	var reasons := registry.validate(draft).reasons.size()
+	# Greedily replace whichever part most reduces the remaining problems.
+	while reasons > 0:
+		var best := {}
+		for slot: String in ContentRegistry.SLOTS:
+			if slot == "chassis": continue
+			for cat: Dictionary in catalogue.get("parts", []):
+				if cat.slot != slot: continue
+				for item: Dictionary in cat.items:
+					if item.id == draft.parts.get(slot): continue
+					var trial := _with_part(draft, slot, item.id)
+					var remaining := registry.validate(trial).reasons.size()
+					if remaining < reasons and (best.is_empty() or remaining < best.remaining):
+						best = {"slot": slot, "id": item.id, "remaining": remaining}
+		if best.is_empty(): break
+		var previous: String = str(swaps[best.slot][0]) if swaps.has(best.slot) else str(draft.parts.get(best.slot, ""))
+		swaps[best.slot] = [previous, best.id]
+		draft.parts[best.slot] = best.id
+		reasons = best.remaining
+	return {"draft": draft, "swaps": swaps}
+
+## Display name of a part in Customize, e.g. "Tracks · Traction".
+func part_name(slot: String, id: String) -> String:
+	for cat: Dictionary in catalogue.get("parts", []):
+		if cat.slot != slot: continue
+		for item: Dictionary in cat.items:
+			if item.id == id: return item.name
+	return id.capitalize()
+
 func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 	if tab not in ["parts","paint","decals"]: return
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
-	if tab == "parts":
+	if tab == "parts" and cat.slot == "chassis":
+		var leaving: String = str(draft.get("parts", {}).get("chassis", ""))
+		var fitted := fit_body(item.id)
+		draft = fitted.draft
+		if draft.is_empty(): return
+		# Remember what the old body lost so switching back re-equips it.
+		var memory: Dictionary = _body_swaps.get(active_bot, {})
+		var lost := {}
+		for slot: String in fitted.swaps:
+			var pair: Array = fitted.swaps[slot]
+			if pair[0] != pair[1]: lost[slot] = {"original": pair[0], "replacement": pair[1]}
+		memory.erase(item.id)
+		if not leaving.is_empty() and leaving != item.id: memory[leaving] = lost
+		_body_swaps[active_bot] = memory
+	elif tab == "parts":
 		draft = _with_part(draft, cat.slot, item.id)
 		if draft.is_empty(): return
 	elif tab == "decals":
@@ -260,7 +328,8 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 		for channel: String in ["paint_primary", "paint_secondary"]:
 			draft.cosmetics.sawblade[channel] = [color.r, color.g, color.b, 1.0]
 
-	# Preserve invalid combinations for repair; never silently replace selected parts.
+	# Preserve invalid combinations for repair. Only a body change swaps other
+	# parts (visibly, and reversibly by switching back or Undo).
 	if not _record_edit(draft): return
 	loadouts[active_bot] = draft
 	errors = registry.validate(draft).reasons
@@ -348,7 +417,7 @@ func _refresh_bots() -> void:
 		var perk_labels: PackedStringArray = []
 		if parts.get("nitro") == "nitro_boost": perk_labels.append("Nitro · Shift")
 		if parts.get("suspension") == "charged_jump": perk_labels.append("Jump · Space")
-		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":" / ".join(perk_labels) if not perk_labels.is_empty() else "No perks equipped","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR %":int(float(stats.get("reduction",0))*100)}})
+		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":" / ".join(perk_labels) if not perk_labels.is_empty() else "No perks equipped","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":int(stats.get("speed",0)),"ARMOR HP":int(stats.get("armor_total",0))}})
 		bots[-1]["retained"] = _retained_drafts.has(index)
 		if _retained_drafts.has(index): bots[-1].cls = "UNSAVED COPY" + (" · REPAIR REQUIRED" if not validation.valid else "")
 

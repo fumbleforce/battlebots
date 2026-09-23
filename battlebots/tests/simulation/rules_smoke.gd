@@ -8,10 +8,21 @@ func _initialize() -> void:
 	var registry := ContentRegistry.new()
 	var stats := registry.validate(registry.starter()).stats
 	var bot := CombatState.new(stats)
-	check(bot.damage("front", 100) == 165 and bot.zones.front == 0 and bot.core == 185, "Armor reduction uses plate before impact")
-	check(bot.damage("front", 10) == 10 and bot.core == 175, "Broken plate loses reduction")
-	check(bot.damage("weapon", 40) == 40 and bot.zones.weapon == 110, "Exposed component 75/25 split")
-	check(bot.damage("top", 20) == 19, "Top protection")
+	check(bot.damage("front", 50) == 50 and bot.zones.front == 0 and bot.core == 190, "Bare face passes full damage to core")
+	var armoured := registry.starter()
+	armoured.cosmetics = {"paint":"cyan", "sawblade":SawbladeConfig.defaults()}
+	armoured.cosmetics.sawblade.armor_front = 1
+	var armoured_stats := registry.validate(armoured).stats
+	bot = CombatState.new(armoured_stats)
+	check(bot.zones.front == 90 and bot.zones.left == 60 and bot.zones.right == 60 and bot.zones.top == 0
+		and bot.zones.underside == 0 and bot.snapshot().plate_max == armoured_stats.plates, "Zones hold selected piece HP")
+	check(bot.damage("left", 40) == 40 and bot.zones.left == 20 and bot.core == 240, "Intact piece fully shields core")
+	check(bot.damage("front", 100) == 100 and bot.zones.front == 0 and bot.core == 230, "Overflow beyond piece HP reaches core")
+	check(bot.damage("front", 10) == 10 and bot.core == 220, "Broken piece leaves face bare")
+	check(bot.damage("weapon", 40) == 40 and bot.zones.weapon == 110 and bot.core == 210, "Exposed component 75/25 split")
+	check(bot.damage("top", 20) == 20 and bot.core == 190, "Unarmoured top passes full damage")
+	check(bot.damage("underside", 10) == 10 and bot.core == 180, "Underside has no piece")
+	check(bot.damage("bogus", 10) == 0 and bot.core == 180, "Unknown zone ignored")
 	bot.core = 1
 	check(bot.damage("top", 1000) == 1 and bot.eliminated, "Clamp overkill")
 	check(bot.damage("top", 1000) == 0, "Wreck takes no damage")

@@ -70,6 +70,11 @@ func run() -> void:
 		check(false, "Duel admission completes")
 		await finish()
 		return
+	# The default starter fits no armour; a chin plate gives the client a face that can breach.
+	var armoured: Dictionary = client.registry.starter()
+	armoured.cosmetics["sawblade"] = SawbladeConfig.defaults()
+	armoured.cosmetics.sawblade.armor_front = 1
+	client.set_loadout(armoured)
 	host.set_ready(true)
 	client.set_ready(true)
 	if not await until(func() -> bool: return client.match_view.get("phase") == "active" and render_received()):
@@ -85,8 +90,8 @@ func run() -> void:
 	check(markers.markers.is_empty(), "Missing local baseline suppresses rival classification too")
 	client._last_snapshot_tick[client.local_entity] = snapshot_tick
 	var detached: BotView = client.bot_views()[0]
-	detached.zones.front = -123.0
-	check(client.bot_views().all(func(view: BotView) -> bool: return view.zones.get("front") != -123.0), "Published bot views cannot mutate session health")
+	detached.zones.weapon = -123.0
+	check(client.bot_views().all(func(view: BotView) -> bool: return view.zones.get("weapon") != -123.0), "Published bot views cannot mutate session health")
 	var authority: MvpBot = host.world.bots[client.local_entity]
 	authority.combat.damage("top", 30.0)
 	authority.combat.zones.drive_left = 0.0

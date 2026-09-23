@@ -48,7 +48,7 @@ func catalogue() -> void:
 	var part: Dictionary = registry.parts.get("saw", {})
 	check(part.get("mass") == 20 and part.get("power") == 30 and part.get("category") == "weapon", "Saw uses specified mass, installed power and category")
 	var state := fresh()
-	near(state.stats.mass, 95, "Balanced saw build mass")
+	near(state.stats.mass, 77, "Balanced saw build mass (no armour pieces)")
 	near(state.stats.power, 65, "Balanced saw build installed power")
 	check(registry.validate(registry.starter()).valid and registry.validate(registry.starter(true)).valid and registry.validate(registry.duelist()).valid, "All existing canonical starters remain legal")
 

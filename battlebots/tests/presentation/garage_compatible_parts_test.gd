@@ -1,5 +1,6 @@
 extends SceneTree
-## Customize lists only parts that fit the current build; bodies keep selected parts.
+## Customize lists only parts that fit the current build; a body change swaps only
+## the parts it cannot use and restores them on switching back.
 var failures: Array[String] = []
 var profile: Node
 
@@ -9,9 +10,12 @@ func _initialize() -> void:
 func check(value: bool, message: String) -> void:
 	if not value: failures.append(message)
 
-func use(parts: Dictionary) -> void:
+func use(parts: Dictionary, armor := {}) -> void:
 	var draft: Dictionary = profile.registry.starter()
 	draft.parts.merge(parts, true)
+	if not armor.is_empty():
+		draft.cosmetics["sawblade"] = SawbladeConfig.defaults()
+		draft.cosmetics.sawblade.merge(armor, true)
 	profile.loadouts[0] = draft
 	profile.active_bot = 0
 
@@ -41,52 +45,57 @@ func run() -> void:
 	profile.save_path = "user://garage-compatible-parts-test-%d.json" % Time.get_ticks_usec()
 	profile.reload()
 
-	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "armor":"standard_armor", "utility":"recovery_assist"})
+	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"recovery_assist"})
 	check(not profile.part_fits("utility", "minigun_pod"), "Sawblade body hides the auxiliary minigun")
 	check(profile.part_fits("drive", "walker") and profile.part_fits("drive", "traction"), "Sawblade keeps every drive it can mount")
 	check(profile.part_fits("weapon", "minigun"), "Primary minigun fits without an auxiliary gun")
 
-	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "armor":"standard_armor", "utility":"minigun_pod"})
+	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "utility":"minigun_pod"})
 	check(profile.registry.validate(profile.loadouts[0]).valid, "Scorpion fixture is valid")
 	check(not profile.part_fits("drive", "traction") and not profile.part_fits("drive", "agile"), "Scorpion hides drives other than walking legs")
 	check(not profile.part_fits("weapon", "minigun"), "One minigun per gun socket")
 	check(profile.part_fits("weapon", "lifter"), "Scorpion keeps compatible primaries")
 
-	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "armor":"heavy", "utility":"recovery_assist"})
-	check(profile.registry.validate(profile.loadouts[0]).valid, "Heavy Scorpion fixture is valid at 116 kg")
+	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "utility":"recovery_assist"},
+		{"armor_side":2, "armor_front":1, "armor_rear":1})
+	check(profile.registry.validate(profile.loadouts[0]).valid, "Heavy Scorpion fixture is valid at 115 kg")
 	check(not profile.part_fits("weapon", "horizontal_spinner"), "Over-mass weapon is hidden")
 	check(not profile.part_fits("utility", "minigun_pod"), "Over-mass auxiliary is hidden")
 	check(profile.part_fits("utility", "cooling_pack"), "Utilities within budget remain")
 
-	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "armor":"standard_armor", "utility":"minigun_pod"})
+	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"minigun_pod"})
 	check(profile.part_fits("utility", "minigun_pod"), "Equipped invalid part remains listed for repair")
 	check(profile.part_fits("utility", "cooling_pack"), "Repairing choices remain listed on an invalid build")
 
-	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "armor":"standard_armor", "utility":"recovery_assist"})
+	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"recovery_assist"})
 	var before: Dictionary = profile.loadouts[0].duplicate(true)
+	check(profile.fit_body("scorpion_hex").swaps == {"drive": ["standard_wheels", "walker"]}, "Body preview names the automatic drive swap")
 	equip_part("chassis", "scorpion_hex")
 	var expected := before.duplicate(true)
 	expected.parts.chassis = "scorpion_hex"
+	expected.parts.drive = "walker"
 	expected.cosmetics["sawblade"] = SawbladeConfig.defaults()
-	check(profile.loadouts[0] == expected, "Body switch preserves every selected part")
-	check(profile.part_fits("drive", "standard_wheels") and profile.part_fits("drive", "walker"), "Equipped drive stays listed beside its repair")
-	check(not profile.part_fits("drive", "agile"), "Other unusable drives stay hidden after a body switch")
-	equip_part("drive", "walker")
-	check(profile.registry.validate(profile.loadouts[0]).valid, "Listed repair produces a valid build")
+	check(profile.loadouts[0] == expected, "Body switch swaps only the parts the new body cannot use")
+	check(profile.registry.validate(profile.loadouts[0]).valid, "Body switch leaves a valid build")
+	equip_part("chassis", "balanced")
+	check(profile.loadouts[0].parts == before.parts, "Switching back re-equips the original parts")
+	equip_part("chassis", "atlas_mx")
+	check(profile.loadouts[0].parts.drive == "traction", "Atlas swaps to its tracked drive")
+	equip_part("weapon", "saw")
+	equip_part("chassis", "balanced")
+	check(profile.loadouts[0].parts.drive == "standard_wheels" and profile.loadouts[0].parts.weapon == "saw", "Manual edits on another body survive switching back")
 
 	var screen: Control = load("res://ui/menus/screens/customize.tscn").instantiate()
 	root.add_child(screen)
 	for _frame in 5: await process_frame
-	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "armor":"standard_armor", "utility":"recovery_assist"})
+	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"recovery_assist"})
 	var utilities := shown_ids(screen, "utility")
 	check("minigun_pod" not in utilities and "recovery_assist" in utilities, "Customize omits the auxiliary minigun on Sawblade")
 	check(screen.get_node("%Items").get_child_count() == utilities.size(), "One tile per listed choice")
 	check(screen.get_node("%Count").text == "%d / %d available" % [utilities.size(), category("utility").items.size()], "Count reflects filtered choices")
 	check(shown_ids(screen, "chassis").size() == category("chassis").items.size(), "Every body stays selectable")
 	equip_part("chassis", "scorpion_hex")
-	check(shown_ids(screen, "drive") == ["standard_wheels", "walker"], "Scorpion lists the equipped drive and walking legs only")
-	equip_part("drive", "walker")
-	check(shown_ids(screen, "drive") == ["walker"], "Valid Scorpion lists only walking legs")
+	check(shown_ids(screen, "drive") == ["walker"], "Scorpion switches to and lists only walking legs")
 	check("minigun_pod" in shown_ids(screen, "utility"), "Scorpion lists the auxiliary minigun")
 	shown_ids(screen, "weapon")
 	for _frame in 6: await process_frame

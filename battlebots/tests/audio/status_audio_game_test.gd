@@ -36,10 +36,11 @@ func run() -> void:
 	await frames(2)
 	check(cues.count("weapon_ready") == 1 and game._audio_caption.text == "Spinner at full speed", "Real spin-up reaches composed status audio and caption")
 	var bot: MvpBot = game.session.local_source()
-	bot.combat.damage("front", bot.combat.zones.front)
+	# The practice build fits side armour only; unarmoured faces have nothing to breach.
+	bot.combat.damage("left", bot.combat.zones.left)
 	await frames(4)
 	check(not bot.combat.eliminated and cues.count("armor_break") == 1, "Authoritative armor depletion plays one breach cue")
-	check(game._audio_caption.text.to_lower().contains("front") and game.continuous_audio._arena.volume_db < game.continuous_audio.ARENA_DB,
+	check(game._audio_caption.text.to_lower().contains("left") and game.continuous_audio._arena.volume_db < game.continuous_audio.ARENA_DB,
 		"Breach caption reaches actual HUD and ducks arena")
 	game.preview.set_physics_process(true)
 	game.restart_practice()

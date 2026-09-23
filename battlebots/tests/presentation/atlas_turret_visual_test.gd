@@ -15,7 +15,6 @@ func check(ok: bool, message: String) -> void:
 func build(kind: String) -> Dictionary:
 	var draft := registry.atlas()
 	draft.parts.utility = "turret_" + kind
-	if kind.ends_with("_quad"): draft.parts.armor = "light"
 	return draft
 
 func view_for(yaw: float, pitch: float, sequence := 0, tick := 10) -> BotView:

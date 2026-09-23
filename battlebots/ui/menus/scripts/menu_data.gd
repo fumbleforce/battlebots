@@ -24,6 +24,16 @@ const ARENAS := [
 	{"name":"WOODLAND","sub":"Forest stadium · Giant scale","size":"240 m ACROSS · 9.8 m/s²","image":preload("res://ui/menus/art/arena_woodland.jpg"),"art":"WOODLAND","hazards":["Central cliff mesa, rock terraces and outcrops","Jump ramps, bunkers, pine groves and log cover","Rutted mud, timber palisade and roaring crowd"],"enabled":true}
 ]
 
+static func _armor_description(registry: ContentRegistry, section: String, index: int) -> String:
+	if not registry.armor_pieces.has(section): return "Body appearance only; no performance effect."
+	var piece: Dictionary = registry.armor_pieces[section][index]
+	var faces := " and ".join(PackedStringArray(piece.covers))
+	if piece.covers.is_empty():
+		return "No armour here: hits on this area go straight to the core."
+	return "Covers %s · %s HP%s · %s kg. While it has HP it fully shields %s from core damage." % [
+		faces, fmt_int(roundi(piece.integrity)), " each" if piece.covers.size() > 1 else "",
+		fmt_int(roundi(piece.mass)), "those areas" if piece.covers.size() > 1 else "that area"]
+
 static func catalogue(registry: ContentRegistry) -> Dictionary:
 	var categories: Array = []
 	for slot: String in ContentRegistry.SLOTS:
@@ -36,6 +46,8 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		if slot == "utility": categories.back().label = "AUXILIARY / UTILITY"
 		if slot == "nitro": categories.back().label = "NITRO PERK"
 		if slot == "suspension": categories.back().label = "SUSPENSION PERK"
+		# Armour is chosen per area in the ARMOR sections, not as one package part.
+		if slot == "weapon": categories.append({"label":"ARMOR","slot":"armor","items":[]})
 	var paints: Array = []
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 	for id: String in colors:
@@ -56,7 +68,7 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		var choices: Array = []
 		for index: int in SawbladeConfig.OPTIONS[slot].size():
 			choices.append({"id":str(index),"name":SawbladeConfig.OPTIONS[slot][index],"default":"own",
-				"desc":"Modular body appearance. Armor protection and weight come from PARTS > ARMOR; exhaust has no performance effect."})
+				"desc":_armor_description(registry, slot, index)})
 		vehicle.append({"label":slot.replace("_", " ").to_upper(),"slot":slot,"items":choices})
 	for category: Dictionary in categories:
 		for item: Dictionary in category.items:

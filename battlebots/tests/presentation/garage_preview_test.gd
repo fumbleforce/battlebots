@@ -99,7 +99,8 @@ func run() -> void:
 	check(preview.model == null and not preview.status.text.is_empty(), "Malformed draft clears stale geometry and explains failure")
 	var overweight := registry.starter(true)
 	overweight.parts.weapon = "horizontal_spinner"
-	overweight.parts.armor = "heavy"
+	overweight.cosmetics["sawblade"] = SawbladeConfig.defaults()
+	overweight.cosmetics.sawblade.merge({"armor_side": 2, "armor_top": 1, "armor_front": 1, "armor_rear": 1}, true)
 	overweight.parts.utility = "cooling_pack"
 	preview.show_loadout(overweight)
 	check(preview.model == null and not preview.status.text.is_empty(), "Overweight draft is explicitly invalid, without stale geometry")

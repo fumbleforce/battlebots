@@ -33,9 +33,10 @@ func run() -> void:
 	check(game.match_hud.phase_label.text == "PRACTICE" and not game.practice_hud.visible and not game._diagnostics_canvas.visible, "Practice has no fabricated duel rival")
 	var bot: MvpBot = game.session.local_source()
 	bot.combat.core = bot.combat.stats.core * 0.2
-	bot.combat.zones.front = 0.0
+	# The Sawblade starter fits only side armour; a depleted fitted piece reads BREACHED.
+	bot.combat.zones.left = 0.0
 	await frames()
-	check(game.combat_hud.warning_label.text == "CORE CRITICAL" and game.combat_hud.components.front.text.contains("BREACHED"), "Actual bot state reaches visible HUD")
+	check(game.combat_hud.warning_label.text == "CORE CRITICAL" and game.combat_hud.components.left.text.contains("BREACHED"), "Actual bot state reaches visible HUD")
 	for resolution: Vector2i in [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(3840, 2160)]:
 		root.size = resolution
 		await frames(12)

@@ -382,6 +382,11 @@ func read_view() -> BotView:
 	view.weapon_charge_fraction = data.charge
 	view.weapon_state = data.weapon_state
 	view.zones = data.zones.duplicate()
+	# Areas without an armour piece have nothing to breach; views report fitted armour only.
+	var fitted: Variant = data.get("plate_max")
+	if fitted is Dictionary:
+		for face: String in fitted:
+			if float(fitted[face]) <= 0.0: view.zones.erase(face)
 	view.weapon_cooldown = data.cooldown
 	view.recovery_cooldown = data.recovery_cooldown
 	view.immobilized_remaining = data.immobilized_remaining

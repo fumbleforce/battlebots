@@ -18,6 +18,7 @@ const REVISION_TEN_HASHES := ["623a35b272a0d70feb57b7d4f0d0f298234b9608ab7ac4414
 const REVISION_ELEVEN_HASHES := ["9c24100bd8b1aa480137e9ab061d9190c6c75b4462b9456d2e32935c9f116751"]
 const REVISION_TWELVE_HASHES := ["cd9c94bd3563c9949e17f010423e0f970a288c54ac1ec6c2bf2298589ff0e909"]
 const REVISION_THIRTEEN_HASHES := ["2f4bd927fc477b386209b8b571de8416c2d8fd92506e45887e9cb54fbb396d43"]
+const REVISION_FOURTEEN_HASHES := ["243e5508261cbfc210967638b9466614665689bf85ed82bc0897ebc5f827cb73"]
 const MAX_SAVE_BYTES := 65536
 var registry := ContentRegistry.new()
 var path: String
@@ -226,16 +227,21 @@ func migrate(data: Dictionary) -> Dictionary:
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES + REVISION_ELEVEN_HASHES + REVISION_TWELVE_HASHES + REVISION_THIRTEEN_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES + REVISION_ELEVEN_HASHES + REVISION_TWELVE_HASHES + REVISION_THIRTEEN_HASHES + REVISION_FOURTEEN_HASHES:
 				continue
 			# Known catalogues preserve part IDs, names and cosmetics while adopting
 			# current canonical dimensions/handling. No arbitrary old hash is trusted.
 			# Upgrade known compatible saves locally, never loosen network checks.
 			var upgraded: Dictionary = draft.duplicate(true)
 			if upgraded.get("schema_version") == 1 and upgraded.get("parts") is Dictionary and upgraded.parts.size() == 5:
-				upgraded.schema_version = ContentRegistry.SCHEMA
+				upgraded.schema_version = 2
 				upgraded.parts["nitro"] = "nitro_off"
 				upgraded.parts["suspension"] = "jump_off"
+			# Schema 3 retires armour packages: protection comes from the chosen
+			# armour pieces, which the saved module choices already record.
+			if upgraded.get("schema_version") == 2 and upgraded.get("parts") is Dictionary:
+				upgraded.parts.erase("armor")
+				upgraded.schema_version = ContentRegistry.SCHEMA
 			# The retired resource utility becomes the heat-only cooling utility.
 			if upgraded.get("parts") is Dictionary and upgraded.parts.get("utility") == "battery_pack":
 				upgraded.parts.utility = "cooling_pack"

@@ -42,10 +42,6 @@ var _scroll_key := ""
 var _tiles: Dictionary = {}
 ## Selected build: status, name, live preview and stat strip.
 @onready var readout: BuildReadout = $Layout/Body/Row/Preview
-## Part swap about to be equipped: the build summary before it and its caption.
-var _pending_swap: Dictionary = {}
-## Last equipped part swap, shown while the draft still matches its result.
-var _last_swap: Dictionary = {}
 
 func apply_text_scale(factor: float) -> void:
 	_pagination_frames = 4
@@ -123,8 +119,11 @@ func _ready() -> void:
 	%Items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	options.get_node("Line").hide()
 	%SelName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	%CatLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Wrap only between words: a heading never splits mid-word.
+	%CatLabel.autowrap_mode = TextServer.AUTOWRAP_WORD
 	%CatLabel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# The heading takes all the width beside the count.
+	%CatLabel.get_parent().get_node("Spacer").hide()
 	%Eyebrow.hide()
 	%Eyebrow.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	%Eyebrow.get_parent().size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -287,12 +286,6 @@ func _refresh() -> void:
 	var current: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
 	var loadout: Dictionary = PlayerProfile.loadouts[PlayerProfile.active_bot]
 	readout.show_build(current, loadout)
-	if not _pending_swap.is_empty():
-		_last_swap = _pending_swap
-		_last_swap.target = GarageComparison.current(PlayerProfile.registry, loadout)
-		_last_swap.loadout = loadout.duplicate(true)
-		_pending_swap = {}
-	_show_last_swap()
 	if not name_edit.has_focus(): name_edit.text = current.name
 	undo_button.disabled = not PlayerProfile.can_undo()
 	redo_button.disabled = not PlayerProfile.can_redo()
@@ -364,16 +357,13 @@ func _refresh() -> void:
 				_detail_key = group_key
 				_refocus = "item"
 				if PlayerProfile.item_state(group_tab, group_cat, it) == "own":
-					if group_tab == "parts": _pending_swap = _swap("CHANGED", group_cat, it)
 					PlayerProfile.equip(group_tab, group_cat, it)
 				else:
 					_refresh())
-			if group_tab == "parts":
-				# Hovering or focusing another part previews how it would move the build.
-				for entered: Signal in [tile.mouse_entered, tile.focus_entered]:
-					entered.connect(_preview_swap.bind(group_cat, it))
-				for exited: Signal in [tile.mouse_exited, tile.focus_exited]:
-					exited.connect(_show_last_swap)
+			if _affects_stats(group_tab, group_cat):
+				# Only while the mouse is over another part: preview how it would move the build.
+				tile.mouse_entered.connect(_preview_swap.bind(group_tab, group_cat, it))
+				tile.mouse_exited.connect(readout.clear_change)
 			if _refocus == "item" and described:
 				_focus_control.call_deferred(tile)
 	_refocus = ""
@@ -392,41 +382,46 @@ func _refresh() -> void:
 
 
 ## Swap summary for equipping a part: the build before it and "old → new".
-func _swap(verb: String, cat: Dictionary, item: Dictionary) -> Dictionary:
+func _swap(verb: String, tab: String, cat: Dictionary, item: Dictionary) -> Dictionary:
 	var loadout: Dictionary = PlayerProfile.loadouts[PlayerProfile.active_bot]
-	var comparison := GarageComparison.compare(PlayerProfile.registry, loadout, cat.slot, item.id)
-	return {"base": comparison.current, "target": comparison.proposed,
-		"caption": "%s %s · %s → %s" % [verb, cat.label, PlayerProfile.equipped_name("parts", cat), item.name]}
+	var registry: ContentRegistry = PlayerProfile.registry
+	var caption := "%s %s · %s → %s" % [verb, cat.label, PlayerProfile.equipped_name(tab, cat), item.name]
+	if tab == "parts" and cat.slot == "chassis":
+		# A body change also swaps parts the new body cannot use; show that result.
+		var fitted: Dictionary = PlayerProfile.fit_body(item.id)
+		for slot: String in fitted.swaps:
+			var pair: Array = fitted.swaps[slot]
+			caption += "\n%s %s → %s" % [slot.to_upper(), PlayerProfile.part_name(slot, pair[0]), PlayerProfile.part_name(slot, pair[1])]
+		return {"base": GarageComparison.current(registry, loadout),
+			"target": GarageComparison.current(registry, fitted.draft), "caption": caption}
+	var comparison := GarageComparison.compare_armor(registry, loadout, cat.slot, int(item.id)) if tab == "decals" \
+		else GarageComparison.compare(registry, loadout, cat.slot, item.id)
+	return {"base": comparison.current, "target": comparison.proposed, "caption": caption}
 
 
-func _preview_swap(cat: Dictionary, item: Dictionary) -> void:
-	if not is_inside_tree() or PlayerProfile.item_state("parts", cat, item) == "eq":
-		_show_last_swap()
+## Parts and armour pieces change stats; paint and exhaust choices do not.
+func _affects_stats(tab: String, cat: Dictionary) -> bool:
+	return tab == "parts" or (tab == "decals" and PlayerProfile.registry.armor_pieces.has(cat.slot))
+
+
+func _preview_swap(tab: String, cat: Dictionary, item: Dictionary) -> void:
+	if not is_inside_tree() or PlayerProfile.item_state(tab, cat, item) == "eq":
+		readout.clear_change()
 		return
-	var swap := _swap("PREVIEW", cat, item)
+	var swap := _swap("PREVIEW", tab, cat, item)
 	readout.show_change(swap.base, swap.target, swap.caption)
 
 
-## Marks the last equipped swap while the draft is still its result.
-func _show_last_swap() -> void:
-	if not is_instance_valid(readout): return
-	var loadout: Dictionary = PlayerProfile.loadouts[PlayerProfile.active_bot]
-	if not _last_swap.is_empty() and _last_swap.loadout == loadout:
-		readout.show_change(_last_swap.base, _last_swap.target, _last_swap.caption)
-	else:
-		readout.clear_change()
-
-
-## Right-panel choice groups for the selected category. PARTS > ARMOR follows its
-## armor package choices with one headed section per vehicle module category.
+## Right-panel choice groups for the selected category. PARTS > ARMOR lists one
+## headed section per body area (then the cosmetic exhaust) instead of parts.
 func _choice_groups(cat: Dictionary, ci: int) -> Array[Dictionary]:
-	var groups: Array[Dictionary] = [{"tab": _tab, "index": ci, "cat": cat, "heading": ""}]
 	if _tab == "parts" and cat.slot == "armor":
-		groups[0].heading = "ARMOR PACKAGE"
+		var groups: Array[Dictionary] = []
 		var modules: Array = PlayerProfile.catalogue.decals
 		for index: int in modules.size():
 			groups.append({"tab": "decals", "index": index, "cat": modules[index], "heading": modules[index].label})
-	return groups
+		return groups
+	return [{"tab": _tab, "index": ci, "cat": cat, "heading": ""}]
 
 
 func _group_items(tab: String, cat: Dictionary) -> Array[int]:
@@ -440,7 +435,7 @@ func _group_items(tab: String, cat: Dictionary) -> Array[int]:
 
 
 func _selected_item(group_key: String, tab: String, cat: Dictionary, items: Array[int]) -> int:
-	var selected: int = _item.get(group_key, 0)
+	var selected: int = _item.get(group_key, -1)
 	if selected in items: return selected
 	selected = items.front()
 	for i: int in items:

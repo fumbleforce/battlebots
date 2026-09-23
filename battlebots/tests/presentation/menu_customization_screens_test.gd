@@ -18,7 +18,7 @@ func run() -> void:
 		if name == "garage":
 			check(screen.build_preview.model != null, "Garage shows live selected build")
 			check(screen.readout.get_node("%BotName").text == profile.bots[profile.active_bot].name,"Garage displays the selected build")
-			check(screen.readout.get_node("%BotHp").text == "260 core HP","Garage core HP")
+			check(screen.readout.get_node("%BotHp").text == "240 core HP","Garage core HP")
 		if name == "customize":
 			check(screen.get_node_or_null("%ShopLink") == null, "Customize has no catalogue link")
 			var yaw: float = screen.build_preview.yaw
@@ -39,19 +39,21 @@ func run() -> void:
 			var painted_model: Node3D = screen.build_preview.model
 			profile.undo_edit()
 			check(profile.loadouts[profile.active_bot].cosmetics.sawblade.paint_primary == original_color and screen.build_preview.model != painted_model, "Undo restores authored preview paint")
-			check(screen.get_node("%Categories").get_child_count() == ContentRegistry.SLOTS.size(),"Every canonical category is available")
+			check(screen.get_node("%Categories").get_child_count() == profile.catalogue.parts.size(),"Every canonical category is available")
 			screen._set_tab("paint")
 			check(screen.get_node("%Items").get_child_count() == 4,"Four canonical paints")
 			screen._set_tab("parts")
 			check(not screen.get_node("%TabDecals").visible and "decals" not in screen.TABS, "Vehicle modules no longer have their own tab")
-			var armor := ContentRegistry.SLOTS.find("armor")
+			var armor: int = profile.catalogue.parts.map(func(cat: Dictionary) -> String: return cat.slot).find("armor")
+			check(armor >= 0 and profile.catalogue.parts[armor].items.is_empty(), "Armor has no package parts")
+			check(profile.equipped_name("parts", profile.catalogue.parts[armor]) == "Left · Right", "Armor row summarises the covered faces")
 			screen.get_node("%Categories").get_child(armor).pressed.emit()
 			var headings: Array = []
 			for child: Node in screen.get_node("%Items").get_children():
 				if child is Label: headings.append(child.text)
-			var expected_headings: Array = ["ARMOR PACKAGE"]
+			var expected_headings: Array = []
 			for module: Dictionary in profile.catalogue.decals: expected_headings.append(module.label)
-			check(headings == expected_headings, "Armor lists its package then one section per vehicle module: " + str(headings))
+			check(headings == expected_headings, "Armor lists one section per vehicle module: " + str(headings))
 			check(screen.get_node("%Items").get_child_count() % 2 == 0 and screen.get_node("%Items").get_child(0) is Label, "Every armor section starts on its own row")
 			var side: Dictionary = profile.catalogue.decals[0]
 			var cover: Control = screen.choice_tile("decals", 0, 2)

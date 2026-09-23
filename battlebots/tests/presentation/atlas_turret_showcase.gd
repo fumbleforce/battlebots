@@ -70,7 +70,6 @@ func review(kind: String) -> void:
 	add_child(session)
 	var draft: Dictionary = session.registry.atlas()
 	draft.parts.utility = "turret_" + kind
-	if kind.ends_with("_quad"): draft.parts.armor = "light"
 	check(session.practice(draft, "foundry") == OK, "Practice starts with the %s turret" % kind)
 	# Wait for the practice round to go live (loading can be slow under load).
 	for frame: int in 900:
