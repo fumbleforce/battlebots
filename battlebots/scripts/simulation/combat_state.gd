@@ -411,7 +411,9 @@ func mobility(delta: float, wheel_contact: bool, upside_down: bool, self_driven_
 	else:
 		driven_distance = 0
 
-func damage(zone: String, raw: float) -> int:
+## armour_share is the part of a hit an intact plate may stop; the rest always
+## reaches the core (wall pins crush through armour).
+func damage(zone: String, raw: float, armour_share := 1.0) -> int:
 	if eliminated or not is_finite(raw) or raw <= 0:
 		return 0
 	var core_damage := 0.0
@@ -419,7 +421,7 @@ func damage(zone: String, raw: float) -> int:
 	if stats.plates.has(zone):
 		# Intact armour fully shields its face; only damage beyond its remaining
 		# HP reaches the core. A bare face passes every hit to the core.
-		component_damage = minf(zones[zone], raw)
+		component_damage = minf(zones[zone], raw * clampf(armour_share, 0.0, 1.0))
 		core_damage = raw - component_damage
 	elif zone in ["drive_left", "drive_right", "weapon"]:
 		core_damage = raw * 0.25

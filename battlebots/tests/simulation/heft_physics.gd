@@ -148,8 +148,8 @@ func ram_rebound() -> void:
 	print("Ram separation velocity dot: ", separating)
 	check(rammed and separating < 0.0, "Heavy rams rebound the hulls apart")
 
-## A bot rammed into a wall on a bare face takes a crushing hit; armour on the
-## struck face (the victim's rear here) or open space behind the victim prevents it.
+## A bot rammed into a wall takes a crushing hit; armour on the struck face (the
+## victim's rear here) only slightly reduces it, and open space behind prevents it.
 func wall_pin(armoured: bool, walled := true) -> void:
 	world.clear_bots()
 	await frames(2)
@@ -186,8 +186,11 @@ func wall_pin(armoured: bool, walled := true) -> void:
 					pin_damage += int(event.damage)
 	print("Wall pin (armoured=%s, walled=%s): ram damage %d, pin damage %d, core %.0f -> %.0f" % [armoured, walled, ram_damage, pin_damage, core_before, b.combat.core])
 	check(ram_damage > 0, "The rammer reaches the victim at ram speed")
-	if armoured or not walled:
-		check(pin_damage == 0, "Armour on the struck face or no wall prevents the wall pin")
+	if not walled:
+		check(pin_damage == 0, "No wall behind the victim, no wall pin")
+	elif armoured:
+		check(pin_damage > 0 and b.combat.core <= core_before - physics.ram_pin_damage_base * (1.0 - physics.ram_pin_armour_share),
+			"Armour on the struck face only slightly reduces the wall pin")
 	else:
 		check(pin_damage > 0 and b.combat.core <= core_before - physics.ram_pin_damage_base,
 			"A bare face rammed into a wall takes a crushing core hit")
