@@ -51,7 +51,8 @@ func run() -> void:
 	check(hud._plate_flash.is_empty(), "Restored HP does not flash")
 	hud.combat_event({"target":bot.entity_id, "zone":"top", "damage":12.0})
 	hud.render(bot, "T", opponent)
-	check(hud._plate_flash.has("top") and hud.plate_labels.top.modulate == hud.danger, "A hit on a bare area flashes that side and survives the next render")
+	var bare_red: Color = hud.plate_labels.top.modulate
+	check(hud._plate_flash.has("top") and bare_red.s > hud.danger.s and is_equal_approx(bare_red.h, hud.danger.h), "A hit on a bare area flashes that side a deeper red and survives the next render")
 	hud.combat_event({"target":bot.entity_id + 1, "zone":"rear", "damage":12.0})
 	hud.combat_event({"target":bot.entity_id, "zone":"core", "damage":12.0})
 	hud.combat_event({"target":bot.entity_id, "zone":"rear", "damage":0.0})

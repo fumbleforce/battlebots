@@ -20,6 +20,8 @@ const HIT_GROW := 0.35
 const HIT_SHAKE_ANGLE := 0.09
 const HIT_SHAKE_JITTER := 2.5
 const HIT_SHAKE_RATE := 55.0
+## A bare side flashes a deeper red: the palette's danger hue at this saturation.
+const BARE_HIT_SATURATION := 1.0
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
 var text_scale := 1.0
 var palette := "standard"
@@ -56,6 +58,7 @@ var _armor_line: ColorRect
 var _plate_last: Dictionary = {}
 var _plate_color: Dictionary = {}
 var _plate_flash: Dictionary = {}
+var _plate_bare: Dictionary = {}
 var _plate_entity := -1
 var _core_last := NAN
 var _core_color := TEXT
@@ -344,7 +347,8 @@ func _render_armor(view: BotView) -> void:
 		var maximum: Variant = view.plate_max.get(face) if view != null else null
 		var detail := "--"
 		var color := Color.WHITE if high_contrast else MUTED
-		if view != null and not view.zones.has(face):
+		_plate_bare[face] = view != null and not view.zones.has(face)
+		if _plate_bare[face]:
 			detail = "—"
 		elif _number(value) and value >= 0:
 			detail = str(ceili(float(value)))
@@ -393,7 +397,11 @@ func _process(delta: float) -> void:
 func _show_plate(face: String) -> void:
 	if not _plate_color.has(face): return
 	var remaining: float = _plate_flash.get(face, 0.0)
-	plate_labels[face].modulate = _flash(_plate_color[face], remaining)
+	# Unarmoured sides hit the core directly, so their flash is a deeper red.
+	var hit := danger
+	if _plate_bare.get(face, false):
+		hit = Color.from_hsv(danger.h, maxf(danger.s, BARE_HIT_SATURATION), danger.v)
+	plate_labels[face].modulate = _flash(_plate_color[face], remaining, hit)
 	_shake(plate_labels[face], remaining)
 
 func _show_core() -> void:
@@ -409,11 +417,11 @@ func _shake(label: Label, remaining: float) -> void:
 	label.scale = Vector2.ONE * (1.0 + HIT_GROW * strength)
 	label.rotation = sin(phase) * HIT_SHAKE_ANGLE * strength
 
-func _flash(resting: Color, remaining: float) -> Color:
+func _flash(resting: Color, remaining: float, hit := Color.TRANSPARENT) -> Color:
 	if remaining <= 0.0: return resting
 	var progress := remaining / HIT_FLASH
 	var blink := 0.5 + 0.5 * cos(TAU * HIT_BLINKS * (1.0 - progress))
-	return resting.lerp(danger, progress * blink)
+	return resting.lerp(danger if hit == Color.TRANSPARENT else hit, progress * blink)
 
 func _ignore_input(node: Node) -> void:
 	if node is Control: node.mouse_filter = Control.MOUSE_FILTER_IGNORE

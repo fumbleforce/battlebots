@@ -76,7 +76,7 @@ armour area still present in `zones`; MvpBot fills it from the existing
 snapshot `plate_max`, and bare areas are omitted from both. `CombatHud` shows a
 Garage-style Front/Rear/Left/Right + Top/Bottom map beside INTEGRITY
 (`plate_labels`), tinting plates at or below `CombatHud.PLATE_DAMAGED` of their
-fitted HP and breached ones; a plate whose HP drops, or any side (bare included) named by a `MvpSession.combat_event` hit on the viewed bot (`CombatHud.combat_event`; drive pods and the front weapon map to their side via `CombatWorld.COMPONENT_FACES`), blinks in the danger colour, swelling and shaking (`HIT_GROW`/`HIT_SHAKE_*`), for `CombatHud.HIT_FLASH` s, as does the INTEGRITY value when core integrity drops. HEAT, NITRO, JUMP and the jump-force gauge moved to
+fitted HP and breached ones; a plate whose HP drops, or any side (bare included) named by a `MvpSession.combat_event` hit on the viewed bot (`CombatHud.combat_event`; drive pods and the front weapon map to their side via `CombatWorld.COMPONENT_FACES`), blinks in the danger colour (bare sides a fully saturated version), swelling and shaking (`HIT_GROW`/`HIT_SHAKE_*`), for `CombatHud.HIT_FLASH` s, as does the INTEGRITY value when core integrity drops. HEAT, NITRO, JUMP and the jump-force gauge moved to
 `systems_panel`, stacked above the weapon card. No command, wire, catalogue or
 gameplay field changes; BUILD is unchanged.
 
