@@ -28,10 +28,12 @@ var drive_gear := "tracks"
 var drives: Node3D
 var legs: AtlasLegs
 var turret: Node3D
+## Front tool (ram, spear/forklift, grinder) from atlas_tools.glb, or null.
+var tool: AtlasToolVisual
 var turret_kind := ""
 var turret_model := ""
-## TurretShotEffects (cannon/plasma) or TurretSpecialEffects (flamer, tesla,
-## railgun); both expose configure/show_state/clear_effects/muzzles/shot_count.
+## TurretShotEffects (cannon, plasma, mortar), TurretSpecialEffects (flamer,
+## tesla, railgun) or TurretHarpoonEffects; all expose configure/show_state/clear_effects/muzzles/shot_count.
 var turret_effects: Node3D
 ## Smoothed yaw/pitch actually drawn this frame (also drives the reticle).
 var turret_display := Vector2.ZERO
@@ -73,6 +75,12 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		primary.position = AtlasGeometry.GUN_OFFSET
 	else:
 		_assemble_tool_adapter()
+	var tool_kind := AtlasGeometry.tool_kind(draft)
+	if not tool_kind.is_empty() and ResourceLoader.exists(AtlasToolVisual.MODEL):
+		tool = AtlasToolVisual.new()
+		tool.name = "AtlasFrontTool"
+		add_child(tool)
+		tool.assemble(tool_kind)
 	if draft.parts.utility == "minigun_pod":
 		auxiliary = _weapon("minigun")
 		auxiliary.position = AtlasGeometry.GUN_OFFSET
@@ -142,7 +150,14 @@ func _assemble_turret() -> void:
 		var tag := "" if suffix.is_empty() else "%s_%d" % [suffix, index]
 		muzzles.append(found.get("Muzzle" + family + tag))
 		recoils.append(found.get("CannonRecoil" + tag) if turret_kind == "cannon" else null)
-	turret_effects = TurretSpecialEffects.new() if turret_kind in ["flamer", "tesla", "railgun"] else TurretShotEffects.new()
+	if turret_kind == "harpoon":
+		# The loaded head leaves the tube while the bolt is out.
+		recoils = [found.get("HarpoonHead")]
+		turret_effects = TurretHarpoonEffects.new()
+	elif turret_kind in ["flamer", "tesla", "railgun"]:
+		turret_effects = TurretSpecialEffects.new()
+	else:
+		turret_effects = TurretShotEffects.new()
 	turret_effects.name = "TurretShotEffects"
 	add_child(turret_effects)
 	turret_effects.configure(turret_kind, muzzles, recoils, _size.y / BotScale.AUTHORING_HEIGHT)
@@ -308,6 +323,7 @@ func _advance_track_parts(parts: Array[Dictionary]) -> void:
 
 func show_state(view: BotView, delta: float) -> void:
 	primary.show_state(view, delta)
+	if tool != null: tool.show_state(view, delta)
 	if auxiliary != null:
 		auxiliary.gun_effects.show_state(view, delta, false)
 	if turret != null:
@@ -328,6 +344,7 @@ func show_state(view: BotView, delta: float) -> void:
 func component_meshes() -> Dictionary:
 	var groups := {"weapon":[], "drive_left":[], "drive_right":[]}
 	_collect(primary, groups.weapon)
+	if tool != null: _collect(tool, groups.weapon)
 	if auxiliary != null: _collect(auxiliary, groups.weapon)
 	if _turret_yaw != null: _collect(_turret_yaw, groups.weapon)
 	if nodes.has("DriveLeft"): _collect(nodes.DriveLeft, groups.drive_left)
@@ -349,5 +366,6 @@ func reset_observation() -> void:
 	if primary.gun_effects != null: primary.gun_effects.clear_effects()
 	if auxiliary != null: auxiliary.gun_effects.clear_effects()
 	if turret_effects != null: turret_effects.clear_effects()
+	if tool != null: tool.clear_effects()
 	_turret_shown = false
 	if legs != null: legs.reset_feet()

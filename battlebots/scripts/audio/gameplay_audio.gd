@@ -207,7 +207,8 @@ func combat_event(event: Dictionary, local_entity: int) -> void:
 	if _practice and event.has("match_id") and event.match_id != _match:
 		return
 	var kinds := {"hammer":"hammer", "vertical_spinner":"spinner", "horizontal_spinner":"spinner",
-		"lifter":"lifter", "saw":"saw", "ram":"ram", "crush":"crush"}
+		"lifter":"lifter", "saw":"saw", "ram":"ram", "crush":"crush",
+		"ram_punch":"ram", "spear":"hammer", "grinder":"saw"}
 	if not kinds.has(event.kind):
 		return
 	var context := "%s/%d" % [_match, _round]

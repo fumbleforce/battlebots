@@ -16,6 +16,8 @@ var _saw_round := -1
 ## Open wall-pin windows keyed "pin:attacker:victim": a recent ram whose victim
 ## may still be driven into static geometry on the face the rammer struck.
 var _pin_windows: Dictionary = {}
+## Mortar shells in flight: {attacker, point, lands} resolved when they land.
+var _shells: Array[Dictionary] = []
 ## Component zones lie on these armour faces for the wall-pin hit.
 const COMPONENT_FACES := {"drive_left":"left", "drive_right":"right", "weapon":"front"}
 const MINIGUN_RANGE := 24.0
@@ -24,7 +26,10 @@ const MINIGUN_RANGE := 24.0
 ## rely on their impulses. Saw contact repeats every 1/3 s and the minigun fires
 ## about 12 times a second, so their victims stay staggered while under fire.
 const STAGGER := {"saw":[0.4, 0.55], "minigun":[0.15, 0.3], "plasma":[0.2, 0.35],
-	"flamer":[0.2, 0.3], "tesla":[0.3, 0.45], "cannon":[0.5, 0.65], "railgun":[0.55, 0.7]}
+	"flamer":[0.2, 0.3], "tesla":[0.3, 0.45], "cannon":[0.5, 0.65], "railgun":[0.55, 0.7],
+	"harpoon":[0.3, 0.4], "mortar":[0.5, 0.65], "grinder":[0.3, 0.5], "spear":[0.4, 0.6], "ram_punch":[0.35, 0.5]}
+## Hits whose events carry the shooter's shot_sequence as their attack id.
+const SHOT_KINDS := ["minigun", "cannon", "plasma", "flamer", "tesla", "railgun", "harpoon", "mortar"]
 ## Before physics.weapon_impulse_multiplier and the heavy-gravity launch scale.
 const HAMMER_KNOCKBACK := 2.0
 const HAMMER_LIFT := 1.5
@@ -45,9 +50,11 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	if tick != _saw_last_tick + 1 or round_index != _saw_round:
 		_saw_contacts.clear()
 		_pin_windows.clear()
+		_shells.clear()
 	_saw_last_tick = tick
 	_saw_round = round_index
 	var saw_contacts: Dictionary = {}
+	_detonate_shells(bots, tick, round_index)
 	for key: String in cooldowns.keys():
 		if cooldowns[key] <= time:
 			cooldowns.erase(key)
@@ -71,11 +78,16 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				_turret_shot(attacker, bots, tick, round_index)
 			else:
 				_minigun_shot(attacker, bots, tick, round_index)
+		if state.grip_target != 0:
+			_update_grip(attacker, bots, delta)
 		if state.stats.weapon == "minigun":
 			continue
 		# A committed strike may reach the heat limit on its impact tick. The
 		# resulting lockout prevents the next activation, not this paid strike.
 		if state.zones.weapon <= 0 or (state.overheated and not state.strike):
+			continue
+		if state.stats.weapon in AtlasGeometry.TOOL_PARTS:
+			_front_tool(attacker, bots, delta, tick, round_index, saw_contacts)
 			continue
 		if state.stats.weapon == "saw" and state.weapon_phase != "active":
 			continue
@@ -168,8 +180,23 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				# Jolt contacts are plastic (bounce 0); heavy hulls rebound apart.
 				var knockback_speed := excess_closing * physics.ram_knockback_per_closing_speed
 				var lift := Vector3.UP * physics.ram_knockback_lift_fraction
-				_hit(a, b, a.body.global_position, raw, (direction + lift) * knockback_speed * b.body.mass, tick, round_index, 0.2, "ram")
-				_hit(b, a, b.body.global_position, raw, (-direction + lift) * knockback_speed * a.body.mass, tick, round_index, 0.2, "ram")
+				# A battering ram's prow multiplies what it deals and absorbs most
+				# of the return blow (data/front_tools.json ram).
+				var raw_ab := raw
+				var raw_ba := raw
+				var knock_ab := knockback_speed
+				var knock_ba := knockback_speed
+				var tools := FrontToolTuning.settings()
+				if _ram_face(a, direction):
+					raw_ab *= tools.value("ram", "damage_multiplier")
+					knock_ab *= tools.value("ram", "knock_multiplier")
+					raw_ba *= tools.value("ram", "self_share")
+				if _ram_face(b, -direction):
+					raw_ba *= tools.value("ram", "damage_multiplier")
+					knock_ba *= tools.value("ram", "knock_multiplier")
+					raw_ab *= tools.value("ram", "self_share")
+				_hit(a, b, a.body.global_position, raw_ab, (direction + lift) * knock_ab * b.body.mass, tick, round_index, 0.2, "ram")
+				_hit(b, a, b.body.global_position, raw_ba, (-direction + lift) * knock_ba * a.body.mass, tick, round_index, 0.2, "ram")
 				cooldowns[key] = time + 0.5
 				_open_pin_window(a, b, direction)
 				_open_pin_window(b, a, -direction)
@@ -529,6 +556,9 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 	if kind == "tesla":
 		_tesla_shot(attacker, bots, from, direction, tick, round_index)
 		return
+	if kind == "mortar":
+		_mortar_shot(attacker, from, direction, tick)
+		return
 	# Trace from the trunnion, inside the casting, so a barrel pushed through a
 	# wall cannot fire from its far side. Allies block without taking damage.
 	var query := PhysicsRayQueryParameters3D.create(origin, end,
@@ -552,7 +582,281 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 				tuning.value(kind, "recoil"), kind)
 			if kind == "railgun":
 				_railgun_pierce(attacker, victim, bots, result.position, end, direction, tick, round_index)
+			elif kind == "harpoon" and state.grip_target == 0:
+				state.grip_mode = "harpoon"
+				state.grip_target = victim.entity_id
+				state.grip_local = victim.body.global_transform.affine_inverse() * result.position
+				state.grip_point = result.position
+				state.grip_seconds = 0.0
 		return
+
+## Harpoon tether: follows its anchor on the victim and, while the shooter
+## holds the trigger, reels the victim toward the muzzle with part of the pull
+## dragging the shooter. It snaps when stretched past max_length, when static
+## geometry cuts the line, after max_seconds, or when either bot is eliminated.
+func _update_grip(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
+	var state := attacker.combat
+	var victim: MvpBot = null
+	for id: int in bots:
+		if bots[id].entity_id == state.grip_target:
+			victim = bots[id]
+	if victim == null or victim.combat.eliminated or victim.team == attacker.team:
+		state.release_grip()
+		return
+	var anchor := victim.body.global_transform * state.grip_local
+	state.grip_point = anchor
+	state.grip_seconds += delta
+	if state.grip_mode == "spear":
+		_hold_impaled(attacker, victim, anchor)
+		return
+	var tuning := TurretTuning.settings()
+	var muzzle := attacker.body.global_transform * AtlasGeometry.turret_muzzle(state.stats.size, "harpoon", state.turret_yaw, state.gun_pitch)
+	var line := muzzle - anchor
+	var length := line.length()
+	if length > tuning.value("harpoon", "max_length") or state.grip_seconds > tuning.value("harpoon", "max_seconds"):
+		state.release_grip()
+		return
+	var cut := PhysicsRayQueryParameters3D.create(muzzle, anchor, BaselineConfig.WORLD_LAYER)
+	var wall := attacker.body.get_world_3d().direct_space_state.intersect_ray(cut)
+	if not wall.is_empty() and wall.position.distance_to(anchor) > 0.5 * BotScale.from_size(state.stats.size):
+		state.release_grip()
+		return
+	if not state.secondary_active or length <= tuning.value("harpoon", "min_length"):
+		return
+	# A winch, not a spring: it drives the line in toward reel_speed and lets
+	# the speed fall off over the last metres, so targets arrive rather than
+	# being fired into the shooter.
+	var inward := line / length
+	var closing := (victim.body.linear_velocity - attacker.body.linear_velocity).dot(inward)
+	var wanted := minf(tuning.value("harpoon", "reel_speed"), (length - tuning.value("harpoon", "min_length")) * 1.5)
+	var drive := clampf((wanted - closing) / maxf(wanted, 0.5), 0.0, 1.0)
+	if drive <= 0.0:
+		return
+	var pull := inward * victim.body.mass * tuning.value("harpoon", "pull_acceleration") * victim.body.heft() * drive
+	victim.body.apply_force(pull, anchor - victim.body.global_position)
+	attacker.body.apply_force(-pull * tuning.value("harpoon", "reaction_share"), muzzle - attacker.body.global_position)
+	victim.body.sleeping = false
+	attacker.body.sleeping = false
+
+## Spear/forklift hold: a capped spring-damper drags the impaled target's
+## anchor to the tines (lifting with the carriage) while primary is held.
+## Letting go throws it off; it tears free past strain_distance, after
+## max_hold_seconds, or when the weapon is disabled or overheated.
+func _hold_impaled(attacker: MvpBot, victim: MvpBot, anchor: Vector3) -> void:
+	var tuning := FrontToolTuning.settings()
+	var state := attacker.combat
+	var hold := attacker.body.global_transform * AtlasGeometry.spear_hold(state.stats.size, state.tool_pose)
+	var error := hold - anchor
+	var forward := (-attacker.body.global_basis.z).slide(Vector3.UP).normalized()
+	if error.length() > tuning.value("spear", "strain_distance") or state.grip_seconds > tuning.value("spear", "max_hold_seconds") \
+			or state.zones.weapon <= 0.0 or state.overheated:
+		state.release_grip()
+		return
+	if not attacker.command.primary_held:
+		victim.body.apply_central_impulse((forward + Vector3.UP * 0.3) * victim.body.mass * tuning.value("spear", "release_speed") * victim.body.launch_scale())
+		victim.body.sleeping = false
+		state.release_grip()
+		return
+	var relative := victim.body.linear_velocity - attacker.body.linear_velocity
+	var acceleration := error * tuning.value("spear", "stiffness") - relative * tuning.value("spear", "damping")
+	acceleration = acceleration.limit_length(tuning.value("spear", "max_acceleration") * victim.body.heft())
+	var force := acceleration * victim.body.mass
+	victim.body.apply_force(force, anchor - victim.body.global_position)
+	attacker.body.apply_force(-force * tuning.value("spear", "reaction_share"), hold - attacker.body.global_position)
+	victim.body.sleeping = false
+	# Pinned on the tines, the target's drive has little purchase.
+	victim.combat.stagger(0.2, 0.7)
+
+## Front tool contact (data/front_tools.json). Ram punch and spear thrust hit
+## each target once per activation; the grinder drum grinds on a cadence.
+func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, round_index: int, contacts: Dictionary) -> void:
+	var tuning := FrontToolTuning.settings()
+	var state := attacker.combat
+	var tool: String = AtlasGeometry.TOOL_PARTS[state.stats.weapon]
+	var size: Vector3 = state.stats.size
+	var linear := BotScale.from_size(size)
+	var forward := (-attacker.body.global_basis.z).slide(Vector3.UP).normalized()
+	if tool == "grinder":
+		if state.charge < 0.3:
+			return
+		var shape := CylinderShape3D.new()
+		shape.radius = AtlasGeometry.GRINDER_REACH * linear
+		shape.height = AtlasGeometry.GRINDER_HALF_WIDTH * 2.0 * linear
+		var local := Transform3D(Basis(Vector3.BACK, PI * 0.5), AtlasGeometry.grinder_drum(size, state.tool_pose))
+		var cadence := tuning.value("grinder", "cadence")
+		for victim: MvpBot in _tool_contacts(attacker, bots, shape, local):
+			var key := "grind:%d:%d" % [attacker.entity_id, victim.entity_id]
+			var seconds := float(_saw_contacts.get(key, 0.0)) + delta
+			var point := _nearest_on(victim, attacker.body.global_transform * local.origin)
+			while seconds + 0.000001 >= cadence:
+				var zone := victim.zone_at(point)
+				var raw := tuning.value("grinder", "damage") * state.charge
+				# The spikes shred intact armour much faster than they reach the core.
+				if victim.combat.stats.plates.has(zone) and float(victim.combat.zones.get(zone, 0.0)) > 0.0:
+					raw *= tuning.value("grinder", "plate_multiplier")
+				var inward := (attacker.body.global_position - victim.body.global_position).slide(Vector3.UP).normalized()
+				_hit(attacker, victim, point, raw, inward * victim.body.mass * tuning.value("grinder", "pull"), tick, round_index, 0.0, "grinder", zone)
+				seconds = maxf(0.0, seconds - cadence)
+			contacts[key] = seconds
+		return
+	if not state.strike or state.attack_id <= 0:
+		return
+	var activation: Dictionary = _hammer_hits.get(attacker.entity_id, {})
+	if activation.get("round") != round_index or activation.get("attack") != state.attack_id:
+		activation = {"round": round_index, "attack": state.attack_id, "targets": {}}
+		_hammer_hits[attacker.entity_id] = activation
+	if tool == "ram":
+		var volume := AtlasGeometry.ram_volume(size, state.charge)
+		var local: Transform3D = volume[0]
+		var box := BoxShape3D.new()
+		box.size = volume[1]
+		for victim: MvpBot in _tool_contacts(attacker, bots, box, local):
+			if activation.targets.has(victim.entity_id):
+				continue
+			activation.targets[victim.entity_id] = true
+			var impulse := (forward + Vector3.UP * tuning.value("ram", "punch_lift")) * victim.body.mass * tuning.value("ram", "punch_speed")
+			_hit(attacker, victim, _nearest_on(victim, attacker.body.global_transform * local.origin),
+				tuning.value("ram", "punch_damage"), impulse, tick, round_index, 0.3, "ram_punch")
+		return
+	# Spear: the first enemy the blades reach is pierced and impaled.
+	if state.grip_target != 0:
+		return
+	var volume := AtlasGeometry.spear_volume(size, state.charge, state.tool_pose)
+	var blade_local: Transform3D = volume[0]
+	var blades := BoxShape3D.new()
+	blades.size = volume[1]
+	var tip := attacker.body.global_transform * blade_local.origin
+	var best: MvpBot = null
+	for victim: MvpBot in _tool_contacts(attacker, bots, blades, blade_local):
+		if activation.targets.has(victim.entity_id):
+			continue
+		if best == null or victim.body.global_position.distance_to(tip) < best.body.global_position.distance_to(tip):
+			best = victim
+	if best == null:
+		return
+	activation.targets[best.entity_id] = true
+	var point := _nearest_on(best, tip)
+	_hit(attacker, best, point, tuning.value("spear", "thrust_damage"), forward * best.body.mass * 1.0, tick, round_index,
+		0.1, "spear", "", tuning.value("spear", "armour_share"))
+	state.grip_mode = "spear"
+	state.grip_target = best.entity_id
+	state.grip_local = best.body.global_transform.affine_inverse() * point
+	state.grip_point = point
+	state.grip_seconds = 0.0
+
+## Enemies (not allies, not eliminated) a tool volume touches, swept from the
+## previous to the current chassis pose.
+func _tool_contacts(attacker: MvpBot, bots: Dictionary, shape: Shape3D, local: Transform3D) -> Array[MvpBot]:
+	var start := attacker.previous_pose * local
+	var finish := attacker.body.global_transform * local
+	var steps := clampi(ceili(start.origin.distance_to(finish.origin) / 0.15) + 2, 2, 24)
+	var ids: Array = []
+	for index: int in range(steps):
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = shape
+		query.transform = start.interpolate_with(finish, float(index) / (steps - 1))
+		query.collision_mask = BaselineConfig.BOT_LAYER
+		query.exclude = [attacker.body.get_rid()]
+		for hit: Dictionary in attacker.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
+			if not ids.has(hit.collider_id): ids.append(hit.collider_id)
+	var found: Array[MvpBot] = []
+	for id: int in bots:
+		var victim: MvpBot = bots[id]
+		if ids.has(victim.body.get_instance_id()) and victim.team != attacker.team and not victim.combat.eliminated:
+			found.append(victim)
+	return found
+
+## Closest point on a bot's collision bounds to a world point.
+func _nearest_on(victim: MvpBot, world: Vector3) -> Vector3:
+	var bounds := victim.collision_bounds()
+	return victim.body.global_transform * (victim.body.global_transform.affine_inverse() * world).clamp(bounds.position, bounds.end)
+
+## A ram whose closing contact lands on its prow (data/front_tools.json ram).
+func _ram_face(bot: MvpBot, toward: Vector3) -> bool:
+	if bot.combat.stats.weapon != "battering_ram" or bot.combat.zones.weapon <= 0.0:
+		return false
+	var nose := (-bot.body.global_basis.z).slide(Vector3.UP)
+	var flat := toward.slide(Vector3.UP)
+	if nose.is_zero_approx() or flat.is_zero_approx():
+		return false
+	return nose.normalized().dot(flat.normalized()) >= FrontToolTuning.settings().value("ram", "front_cone")
+
+## Flies the shell along its real ballistic path to the first thing it
+## strikes; it detonates there after the actual flight time.
+func _mortar_shot(attacker: MvpBot, from: Vector3, direction: Vector3, tick: int) -> void:
+	var state := attacker.combat
+	var path := mortar_trace(attacker.body.get_world_3d().direct_space_state, from, direction, [attacker.body.get_rid()])
+	state.last_shot_from = from
+	state.last_shot_to = path.point
+	state.last_shot_tick = tick
+	if path.landed:
+		_shells.append({"attacker":attacker.entity_id, "point":path.point, "lands":time + path.flight})
+
+## Swept-ray ballistic trace (30 Hz segments) shared by the server shot and the
+## gunner's predicted-impact marker: {points, landed, point, flight}.
+static func mortar_trace(space: PhysicsDirectSpaceState3D, from: Vector3, direction: Vector3, exclude: Array[RID]) -> Dictionary:
+	var tuning := TurretTuning.settings()
+	var gravity := Vector3.DOWN * tuning.value("mortar", "shell_gravity")
+	var velocity := direction.normalized() * tuning.value("mortar", "muzzle_speed")
+	var at := from
+	var travelled := 0.0
+	var flight := 0.0
+	var step := 1.0 / 30.0
+	var points: Array[Vector3] = [from]
+	while travelled < tuning.value("mortar", "range") and flight < 10.0:
+		var next := at + velocity * step + gravity * (0.5 * step * step)
+		var query := PhysicsRayQueryParameters3D.create(at, next,
+			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, exclude)
+		var result := space.intersect_ray(query)
+		if not result.is_empty():
+			flight += step * at.distance_to(result.position) / maxf(at.distance_to(next), 0.0001)
+			points.append(result.position)
+			return {"points":points, "landed":true, "point":result.position, "flight":flight}
+		travelled += at.distance_to(next)
+		velocity += gravity * step
+		at = next
+		flight += step
+		points.append(at)
+	return {"points":points, "landed":false, "point":at, "flight":flight}
+
+## Landed shells blast every hostile within blast_radius that the blast can
+## see, full damage at the centre falling to blast_edge_share at the edge.
+func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
+	var tuning := TurretTuning.settings()
+	var radius := tuning.value("mortar", "blast_radius")
+	for shell: Dictionary in _shells.duplicate():
+		if shell.lands > time + 0.000001:
+			continue
+		_shells.erase(shell)
+		var attacker: MvpBot = null
+		for id: int in bots:
+			if bots[id].entity_id == shell.attacker:
+				attacker = bots[id]
+		if attacker == null:
+			continue
+		var point: Vector3 = shell.point
+		for id: int in bots:
+			var victim: MvpBot = bots[id]
+			if victim.team == attacker.team or victim.combat.eliminated:
+				continue
+			var bounds := victim.collision_bounds()
+			var local := victim.body.global_transform.affine_inverse() * point
+			var nearest := victim.body.global_transform * local.clamp(bounds.position, bounds.end)
+			var distance := point.distance_to(nearest)
+			if distance > radius:
+				continue
+			var lift := point + Vector3.UP * 0.4
+			var sight := PhysicsRayQueryParameters3D.create(lift, nearest, BaselineConfig.WORLD_LAYER)
+			var cover := attacker.body.get_world_3d().direct_space_state.intersect_ray(sight)
+			if not cover.is_empty() and cover.position.distance_to(nearest) > 0.3:
+				continue
+			var share := lerpf(1.0, tuning.value("mortar", "blast_edge_share"), distance / radius)
+			var away := victim.body.global_position - point
+			away.y = 0.0
+			away = away.normalized() if away.length_squared() > 0.0001 else Vector3.ZERO
+			var impulse := (away + Vector3.UP * 0.8) * victim.body.mass * tuning.value("mortar", "knock") * share
+			_hit(attacker, victim, nearest, tuning.value("mortar", "damage") * share, impulse, tick, round_index,
+				0.0, "mortar")
 
 ## The slug punches through its first victim into whatever stands behind it.
 func _railgun_pierce(attacker: MvpBot, first: MvpBot, bots: Dictionary, at: Vector3, end: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
@@ -754,6 +1058,6 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:
 		attacker.combat.attack_id += 1
 	events.append({"event_id":event_id, "round":round_index, "tick":tick, "kind":kind,
-		"attack_id":attacker.combat.shot_sequence if kind in ["minigun", "cannon", "plasma", "flamer", "tesla", "railgun"] else attacker.combat.attack_id, "attacker":attacker.entity_id,
+		"attack_id":attacker.combat.shot_sequence if kind in SHOT_KINDS else attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,
 		"normal":(point - victim.body.global_position).normalized()})

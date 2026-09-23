@@ -1,0 +1,18 @@
+{
+	"_comment": "Authoritative Atlas MX front tool tuning (tools/build-atlas-tools.py models), shared by server combat and client presentation. Changing any value is a gameplay change: bump WireCodec.BUILD and ship a matching hosted server release. Seconds, metres (game scale), m/s and m/s^2; heat is shared heat.",
+	"ram": {
+		"_comment": "Passive: a ram whose closing contact lands within front_cone (cosine of the half angle) of the prow deals damage_multiplier times the ram damage with knock_multiplier times the knock-back, and the rammer takes only self_share of the return blow. Active: a press fires the hydraulic punch for punch_seconds, striking everything the extending prow reaches for punch_damage and a punch_speed (m/s) shove with punch_lift upward share.",
+		"front_cone": 0.7, "damage_multiplier": 2.2, "knock_multiplier": 1.6, "self_share": 0.35,
+		"punch_seconds": 0.18, "punch_damage": 24.0, "punch_speed": 5.5, "punch_lift": 0.25, "punch_cooldown": 1.5, "punch_heat": 12.0
+	},
+	"spear": {
+		"_comment": "A press thrusts the lance and tines for thrust_seconds; the first enemy they reach takes thrust_damage, of which an intact plate may stop only armour_share (piercing), and is impaled. Holding primary keeps it on the tines: a spring (stiffness 1/s^2, damping 1/s, capped at max_acceleration m/s^2 times heft) drags its anchor to the tine tips while the carriage lifts it (AtlasGeometry.SPEAR_LIFT) over lift_seconds. Releasing primary throws it off with a release_speed shove; it also tears free past strain_distance, after max_hold_seconds or when either bot is eliminated. hold_heat_per_second while holding.",
+		"thrust_seconds": 0.16, "thrust_damage": 30.0, "armour_share": 0.4, "cooldown": 1.2, "thrust_heat": 10.0,
+		"stiffness": 40.0, "damping": 9.0, "max_acceleration": 30.0, "reaction_share": 0.5,
+		"lift_seconds": 0.6, "strain_distance": 3.0, "max_hold_seconds": 5.0, "release_speed": 5.0, "hold_heat_per_second": 6.0
+	},
+	"grinder": {
+		"_comment": "Hold primary to spin the drum up over spinup_seconds (heat_per_second while powered). Every cadence seconds of drum contact deals damage times spin; an intact armour plate on the struck face takes plate_multiplier times that (the spikes shred armour). pull (m/s per contact) drags the target into the drum. Hold secondary to raise the arms onto the target's top over raise_seconds.",
+		"spinup_seconds": 1.2, "heat_per_second": 14.0, "cadence": 0.2, "damage": 7.0, "plate_multiplier": 2.4, "pull": 0.9, "raise_seconds": 0.5
+	}
+}

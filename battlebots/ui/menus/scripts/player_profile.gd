@@ -10,7 +10,7 @@ var wallet := CreditWallet.new()
 var credits: int:
 	get: return wallet.balance
 var active_bot := 0
-const PRESET_COUNT := 9
+const PRESET_COUNT := 14
 var bots: Array = []
 var registry := ContentRegistry.new()
 var save_path := "user://loadouts.json"
@@ -47,7 +47,9 @@ func reload() -> void:
 	loadouts.append(registry.atlas())
 	loadouts.append(registry.atlas_turret())
 	loadouts.append_array(registry.atlas_showcase())
-	_save_indices = [-1,-1,-1,-1,-1,-1,-1,-1,-1]
+	assert(loadouts.size() == PRESET_COUNT, "PRESET_COUNT must match the built-in presets")
+	_save_indices.clear()
+	for index: int in PRESET_COUNT: _save_indices.append(-1)
 	for index: int in _saved.size():
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)

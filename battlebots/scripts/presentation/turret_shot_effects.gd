@@ -11,6 +11,9 @@ const FOG_LIFETIME := 2.6
 const BURN_LIFETIME := 3.2
 const RATE := 24000
 const SPEED := {"cannon":240.0, "plasma":85.0}
+const MORTAR_BLAST_SCALE := 1.7
+## The incoming-shell whistle starts this long before the shell lands.
+const WHISTLE_LEAD := 1.3
 ## Recoil travel in model (source) metres and its return time.
 const RECOIL_TRAVEL := 0.10
 const RECOIL_RETURN := 0.45
@@ -38,6 +41,8 @@ var _blasts: Array[GPUParticles3D] = []
 var _fog: Array[Dictionary] = []
 var _voices: Array[AudioStreamPlayer3D] = []
 var _impact_voices: Array[AudioStreamPlayer3D] = []
+var _whistles: Array[AudioStreamPlayer3D] = []
+var _gun_scale := 1.0
 var _time := 0.0
 static var _streams: Dictionary = {}
 static var _smoke_materials: Dictionary = {}
@@ -52,11 +57,16 @@ func configure(weapon: String, muzzle_nodes: Array[Node3D], recoil_nodes: Array[
 	for node: Node3D in recoils:
 		_recoil_rest.append(node.transform if node != null else Transform3D.IDENTITY)
 		_recoil_age.append(1.0)
-	var cannon := kind == "cannon"
+	# The mortar is a heavy gun: cannon shells, smoke and detonations, lobbed
+	# along the real arc, with a bigger blast and a whistle on the way down.
+	var cannon := kind in ["cannon", "mortar"]
 	for index: int in PROJECTILES:
 		_projectiles.append(_make_projectile(cannon))
+	_gun_scale = _scale
+	if kind == "mortar": _scale *= MORTAR_BLAST_SCALE
 	for index: int in IMPACTS:
 		_impacts.append(_make_impact(cannon))
+	_scale = _gun_scale
 	var cone := CylinderMesh.new()
 	cone.top_radius = 0.0
 	cone.bottom_radius = (0.16 if cannon else 0.09) * _scale
@@ -83,6 +93,9 @@ func configure(weapon: String, muzzle_nodes: Array[Node3D], recoil_nodes: Array[
 			14.0 if cannon else 9.0, 180.0 if cannon else 120.0))
 	for index: int in 4:
 		_impact_voices.append(_voice("TurretImpact%d" % index, _stream(kind + "_impact"), 0.0 if cannon else -2.0, 12.0 if cannon else 8.0, 160.0 if cannon else 100.0))
+	if kind == "mortar":
+		for index: int in 2:
+			_whistles.append(_voice("MortarWhistle%d" % index, _stream("mortar_whistle"), -3.0, 12.0, 160.0))
 
 func _voice(label: String, stream: AudioStreamWAV, gain: float, unit: float, reach: float) -> AudioStreamPlayer3D:
 	var voice := AudioStreamPlayer3D.new()
@@ -117,7 +130,7 @@ func _mesh(shape: Mesh, material: Material) -> MeshInstance3D:
 	return node
 
 func _make_projectile(cannon: bool) -> Dictionary:
-	var record := {"from":Vector3.ZERO, "to":Vector3.ZERO, "age":10.0, "flight":0.0, "impacted":true}
+	var record := {"from":Vector3.ZERO, "to":Vector3.ZERO, "age":10.0, "flight":0.0, "impacted":true, "whistled":true}
 	if cannon:
 		# A heavy glowing shell with a riding light and a rolling smoke trail.
 		var shell := CapsuleMesh.new()
@@ -183,7 +196,12 @@ func _make_impact(cannon: bool) -> Dictionary:
 	ball.radius = 0.5
 	ball.height = 1.0
 	record.flash = _mesh(ball, _glow(Color(1.0, 0.75, 0.45, 0.9) if cannon else Color(0.9, 0.95, 1.0, 0.9), 5.0))
+	# Sparks stay gun-sized even for the bigger mortar blast: enlarged spark
+	# sprites read as glowing balls (WEAPON_FEEL.md, effects).
+	var blast_scale := _scale
+	_scale = _gun_scale
 	record.sparks = _sparks(90 if cannon else 70, 1.1 if cannon else 0.9, Color(1.0, 0.9, 0.7), Color(1.0, 0.35, 0.05))
+	_scale = blast_scale
 	if cannon:
 		(record.sparks.process_material as ParticleProcessMaterial).initial_velocity_max = 5.5 * _scale
 		record.fireball = _fireball()
@@ -496,6 +514,10 @@ func _fire(from: Vector3, to: Vector3, sequence := 1) -> void:
 	projectile.age = 0.0
 	projectile.flight = distance / float(SPEED.get(kind, 150.0))
 	projectile.impacted = false
+	projectile.whistled = kind != "mortar"
+	if kind == "mortar":
+		projectile.flight = AtlasGeometry.mortar_flight(from, to)
+		direction = (AtlasGeometry.mortar_point(from, to, projectile.flight, 0.01) - from).normalized()
 	if projectile.has("embers"):
 		var embers: GPUParticles3D = projectile.embers
 		embers.global_position = from
@@ -514,7 +536,7 @@ func _fire(from: Vector3, to: Vector3, sequence := 1) -> void:
 		blast.global_transform = Transform3D(Basis.looking_at(direction, Vector3.UP if absf(direction.y) < 0.98 else Vector3.RIGHT), from)
 		blast.restart()
 		blast.emitting = true
-	if kind == "cannon":
+	if kind in ["cannon", "mortar"]:
 		_deposit_fog(from, direction)
 	if playback_enabled and not _voices.is_empty():
 		var voice := _voices[shot_count % _voices.size()]
@@ -589,11 +611,24 @@ func _advance(delta: float) -> void:
 		var from: Vector3 = projectile.from
 		var to: Vector3 = projectile.to
 		var direction := (to - from).normalized() if to != from else Vector3.FORWARD
+		var lobbed := kind == "mortar"
+		if lobbed:
+			var ahead := AtlasGeometry.mortar_point(from, to, flight, minf(projectile.age + 0.02, flight))
+			var here := AtlasGeometry.mortar_point(from, to, flight, minf(projectile.age, flight))
+			if ahead.distance_squared_to(here) > 0.000001: direction = (ahead - here).normalized()
+			if not projectile.whistled and projectile.age >= flight - WHISTLE_LEAD and travelling:
+				projectile.whistled = true
+				if playback_enabled and not _whistles.is_empty():
+					var whistle := _whistles[shot_count % _whistles.size()]
+					whistle.stop()
+					whistle.global_position = to + Vector3.UP * 6.0 * _scale
+					whistle.play(maxf(0.0, WHISTLE_LEAD - (flight - projectile.age)))
 		projectile.head.visible = travelling
 		projectile.trail.visible = travelling
 		if projectile.has("corona"): projectile.corona.visible = travelling
 		if travelling:
 			var at := from.lerp(to, projectile.age / maxf(flight, 0.0001))
+			if lobbed: at = AtlasGeometry.mortar_point(from, to, flight, projectile.age)
 			projectile.head.global_transform = Transform3D(_frame(direction), at)
 			var tail := at - direction * minf(at.distance_to(from), (6.0 if not plasma else 4.5) * _scale)
 			var length := maxf(0.01, at.distance_to(tail))
@@ -615,6 +650,7 @@ func _advance(delta: float) -> void:
 		if not travelling and not projectile.impacted and projectile.age < flight + 0.5:
 			projectile.impacted = true
 			_impact(to, direction)
+	var blast := MORTAR_BLAST_SCALE if kind == "mortar" else 1.0
 	for record: Dictionary in _impacts:
 		record.age += delta
 		var age: float = record.age
@@ -627,13 +663,13 @@ func _advance(delta: float) -> void:
 			shock.visible = age < 0.45
 			if shock.visible:
 				# Blast ring racing out along the ground from the explosion.
-				var ring := lerpf(0.3, 3.0, sqrt(age / 0.45)) * _scale
+				var ring := lerpf(0.3, 3.0, sqrt(age / 0.45)) * _scale * blast
 				shock.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3(ring, ring * 0.12, ring)), Vector3(record.at.x, record.at.y - 0.2 * _scale, record.at.z))
 				(shock.material_override as StandardMaterial3D).albedo_color.a = 0.35 * (1.0 - age / 0.45)
 		var flash: MeshInstance3D = record.flash
 		flash.visible = age < (0.12 if plasma else 0.16)
 		if flash.visible:
-			var radius := lerpf(0.1, 0.4, age / 0.12) * _scale if plasma else lerpf(0.4, 1.4, age / 0.16) * _scale
+			var radius := lerpf(0.1, 0.4, age / 0.12) * _scale if plasma else lerpf(0.4, 1.4, age / 0.16) * _scale * blast
 			flash.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * radius), record.at)
 			(flash.material_override as StandardMaterial3D).albedo_color.a = 0.9 * (1.0 - age / (0.12 if plasma else 0.16))
 		var decal: Decal = record.decal
@@ -660,7 +696,7 @@ func _advance(delta: float) -> void:
 func set_playback_enabled(enabled: bool) -> void:
 	playback_enabled = enabled
 	if not enabled:
-		for voice: AudioStreamPlayer3D in _voices + _impact_voices: voice.stop()
+		for voice: AudioStreamPlayer3D in _voices + _impact_voices + _whistles: voice.stop()
 
 ## Also forgets the shot baseline: the next accepted view is silent.
 func clear_effects() -> void:
@@ -697,12 +733,13 @@ func clear_effects() -> void:
 	if _flash != null: _flash.hide()
 	if _flash_ball != null: _flash_ball.hide()
 	if _light != null: _light.light_energy = 0.0
-	for voice: AudioStreamPlayer3D in _voices + _impact_voices: voice.stop()
+	for voice: AudioStreamPlayer3D in _voices + _impact_voices + _whistles: voice.stop()
 
 ## First-pass procedural sounds (A may replace them with recorded assets).
 static func _stream(label: String) -> AudioStreamWAV:
 	if _streams.has(label): return _streams[label]
-	var length: float = {"cannon":1.9, "plasma":0.9, "cannon_impact":1.8, "plasma_impact":1.2}.get(label, 0.5)
+	var length: float = {"cannon":1.9, "plasma":0.9, "cannon_impact":1.8, "plasma_impact":1.2,
+		"mortar":1.6, "mortar_impact":2.6, "mortar_whistle":WHISTLE_LEAD}.get(label, 0.5)
 	var samples := PackedFloat32Array()
 	samples.resize(roundi(RATE * length))
 	var state := hash(label) & 0x7fffffff
@@ -717,7 +754,7 @@ static func _stream(label: String) -> AudioStreamWAV:
 		var t := index / float(RATE)
 		state = (state * 1664525 + 1013904223) & 0x7fffffff
 		var noise := state / 1073741824.0 - 1.0
-		low += (noise - low) * (0.05 if label.begins_with("cannon") else (0.06 if label.begins_with("plasma") else 0.3))
+		low += (noise - low) * (0.05 if label.begins_with("cannon") or label.begins_with("mortar") else (0.06 if label.begins_with("plasma") else 0.3))
 		high += (noise - high) * 0.02
 		var hiss := noise - high
 		# Random electrical/sizzle bursts: short gated crackles.
@@ -749,6 +786,19 @@ static func _stream(label: String) -> AudioStreamWAV:
 				var arc := (sin(phase2) + 0.45 * sin(phase2 * 2.0) + 0.25 * sin(phase2 * 3.0)) * exp(-t * 6.0) * 0.45
 				var crackle := (low - high) * gate * exp(-t * 6.0) * 0.5
 				value = tanh((thump + push + arc + crackle) * 1.6)
+			"mortar":
+				# Hollow tube thoomp: a deep saturated pop falling 48->22 Hz, the
+				# tube ringing at its air-column note, a blast of low air and a
+				# rolling tail. Less crack than the cannon: it lobs, not fires flat.
+				phase += TAU * lerpf(48.0, 22.0, minf(1.0, t / 0.35)) / RATE
+				var pop := tanh(sin(phase) * 3.5) * exp(-t * 4.0) * 1.4
+				var tube := sin(TAU * 170.0 * t) * exp(-t * 9.0) * 0.35 + sin(TAU * 340.0 * t) * exp(-t * 14.0) * 0.12
+				rumble += (noise - rumble) * 0.012
+				value = tanh((hiss * exp(-t * 90.0) * 0.6 + pop + tube + low * exp(-t * 5.0) * 3.0 + rumble * exp(-t * 1.6) * 4.0) * 1.8)
+			"mortar_whistle":
+				# Incoming shell: a falling whistle with air rush, rising in level.
+				phase += TAU * lerpf(1500.0, 520.0, t / WHISTLE_LEAD) / RATE
+				value = (sin(phase) * 0.7 + (low - high) * 0.5) * lerpf(0.25, 1.0, t / WHISTLE_LEAD)
 			"plasma_impact":
 				# Searing contact: a deep thud, a dark burning roar and spitting metal.
 				phase += TAU * lerpf(80.0, 42.0, minf(1.0, t / 0.2)) / RATE

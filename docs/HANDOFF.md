@@ -5,6 +5,23 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Harpoon, mortar, ram, spear/forklift and grinder (#52–#56) — 23 September 2026
+
+New weapons, all Atlas MX only:
+- **Harpoon and mortar turrets.** The mortar uses the new artillery camera.
+- **Front tools:** battering ram, spear/forklift and spiked grinder drum
+  (`atlas_tools.glb`).
+
+Contracts and versions: build mvp-ab-34, protocol 12, catalogue 16, and snapshot grip and
+tool-pose fields. The new presets are WHALER, ARTILLERY, BREAKER, IMPALER and
+SHREDDER. Details: `docs/coordination/B_ATLAS_WEAPONS.md`.
+
+Validation:
+- New physics suites and the native showcase pass.
+- `tests/network/session_smoke` fails identically on untouched main.
+
+Open: human playtest acceptance and matching hosted release verification.
+
 ## Heavier Atlas legs and wider walker stance (#47) — 23 September 2026
 
 After user review ("way too spindly"), every Atlas leg member, joint, hip drive,

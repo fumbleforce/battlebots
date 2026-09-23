@@ -49,6 +49,8 @@ PITCH = (0.0, .71, -.60)
 # corner sockets and deck limit some bearings); DEPRESSION_FLOOR is its deepest.
 DEPRESSION_FLOOR = -20.0
 PITCH_LIMITS = (DEPRESSION_FLOOR, 30.0)
+# The mortar lobs its shells: its cradle elevates to 80 degrees (audited).
+PITCH_MAX_BY = {'mortar': 80.0}
 CANNON_MUZZLE = (0.0, .71, -1.545)
 PLASMA_MUZZLE = (0.0, .71, -1.26)
 
@@ -241,7 +243,9 @@ plasma = part('AttachmentPlasma', PITCH, pitch)
 flamer = part('AttachmentFlamer', PITCH, pitch)
 tesla = part('AttachmentTesla', PITCH, pitch)
 railgun = part('AttachmentRailgun', PITCH, pitch)
-SPECIALS = {'flamer': flamer, 'tesla': tesla, 'railgun': railgun}
+harpoon = part('AttachmentHarpoon', PITCH, pitch)
+mortar = part('AttachmentMortar', PITCH, pitch)
+SPECIALS = {'flamer': flamer, 'tesla': tesla, 'railgun': railgun, 'harpoon': harpoon, 'mortar': mortar}
 cx, cz = YAW[0], YAW[2]
 
 # ---------------------------------------------------------------- base ring
@@ -530,6 +534,91 @@ box('Railgun muzzle shroud plate', (0, PY - .062, -1.690), (.110, .016, .060), g
 square_bore_face('Railgun muzzle face', (0, PY, -1.722), .058, .070, .028, .014, gun_block, railgun)
 part('MuzzleRailgun', (0.0, PY, -1.73), railgun)
 
+
+# ----------------------------------------------------------------- harpoon
+# Pneumatic harpoon launcher: a gas breech block over a strapped air bottle,
+# a thick open launch tube, a flared cable fairlead with guide rollers and a
+# side-mounted winch drum whose cable runs along the tube to the barbed head
+# that sits loaded in the muzzle (HarpoonHead, hidden while it is in flight).
+box('Harpoon gas breech block', (0, PY + .010, -.810), (.150, .150, .180), secondary, harpoon, .016)
+for side in (-1, 1):
+    box('Breech enamel cheek plate', (side * .080, PY + .010, -.810), (.012, .128, .150), paint, harpoon, .006)
+    for y in (-.045, .065): bolt((side * .087, PY + y, -.760), (side, 0, 0), harpoon, .007)
+cylinder('Harpoon air bottle', (0, PY - .092, -.730), (0, PY - .092, -1.010), .046, paint, harpoon, 40, .010)
+turned('Air bottle domed end', (0, PY - .092, -1.010), (0, 0, -1), [(0, .046), (.012, .042), (.024, .028), (.030, 0)], paint, harpoon, 40)
+for z in (-.780, -.960):
+    ring('Air bottle strap', (0, PY - .092, z), (0, 0, 1), .051, .044, .016, steel, harpoon, 40)
+    box('Strap saddle to breech', (0, PY - .058, z), (.030, .030, .016), steel, harpoon, .002)
+tube('Gas transfer line', [(0, PY - .048, -1.004), (0, PY - .040, -.990), (0, PY - .040, -.905)], .010, steel, harpoon)
+turned('Harpoon launch tube', (0, PY, -.900), (0, 0, -1),
+       [(0, .066), (.030, .066), (.040, .058), (.520, .054), (.520, .036), (0, .036)], gun, harpoon, 48)
+for z in (-.990, -1.160, -1.330):
+    ring('Launch tube clamp band', (0, PY, z), (0, 0, 1), .060, .053, .016, steel, harpoon, 48)
+turned('Cable fairlead flare', (0, PY, -1.400), (0, 0, -1),
+       [(0, .054), (.030, .058), (.052, .070), (.060, .070), (.060, .040), (.020, .036)], gun_block, harpoon, 48, open_end=True)
+for y in (-.050, .050):
+    cylinder('Fairlead guide roller', (-.040, PY + y, -1.440), (.040, PY + y, -1.440), .012, edge_steel, harpoon, 20, .002)
+    for side in (-1, 1): box('Guide roller cheek', (side * .046, PY + y, -1.440), (.010, .034, .040), steel, harpoon, .002)
+# Winch: drum, flanges, wound cable and a geared motor housing on the right.
+wx = .150
+box('Winch mounting bracket', (.090, PY + .010, -.860), (.040, .070, .110), steel, harpoon, .004)
+cylinder('Winch cable drum', (wx - .050, PY + .010, -.860), (wx + .050, PY + .010, -.860), .052, oxidized, harpoon, 40, .003)
+for dx in (-.052, .052):
+    cylinder('Winch drum flange', (wx + dx - .005, PY + .010, -.860), (wx + dx + .005, PY + .010, -.860), .072, steel, harpoon, 40, .002)
+for i in range(7):
+    ring('Wound harpoon cable', (wx - .040 + i * .0135, PY + .010, -.860), (1, 0, 0), .061, .050, .012, rubber, harpoon, 32)
+box('Winch geared motor housing', (wx + .085, PY + .010, -.860), (.060, .110, .110), secondary, harpoon, .012)
+for dz in (-.040, .040): bolt((wx + .116, PY + .010, -.860 + dz), (1, 0, 0), harpoon, .007)
+tube('Paid-out cable run', [(wx - .020, PY + .066, -.880), (.050, PY + .075, -.960), (.010, PY + .066, -1.050), (0, PY + .060, -1.360), (0, PY + .052, -1.430)], .007, rubber, harpoon)
+head = part('HarpoonHead', PITCH, harpoon)
+cylinder('Harpoon shaft', (0, PY, -1.100), (0, PY, -1.420), .026, steel, head, 24, .002)
+ring('Harpoon shaft cable swivel', (0, PY, -1.425), (0, 0, 1), .032, .018, .016, edge_steel, head, 24)
+turned('Harpoon forged head', (0, PY, -1.430), (0, 0, -1), [(0, .030), (.030, .040), (.150, .012), (.170, 0)], edge_steel, head, 32)
+for i in range(4):
+    a = i * math.tau / 4 + math.pi / 4
+    d = (math.cos(a), math.sin(a))
+    mesh('Folding harpoon barb', [(d[0] * .022, PY + d[1] * .022, -1.560), (d[0] * .022, PY + d[1] * .022, -1.500),
+                                  (d[0] * .074, PY + d[1] * .074, -1.470), (d[0] * .010 - d[1] * .006, PY + d[1] * .010 + d[0] * .006, -1.520)],
+         [(0, 1, 2), (0, 2, 3), (1, 3, 2), (0, 3, 1)], edge_steel, head)
+part('MuzzleHarpoon', (0.0, PY, -1.440), harpoon)
+
+# ------------------------------------------------------------------ mortar
+# Breech-loaded heavy mortar: a short fat thick-walled tube in a trunnion
+# cradle with twin recoil buffers, a ribbed breech, painted sleeve, a crown
+# ring and a ready-rack of shells on the cradle. It elevates to 80 degrees.
+box('Mortar cradle saddle', (0, PY - .030, -.790), (.220, .110, .140), secondary, mortar, .016)
+for side in (-1, 1):
+    box('Cradle enamel side plate', (side * .114, PY - .020, -.800), (.012, .130, .170), paint, mortar, .006)
+    cylinder('Mortar recoil buffer', (side * .085, PY - .080, -.760), (side * .085, PY - .080, -1.020), .024, steel, mortar, 24, .003)
+    turned('Buffer end cap', (side * .085, PY - .080, -1.020), (0, 0, -1), [(0, .024), (.008, .022), (.012, .012)], edge_steel, mortar, 24)
+    for z in (-.770, -.830): bolt((side * .121, PY - .020, z), (side, 0, 0), mortar, .007)
+turned('Mortar ribbed breech', (0, PY, -.745), (0, 0, -1),
+       [(0, .070), (.012, .098), (.030, .104), (.040, .098), (.050, .104), (.070, .104), (.080, .098), (.090, .104), (.110, .108)], gun_block, mortar, 48)
+turned('Mortar thick-walled tube', (0, PY, -.850), (0, 0, -1),
+       [(0, .108), (.020, .100), (.440, .096), (.450, .102), (.470, .102), (.470, .074), (0, .074)], gun, mortar, 56)
+cylinder('Mortar bore shadow', (0, PY, -.880), (0, PY, -.884), .074, dark, mortar, 40, 0)
+turned('Painted mortar sleeve', (0, PY, -.905), (0, 0, -1),
+       [(0, .100), (.006, .106), (.200, .106), (.206, .100)], barrel_primary, mortar, 56)
+for z in (-.905, -1.111):
+    ring('Mortar sleeve clamp band', (0, PY, z), (0, 0, 1), .112, .098, .016, steel, mortar, 56)
+    box('Sleeve band latch', (0, PY + .113, z), (.026, .008, .020), steel, mortar, .002)
+ring('Mortar crown reinforcement', (0, PY, -1.300), (0, 0, 1), .104, .075, .026, edge_steel, mortar, 56)
+for i in range(6):
+    a = i * math.tau / 6
+    bolt((math.cos(a) * .104, PY + math.sin(a) * .104, -1.200), (math.cos(a), math.sin(a), 0), mortar, .006, low=True)
+# Ready rack: three finned shells in clamps on the left of the cradle.
+for i, dy in enumerate((-.060, .000, .060)):
+    y = PY - .010 + dy; x = -.165
+    cylinder('Ready shell body', (x, y, -.760), (x, y, -.920), .024, barrel_secondary, mortar, 24, .004)
+    turned('Ready shell ogive', (x, y, -.920), (0, 0, -1), [(0, .024), (.030, .018), (.050, .006), (.056, 0)], barrel_primary, mortar, 24)
+    for k in range(4):
+        a = k * math.tau / 4
+        box('Ready shell tail fin', (x + math.cos(a) * .022, y + math.sin(a) * .022, -.748), (.004 + abs(math.sin(a)) * .018, .004 + abs(math.cos(a)) * .018, .030), steel, mortar, .001)
+for z in (-.790, -.890):
+    box('Ready rack clamp', (-.165, PY - .010, z), (.060, .190, .014), steel, mortar, .003)
+box('Ready rack spine', (-.126, PY - .010, -.840), (.016, .190, .160), secondary, mortar, .004)
+part('MuzzleMortar', (0.0, PY, -1.320), mortar)
+
 # ---------------------------------------------------- dual / quad upgrades
 # Multi-barrel attachments reuse the approved single weapon: each barrel is a
 # copy scaled in cross-section only (circles stay round, lengths unchanged) and
@@ -651,7 +740,8 @@ MUZZLE_OFFSETS = {'cannon': round(PITCH[2] - CANNON_MUZZLE[2], 5), 'plasma': rou
 for family in SPECIALS:
     MUZZLE_OFFSETS[family] = round(PITCH[2] - godot(bpy.data.objects['Muzzle' + family.capitalize()])[2], 5)
 # Per-attachment barrel offsets from the single-barrel muzzle, pitch frame.
-BARRELS = {'cannon': [[0.0, 0.0]], 'plasma': [[0.0, 0.0]], 'flamer': [[0.0, 0.0]], 'tesla': [[0.0, 0.0]], 'railgun': [[0.0, 0.0]]}
+BARRELS = {'cannon': [[0.0, 0.0]], 'plasma': [[0.0, 0.0]]}
+BARRELS.update({family: [[0.0, 0.0]] for family in SPECIALS})
 for label in VARIANTS:
     family = label.split('_')[0]; base_muzzle = CANNON_MUZZLE if family == 'cannon' else PLASMA_MUZZLE
     names = sorted(o.name for o in bpy.data.objects if o.type == 'EMPTY' and o.name.startswith('Muzzle' + family.capitalize() + label.split('_')[1].capitalize() + '_'))
@@ -736,7 +826,8 @@ def audit():
         yaw_deg = half_step * 2.5
         for kind in ATTACHMENTS:
             low = floor_at(kind, yaw_deg)
-            pitches = [low + k * 2.5 for k in range(40) if low + k * 2.5 < PITCH_LIMITS[1]] + [PITCH_LIMITS[1]]
+            top = PITCH_MAX_BY.get(kind, PITCH_LIMITS[1])
+            pitches = [low + k * 2.5 for k in range(48) if low + k * 2.5 < top] + [top]
             for pitch_deg in pitches:
                 pose(yaw_deg, pitch_deg)
                 for label in ('yaw', 'mantlet', kind):
@@ -812,7 +903,7 @@ points = [(p.x, p.z, -p.y) for p in corners]
 manifest = {'name': 'Atlas MX turret', 'id': 'atlas_turret', 'runtime': 'atlas_turret.glb',
             'authoring': 'Godot metres in the Atlas hull frame, X right Y up -Z forward; runtime factor three applied by AtlasVisual',
             'generator': 'tools/build-atlas-turret.py', 'yaw_pivot': YAW, 'pitch_pivot': PITCH,
-            'pitch_limits_degrees': PITCH_LIMITS, 'muzzles': {'cannon': CANNON_MUZZLE, 'plasma': PLASMA_MUZZLE}, 'muzzle_offsets': MUZZLE_OFFSETS, 'barrels': BARRELS, 'turret_scale': TURRET_SCALE,
+            'pitch_limits_degrees': PITCH_LIMITS, 'pitch_max_by_degrees': PITCH_MAX_BY, 'muzzles': {'cannon': CANNON_MUZZLE, 'plasma': PLASMA_MUZZLE}, 'muzzle_offsets': MUZZLE_OFFSETS, 'barrels': BARRELS, 'turret_scale': TURRET_SCALE,
             'nodes': ['TurretBase', 'TurretYaw', 'TurretPitch', 'AttachmentCannon', 'CannonRecoil', 'AttachmentPlasma', 'MuzzleCannon', 'MuzzlePlasma'],
             'bounds_all_attachments': {'min': [round(min(p[i] for p in points), 5) for i in range(3)], 'max': [round(max(p[i] for p in points), 5) for i in range(3)]},
             'triangles': stats, 'clearance': clearance, 'surface_atlases': surface, 'approval': 'Pending user visual approval'}

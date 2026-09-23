@@ -17,9 +17,12 @@ const TRACK_LENGTH := 4.0 * TRACK_HALF_LENGTH + TAU * TRACK_RADIUS
 const TURRET_PARTS := {"turret_cannon":"cannon", "turret_plasma":"plasma",
 	"turret_cannon_dual":"cannon_dual", "turret_cannon_quad":"cannon_quad",
 	"turret_plasma_dual":"plasma_dual", "turret_plasma_quad":"plasma_quad",
-	"turret_flamer":"flamer", "turret_tesla":"tesla", "turret_railgun":"railgun"}
+	"turret_flamer":"flamer", "turret_tesla":"tesla", "turret_railgun":"railgun",
+	"turret_harpoon":"harpoon", "turret_mortar":"mortar"}
 ## Weapon families the turret servo and rays serve.
-const TURRET_FAMILIES := ["cannon", "plasma", "flamer", "tesla", "railgun"]
+const TURRET_FAMILIES := ["cannon", "plasma", "flamer", "tesla", "railgun", "harpoon", "mortar"]
+## Families without a bore-line ray (resolved by their own CombatWorld rules).
+const TURRET_SPECIALS := ["flamer", "tesla", "railgun", "harpoon", "mortar"]
 const TURRET_YAW_PIVOT := Vector3(0.0, 0.52, -0.14)
 const TURRET_PITCH_PIVOT := Vector3(0.0, 0.77345, -0.546)
 ## +30 degrees is the mechanical elevation stop. Depression is limited per
@@ -27,6 +30,9 @@ const TURRET_PITCH_PIVOT := Vector3(0.0, 0.77345, -0.546)
 ## atlas_turret_manifest.json): degrees at yaw 0, 5, ... 355. The deck and
 ## corner sockets restrict the flanks; the nose and rear allow -20/-18.
 const TURRET_PITCH_MAX := 0.5235988
+## Audited mechanical elevation stops that differ from +30 degrees (radians):
+## the mortar cradle elevates to 80 degrees (tools/build-atlas-turret.py).
+const TURRET_PITCH_MAX_BY := {"mortar":1.3962634}
 const TURRET_DEPRESSION_STEP := 5.0
 const TURRET_DEPRESSION := {
 	"cannon":[-20, -20, -20, -20, -20, -20, -20, -20, -14, -11, -10, -7, -7, -8, -9, -10, -10, -11, -11, -11, -10, -10, -10, -9, -9, -8, -6, -6, -9, -10, -13, -14, -15, -17, -18, -18, -18, -18, -18, -17, -15, -14, -13, -10, -9, -6, -6, -8, -9, -9, -10, -10, -10, -11, -11, -11, -10, -10, -9, -8, -7, -7, -10, -11, -14, -20, -20, -20, -20, -20, -20, -20],
@@ -37,7 +43,9 @@ const TURRET_DEPRESSION := {
 	"plasma_quad":[-16, -12, -9, -7, -4, -4, -6, -7, -8, -8, -9, -9, -9, -9, -8, -8, -7, -6, -4, -4, -3, -3, -5, -6, -9, -9, -9, -8, -8, -7, -6, -5, -2, -3, -6, -6, -10, -6, -6, -3, -2, -5, -6, -7, -8, -8, -9, -9, -9, -6, -5, -3, -3, -4, -4, -6, -7, -8, -8, -9, -9, -9, -9, -8, -8, -7, -6, -4, -4, -7, -9, -12],
 	"flamer":[-20, -20, -20, -20, -20, -20, -20, -18, -16, -14, -11, -9, -9, -10, -12, -12, -12, -13, -13, -13, -12, -12, -12, -10, -9, -8, -6, -6, -9, -10, -14, -14, -17, -17, -17, -17, -17, -17, -17, -17, -17, -14, -14, -10, -9, -6, -6, -8, -9, -10, -12, -12, -12, -13, -13, -13, -12, -12, -12, -10, -9, -9, -11, -14, -16, -18, -20, -20, -20, -20, -20, -20],
 	"tesla":[-20, -20, -20, -20, -20, -20, -20, -20, -15, -11, -8, -6, -6, -7, -9, -11, -12, -13, -13, -13, -12, -11, -9, -7, -6, -5, -4, -4, -6, -7, -9, -12, -13, -16, -17, -18, -18, -18, -17, -16, -13, -12, -9, -7, -6, -4, -4, -5, -6, -7, -9, -11, -12, -13, -13, -13, -12, -11, -9, -7, -6, -6, -8, -11, -15, -20, -20, -20, -20, -20, -20, -20],
-	"railgun":[-20, -20, -20, -20, -20, -20, -20, -20, -15, -13, -11, -9, -9, -9, -11, -12, -12, -13, -13, -13, -12, -12, -11, -11, -10, -8, -7, -7, -9, -10, -13, -15, -16, -17, -18, -20, -20, -20, -18, -17, -16, -15, -13, -10, -9, -7, -7, -8, -10, -11, -11, -12, -12, -13, -13, -13, -12, -12, -11, -9, -9, -9, -11, -13, -15, -20, -20, -20, -20, -20, -20, -20]}
+	"railgun":[-20, -20, -20, -20, -20, -20, -20, -20, -15, -13, -11, -9, -9, -9, -11, -12, -12, -13, -13, -13, -12, -12, -11, -11, -10, -8, -7, -7, -9, -10, -13, -15, -16, -17, -18, -20, -20, -20, -18, -17, -16, -15, -13, -10, -9, -7, -7, -8, -10, -11, -11, -12, -12, -13, -13, -13, -12, -12, -11, -9, -9, -9, -11, -13, -15, -20, -20, -20, -20, -20, -20, -20],
+	"harpoon":[-20, -20, -20, -20, -20, -20, -18, -16, -14, -8, -6, -5, -2, -6, -6, -5, -5, -5, -5, -5, -5, -5, -5, -5, -4, -6, -6, -7, -7, -6, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -6, -7, -7, -6, -6, -4, -5, -5, -5, -5, -5, -5, -5, -5, -5, -6, -6, -2, -5, -6, -8, -14, -16, -18, -20, -20, -20, -20, -20],
+	"mortar":[-20, -20, -20, -20, -20, -20, -18, -14, -10, -8, -7, -4, -4, -4, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -5, -4, -4, -6, -7, -9, -10, -11, -12, -12, -12, -12, -12, -12, -12, -11, -10, -9, -7, -6, -4, -4, -5, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -4, -4, -4, -7, -8, -10, -14, -20, -20, -20, -20, -20, -20]}
 ## GENERATED:TURRET_TABLES — tools/update-turret-geometry.py from atlas_turret_manifest.json
 const TURRET_BARRELS := {
 	"cannon":[[0, 0]],
@@ -45,11 +53,65 @@ const TURRET_BARRELS := {
 	"flamer":[[0, 0]],
 	"tesla":[[0, 0]],
 	"railgun":[[0, 0]],
+	"harpoon":[[0, 0]],
+	"mortar":[[0, 0]],
 	"cannon_dual":[[-0.1131, 0], [0.1131, 0]],
 	"cannon_quad":[[-0.64525, 0.0957], [-0.64525, -0.0957], [0.64525, 0.0957], [0.64525, -0.0957]],
 	"plasma_dual":[[-0.1305, 0], [0.1305, 0]],
 	"plasma_quad":[[-0.64525, 0.0899], [-0.64525, -0.0899], [0.64525, 0.0899], [0.64525, -0.0899]]}
-const TURRET_MUZZLE := {"cannon":1.37025, "plasma":0.957, "flamer":1.102, "tesla":1.0295, "railgun":1.6385}
+const TURRET_MUZZLE := {"cannon":1.37025, "plasma":0.957, "flamer":1.102, "tesla":1.0295, "railgun":1.6385, "harpoon":1.218, "mortar":1.044}
+
+## Front tools (atlas_tools.glb, tools/build-atlas-tools.py; manifest
+## atlas_tools_manifest.json), source metres. Primary weapon part -> tool.
+const TOOL_PARTS := {"battering_ram":"ram", "spear_fork":"spear", "grinder_drum":"grinder"}
+## Ram prow between its back and nose planes, its half width and height span;
+## RamPunch drives it RAM_PUNCH further forward.
+const RAM_BACK_Z := -1.70
+const RAM_NOSE_Z := -1.90
+const RAM_HALF_WIDTH := 1.08
+const RAM_Y := Vector2(-0.44, 0.24)
+const RAM_PUNCH := 0.28
+## Spear: tine and lance points at rest, the blade span behind them, width and
+## height of the fork; SpearCarriage lifts SPEAR_LIFT, SpearTines thrust SPEAR_THRUST.
+const SPEAR_TIP_Z := -2.90
+const SPEAR_BLADE := 0.9
+const SPEAR_HALF_WIDTH := 0.36
+const SPEAR_Y := Vector2(-0.47, -0.21)
+const SPEAR_LIFT := 0.42
+const SPEAR_THRUST := 0.50
+## Grinder: arm pivot, drum axle, drum radius including spikes, half width and
+## the arms' raise stop (radians).
+const GRINDER_PIVOT := Vector3(0.0, 0.06, -1.50)
+const GRINDER_AXLE := Vector3(0.0, -0.12, -2.34)
+const GRINDER_REACH := 0.37
+const GRINDER_HALF_WIDTH := 0.78
+const GRINDER_RAISE := 0.6632251
+
+## Front tool ("ram", "spear", "grinder") or empty.
+static func tool_kind(draft: Dictionary) -> String:
+	return TOOL_PARTS.get(draft.get("parts", {}).get("weapon", ""), "") if enabled(draft) else ""
+
+## Ram strike volume in the chassis frame at game scale: [transform, size].
+static func ram_volume(size: Vector3, punch: float) -> Array:
+	var linear := BotScale.from_size(size)
+	var depth := RAM_BACK_Z - RAM_NOSE_Z + 0.12
+	var centre := Vector3(0.0, (RAM_Y.x + RAM_Y.y) * 0.5, (RAM_BACK_Z + RAM_NOSE_Z) * 0.5 - 0.06 - punch * RAM_PUNCH)
+	return [Transform3D(Basis.IDENTITY, centre * linear), Vector3(RAM_HALF_WIDTH * 2.0, RAM_Y.y - RAM_Y.x, depth) * linear]
+
+## Spear blade volume (the front SPEAR_BLADE of tines and lance): [transform, size].
+static func spear_volume(size: Vector3, thrust: float, lift: float) -> Array:
+	var linear := BotScale.from_size(size)
+	var centre := Vector3(0.0, (SPEAR_Y.x + SPEAR_Y.y) * 0.5 + lift * SPEAR_LIFT,
+		SPEAR_TIP_Z + SPEAR_BLADE * 0.5 - thrust * SPEAR_THRUST)
+	return [Transform3D(Basis.IDENTITY, centre * linear), Vector3(SPEAR_HALF_WIDTH * 2.0, SPEAR_Y.y - SPEAR_Y.x, SPEAR_BLADE) * linear]
+
+## Where an impaled target is held: mid-blade at the carriage lift, game scale.
+static func spear_hold(size: Vector3, lift: float) -> Vector3:
+	return Vector3(0.0, (SPEAR_Y.x + SPEAR_Y.y) * 0.5 + lift * SPEAR_LIFT, SPEAR_TIP_Z + SPEAR_BLADE * 0.5) * BotScale.from_size(size)
+
+## Drum centre in the chassis frame at game scale for an arm raise of 0..1.
+static func grinder_drum(size: Vector3, raise: float) -> Vector3:
+	return (GRINDER_PIVOT + Basis(Vector3.RIGHT, raise * GRINDER_RAISE) * (GRINDER_AXLE - GRINDER_PIVOT)) * BotScale.from_size(size)
 
 ## Drive part -> Atlas running gear. Tracks are the approved hull's own; the
 ## others are authored in atlas_drives.glb (tools/build-atlas-drives.py) on the
@@ -145,13 +207,25 @@ static func turret_pitch_min(kind: String, yaw: float) -> float:
 	var index := int(fposmod(rad_to_deg(yaw), 360.0) / TURRET_DEPRESSION_STEP) % table.size()
 	return deg_to_rad(maxf(float(table[index]), float(table[(index + 1) % table.size()])))
 
+## Mechanical elevation stop of an attachment family.
+static func turret_pitch_max(kind: String) -> float:
+	return float(TURRET_PITCH_MAX_BY.get(family(kind), TURRET_PITCH_MAX))
+
+## Lowest elevation the servo will hold: the hull clearance, raised for the
+## mortar to its lowest lobbing elevation (TurretTuning mortar.min_elevation).
+static func turret_pitch_floor(kind: String, yaw: float) -> float:
+	var lowest := turret_pitch_min(kind, yaw)
+	if family(kind) == "mortar":
+		lowest = maxf(lowest, TurretTuning.settings().value("mortar", "min_elevation"))
+	return lowest
+
 ## Chassis-frame yaw/pitch that point the barrel at a world direction, pitch
 ## clamped to the stops at that bearing. Yaw is unbounded (continuous traverse).
 static func turret_target(chassis: Basis, world_direction: Vector3, kind: String) -> Vector2:
 	var local := chassis.orthonormalized().inverse() * world_direction
 	var yaw := atan2(-local.x, -local.z)
 	var pitch := atan2(local.y, Vector2(local.x, local.z).length())
-	return Vector2(yaw, clampf(pitch, turret_pitch_min(kind, yaw), TURRET_PITCH_MAX))
+	return Vector2(yaw, clampf(pitch, turret_pitch_floor(kind, yaw), turret_pitch_max(kind)))
 
 ## Bounded servo step shared by authority and tests. A depressed barrel first
 ## elevates before traversing into a bearing whose hull clearance needs it.
@@ -160,9 +234,43 @@ static func turret_slew(current: Vector2, target: Vector2, delta: float, kind: S
 	var candidate := wrapf(current.x + clampf(wrapf(target.x - current.x, -PI, PI), -yaw_step, yaw_step), -PI, PI)
 	var candidate_floor := turret_pitch_min(kind, candidate)
 	var yaw := candidate if current.y >= candidate_floor - 0.0001 else current.x
-	var goal := clampf(maxf(target.y, candidate_floor), turret_pitch_min(kind, yaw), TURRET_PITCH_MAX)
+	var goal := clampf(maxf(target.y, candidate_floor), turret_pitch_floor(kind, yaw), turret_pitch_max(kind))
 	var pitch := move_toward(current.y, goal, TurretTuning.settings().pitch_rate * maxf(0.0, delta))
 	return Vector2(yaw, pitch)
+
+## Mortar ballistics (TurretTuning mortar.muzzle_speed / shell_gravity).
+## Flight time of the steep (high) arc that carries a shell from one point to
+## another, from |v| = speed: g^2/4 u^2 + (dy g - v^2) u + (d^2 + dy^2) = 0 with
+## u = T^2. Out-of-reach points return the flattest-miss time.
+static func mortar_flight(from: Vector3, to: Vector3) -> float:
+	var tuning := TurretTuning.settings()
+	var speed := tuning.value("mortar", "muzzle_speed")
+	var gravity := tuning.value("mortar", "shell_gravity")
+	var rise := to.y - from.y
+	var flat := Vector2(to.x - from.x, to.z - from.z).length_squared()
+	var a := gravity * gravity * 0.25
+	var b := rise * gravity - speed * speed
+	var c := flat + rise * rise
+	var disc := b * b - 4.0 * a * c
+	var u := (-b + sqrt(maxf(disc, 0.0))) / (2.0 * a)
+	return sqrt(maxf(u, 0.0))
+
+## Shell position at time t on the arc from -> to that lands after flight.
+static func mortar_point(from: Vector3, to: Vector3, flight: float, t: float) -> Vector3:
+	var gravity := Vector3.DOWN * TurretTuning.settings().value("mortar", "shell_gravity")
+	var launch := (to - from - gravity * (0.5 * flight * flight)) / maxf(flight, 0.0001)
+	return from + launch * t + gravity * (0.5 * t * t)
+
+## High-arc launch elevation (radians, world) that lands a shell a horizontal
+## distance away and rise metres higher; NAN when out of reach.
+static func mortar_elevation(distance: float, rise: float) -> float:
+	var tuning := TurretTuning.settings()
+	var speed := tuning.value("mortar", "muzzle_speed")
+	var gravity := tuning.value("mortar", "shell_gravity")
+	var root := pow(speed, 4) - gravity * (gravity * distance * distance + 2.0 * rise * speed * speed)
+	if root < 0.0 or distance < 0.001:
+		return NAN
+	return atan((speed * speed + sqrt(root)) / (gravity * distance))
 
 ## Running gear for an Atlas draft ("tracks", "wheels", "legs"), or empty.
 static func drive_gear(draft: Dictionary) -> String:

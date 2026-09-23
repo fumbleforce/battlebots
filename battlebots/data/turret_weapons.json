@@ -24,6 +24,14 @@
 			"barrels": {"1": {"interval": 0.55, "heat": 7.0, "jolt": 0.12, "rock": 0.25}}},
 		"railgun": {"_comment": "Hold to charge for charge_seconds while adding charge_heat_per_second, release a full charge; the slug pierces a second target for pierce_share. interval is the reload after a shot.",
 			"range": 140.0, "damage": 70.0, "knock": 1.6, "recoil": 0.2, "pierce_share": 0.5, "charge_seconds": 1.1, "charge_heat_per_second": 6.0,
-			"barrels": {"1": {"interval": 1.6, "heat": 22.0, "jolt": 1.6, "rock": 2.8}}}
+			"barrels": {"1": {"interval": 1.6, "heat": 22.0, "jolt": 1.6, "rock": 2.8}}},
+		"harpoon": {"_comment": "Barbed bolt on a cable. A hit tethers the target; holding the trigger winches it toward the muzzle with up to pull_acceleration (m/s^2 scaled by the target's heft), driving the line in at reel_speed (m/s) and easing off over the last metres until it is within min_length metres, adding reel_heat_per_second. reaction_share of the pull drags the shooter. The tether snaps beyond max_length, when static geometry blocks the line, or after max_seconds. damage is the bolt's impact; interval is the reload after a miss or a cut.",
+			"range": 42.0, "damage": 9.0, "knock": 0.05, "recoil": 0.05,
+			"max_length": 50.0, "min_length": 5.0, "pull_acceleration": 16.0, "reel_speed": 7.0, "reaction_share": 0.35, "max_seconds": 7.0, "reel_heat_per_second": 7.0,
+			"barrels": {"1": {"interval": 1.4, "heat": 8.0, "jolt": 0.35, "rock": 0.6}}},
+		"mortar": {"_comment": "Lobbed shell: muzzle_speed (m/s) under shell_gravity (m/s^2) from elevations between min_elevation (rad) and the audited 80-degree stop, so range falls as elevation rises. damage hits at the blast centre and falls to blast_edge_share at blast_radius metres; walls shield. knock pushes outward and up. range bounds the simulated flight path.",
+			"range": 150.0, "damage": 42.0, "knock": 1.1, "recoil": 0.1,
+			"muzzle_speed": 52.0, "shell_gravity": 45.0, "min_elevation": 0.8, "blast_radius": 7.5, "blast_edge_share": 0.25,
+			"barrels": {"1": {"interval": 3.2, "heat": 18.0, "jolt": 0.9, "rock": 1.2}}}
 	}
 }

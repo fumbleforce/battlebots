@@ -1,5 +1,25 @@
 # Shared contracts — local records and current MVP session API
 
+## Harpoon, mortar, ram, spear and grinder — build mvp-ab-34, catalogue 16, protocol 12 (#52–#56)
+
+New Atlas MX-only parts:
+- Utilities: `turret_harpoon` and `turret_mortar`.
+- Primary weapons: `battering_ram`, `spear_fork` and `grinder_drum`.
+
+Snapshot changes (43 fields):
+- New `grip_target` (entity id, 0 = none) and `grip_point` (world anchor): the
+  replicated hold of the harpoon tether or spear impalement.
+- New `tool_pose` (0..1): spear lift or grinder arm raise.
+- `gun_pitch` may reach 1.45 rad, for the audited 80° mortar stop.
+
+The mortar keeps the command shape: `aim_pitch` is the steep-arc world launch
+elevation. New combat event kinds: `ram_punch`, `spear`, `grinder`.
+
+Tuning lives in `data/turret_weapons.json` and `data/front_tools.json`
+(`FrontToolTuning`). Loadout migration accepts revision-15 saves. Rules,
+controls, models and validation:
+[B_ATLAS_WEAPONS.md](coordination/B_ATLAS_WEAPONS.md).
+
 ## Atlas leg footholds — build mvp-ab-33 (#47)
 
 An Atlas MX on `walker` is supported at `AtlasDriveRig.foothold` (±1.40, ±1.20

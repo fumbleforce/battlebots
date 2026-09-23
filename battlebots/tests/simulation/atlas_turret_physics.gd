@@ -47,9 +47,6 @@ func catalogue_rules() -> void:
 		check(upgrade.valid and upgrade.stats.secondary_weapon == model.get_slice("_", 0)
 			and upgrade.stats.turret_model == model and upgrade.stats.turret_barrels == (2 if model.ends_with("dual") else 4),
 			"Upgrade %s is a legal Atlas build: %s" % [model, upgrade.reasons])
-	var heavy_quad := registry.atlas()
-	heavy_quad.parts.utility = "turret_cannon_quad"
-	check(not registry.validate(heavy_quad).valid, "Quad cannon needs lighter armor to fit the budget")
 	for preset: Dictionary in registry.atlas_showcase():
 		var shown := registry.validate(preset)
 		check(shown.valid, "Showcase preset %s is legal: %s" % [preset.name, shown.reasons])

@@ -157,7 +157,35 @@ creates tactics.
 target, so half the shots missed while the crosshair sat on it. Barrels now aim
 at the point the centre bore line strikes.
 
-## 5. When adding a new part — checklist
+## 5. Grabbing, lobbing and front tools (#52–#56)
+
+The harpoon, mortar, ram, spear/forklift and grinder added lessons of their own.
+See [B_ATLAS_WEAPONS.md](../coordination/B_ATLAS_WEAPONS.md).
+- **Pulls need a speed limit, not just a force.** A constant harpoon pull fired
+  the target into the shooter and shoved both 20 m. A winch that drives the
+  line toward a reel speed, eases off over the last metres and stops short
+  reads as powerful and stays controllable.
+- **Holds need damping and a way to break.** The impaled target rides a capped
+  spring-damper to the tines. Strain, time, overheat and letting go all
+  release it, and letting go throws it.
+- **Say what the replicated state is, not what the weapon does.** One generic
+  grip (target and world anchor) and one tool pose serve the tether, the
+  impalement, the carriage lift and the arm raise.
+- **A lobbing weapon changes the camera.** The mortar gets a high artillery
+  view with a live arc and blast ring rather than a crosshair on the hull. Its
+  command stays a bearing plus elevation, because fixed muzzle speed makes
+  elevation the range control.
+- **Scale blasts, not sparks.** The bigger mortar detonation first scaled its
+  spark sprites too, and they read as glowing balls. Keep sparks gun-sized.
+- **Tools share one mount and one audit.** Every front tool bolts to one
+  coupler plate, placed clear of the optional chin armour (the first draft
+  clipped it). The generator checks every travel extreme against the hull
+  and each optional module.
+- **The practice dummy sits about 13 m away.** That is inside the mortar's
+  minimum range and the harpoon's stop distance, so evidence runs must allow
+  for it rather than tune gameplay to the dummy.
+
+## 6. When adding a new part — checklist
 
 1. Brief: role, usage verb and range; which references it follows; how it
    mounts to the machine.

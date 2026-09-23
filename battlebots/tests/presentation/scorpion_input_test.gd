@@ -96,7 +96,7 @@ func run() -> void:
 	var decoded := WireCodec.decode_bot(packet, bot.combat.stats)
 	check(decoded.shot_sequence == bot.combat.shot_sequence and decoded.secondary_charge == 0.0,
 		"Gun counters and stopped rotor survive snapshot encode/decode")
-	for item: Array in [[29, NAN], [29, 1.1], [30, 1], [31, -1], [32, Vector3(INF, 0, 0)], [33, Vector3(1000, 0, 0)], [34, -2], [35, NAN], [35, 1.1]]:
+	for item: Array in [[29, NAN], [29, 1.1], [30, 1], [31, -1], [32, Vector3(INF, 0, 0)], [33, Vector3(1000, 0, 0)], [34, -2], [35, NAN], [35, 1.5], [40, -1], [41, Vector3(NAN, 0, 0)], [42, 1.5]]:
 		var malformed: Array = bytes_to_var(packet)
 		malformed[item[0]] = item[1]
 		check(WireCodec.decode_bot(var_to_bytes(malformed), bot.combat.stats).is_empty(),

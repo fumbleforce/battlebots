@@ -19,6 +19,7 @@ const REVISION_ELEVEN_HASHES := ["9c24100bd8b1aa480137e9ab061d9190c6c75b4462b945
 const REVISION_TWELVE_HASHES := ["cd9c94bd3563c9949e17f010423e0f970a288c54ac1ec6c2bf2298589ff0e909"]
 const REVISION_THIRTEEN_HASHES := ["2f4bd927fc477b386209b8b571de8416c2d8fd92506e45887e9cb54fbb396d43"]
 const REVISION_FOURTEEN_HASHES := ["243e5508261cbfc210967638b9466614665689bf85ed82bc0897ebc5f827cb73"]
+const REVISION_FIFTEEN_HASHES := ["395b22e42b6263e2f7441c6889f798595533fc376b6a5a241671ddcc16799b5d"]
 const MAX_SAVE_BYTES := 65536
 var registry := ContentRegistry.new()
 var path: String
@@ -227,7 +228,7 @@ func migrate(data: Dictionary) -> Dictionary:
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES + REVISION_ELEVEN_HASHES + REVISION_TWELVE_HASHES + REVISION_THIRTEEN_HASHES + REVISION_FOURTEEN_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES + REVISION_ELEVEN_HASHES + REVISION_TWELVE_HASHES + REVISION_THIRTEEN_HASHES + REVISION_FOURTEEN_HASHES + REVISION_FIFTEEN_HASHES:
 				continue
 			# Known catalogues preserve part IDs, names and cosmetics while adopting
 			# current canonical dimensions/handling. No arbitrary old hash is trusted.

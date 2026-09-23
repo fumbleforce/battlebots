@@ -30,6 +30,7 @@ var _diagnostics_fresh := false
 const TURRET_AIM_DISTANCE := 220.0
 var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
+var mortar_aim := MortarAimVisual.new()
 var _turret_aim_point := Vector3.ZERO
 var _reticle_point := Vector2.ZERO
 var _kick_sequence := -1
@@ -41,6 +42,7 @@ func _ready() -> void:
 	$CanvasLayer.move_child(turret_reticle, 0)
 	tank_sight.rig = rig
 	add_child(tank_sight)
+	add_child(mortar_aim)
 	rig.bind_source(source)
 	var preferences := CameraPreferences.load_file(settings_path)
 	preferences.apply_to(rig)
@@ -233,6 +235,9 @@ func _apply_turret_aim(command: BotCommand, view: BotView) -> void:
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
 		target = hit.position
+	if view.turret_kind == "mortar":
+		_apply_mortar_aim(command, view, size, target)
+		return
 	# A near or behind-the-turret contact (ground under a steep camera) would
 	# swing the turret wildly; aim along the sight line instead.
 	if (target - breech).dot(forward) < 2.0 * size.y:
@@ -243,17 +248,33 @@ func _apply_turret_aim(command: BotCommand, view: BotView) -> void:
 	command.aim_yaw = atan2(-direction.x, -direction.z)
 	command.aim_pitch = atan2(direction.y, Vector2(direction.x, direction.z).length())
 
+## Artillery aiming: the screen-centre ground point becomes a bearing and the
+## steep-arc elevation that lands a shell there. Out of reach aims at maximum
+## range (the lowest lobbing elevation); too close clamps to the 80 degree stop.
+func _apply_mortar_aim(command: BotCommand, view: BotView, size: Vector3, target: Vector3) -> void:
+	var muzzle := view.pose * AtlasGeometry.turret_muzzle(size, "mortar", view.turret_yaw, view.gun_pitch)
+	var offset := target - muzzle
+	var elevation := AtlasGeometry.mortar_elevation(Vector2(offset.x, offset.z).length(), offset.y)
+	if is_nan(elevation):
+		elevation = TurretTuning.settings().value("mortar", "min_elevation")
+	_turret_aim_point = target
+	command.aim_valid = true
+	command.aim_yaw = atan2(-offset.x, -offset.z)
+	command.aim_pitch = clampf(elevation, -PI * 0.5, PI * 0.5)
+
 func _update_tank_sight(view: BotView, delta: float) -> void:
 	var wanted := view != null and view.turret_kind != "" and is_instance_valid(source)
-	if wanted != tank_sight.active:
+	var artillery := wanted and view.turret_kind == "mortar"
+	if wanted != tank_sight.active or artillery != tank_sight.artillery:
 		tank_sight.reset()
 		tank_sight.active = wanted
+		tank_sight.artillery = artillery
 		_kick_sequence = -1
 	# Every accepted own shot kicks the sight; cannon volleys stack hard.
 	if wanted and not view.eliminated:
 		if _kick_sequence >= 0 and view.shot_sequence > _kick_sequence:
 			var shells := mini(view.shot_sequence - _kick_sequence, 4)
-			var per_shell: float = {"plasma":0.12, "flamer":0.0, "tesla":0.18, "railgun":1.3}.get(view.turret_kind, 0.12)
+			var per_shell: float = {"plasma":0.12, "flamer":0.0, "tesla":0.18, "railgun":1.3, "harpoon":0.3, "mortar":0.9}.get(view.turret_kind, 0.12)
 			if view.turret_kind == "cannon":
 				per_shell = 0.85 if view.turret_model == "cannon" else (0.6 if view.turret_model.ends_with("_dual") else 0.45)
 			tank_sight.kick(per_shell * float(shells))
@@ -265,6 +286,8 @@ func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	var camera := aim_camera()
 	var show := controls_enabled and view != null and view.turret_kind != "" and not view.eliminated \
 		and is_instance_valid(camera) and camera.is_inside_tree() and not pause_menu.visible
+	if not show or view.turret_kind != "mortar":
+		mortar_aim.hide()
 	if not show:
 		turret_reticle.render(false, false, Vector2.ZERO, 0.0)
 		_reticle_seen = false
@@ -281,6 +304,11 @@ func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
 		end = hit.position
+	if view.turret_kind == "mortar":
+		# Where a shell fired now would land, along its real arc.
+		var path := CombatWorld.mortar_trace(get_world_3d().direct_space_state, muzzle, direction, source.camera_exclusions())
+		end = path.point
+		mortar_aim.show_path(path.points, path.landed, TurretTuning.settings().value("mortar", "blast_radius"), view.secondary_charge >= 0.999)
 	var on_screen := not camera.is_position_behind(end)
 	var point := camera.unproject_position(end) if on_screen else Vector2.ZERO
 	# The canvas may be scaled; convert viewport pixels into reticle space.
@@ -316,7 +344,8 @@ func _process(delta: float) -> void:
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
 	if controls_enabled and view != null and view.turret_kind != "":
 		var gun: String = {"cannon":"Main gun", "plasma":"Plasma gun", "flamer":"Flamethrower (hold)",
-			"tesla":"Tesla arc", "railgun":"Railgun (hold, release)"}.get(view.turret_kind, "Turret")
+			"tesla":"Tesla arc", "railgun":"Railgun (hold, release)",
+			"harpoon":"Harpoon (hold to reel, press to cut)", "mortar":"Mortar"}.get(view.turret_kind, "Turret")
 		if view.turret_model.ends_with("_dual"): gun = "Twin " + gun.to_lower()
 		elif view.turret_model.ends_with("_quad"): gun = "Quad " + gun.to_lower()
 		hint.text = "Mouse  Aim  |  %s  %s  |  %s  Hull weapon  |  Esc  Menu" % [

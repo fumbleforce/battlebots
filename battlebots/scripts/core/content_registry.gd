@@ -91,7 +91,9 @@ func atlas_turret() -> Dictionary:
 	return draft
 
 ## Showcase turret presets: quad-cannon fortress, close-quarters flamethrower
-## brawler with a saw, and a long-range railgun.
+## brawler with a saw, a long-range railgun, a harpoon whaler that drags
+## enemies onto its lifter, a mortar artillery piece, and the front tools: a
+## battering-ram breaker, a harpoon-and-spear impaler and a grinder shredder.
 func atlas_showcase() -> Array[Dictionary]:
 	var fortress := atlas()
 	fortress.name = "ATLAS MX • FORTRESS"
@@ -103,7 +105,24 @@ func atlas_showcase() -> Array[Dictionary]:
 	var rail := atlas()
 	rail.name = "ATLAS MX • RAIL"
 	rail.parts.utility = "turret_railgun"
-	return [fortress, inferno, rail]
+	var whaler := atlas()
+	whaler.name = "ATLAS MX • WHALER"
+	whaler.parts.utility = "turret_harpoon"
+	var artillery := atlas()
+	artillery.name = "ATLAS MX • ARTILLERY"
+	artillery.parts.utility = "turret_mortar"
+	var breaker := atlas()
+	breaker.name = "ATLAS MX • BREAKER"
+	breaker.parts.weapon = "battering_ram"
+	breaker.parts.utility = "turret_cannon"
+	var impaler := atlas()
+	impaler.name = "ATLAS MX • IMPALER"
+	impaler.parts.weapon = "spear_fork"
+	impaler.parts.utility = "turret_harpoon"
+	var shredder := atlas()
+	shredder.name = "ATLAS MX • SHREDDER"
+	shredder.parts.weapon = "grinder_drum"
+	return [fortress, inferno, rail, whaler, artillery, breaker, impaler, shredder]
 
 func validate(draft: Dictionary) -> LoadoutValidation:
 	var result := LoadoutValidation.new()
@@ -138,6 +157,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Scorpion hex body requires the articulated walking drive")
 	if selected.get("chassis") == "atlas_mx" and not AtlasGeometry.DRIVE_GEAR.has(selected.get("drive")):
 		result.reasons.append("Atlas MX drives on tracks, large wheels or hydraulic legs")
+	if selected.get("weapon") in AtlasGeometry.TOOL_PARTS and selected.get("chassis") != "atlas_mx":
+		result.reasons.append("Ram, spear and grinder tools mount on the Atlas MX front coupler")
 	if selected.get("utility") in AtlasGeometry.TURRET_PARTS:
 		if selected.get("chassis") != "atlas_mx":
 			result.reasons.append("Turret modules require the Atlas MX roof traverse race")

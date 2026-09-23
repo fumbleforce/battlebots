@@ -418,6 +418,9 @@ func read_view() -> BotView:
 	view.nitro_active = data.get("nitro_active", false)
 	view.jump_charge_fraction = data.get("jump_charge", 0.0)
 	view.jump_cooldown = data.get("jump_cooldown", 0.0)
+	view.grip_target = data.get("grip_target", 0)
+	view.grip_point = data.get("grip_point", Vector3.ZERO)
+	view.tool_pose = data.get("tool_pose", 0.0)
 	return view
 
 func camera_anchor() -> Node3D:

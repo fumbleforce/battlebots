@@ -1,0 +1,204 @@
+{
+  "name": "Atlas MX front tools",
+  "id": "atlas_tools",
+  "runtime": "atlas_tools.glb",
+  "generator": "tools/build-atlas-tools.py",
+  "authoring": "Godot metres in the Atlas hull frame, X right Y up -Z forward; runtime factor three applied by AtlasVisual",
+  "nodes": [
+    "ToolRam",
+    "RamPunch",
+    "ToolSpear",
+    "SpearCarriage",
+    "SpearTines",
+    "ToolGrinder",
+    "GrinderArms",
+    "GrinderDrum"
+  ],
+  "ram": {
+    "nose_z": -1.9,
+    "facet_z": -1.8,
+    "half_width": 1.08,
+    "y": [
+      -0.44,
+      0.24
+    ],
+    "punch": 0.28
+  },
+  "spear": {
+    "lift": 0.42,
+    "thrust": 0.5,
+    "tip_z": -2.9,
+    "tine_x": 0.27,
+    "tine_y": -0.43,
+    "lance_y": -0.27
+  },
+  "grinder": {
+    "pivot": [
+      0.0,
+      0.06,
+      -1.5
+    ],
+    "axle": [
+      0.0,
+      -0.12,
+      -2.34
+    ],
+    "radius": 0.25,
+    "spike": 0.12,
+    "half_width": 0.78,
+    "raise_degrees": 38.0
+  },
+  "triangles": {
+    "ram": 14560,
+    "spear": 6104,
+    "grinder": 21604
+  },
+  "clearance": {
+    "scope": "Triangle-overlap of each tool at rest, half and full travel against the imported atlas_mx.glb (base and optional modules).",
+    "contacts": {},
+    "base_clear": true
+  },
+  "surface_atlases": {
+    "version": 1,
+    "uv": "TEXCOORD_0",
+    "unique_meshes": 8,
+    "mesh_instances": 8,
+    "families": {
+      "Primary": {
+        "resolution": 2048,
+        "faces": 360,
+        "images": {
+          "base": "Atlas_ToolsPrimary_base.png",
+          "orm": "Atlas_ToolsPrimary_orm.png",
+          "normal": "Atlas_ToolsPrimary_normal.png",
+          "coverage": "Atlas_ToolsPrimary_coverage.png"
+        },
+        "occupied_fraction": 0.84618,
+        "ao_min": 0.0,
+        "ao_mean": 0.50557,
+        "roughness_min": 0.37,
+        "roughness_max": 0.83071
+      },
+      "Secondary": {
+        "resolution": 1024,
+        "faces": 670,
+        "images": {
+          "base": "Atlas_ToolsSecondary_base.png",
+          "orm": "Atlas_ToolsSecondary_orm.png",
+          "normal": "Atlas_ToolsSecondary_normal.png",
+          "coverage": "Atlas_ToolsSecondary_coverage.png"
+        },
+        "occupied_fraction": 0.84393,
+        "ao_min": 0.0,
+        "ao_mean": 0.7435,
+        "roughness_min": 0.37,
+        "roughness_max": 0.81136
+      },
+      "Hardware": {
+        "resolution": 2048,
+        "faces": 16772,
+        "images": {
+          "base": "Atlas_ToolsHardware_base.png",
+          "orm": "Atlas_ToolsHardware_orm.png",
+          "normal": "Atlas_ToolsHardware_normal.png"
+        },
+        "occupied_fraction": 0.75938,
+        "ao_min": 0.0,
+        "ao_mean": 0.75096,
+        "roughness_min": 0.2428,
+        "roughness_max": 0.66158
+      }
+    },
+    "paint_coverage": {
+      "Primary": "Atlas_ToolsPrimary_coverage.png",
+      "Secondary": "Atlas_ToolsSecondary_coverage.png"
+    },
+    "occlusion": {
+      "method": "ray_traced_local_assembly",
+      "distance_metres": 0.06
+    },
+    "material_references": {
+      "Atlas_EdgeSteel": {
+        "linear_color": [
+          0.36724647879600525,
+          0.38005632162094116,
+          0.3546920716762543,
+          1.0
+        ],
+        "metallic": 0.949999988079071,
+        "roughness": 0.30000001192092896
+      },
+      "Atlas_Metal": {
+        "linear_color": [
+          0.23302200436592102,
+          0.2632734179496765,
+          0.27383843064308167,
+          1.0
+        ],
+        "metallic": 0.9200000166893005,
+        "roughness": 0.36000001430511475
+      },
+      "Atlas_OxidizedMetal": {
+        "linear_color": [
+          0.09462962299585342,
+          0.08088690787553787,
+          0.059253521263599396,
+          1.0
+        ],
+        "metallic": 0.800000011920929,
+        "roughness": 0.5699999928474426
+      },
+      "Atlas_PaintSecondary": {
+        "linear_color": [
+          0.03468407690525055,
+          0.04143557697534561,
+          0.0450764074921608,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6100000143051147
+      },
+      "Atlas_GunMetal": {
+        "linear_color": [
+          0.04696420207619667,
+          0.05087608844041824,
+          0.05290079116821289,
+          1.0
+        ],
+        "metallic": 0.8500000238418579,
+        "roughness": 0.5
+      },
+      "Atlas_Recess": {
+        "linear_color": [
+          0.0020123838912695646,
+          0.0027089782524853945,
+          0.0030185759533196688,
+          1.0
+        ],
+        "metallic": 0.41999998688697815,
+        "roughness": 0.5099999904632568
+      },
+      "Atlas_PaintPrimaryEdge": {
+        "linear_color": [
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.66
+      },
+      "Atlas_PaintPrimary": {
+        "linear_color": [
+          0.7105664610862732,
+          0.22341398894786835,
+          0.004400849808007479,
+          1.0
+        ],
+        "metallic": 0.08,
+        "roughness": 0.6600000262260437
+      }
+    }
+  },
+  "approval": "Pending user visual approval"
+}

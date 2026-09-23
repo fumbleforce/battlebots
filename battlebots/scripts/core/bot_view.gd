@@ -41,3 +41,9 @@ var turret_yaw := 0.0
 ## smoothed yaw/pitch for reticles; authority never reads these.
 var turret_model := ""
 var turret_display := Vector2.ZERO
+## Replicated hold on another bot (harpoon tether, spear impalement): its
+## entity id (0 = none) and the world anchor point on it.
+var grip_target := 0
+var grip_point := Vector3.ZERO
+## Front tool pose 0..1: spear carriage lift or grinder arm raise.
+var tool_pose := 0.0

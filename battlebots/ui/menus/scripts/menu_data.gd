@@ -84,6 +84,15 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Standard wheels · 22 kg · 25 power · 10 m/s. On Atlas MX: four large lugged off-road tyres on hub motors under the sponson hoods."
 			elif item.id == "agile": item.name = "Four wheels · Agile"
 			elif item.id == "lifter": item.name = "Ramp · Lifter"
+			elif item.id == "battering_ram":
+				item.name = "Battering ram"
+				item.desc = "Atlas MX front tool · 26 kg · 30 power. An armoured prow with hardened striker plates: rams landed on the prow deal 2.2× damage and 1.6× knock-back while you take only a third of the return blow. Press primary for a hydraulic punch (24 damage, big shove). Drive enemies into walls."
+			elif item.id == "spear_fork":
+				item.name = "Spear · Forklift"
+				item.desc = "Atlas MX front tool · 22 kg · 30 power. Press primary to thrust a barbed lance and fork tines: 30 piercing damage that armour only partly stops, and the target is impaled. Keep holding to lift and carry it helplessly; release to throw it off. Tears free after 5 s or under heavy strain."
+			elif item.id == "grinder_drum":
+				item.name = "Grinder drum"
+				item.desc = "Atlas MX front tool · 30 kg · 40 power. A huge spiked drum on thick hydraulic arms. Hold primary to spin it up and shred whatever it touches; armour plates take 2.4× damage. Hold secondary to raise the arms onto a target's top. Pulls victims into the drum; builds heat fast."
 			elif item.id == "walker":
 				item.name = "Articulated walking legs"
 				item.desc = "Six legs on Scorpion, four hydraulic legs on Atlas MX, four on Sawblade · 32 kg · 35 power · 4 m/s. Planted feet adapt to terrain and smooth alternating steps."
@@ -101,13 +110,13 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.desc = "Upgrade · Atlas MX roof turret · 22 kg · 35 power. Two barrels ripple a volley of heavy shells every 2.6 s. Tank controls: mouse to aim, primary fire to shoot. Replaces the roof gun mount."
 			elif item.id == "turret_cannon_quad":
 				item.name = "Turret · Quad cannon ▲▲"
-				item.desc = "Upgrade · Atlas MX roof turret · 30 kg · 40 power. Four barrels unload a devastating rippling volley every 3 s. Needs light armor to fit the 120 kg budget. Tank controls; replaces the roof gun mount."
+				item.desc = "Upgrade · Atlas MX roof turret · 30 kg · 40 power. Four barrels unload a devastating rippling volley every 3 s. Heavy: slows the tank. Tank controls; replaces the roof gun mount."
 			elif item.id == "turret_plasma_dual":
 				item.name = "Turret · Twin plasma ▲"
 				item.desc = "Upgrade · Atlas MX roof turret · 20 kg · 35 power. Alternating emitters pour searing plasma bolts at almost twice the rate. Watch heat. Tank controls; replaces the roof gun mount."
 			elif item.id == "turret_plasma_quad":
 				item.name = "Turret · Quad plasma ▲▲"
-				item.desc = "Upgrade · Atlas MX roof turret · 28 kg · 40 power. Four emitters hose a torrent of plasma until heat runs out. Needs light armor to fit the 120 kg budget. Tank controls; replaces the roof gun mount."
+				item.desc = "Upgrade · Atlas MX roof turret · 28 kg · 40 power. Four emitters hose a torrent of plasma until heat runs out. Heavy: slows the tank. Tank controls; replaces the roof gun mount."
 			elif item.id == "turret_flamer":
 				item.name = "Turret · Flamethrower 🔥"
 				item.desc = "Atlas MX roof turret · 15 kg · 25 power. Close quarters: hold primary fire to hose a 17 m cone of fire that burns every enemy inside it. Walls cut the jet short. Builds shared heat."
@@ -117,6 +126,12 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 			elif item.id == "turret_railgun":
 				item.name = "Turret · Railgun"
 				item.desc = "Atlas MX roof turret · 20 kg · 35 power. Hold primary fire to charge, release to fire a hypersonic slug: 70 damage, 140 m, pierces into a second target. Releasing early cancels. Massive recoil."
+			elif item.id == "turret_harpoon":
+				item.name = "Turret · Harpoon ⚓"
+				item.desc = "Atlas MX roof turret · 15 kg · 25 power. Press primary fire to shoot a barbed harpoon on a cable (42 m). A hit tethers the enemy: keep holding to winch them toward you; press again to cut the cable. The cable snaps past 50 m, around walls or after 7 s. Drag enemies onto your hull weapon or into a wall."
+			elif item.id == "turret_mortar":
+				item.name = "Turret · Mortar"
+				item.desc = "Atlas MX roof turret · 22 kg · 35 power. Artillery: the camera rises over the battlefield and the mouse places a ground target (about 20–60 m). Primary fire lobs a shell over walls that blasts everything within 7.5 m. Heavy 3.2 s reload; useless up close."
 			elif item.id == "turret_plasma":
 				item.name = "Turret · Plasma gun"
 				item.desc = "Atlas MX roof turret · 14 kg · 25 power. Tank controls: aim with the mouse over the turret sight and hold primary fire for rapid plasma bolts; secondary fire operates the hull weapon. Light hits that build heat quickly. Replaces the roof gun mount, so it excludes the minigun."
