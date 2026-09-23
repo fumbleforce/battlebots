@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+ImportGuard="*res://scripts/core/import_guard.gd"
 MenuRouter="*res://ui/menus/scripts/menu_router.gd"
 PlayerProfile="*res://ui/menus/scripts/player_profile.gd"
 

@@ -62,6 +62,9 @@ docs/TEAM_WORKFLOW.md and docs/CONTRACTS.md before implementation.
   editor import.
 - Commit source `.uid` and required `.import` files; never commit `.godot/`,
   credentials or export output.
+- Running the game from source re-imports changed assets automatically
+  (`ImportGuard`, docs/coordination/IMPORT_GUARD.md); headless tests still need
+  the explicit `--editor --import` step after a pull.
 - After shared contract/scene changes run `tools/check-baseline.ps1` (needs
   PowerShell) or the equivalent Godot test scripts it lists.
 - This is a developing MVP: do not describe unverified behaviour or partial scope
