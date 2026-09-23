@@ -1,6 +1,6 @@
 // Deploy the prepared hosted server to Fly during a playtest break, prove the
 // live release matches this commit, and roll back if acceptance fails.
-// Requires: `node tools/prepare-hosted.mjs` output, flyctl, FLY_API_TOKEN.
+// Requires: `node tools/prepare-hosted.mjs` output, flyctl on PATH, FLY_API_TOKEN.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -68,7 +68,7 @@ function deploy(image) {
     '--ha=false', '--strategy', 'immediate', '--yes'];
   if (image) args.push('--image', image);
   else args.push('--dockerfile', 'services/matchmaking/Dockerfile', '--ignorefile', '.dockerignore', '--remote-only');
-  run('fly', args);
+  run('flyctl', args);
 }
 
 async function waitForRelease() {
@@ -88,7 +88,7 @@ if (matches(before)) {
   console.log('HOSTED RELEASE ALREADY LIVE');
   process.exit(0);
 }
-const machines = JSON.parse(run('fly', ['machine', 'list', '--app', values.app, '--json'], { capture: true }));
+const machines = JSON.parse(run('flyctl', ['machine', 'list', '--app', values.app, '--json'], { capture: true }));
 assert.equal(machines.length, 1, 'The allocator must run on exactly one Machine');
 const previousImage = machines[0].config.image;
 console.log(`Rollback image: ${previousImage}`);
