@@ -14,8 +14,14 @@ docs/TEAM_WORKFLOW.md and docs/CONTRACTS.md before implementation.
   When your work touches code another active task is changing, say so on that
   issue and integrate carefully.
 - Post progress, blockers, contract changes and completion on the issue (and
-  cross-task news on #2). Close issues after integration to `main` and a green
-  deploy. Details: [docs/ISSUE_WORKFLOW.md](docs/ISSUE_WORKFLOW.md).
+  cross-task news on #2). Details: [docs/ISSUE_WORKFLOW.md](docs/ISSUE_WORKFLOW.md).
+- Always close an issue as soon as its work is done (integrated to `main`, green
+  deploy), with a closing comment naming the commits. Do not leave finished
+  cards open.
+- Reopen the issue if the user pushes back on the implementation, and continue
+  the work there.
+- A follow-up request that does not overlap with the original issue gets a new
+  issue; link it from the original.
 - There are no fixed roles; any session may work on any area.
 
 ## Branches and integration
