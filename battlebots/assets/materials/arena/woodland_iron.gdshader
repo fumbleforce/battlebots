@@ -29,7 +29,8 @@ void fragment() {
 	float scan_rust = smoothstep(0.08, 0.3, rust_scan.r - rust_scan.b);
 	rust = clamp(max(rust * 0.6, scan_rust * rust_amount), 0.0, 1.0);
 	iron = plate * (iron_color / 0.35) * (0.85 + scale * 0.3);
-	oxide = mix(oxide, rust_scan * 0.8, 0.6);
+	float rl = dot(rust_scan, vec3(0.3, 0.59, 0.11));
+	oxide = mix(oxide, mix(vec3(rl), rust_scan, 0.55) * 0.7, 0.6);
 	ALBEDO = mix(iron, oxide, rust);
 	METALLIC = mix(0.7, 0.12, rust);
 	ROUGHNESS = mix(roughness_floor + scale * 0.16, 0.86, rust);

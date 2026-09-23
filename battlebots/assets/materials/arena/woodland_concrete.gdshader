@@ -17,7 +17,13 @@ void fragment() {
 	vec3 scan = wl_triplanar(scan_diff, p, wnormal, 3.0);
 	float mean = max(dot(textureLod(scan_diff, vec2(0.5), 12.0).rgb, vec3(0.333)), 0.05);
 	// Keep the scan's detail, but set the overall tone from concrete_color.
+	// The scan is beige render; keep its detail but grade it to cool grey.
+	float sl = dot(scan, vec3(0.299, 0.587, 0.114));
+	scan = mix(vec3(sl), scan, 0.15);
 	vec3 c = concrete_color * (scan / mean);
+	// Grime pools low and in broad blotches; edges stay lighter.
+	float grime = smoothstep(0.35, 0.8, wl_fbm3(p * 0.45 + 2.0, 4));
+	c *= mix(1.0, 0.62, grime * 0.8);
 	float broad = wl_fbm3(p * 0.18, 3);
 	c *= 0.88 + broad * 0.24;
 	// Rain streaks under ledges: long, thin, vertical.
