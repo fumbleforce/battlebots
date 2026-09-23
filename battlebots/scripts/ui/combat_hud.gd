@@ -347,8 +347,9 @@ func _render_armor(view: BotView) -> void:
 				_plate_flash[face] = HIT_FLASH
 			_plate_last[face] = value
 		else:
+			# Bare areas have no HP but keep a flash from a combat event; a bot
+			# change (or no bot) already cleared stale flashes above.
 			_plate_last.erase(face)
-			_plate_flash.erase(face)
 		_plate_color[face] = color
 		_show_plate(face)
 
