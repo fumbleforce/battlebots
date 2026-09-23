@@ -45,7 +45,8 @@ async function fixture(t, options = {}) {
 
 test('health and guest enforce exact release identity and bounded authentication', async t => {
   const f = await fixture(t, { guestTtl: 30 });
-  assert.deepEqual((await f.request('/healthz')).body, { ...manifest, region: 'arn', queue_capacities: [2, 4] });
+  assert.deepEqual((await f.request('/healthz')).body,
+    { ...manifest, region: 'arn', queue_capacities: [2, 4], active_rooms: 0, connected_players: 0 });
   for (const change of [{ build: 'old' }, { protocol: 3 }, { content_hash: 'b'.repeat(64) }]) {
     const bad = await f.request('/v1/guests', 'POST', { ...manifest, ...change });
     assert.equal(bad.status, 409); assert.equal(bad.body.error.code, 'version_mismatch');
@@ -66,6 +67,7 @@ test('private room withholds endpoint until fresh ready and publishes only ticke
   const created = await f.request('/v1/rooms', 'POST', { mode: 'teams', capacity: 2 }, guest.access_token);
   assert.equal(created.body.state, 'starting'); assert.equal(created.body.assignment, undefined);
   assert.match(created.body.code, /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/);
+  assert.equal((await f.request('/healthz')).body.active_rooms, 1, 'An occupied room blocks automated deploys');
   const worker = f.workers[0];
   assert.equal(worker.config.port, 24570); assert.equal(worker.config.bind_address, '127.0.0.1');
   assert.equal(worker.config.schema, 1); assert.equal(worker.config.lease_expires_at, 1030);

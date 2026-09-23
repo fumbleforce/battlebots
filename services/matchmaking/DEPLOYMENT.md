@@ -16,6 +16,29 @@ and guest sessions. Rooms, queues and guest credentials are ephemeral: a service
 restart invalidates them and running matches are incomplete. This is not the
 public-release persistence/account implementation.
 
+## Automated deploys (GitHub Actions)
+
+Every push to `main` that touches the game, service or release tooling runs the
+**Linux hosted duel runtime** workflow. After it prepares the release from that
+commit and passes the local production-container duel, it runs
+`tools/deploy-hosted.mjs`, which:
+
+1. skips the deploy when live `/healthz` already reports this build, protocol and
+   content hash;
+2. records the running image for rollback;
+3. waits (up to 45 minutes) until `/healthz` reports `active_rooms: 0`, so a
+   restart never ends a running playtest;
+4. runs `fly deploy` with the checked-in configuration;
+5. waits until live `/healthz` reports exactly this commit's manifest;
+6. runs the external private + Quick Play duel acceptance against the live
+   endpoint, and rolls back to the recorded image if any step fails.
+
+Deploys are serialized (one at a time). A manual *Run workflow* on `main` also
+deploys. The workflow uses the repository secret `FLY_API_TOKEN`, a deploy token
+scoped to the `battlebots-fumbleforce` app (`fly tokens create deploy`), which
+expires after one year. The same script can deploy manually after
+`node tools/prepare-hosted.mjs` with `FLY_API_TOKEN` set.
+
 ## Prepare and validate
 
 On Linux, use Node 24 and Godot 4.7.2 with matching export templates; PowerShell

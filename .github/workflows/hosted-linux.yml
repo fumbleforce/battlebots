@@ -8,6 +8,7 @@ on:
       - 'tools/check-hosted.mjs'
       - 'tools/prepare-hosted.ps1'
       - 'tools/prepare-hosted.mjs'
+      - 'tools/deploy-hosted.mjs'
       - '.dockerignore'
       - '.github/workflows/hosted-linux.yml'
   pull_request:
@@ -17,7 +18,13 @@ permissions:
 jobs:
   linux-hosted:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Main pushes also deploy, which may wait up to 45 minutes for a playtest break.
+    timeout-minutes: 75
+    # Serialize Fly deploys: a newer main push queues behind (and supersedes any
+    # older pending) run instead of racing it onto the single Machine.
+    concurrency:
+      group: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'hosted-deploy' || github.run_id }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -58,6 +65,19 @@ jobs:
         run: |
           set -euo pipefail
           node tools/check-hosted.mjs --godot "$GODOT" --local-service http://127.0.0.1:18080
+      - name: Stop the local test container before deploying
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          docker logs battlebots-hosted-ci > "$RUNNER_TEMP/battlebots-linux-container.log" 2>&1
+          docker rm --force battlebots-hosted-ci
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      - name: Deploy this commit's server to Fly during a playtest break, verify the live release, roll back on failure
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          TMPDIR: ${{ runner.temp }}
+        run: node tools/deploy-hosted.mjs --godot "$GODOT"
       - name: Collect container logs and stop only this job's container
         if: always()
         shell: bash

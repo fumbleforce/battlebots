@@ -243,7 +243,14 @@ export function createService(options, { workerFactory, clock = () => Date.now()
   const route = async (req, body, pathname) => {
     if (closed) reject(503, 'unavailable', 'Service is shutting down.');
     const method = req.method;
-    if (method === 'GET' && pathname === '/healthz') return { ...config.manifest, region: config.region, queue_capacities: [2, 4] };
+    if (method === 'GET' && pathname === '/healthz') {
+      // Occupancy lets automated deploys wait for a playtest break: a restart
+      // ends every room on this single Machine.
+      const occupied = [...rooms.values()].filter(room => room.members.size > 0);
+      const connected = occupied.reduce((total, room) => total + (room.status?.connected_players?.length ?? 0), 0);
+      return { ...config.manifest, region: config.region, queue_capacities: [2, 4],
+        active_rooms: occupied.length, connected_players: connected };
+    }
     // Enable only behind Fly's trusted HTTP proxy. Never honor arbitrary X-Forwarded-For.
     const flyAddress = req.headers['fly-client-ip'];
     const address = config.trustFlyProxy === true && typeof flyAddress === 'string' && isIP(flyAddress)
