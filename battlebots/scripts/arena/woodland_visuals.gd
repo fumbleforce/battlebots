@@ -147,7 +147,7 @@ func _terrain(arena: Node) -> void:
 	root.name = "TerrainSurface"
 	add_child(root)
 	const CHUNK := 30.0
-	var levels := [[0.25, 0.0, 70.0], [0.75, 70.0, 170.0], [2.0, 170.0, 0.0]]
+	var levels := [[0.25, 0.0, 40.0], [0.75, 40.0, 150.0], [2.0, 150.0, 0.0]]
 	var meshes: Array[Mesh] = []
 	for level: Array in levels:
 		var chunk := PlaneMesh.new()
@@ -415,17 +415,17 @@ func _flush_modules() -> void:
 			var source := mesh.surface_get_material(surface)
 			if source and slots.has(source.resource_name):
 				mesh.surface_set_material(surface, slots[source.resource_name])
+		# One instance per module, not an arena-wide MultiMesh: each piece is
+		# frustum-culled on its own and uses the importer's automatic LODs.
 		var poses: Array = _modules[name]
-		var multi := MultiMesh.new()
-		multi.transform_format = MultiMesh.TRANSFORM_3D
-		multi.mesh = mesh
-		multi.instance_count = poses.size()
+		var group := Node3D.new()
+		group.name = "Palisade_" + name
+		add_child(group)
 		for i: int in range(poses.size()):
-			multi.set_instance_transform(i, poses[i])
-		var visual := MultiMeshInstance3D.new()
-		visual.name = "Palisade_" + name
-		visual.multimesh = multi
-		add_child(visual)
+			var visual := MeshInstance3D.new()
+			visual.mesh = mesh
+			visual.transform = poses[i]
+			group.add_child(visual)
 	_modules.clear()
 
 func _flush() -> void:
@@ -447,7 +447,9 @@ func _flush() -> void:
 		visual.multimesh = multi
 		visual.material_override = _materials[parts[0]]
 		# Small hardware, crowd and cloth do not need to cast the sun's shadow.
-		var casts := parts[0] in ["plank", "timber", "rail", "deck", "log", "canvas", "concrete", "iron", "rusty", "steel"] and parts[1] != "bolt"
+		# Only structural pieces cast; hardware (bolts, lamp rims, cylinders,
+		# bowls) is too small to read in shadow but costs every cascade.
+		var casts := parts[0] in ["plank", "timber", "rail", "deck", "log", "canvas", "concrete", "steel"] and parts[1] in ["box", "pyr"]
 		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if casts else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(visual)
 	_batches.clear()
@@ -696,11 +698,15 @@ func _tower() -> void:
 	light.light_color = Color(1.0, 0.92, 0.8)
 	light.light_energy = 6.0
 	light.light_size = 2.0
-	light.spot_range = 180.0
+	light.spot_range = 120.0
 	light.spot_angle = 30.0
 	light.spot_attenuation = 0.8
 	light.shadow_enabled = false
-	light.light_volumetric_fog_energy = 0.3
+	# Daylight floodlights: no fog scattering, fade out with distance.
+	light.light_volumetric_fog_energy = 0.0
+	light.distance_fade_enabled = true
+	light.distance_fade_begin = 140.0
+	light.distance_fade_length = 40.0
 	# Long team pennant down the tower's inner face.
 	var colour := _team_color(c)
 	var basis := Basis(Vector3.RIGHT, Vector3.BACK, Vector3.DOWN).scaled_local(Vector3(3.4, 1.0, 16.0))
@@ -956,11 +962,13 @@ func _lighting(arena: Node) -> void:
 	sun.transform = Transform3D(Basis.looking_at(-toward_sun, Vector3.UP), Vector3.ZERO)
 	sun.light_color = Color(1.0, 0.9, 0.76)
 	sun.light_energy = 2.0
-	# Soft penumbrae that widen with distance from the caster.
-	sun.light_angular_distance = 1.2
+	# Filtered soft shadows: a non-zero angular size would switch to PCSS
+	# blocker searches (~0.6 ms at 1440p) for a barely visible difference.
+	sun.light_angular_distance = 0.0
 	sun.shadow_enabled = true
-	sun.shadow_blur = 1.0
+	sun.shadow_blur = 1.8
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.directional_shadow_blend_splits = true
-	sun.directional_shadow_max_distance = 190.0
+	sun.directional_shadow_max_distance = 120.0
+	sun.directional_shadow_fade_start = 0.85
 	sun.light_volumetric_fog_energy = 1.2

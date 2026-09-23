@@ -31,6 +31,14 @@ func _run() -> void:
 		# Rays between the outcrops reach the wall at the octagon's inner plane.
 		if not hit.is_empty() and hit.collider.get_parent().name == "Walls":
 			check(Vector2(hit.position.x, hit.position.z).length() > 119.9, "Unexpected obstacle towards side %d: %s at %s" % [side, hit.collider.name, hit.position])
+	# Baked load-time data must match the generators (tools/bake_woodland_cache.gd).
+	var baked := GROUND.grid_heights(true)
+	var fresh := GROUND.grid_heights(false)
+	var drift := 0.0
+	for i: int in range(fresh.size()):
+		drift = maxf(drift, absf(baked[i] - fresh[i]))
+	check(ResourceLoader.exists(GROUND.HEIGHT_CACHE) and drift < 0.0001, "Baked terrain heights are stale (drift %.4f m): rerun tools/bake_woodland_cache.gd" % drift)
+	check(ResourceLoader.exists("res://assets/textures/woodland/scatter_cache.res"), "Woodland scatter cache missing: run tools/bake_woodland_cache.gd")
 	var obstacles := arena.get_node("WoodlandObstacles")
 	var items := GROUND.obstacles()
 	check(obstacles.get_child_count() == items.size() and items.size() > 60, "Obstacle set changed")
@@ -86,7 +94,13 @@ func _run() -> void:
 func _capture(world: AuthorityWorld) -> void:
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	root.size = Vector2i(1600, 900)
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--size="):
+			var parts := arg.substr(7).split("x")
+			root.size = Vector2i(int(parts[0]), int(parts[1]))
 	if "--benchmark" in OS.get_cmdline_user_args():
+		RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
+		root.mesh_lod_threshold = 2.0 # Matches GraphicsRuntime.
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var camera := Camera3D.new()
 	world.add_child(camera)
@@ -141,16 +155,23 @@ func _capture(world: AuthorityWorld) -> void:
 		print("CAPTURE: ", ProjectSettings.globalize_path(path))
 		if "--benchmark" in OS.get_cmdline_user_args():
 			var timings: Array[float] = []
+			var gpu_times: Array[float] = []
 			var previous := Time.get_ticks_usec()
 			for sample: int in range(120):
 				await process_frame
 				await RenderingServer.frame_post_draw
 				var now := Time.get_ticks_usec()
 				timings.append((now - previous) / 1000.0)
+				gpu_times.append(RenderingServer.viewport_get_measured_render_time_gpu(root.get_viewport_rid()))
 				previous = now
 			timings.sort()
-			print("FRAME SAMPLE ", view[0], " 1600x900 / 120 frames: median=", timings[60], " ms p95=", timings[114],
-				" ms primitives=", Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), " (arena fixture, vsync off)")
+			gpu_times.sort()
+			var vp := root.get_viewport_rid()
+			print("FRAME SAMPLE ", view[0], " %dx%d / 120 frames: median=" % [root.size.x, root.size.y], snappedf(timings[60], 0.1),
+				" ms p95=", snappedf(timings[114], 0.1), " gpu_min=", snappedf(gpu_times[0], 0.1), " gpu_med=", snappedf(gpu_times[60], 0.1),
+				" cpu=", snappedf(RenderingServer.viewport_get_measured_render_time_cpu(vp), 0.1),
+				" prims=", snappedf(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1e6, 0.01), "M draws=",
+				Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), " objects=", Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
 	print("RENDER: ", RenderingServer.get_video_adapter_name(), " | objects=",
 		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), " | draw calls=",
 		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), " | primitives=",

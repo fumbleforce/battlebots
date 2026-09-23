@@ -126,6 +126,9 @@ func _apply_viewport(viewport: Viewport) -> void:
 		viewport.use_taa = temporal and values.aa in ["taa","taa_msaa"]
 		if modern: viewport.screen_space_aa = {"fxaa":1,"smaa":2}.get(values.aa,0)
 	viewport.anisotropic_filtering_level = values.anisotropy
+	# Imported meshes carry automatic LODs; switch at 2 px of error rather than
+	# Godot's 1 px default (visually lossless, far fewer triangles in big arenas).
+	viewport.mesh_lod_threshold = 2.0
 	viewport.use_debanding = modern and values.debanding
 	viewport.positional_shadow_atlas_size = [1024,2048,4096,8192][values.shadows]
 

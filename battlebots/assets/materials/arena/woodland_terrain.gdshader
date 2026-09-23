@@ -43,14 +43,12 @@ float surface(vec2 xz) {
 
 // Rock strata on steep faces: layered ledges pushed along the slope's
 // horizontal normal (visual only, < 0.45 m from the collision surface).
-vec3 displaced(vec2 xz) {
-	float e = 0.35;
-	float h = surface(xz);
-	vec2 g = vec2(surface(xz + vec2(e, 0.0)) - surface(xz - vec2(e, 0.0)), surface(xz + vec2(0.0, e)) - surface(xz - vec2(0.0, e))) / (2.0 * e);
+// g is the terrain gradient at the vertex, reused for neighbours.
+vec3 strata(vec2 xz, float h, vec2 g) {
 	float slope = length(g);
 	float steep = smoothstep(0.7, 1.4, slope);
+	if (steep <= 0.0) { return vec3(xz.x, h, xz.y); }
 	vec2 outward = -g / max(slope, 1e-4);
-	// Bands follow height, warped slowly along the face; blocky profile.
 	float along = dot(xz, vec2(-outward.y, outward.x));
 	// Uneven bed thickness, dipping beds and blocky joints between them.
 	float band = h * 0.85 + wl_fbm(vec2(along * 0.05, h * 0.15), 3) * 3.0 + along * 0.04;
@@ -63,14 +61,21 @@ vec3 displaced(vec2 xz) {
 	return vec3(xz.x + outward.x * push, h + steep * (blocks - 0.5) * 0.1, xz.y + outward.y * push);
 }
 
+varying vec2 macro; // Low-frequency tone noise, per vertex (x: 50 m, y: 8 m).
+
 void vertex() {
 	vec2 xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
 	float e = 0.25;
-	vec3 p = displaced(xz);
+	// One 5-tap height stencil serves the gradient, strata and normal.
+	float h0 = surface(xz);
+	float hxp = surface(xz + vec2(e, 0.0)), hxn = surface(xz - vec2(e, 0.0));
+	float hzp = surface(xz + vec2(0.0, e)), hzn = surface(xz - vec2(0.0, e));
+	vec2 g = vec2(hxp - hxn, hzp - hzn) / (2.0 * e);
+	vec3 p = strata(xz, h0, g);
+	vec3 dx = strata(xz + vec2(e, 0.0), hxp, g) - strata(xz - vec2(e, 0.0), hxn, g);
+	vec3 dz = strata(xz + vec2(0.0, e), hzp, g) - strata(xz - vec2(0.0, e), hzn, g);
 	VERTEX.xz += p.xz - xz;
 	VERTEX.y = p.y;
-	vec3 dx = displaced(xz + vec2(e, 0.0)) - displaced(xz - vec2(e, 0.0));
-	vec3 dz = displaced(xz + vec2(0.0, e)) - displaced(xz - vec2(0.0, e));
 	vec3 n = normalize(cross(dz, dx));
 	if (n.y < 0.0) { n = -n; }
 	NORMAL = n;
@@ -78,6 +83,7 @@ void vertex() {
 	BINORMAL = normalize(cross(TANGENT, n));
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	wnormal = n;
+	macro = vec2(wl_fbm(wpos.xz * 0.02, 4), wl_fbm(wpos.xz * 0.13 + 3.1, 3));
 }
 
 // --- Hex-tile sampling (after Mikkelsen, "Practical Real-Time Hex-Tiling").
@@ -106,7 +112,7 @@ Hex hex(vec2 uv) {
 }
 struct Layer { vec3 albedo; vec2 nxz; vec3 arm; float height; };
 vec3 grad_sample(sampler2D t, vec2 uv, mat2 r, vec2 dx, vec2 dy) { return textureGrad(t, uv, r * dx, r * dy).rgb; }
-Layer layer(sampler2D d, sampler2D n, sampler2D a, Hex h, vec2 dx, vec2 dy) {
+Layer layer(sampler2D d, sampler2D n, sampler2D a, Hex h, vec2 uv, vec2 dx, vec2 dy) {
 	vec3 c1 = grad_sample(d, h.uv1, h.r1, dx, dy);
 	vec3 c2 = grad_sample(d, h.uv2, h.r2, dx, dy);
 	vec3 c3 = grad_sample(d, h.uv3, h.r3, dx, dy);
@@ -121,7 +127,8 @@ Layer layer(sampler2D d, sampler2D n, sampler2D a, Hex h, vec2 dx, vec2 dy) {
 	vec2 n3 = transpose(h.r3) * (grad_sample(n, h.uv3, h.r3, dx, dy).xy * 2.0 - 1.0);
 	vec2 tn = n1 * w.x + n2 * w.y + n3 * w.z;
 	l.nxz = vec2(tn.x, -tn.y);
-	l.arm = grad_sample(a, h.uv1, h.r1, dx, dy) * w.x + grad_sample(a, h.uv2, h.r2, dx, dy) * w.y + grad_sample(a, h.uv3, h.r3, dx, dy) * w.z;
+	// Roughness/AO vary slowly: one tap, no hex blend.
+	l.arm = textureGrad(a, uv, dx, dy).rgb;
 	l.height = dot(l.albedo, vec3(0.333));
 	return l;
 }
@@ -131,8 +138,8 @@ void fragment() {
 	float dist = length(VERTEX);
 	vec4 m = texture(masks, mask_uv(p));
 	float rut = m.r, grass = m.g, wet = m.b, scorch = m.a;
-	float big = wl_fbm(p * 0.02, 4);
-	float mid = wl_fbm(p * 0.13 + 3.1, 3);
+	float big = macro.x;
+	float mid = macro.y;
 	float steep = 1.0 - smoothstep(0.55, 0.8, wnormal.y);
 	grass *= 1.0 - steep;
 	// Pre-weights decide which scanned layers are sampled at all.
@@ -145,22 +152,22 @@ void fragment() {
 	vec3 arm = vec3(0.0);
 	vec4 w = vec4(w_rocky, w_ground, w_mud, w_turf);
 	Layer L[4];
-	Hex h1 = hex(p / 3.0);
-	vec2 dx1 = dFdx(p / 3.0), dy1 = dFdy(p / 3.0);
-	L[0] = layer(rocky_diff, rocky_nor, rocky_arm, h1, dx1, dy1);
-	vec4 hw = vec4(L[0].height + 0.3, 0.0, 0.0, 0.0);
-	if (w.y > 0.02) { Hex h = hex(p / 3.4 + 0.37); L[1] = layer(ground_diff, ground_nor, ground_arm, h, dFdx(p / 3.4), dFdy(p / 3.4)); hw.y = L[1].height + 0.3; }
-	if (w.z > 0.02) { Hex h = hex(p / 5.5 + 0.71); L[2] = layer(mud_diff, mud_nor, mud_arm, h, dFdx(p / 5.5), dFdy(p / 5.5)); hw.z = 1.1 - L[2].height; }
-	if (w.w > 0.02) { Hex h = hex(p / 2.2 + 0.13); L[3] = layer(grass_diff, grass_nor, grass_arm, h, dFdx(p / 2.2), dFdy(p / 2.2)); hw.w = L[3].height + 0.4; }
+	// Only layers within reach of the strongest pre-weight are sampled at all.
+	float cut = max(max(w.x, w.y), max(w.z, w.w)) * 0.3;
+	vec4 hw = vec4(0.0);
+	if (w.x > cut) { L[0] = layer(rocky_diff, rocky_nor, rocky_arm, hex(p / 3.0), p / 3.0, dFdx(p / 3.0), dFdy(p / 3.0)); hw.x = L[0].height + 0.3; }
+	if (w.y > cut) { L[1] = layer(ground_diff, ground_nor, ground_arm, hex(p / 3.4 + 0.37), p / 3.4, dFdx(p / 3.4), dFdy(p / 3.4)); hw.y = L[1].height + 0.3; }
+	if (w.z > cut) { L[2] = layer(mud_diff, mud_nor, mud_arm, hex(p / 5.5 + 0.71), p / 5.5, dFdx(p / 5.5), dFdy(p / 5.5)); hw.z = 1.1 - L[2].height; }
+	if (w.w > cut) { L[3] = layer(grass_diff, grass_nor, grass_arm, hex(p / 2.2 + 0.13), p / 2.2, dFdx(p / 2.2), dFdy(p / 2.2)); hw.w = L[3].height + 0.4; }
 	vec4 bw = pow(max(w * hw, vec4(0.0001)), vec4(4.0));
 	bw /= bw.x + bw.y + bw.z + bw.w;
 	// The scanned mud is ochre clay; the reference mud is a dark brown.
-	if (w.z > 0.02) {
+	if (hw.z > 0.0) {
 		float lum = dot(L[2].albedo, vec3(0.299, 0.587, 0.114));
 		L[2].albedo = mix(vec3(lum), L[2].albedo, 0.35) * vec3(0.62, 0.55, 0.48);
 	}
 	for (int i = 0; i < 4; i++) {
-		if (bw[i] > 0.0005) {
+		if (hw[i] > 0.0 && bw[i] > 0.0005) {
 			col += L[i].albedo * bw[i];
 			tn += L[i].nxz * bw[i];
 			arm += L[i].arm * bw[i];
@@ -172,7 +179,7 @@ void fragment() {
 	col *= 1.0 + lip * 0.12 - smoothstep(0.5, 1.0, rut) * 0.18;
 	col = mix(col, col * vec3(0.45, 0.41, 0.37), wet * 0.7);
 	// Scorch: soot mottled by fine noise, strongest at the blast centre.
-	float soot = smoothstep(0.1, 0.7, scorch) * (0.6 + 0.4 * wl_fbm(p * 1.3, 3));
+	float soot = scorch > 0.1 ? smoothstep(0.1, 0.7, scorch) * (0.6 + 0.4 * wl_fbm(p * 1.3, 3)) : 0.0;
 	col = mix(col, col * 0.16, soot * 0.85);
 	// Standing water in wet grooves: a flat, dark, reflective surface.
 	float puddle = smoothstep(0.3, 0.7, rut) * smoothstep(0.35, 0.7, wet) * smoothstep(0.97, 0.995, wnormal.y);

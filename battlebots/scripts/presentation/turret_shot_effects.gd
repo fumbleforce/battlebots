@@ -112,8 +112,18 @@ func _voice(label: String, stream: AudioStreamWAV, gain: float, unit: float, rea
 	voice.top_level = true
 	return voice
 
+## Pooled lights idle at zero energy but would still be clustered and shaded
+## every frame; hide them while dark (a big fight holds 100+ of them).
+var _pool_lights: Array[OmniLight3D] = []
+
+func _process(_delta: float) -> void:
+	for light: OmniLight3D in _pool_lights:
+		light.visible = light.light_energy > 0.001
+
 func _omni(color: Color, reach: float) -> OmniLight3D:
 	var light := OmniLight3D.new()
+	_pool_lights.append(light)
+	light.visible = false
 	light.light_color = color
 	light.omni_range = reach
 	light.light_energy = 0.0

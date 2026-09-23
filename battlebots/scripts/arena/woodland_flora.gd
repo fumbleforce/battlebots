@@ -227,23 +227,79 @@ func _grass_cards() -> Array[Mesh]:
 		out.append(tool.commit())
 	return out
 
+const SCATTER_CACHE := "res://assets/textures/woodland/scatter_cache.res"
+const SCATTER_GROUPS := ["grass", "fern", "pebble", "debris", "rock", "stone"]
+
 func _interior_grass() -> void:
-	_masks = MASKS.get_image()
-	if _masks.is_compressed():
-		_masks.decompress()
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 5150
 	var grass := _grass_cards()
 	var ferns := _variants("scatter_fern")
 	var rocks := _variants("scatter_rocks")
 	# The granite pebble scan is pinkish; pull it toward the arena's grey stone.
 	var pebbles := _variants("scatter_pebbles", 1 << 30, Color(0.62, 0.61, 0.6), 0.2)
-	var small_rocks := _variants("scatter_rocks")
+	var small_rocks := rocks
+	var counts := {"grass":grass.size(), "fern":ferns.size(), "pebble":pebbles.size(), "rock":rocks.size()}
+	# Placement is deterministic but ~7 s of GDScript: load the baked result
+	# (tools/bake_woodland_cache.gd) and only compute when it is missing.
+	var poses: Dictionary = {}
+	if ResourceLoader.exists(SCATTER_CACHE):
+		poses = unpack_scatter(load(SCATTER_CACHE))
+	if poses.is_empty():
+		push_warning("Woodland scatter cache missing; computing placement (slow)")
+		poses = compute_scatter(counts)
+	_scatter("Grass", grass, poses.grass, 90.0, false)
+	_scatter("Ferns", ferns, poses.fern, 120.0, true)
+	_scatter("Pebbles", pebbles, poses.pebble, 80.0, false)
+	# Finger-sized debris only reads near the camera.
+	_scatter("Debris", pebbles, poses.debris, 40.0, false)
+	_scatter("MossRocks", rocks, poses.rock, 160.0, true)
+	# Fist-to-knee stones: same scans, only drawn near the camera, no shadows.
+	_scatter("MossStones", small_rocks, poses.stone, 45.0, false)
+
+## Baked scatter: per group, variant indices and 12 floats per transform.
+static func pack_scatter(poses: Dictionary) -> Dictionary:
+	var out := {}
+	for key: String in SCATTER_GROUPS:
+		var variants := PackedInt32Array()
+		var xforms := PackedFloat32Array()
+		for entry: Array in poses[key]:
+			variants.append(int(entry[0]))
+			var t: Transform3D = entry[1]
+			xforms.append_array([t.basis.x.x, t.basis.x.y, t.basis.x.z, t.basis.y.x, t.basis.y.y, t.basis.y.z,
+				t.basis.z.x, t.basis.z.y, t.basis.z.z, t.origin.x, t.origin.y, t.origin.z])
+		out[key] = {"variants":variants, "xforms":xforms}
+	return out
+
+static func unpack_scatter(data: Variant) -> Dictionary:
+	var source: Dictionary = data.get_meta(&"scatter", {}) if data is Resource else {}
+	if source.size() != SCATTER_GROUPS.size():
+		return {}
+	var out := {}
+	for key: String in SCATTER_GROUPS:
+		var variants: PackedInt32Array = source[key].variants
+		var f: PackedFloat32Array = source[key].xforms
+		var list: Array = []
+		list.resize(variants.size())
+		for i: int in range(variants.size()):
+			var o := i * 12
+			list[i] = [variants[i], Transform3D(Vector3(f[o], f[o + 1], f[o + 2]), Vector3(f[o + 3], f[o + 4], f[o + 5]),
+				Vector3(f[o + 6], f[o + 7], f[o + 8]), Vector3(f[o + 9], f[o + 10], f[o + 11]))]
+		out[key] = list
+	return out
+
+## Deterministic placement from the baked masks and terrain; counts are the
+## variant counts per mesh set. Used by the bake tool (and as a fallback).
+func compute_scatter(counts: Dictionary) -> Dictionary:
+	_masks = MASKS.get_image()
+	if _masks.is_compressed():
+		_masks.decompress()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5150
 	var grass_poses: Array = []
 	var fern_poses: Array = []
 	var pebble_poses: Array = []
 	var rock_poses: Array = []
 	var stone_poses: Array = []
+	var debris_poses: Array = []
 	# One jittered candidate per 0.45 m cell, accepted by the baked masks.
 	var cell := 0.42
 	var n := int(HALF * 2.0 / cell)
@@ -261,7 +317,7 @@ func _interior_grass() -> void:
 					continue
 				# Scanned clumps are ~0.3 m; tank-scale meadow grass stands 0.4-0.7 m.
 				var s := rng.randf_range(0.85, 1.5) * (0.7 + m.g * 0.5)
-				grass_poses.append([rng.randi() % grass.size(), Transform3D(yaw.scaled(Vector3(s, s * rng.randf_range(0.8, 1.3), s)), Vector3(p.x, ground_y(p.x, p.y) - 0.02, p.y))])
+				grass_poses.append([rng.randi() % int(counts.grass), Transform3D(yaw.scaled(Vector3(s, s * rng.randf_range(0.8, 1.3), s)), Vector3(p.x, ground_y(p.x, p.y) - 0.02, p.y))])
 				continue
 			# Pebbles gather on the churned lips of ruts and around features.
 			var lip := smoothstep(0.0, 0.2, m.r) * (1.0 - smoothstep(0.2, 0.5, m.r))
@@ -275,12 +331,12 @@ func _interior_grass() -> void:
 			if open_tuft < 0.07 * (1.0 - smoothstep(0.02, 0.3, m.r)) and _clear_of_play(p, 0.3):
 				# Sparse tufts survive across the driven ground too.
 				var t := rng.randf_range(0.45, 0.8)
-				grass_poses.append([rng.randi() % grass.size(), Transform3D(yaw.scaled(Vector3(t, t * rng.randf_range(0.7, 1.1), t)), Vector3(p.x, ground_y(p.x, p.y) - 0.02, p.y))])
-			if rng.randf() < 0.55 and _clear_of_play(p, 0.05):
+				grass_poses.append([rng.randi() % int(counts.grass), Transform3D(yaw.scaled(Vector3(t, t * rng.randf_range(0.7, 1.1), t)), Vector3(p.x, ground_y(p.x, p.y) - 0.02, p.y))])
+			if rng.randf() < 0.3 and _clear_of_play(p, 0.05):
 				# Dense fine debris: small scanned stones everywhere.
 				var tilt2 := Basis.from_euler(Vector3(rng.randf_range(-0.4, 0.4), rng.randf() * TAU, rng.randf_range(-0.4, 0.4)))
 				var d := rng.randf_range(0.25, 0.7)
-				pebble_poses.append([rng.randi() % pebbles.size(), Transform3D(tilt2.scaled(Vector3(d, d * 0.7, d)), Vector3(p.x, ground_y(p.x, p.y) - 0.02 * d, p.y))])
+				debris_poses.append([rng.randi() % int(counts.pebble), Transform3D(tilt2.scaled(Vector3(d, d * 0.7, d)), Vector3(p.x, ground_y(p.x, p.y) - 0.02 * d, p.y))])
 			if roll < 0.03 + lip * 0.25 + near * 0.25:
 				if not _clear_of_play(p, 0.1):
 					continue
@@ -288,10 +344,10 @@ func _interior_grass() -> void:
 				if rng.randf() < 0.25:
 					# Fist-to-knee sized mossy stones among the pebbles.
 					var r := rng.randf_range(0.08, 0.22) * (1.0 + near)
-					stone_poses.append([rng.randi() % small_rocks.size(), Transform3D(tilt.scaled(Vector3.ONE * r), Vector3(p.x, ground_y(p.x, p.y) - 0.12 * r, p.y))])
+					stone_poses.append([rng.randi() % int(counts.rock), Transform3D(tilt.scaled(Vector3.ONE * r), Vector3(p.x, ground_y(p.x, p.y) - 0.12 * r, p.y))])
 				else:
 					var s := rng.randf_range(0.8, 2.6) * (1.0 + near * 1.5)
-					pebble_poses.append([rng.randi() % pebbles.size(), Transform3D(tilt.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.03 * s, p.y))])
+					pebble_poses.append([rng.randi() % int(counts.pebble), Transform3D(tilt.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.03 * s, p.y))])
 	# Ferns and mossy rocks: fewer, placed around walls, groves and outcrops.
 	var attempts := 0
 	var big_rocks := 0
@@ -304,18 +360,12 @@ func _interior_grass() -> void:
 		var yaw := Basis(Vector3.UP, rng.randf() * TAU)
 		if rng.randf() < 0.75 and fern_poses.size() < 900:
 			var s := rng.randf_range(1.4, 2.4)
-			fern_poses.append([rng.randi() % ferns.size(), Transform3D(yaw.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.03, p.y))])
+			fern_poses.append([rng.randi() % int(counts.fern), Transform3D(yaw.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.03, p.y))])
 		elif big_rocks < 260:
 			big_rocks += 1
 			var s := rng.randf_range(0.35, 0.9)
-			rock_poses.append([rng.randi() % rocks.size(), Transform3D(yaw.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.1 * s, p.y))])
-	_scatter("Grass", grass, grass_poses, 90.0, false)
-	_scatter("Ferns", ferns, fern_poses, 120.0, true)
-	_scatter("Pebbles", pebbles, pebble_poses, 80.0, false)
-	_scatter("MossRocks", rocks, rock_poses, 160.0, true)
-	# Fist-to-knee stones: same scans, only drawn near the camera, no shadows.
-	_scatter("MossStones", small_rocks, stone_poses, 45.0, false)
-	print_verbose("Woodland scatter: grass %d, ferns %d, pebbles %d, rocks %d" % [grass_poses.size(), fern_poses.size(), pebble_poses.size(), rock_poses.size()])
+			rock_poses.append([rng.randi() % int(counts.rock), Transform3D(yaw.scaled(Vector3.ONE * s), Vector3(p.x, ground_y(p.x, p.y) - 0.1 * s, p.y))])
+	return {"grass":grass_poses, "fern":fern_poses, "pebble":pebble_poses, "debris":debris_poses, "rock":rock_poses, "stone":stone_poses}
 
 func _multimesh(label: String, mesh: Mesh, material: Material, poses: Array[Transform3D], shadows: bool) -> MultiMeshInstance3D:
 	var multi := MultiMesh.new()

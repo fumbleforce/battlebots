@@ -88,6 +88,24 @@ static func spawn_points() -> PackedVector2Array:
 		points.append(Vector2(sin(k * PI / 4.0), cos(k * PI / 4.0)) * 40.0 * SCALE)
 	return points
 
+const HEIGHT_CACHE := "res://assets/textures/woodland/terrain_heights.res"
+
+## The authoritative height grid. Computing it is ~1 s of GDScript, so a baked
+## copy (tools/bake_woodland_cache.gd) is used when present; the Woodland test
+## checks the bake still equals height_at() exactly, so the two cannot drift.
+static func grid_heights(use_cache := true) -> PackedFloat32Array:
+	if use_cache and ResourceLoader.exists(HEIGHT_CACHE):
+		var baked: Resource = load(HEIGHT_CACHE)
+		var data: PackedFloat32Array = baked.get_meta(&"heights", PackedFloat32Array())
+		if data.size() == GRID * GRID:
+			return data
+	var heights := PackedFloat32Array()
+	heights.resize(GRID * GRID)
+	for z: int in range(GRID):
+		for x: int in range(GRID):
+			heights[z * GRID + x] = height_at(-HALF + x * STEP, -HALF + z * STEP)
+	return heights
+
 static func octagon_distance(p: Vector2) -> float:
 	return HALF - maxf(maxf(absf(p.x), absf(p.y)), (absf(p.x) + absf(p.y)) * 0.70710678)
 
@@ -341,11 +359,7 @@ func _ready() -> void:
 	var old_mesh := get_node_or_null("Floor/Mesh") as MeshInstance3D
 	if old_mesh:
 		old_mesh.hide()
-	var heights := PackedFloat32Array()
-	heights.resize(GRID * GRID)
-	for z: int in range(GRID):
-		for x: int in range(GRID):
-			heights[z * GRID + x] = height_at(-HALF + x * STEP, -HALF + z * STEP)
+	var heights := grid_heights()
 	var ground := StaticBody3D.new()
 	ground.name = "WoodlandTerrain"
 	ground.collision_layer = 1
