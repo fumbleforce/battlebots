@@ -10,9 +10,9 @@ const ZONES := {"front":"FRONT", "rear":"REAR", "left":"LEFT", "right":"RIGHT", 
 const PLATES := {"front":"Front", "rear":"Rear", "left":"Left", "right":"Right", "top":"Top", "underside":"Bottom"}
 ## A fitted plate at or below this share of its fitted HP reads as damaged.
 const PLATE_DAMAGED := 0.5
-## Seconds a plate blinks in the danger colour after its HP drops, and blinks shown.
-const PLATE_HIT_FLASH := 0.9
-const PLATE_HIT_BLINKS := 3
+## Seconds a struck plate or the core reading blinks in the danger colour, and blinks shown.
+const HIT_FLASH := 0.9
+const HIT_BLINKS := 3
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
 var text_scale := 1.0
 var palette := "standard"
@@ -44,11 +44,15 @@ var jump_gauge: HudJumpGauge
 var plate_labels: Dictionary = {}
 var _armor_box: StyleBoxFlat
 var _armor_line: ColorRect
-## Per-plate hit flash: last published HP, resting colour and remaining flash time.
+## Hit flash: last published HP, resting colour and remaining flash time per
+## plate, and the same for the core reading.
 var _plate_last: Dictionary = {}
 var _plate_color: Dictionary = {}
 var _plate_flash: Dictionary = {}
 var _plate_entity := -1
+var _core_last := NAN
+var _core_color := TEXT
+var _core_flash := 0.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -320,6 +324,8 @@ func _render_armor(view: BotView) -> void:
 		_plate_entity = entity
 		_plate_last.clear()
 		_plate_flash.clear()
+		_core_last = NAN
+		_core_flash = 0.0
 	for face: String in PLATES:
 		var value: Variant = view.zones.get(face) if view != null else null
 		var maximum: Variant = view.plate_max.get(face) if view != null else null
@@ -338,7 +344,7 @@ func _render_armor(view: BotView) -> void:
 		# Only a drop in published HP is a hit; repairs and loadout swaps stay quiet.
 		if _number(value) and value >= 0:
 			if _number(_plate_last.get(face)) and value < _plate_last[face]:
-				_plate_flash[face] = PLATE_HIT_FLASH
+				_plate_flash[face] = HIT_FLASH
 			_plate_last[face] = value
 		else:
 			_plate_last.erase(face)
@@ -346,18 +352,39 @@ func _render_armor(view: BotView) -> void:
 		_plate_color[face] = color
 		_show_plate(face)
 
+## Flashes the struck side of the viewed bot from a combat event. Unlike an HP
+## drop, this also covers bare areas, whose hits go straight to the core.
+func combat_event(event: Dictionary) -> void:
+	var zone: Variant = event.get("zone")
+	var damage: Variant = event.get("damage")
+	if _plate_entity < 0 or not event.get("target") is int or event.target != _plate_entity \
+		or not zone is String or not PLATES.has(zone) or not _number(damage) or damage <= 0:
+		return
+	_plate_flash[zone] = HIT_FLASH
+	_show_plate(zone)
+
 func _process(delta: float) -> void:
 	for face: String in _plate_flash.keys():
 		_plate_flash[face] -= delta
 		if _plate_flash[face] <= 0.0: _plate_flash.erase(face)
 		_show_plate(face)
+	if _core_flash > 0.0:
+		_core_flash = maxf(0.0, _core_flash - delta)
+		_show_core()
 
 ## Blends a plate from the danger colour back to its resting colour while it flashes.
 func _show_plate(face: String) -> void:
-	var remaining: float = _plate_flash.get(face, 0.0)
-	var progress := remaining / PLATE_HIT_FLASH
-	var blink := 0.5 + 0.5 * cos(TAU * PLATE_HIT_BLINKS * (1.0 - progress))
-	plate_labels[face].modulate = _plate_color[face].lerp(danger, progress * blink) if remaining > 0.0 else _plate_color[face]
+	if not _plate_color.has(face): return
+	plate_labels[face].modulate = _flash(_plate_color[face], _plate_flash.get(face, 0.0))
+
+func _show_core() -> void:
+	resources.Core.value.modulate = _flash(_core_color, _core_flash)
+
+func _flash(resting: Color, remaining: float) -> Color:
+	if remaining <= 0.0: return resting
+	var progress := remaining / HIT_FLASH
+	var blink := 0.5 + 0.5 * cos(TAU * HIT_BLINKS * (1.0 - progress))
+	return resting.lerp(danger, progress * blink)
 
 func _ignore_input(node: Node) -> void:
 	if node is Control: node.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -396,6 +423,16 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		resources[key].value.text = "%d%%" % roundi(value * 100.0) if valid else "--"
 		resources[key].value.modulate = accent if valid and ((key == "Core" and value <= 0.25) or (key == "Heat" and value >= 0.9)) else _text_color()
 		index += 1
+	# A drop in published core integrity blinks the reading, whatever was struck.
+	var core := view.core_fraction if view != null else NAN
+	if is_finite(core) and core >= 0.0 and core <= 1.0:
+		if is_finite(_core_last) and core < _core_last: _core_flash = HIT_FLASH
+		_core_last = core
+	else:
+		_core_last = NAN
+		_core_flash = 0.0
+	_core_color = resources.Core.value.modulate
+	_show_core()
 	for key: String in ZONES:
 		var integrity: Variant = view.zones.get(key) if view != null else null
 		var valid: bool = _number(integrity) and integrity >= 0

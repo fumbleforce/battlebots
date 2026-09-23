@@ -118,6 +118,7 @@ func _ready() -> void:
 	_add_practice_hud()
 	combat_hud = CombatHud.new()
 	$MatchLayer.add_child(combat_hud)
+	session.combat_event.connect(combat_hud.combat_event)
 	world_markers = BotWorldMarkers.new()
 	world_markers.name = "WorldMarkers"
 	add_child(world_markers)

@@ -44,11 +44,27 @@ func run() -> void:
 	check(hud._plate_flash.has("front") and hud.plate_labels.front.modulate == hud.danger and not hud._plate_flash.has("rear"), "Only the plate that lost HP flashes red")
 	hud.render(bot, "T", opponent)
 	check(hud.plate_labels.front.modulate == hud.danger, "Unchanged HP does not cancel or restart a running flash")
-	hud._process(CombatHud.PLATE_HIT_FLASH + 0.1)
+	hud._process(CombatHud.HIT_FLASH + 0.1)
 	check(not hud._plate_flash.has("front") and hud.plate_labels.front.modulate == hud._text_color(), "Hit flash returns to the resting colour")
 	bot.zones.front = 60.0
 	hud.render(bot, "T", opponent)
 	check(hud._plate_flash.is_empty(), "Restored HP does not flash")
+	hud.combat_event({"target":bot.entity_id, "zone":"top", "damage":12.0})
+	check(hud._plate_flash.has("top") and hud.plate_labels.top.modulate == hud.danger, "A hit on a bare area flashes that side")
+	hud.combat_event({"target":bot.entity_id + 1, "zone":"rear", "damage":12.0})
+	hud.combat_event({"target":bot.entity_id, "zone":"weapon", "damage":12.0})
+	hud.combat_event({"target":bot.entity_id, "zone":"rear", "damage":0.0})
+	check(not hud._plate_flash.has("rear") and hud._plate_flash.size() == 1, "Other bots, non-plate zones and harmless contacts do not flash")
+	hud._process(CombatHud.HIT_FLASH + 0.1)
+	check(hud._core_flash == 0.0 and hud.resources.Core.value.modulate == hud._text_color(), "First core reading is not a hit")
+	bot.core_fraction = 0.5
+	hud.render(bot, "T", opponent)
+	check(hud._core_flash > 0.0 and hud.resources.Core.value.modulate == hud.danger, "Lost core integrity flashes the reading")
+	hud._process(CombatHud.HIT_FLASH + 0.1)
+	check(hud.resources.Core.value.modulate == hud._text_color(), "Core flash returns to the resting colour")
+	bot.core_fraction = 0.64
+	hud.render(bot, "T", opponent)
+	check(hud._core_flash == 0.0, "Restored core integrity does not flash")
 	check(hud.weapon_label.text.ends_with("ACTIVE"), "Powered partial charge is not labelled ready")
 	bot.pose = Transform3D.IDENTITY
 	bot.recovery_available = true
