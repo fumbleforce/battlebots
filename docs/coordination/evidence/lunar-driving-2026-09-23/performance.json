@@ -1,0 +1,29 @@
+{
+  "adapter": "NVIDIA GeForce RTX 3080",
+  "engine": "4.7.2-stable (official)",
+  "high-fog": {
+    "cpu_p95_ms": 1.84599995613098,
+    "gpu_median_ms": 4.83199977874756,
+    "gpu_p95_ms": 5.68499994277954,
+    "particle_emitters": 8,
+    "video_mib": 1899.21276855469,
+    "volume_pool": 48
+  },
+  "high-particles-only": {
+    "cpu_p95_ms": 2.01900005340576,
+    "gpu_median_ms": 4.75699996948242,
+    "gpu_p95_ms": 6.58400011062622,
+    "particle_emitters": 8,
+    "video_mib": 1888.05651855469,
+    "volume_pool": 48
+  },
+  "low": {
+    "cpu_p95_ms": 1.86099994182587,
+    "gpu_median_ms": 3.8289999961853,
+    "gpu_p95_ms": 4.62200021743774,
+    "particle_emitters": 8,
+    "video_mib": 1663.04835510254,
+    "volume_pool": 48
+  },
+  "scope": "1600x900 Forward+, two authored Atlas/Scorpion bots on Moon with identical scripted accepted remote circular motion and moving review camera per mode; rendering fixture, not physics/network or low-end certification."
+}

@@ -1,5 +1,18 @@
 # Current A/B handoff
 
+## Moon driving dust and diesel volumes — 23 September 2026
+
+Issue [#31](https://github.com/fumbleforce/battlebots/issues/31), isolated worktree
+`/home/jorgen/repo/battlebots-rendering`: enlarged-footprint contact dust, growing
+soft puffs, lunar ballistic grains, wider tracks and bounded world-space lit
+dust volumes. Scorpion gains bounded diesel volume cores through its existing
+stack/load interface. Fog/particle quality settings apply; headless is inert.
+Native lifecycle/geometry/quality checks, real Jolt diesel checks, Moon fixed-frame
+physics regression and bounded moving-camera rendering review pass.
+See [scope, screenshots, measurements and handoff](coordination/A_LUNAR_DRIVING_EFFECTS.md).
+Matching release acceptance is being prepared. Other ongoing agents’ #32/#34/#35/#36
+work is separate; no nitro, camera, controls, wire or catalogue changes are included.
+
 ## Graphics quality and settings overhaul — A, 23 September 2026
 
 Issue [#29](https://github.com/fumbleforce/battlebots/issues/29) adds a cohesive

@@ -1,0 +1,50 @@
+{
+  "checks": [
+    {
+      "log": "/tmp/lunar-driving-test-final.log",
+      "pass_marker": "LUNAR DRIVING DUST PASS",
+      "sha256": "997a17a716606946b948be92f17c91eea212db597befdc0574ccc9b57ddbb3b3"
+    },
+    {
+      "log": "/tmp/lunar-headless-test.log",
+      "pass_marker": "LUNAR DRIVING HEADLESS PASS",
+      "sha256": "947ec06dcfa78487b400b7dd73c468c5d4e2606c785b1f51f00ba0ddbdedf6aa"
+    },
+    {
+      "log": "/tmp/lunar-baseline.log",
+      "pass_marker": "BASELINE PASS",
+      "sha256": "a1b1d389c8f8d160e204dca04603c43c8c8318a9102389eb9afa3da6366f09bc"
+    },
+    {
+      "log": "/tmp/lunar-moon-headless.log",
+      "pass_marker": "MOON ARENA PASS",
+      "sha256": "3f736f60f5f5ed65aa839805860915a18c0f98ef06a118be62d1049ac81b59b6"
+    },
+    {
+      "log": "/tmp/lunar-moon-native-fixed.log",
+      "pass_marker": "MOON ARENA PASS",
+      "sha256": "a8f9eb0e24f13c85725252fa7297dc72cc9f7e41abe9cceca9afca5c5b13d40a"
+    },
+    {
+      "log": "/tmp/lunar-exhaust-native.log",
+      "pass_marker": "SCORPION DIESEL PASS",
+      "sha256": "bce7cec8811b5c81a34b4d72741365c873994d55123cb421382908ac8166685b"
+    },
+    {
+      "log": "/tmp/lunar-exhaust-headless.log",
+      "pass_marker": "SCORPION DIESEL PASS",
+      "sha256": "fd2f588482a44ac60685b9dc2d709581e733f0ff455dcf05c8d6c8c82e9615d5"
+    },
+    {
+      "log": "/tmp/lunar-driving-review-exhaust.log",
+      "pass_marker": "LUNAR DRIVING REVIEW PASS",
+      "sha256": "5a96e035ad3c6d14122589d8888418ec0a0fc5eb11920cee756e9ec982d5a72d"
+    }
+  ],
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "known_warnings": [
+    "Seven native Texture RIDs at full authored-bot fixture shutdown (#18)",
+    "Headless diesel fixture: AudioStreamWAV and two AudioStreamPlaybackWAV shutdown references; audio unchanged"
+  ],
+  "initial_native_moon_run": "Wall-clock --max-fps60 run failed frame-count-sensitive replay velocity assertion. Same physics fixture passes headless and native --fixed-fps60; no physics source changed."
+}

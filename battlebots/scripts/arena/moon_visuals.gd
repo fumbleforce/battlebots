@@ -5,7 +5,6 @@ const GROUND = preload("res://assets/materials/arena/moon_ground.gdshader")
 # Exclusive render layer for exterior geology. Never a physics/collision layer.
 const BACKDROP_LAYER := 1 << 1
 var _terrain_noise := FastNoiseLite.new()
-var _dust: Dictionary = {}
 
 func _build() -> void:
 	_terrain_noise.seed = 2049
@@ -70,67 +69,6 @@ func _pebbles() -> void:
 	pebbles.name = "SurfacePebbles"
 	pebbles.multimesh = multi
 	add_child(pebbles)
-
-func _process(_delta: float) -> void:
-	if DisplayServer.get_name() == "headless":
-		return
-	var world := get_node(arena_path).get_parent() as AuthorityWorld
-	if world == null:
-		return
-	for id: int in _dust.keys():
-		if not world.bots.has(id):
-			_dust[id].queue_free()
-			_dust.erase(id)
-	# B's existing physics body publishes grounded state and velocity; read only.
-	for id: int in world.bots:
-		if not _dust.has(id) and _dust.size() < 10:
-			_dust[id] = _dust_emitter()
-		if not _dust.has(id):
-			continue
-		var bot: MvpBot = world.bots[id]
-		var dust: GPUParticles3D = _dust[id]
-		var velocity: Vector3 = bot.body.linear_velocity if bot.simulated else bot.remote_state.get("velocity", Vector3.ZERO)
-		var grounded: bool = bot.body.grounded if bot.simulated else bot.remote_state.get("grounded", false)
-		var eliminated: bool = bot.combat.eliminated if bot.simulated else bot.remote_state.get("eliminated", true)
-		var speed := Vector2(velocity.x,velocity.z).length()
-		dust.global_position = bot.body.global_position+bot.body.global_basis.z*0.65-Vector3(0,0.18,0)
-		dust.emitting = grounded and speed > 0.75 and not eliminated
-		dust.amount_ratio = clampf(speed/7.0,0.1,1.0)
-
-func _dust_emitter() -> GPUParticles3D:
-	var dust := GPUParticles3D.new()
-	dust.name = "BallisticDust"
-	dust.amount = 80
-	dust.lifetime = 1.5
-	dust.local_coords = false
-	dust.emitting = false
-	dust.visibility_aabb = AABB(Vector3(-6,-3,-6),Vector3(12,8,12))
-	var motion := ParticleProcessMaterial.new()
-	motion.direction = Vector3.UP
-	motion.spread = 68
-	motion.initial_velocity_min = 0.35
-	motion.initial_velocity_max = 1.1
-	motion.gravity = Vector3(0,-1.62,0)
-	motion.scale_min = 0.018
-	motion.scale_max = 0.065
-	motion.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	motion.emission_box_extents = Vector3(0.6,0.025,0.14)
-	motion.color = Color(0.52,0.51,0.48)
-	dust.process_material = motion
-	var grain := SphereMesh.new()
-	grain.radius = 0.5
-	grain.height = 1
-	grain.radial_segments = 6
-	grain.rings = 3
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.6,0.59,0.57)
-	material.roughness = 1
-	material.vertex_color_use_as_albedo = true
-	grain.material = material
-	dust.draw_pass_1 = grain
-	dust.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(dust)
-	return dust
 
 func _height(x: float, z: float) -> float:
 	var p := Vector2(x,z)
