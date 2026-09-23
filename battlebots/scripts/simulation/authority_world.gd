@@ -74,6 +74,7 @@ func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 
 	add_child(bot)
 	bot.arena_half_extent = ArenaBounds.half_extent(arena_id)
 	bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
+	bot.camera_anchor().set_meta(&"arena_ceiling", ArenaBounds.ceiling(arena_id))
 	# B's published DriveBody replay_config already includes gravity_scale.
 	bot.body.gravity_scale = 1.62 / 9.8 if arena_id == "moon" else 1.0
 	var marker_index := slot + 1 if team_size == 5 else (2 if slot == 0 else 4)
@@ -295,6 +296,7 @@ func apply_loadout(id: int, loadout: Dictionary) -> MvpBot:
 	add_child(bot)
 	bot.arena_half_extent = ArenaBounds.half_extent(arena_id)
 	bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
+	bot.camera_anchor().set_meta(&"arena_ceiling", ArenaBounds.ceiling(arena_id))
 	bot.body.gravity_scale = 1.62 / 9.8 if arena_id == "moon" else 1.0
 	carry_combat(old_combat, bot.combat, changed)
 	# A taller replacement starts clear of the floor it was standing on.

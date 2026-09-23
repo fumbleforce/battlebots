@@ -5,6 +5,11 @@ const FOUNDRY_HALF := 50.0
 const MOON_HALF := 25.0
 ## Woodland is built for many giant bots: a 240 m octagon.
 const WOODLAND_HALF := 120.0
+## Lowest roof structure above the floor (m); open-sky arenas have none. The
+## Foundry roof is visual only (foundry_visuals.gd trusses from 16.8 m), so
+## high presentation cameras must stay below it themselves.
+const FOUNDRY_CEILING := 16.5
+
 ## Every server-selectable arena.
 const IDS := ["foundry", "moon", "woodland"]
 
@@ -13,6 +18,9 @@ static func half_extent(arena_id: String) -> float:
 		"moon": return MOON_HALF
 		"woodland": return WOODLAND_HALF
 	return FOUNDRY_HALF
+
+static func ceiling(arena_id: String) -> float:
+	return FOUNDRY_CEILING if arena_id == "foundry" else INF
 
 static func contains(point: Vector3, half: float, margin := 0.0) -> bool:
 	return maxf(absf(point.x), absf(point.z)) <= half - margin \

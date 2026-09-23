@@ -13,11 +13,14 @@ const CAMERA_RADIUS := 0.3
 ## Artillery view for lobbing weapons (the mortar): a high camera above and
 ## just behind the hull looking steeply down ahead. Mouse yaw turns the
 ## bearing and mouse pitch walks the screen-centre ground point out between
-## ARTILLERY_LOOK_NEAR (steep, close) and ARTILLERY_LOOK_FAR (shallow, far).
+## ARTILLERY_NEAR and ARTILLERY_FAR (source metres ahead of the hull), so the
+## whole mortar range stays reachable at any camera height. Under a roof
+## (anchor meta arena_ceiling) the camera stays ARTILLERY_ROOF_CLEARANCE below it.
 const ARTILLERY_HEIGHT := 9.0
 const ARTILLERY_BACK := 2.0
-const ARTILLERY_LOOK_NEAR := -1.0122910 # -58 degrees
-const ARTILLERY_LOOK_FAR := -0.3839724 # -22 degrees
+const ARTILLERY_NEAR := 3.5
+const ARTILLERY_FAR := 22.0
+const ARTILLERY_ROOF_CLEARANCE := 1.5
 var camera := Camera3D.new()
 var rig: BotOrbitCamera
 var active := false:
@@ -53,7 +56,8 @@ func update_view(delta: float, source: BotSource) -> void:
 	var scale := float(anchor.get_meta("bot_scale", BotScale.FACTOR)) if is_instance_valid(anchor) else BotScale.FACTOR
 	# World-up sight point: tilting over rough ground never rolls the view.
 	if artillery:
-		_update_artillery(delta, view, scale)
+		var ceiling := float(anchor.get_meta(&"arena_ceiling", INF)) if is_instance_valid(anchor) else INF
+		_update_artillery(delta, view, scale, ceiling)
 		return
 	var pivot := view.pose.origin + Vector3.UP * SIGHT_HEIGHT * scale
 	pivot = rig._inside_arena(pivot)
@@ -90,11 +94,16 @@ func update_view(delta: float, source: BotSource) -> void:
 	camera.global_transform = Transform3D(view_basis, pivot + back * _distance + offset)
 	if is_instance_valid(rig.camera): camera.fov = rig.camera.fov + 6.0 * _shake
 
-func _update_artillery(delta: float, view: BotView, scale: float) -> void:
+func _update_artillery(delta: float, view: BotView, scale: float, ceiling := INF) -> void:
 	var reach := inverse_lerp(PITCH_MIN, PITCH_MAX, clamp_pitch(rig.pitch))
-	var look := lerpf(ARTILLERY_LOOK_NEAR, ARTILLERY_LOOK_FAR, reach)
 	var heading := Basis(Vector3.UP, rig.yaw)
 	var at := view.pose.origin + Vector3.UP * ARTILLERY_HEIGHT * scale + heading.z * ARTILLERY_BACK * scale
+	at.y = minf(at.y, ceiling - ARTILLERY_ROOF_CLEARANCE)
+	# Aim the view at a ground distance, not a fixed angle, so a camera held
+	# low by a roof still reaches the far end of the mortar's range.
+	var rise := maxf(at.y - view.pose.origin.y, 1.0)
+	var ahead := (lerpf(ARTILLERY_NEAR, ARTILLERY_FAR, reach) + ARTILLERY_BACK) * scale
+	var look := -atan2(rise, ahead)
 	var basis := heading * Basis(Vector3.RIGHT, look)
 	var offset := Vector3.ZERO
 	if _shake > 0.001:
