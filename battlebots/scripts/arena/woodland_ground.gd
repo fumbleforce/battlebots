@@ -76,6 +76,7 @@ const LOG_RADIUS := 0.75
 const BOULDER_MODELS := ["granite_boulder_a", "granite_boulder_b", "granite_boulder_c", "granite_boulder_d", "granite_boulder_e"]
 static var _obstacles: Array[Dictionary] = []
 static var _scan_meshes: Dictionary = {}
+static var _scan_shapes: Dictionary = {}
 
 # --- Shared terrain --------------------------------------------------------
 
@@ -170,6 +171,24 @@ static func boulder_radius(direction: Vector3, seed: int) -> float:
 	n += cos(direction.z*4.3-direction.y*2.2+s*2.9)*0.06
 	return 1.0 + n
 
+## Collision data for a boulder scan: its AABB and convex hull vertices. Loading
+## the scans costs ~0.5 s, so the bake stores this beside the heights and
+## collision (including headless servers) never needs the render meshes.
+static func scan_shape(model: String, use_cache := true) -> Dictionary:
+	if use_cache and _scan_shapes.has(model):
+		return _scan_shapes[model]
+	if use_cache and ResourceLoader.exists(HEIGHT_CACHE):
+		var baked: Dictionary = (load(HEIGHT_CACHE) as Resource).get_meta(&"scan_shapes", {})
+		if baked.has(model):
+			_scan_shapes[model] = baked[model]
+			return baked[model]
+	var mesh := scan_mesh(model)
+	var hull := mesh.create_convex_shape(true, false) as ConvexPolygonShape3D
+	var shape := {"aabb":mesh.get_aabb(), "hull":hull.points}
+	if use_cache:
+		_scan_shapes[model] = shape
+	return shape
+
 static func scan_mesh(model: String) -> Mesh:
 	if not _scan_meshes.has(model):
 		var scene: Node = load("res://assets/models/woodland/%s.gltf" % model).instantiate()
@@ -182,7 +201,7 @@ static func scan_mesh(model: String) -> Mesh:
 ## authored radii, height follows within 30% so the scan keeps its character.
 static func boulder_pose(item: Dictionary) -> Dictionary:
 	var model: String = BOULDER_MODELS[int(item.seed) % BOULDER_MODELS.size()]
-	var box := scan_mesh(model).get_aabb()
+	var box: AABB = scan_shape(model).aabb
 	var radii: Vector3 = item.radii
 	var horizontal := (radii.x + radii.z) / maxf((box.size.x + box.size.z) * 0.5, 0.01)
 	var vertical := clampf(radii.y / maxf(box.size.y, 0.01), horizontal * 0.7, horizontal * 1.3)
@@ -194,7 +213,8 @@ static func scan_hull(item: Dictionary) -> PackedVector3Array:
 	var pose := boulder_pose(item)
 	var basis: Basis = pose.basis
 	var points := PackedVector3Array()
-	var vertices: PackedVector3Array = scan_mesh(pose.model).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	# Hull vertices of the scan: a linear pose maps them onto the posed hull.
+	var vertices: PackedVector3Array = scan_shape(pose.model).hull
 	for v: Vector3 in vertices:
 		points.append(basis * v - Vector3(0, pose.sink, 0))
 	return points

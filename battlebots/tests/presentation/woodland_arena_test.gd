@@ -38,6 +38,10 @@ func _run() -> void:
 	for i: int in range(fresh.size()):
 		drift = maxf(drift, absf(baked[i] - fresh[i]))
 	check(ResourceLoader.exists(GROUND.HEIGHT_CACHE) and drift < 0.0001, "Baked terrain heights are stale (drift %.4f m): rerun tools/bake_woodland_cache.gd" % drift)
+	for model: String in GROUND.BOULDER_MODELS:
+		var cached: Dictionary = GROUND.scan_shape(model)
+		var computed: Dictionary = GROUND.scan_shape(model, false)
+		check(cached.aabb.is_equal_approx(computed.aabb) and cached.hull == computed.hull, "Baked collision hull for %s is stale: rerun tools/bake_woodland_cache.gd" % model)
 	check(ResourceLoader.exists("res://assets/textures/woodland/scatter_cache.res"), "Woodland scatter cache missing: run tools/bake_woodland_cache.gd")
 	var obstacles := arena.get_node("WoodlandObstacles")
 	var items := GROUND.obstacles()

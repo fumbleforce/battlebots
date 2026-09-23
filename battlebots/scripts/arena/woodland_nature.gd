@@ -81,15 +81,12 @@ func _terrain() -> void:
 	radii.append(OUTER)
 	var segments := 384
 	var vertices := PackedVector3Array()
-	var normals := PackedVector3Array()
 	for ring: int in radii.size():
 		for s: int in range(segments):
 			var a := TAU * s / segments
 			var at := Vector2(cos(a), sin(a)) * radii[ring]
-			var y := height(at.x, at.y)
-			vertices.append(Vector3(at.x, y, at.y))
-			var e := maxf(1.0, radii[ring] * 0.01)
-			normals.append(Vector3(height(at.x - e, at.y) - height(at.x + e, at.y), 2.0 * e, height(at.x, at.y - e) - height(at.x, at.y + e)).normalized())
+			vertices.append(Vector3(at.x, height(at.x, at.y), at.y))
+	var normals := _ring_normals(vertices, radii.size(), segments)
 	var indices := PackedInt32Array()
 	for ring: int in range(radii.size() - 1):
 		for s: int in range(segments):
@@ -132,7 +129,6 @@ func _mountains() -> void:
 		r += maxf(40.0, r * 0.035)
 	var segments := 512
 	var vertices := PackedVector3Array()
-	var heights := PackedFloat32Array()
 	for ring: int in rings.size():
 		for sgm: int in range(segments):
 			var a := TAU * sgm / segments
@@ -151,20 +147,34 @@ func _mountains() -> void:
 			var a := ring * segments + sgm
 			var b := ring * segments + (sgm + 1) % segments
 			indices.append_array(PackedInt32Array([a, a + segments, b, b, a + segments, b + segments]))
-	var tool := SurfaceTool.new()
-	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for index: int in indices:
-		tool.add_vertex(vertices[index])
-	tool.index()
-	tool.generate_normals()
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = _ring_normals(vertices, rings.size(), segments)
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	var mat := ShaderMaterial.new()
 	mat.shader = MOUNTAIN
-	tool.set_material(mat)
+	mesh.surface_set_material(0, mat)
 	var visual := MeshInstance3D.new()
 	visual.name = "MountainRanges"
-	visual.mesh = tool.commit()
+	visual.mesh = mesh
 	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(visual)
+
+## Smooth upward normals for a ring grid (ring-major, closed around) from its
+## neighbouring vertices, without re-evaluating the height noise.
+static func _ring_normals(vertices: PackedVector3Array, rings: int, segments: int) -> PackedVector3Array:
+	var normals := PackedVector3Array()
+	normals.resize(vertices.size())
+	for ring: int in rings:
+		for s: int in range(segments):
+			var around := vertices[ring * segments + (s + 1) % segments] - vertices[ring * segments + (s + segments - 1) % segments]
+			var outward := vertices[mini(ring + 1, rings - 1) * segments + s] - vertices[maxi(ring - 1, 0) * segments + s]
+			var n := outward.cross(around).normalized()
+			normals[ring * segments + s] = n if n.y >= 0.0 else -n
+	return normals
 
 func _water() -> void:
 	var plane := PlaneMesh.new()

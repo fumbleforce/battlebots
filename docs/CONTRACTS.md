@@ -1,5 +1,13 @@
 # Shared contracts — local records and current MVP session API
 
+## Woodland boulder collision from baked hulls — build mvp-ab-39 (#34)
+
+Woodland boulder colliders are built from each scan's convex-hull vertices,
+baked with the terrain heights in `terrain_heights.res`
+(`tools/bake_woodland_cache.gd`), instead of every scan vertex. The hull
+geometry is the same, but servers no longer load the render scans. The
+Woodland test fails if the bake is stale. Peers need the matching build.
+
 ## Hellwheel stability and weight — build mvp-ab-38, catalogue 18 (#61)
 
 `GaitDrive` upright stabilisation no longer applies torque about the vertical

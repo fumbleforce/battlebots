@@ -1,7 +1,8 @@
 extends SceneTree
 ## Bakes Woodland's deterministic load-time data; commit the outputs.
 ## godot --headless --path battlebots --script res://tools/bake_woodland_cache.gd
-## - terrain_heights.res: the authoritative height grid (verified in tests).
+## - terrain_heights.res: the authoritative height grid and boulder collision
+##   hulls (both verified in tests).
 ## - scatter_cache.res: grass, debris, pebble, fern and rock placements.
 ## Re-run after changing woodland_ground.gd terrain, the masks or scatter rules.
 const GROUND = preload("res://scripts/arena/woodland_ground.gd")
@@ -12,6 +13,10 @@ func _initialize() -> void:
 	var heights := GROUND.grid_heights(false)
 	var height_res := Resource.new()
 	height_res.set_meta(&"heights", heights)
+	var shapes := {}
+	for model: String in GROUND.BOULDER_MODELS:
+		shapes[model] = GROUND.scan_shape(model, false)
+	height_res.set_meta(&"scan_shapes", shapes)
 	var ok := ResourceSaver.save(height_res, GROUND.HEIGHT_CACHE, ResourceSaver.FLAG_COMPRESS) == OK
 	print("BAKE heights ", heights.size(), " in ", Time.get_ticks_msec() - t, " ms ", ok)
 	t = Time.get_ticks_msec()
