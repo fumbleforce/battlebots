@@ -22,13 +22,13 @@ void fragment() {
 	float mid = wl_fbm(p * 0.05, 4);
 	float fine = wl_noise(p * 2.0);
 	vec3 litter = mix(vec3(0.13, 0.1, 0.07), vec3(0.2, 0.15, 0.09), mid);
-	vec3 meadow = mix(vec3(0.16, 0.2, 0.08), vec3(0.34, 0.33, 0.16), smoothstep(0.3, 0.8, mid + fine * 0.2));
+	vec3 meadow = mix(vec3(0.1, 0.13, 0.055), vec3(0.2, 0.21, 0.1), smoothstep(0.3, 0.8, mid + fine * 0.2));
 	vec3 col = mix(litter, meadow, smoothstep(0.45, 0.62, big));
 	// Far ground reads as unbroken canopy where individual trees end.
 	col = mix(col, vec3(0.06, 0.1, 0.07), smoothstep(700.0, 1200.0, length(p)) * 0.8);
-	float steep = 1.0 - smoothstep(0.45, 0.7, wnormal.y);
+	float steep = (1.0 - smoothstep(0.35, 0.6, wnormal.y)) * 0.85;
 	float strata = wl_noise(vec2(wpos.y * 0.9 + mid * 3.0, (p.x - p.y) * 0.05));
-	vec3 granite = vec3(0.3, 0.29, 0.275) * (0.65 + strata * 0.5);
+	vec3 granite = mix(vec3(0.16, 0.16, 0.155), vec3(0.24, 0.235, 0.225), strata);
 	col = mix(col, granite, steep);
 	float shore = 1.0 - smoothstep(water_level + 0.3, water_level + 2.5, wpos.y);
 	col = mix(col, vec3(0.27, 0.23, 0.17), shore);

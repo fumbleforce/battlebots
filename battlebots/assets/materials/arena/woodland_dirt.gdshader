@@ -158,7 +158,7 @@ void fragment() {
 	Layer mud = sample_layer(mud_diff, mud_nor, mud_arm, p, 3.2);
 	// The scan is ochre clay; the reference mud is a dark, desaturated brown.
 	float mud_lum = dot(mud.albedo, vec3(0.299, 0.587, 0.114));
-	mud.albedo = mix(vec3(mud_lum), mud.albedo, 0.45) * vec3(0.92, 0.82, 0.72);
+	mud.albedo = mix(vec3(mud_lum), mud.albedo, 0.3) * vec3(0.8, 0.72, 0.64);
 	Layer rocky = sample_layer(rocky_diff, rocky_nor, rocky_arm, p, 2.6);
 	Layer ground = sample_layer(ground_diff, ground_nor, ground_arm, p, 3.0);
 	Layer turf = sample_layer(grass_diff, grass_nor, grass_arm, p, 2.2);

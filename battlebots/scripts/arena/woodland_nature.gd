@@ -8,6 +8,7 @@ const GROUND = preload("res://scripts/arena/woodland_ground.gd")
 const FLOOR = preload("res://assets/materials/arena/woodland_forest_floor.gdshader")
 const WATER = preload("res://assets/materials/arena/woodland_water.gdshader")
 const ROCK = preload("res://assets/materials/arena/woodland_rock.gdshader")
+const MOUNTAIN = preload("res://assets/materials/arena/woodland_mountain.gdshader")
 const INNER := 118.0
 const OUTER := 1500.0
 const WATER_LEVEL := -5.0
@@ -66,6 +67,7 @@ func height(x: float, z: float) -> float:
 func build() -> void:
 	_terrain()
 	_water()
+	_mountains()
 	_forest()
 	_boulders()
 	_bridge()
@@ -110,6 +112,58 @@ func _terrain() -> void:
 	var visual := MeshInstance3D.new()
 	visual.name = "Valley"
 	visual.mesh = mesh
+	add_child(visual)
+
+## Snow-capped ranges from 2.2 to 7 km, higher and more jagged with distance.
+## Their bases start below the valley rim so no seam shows.
+func _mountains() -> void:
+	var ridges := FastNoiseLite.new()
+	ridges.seed = 4404
+	ridges.frequency = 0.0006
+	ridges.fractal_type = FastNoiseLite.FRACTAL_RIDGED
+	ridges.fractal_octaves = 6
+	var massifs := FastNoiseLite.new()
+	massifs.seed = 4405
+	massifs.frequency = 0.00035
+	var rings := PackedFloat32Array()
+	var r := OUTER - 100.0
+	while r < 7000.0:
+		rings.append(r)
+		r += maxf(40.0, r * 0.035)
+	var segments := 512
+	var vertices := PackedVector3Array()
+	var heights := PackedFloat32Array()
+	for ring: int in rings.size():
+		for sgm: int in range(segments):
+			var a := TAU * sgm / segments
+			var at := Vector2(cos(a), sin(a)) * rings[ring]
+			var t := smoothstep(OUTER, 5200.0, rings[ring])
+			var ridge := (ridges.get_noise_2d(at.x, at.y) * 0.5 + 0.5)
+			var mass := massifs.get_noise_2d(at.x, at.y) * 0.5 + 0.5
+			var peak := (pow(ridge, 1.4) * lerpf(500.0, 1500.0, mass) + mass * 500.0) * t
+			var y := lerpf(100.0, 20.0 + peak, smoothstep(OUTER - 100.0, OUTER + 900.0, rings[ring]))
+			# Far edge sinks below the horizon line rather than ending in a wall.
+			y -= smoothstep(6200.0, 7000.0, rings[ring]) * 400.0
+			vertices.append(Vector3(at.x, y, at.y))
+	var indices := PackedInt32Array()
+	for ring: int in range(rings.size() - 1):
+		for sgm: int in range(segments):
+			var a := ring * segments + sgm
+			var b := ring * segments + (sgm + 1) % segments
+			indices.append_array(PackedInt32Array([a, a + segments, b, b, a + segments, b + segments]))
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index: int in indices:
+		tool.add_vertex(vertices[index])
+	tool.index()
+	tool.generate_normals()
+	var mat := ShaderMaterial.new()
+	mat.shader = MOUNTAIN
+	tool.set_material(mat)
+	var visual := MeshInstance3D.new()
+	visual.name = "MountainRanges"
+	visual.mesh = tool.commit()
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(visual)
 
 func _water() -> void:
