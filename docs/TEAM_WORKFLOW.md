@@ -7,8 +7,9 @@ the [pinned coordination board #2](https://github.com/fumbleforce/battlebots/iss
 active/blocked issues and your task/comments before starting/resuming work, after
 compaction, before expanding scope and before integration. Run
 `node tools/check-collaboration.mjs --issue <number>` on every developer machine
-and harness. Claim exact paths with a unique session/harness/machine identity,
-branch and next update; re-read claims before editing and resolve overlaps first.
+and harness. Claim the functionality you are building (unique session/harness/
+machine identity, branch, next update) so no one builds the same or overlapping
+features; claims are not file locks. Resolve overlapping functionality first.
 Update at meaningful checkpoints and at least every 30 minutes while active.
 Post handoffs, dependencies and ideas on #2; close tasks after tested integration
 and required release. Permanent decisions/learnings still belong in docs.
@@ -22,7 +23,8 @@ in older docs and handoffs is retired history.
 
 ## Areas and shared interfaces
 
-Any session may work in any area; issue claims name the exact paths in use.
+Any session may work in any area and edit any file; issue claims say what
+functionality is being built.
 The game divides into these areas, and some folders mix several of them:
 
 - Menus and HUD: main navigation, host/join, lobby, loading, match HUD, results,
@@ -58,10 +60,11 @@ historical a_/b_ filename prefixes; those prefixes carry no ownership.
 2. Use a separate local checkout or worktree and a `codex/*` (or harness-named)
    task branch. Do not change another session's checkout or assume sessions
    share memory.
-3. Record intent, reserved paths and acceptance in the task issue's CLAIM before
-   overlapping work; longer design notes may go in docs/coordination/.
-4. Do not edit the same scene/resource/binary or mixed-responsibility script
-   concurrently. Integrate published commits and preserve unrelated local edits.
+3. Record intent, scope and acceptance in the task issue's CLAIM; longer design
+   notes may go in docs/coordination/.
+4. Scenes, resources and binary assets do not merge: before editing one another
+   active task is also changing, agree the order on its issue. Text scripts merge;
+   rebase carefully and keep both behaviours. Preserve unrelated local edits.
 5. Commit each completed increment, fetch origin, rebase the task branch onto
    origin/main.
    Verify conflicts and any changed tree before integrating and pushing main.
