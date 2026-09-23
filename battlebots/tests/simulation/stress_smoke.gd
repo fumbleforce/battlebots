@@ -12,11 +12,16 @@ func run() -> void:
 		bot.body.reset_pose = Transform3D(Basis(Vector3.UP, PI if id % 2 else 0), Vector3((id / 2) * 3 - 8, 0.5, 5 if id % 2 == 0 else -5))
 	await physics_frame
 	var space := world.get_world_3d().direct_space_state
+	var half := ArenaBounds.half_extent(world.arena_id)
 	for x: int in [-1, 1]:
 		for z: int in [-1, 1]:
-			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 0), Vector3(x * 30, 1, z * 30), 1))
-			if hit.is_empty() or absf(absf(hit.position.x) - 25.0 / sqrt(2.0)) > 0.01:
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 0), Vector3(x * half * 1.2, 1, z * half * 1.2), 1))
+			if hit.is_empty() or absf(absf(hit.position.x) - half / sqrt(2.0)) > 0.01:
 				failures += 1
+	for id: int in world.bots:
+		# reset_pose is consumed on the first physics step; check where it placed the body.
+		if not ArenaBounds.contains(world.bots[id].body.global_position, half, 2.0):
+			failures += 1
 	for frame: int in range(900):
 		var started := Time.get_ticks_usec()
 		for id: int in world.bots:

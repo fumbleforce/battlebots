@@ -33,13 +33,13 @@ func run() -> void:
 	game.screen.get_node("%Settings").pressed.emit()
 	await frames()
 	check(game.settings_hub.visible, "Main Settings remains available")
-	check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(game.audio_settings_button.get_global_rect()), "Audio entry fits the 720p settings viewport")
+	check(root.get_visible_rect().encloses(game.audio_settings_button.get_global_rect()), "Audio entry fits the 720p settings viewport")
 	game.audio_settings_button.pressed.emit()
 	await frames()
 	check(game.audio_settings.visible and game._audio_overlay.visible and not game.settings_hub.visible,
 		"Audio opens its own modal without changing control-settings implementation")
 	check(game._menu_music.playing and not game.gameplay_input_allowed(), "Menu music continues while audio preview keeps driving disabled")
-	check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(game.audio_settings.get_global_rect()), "Audio panel fits the 720p viewport")
+	check(root.get_visible_rect().encloses(game.audio_settings.get_global_rect()), "Audio panel fits the 720p viewport")
 	var initial_volume := AudioServer.get_bus_volume_db(AudioServer.get_bus_index(&"BBMusic"))
 	game.audio_settings.sliders.music.value = 0.1
 	await frames()

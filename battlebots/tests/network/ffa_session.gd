@@ -176,7 +176,7 @@ func check_roster() -> void:
 	for id: int in server.world.bots:
 		var bot: MvpBot = server.world.bots[id]
 		check(bot.team == id and server.players[id].team == id, "Every FFA entity has a unique hostile team")
-		check(absf(bot.spawn_pose.origin.x) < 25 and absf(bot.spawn_pose.origin.z) < 25, "FFA spawn lies within arena walls")
+		check(ArenaBounds.contains(bot.spawn_pose.origin, ArenaBounds.half_extent(server.world.arena_id)),"FFA spawn lies within arena walls")
 		var matched_marker := false
 		for slot: int in range(1, 9):
 			var marker := server.world.arena.get_node("SpawnPoints/FFA_%d" % slot) as Node3D

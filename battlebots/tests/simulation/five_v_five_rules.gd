@@ -81,7 +81,7 @@ func check_spawns(label: String) -> void:
 	for id: int in world.bots:
 		var bot: MvpBot = world.bots[id]
 		var at := bot.body.global_position
-		check(at.is_finite() and absf(at.x) < 25 and absf(at.z) < 25 and at.y > 0,
+		check(at.is_finite() and ArenaBounds.contains(at, ArenaBounds.half_extent(world.arena_id)) and at.y > 0,
 			"%s bot %d stays on playable floor" % [label, id])
 		check(Vector2(at.x, at.z).distance_to(Vector2(bot.spawn_pose.origin.x, bot.spawn_pose.origin.z)) < 0.05,
 			"%s bot %d physically reaches assigned spawn" % [label, id])

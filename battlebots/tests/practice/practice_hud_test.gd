@@ -85,7 +85,8 @@ func run() -> void:
 
 func check_bounds(hud: PanelContainer) -> void:
 	check(hud.size.x <= 310 and hud.size.y <= 220, "Practice HUD stays within 310×220 at 1280×720")
-	check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(hud.get_global_rect()), "Right-side practice panel fits viewport")
+	# canvas_items stretch from a 1920×1080 base: controls live in the visible rect, not window pixels.
+	check(root.get_visible_rect().encloses(hud.get_global_rect()), "Right-side practice panel fits viewport")
 	for label: Label in [hud.target_label, hud.components_label, hud.local_status, hud.hint_label]:
 		if label.visible:
 			check(hud.get_global_rect().encloses(label.get_global_rect()), "Practice text stays inside the panel")
