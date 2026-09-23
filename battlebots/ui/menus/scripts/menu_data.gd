@@ -82,6 +82,18 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 			elif item.id == "turret_cannon":
 				item.name = "Turret · Cannon"
 				item.desc = "Atlas MX roof turret · 16 kg · 25 power. Tank controls: aim with the mouse over the turret sight and fire the main gun with primary fire; secondary fire operates the hull weapon. A heavy shell every 2.4 s knocks targets back. Builds shared heat. Replaces the roof gun mount, so it excludes the minigun."
+			elif item.id == "turret_cannon_dual":
+				item.name = "Turret · Twin cannon ▲"
+				item.desc = "Upgrade · Atlas MX roof turret · 22 kg · 35 power. Two barrels ripple a volley of heavy shells every 2.6 s. Tank controls: mouse to aim, primary fire to shoot. Replaces the roof gun mount."
+			elif item.id == "turret_cannon_quad":
+				item.name = "Turret · Quad cannon ▲▲"
+				item.desc = "Upgrade · Atlas MX roof turret · 30 kg · 40 power. Four barrels unload a devastating rippling volley every 3 s. Needs light armor to fit the 120 kg budget. Tank controls; replaces the roof gun mount."
+			elif item.id == "turret_plasma_dual":
+				item.name = "Turret · Twin plasma ▲"
+				item.desc = "Upgrade · Atlas MX roof turret · 20 kg · 35 power. Alternating emitters pour searing plasma bolts at almost twice the rate. Watch heat. Tank controls; replaces the roof gun mount."
+			elif item.id == "turret_plasma_quad":
+				item.name = "Turret · Quad plasma ▲▲"
+				item.desc = "Upgrade · Atlas MX roof turret · 28 kg · 40 power. Four emitters hose a torrent of plasma until heat runs out. Needs light armor to fit the 120 kg budget. Tank controls; replaces the roof gun mount."
 			elif item.id == "turret_plasma":
 				item.name = "Turret · Plasma gun"
 				item.desc = "Atlas MX roof turret · 14 kg · 25 power. Tank controls: aim with the mouse over the turret sight and hold primary fire for rapid plasma bolts; secondary fire operates the hull weapon. Light hits that build heat quickly. Replaces the roof gun mount, so it excludes the minigun."

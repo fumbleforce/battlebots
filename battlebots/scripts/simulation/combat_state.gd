@@ -57,7 +57,16 @@ const CANNON_RELOAD := 2.4
 const CANNON_HEAT := 16.0
 const PLASMA_CADENCE := 0.22
 const PLASMA_HEAT := 4.5
+## Multi-barrel upgrades, keyed by barrel count. Cannons ripple a volley one
+## barrel at a time; plasma alternates barrels at a faster cadence.
+const VOLLEY_SPACING := 0.09
+const CANNON_RELOAD_BY_BARRELS := {1:2.4, 2:2.6, 4:3.0}
+const CANNON_SHELL_HEAT := {1:16.0, 2:11.0, 4:9.0}
+const PLASMA_CADENCE_BY_BARRELS := {1:0.22, 2:0.13, 4:0.075}
+const PLASMA_HEAT_BY_BARRELS := {1:4.5, 2:4.0, 4:3.4}
 var turret_yaw := 0.0
+var _volley_left := 0
+var _volley_timer := 0.0
 
 func _init(derived: Dictionary) -> void:
 	stats = derived.duplicate(true)
@@ -149,6 +158,7 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	if not active or eliminated:
 		secondary_charge = 0.0
 		_gun_cooldown = 0.0
+		_volley_left = 0
 		return
 	if is_turret():
 		_tick_turret(delta, command.auxiliary_held)
@@ -170,24 +180,51 @@ func _secondary_brake(command: BotCommand) -> bool:
 ## One shot per reload (cannon) or cadence pulse (plasma).
 func _tick_turret(delta: float, held: bool) -> void:
 	var cannon: bool = stats.secondary_weapon == "cannon"
-	var interval := CANNON_RELOAD if cannon else PLASMA_CADENCE
+	var barrels := maxi(1, int(stats.get("turret_barrels", 1)))
+	var interval: float = CANNON_RELOAD_BY_BARRELS.get(barrels, CANNON_RELOAD) if cannon else PLASMA_CADENCE_BY_BARRELS.get(barrels, PLASMA_CADENCE)
 	_gun_cooldown = maxf(0.0, _gun_cooldown - delta)
 	if _gun_cooldown < 0.000001:
 		_gun_cooldown = 0.0
 	var eligible: bool = zones.weapon > 0.0 and not overheated
+	if not eligible:
+		_volley_left = 0
 	if held and not eligible:
 		failure_reason = "disabled" if zones.weapon <= 0.0 else "overheated"
-	elif held and _gun_cooldown <= 0.0:
-		_add_heat(CANNON_HEAT if cannon else PLASMA_HEAT)
-		gun_shot = true
-		shot_sequence += 1
-		_gun_cooldown = interval
+	if cannon and _volley_left > 0:
+		# A committed volley keeps rippling through its barrels once started.
+		_volley_timer -= delta
+		if _volley_timer <= 0.000001:
+			_fire_turret_shot(float(CANNON_SHELL_HEAT.get(barrels, CANNON_HEAT)))
+			_volley_left = _volley_left - 1 if gun_shot else 0
+			_volley_timer = VOLLEY_SPACING
+			if _volley_left == 0:
+				_gun_cooldown = interval
+	elif held and eligible and _gun_cooldown <= 0.0:
+		if cannon:
+			_fire_turret_shot(float(CANNON_SHELL_HEAT.get(barrels, CANNON_HEAT)))
+			if gun_shot:
+				_volley_left = barrels - 1
+				_volley_timer = VOLLEY_SPACING
+				if _volley_left == 0:
+					_gun_cooldown = interval
+		else:
+			_fire_turret_shot(float(PLASMA_HEAT_BY_BARRELS.get(barrels, PLASMA_HEAT)))
+			if gun_shot:
+				_gun_cooldown = interval
 	if held and eligible:
 		_heat_active = true
 	if zones.weapon <= 0.0:
 		_gun_cooldown = interval
-	secondary_charge = 0.0 if zones.weapon <= 0.0 or overheated else 1.0 - _gun_cooldown / interval
+	var loading := 1.0 if _volley_left > 0 else 1.0 - _gun_cooldown / interval
+	secondary_charge = 0.0 if zones.weapon <= 0.0 or overheated else clampf(loading, 0.0, 1.0)
 	secondary_active = gun_shot if cannon else held and eligible and not overheated
+
+## One shot, paid in shared heat. The world resolves it along barrel
+## (sequence - 1) % barrels.
+func _fire_turret_shot(shot_heat: float) -> void:
+	_add_heat(shot_heat)
+	gun_shot = true
+	shot_sequence += 1
 
 func _tick_primary(delta: float, command: BotCommand, active: bool) -> void:
 	launch = false

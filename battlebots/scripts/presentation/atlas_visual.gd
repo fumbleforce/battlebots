@@ -21,12 +21,18 @@ var _have_pose := false
 var _size := Vector3.ZERO
 var turret: Node3D
 var turret_kind := ""
+var turret_model := ""
 var turret_effects: TurretShotEffects
+## Smoothed yaw/pitch actually drawn this frame (also drives the reticle).
+var turret_display := Vector2.ZERO
 var _turret_yaw: Node3D
 var _turret_pitch: Node3D
 var _turret_rest := {}
-var _turret_display := Vector2.ZERO
 var _turret_shown := false
+var _sample := Vector2.ZERO
+var _sample_rate := Vector2.ZERO
+var _sample_tick := -1
+var _since_sample := 0.0
 
 func assemble(draft: Dictionary, size: Vector3) -> void:
 	_size = size
@@ -58,6 +64,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		auxiliary = _weapon("minigun")
 		auxiliary.position = AtlasGeometry.GUN_OFFSET
 	turret_kind = AtlasGeometry.turret_kind(draft)
+	turret_model = AtlasGeometry.turret_model(draft)
 	if not turret_kind.is_empty() and ResourceLoader.exists(TURRET):
 		_assemble_turret()
 	_apply_paint(draft.cosmetics.get("sawblade", AtlasGeometry.paint_defaults()))
@@ -71,34 +78,61 @@ func _assemble_turret() -> void:
 		found[str(node.name)] = node
 	_turret_yaw = found.get("TurretYaw")
 	_turret_pitch = found.get("TurretPitch")
-	for label: String in ["AttachmentCannon", "AttachmentPlasma"]:
-		if found.has(label): found[label].visible = label == ("AttachmentCannon" if turret_kind == "cannon" else "AttachmentPlasma")
+	# Node names: Attachment<Family><Suffix>, CannonRecoil<Suffix>_i, Muzzle<Family><Suffix>_i.
+	var family := turret_kind.capitalize()
+	var suffix := turret_model.get_slice("_", 1).capitalize() if "_" in turret_model else ""
+	var chosen := "Attachment" + family + suffix
+	for label: String in found:
+		if label.begins_with("Attachment") and not label.ends_with("Surface"):
+			found[label].visible = label == chosen
 	for node: Node3D in [_turret_yaw, _turret_pitch]:
 		if node != null: _turret_rest[node] = node.transform
 	for label: String in TURRET_HIDDEN:
 		if nodes.has(label): nodes[label].visible = false
+	var muzzles: Array[Node3D] = []
+	var recoils: Array[Node3D] = []
+	var barrels: int = AtlasGeometry.TURRET_BARRELS.get(turret_model, [[0, 0]]).size()
+	for index: int in barrels:
+		var tag := "" if suffix.is_empty() else "%s_%d" % [suffix, index]
+		muzzles.append(found.get("Muzzle" + family + tag))
+		recoils.append(found.get("CannonRecoil" + tag) if turret_kind == "cannon" else null)
 	turret_effects = TurretShotEffects.new()
 	turret_effects.name = "TurretShotEffects"
 	add_child(turret_effects)
-	var muzzle: Node3D = found.get("MuzzleCannon" if turret_kind == "cannon" else "MuzzlePlasma")
-	turret_effects.configure(turret_kind, muzzle, found.get("CannonRecoil") if turret_kind == "cannon" else null, _size.y / BotScale.AUTHORING_HEIGHT)
+	turret_effects.configure(turret_kind, muzzles, recoils, _size.y / BotScale.AUTHORING_HEIGHT)
 
-## Presentation only: follow the accepted servo state. Stepping faster than the
-## authoritative slew smooths 20 Hz remote snapshots without adding lag.
+## Presentation only. Authoritative angles arrive per physics tick (60 Hz
+## locally, 20 Hz snapshots remotely). Estimate their rate from each new
+## sample, predict between samples and ease toward the prediction, so the
+## turret moves smoothly at any frame rate without lagging the servo.
 func _show_turret(view: BotView, delta: float) -> void:
 	var target := Vector2(view.turret_yaw, view.gun_pitch)
-	if not _turret_shown or absf(wrapf(target.x - _turret_display.x, -PI, PI)) > 1.2:
-		_turret_display = target
-	else:
-		var yaw_step := AtlasGeometry.TURRET_YAW_RATE * 1.6 * maxf(delta, 0.0)
-		var pitch_step := AtlasGeometry.TURRET_PITCH_RATE * 1.6 * maxf(delta, 0.0)
-		_turret_display.x = wrapf(_turret_display.x + clampf(wrapf(target.x - _turret_display.x, -PI, PI), -yaw_step, yaw_step), -PI, PI)
-		_turret_display.y = move_toward(_turret_display.y, target.y, pitch_step)
+	var jump := absf(wrapf(target.x - _sample.x, -PI, PI)) > 1.2
+	if not _turret_shown or jump:
+		turret_display = target
+		_sample = target
+		_sample_rate = Vector2.ZERO
+		_sample_tick = view.server_tick
+		_since_sample = 0.0
+	elif view.server_tick != _sample_tick:
+		var elapsed := maxf(_since_sample, 1.0 / 240.0)
+		_sample_rate = Vector2(
+			clampf(wrapf(target.x - _sample.x, -PI, PI) / elapsed, -AtlasGeometry.TURRET_YAW_RATE, AtlasGeometry.TURRET_YAW_RATE),
+			clampf((target.y - _sample.y) / elapsed, -AtlasGeometry.TURRET_PITCH_RATE, AtlasGeometry.TURRET_PITCH_RATE))
+		_sample = target
+		_sample_tick = view.server_tick
+		_since_sample = 0.0
 	_turret_shown = true
+	_since_sample += maxf(delta, 0.0)
+	var ahead := minf(_since_sample, 0.1)
+	var predicted := Vector2(wrapf(_sample.x + _sample_rate.x * ahead, -PI, PI), _sample.y + _sample_rate.y * ahead)
+	var ease := 1.0 - exp(-maxf(delta, 0.0) * 30.0)
+	turret_display.x = wrapf(turret_display.x + wrapf(predicted.x - turret_display.x, -PI, PI) * ease, -PI, PI)
+	turret_display.y = lerpf(turret_display.y, predicted.y, ease)
 	if _turret_yaw != null:
-		_turret_yaw.transform = _turret_rest[_turret_yaw] * Transform3D(Basis(Vector3.UP, _turret_display.x))
+		_turret_yaw.transform = _turret_rest[_turret_yaw] * Transform3D(Basis(Vector3.UP, turret_display.x))
 	if _turret_pitch != null:
-		_turret_pitch.transform = _turret_rest[_turret_pitch] * Transform3D(Basis(Vector3.RIGHT, _turret_display.y))
+		_turret_pitch.transform = _turret_rest[_turret_pitch] * Transform3D(Basis(Vector3.RIGHT, turret_display.y))
 	turret_effects.show_state(view, delta)
 
 func _track_part(node: Node3D, side: int) -> Dictionary:

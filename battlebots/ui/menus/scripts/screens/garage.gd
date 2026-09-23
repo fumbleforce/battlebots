@@ -164,7 +164,9 @@ func _select(i: int) -> void:
 	%Ability.text = b.ability
 	%Boost.text = b.boost
 	var utility: String = PlayerProfile.loadouts[i].get("parts", {}).get("utility", "")
-	var auxiliary_label: String = {"minigun_pod":"AUXILIARY GUN", "turret_cannon":"TURRET CANNON", "turret_plasma":"TURRET PLASMA"}.get(utility, "")
+	var auxiliary_label: String = {"minigun_pod":"AUXILIARY GUN", "turret_cannon":"TURRET CANNON", "turret_plasma":"TURRET PLASMA",
+		"turret_cannon_dual":"TWIN CANNON", "turret_cannon_quad":"QUAD CANNON",
+		"turret_plasma_dual":"TWIN PLASMA", "turret_plasma_quad":"QUAD PLASMA"}.get(utility, "")
 	var has_auxiliary := not auxiliary_label.is_empty()
 	var auxiliary_key: Label = %AbilitySlot.get_node("Pad/Row/Key/L")
 	# Turret builds use tank controls: the primary button fires the main gun.

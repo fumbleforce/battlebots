@@ -453,6 +453,45 @@ cylinder('Emitter throat shadow', (0, PY, -1.220), (0, PY, -1.228), .022, dark, 
 part('MuzzleCannon', CANNON_MUZZLE, recoil)
 part('MuzzlePlasma', PLASMA_MUZZLE, plasma)
 
+# ---------------------------------------------------- dual / quad upgrades
+# Multi-barrel attachments reuse the approved single weapon: each barrel is a
+# copy scaled in cross-section only (circles stay round, lengths unchanged) and
+# offset from the bore axis. Each cannon barrel keeps its own recoil node.
+VARIANTS = {'cannon_dual': (.82, [(-.078, 0.0), (.078, 0.0)]),
+            'cannon_quad': (.66, [(-.064, .060), (.064, .060), (-.064, -.060), (.064, -.060)]),
+            'plasma_dual': (.80, [(-.090, 0.0), (.090, 0.0)]),
+            'plasma_quad': (.62, [(-.070, .062), (.070, .062), (-.070, -.062), (.070, -.062)])}
+def copied(objects, s_cross, ox, oy, group):
+    axis = gv((0, PY, 0))
+    matrix = Matrix.Translation(gv((ox, oy, 0)) - gv((0, 0, 0))) @ Matrix.Translation(axis) \
+        @ Matrix.Diagonal((s_cross, 1.0, s_cross, 1.0)) @ Matrix.Translation(-axis)
+    for source in objects:
+        obj = source.copy(); obj.data = source.data.copy(); bpy.context.collection.objects.link(obj)
+        obj.data.transform(matrix); groups[group].append(obj)
+variant_groups = {}
+for label, (s_cross, offsets) in VARIANTS.items():
+    family = label.split('_')[0]
+    title = 'Attachment' + family.capitalize() + label.split('_')[1].capitalize()
+    group = part(title, PITCH, pitch); variant_groups[label] = group
+    source_body = groups[cannon] if family == 'cannon' else groups[plasma]
+    for index, (ox, oy) in enumerate(offsets):
+        copied(source_body, s_cross, ox, oy, group)
+        if family == 'cannon':
+            barrel = part('CannonRecoil%s_%d' % (label.split('_')[1].capitalize(), index), PITCH, group)
+            copied(groups[recoil], s_cross, ox, oy, barrel)
+            part('MuzzleCannon%s_%d' % (label.split('_')[1].capitalize(), index), (CANNON_MUZZLE[0] + ox, CANNON_MUZZLE[1] + oy, CANNON_MUZZLE[2]), barrel)
+        else:
+            part('MuzzlePlasma%s_%d' % (label.split('_')[1].capitalize(), index), (PLASMA_MUZZLE[0] + ox, PLASMA_MUZZLE[1] + oy, PLASMA_MUZZLE[2]), group)
+    # A cast cradle block joins the barrels to the mantlet collar.
+    xs = [o[0] for o in offsets]; ys = [o[1] for o in offsets]
+    width = (max(xs) - min(xs)) + (.17 if family == 'cannon' else .15) * s_cross + .03
+    height = (max(ys) - min(ys)) + .15 * s_cross + .03
+    box('Multi-barrel cradle block', (0, PY + (max(ys) + min(ys)) * .5, -.742), (width, height, .050), paint, group, .014)
+    box('Cradle block armored face', (0, PY + (max(ys) + min(ys)) * .5, -.769), (width - .03, height - .03, .006), secondary, group, .003)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            bolt((sx * (width * .5 - .022), PY + (max(ys) + min(ys)) * .5 + sy * (height * .5 - .022), -.773), (0, 0, -1), group, .007)
+
 def finalize(group):
     objects = groups[group]
     if not objects: return None
@@ -473,10 +512,11 @@ def finalize(group):
 TURRET_SCALE = 1.45
 scale_point = gv((0, .569, -.32)); shift = gv((0, 0, bz + .32)) - gv((0, 0, 0))
 M = Matrix.Translation(scale_point + shift) @ Matrix.Scale(TURRET_SCALE, 4) @ Matrix.Translation(-scale_point)
-for group in (yaw, pitch, cannon, recoil, plasma):
+rotating = [g for g in groups if g not in (root, base)]
+for group in rotating:
     for obj in groups[group]: obj.data.transform(M)
 # Record every original pivot first: children follow their parent's move.
-empties = [pitch, cannon, recoil, plasma, bpy.data.objects['MuzzleCannon'], bpy.data.objects['MuzzlePlasma']]
+empties = [g for g in rotating if g is not yaw]
 targets = {empty: M @ empty.matrix_world.translation for empty in empties}
 yaw.matrix_world = Matrix.Translation(gv((0, .52, bz))); bpy.context.view_layer.update()
 for empty in empties:
@@ -485,6 +525,12 @@ def godot(o): p = o.matrix_world.translation; return (round(p.x, 5), round(p.z, 
 YAW = godot(yaw); PITCH = godot(pitch)
 CANNON_MUZZLE = godot(bpy.data.objects['MuzzleCannon']); PLASMA_MUZZLE = godot(bpy.data.objects['MuzzlePlasma'])
 MUZZLE_OFFSETS = {'cannon': round(PITCH[2] - CANNON_MUZZLE[2], 5), 'plasma': round(PITCH[2] - PLASMA_MUZZLE[2], 5)}
+# Per-attachment barrel offsets from the single-barrel muzzle, pitch frame.
+BARRELS = {'cannon': [[0.0, 0.0]], 'plasma': [[0.0, 0.0]]}
+for label in VARIANTS:
+    family = label.split('_')[0]; base_muzzle = CANNON_MUZZLE if family == 'cannon' else PLASMA_MUZZLE
+    names = sorted(o.name for o in bpy.data.objects if o.type == 'EMPTY' and o.name.startswith('Muzzle' + family.capitalize() + label.split('_')[1].capitalize() + '_'))
+    BARRELS[label] = [[round(godot(bpy.data.objects[n])[0] - base_muzzle[0], 5), round(godot(bpy.data.objects[n])[1] - base_muzzle[1], 5)] for n in names]
 print('TURRET_PIVOTS', json.dumps({'yaw': YAW, 'pitch': PITCH, 'muzzle_offsets': MUZZLE_OFFSETS}))
 for group in list(groups): finalize(group)
 bpy.context.view_layer.update()
@@ -521,9 +567,11 @@ def audit():
         if o.type == 'MESH': hull_sets.setdefault(owner(o), []).append(o)
     hull_trees = {k: tree(v) for k, v in hull_sets.items()}
     moving = {'yaw': [o for o in descendants(yaw) if o.type == 'MESH' and not any(o in descendants(a) for a in (pitch,))],
-              'mantlet': [o for o in descendants(pitch) if o.type == 'MESH' and not any(o in descendants(a) for a in (cannon, plasma))],
+              'mantlet': [o for o in descendants(pitch) if o.type == 'MESH' and not any(o in descendants(a) for a in [cannon, plasma] + list(variant_groups.values()))],
               'cannon': [o for o in descendants(cannon) if o.type == 'MESH'],
               'plasma': [o for o in descendants(plasma) if o.type == 'MESH']}
+    for label, group in variant_groups.items():
+        moving[label] = [o for o in descendants(group) if o.type == 'MESH']
     static_tree = tree([o for o in descendants(base) if o.type == 'MESH'])
     report = {'scope': 'Sampled triangle-overlap audit against imported atlas_mx.glb. Per 5-degree bearing the lowest clear elevation of mantlet+attachment is measured (7-step bisection, 1 degree margin); the runtime rule (max of the two neighbouring samples) is then verified at every 2.5 degrees of yaw from that floor to the +30 degree stop in 2.5 degree steps. Adapter checked at rest.',
               'yaw_step_degrees': 5, 'contacts': {}}
@@ -537,12 +585,13 @@ def audit():
     def hits(objs, hull_label='base'):
         return len(tree(objs).overlap(hull_trees[hull_label]))
     profile = {}
-    for kind in ('cannon', 'plasma'):
+    for kind in ATTACHMENTS:
         objs = moving['mantlet'] + moving[kind]; values = []
         for yaw_deg in range(0, 360, 5):
             pose(yaw_deg, 0.0)
             if hits(objs):
-                raise RuntimeError('%s collides with the hull at yaw %d, zero elevation' % (kind, yaw_deg))
+                culprits = [o.name for o in objs if len(tree([o]).overlap(hull_trees['base']))]
+                raise RuntimeError('%s collides with the hull at yaw %d, zero elevation: %s' % (kind, yaw_deg, culprits[:8]))
             pose(yaw_deg, DEPRESSION_FLOOR)
             if not hits(objs):
                 values.append(DEPRESSION_FLOOR); continue
@@ -560,7 +609,7 @@ def audit():
     worst = {}
     for half_step in range(144):
         yaw_deg = half_step * 2.5
-        for kind in ('cannon', 'plasma'):
+        for kind in ATTACHMENTS:
             low = floor_at(kind, yaw_deg)
             pitches = [low + k * 2.5 for k in range(40) if low + k * 2.5 < PITCH_LIMITS[1]] + [PITCH_LIMITS[1]]
             for pitch_deg in pitches:
@@ -580,12 +629,13 @@ def audit():
     for o in imported: bpy.data.objects.remove(o, do_unlink=True)
     return report
 
+ATTACHMENTS = ['cannon', 'plasma'] + list(VARIANTS)
 clearance = audit()
 print('TURRET_CLEARANCE', json.dumps(clearance))
 
 sys.path.insert(0, str(ROOT / 'tools'))
 from atlas_surface_bake import bake_surface_atlases
-surface = bake_surface_atlases(root, cannon, [plasma], RUNTIME, quick=QUICK, prefix='Atlas_Turret', face_wear=.78,
+surface = bake_surface_atlases(root, cannon, [plasma] + list(variant_groups.values()), RUNTIME, quick=QUICK, prefix='Atlas_Turret', face_wear=.78,
                                families=('Primary', 'Secondary', 'Hardware'),
                                sizes={'Primary': 2048, 'Secondary': 1024, 'Hardware': 2048})
 
@@ -618,10 +668,10 @@ def export_model(obj, filename):
 
 export_model(root, 'atlas_turret.glb')
 stats = {}
-for label, group in [('base', base), ('housing', yaw), ('mantlet', pitch), ('cannon', cannon), ('plasma', plasma)]:
+for label, group in [('base', base), ('housing', yaw), ('mantlet', pitch), ('cannon', cannon), ('plasma', plasma)] + list(variant_groups.items()):
     objs = [o for o in descendants(group) if o.type == 'MESH']
     if label == 'housing': objs = [o for o in objs if o not in descendants(pitch)]
-    if label == 'mantlet': objs = [o for o in objs if o not in descendants(cannon) + descendants(plasma)]
+    if label == 'mantlet': objs = [o for o in objs if not any(o in descendants(a) for a in [cannon, plasma] + list(variant_groups.values()))]
     for o in objs: o.data.calc_loop_triangles()
     stats[label] = sum(len(o.data.loop_triangles) for o in objs)
 corners = [o.matrix_world @ Vector(p) for o in descendants(root) if o.type == 'MESH' for p in o.bound_box]
@@ -629,7 +679,7 @@ points = [(p.x, p.z, -p.y) for p in corners]
 manifest = {'name': 'Atlas MX turret', 'id': 'atlas_turret', 'runtime': 'atlas_turret.glb',
             'authoring': 'Godot metres in the Atlas hull frame, X right Y up -Z forward; runtime factor three applied by AtlasVisual',
             'generator': 'tools/build-atlas-turret.py', 'yaw_pivot': YAW, 'pitch_pivot': PITCH,
-            'pitch_limits_degrees': PITCH_LIMITS, 'muzzles': {'cannon': CANNON_MUZZLE, 'plasma': PLASMA_MUZZLE}, 'muzzle_offsets': MUZZLE_OFFSETS, 'turret_scale': TURRET_SCALE,
+            'pitch_limits_degrees': PITCH_LIMITS, 'muzzles': {'cannon': CANNON_MUZZLE, 'plasma': PLASMA_MUZZLE}, 'muzzle_offsets': MUZZLE_OFFSETS, 'barrels': BARRELS, 'turret_scale': TURRET_SCALE,
             'nodes': ['TurretBase', 'TurretYaw', 'TurretPitch', 'AttachmentCannon', 'CannonRecoil', 'AttachmentPlasma', 'MuzzleCannon', 'MuzzlePlasma'],
             'bounds_all_attachments': {'min': [round(min(p[i] for p in points), 5) for i in range(3)], 'max': [round(max(p[i] for p in points), 5) for i in range(3)]},
             'triangles': stats, 'clearance': clearance, 'surface_atlases': surface, 'approval': 'Pending user visual approval'}
@@ -670,7 +720,7 @@ def view(name, at, target=(0, .45, -.45), ortho=2.6):
     cam.location = gv(at); cam.rotation_euler = (gv(target) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam_data.type = 'ORTHO'; cam_data.ortho_scale = ortho
     scene.render.filepath = str(SOURCE / (name + '.png')); bpy.ops.render.render(write_still=True)
 def show(attachment):
-    for group in (cannon, plasma):
+    for group in [cannon, plasma] + list(variant_groups.values()):
         for o in descendants(group): o.hide_render = group != attachment
 yaw.rotation_euler.z = math.radians(-28); pitch.rotation_euler.x = math.radians(8)
 show(cannon); view('turret_cannon_hero', (3.2, 2.4, -4.0), ortho=3.4)
@@ -681,5 +731,8 @@ if not QUICK:
     yaw.rotation_euler.z = 0; pitch.rotation_euler.x = 0
     show(cannon); view('turret_top', (0, 6, -.319), target=(0, 0, -.32), ortho=3.2)
     view('turret_rear_quarter', (-3.4, 2.2, 3.6), target=(0, .5, -.2), ortho=3.4)
+yaw.rotation_euler.z = math.radians(-28); pitch.rotation_euler.x = math.radians(8)
+for label, group in variant_groups.items():
+    show(group); view('turret_' + label + '_detail', (2.4, 1.7, -3.2), target=(0, .76, -1.0), ortho=1.9)
 bpy.ops.wm.save_as_mainfile(filepath=str(PREVIEW / 'atlas_turret.blend'), compress=True)
 print('TURRET_COMPLETE', str(SOURCE))

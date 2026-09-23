@@ -70,6 +70,7 @@ func review(kind: String) -> void:
 	add_child(session)
 	var draft: Dictionary = session.registry.atlas()
 	draft.parts.utility = "turret_" + kind
+	if kind.ends_with("_quad"): draft.parts.armor = "light"
 	check(session.practice(draft, "foundry") == OK, "Practice starts with the %s turret" % kind)
 	for frame: int in 120: await get_tree().process_frame
 	var bot := session.local_source() as MvpBot
@@ -104,7 +105,7 @@ func review(kind: String) -> void:
 		await get_tree().process_frame
 		if bot.combat.shot_sequence > shots:
 			break
-	await _capture("turret-%s-firing" % kind, 3 if kind == "cannon" else 8)
+	await _capture("turret-%s-firing" % kind, 3 if kind.begins_with("cannon") else 8)
 	await _capture("turret-%s-smoke" % kind, 12)
 	await _capture("turret-%s-smoke-late" % kind, 45)
 	for frame: int in 60: await get_tree().physics_frame
@@ -118,7 +119,7 @@ func review(kind: String) -> void:
 	for frame: int in 5: await get_tree().process_frame
 
 func run() -> void:
-	for kind: String in ["cannon", "plasma"]:
+	for kind: String in ["cannon", "plasma", "cannon_quad", "plasma_quad"]:
 		await review(kind)
 	print("TURRET CAPTURES ", JSON.stringify(captures))
 	print("ATLAS TURRET SHOWCASE PASS" if failures == 0 else "ATLAS TURRET SHOWCASE FAIL")

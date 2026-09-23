@@ -415,11 +415,11 @@ func _update_turret_aim(attacker: MvpBot, delta: float) -> void:
 	var command := attacker.command
 	if command.aim_valid and not state.eliminated and state.zones.weapon > 0.0:
 		var world := Basis(Vector3.UP, command.aim_yaw) * Basis(Vector3.RIGHT, command.aim_pitch) * Vector3.FORWARD
-		target = AtlasGeometry.turret_target(attacker.body.global_basis, world, state.stats.secondary_weapon)
+		target = AtlasGeometry.turret_target(attacker.body.global_basis, world, state.stats.turret_model)
 	elif state.zones.weapon <= 0.0:
 		# A disabled turret loses traverse power and stays where it is.
 		target = Vector2(state.turret_yaw, state.gun_pitch)
-	var next := AtlasGeometry.turret_slew(Vector2(state.turret_yaw, state.gun_pitch), target, delta, state.stats.secondary_weapon)
+	var next := AtlasGeometry.turret_slew(Vector2(state.turret_yaw, state.gun_pitch), target, delta, state.stats.turret_model)
 	state.turret_yaw = next.x
 	state.gun_pitch = next.y
 
@@ -431,8 +431,10 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 	var size: Vector3 = state.stats.size
 	var basis := attacker.body.global_basis
 	var direction := (basis * AtlasGeometry.turret_direction(state.turret_yaw, state.gun_pitch)).normalized()
-	var origin := attacker.body.global_transform * AtlasGeometry.turret_breech(size, state.turret_yaw)
-	var from := attacker.body.global_transform * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch)
+	# Multi-barrel models fire each shot from its own barrel, parallel to the bore.
+	var barrel := AtlasGeometry.turret_barrel(state.stats.turret_model, state.shot_sequence)
+	var origin := attacker.body.global_transform * AtlasGeometry.turret_breech(size, state.turret_yaw, state.gun_pitch, barrel)
+	var from := attacker.body.global_transform * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch, barrel)
 	var end := from + direction * float(TURRET_RANGE[kind])
 	# Trace from the trunnion, inside the casting, so a barrel pushed through a
 	# wall cannot fire from its far side. Allies block without taking damage.

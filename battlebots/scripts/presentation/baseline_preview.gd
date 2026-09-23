@@ -31,6 +31,8 @@ const TURRET_AIM_DISTANCE := 220.0
 var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
 var _turret_aim_point := Vector3.ZERO
+var _reticle_point := Vector2.ZERO
+var _reticle_seen := false
 
 func _ready() -> void:
 	hud.set_context(fixture_title)
@@ -248,17 +250,20 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 	if wanted:
 		tank_sight.update_view(delta, source)
 
-func _render_turret_reticle(view: BotView) -> void:
+func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	var camera := aim_camera()
 	var show := controls_enabled and view != null and view.turret_kind != "" and not view.eliminated \
 		and is_instance_valid(camera) and camera.is_inside_tree() and not pause_menu.visible
 	if not show:
 		turret_reticle.render(false, false, Vector2.ZERO, 0.0)
+		_reticle_seen = false
 		return
 	# Where the barrel actually points: first world/bot contact along it.
 	var size := Vector3(0.0, _turret_scale() * BotScale.AUTHORING_HEIGHT, 0.0)
-	var muzzle := view.pose * AtlasGeometry.turret_muzzle(size, view.turret_kind, view.turret_yaw, view.gun_pitch)
-	var direction := (view.pose.basis * AtlasGeometry.turret_direction(view.turret_yaw, view.gun_pitch)).normalized()
+	# Follow the smoothed, drawn barrel so ring and turret move together.
+	var angles := view.turret_display
+	var muzzle := view.pose * AtlasGeometry.turret_muzzle(size, view.turret_kind, angles.x, angles.y)
+	var direction := (view.pose.basis * AtlasGeometry.turret_direction(angles.x, angles.y)).normalized()
 	var end := muzzle + direction * float(CombatWorld.TURRET_RANGE.get(view.turret_kind, 60.0))
 	var query := PhysicsRayQueryParameters3D.create(muzzle, end,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, source.camera_exclusions())
@@ -269,7 +274,13 @@ func _render_turret_reticle(view: BotView) -> void:
 	var point := camera.unproject_position(end) if on_screen else Vector2.ZERO
 	# The canvas may be scaled; convert viewport pixels into reticle space.
 	point = turret_reticle.get_global_transform_with_canvas().affine_inverse() * point
-	turret_reticle.render(true, on_screen, point, view.secondary_charge)
+	# Light filtering hides ray hits flicking between nearby surfaces.
+	if not _reticle_seen or delta <= 0.0 or point.distance_to(_reticle_point) > turret_reticle.size.y * 0.25:
+		_reticle_point = point
+	else:
+		_reticle_point = _reticle_point.lerp(point, 1.0 - exp(-delta * 25.0))
+	_reticle_seen = on_screen
+	turret_reticle.render(true, on_screen, _reticle_point, view.secondary_charge)
 
 func _action_strength(action: StringName) -> float:
 	var strength := Input.get_action_strength(action)
@@ -286,7 +297,7 @@ func _process(delta: float) -> void:
 	var view := _source_view()
 	hud.show_view(view)
 	_update_tank_sight(view, delta)
-	_render_turret_reticle(view)
+	_render_turret_reticle(view, delta)
 	refresh_diagnostics()
 	hint.text = "Mouse  Orbit  |  %s / %s  Zoom  |  %s  Recenter  |  Esc  Menu" % [
 		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),
@@ -294,6 +305,8 @@ func _process(delta: float) -> void:
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
 	if controls_enabled and view != null and view.turret_kind != "":
 		var gun: String = {"cannon":"Main gun", "plasma":"Plasma gun"}.get(view.turret_kind, "Turret")
+		if view.turret_model.ends_with("_dual"): gun = "Twin " + gun.to_lower()
+		elif view.turret_model.ends_with("_quad"): gun = "Quad " + gun.to_lower()
 		hint.text = "Mouse  Aim  |  %s  %s  |  %s  Hull weapon  |  Esc  Menu" % [
 			input_preferences.label_for(&"primary"), gun, input_preferences.label_for(&"secondary")]
 	elif controls_enabled and view != null and view.has_auxiliary_weapon:

@@ -23,7 +23,7 @@ heat rates. All use the same 100/50 overheat latch and idle cooling. Known saved
 Battery Pack selections migrate to Cooling Pack. HUD shows heat and its recovery
 threshold, and Garage shows cooling instead of capacity.
 
-Catalogue 12, protocol 9, build `mvp-ab-19`: snapshot slot 9 is now boolean
+Catalogue 12, protocol 9, build `mvp-ab-22`: snapshot slot 9 is now boolean
 `overheated`, with all other indices preserved. #32/#36/#39 must rebase and retain
 the heat-only shared resource when adding effects, turret or dual-weapon work.
 Local baseline, combat/physics, native UI and network checks pass, including a
@@ -36,8 +36,8 @@ or human acceptance is claimed by the local tests; #41 stays open for verificati
 ## Atlas turret (B, #36) — 23 September 2026
 
 B merged the modelled, mouse-aimed Atlas turret (cannon/plasma) with tank sight
-controls. It changes gameplay and the wire: catalogue 11, PROTOCOL 8, BUILD
-`mvp-ab-18`. **A: a matching hosted release is required.** Until then, live
+controls. It changes gameplay and the wire: catalogue 13, PROTOCOL 10, BUILD
+`mvp-ab-22`. **A: a matching hosted release is required.** Until then, live
 workers correctly reject this client. Details, validation and open work:
 [B_ATLAS_TURRET.md](coordination/B_ATLAS_TURRET.md).
 

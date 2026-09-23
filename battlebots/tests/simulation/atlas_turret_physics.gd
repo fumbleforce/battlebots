@@ -24,6 +24,8 @@ func turret_build(kind: String, weapon := "lifter") -> Dictionary:
 	var draft := registry.atlas()
 	draft.parts.utility = "turret_" + kind
 	draft.parts.weapon = weapon
+	if kind.ends_with("_quad"):
+		draft.parts.armor = "light"
 	return draft
 
 func catalogue_rules() -> void:
@@ -42,6 +44,14 @@ func catalogue_rules() -> void:
 			check(not rejected.valid and "Turret modules require the Atlas MX roof traverse race" in rejected.reasons,
 				"Turret is rejected off Atlas: " + str(other.parts.chassis))
 	check(registry.validate(registry.atlas()).stats.secondary_weapon == "", "Plain Atlas has no auxiliary weapon")
+	for model: String in ["cannon_dual", "cannon_quad", "plasma_dual", "plasma_quad"]:
+		var upgrade := registry.validate(turret_build(model))
+		check(upgrade.valid and upgrade.stats.secondary_weapon == model.get_slice("_", 0)
+			and upgrade.stats.turret_model == model and upgrade.stats.turret_barrels == (2 if model.ends_with("dual") else 4),
+			"Upgrade %s is a legal Atlas build: %s" % [model, upgrade.reasons])
+	var heavy_quad := registry.atlas()
+	heavy_quad.parts.utility = "turret_cannon_quad"
+	check(not registry.validate(heavy_quad).valid, "Quad cannon needs lighter armor to fit the budget")
 	var seeded := registry.validate(registry.atlas_turret())
 	check(seeded.valid and seeded.stats.secondary_weapon == "cannon", "Seeded Atlas turret preset is legal: %s" % seeded.reasons)
 	var old := registry.atlas()
@@ -228,9 +238,39 @@ func plasma() -> void:
 	var locked := run_ticks(30, Vector3(-20, 20, 0), true)
 	check(locked.size() <= 1 and attacker.combat.overheated, "Plasma overheats and locks out")
 
+func upgrades() -> void:
+	var target := Vector3(-20, 20, 0)
+	for model: String in ["cannon_dual", "cannon_quad"]:
+		setup(model)
+		await reset_case(target)
+		run_ticks(60, target, false)
+		var barrels := 2 if model.ends_with("dual") else 4
+		var origins: Array = []
+		var events: Array = []
+		for frame: int in 30:
+			var before := attacker.combat.shot_sequence
+			events.append_array(run_ticks(1, target, frame == 0))
+			if attacker.combat.shot_sequence > before: origins.append(attacker.combat.last_shot_from)
+		check(origins.size() == barrels, "%s ripples one volley of %d shells from one press: %d" % [model, barrels, origins.size()])
+		var distinct := {}
+		for origin: Vector3 in origins: distinct[Vector3i(origin * 100.0)] = true
+		check(distinct.size() == barrels, "%s fires every barrel from its own muzzle" % model)
+		check(events.size() == barrels and victim.combat.core < victim.combat.stats.core, "%s volley lands every shell" % model)
+		var reload: float = CombatState.CANNON_RELOAD_BY_BARRELS[barrels]
+		check(run_ticks(roundi(reload * 60.0) - 45, target, true).is_empty(), "%s reloads after the volley" % model)
+	for model: String in ["plasma_dual", "plasma_quad"]:
+		setup(model)
+		await reset_case(target)
+		run_ticks(60, target, false)
+		var hits := run_ticks(60, target, true)
+		# Cadence resolves on 60 Hz ticks: 0.13 s -> 8 ticks, 0.075 s -> 5 ticks.
+		var expected := 8 if model.ends_with("dual") else 12
+		check(hits.size() >= expected - 1 and hits.size() <= expected, "%s alternates barrels at %d bolts/s: %d" % [model, expected, hits.size()])
+
 func run() -> void:
 	catalogue_rules()
 	await servo_and_cannon()
 	await plasma()
+	await upgrades()
 	print("ATLAS TURRET PHYSICS PASS" if failures == 0 else "ATLAS TURRET PHYSICS FAIL")
 	get_tree().quit(0 if failures == 0 else 1)

@@ -391,6 +391,9 @@ func read_view() -> BotView:
 	view.has_auxiliary_weapon = combat.stats.get("secondary_weapon", "") != ""
 	view.turret_kind = combat.stats.secondary_weapon if combat.is_turret() else ""
 	view.turret_yaw = data.get("turret_yaw", 0.0)
+	view.turret_model = combat.stats.get("turret_model", "")
+	view.turret_display = atlas_visual.turret_display if atlas_visual != null and atlas_visual.turret != null \
+		else Vector2(view.turret_yaw, data.get("gun_pitch", 0.0))
 	view.secondary_charge = data.get("secondary_charge", 0.0)
 	view.secondary_active = data.get("secondary_active", false)
 	view.shot_sequence = data.get("shot_sequence", 0)

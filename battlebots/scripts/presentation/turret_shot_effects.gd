@@ -18,13 +18,13 @@ const PLASMA_CORE := Color(0.92, 0.97, 1.0)
 const PLASMA_CORONA := Color(0.55, 0.45, 1.0)
 const PLASMA_GLOW := Color(0.35, 0.8, 1.0)
 var kind := ""
-var muzzle: Node3D
-var recoil: Node3D
+var muzzles: Array[Node3D] = []
+var recoils: Array[Node3D] = []
 var shot_count := 0
 var playback_enabled := true
 var _scale := 1.0
-var _recoil_rest := Transform3D.IDENTITY
-var _recoil_age := 1.0
+var _recoil_rest: Array[Transform3D] = []
+var _recoil_age: Array[float] = []
 var _seen := -1
 var _tick := -1
 var _flash: MeshInstance3D
@@ -43,12 +43,15 @@ static var _streams: Dictionary = {}
 static var _smoke_materials: Dictionary = {}
 static var _burn_textures: Dictionary = {}
 
-func configure(weapon: String, muzzle_node: Node3D, recoil_node: Node3D, geometry_scale: float) -> void:
+## One muzzle (and, for cannons, one recoiling barrel) per barrel.
+func configure(weapon: String, muzzle_nodes: Array[Node3D], recoil_nodes: Array[Node3D], geometry_scale: float) -> void:
 	kind = weapon
-	muzzle = muzzle_node
-	recoil = recoil_node
+	muzzles = muzzle_nodes
+	recoils = recoil_nodes
 	_scale = geometry_scale
-	if recoil != null: _recoil_rest = recoil.transform
+	for node: Node3D in recoils:
+		_recoil_rest.append(node.transform if node != null else Transform3D.IDENTITY)
+		_recoil_age.append(1.0)
 	var cannon := kind == "cannon"
 	for index: int in PROJECTILES:
 		_projectiles.append(_make_projectile(cannon))
@@ -362,7 +365,7 @@ func show_state(view: BotView, delta: float) -> void:
 		# One visible shot per accepted snapshot; late/stale records stay silent.
 		if not view.eliminated and view.last_shot_tick >= 0 and view.last_shot_tick <= view.server_tick \
 			and view.server_tick - view.last_shot_tick <= 12:
-			_fire(view.last_shot_from, view.last_shot_to)
+			_fire(view.last_shot_from, view.last_shot_to, view.shot_sequence)
 	_tick = view.server_tick
 	if view.eliminated:
 		clear_effects()
@@ -370,7 +373,7 @@ func show_state(view: BotView, delta: float) -> void:
 		_tick = view.server_tick
 	_advance(delta)
 
-func _fire(from: Vector3, to: Vector3) -> void:
+func _fire(from: Vector3, to: Vector3, sequence := 1) -> void:
 	var direction := to - from
 	if direction.length_squared() < 0.0001 or not from.is_finite() or not to.is_finite(): return
 	var distance := direction.length()
@@ -391,7 +394,8 @@ func _fire(from: Vector3, to: Vector3) -> void:
 	_flash_ball.global_position = from
 	_flash_age = 0.0
 	_light.global_position = from
-	_recoil_age = 0.0
+	if not _recoil_age.is_empty():
+		_recoil_age[posmod(sequence - 1, _recoil_age.size())] = 0.0
 	if not _blasts.is_empty():
 		var blast := _blasts[shot_count % _blasts.size()]
 		# Orient local -Z along the barrel at the muzzle, then fire one burst.
@@ -450,12 +454,13 @@ func _advance(delta: float) -> void:
 	if _flash_ball.visible:
 		_flash_ball.scale = Vector3.ONE * lerpf(1.0, 1.5, _flash_age / (flash_time * 1.3))
 	_light.light_energy = maxf(0.0, 1.0 - _flash_age / (flash_time * 2.5)) * (6.0 if not plasma else 7.0)
-	_recoil_age += delta
-	if recoil != null:
+	for index: int in recoils.size():
+		_recoil_age[index] += delta
+		if recoils[index] == null: continue
 		# Fast rearward kick, eased return into battery.
-		var t := clampf(_recoil_age / RECOIL_RETURN, 0.0, 1.0)
+		var t := clampf(_recoil_age[index] / RECOIL_RETURN, 0.0, 1.0)
 		var travel := RECOIL_TRAVEL * (1.0 - t) * (1.0 - t) if kind == "cannon" else 0.0
-		recoil.transform = _recoil_rest.translated_local(Vector3(0, 0, travel))
+		recoils[index].transform = _recoil_rest[index].translated_local(Vector3(0, 0, travel))
 	for projectile: Dictionary in _projectiles:
 		projectile.age += delta
 		var flight: float = projectile.flight
@@ -529,8 +534,9 @@ func clear_effects() -> void:
 	_seen = -1
 	_tick = -1
 	_flash_age = 1.0
-	_recoil_age = 1.0
-	if recoil != null: recoil.transform = _recoil_rest
+	for index: int in recoils.size():
+		_recoil_age[index] = 1.0
+		if recoils[index] != null: recoils[index].transform = _recoil_rest[index]
 	for projectile: Dictionary in _projectiles:
 		projectile.age = 10.0
 		projectile.impacted = true

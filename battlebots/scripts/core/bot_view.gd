@@ -35,3 +35,7 @@ var jump_cooldown := 0.0
 ## elevation reuses gun_pitch. Shots reuse the shot_sequence/last_shot fields.
 var turret_kind := ""
 var turret_yaw := 0.0
+## Attachment model ("cannon", "plasma_quad"...) and the presentation's
+## smoothed yaw/pitch for reticles; authority never reads these.
+var turret_model := ""
+var turret_display := Vector2.ZERO

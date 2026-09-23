@@ -118,8 +118,10 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		"size": Vector3(chassis.size[0], chassis.size[1], chassis.size[2]),
 		"speed": float(drive.speed), "grip": float(drive.grip),
 		"plate_integrity": float(armor.integrity), "reduction": float(armor.reduction),
-		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.TURRET_PARTS.get(selected.utility,
-			"minigun" if selected.utility == "minigun_pod" else ""),
+		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.family(AtlasGeometry.TURRET_PARTS.get(selected.utility,
+			"minigun" if selected.utility == "minigun_pod" else "")),
+		"turret_model": AtlasGeometry.TURRET_PARTS.get(selected.utility, ""),
+		"turret_barrels": AtlasGeometry.TURRET_BARRELS.get(AtlasGeometry.TURRET_PARTS.get(selected.utility, ""), []).size(),
 		"cooling": 15.0 if selected.utility == "cooling_pack" else 12.0,
 		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0,
 		"nitro": selected.nitro == "nitro_boost", "charged_jump": selected.suspension == "charged_jump"}
