@@ -67,7 +67,7 @@ func run() -> void:
 	var panel: GarageComparisonPanel = screen.comparison_panel
 	check(profile.loadouts[0].parts.drive == "agile" and profile.can_undo(), "Clicking a choice immediately edits the draft")
 	check(cell(panel.budgets, 3) == "79", "Stats reflect the selected drive")
-	check(cell(panel.details, 3) == "12", "Current speed uses the selected drive")
+	check(cell(panel.details, 3) == "13.2", "Current speed uses the selected drive, scaled up for a light 79 kg build")
 	screen.undo_button.pressed.emit()
 	await settle()
 	check(profile.loadouts[0] == original and cell(panel.budgets, 3) == "89", "Undo restores the current build stats")

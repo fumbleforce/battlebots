@@ -165,7 +165,9 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 	for face: String in plates: armor_total += float(plates[face])
 	result.stats = {"mass": mass, "power": power, "core": float(chassis.core),
 		"size": Vector3(chassis.size[0], chassis.size[1], chassis.size[2]),
-		"speed": float(drive.speed), "grip": float(drive.grip),
+		# Heavier builds lose top speed; the drive supplies the reference value.
+		"speed": float(drive.speed) * BotPhysics.settings().top_speed_factor(mass), "drive_speed": float(drive.speed),
+		"grip": float(drive.grip),
 		"plates": plates, "armor_total": armor_total,
 		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.family(AtlasGeometry.TURRET_PARTS.get(selected.utility,
 			"minigun" if selected.utility == "minigun_pod" else "")),

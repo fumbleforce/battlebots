@@ -31,6 +31,12 @@ var steering_direction_threshold: float
 var nitro_acceleration_multiplier: float
 var nitro_top_speed_multiplier: float
 var nitro_grip_multiplier: float
+# mass
+## Top speed factor = clamp(1 + (reference_mass - mass) * top_speed_per_kg, min, max).
+var reference_mass: float
+var top_speed_per_kg: float
+var min_top_speed_factor: float
+var max_top_speed_factor: float
 # walker
 var lift_headroom_acceleration: float
 # impacts
@@ -64,6 +70,7 @@ const SECTIONS := {
 	"motor": ["acceleration_multiplier", "top_speed_multiplier", "grip_multiplier", "yaw_acceleration_multiplier",
 		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier", "steering_direction_threshold"],
 	"nitro": ["nitro_acceleration_multiplier", "nitro_top_speed_multiplier", "nitro_grip_multiplier"],
+	"mass": ["reference_mass", "top_speed_per_kg", "min_top_speed_factor", "max_top_speed_factor"],
 	"walker": ["lift_headroom_acceleration"],
 	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g", "lifter_min_release_charge",
 		"minigun_impulse_multiplier", "lifter_hold_acceleration_at_1g",
@@ -106,3 +113,7 @@ func heft_for(gravity_scale: float) -> float:
 ## Launch speeds scale by sqrt(heft) so apex height is unchanged by heft.
 func launch_scale_for(gravity_scale: float) -> float:
 	return sqrt(heft_for(gravity_scale))
+
+## Catalogue top-speed multiplier for a build of this mass: heavier is slower.
+func top_speed_factor(mass: float) -> float:
+	return clampf(1.0 + (reference_mass - mass) * top_speed_per_kg, min_top_speed_factor, max_top_speed_factor)

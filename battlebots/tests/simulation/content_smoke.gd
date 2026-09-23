@@ -21,6 +21,15 @@ func _initialize() -> void:
 		and result.stats.core == 240.0 and result.stats.armor_total == 0.0
 		and result.stats.plates == {"front":0.0, "rear":0.0, "left":0.0, "right":0.0, "top":0.0, "underside":0.0},
 		"Striker derived stats: no module choices means bare faces and no armour mass")
+	# Heavier builds lose top speed: 85 kg standard wheels run 10 × 1.075.
+	var physics := BotPhysics.settings()
+	check(is_equal_approx(physics.top_speed_factor(100.0), 1.0) and is_equal_approx(physics.top_speed_factor(0.0), 1.1)
+		and is_equal_approx(physics.top_speed_factor(200.0), 0.9), "Mass speed factor is neutral at 100 kg and clamped")
+	check(is_equal_approx(result.stats.speed, 10.75) and result.stats.drive_speed == 10.0, "Striker top speed scales with its 85 kg mass")
+	var skirted := striker.duplicate(true)
+	skirted.cosmetics["sawblade"] = SawbladeConfig.defaults()
+	skirted.cosmetics.sawblade.armor_side = 2
+	check(registry.validate(skirted).stats.speed < result.stats.speed, "Adding armour mass lowers top speed")
 	for chassis: String in ["compact", "balanced", "wide"]:
 		var sizes := {"compact": Vector3(1.2, 0.5, 1.5), "balanced": Vector3(1.6, 0.5, 2.0), "wide": Vector3(1.8, 0.5, 2.2)}
 		var scaled := striker.duplicate(true)

@@ -31,6 +31,13 @@
 		"nitro_top_speed_multiplier": 2.0,
 		"nitro_grip_multiplier": 1.5
 	},
+	"mass": {
+		"_comment": "Heavier builds are slower: catalogue top speed is scaled by clamp(1 + (reference_mass - mass) * top_speed_per_kg, min_top_speed_factor, max_top_speed_factor). A build at reference_mass keeps its drive speed.",
+		"reference_mass": 100.0,
+		"top_speed_per_kg": 0.005,
+		"min_top_speed_factor": 0.9,
+		"max_top_speed_factor": 1.1
+	},
 	"walker": {
 		"lift_headroom_acceleration": 35.0
 	},

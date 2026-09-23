@@ -210,7 +210,7 @@ All statistics in these tables are authoring seeds, subject to the balancing pro
 
 Drive packages expose four visual wheels but use two logical drive pods, each with 100 integrity. One disabled pod reduces drive force to 50% and maximum steering torque to 60%; input assistance compensates persistent drift. Both disabled pods start the immobilization sequence. The primary weapon has 140 integrity. Disabled weapons cannot activate; recovery remains available.
 
-Unused mass is permitted. Final mass influences acceleration, resistance to impulses, and recovery. Top speed is governed by the drive package, not scaled upward for lighter builds. Grip caps drive force so mass is not an unlimited pushing advantage.
+Unused mass is permitted. Final mass influences acceleration, resistance to impulses, and recovery. Top speed starts from the drive package and scales with mass (#49): × clamp(1 + (100 − mass kg) × 0.005, 0.9, 1.1), so a 100 kg build keeps its drive speed, lighter builds gain up to 10% and heavier builds lose up to 10% (tuning in `data/bot_physics.json` `mass`). Grip caps drive force so mass is not an unlimited pushing advantage.
 
 ### Legal starter builds
 

@@ -123,7 +123,7 @@ func show_change(base: Dictionary, target: Dictionary, caption: String) -> void:
 	_show_values(_merged(after))
 	_mark(%CoreDelta, before, after, "core", false)
 	_mark(%MassDelta, before, after, "mass", true)
-	_mark(%SpeedDelta, before, after, "speed", false)
+	_mark(%SpeedDelta, before, after, "speed", false, true)
 	_mark(%CoolingDelta, before, after, "cooling", false)
 	_mark(%ArmorDelta, before, after, "armor_total", false)
 	if after.has("plates"): _show_armor(after.plates, before.get("plates", {}))
@@ -148,7 +148,7 @@ func _show_values(stats: Dictionary) -> void:
 	%CoreValue.text = _n(core)
 	%MassValue.text = "%s / 120 kg" % _n(mass)
 	%MassValue.add_theme_color_override("font_color", BAD if mass > MASS_LIMIT else Color("e9ebee"))
-	%SpeedValue.text = "%s m/s" % _n(stats.get("speed", 0))
+	%SpeedValue.text = "%.1f m/s" % float(stats.get("speed", 0))
 	%CoolingValue.text = "%s heat/s" % _n(stats.get("cooling", 0))
 	_show_armor(stats.get("plates", {}), {})
 	_tween_bar(%CoreBar, clampf(core / _max_core, 0.0, 1.0))
@@ -179,11 +179,11 @@ func _tween_bar(bar: ProgressBar, value: float) -> void:
 	tween.tween_property(bar, "value", value, 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
-func _mark(label: Label, before: Dictionary, after: Dictionary, key: String, cost: bool) -> void:
+func _mark(label: Label, before: Dictionary, after: Dictionary, key: String, cost: bool, tenths := false) -> void:
 	var difference := float(after.get(key, 0)) - float(before.get(key, 0))
-	label.visible = before.has(key) and after.has(key) and absf(difference) >= 0.5
+	label.visible = before.has(key) and after.has(key) and absf(difference) >= (0.05 if tenths else 0.5)
 	if not label.visible: return
-	label.text = ("+" if difference > 0 else "−") + _n(absf(difference))
+	label.text = ("+" if difference > 0 else "−") + ("%.1f" % absf(difference) if tenths else _n(absf(difference)))
 	# Mass is a budget: gaining it costs headroom, shedding it frees some.
 	var better := difference < 0 if cost else difference > 0
 	label.add_theme_color_override("font_color", GOOD if better else (AMBER if cost else BAD))

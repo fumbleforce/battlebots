@@ -11,7 +11,7 @@ func run() -> void:
 	root.add_child(profile)
 	await process_frame
 	check(profile.bots.size() == profile.PRESET_COUNT and profile.active_loadout().parts.weapon == "saw" and SawbladeConfig.enabled(profile.active_loadout()),"Sawblade starter selected by default")
-	check(profile.bots[0].hp == 240 and profile.bots[0].stats["SPEED m/s"] == 8,"Canonical derived stats")
+	check(profile.bots[0].hp == 240 and is_equal_approx(profile.bots[0].stats["SPEED m/s"], 8.4),"Canonical derived stats with mass-scaled speed")
 	profile.active_bot = 2
 	check(profile.active_loadout().parts.weapon == "hammer" and profile.bots[2].name == "Duelist",
 		"Duelist is a selectable legal hammer starter")

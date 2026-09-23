@@ -1036,3 +1036,14 @@ cue synthesized in `GameplaySoundBank` from the supplied hammer/collision
 recordings plus boom, crackle and groan layers, at +4 dB and past the burst
 throttle. Impact sparks treat it as a heavy hit. Consumers matching only `ram`
 must accept `crush` too. Protocol unchanged; needs a matching hosted release.
+
+
+## Mass-scaled top speed (#49, 23 September 2026)
+
+Build `mvp-ab-30`; protocol and catalogue unchanged (no wire change). Gameplay change:
+`ContentRegistry.validate().stats.speed` is the drive's catalogue speed ×
+`BotPhysics.top_speed_factor(mass)` = clamp(1 + (reference_mass − mass) ×
+top_speed_per_kg, min, max) from `data/bot_physics.json` `mass` (100 kg, 0.005/kg,
+0.9–1.1). `stats.drive_speed` keeps the unscaled drive value. Authority, client replay
+and the garage read the same stat; `DriveBody` still applies the motor
+`top_speed_multiplier` on top. Needs the matching hosted release.

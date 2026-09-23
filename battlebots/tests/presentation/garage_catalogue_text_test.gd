@@ -86,7 +86,7 @@ func run() -> void:
 	var summary := ""
 	for label: Node in overview.readout.get_node("%Stats").find_children("*", "Label", true, false): summary += label.text.replace("\n", "  ") + "\n"
 	check(overview.readout.get_node("%CoolingValue").text == "15 heat/s" and "Battery" not in summary, "Canonical cooling replaces the removed battery stat")
-	check(overview.readout.get_node("%SpeedValue").text == "8 m/s", "Canonical max speed is displayed")
+	check(overview.readout.get_node("%SpeedValue").text == "8.4 m/s", "Max speed shows tracks scaled for a 90 kg build")
 	# Default reference covers armour both sides; every other area is bare ("—").
 	var plates := {"Front": "—", "Rear": "—", "Left": "60", "Right": "60", "Top": "—", "Bottom": "—"}
 	for side: String in plates:
