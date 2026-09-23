@@ -16,7 +16,10 @@ const TRACK_LENGTH := 4.0 * TRACK_HALF_LENGTH + TAU * TRACK_RADIUS
 ## rules; dual/quad models fire from several barrels (TURRET_BARRELS).
 const TURRET_PARTS := {"turret_cannon":"cannon", "turret_plasma":"plasma",
 	"turret_cannon_dual":"cannon_dual", "turret_cannon_quad":"cannon_quad",
-	"turret_plasma_dual":"plasma_dual", "turret_plasma_quad":"plasma_quad"}
+	"turret_plasma_dual":"plasma_dual", "turret_plasma_quad":"plasma_quad",
+	"turret_flamer":"flamer", "turret_tesla":"tesla", "turret_railgun":"railgun"}
+## Weapon families the turret servo and rays serve.
+const TURRET_FAMILIES := ["cannon", "plasma", "flamer", "tesla", "railgun"]
 const TURRET_YAW_PIVOT := Vector3(0.0, 0.52, -0.14)
 const TURRET_PITCH_PIVOT := Vector3(0.0, 0.77345, -0.546)
 ## +30 degrees is the mechanical elevation stop. Depression is limited per
@@ -29,20 +32,24 @@ const TURRET_DEPRESSION := {
 	"cannon":[-20, -20, -20, -20, -20, -20, -20, -20, -14, -11, -10, -7, -7, -8, -9, -10, -10, -11, -11, -11, -10, -10, -10, -9, -9, -8, -6, -6, -9, -10, -13, -14, -15, -17, -18, -18, -18, -18, -18, -17, -15, -14, -13, -10, -9, -6, -6, -8, -9, -9, -10, -10, -10, -11, -11, -11, -10, -10, -9, -8, -7, -7, -10, -11, -14, -20, -20, -20, -20, -20, -20, -20],
 	"plasma":[-20, -20, -20, -20, -20, -20, -20, -20, -13, -10, -9, -6, -6, -7, -8, -9, -9, -10, -10, -10, -9, -9, -9, -8, -8, -8, -5, -5, -7, -8, -11, -12, -13, -14, -14, -15, -15, -15, -14, -14, -13, -12, -11, -8, -7, -5, -5, -8, -8, -8, -9, -9, -9, -10, -10, -10, -9, -9, -8, -7, -6, -6, -9, -10, -13, -20, -20, -20, -20, -20, -20, -20],
 	"cannon_dual":[-20, -20, -20, -20, -20, -20, -20, -16, -13, -11, -9, -9, -9, -9, -9, -11, -11, -12, -12, -12, -11, -11, -10, -11, -9, -8, -8, -8, -8, -11, -11, -14, -16, -16, -18, -20, -20, -20, -18, -16, -16, -14, -11, -11, -8, -8, -8, -8, -9, -11, -10, -11, -11, -12, -12, -12, -11, -11, -9, -9, -9, -9, -9, -11, -13, -16, -20, -20, -20, -20, -20, -20],
-	"cannon_quad":[-20, -20, -20, -20, -20, -20, -16, -11, -8, -6, -4, -3, -4, -3, -5, -6, -6, -7, -7, -7, -6, -6, -5, -6, -5, -3, -3, -3, -3, -6, -7, -9, -10, -11, -12, -12, -13, -12, -12, -11, -10, -9, -7, -6, -3, -3, -3, -3, -5, -6, -5, -6, -6, -7, -7, -7, -6, -6, -5, -3, -4, -3, -4, -6, -8, -11, -16, -20, -20, -20, -20, -20],
+	"cannon_quad":[-14, -12, -9, -4, -6, -5, -6, -7, -9, -10, -10, -10, -10, -10, -10, -9, -8, -5, -6, -5, -2, -3, -5, -6, -10, -10, -10, -10, -9, -7, -6, -5, -2, -3, -6, -6, -10, -6, -6, -3, -2, -5, -6, -7, -9, -10, -10, -10, -10, -6, -5, -3, -2, -5, -6, -5, -8, -9, -10, -10, -10, -10, -10, -10, -9, -7, -6, -5, -6, -4, -9, -12],
 	"plasma_dual":[-20, -20, -20, -20, -20, -20, -20, -14, -12, -10, -8, -8, -9, -8, -8, -10, -11, -11, -12, -11, -11, -10, -10, -9, -9, -6, -7, -6, -6, -9, -9, -13, -14, -15, -16, -17, -17, -17, -16, -15, -14, -13, -9, -9, -6, -6, -7, -6, -9, -9, -10, -10, -11, -11, -12, -11, -11, -10, -8, -8, -9, -8, -8, -10, -12, -14, -20, -20, -20, -20, -20, -20],
-	"plasma_quad":[-20, -20, -20, -20, -20, -20, -18, -10, -7, -6, -3, -3, -3, -3, -4, -5, -6, -6, -7, -6, -6, -6, -5, -5, -5, -2, -2, -2, -2, -4, -6, -8, -9, -9, -10, -10, -11, -10, -10, -9, -9, -8, -6, -4, -2, -2, -2, -2, -5, -5, -5, -6, -6, -6, -7, -6, -6, -5, -4, -3, -3, -3, -3, -6, -7, -10, -18, -20, -20, -20, -20, -20]}
+	"plasma_quad":[-16, -12, -9, -7, -4, -4, -6, -7, -8, -8, -9, -9, -9, -9, -8, -8, -7, -6, -4, -4, -3, -3, -5, -6, -9, -9, -9, -8, -8, -7, -6, -5, -2, -3, -6, -6, -10, -6, -6, -3, -2, -5, -6, -7, -8, -8, -9, -9, -9, -6, -5, -3, -3, -4, -4, -6, -7, -8, -8, -9, -9, -9, -9, -8, -8, -7, -6, -4, -4, -7, -9, -12],
+	"flamer":[-20, -20, -20, -20, -20, -20, -20, -18, -16, -14, -11, -9, -9, -10, -12, -12, -12, -13, -13, -13, -12, -12, -12, -10, -9, -8, -6, -6, -9, -10, -14, -14, -17, -17, -17, -17, -17, -17, -17, -17, -17, -14, -14, -10, -9, -6, -6, -8, -9, -10, -12, -12, -12, -13, -13, -13, -12, -12, -12, -10, -9, -9, -11, -14, -16, -18, -20, -20, -20, -20, -20, -20],
+	"tesla":[-20, -20, -20, -20, -20, -20, -20, -20, -15, -11, -8, -6, -6, -7, -9, -11, -12, -13, -13, -13, -12, -11, -9, -7, -6, -5, -4, -4, -6, -7, -9, -12, -13, -16, -17, -18, -18, -18, -17, -16, -13, -12, -9, -7, -6, -4, -4, -5, -6, -7, -9, -11, -12, -13, -13, -13, -12, -11, -9, -7, -6, -6, -8, -11, -15, -20, -20, -20, -20, -20, -20, -20],
+	"railgun":[-20, -20, -20, -20, -20, -20, -20, -20, -15, -13, -11, -9, -9, -9, -11, -12, -12, -13, -13, -13, -12, -12, -11, -11, -10, -8, -7, -7, -9, -10, -13, -15, -16, -17, -18, -20, -20, -20, -18, -17, -16, -15, -13, -10, -9, -7, -7, -8, -10, -11, -11, -12, -12, -13, -13, -13, -12, -12, -11, -9, -9, -9, -11, -13, -15, -20, -20, -20, -20, -20, -20, -20]}
 ## GENERATED:TURRET_TABLES — tools/update-turret-geometry.py from atlas_turret_manifest.json
 const TURRET_BARRELS := {
 	"cannon":[[0, 0]],
 	"plasma":[[0, 0]],
+	"flamer":[[0, 0]],
+	"tesla":[[0, 0]],
+	"railgun":[[0, 0]],
 	"cannon_dual":[[-0.1131, 0], [0.1131, 0]],
-	"cannon_quad":[[-0.0928, 0.087], [0.0928, 0.087], [-0.0928, -0.087], [0.0928, -0.087]],
+	"cannon_quad":[[-0.64525, 0.0957], [-0.64525, -0.0957], [0.64525, 0.0957], [0.64525, -0.0957]],
 	"plasma_dual":[[-0.1305, 0], [0.1305, 0]],
-	"plasma_quad":[[-0.1015, 0.0899], [0.1015, 0.0899], [-0.1015, -0.0899], [0.1015, -0.0899]]}
-const TURRET_YAW_RATE := 1.9
-const TURRET_PITCH_RATE := 1.2
-const TURRET_MUZZLE := {"cannon":1.37025, "plasma":0.957}
+	"plasma_quad":[[-0.64525, 0.0899], [-0.64525, -0.0899], [0.64525, 0.0899], [0.64525, -0.0899]]}
+const TURRET_MUZZLE := {"cannon":1.37025, "plasma":0.957, "flamer":1.102, "tesla":1.0295, "railgun":1.6385}
 
 static func enabled(draft: Dictionary) -> bool:
 	return draft.get("parts", {}).get("chassis") == "atlas_mx"
@@ -144,10 +151,10 @@ static func turret_target(chassis: Basis, world_direction: Vector3, kind: String
 ## Bounded servo step shared by authority and tests. A depressed barrel first
 ## elevates before traversing into a bearing whose hull clearance needs it.
 static func turret_slew(current: Vector2, target: Vector2, delta: float, kind: String) -> Vector2:
-	var yaw_step := TURRET_YAW_RATE * maxf(0.0, delta)
+	var yaw_step := TurretTuning.settings().yaw_rate * maxf(0.0, delta)
 	var candidate := wrapf(current.x + clampf(wrapf(target.x - current.x, -PI, PI), -yaw_step, yaw_step), -PI, PI)
 	var candidate_floor := turret_pitch_min(kind, candidate)
 	var yaw := candidate if current.y >= candidate_floor - 0.0001 else current.x
 	var goal := clampf(maxf(target.y, candidate_floor), turret_pitch_min(kind, yaw), TURRET_PITCH_MAX)
-	var pitch := move_toward(current.y, goal, TURRET_PITCH_RATE * maxf(0.0, delta))
+	var pitch := move_toward(current.y, goal, TurretTuning.settings().pitch_rate * maxf(0.0, delta))
 	return Vector2(yaw, pitch)

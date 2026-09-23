@@ -169,7 +169,8 @@ func _select(i: int) -> void:
 	var utility: String = str(parts.get("utility", ""))
 	var auxiliary_label: String = {"minigun_pod":"AUXILIARY GUN", "turret_cannon":"TURRET CANNON", "turret_plasma":"TURRET PLASMA",
 		"turret_cannon_dual":"TWIN CANNON", "turret_cannon_quad":"QUAD CANNON",
-		"turret_plasma_dual":"TWIN PLASMA", "turret_plasma_quad":"QUAD PLASMA"}.get(utility, "")
+		"turret_plasma_dual":"TWIN PLASMA", "turret_plasma_quad":"QUAD PLASMA",
+		"turret_flamer":"FLAMETHROWER", "turret_tesla":"TESLA ARC", "turret_railgun":"RAILGUN"}.get(utility, "")
 	var has_auxiliary := not auxiliary_label.is_empty()
 	# Turret builds use tank controls: the primary button fires the main gun.
 	var auxiliary_action: StringName = &"primary" if utility.begins_with("turret_") else &"secondary"

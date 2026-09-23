@@ -72,7 +72,10 @@ func review(kind: String) -> void:
 	draft.parts.utility = "turret_" + kind
 	if kind.ends_with("_quad"): draft.parts.armor = "light"
 	check(session.practice(draft, "foundry") == OK, "Practice starts with the %s turret" % kind)
-	for frame: int in 120: await get_tree().process_frame
+	# Wait for the practice round to go live (loading can be slow under load).
+	for frame: int in 900:
+		await get_tree().process_frame
+		if session.match_view.get("phase") in ["active", "overtime"] and session.local_source() != null: break
 	var bot := session.local_source() as MvpBot
 	var target := session.practice_target() as MvpBot
 	if bot == null or target == null:
@@ -85,9 +88,13 @@ func review(kind: String) -> void:
 	toward = toward.normalized()
 	var side := toward.cross(Vector3.UP).normalized()
 	aim_point = target.body.global_position
-	for frame: int in 150: await get_tree().physics_frame
-	var barrel := bot.body.global_basis * AtlasGeometry.turret_direction(bot.combat.turret_yaw, bot.combat.gun_pitch)
-	var wanted := (aim_point - bot.body.global_transform * AtlasGeometry.turret_breech(bot.combat.stats.size, bot.combat.turret_yaw)).normalized()
+	var barrel := Vector3.ZERO
+	var wanted := Vector3.ONE
+	for frame: int in 400:
+		await get_tree().physics_frame
+		barrel = bot.body.global_basis * AtlasGeometry.turret_direction(bot.combat.turret_yaw, bot.combat.gun_pitch)
+		wanted = (aim_point - bot.body.global_transform * AtlasGeometry.turret_breech(bot.combat.stats.size, bot.combat.turret_yaw)).normalized()
+		if frame > 30 and barrel.normalized().dot(wanted) > 0.995: break
 	check(barrel.normalized().dot(wanted) > 0.995, "%s turret settles on the practice target" % kind)
 	camera.position = center - toward * 7.0 + side * 13.0 + Vector3.UP * 7.5
 	camera.look_at(center + toward * 5.0 + Vector3.UP * 2.0)
@@ -100,6 +107,10 @@ func review(kind: String) -> void:
 	camera.position = center - toward * 10.0 + side * 16.0 + Vector3.UP * 7.0
 	camera.look_at(center + toward * 12.0 + Vector3.UP * 2.0)
 	firing = true
+	if kind == "railgun":
+		# Charge fully, then release to fire the slug.
+		for frame: int in 90: await get_tree().physics_frame
+		firing = false
 	# Catch the muzzle blast / projectile a few frames after the first shot.
 	for frame: int in 240:
 		await get_tree().process_frame
@@ -109,6 +120,12 @@ func review(kind: String) -> void:
 	await _capture("turret-%s-smoke" % kind, 12)
 	await _capture("turret-%s-smoke-late" % kind, 45)
 	for frame: int in 60: await get_tree().physics_frame
+	if kind == "railgun" and target.combat.core >= core:
+		# Second slug if the first charge was cancelled by timing.
+		firing = true
+		for frame: int in 90: await get_tree().physics_frame
+		firing = false
+		for frame: int in 10: await get_tree().physics_frame
 	firing = false
 	check(bot.combat.shot_sequence > shots, "%s fires from the ordinary auxiliary trigger" % kind)
 	check(target.combat.core < core, "%s shots damage the practice target" % kind)
@@ -119,7 +136,7 @@ func review(kind: String) -> void:
 	for frame: int in 5: await get_tree().process_frame
 
 func run() -> void:
-	for kind: String in ["cannon", "plasma", "cannon_quad", "plasma_quad"]:
+	for kind: String in ["cannon", "plasma", "cannon_quad", "plasma_quad", "flamer", "tesla", "railgun"]:
 		await review(kind)
 	print("TURRET CAPTURES ", JSON.stringify(captures))
 	print("ATLAS TURRET SHOWCASE PASS" if failures == 0 else "ATLAS TURRET SHOWCASE FAIL")

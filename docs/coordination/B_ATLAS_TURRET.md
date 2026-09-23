@@ -26,15 +26,15 @@ barrel sweeps them (cosmetic only).
 
 ## Gameplay and contracts
 
-- Catalogue revision 11 (first turret release) and revision 13 (hash `2f4bd927fc477b386209b8b571de8416c2d8fd92506e45887e9cb54fbb396d43`, with upgrades) adds utilities `turret_cannon`
+- Catalogue revision 11 (first turret release) and revision 13 (upgrades) and revision 14 (hash `243e5508261cbfc210967638b9466614665689bf85ed82bc0897ebc5f827cb73`, special turrets) adds utilities `turret_cannon`
   (16 kg/25 power) and `turret_plasma` (14/25). They are Atlas-only and
-  exclude the primary minigun. Revision-10 to revision-12 saves migrate. Preset
+  exclude the primary minigun. Revision-10 to revision-13 saves migrate. Preset
   `ContentRegistry.atlas_turret()` is seeded as the sixth profile preset.
 - `BotCommand`: `aim_valid` (flag bit 9), `aim_yaw`, `aim_pitch`
   (world bearing and elevation from the trunnion). The wire command array
   has 6 fields. Snapshots append `turret_yaw` (40 fields). Elevation reuses
   `gun_pitch`; shots reuse `shot_sequence`/`last_shot_*`. **PROTOCOL 10,
-  BUILD mvp-ab-22** (catalogue 13 with the upgrades; main's shared-heat change took 9/19–21 meanwhile).
+  BUILD mvp-ab-24** (catalogue 13 with the upgrades; main's shared-heat change took 9/19–21 meanwhile).
 - Server (`CombatWorld`): the servo slews toward the aim at 1.9/1.2 rad/s
   within the audited elevation profile, elevates before traversing, and is
   stabilised against hull motion. Rays run from the trunnion along the actual
@@ -75,6 +75,40 @@ at its own barrel's breech. Presentation recoils the barrel that fired.
 Turret and reticle angles are predicted between authoritative samples and
 eased, so both move smoothly at any frame rate.
 
+## Feel, quad sponsons and special turrets (23 September, catalogue 14)
+
+User playtest feedback, all implemented:
+- **Cannon feel.** Each shell applies a real firing impulse at the muzzle plus
+  a rocking torque impulse across the shot on the server. Measured on flat
+  ground: about 6–8° for one shell, 12–15° for a twin volley and 18–23° for a
+  quad volley, settling within about 1 s. No further rock is added past 10° of
+  tilt, so a volley cannot flip the hull. The tank sight kicks and shakes on
+  own shots. Shells are larger, with a riding light and a smoke trail. Impacts
+  have a fireball, blast light, shockwave ring, sparks, a smoke column and a
+  scorch. Report/detonation sounds are saturated low booms with a crack, a
+  rumble and a breech clank. The plasma sound was lowered and made punchier.
+- **Quad guns** sit in armored sponsons that are part of the turret casting
+  (`SponsonsQuad`, shown only for quads). Two stacked barrels per side on
+  compact trunnion cradles. Outboard barrels converge on the point the centre
+  bore line strikes, so they land where the reticle shows. Trade-off: quads
+  depress only about −2° on the flanks (−14…−16° over the nose).
+- **Special turrets** (Atlas utilities, audited and modelled):
+  `turret_flamer` (15/25): a 17 m cone pulsed every 0.1 s, 4 raw per tick
+  to every visible enemy inside it; walls shorten the jet. `turret_tesla`
+  (16/30): every 0.55 s it arcs 18 raw to the nearest visible enemy within
+  15 m / 40° and chains 9 raw to a second enemy within 9 m.
+  `turret_railgun` (20/35): hold 1.1 s to charge and release to fire; 70 raw,
+  140 m, pierces into a second target for half; an early release cancels;
+  1.6 s reload and a heavy jolt. All use shared heat and the existing shot
+  fields (no wire change); event kinds are `flamer`/`tesla`/`railgun`.
+  `TurretSpecialEffects` draws the fire jet, smoke and roar, the lightning
+  arc and zap, the rail charge glow and whine, and the beam and report. The
+  Tesla chain is shown only through confirmed hit sparks.
+- Tuning lives in `data/turret_weapons.json` (typed `TurretTuning` loader),
+  per the repository rule against bare tuning numbers in logic.
+- Seeded presets: ATLAS MX • FORTRESS (quad cannon), INFERNO (flamethrower +
+  saw) and RAIL (railgun). `PlayerProfile.PRESET_COUNT` is 9.
+
 ## Validation
 
 Godot 4.7.2 on Linux, RTX 3080. PASS: `atlas_turret_physics.tscn`,
@@ -89,7 +123,7 @@ failed identically on the untouched base 531f15a.
 
 ## Open
 
-- A: a matching hosted release (catalogue 13, protocol 10, mvp-ab-22) is
+- A: a matching hosted release (catalogue 14, protocol 10, mvp-ab-24) is
   required before online play. Recorded weapon audio is optional; the current
   sounds are procedural placeholders.
 - B (#36): the plasma effects/sound rework and dual/quad upgrade guns

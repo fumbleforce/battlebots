@@ -22,7 +22,9 @@ var _size := Vector3.ZERO
 var turret: Node3D
 var turret_kind := ""
 var turret_model := ""
-var turret_effects: TurretShotEffects
+## TurretShotEffects (cannon/plasma) or TurretSpecialEffects (flamer, tesla,
+## railgun); both expose configure/show_state/clear_effects/muzzles/shot_count.
+var turret_effects: Node3D
 ## Smoothed yaw/pitch actually drawn this frame (also drives the reticle).
 var turret_display := Vector2.ZERO
 var _turret_yaw: Node3D
@@ -85,6 +87,9 @@ func _assemble_turret() -> void:
 	for label: String in found:
 		if label.begins_with("Attachment") and not label.ends_with("Surface"):
 			found[label].visible = label == chosen
+		elif label == "SponsonsQuad":
+			# Turret-integrated armored sponsons house the quad side guns.
+			found[label].visible = turret_model.ends_with("_quad")
 	for node: Node3D in [_turret_yaw, _turret_pitch]:
 		if node != null: _turret_rest[node] = node.transform
 	for label: String in TURRET_HIDDEN:
@@ -96,7 +101,7 @@ func _assemble_turret() -> void:
 		var tag := "" if suffix.is_empty() else "%s_%d" % [suffix, index]
 		muzzles.append(found.get("Muzzle" + family + tag))
 		recoils.append(found.get("CannonRecoil" + tag) if turret_kind == "cannon" else null)
-	turret_effects = TurretShotEffects.new()
+	turret_effects = TurretSpecialEffects.new() if turret_kind in ["flamer", "tesla", "railgun"] else TurretShotEffects.new()
 	turret_effects.name = "TurretShotEffects"
 	add_child(turret_effects)
 	turret_effects.configure(turret_kind, muzzles, recoils, _size.y / BotScale.AUTHORING_HEIGHT)
@@ -117,8 +122,8 @@ func _show_turret(view: BotView, delta: float) -> void:
 	elif view.server_tick != _sample_tick:
 		var elapsed := maxf(_since_sample, 1.0 / 240.0)
 		_sample_rate = Vector2(
-			clampf(wrapf(target.x - _sample.x, -PI, PI) / elapsed, -AtlasGeometry.TURRET_YAW_RATE, AtlasGeometry.TURRET_YAW_RATE),
-			clampf((target.y - _sample.y) / elapsed, -AtlasGeometry.TURRET_PITCH_RATE, AtlasGeometry.TURRET_PITCH_RATE))
+			clampf(wrapf(target.x - _sample.x, -PI, PI) / elapsed, -TurretTuning.settings().yaw_rate, TurretTuning.settings().yaw_rate),
+			clampf((target.y - _sample.y) / elapsed, -TurretTuning.settings().pitch_rate, TurretTuning.settings().pitch_rate))
 		_sample = target
 		_sample_tick = view.server_tick
 		_since_sample = 0.0

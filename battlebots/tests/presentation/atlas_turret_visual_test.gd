@@ -101,6 +101,7 @@ func run() -> void:
 		visual.queue_free()
 	await get_tree().process_frame
 	await upgrades(size)
+	await specials(size)
 	print("ATLAS TURRET VISUAL PASS" if failures == 0 else "ATLAS TURRET VISUAL FAIL")
 	get_tree().quit(0 if failures == 0 else 1)
 
@@ -128,5 +129,34 @@ func upgrades(size: Vector3) -> void:
 			check(muzzle != null and muzzle.global_position.distance_to(expected) < 0.01,
 				"%s barrel %d muzzle matches the authoritative ray" % [model, index])
 		check(visual.turret_effects.muzzles.size() == barrels.size(), "%s effects know every muzzle" % model)
+		visual.queue_free()
+		await get_tree().process_frame
+
+## Special attachments: correct model shown, muzzle on the authoritative ray,
+## and the special effects react to accepted state.
+func specials(size: Vector3) -> void:
+	for family: String in ["flamer", "tesla", "railgun"]:
+		var visual := AtlasVisual.new()
+		add_child(visual)
+		visual.assemble(build(family), size)
+		var chosen: Node3D = visual.turret.find_child("Attachment" + family.capitalize(), true, false)
+		check(chosen != null and chosen.visible, "%s attachment is shown" % family)
+		check(visual.turret_effects is TurretSpecialEffects, "%s uses the special effects" % family)
+		var view := view_for(0.4, 0.1)
+		view.turret_kind = family
+		visual.reset_observation()
+		visual.show_state(view, 1.0 / 60.0)
+		var muzzle: Node3D = visual.turret.find_child("Muzzle" + family.capitalize(), true, false)
+		check(muzzle != null and muzzle.global_position.distance_to(AtlasGeometry.turret_muzzle(size, family, 0.4, 0.1)) < 0.01,
+			"%s muzzle matches the authoritative ray" % family)
+		var effects: TurretSpecialEffects = visual.turret_effects
+		var shot := view_for(0.4, 0.1, 1, 11)
+		shot.turret_kind = family
+		shot.secondary_active = true
+		visual.show_state(shot, 1.0 / 60.0)
+		if family == "flamer":
+			check(effects._flame.emitting, "Flamer jet runs while the trigger is live")
+		else:
+			check(effects.shot_count == 1, "%s draws one discharge per accepted shot" % family)
 		visual.queue_free()
 		await get_tree().process_frame

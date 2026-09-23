@@ -53,18 +53,10 @@ var gun_pitch := 0.0
 var _gun_cooldown := 0.0
 ## Atlas roof turret. Yaw is chassis-relative; elevation reuses gun_pitch and
 ## shots reuse the gun shot fields (the turret excludes both miniguns).
-const CANNON_RELOAD := 2.4
-const CANNON_HEAT := 16.0
-const PLASMA_CADENCE := 0.22
-const PLASMA_HEAT := 4.5
-## Multi-barrel upgrades, keyed by barrel count. Cannons ripple a volley one
-## barrel at a time; plasma alternates barrels at a faster cadence.
-const VOLLEY_SPACING := 0.09
-const CANNON_RELOAD_BY_BARRELS := {1:2.4, 2:2.6, 4:3.0}
-const CANNON_SHELL_HEAT := {1:16.0, 2:11.0, 4:9.0}
-const PLASMA_CADENCE_BY_BARRELS := {1:0.22, 2:0.13, 4:0.075}
-const PLASMA_HEAT_BY_BARRELS := {1:4.5, 2:4.0, 4:3.4}
+## Tuning: data/turret_weapons.json via TurretTuning.
 var turret_yaw := 0.0
+var _rail_charge := 0.0
+var _turret_was_held := false
 var _volley_left := 0
 var _volley_timer := 0.0
 
@@ -159,6 +151,8 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 		secondary_charge = 0.0
 		_gun_cooldown = 0.0
 		_volley_left = 0
+		_rail_charge = 0.0
+		_turret_was_held = false
 		return
 	if is_turret():
 		_tick_turret(delta, command.auxiliary_held)
@@ -172,16 +166,23 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	_enforce_heat_lock()
 
 func is_turret() -> bool:
-	return stats.get("secondary_weapon", "") in ["cannon", "plasma"]
+	return stats.get("secondary_weapon", "") in AtlasGeometry.TURRET_FAMILIES
 
 func _secondary_brake(command: BotCommand) -> bool:
 	return command.secondary_held and not (stats.get("secondary_weapon", "") != "" and command.auxiliary_held)
 
 ## One shot per reload (cannon) or cadence pulse (plasma).
 func _tick_turret(delta: float, held: bool) -> void:
-	var cannon: bool = stats.secondary_weapon == "cannon"
+	if stats.secondary_weapon in ["flamer", "tesla", "railgun"]:
+		_tick_special_turret(delta, held)
+		_turret_was_held = held
+		return
+	var tuning := TurretTuning.settings()
+	var family: String = stats.secondary_weapon
+	var cannon := family == "cannon"
 	var barrels := maxi(1, int(stats.get("turret_barrels", 1)))
-	var interval: float = CANNON_RELOAD_BY_BARRELS.get(barrels, CANNON_RELOAD) if cannon else PLASMA_CADENCE_BY_BARRELS.get(barrels, PLASMA_CADENCE)
+	var interval := tuning.barrel(family, barrels, "interval")
+	var shot_heat := tuning.barrel(family, barrels, "heat")
 	_gun_cooldown = maxf(0.0, _gun_cooldown - delta)
 	if _gun_cooldown < 0.000001:
 		_gun_cooldown = 0.0
@@ -194,23 +195,20 @@ func _tick_turret(delta: float, held: bool) -> void:
 		# A committed volley keeps rippling through its barrels once started.
 		_volley_timer -= delta
 		if _volley_timer <= 0.000001:
-			_fire_turret_shot(float(CANNON_SHELL_HEAT.get(barrels, CANNON_HEAT)))
+			_fire_turret_shot(shot_heat)
 			_volley_left = _volley_left - 1 if gun_shot else 0
-			_volley_timer = VOLLEY_SPACING
+			_volley_timer = tuning.volley_spacing
 			if _volley_left == 0:
 				_gun_cooldown = interval
 	elif held and eligible and _gun_cooldown <= 0.0:
-		if cannon:
-			_fire_turret_shot(float(CANNON_SHELL_HEAT.get(barrels, CANNON_HEAT)))
-			if gun_shot:
-				_volley_left = barrels - 1
-				_volley_timer = VOLLEY_SPACING
-				if _volley_left == 0:
-					_gun_cooldown = interval
-		else:
-			_fire_turret_shot(float(PLASMA_HEAT_BY_BARRELS.get(barrels, PLASMA_HEAT)))
-			if gun_shot:
+		_fire_turret_shot(shot_heat)
+		if cannon and gun_shot:
+			_volley_left = barrels - 1
+			_volley_timer = tuning.volley_spacing
+			if _volley_left == 0:
 				_gun_cooldown = interval
+		elif gun_shot:
+			_gun_cooldown = interval
 	if held and eligible:
 		_heat_active = true
 	if zones.weapon <= 0.0:
@@ -218,6 +216,45 @@ func _tick_turret(delta: float, held: bool) -> void:
 	var loading := 1.0 if _volley_left > 0 else 1.0 - _gun_cooldown / interval
 	secondary_charge = 0.0 if zones.weapon <= 0.0 or overheated else clampf(loading, 0.0, 1.0)
 	secondary_active = gun_shot if cannon else held and eligible and not overheated
+
+func _tick_special_turret(delta: float, held: bool) -> void:
+	var tuning := TurretTuning.settings()
+	var family: String = stats.secondary_weapon
+	var interval := tuning.barrel(family, 1, "interval")
+	var shot_heat := tuning.barrel(family, 1, "heat")
+	_gun_cooldown = maxf(0.0, _gun_cooldown - delta)
+	if _gun_cooldown < 0.000001:
+		_gun_cooldown = 0.0
+	var eligible: bool = zones.weapon > 0.0 and not overheated
+	if held and not eligible:
+		failure_reason = "disabled" if zones.weapon <= 0.0 else "overheated"
+	if held and eligible:
+		_heat_active = true
+	match family:
+		"flamer":
+			if held and eligible and _gun_cooldown <= 0.0:
+				_fire_turret_shot(shot_heat)
+				_gun_cooldown = interval
+			secondary_active = held and eligible
+			secondary_charge = 0.0 if not eligible else 1.0
+		"tesla":
+			if held and eligible and _gun_cooldown <= 0.0:
+				_fire_turret_shot(shot_heat)
+				_gun_cooldown = interval
+			secondary_active = gun_shot
+			secondary_charge = 0.0 if not eligible else 1.0 - _gun_cooldown / interval
+		"railgun":
+			if held and eligible and _gun_cooldown <= 0.0:
+				_rail_charge = minf(1.0, _rail_charge + delta / tuning.value("railgun", "charge_seconds"))
+				_add_heat(tuning.value("railgun", "charge_heat_per_second") * delta)
+			elif not held and _turret_was_held and _rail_charge >= 1.0 and eligible:
+				# Release a full charge; an early release simply discharges.
+				_fire_turret_shot(shot_heat)
+				_gun_cooldown = interval
+			if not held or not eligible:
+				_rail_charge = 0.0
+			secondary_active = held and eligible and _gun_cooldown <= 0.0
+			secondary_charge = _rail_charge if _gun_cooldown <= 0.0 else 1.0 - _gun_cooldown / interval
 
 ## One shot, paid in shared heat. The world resolves it along barrel
 ## (sequence - 1) % barrels.

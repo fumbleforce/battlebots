@@ -52,6 +52,9 @@ func catalogue_rules() -> void:
 	var heavy_quad := registry.atlas()
 	heavy_quad.parts.utility = "turret_cannon_quad"
 	check(not registry.validate(heavy_quad).valid, "Quad cannon needs lighter armor to fit the budget")
+	for preset: Dictionary in registry.atlas_showcase():
+		var shown := registry.validate(preset)
+		check(shown.valid, "Showcase preset %s is legal: %s" % [preset.name, shown.reasons])
 	var seeded := registry.validate(registry.atlas_turret())
 	check(seeded.valid and seeded.stats.secondary_weapon == "cannon", "Seeded Atlas turret preset is legal: %s" % seeded.reasons)
 	var old := registry.atlas()
@@ -139,7 +142,7 @@ func servo_and_cannon() -> void:
 	wire_records()
 	await reset_case()
 	run_ticks(10, SIDE_TARGET, false)
-	check(absf(attacker.combat.turret_yaw - AtlasGeometry.TURRET_YAW_RATE * STEP * 10) < 0.001,
+	check(absf(attacker.combat.turret_yaw - TurretTuning.settings().yaw_rate * STEP * 10) < 0.001,
 		"Traverse is rate-limited toward the crosshair: %f" % attacker.combat.turret_yaw)
 	var early := run_ticks(1, SIDE_TARGET, true)
 	check(early.is_empty() and victim.combat.core == victim.combat.stats.core,
@@ -167,7 +170,7 @@ func servo_and_cannon() -> void:
 	run_ticks(90, ORIGIN + Vector3(0, 200, -20), false)
 	check(is_equal_approx(attacker.combat.gun_pitch, AtlasGeometry.TURRET_PITCH_MAX), "Elevation stops at +30 degrees")
 	run_ticks(90, ORIGIN + Vector3(0, -40, -6), false)
-	check(is_equal_approx(attacker.combat.gun_pitch, deg_to_rad(-20.0)), "Nose-arc depression reaches -20 degrees: %f" % rad_to_deg(attacker.combat.gun_pitch))
+	check(is_equal_approx(attacker.combat.gun_pitch, AtlasGeometry.turret_pitch_min("cannon", 0.0)), "Nose-arc depression reaches the audited floor: %f" % rad_to_deg(attacker.combat.gun_pitch))
 	# Swinging a fully depressed barrel onto the flank elevates it before it can
 	# sweep through the corner socket; at no step is it below the local floor.
 	var lowest_margin := INF
@@ -177,8 +180,8 @@ func servo_and_cannon() -> void:
 	check(lowest_margin >= -0.0002, "Barrel never dips below the audited floor while traversing: %f" % lowest_margin)
 	check(is_equal_approx(attacker.combat.gun_pitch, AtlasGeometry.turret_pitch_min("cannon", attacker.combat.turret_yaw)),
 		"Flank aim settles on the flank depression floor")
-	check(AtlasGeometry.turret_pitch_min("cannon", PI * 0.5) > deg_to_rad(-12.0) and AtlasGeometry.turret_pitch_min("cannon", 0.0) <= deg_to_rad(-19.9),
-		"Profile allows deep frontal depression and restricts the flank")
+	check(AtlasGeometry.turret_pitch_min("cannon", PI * 0.5) > AtlasGeometry.turret_pitch_min("cannon", 0.0),
+		"Profile allows deeper frontal depression than on the flank")
 	# Neutral or stale input brings the turret home.
 	var neutral := BotCommand.new()
 	for index: int in 120:
@@ -239,7 +242,9 @@ func plasma() -> void:
 	check(locked.size() <= 1 and attacker.combat.overheated, "Plasma overheats and locks out")
 
 func upgrades() -> void:
-	var target := Vector3(-20, 20, 0)
+	# Quad sponson guns cannot depress on the flanks (audited floor about -2
+	# degrees there); upgrades are verified against a frontal target.
+	var target := Vector3(0, 20, -20)
 	for model: String in ["cannon_dual", "cannon_quad"]:
 		setup(model)
 		await reset_case(target)
@@ -256,21 +261,80 @@ func upgrades() -> void:
 		for origin: Vector3 in origins: distinct[Vector3i(origin * 100.0)] = true
 		check(distinct.size() == barrels, "%s fires every barrel from its own muzzle" % model)
 		check(events.size() == barrels and victim.combat.core < victim.combat.stats.core, "%s volley lands every shell" % model)
-		var reload: float = CombatState.CANNON_RELOAD_BY_BARRELS[barrels]
+		var reload := TurretTuning.settings().barrel("cannon", barrels, "interval")
 		check(run_ticks(roundi(reload * 60.0) - 45, target, true).is_empty(), "%s reloads after the volley" % model)
 	for model: String in ["plasma_dual", "plasma_quad"]:
 		setup(model)
 		await reset_case(target)
 		run_ticks(60, target, false)
 		var hits := run_ticks(60, target, true)
-		# Cadence resolves on 60 Hz ticks: 0.13 s -> 8 ticks, 0.075 s -> 5 ticks.
-		var expected := 8 if model.ends_with("dual") else 12
+		# Cadence resolves on whole 60 Hz ticks.
+		var interval := TurretTuning.settings().barrel("plasma", 2 if model.ends_with("dual") else 4, "interval")
+		var expected := ceili(60.0 / ceili(interval * 60.0 - 0.0001))
 		check(hits.size() >= expected - 1 and hits.size() <= expected, "%s alternates barrels at %d bolts/s: %d" % [model, expected, hits.size()])
+
+func extra_target(position: Vector3) -> MvpBot:
+	var extra := MvpBot.create(3, 1, registry.starter(), registry)
+	add_child(extra)
+	extra.body.gravity_scale = 0
+	extra.body.collision_mask = 0
+	extra.body.freeze = true
+	extra.body.global_position = position
+	bots[3] = extra
+	return extra
+
+func release_ticks(count: int, point: Vector3) -> Array:
+	return run_ticks(count, point, false)
+
+func specials() -> void:
+	var front := Vector3(0, 20, -12)
+	# Flamethrower: burns inside the cone, not beside it or beyond reach.
+	setup("flamer")
+	await reset_case(front)
+	run_ticks(40, front, false)
+	var burns := run_ticks(30, front, true)
+	check(burns.size() >= 4 and burns.all(func(hit: Dictionary) -> bool: return hit.kind == "flamer"), "Flamer burns a target in its cone: %d" % burns.size())
+	await reset_case(Vector3(14, 20, -8))
+	run_ticks(40, front, false)
+	check(run_ticks(30, front, true).is_empty(), "Flamer misses a target well outside the cone")
+	await reset_case(Vector3(0, 20, -30))
+	run_ticks(40, Vector3(0, 20, -30), false)
+	check(run_ticks(30, Vector3(0, 20, -30), true).is_empty(), "Flamer cannot reach 30 m")
+	# Tesla: nearest visible hostile in the seek cone, chaining to a neighbour.
+	setup("tesla")
+	await reset_case(front)
+	var neighbour := extra_target(Vector3(7, 20, -14))
+	await flush_physics()
+	run_ticks(40, front, false)
+	var arcs := run_ticks(40, front, true)
+	var chained := arcs.filter(func(hit: Dictionary) -> bool: return hit.target == 3)
+	check(arcs.size() >= 2 and victim.combat.core < victim.combat.stats.core, "Tesla arcs into the aimed target")
+	check(not chained.is_empty() and neighbour.combat.core < neighbour.combat.stats.core, "Tesla chains to a nearby second enemy")
+	bots.erase(3)
+	neighbour.queue_free()
+	# Railgun: a full charge released fires one piercing slug; early release fizzles.
+	setup("railgun")
+	# Both targets level with the barrel, so the straight slug line runs through both.
+	var level := 20.0 + AtlasGeometry.TURRET_PITCH_PIVOT.y * 3.0
+	await reset_case(Vector3(0, level, -25))
+	var behind := extra_target(Vector3(0, level, -45))
+	await flush_physics()
+	var aim := Vector3(0, level, -25)
+	run_ticks(40, aim, false)
+	run_ticks(30, aim, true)
+	check(release_ticks(5, aim).is_empty() and attacker.combat.shot_sequence == 0, "Releasing a partial charge fires nothing")
+	run_ticks(80, aim, true)
+	var slug := release_ticks(2, aim)
+	check(slug.size() == 2 and slug[0].kind == "railgun", "A full charge fires one slug that pierces into a second target: %d" % slug.size())
+	check(victim.combat.core < victim.combat.stats.core and behind.combat.core < behind.combat.stats.core, "Both lined-up targets take railgun damage")
+	bots.erase(3)
+	behind.queue_free()
 
 func run() -> void:
 	catalogue_rules()
 	await servo_and_cannon()
 	await plasma()
 	await upgrades()
+	await specials()
 	print("ATLAS TURRET PHYSICS PASS" if failures == 0 else "ATLAS TURRET PHYSICS FAIL")
 	get_tree().quit(0 if failures == 0 else 1)

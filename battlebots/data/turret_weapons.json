@@ -1,0 +1,29 @@
+{
+	"_comment": "Authoritative Atlas turret weapon tuning shared by server combat and client presentation. Changing any value is a gameplay change: bump WireCodec.BUILD and ship a matching hosted server release. Barrel tables are keyed by barrel count (1 single, 2 twin, 4 quad); interval is seconds between shots (cannon: reload after the volley), heat is shared heat per shot, jolt is hull velocity change (m/s) per shot at the muzzle and rock is the rocking impulse (rad/s) across the shot.",
+	"servo": {
+		"_comment": "Traverse/elevation servo rates (rad/s), cannon volley spacing (s), and the hull tilt (rad) beyond which firing adds no further rock, so volleys can never flip the machine.",
+		"yaw_rate": 1.9,
+		"pitch_rate": 1.2,
+		"volley_spacing": 0.09,
+		"rock_tilt_limit": 0.17
+	},
+	"families": {
+		"cannon": {"range": 80.0, "damage": 32.0, "knock": 0.9, "recoil": 0.12,
+			"barrels": {"1": {"interval": 2.4, "heat": 16.0, "jolt": 1.1, "rock": 2.4},
+				"2": {"interval": 2.6, "heat": 11.0, "jolt": 0.85, "rock": 1.9},
+				"4": {"interval": 3.0, "heat": 9.0, "jolt": 0.7, "rock": 1.7}}},
+		"plasma": {"range": 55.0, "damage": 11.0, "knock": 0.06, "recoil": 0.02,
+			"barrels": {"1": {"interval": 0.22, "heat": 4.5, "jolt": 0.06, "rock": 0.1},
+				"2": {"interval": 0.13, "heat": 4.0, "jolt": 0.05, "rock": 0.08},
+				"4": {"interval": 0.075, "heat": 3.4, "jolt": 0.04, "rock": 0.07}}},
+		"flamer": {"_comment": "Cone half-angle in radians; damage is per pulse to every visible enemy inside the cone.",
+			"range": 17.0, "damage": 4.0, "knock": 0.01, "recoil": 0.0, "half_angle": 0.24,
+			"barrels": {"1": {"interval": 0.1, "heat": 2.4, "jolt": 0.0, "rock": 0.0}}},
+		"tesla": {"_comment": "Seek cone half-angle (rad) for the primary arc; the chain jumps chain_reach metres for chain_share of the damage.",
+			"range": 15.0, "damage": 18.0, "knock": 0.15, "recoil": 0.02, "seek_angle": 0.7, "chain_reach": 9.0, "chain_share": 0.5,
+			"barrels": {"1": {"interval": 0.55, "heat": 7.0, "jolt": 0.12, "rock": 0.25}}},
+		"railgun": {"_comment": "Hold to charge for charge_seconds while adding charge_heat_per_second, release a full charge; the slug pierces a second target for pierce_share. interval is the reload after a shot.",
+			"range": 140.0, "damage": 70.0, "knock": 1.6, "recoil": 0.2, "pierce_share": 0.5, "charge_seconds": 1.1, "charge_heat_per_second": 6.0,
+			"barrels": {"1": {"interval": 1.6, "heat": 22.0, "jolt": 1.6, "rock": 2.8}}}
+	}
+}

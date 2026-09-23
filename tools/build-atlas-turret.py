@@ -91,6 +91,8 @@ copper = material('Atlas_CoilCopper', (.72, .38, .20), .95, .33)
 ceramic = material('Atlas_InsulatorCeramic', (.78, .77, .72), .0, .45)
 plasma_lens = material('Atlas_PlasmaLens', (.25, .85, 1.0), .05, .2, emission=3.0)
 cyan = material('Atlas_StatusLens', (.1, .75, .72), .08, .24, emission=.6)
+pilot_lens = material('Atlas_PilotLens', (1.0, .45, .08), .05, .3, emission=4.0)
+arc_lens = material('Atlas_ArcLens', (.55, .7, 1.0), .05, .2, emission=3.5)
 white = material('Atlas_Stencil', (.83, .86, .8), .05, .49)
 
 groups = {}
@@ -236,6 +238,10 @@ pitch = part('TurretPitch', PITCH, yaw)
 cannon = part('AttachmentCannon', PITCH, pitch)
 recoil = part('CannonRecoil', PITCH, cannon)
 plasma = part('AttachmentPlasma', PITCH, pitch)
+flamer = part('AttachmentFlamer', PITCH, pitch)
+tesla = part('AttachmentTesla', PITCH, pitch)
+railgun = part('AttachmentRailgun', PITCH, pitch)
+SPECIALS = {'flamer': flamer, 'tesla': tesla, 'railgun': railgun}
 cx, cz = YAW[0], YAW[2]
 
 # ---------------------------------------------------------------- base ring
@@ -453,14 +459,87 @@ cylinder('Emitter throat shadow', (0, PY, -1.220), (0, PY, -1.228), .022, dark, 
 part('MuzzleCannon', CANNON_MUZZLE, recoil)
 part('MuzzlePlasma', PLASMA_MUZZLE, plasma)
 
+# ------------------------------------------------------------ flamethrower
+# Close-quarters projector: twin enamel fuel tanks strapped either side of a
+# pump body, hoses, a finned heat-shield nozzle and a glowing pilot light.
+cylinder('Flamer feed coupling', (0, PY, -.714), (0, PY, -.752), .062, steel, flamer, 40, .004)
+box('Flamer pump body', (0, PY + .025, -.830), (.130, .115, .170), secondary, flamer, .014)
+for side in (-1, 1):
+    x = side * .112
+    cylinder('Flamer fuel tank', (x, PY - .020, -.730), (x, PY - .020, -.990), .058, paint, flamer, 40, .012)
+    for z, d in ((-.730, 1), (-.990, -1)):
+        turned('Fuel tank domed end', (x, PY - .020, z), (0, 0, d), [(0, .058), (.010, .055), (.022, .040), (.028, .0)], paint, flamer, 40)
+    for z in (-.780, -.940):
+        ring('Fuel tank strap', (x, PY - .020, z), (0, 0, 1), .063, .056, .014, steel, flamer, 40)
+    tube('Fuel feed hose', [(x, PY + .030, -.760), (x * .6, PY + .075, -.790), (x * .25, PY + .070, -.840)], .011, rubber, flamer)
+    bolt((side * .066, PY + .060, -.780), (side, 0, 0), flamer, .007)
+turned('Flamer nozzle tube', (0, PY, -.860), (0, 0, -1), [(0, .046), (.44, .034), (.46, .034), (.46, .020), (0, .020)], gun, flamer, 40)
+for i in range(8):
+    ring('Nozzle heat-shield fin', (0, PY, -.960 - i * .028), (0, 0, 1), .062, .046, .010, steel, flamer, 40)
+turned('Flared flame nozzle', (0, PY, -1.300), (0, 0, -1), [(0, .034), (.020, .044), (.045, .046), (.055, .040)], gun_block, flamer, 40, open_end=True)
+cylinder('Nozzle bore shadow', (0, PY, -1.300), (0, PY, -1.304), .020, dark, flamer, 24, 0)
+cylinder('Pilot light housing', (0, PY - .058, -1.200), (0, PY - .058, -1.290), .014, steel, flamer, 16, .002)
+cylinder('Pilot light flame lens', (0, PY - .058, -1.290), (0, PY - .058, -1.298), .012, pilot_lens, flamer, 16, 0)
+part('MuzzleFlamer', (0.0, PY, -1.36), flamer)
+
+# --------------------------------------------------------------- tesla arc
+# Arc projector: a capacitor housing with glowing windows, a copper-wound
+# insulator mast of ceramic discs and a polished toroid with electrode prongs.
+box('Tesla capacitor housing', (0, PY, -.800), (.160, .150, .160), secondary, tesla, .016)
+for side in (-1, 1):
+    box('Tesla housing enamel cheek', (side * .089, PY, -.800), (.020, .160, .170), paint, tesla, .008)
+    for z in (-.760, -.840):
+        box('Tesla capacitor window', (side * .1, PY + .025, z), (.004, .030, .050), arc_lens, tesla, .001)
+    for y in (-.06, .06): bolt((side * .1, PY + y, -.8), (side, 0, 0), tesla, .007)
+cylinder('Tesla mast core', (0, PY, -.880), (0, PY, -1.200), .026, steel, tesla, 32, .002)
+for i in range(5):
+    ring('Tesla copper winding', (0, PY, -.895 - i * .020), (0, 0, 1), .048, .027, .016, copper, tesla, 40)
+for i in range(6):
+    turned('Tesla ceramic insulator disc', (0, PY, -1.000 - i * .033), (0, 0, -1), [(0, .030), (.004, .064), (.010, .066), (.016, .040), (.020, .030)], ceramic, tesla, 40)
+ring('Tesla electrode toroid', (0, PY, -1.225), (0, 0, 1), .102, .050, .050, edge_steel, tesla, 64)
+for i in range(3):
+    a = i * math.tau / 3 + math.pi / 2
+    tip = (math.cos(a) * .065, PY + math.sin(a) * .065)
+    cylinder('Tesla electrode prong', (tip[0], tip[1], -1.240), (tip[0] * 1.2, tip[1] + (tip[1] - PY) * .2, -1.300), .009, edge_steel, tesla, 12, .001)
+    cylinder('Tesla electrode spark gap', (tip[0] * 1.2, tip[1] + (tip[1] - PY) * .2, -1.300), (tip[0] * 1.2, tip[1] + (tip[1] - PY) * .2, -1.308), .011, arc_lens, tesla, 12, 0)
+cylinder('Tesla central electrode', (0, PY, -1.200), (0, PY, -1.300), .016, edge_steel, tesla, 20, .002)
+part('MuzzleTesla', (0.0, PY, -1.31), tesla)
+
+# ----------------------------------------------------------------- railgun
+# Long electromagnetic launcher: a capacitor bank with glowing cells feeds
+# twin rails held by ceramic spacers under enamel covers, ending in a shroud.
+box('Railgun capacitor bank', (0, PY, -.820), (.170, .170, .200), secondary, railgun, .016)
+for side in (-1, 1):
+    for z in (-.770, -.820, -.870):
+        box('Railgun capacitor cell', (side * .087, PY + .03, z), (.006, .06, .030), arc_lens, railgun, .001)
+box('Railgun heat sink channel', (0, PY + .088, -.820), (.12, .006, .17), dark, railgun, .001)
+for i in range(6):
+    box('Railgun heat sink fin', (0, PY + .102, -.745 - i * .028), (.11, .026, .006), steel, railgun, .001)
+for y in (-.046, .046):
+    box('Railgun conductor rail', (0, PY + y, -1.250), (.070, .030, .860), gun, railgun, .004)
+    box('Railgun rail glow strip', (0, PY + y * .63, -1.250), (.030, .004, .840), arc_lens, railgun, .001)
+for i in range(6):
+    z = -.900 - i * .140
+    for side in (-1, 1):
+        box('Railgun ceramic spacer', (side * .044, PY, z), (.018, .120, .030), ceramic, railgun, .003)
+        bolt((side * .054, PY, z), (side, 0, 0), railgun, .006, low=True)
+for side in (-1, 1):
+    box('Railgun enamel rail cover', (side * .050, PY, -1.080), (.012, .110, .420), paint, railgun, .005)
+box('Railgun muzzle shroud plate', (0, PY + .062, -1.690), (.110, .016, .060), gun_block, railgun, .004)
+box('Railgun muzzle shroud plate', (0, PY - .062, -1.690), (.110, .016, .060), gun_block, railgun, .004)
+square_bore_face('Railgun muzzle face', (0, PY, -1.722), .058, .070, .028, .014, gun_block, railgun)
+part('MuzzleRailgun', (0.0, PY, -1.73), railgun)
+
 # ---------------------------------------------------- dual / quad upgrades
 # Multi-barrel attachments reuse the approved single weapon: each barrel is a
 # copy scaled in cross-section only (circles stay round, lengths unchanged) and
 # offset from the bore axis. Each cannon barrel keeps its own recoil node.
 VARIANTS = {'cannon_dual': (.82, [(-.078, 0.0), (.078, 0.0)]),
-            'cannon_quad': (.66, [(-.064, .060), (.064, .060), (-.064, -.060), (.064, -.060)]),
+            # Quads: two armored side pods of two stacked barrels, outboard of
+            # the casting walls on the elevation axis (user: "2x2 on the sides").
+            'cannon_quad': (.70, [(-.445, .066), (-.445, -.066), (.445, .066), (.445, -.066)]),
             'plasma_dual': (.80, [(-.090, 0.0), (.090, 0.0)]),
-            'plasma_quad': (.62, [(-.070, .062), (.070, .062), (-.070, -.062), (.070, -.062)])}
+            'plasma_quad': (.66, [(-.445, .062), (-.445, -.062), (.445, .062), (.445, -.062)])}
 def copied(objects, s_cross, ox, oy, group):
     axis = gv((0, PY, 0))
     matrix = Matrix.Translation(gv((ox, oy, 0)) - gv((0, 0, 0))) @ Matrix.Translation(axis) \
@@ -482,6 +561,21 @@ for label, (s_cross, offsets) in VARIANTS.items():
             part('MuzzleCannon%s_%d' % (label.split('_')[1].capitalize(), index), (CANNON_MUZZLE[0] + ox, CANNON_MUZZLE[1] + oy, CANNON_MUZZLE[2]), barrel)
         else:
             part('MuzzlePlasma%s_%d' % (label.split('_')[1].capitalize(), index), (PLASMA_MUZZLE[0] + ox, PLASMA_MUZZLE[1] + oy, PLASMA_MUZZLE[2]), group)
+    if label.endswith('_quad'):
+        # Side pods: an armored pod casing per side carried on a trunnion stub
+        # through a bearing collar just outboard of the casting wall. The
+        # central collar gets a bolted blanking plate.
+        for side in (-1, 1):
+            # Compact gun cradle centred on the trunnion: it elevates inside
+            # the turret's sponson without sweeping through its armor.
+            px = side * .445
+            box('Side gun cradle', (px, PY, PITCH[2] - .01), (.13, .165, .12), secondary, group, .012)
+            box('Side gun cradle face', (px, PY, PITCH[2] - .072), (.11, .145, .006), gun, group, .003)
+            cylinder('Side cradle trunnion stub', (side * .340, PY, PITCH[2]), (side * .381, PY, PITCH[2]), .034, steel, group, 32, .002)
+        box('Collar blanking plate', (0, PY, -.745), (.19, .19, .010), secondary, group, .004)
+        for sx in (-1, 1):
+            for sy in (-1, 1): bolt((sx * .07, PY + sy * .07, -.750), (0, 0, -1), group, .007)
+        continue
     # A cast cradle block joins the barrels to the mantlet collar.
     xs = [o[0] for o in offsets]; ys = [o[1] for o in offsets]
     width = (max(xs) - min(xs)) + (.17 if family == 'cannon' else .15) * s_cross + .03
@@ -506,6 +600,35 @@ def finalize(group):
     obj.parent = group; obj.matrix_parent_inverse = Matrix.Identity(4); obj.matrix_basis = Matrix.Identity(4)
     obj.name = group.name + 'Surface'; bpy.ops.object.select_all(action='DESELECT'); return obj
 
+# ------------------------------------------------ quad sponsons (turret)
+# The user found bolted-on side pods odd: quads sit in armored sponsons that
+# are part of the turret casting (same enamel, chamfers and hardware), with
+# a front embrasure the barrels elevate through. Shown only for quad models.
+sponsons = part('SponsonsQuad', YAW, yaw)
+SX0, SX1, SZF, SZR, SY0, SY1 = W - .004, .535, -.720, -.460, .585, .845
+for side in (-1, 1):
+    xo, xi = side * SX1, side * SX0
+    mid = (xo + xi) * .5; width = SX1 - SX0
+    # Outer armored wall with a raked front edge.
+    prism('Sponson outer armor wall', [(xo - side * .010, SZR), (xo + side * .010, SZR), (xo + side * .010, SZF + .035), (xo - side * .010, SZF)],
+          SY0, SY1, paint, sponsons, .010)
+    # Roof and floor stop short of the embrasure so barrels can elevate.
+    box('Sponson roof armor', (mid, SY1 - .010, (SZR + SZF + .10) * .5), (width, .022, SZR - SZF - .10), paint, sponsons, .010)
+    box('Sponson floor armor', (mid, SY0 + .010, (SZR + SZF + .10) * .5), (width, .022, SZR - SZF - .10), paint, sponsons, .010)
+    box('Sponson rear closure', (mid, (SY0 + SY1) * .5, SZR + .010), (width, SY1 - SY0, .022), paint, sponsons, .008)
+    # Embrasure lips at the open front and a dark interior backing.
+    for y in (SY0 + .035, SY1 - .035):
+        box('Sponson embrasure lip', (mid + side * .03, y, SZF + .09), (width - .06, .012, .03), secondary, sponsons, .003)
+    box('Sponson interior shadow', (mid, (SY0 + SY1) * .5, SZR + .025), (width - .03, SY1 - SY0 - .05, .006), dark, sponsons, .002)
+    # Faired into the casting: a sloped cover joins the sponson roof to the
+    # turret roof chamfer, with the casting's bolt pattern and a lifting eye.
+    box('Sponson roof fairing', (side * (SX0 + .040), SY1 - .005, (SZR + SZF) * .5 + .03), (.09, .02, SZR - SZF - .06), paint, sponsons, .010)
+    for z in (SZR + .04, (SZR + SZF) * .5, SZF + .14):
+        bolt((mid + side * .04, SY1 + .001, z), (0, 1, 0), sponsons, .009)
+        bolt((xo + side * .011, SY1 - .06, z), (side, 0, 0), sponsons, .008)
+    for i in range(4):
+        box('Sponson cooling slot', (xo + side * .006, SY0 + .07 + i * .03, SZR + .08), (.006, .012, .08), dark, sponsons, .001)
+
 # The user found the first turret far too small for the hull. Scale the whole
 # rotating assembly about the basket-ring floor and move it aft onto the race.
 # Bevel widths stay absolute, so chamfers remain fine metal edges.
@@ -525,8 +648,10 @@ def godot(o): p = o.matrix_world.translation; return (round(p.x, 5), round(p.z, 
 YAW = godot(yaw); PITCH = godot(pitch)
 CANNON_MUZZLE = godot(bpy.data.objects['MuzzleCannon']); PLASMA_MUZZLE = godot(bpy.data.objects['MuzzlePlasma'])
 MUZZLE_OFFSETS = {'cannon': round(PITCH[2] - CANNON_MUZZLE[2], 5), 'plasma': round(PITCH[2] - PLASMA_MUZZLE[2], 5)}
+for family in SPECIALS:
+    MUZZLE_OFFSETS[family] = round(PITCH[2] - godot(bpy.data.objects['Muzzle' + family.capitalize()])[2], 5)
 # Per-attachment barrel offsets from the single-barrel muzzle, pitch frame.
-BARRELS = {'cannon': [[0.0, 0.0]], 'plasma': [[0.0, 0.0]]}
+BARRELS = {'cannon': [[0.0, 0.0]], 'plasma': [[0.0, 0.0]], 'flamer': [[0.0, 0.0]], 'tesla': [[0.0, 0.0]], 'railgun': [[0.0, 0.0]]}
 for label in VARIANTS:
     family = label.split('_')[0]; base_muzzle = CANNON_MUZZLE if family == 'cannon' else PLASMA_MUZZLE
     names = sorted(o.name for o in bpy.data.objects if o.type == 'EMPTY' and o.name.startswith('Muzzle' + family.capitalize() + label.split('_')[1].capitalize() + '_'))
@@ -567,10 +692,10 @@ def audit():
         if o.type == 'MESH': hull_sets.setdefault(owner(o), []).append(o)
     hull_trees = {k: tree(v) for k, v in hull_sets.items()}
     moving = {'yaw': [o for o in descendants(yaw) if o.type == 'MESH' and not any(o in descendants(a) for a in (pitch,))],
-              'mantlet': [o for o in descendants(pitch) if o.type == 'MESH' and not any(o in descendants(a) for a in [cannon, plasma] + list(variant_groups.values()))],
+              'mantlet': [o for o in descendants(pitch) if o.type == 'MESH' and not any(o in descendants(a) for a in [cannon, plasma] + list(variant_groups.values()) + list(SPECIALS.values()))],
               'cannon': [o for o in descendants(cannon) if o.type == 'MESH'],
               'plasma': [o for o in descendants(plasma) if o.type == 'MESH']}
-    for label, group in variant_groups.items():
+    for label, group in list(variant_groups.items()) + list(SPECIALS.items()):
         moving[label] = [o for o in descendants(group) if o.type == 'MESH']
     static_tree = tree([o for o in descendants(base) if o.type == 'MESH'])
     report = {'scope': 'Sampled triangle-overlap audit against imported atlas_mx.glb. Per 5-degree bearing the lowest clear elevation of mantlet+attachment is measured (7-step bisection, 1 degree margin); the runtime rule (max of the two neighbouring samples) is then verified at every 2.5 degrees of yaw from that floor to the +30 degree stop in 2.5 degree steps. Adapter checked at rest.',
@@ -629,13 +754,21 @@ def audit():
     for o in imported: bpy.data.objects.remove(o, do_unlink=True)
     return report
 
-ATTACHMENTS = ['cannon', 'plasma'] + list(VARIANTS)
-clearance = audit()
+ATTACHMENTS = ['cannon', 'plasma'] + list(VARIANTS) + list(SPECIALS)
+if '--no-audit' in sys.argv:
+    clearance = {'skipped': 'preview only (--no-audit)', 'depression_profile_degrees': {}, 'base_clear': None}
+    # The audit's pre-bake hull import also primes the glTF importer's
+    # materials; the review import after baking fails without it.
+    primed = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(ROOT / 'battlebots/assets/models/atlas_runtime/atlas_mx.glb'))
+    for o in [o for o in bpy.data.objects if o not in primed]: bpy.data.objects.remove(o, do_unlink=True)
+else:
+    clearance = audit()
 print('TURRET_CLEARANCE', json.dumps(clearance))
 
 sys.path.insert(0, str(ROOT / 'tools'))
 from atlas_surface_bake import bake_surface_atlases
-surface = bake_surface_atlases(root, cannon, [plasma] + list(variant_groups.values()), RUNTIME, quick=QUICK, prefix='Atlas_Turret', face_wear=.78,
+surface = bake_surface_atlases(root, cannon, [plasma] + list(variant_groups.values()) + list(SPECIALS.values()), RUNTIME, quick=QUICK, prefix='Atlas_Turret', face_wear=.78,
                                families=('Primary', 'Secondary', 'Hardware'),
                                sizes={'Primary': 2048, 'Secondary': 1024, 'Hardware': 2048})
 
@@ -668,10 +801,10 @@ def export_model(obj, filename):
 
 export_model(root, 'atlas_turret.glb')
 stats = {}
-for label, group in [('base', base), ('housing', yaw), ('mantlet', pitch), ('cannon', cannon), ('plasma', plasma)] + list(variant_groups.items()):
+for label, group in [('base', base), ('housing', yaw), ('mantlet', pitch), ('cannon', cannon), ('plasma', plasma)] + list(variant_groups.items()) + list(SPECIALS.items()):
     objs = [o for o in descendants(group) if o.type == 'MESH']
     if label == 'housing': objs = [o for o in objs if o not in descendants(pitch)]
-    if label == 'mantlet': objs = [o for o in objs if not any(o in descendants(a) for a in [cannon, plasma] + list(variant_groups.values()))]
+    if label == 'mantlet': objs = [o for o in objs if not any(o in descendants(a) for a in [cannon, plasma] + list(variant_groups.values()) + list(SPECIALS.values()))]
     for o in objs: o.data.calc_loop_triangles()
     stats[label] = sum(len(o.data.loop_triangles) for o in objs)
 corners = [o.matrix_world @ Vector(p) for o in descendants(root) if o.type == 'MESH' for p in o.bound_box]
@@ -720,8 +853,9 @@ def view(name, at, target=(0, .45, -.45), ortho=2.6):
     cam.location = gv(at); cam.rotation_euler = (gv(target) - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam_data.type = 'ORTHO'; cam_data.ortho_scale = ortho
     scene.render.filepath = str(SOURCE / (name + '.png')); bpy.ops.render.render(write_still=True)
 def show(attachment):
-    for group in [cannon, plasma] + list(variant_groups.values()):
+    for group in [cannon, plasma] + list(variant_groups.values()) + list(SPECIALS.values()):
         for o in descendants(group): o.hide_render = group != attachment
+    for o in descendants(sponsons): o.hide_render = attachment not in (variant_groups.get('cannon_quad'), variant_groups.get('plasma_quad'))
 yaw.rotation_euler.z = math.radians(-28); pitch.rotation_euler.x = math.radians(8)
 show(cannon); view('turret_cannon_hero', (3.2, 2.4, -4.0), ortho=3.4)
 show(plasma); view('turret_plasma_hero', (3.2, 2.4, -4.0), ortho=3.4)
@@ -732,7 +866,9 @@ if not QUICK:
     show(cannon); view('turret_top', (0, 6, -.319), target=(0, 0, -.32), ortho=3.2)
     view('turret_rear_quarter', (-3.4, 2.2, 3.6), target=(0, .5, -.2), ortho=3.4)
 yaw.rotation_euler.z = math.radians(-28); pitch.rotation_euler.x = math.radians(8)
-for label, group in variant_groups.items():
+for label, group in list(variant_groups.items()) + list(SPECIALS.items()):
     show(group); view('turret_' + label + '_detail', (2.4, 1.7, -3.2), target=(0, .76, -1.0), ortho=1.9)
+    if label.endswith('_quad'):
+        show(group); view('turret_' + label + '_hero', (3.2, 2.4, -4.0), ortho=3.6)
 bpy.ops.wm.save_as_mainfile(filepath=str(PREVIEW / 'atlas_turret.blend'), compress=True)
 print('TURRET_COMPLETE', str(SOURCE))

@@ -32,6 +32,7 @@ var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
 var _turret_aim_point := Vector3.ZERO
 var _reticle_point := Vector2.ZERO
+var _kick_sequence := -1
 var _reticle_seen := false
 
 func _ready() -> void:
@@ -247,6 +248,16 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 	if wanted != tank_sight.active:
 		tank_sight.reset()
 		tank_sight.active = wanted
+		_kick_sequence = -1
+	# Every accepted own shot kicks the sight; cannon volleys stack hard.
+	if wanted and not view.eliminated:
+		if _kick_sequence >= 0 and view.shot_sequence > _kick_sequence:
+			var shells := mini(view.shot_sequence - _kick_sequence, 4)
+			var per_shell: float = {"plasma":0.12, "flamer":0.0, "tesla":0.18, "railgun":1.3}.get(view.turret_kind, 0.12)
+			if view.turret_kind == "cannon":
+				per_shell = 0.85 if view.turret_model == "cannon" else (0.6 if view.turret_model.ends_with("_dual") else 0.45)
+			tank_sight.kick(per_shell * float(shells))
+		_kick_sequence = view.shot_sequence
 	if wanted:
 		tank_sight.update_view(delta, source)
 
@@ -264,7 +275,7 @@ func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	var angles := view.turret_display
 	var muzzle := view.pose * AtlasGeometry.turret_muzzle(size, view.turret_kind, angles.x, angles.y)
 	var direction := (view.pose.basis * AtlasGeometry.turret_direction(angles.x, angles.y)).normalized()
-	var end := muzzle + direction * float(CombatWorld.TURRET_RANGE.get(view.turret_kind, 60.0))
+	var end := muzzle + direction * TurretTuning.settings().value(view.turret_kind, "range")
 	var query := PhysicsRayQueryParameters3D.create(muzzle, end,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, source.camera_exclusions())
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
@@ -304,7 +315,8 @@ func _process(delta: float) -> void:
 		input_preferences.label_for(&"camera_recenter")] \
 		if controls_enabled else "Tab / arrows  Select   |   Enter  Confirm   |   Esc  Resume"
 	if controls_enabled and view != null and view.turret_kind != "":
-		var gun: String = {"cannon":"Main gun", "plasma":"Plasma gun"}.get(view.turret_kind, "Turret")
+		var gun: String = {"cannon":"Main gun", "plasma":"Plasma gun", "flamer":"Flamethrower (hold)",
+			"tesla":"Tesla arc", "railgun":"Railgun (hold, release)"}.get(view.turret_kind, "Turret")
 		if view.turret_model.ends_with("_dual"): gun = "Twin " + gun.to_lower()
 		elif view.turret_model.ends_with("_quad"): gun = "Quad " + gun.to_lower()
 		hint.text = "Mouse  Aim  |  %s  %s  |  %s  Hull weapon  |  Esc  Menu" % [

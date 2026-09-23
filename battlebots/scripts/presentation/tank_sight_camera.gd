@@ -19,6 +19,10 @@ var active := false:
 			if value: camera.make_current()
 			elif is_instance_valid(rig) and is_instance_valid(rig.camera) and rig.camera.is_inside_tree(): rig.camera.make_current()
 var _distance := -1.0
+## Firing feedback: a recoil kick that punches the view up and back with a
+## short shake and FOV punch, decaying quickly. Presentation only.
+var _shake := 0.0
+var _shake_time := 0.0
 var _probe := SphereShape3D.new()
 
 func _init() -> void:
@@ -62,8 +66,20 @@ func update_view(delta: float, source: BotSource) -> void:
 		_distance = wanted
 	else:
 		_distance = lerpf(_distance, wanted, 1.0 - exp(-8.0 * maxf(delta, 0.0)))
-	camera.global_transform = Transform3D(basis, pivot + back * _distance)
-	if is_instance_valid(rig.camera): camera.fov = rig.camera.fov
+	var view_basis := basis
+	var offset := Vector3.ZERO
+	if _shake > 0.001:
+		_shake_time += delta
+		var jitter := Vector3(sin(_shake_time * 71.0), sin(_shake_time * 57.0 + 1.3), 0.0) * 0.012 * _shake
+		view_basis = basis * Basis.from_euler(Vector3(0.035 * _shake + jitter.x, jitter.y, jitter.y * 0.5))
+		offset = back * 0.35 * _shake * scale
+		_shake = move_toward(_shake * exp(-maxf(delta, 0.0) * 5.5), 0.0, delta * 0.05)
+	camera.global_transform = Transform3D(view_basis, pivot + back * _distance + offset)
+	if is_instance_valid(rig.camera): camera.fov = rig.camera.fov + 6.0 * _shake
+
+func kick(strength: float) -> void:
+	_shake = clampf(_shake + strength, 0.0, 1.6)
 
 func reset() -> void:
 	_distance = -1.0
+	_shake = 0.0

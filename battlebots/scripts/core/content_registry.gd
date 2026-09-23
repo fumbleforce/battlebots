@@ -59,6 +59,22 @@ func atlas_turret() -> Dictionary:
 	draft.parts.utility = "turret_cannon"
 	return draft
 
+## Showcase turret presets: quad-cannon fortress, close-quarters flamethrower
+## brawler with a saw, and a long-range railgun.
+func atlas_showcase() -> Array[Dictionary]:
+	var fortress := atlas()
+	fortress.name = "ATLAS MX • FORTRESS"
+	fortress.parts.utility = "turret_cannon_quad"
+	fortress.parts.armor = "light"
+	var inferno := atlas()
+	inferno.name = "ATLAS MX • INFERNO"
+	inferno.parts.utility = "turret_flamer"
+	inferno.parts.weapon = "saw"
+	var rail := atlas()
+	rail.name = "ATLAS MX • RAIL"
+	rail.parts.utility = "turret_railgun"
+	return [fortress, inferno, rail]
+
 func validate(draft: Dictionary) -> LoadoutValidation:
 	var result := LoadoutValidation.new()
 	if draft.size() != 5 or draft.get("schema_version") != SCHEMA:

@@ -26,12 +26,8 @@ const MINIGUN_DAMAGE := 6.0
 const RAM_MIN_CLOSING_SPEED := 4.0
 ## Impact scaling and ram knock-back tuning: data/bot_physics.json "impacts".
 var physics := BotPhysics.settings()
-## Atlas turret rays. The cannon trades cadence for a heavy knock; plasma bolts
-## are quick, light and heat-limited. Both use the ordinary zone/armor rules.
-const TURRET_RANGE := {"cannon":80.0, "plasma":55.0}
-const TURRET_DAMAGE := {"cannon":32.0, "plasma":11.0}
-const TURRET_KNOCK := {"cannon":0.9, "plasma":0.06}
-const TURRET_RECOIL := {"cannon":0.12, "plasma":0.02}
+## Atlas turret rays, cones and arcs: tuning in data/turret_weapons.json
+## (TurretTuning). Every hit uses the ordinary zone/armor rules.
 
 func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	time += delta
@@ -424,6 +420,7 @@ func _update_turret_aim(attacker: MvpBot, delta: float) -> void:
 	state.gun_pitch = next.y
 
 func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: int) -> void:
+	var tuning := TurretTuning.settings()
 	var state := attacker.combat
 	if state.zones.weapon <= 0 or state.eliminated:
 		return
@@ -431,17 +428,46 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 	var size: Vector3 = state.stats.size
 	var basis := attacker.body.global_basis
 	var direction := (basis * AtlasGeometry.turret_direction(state.turret_yaw, state.gun_pitch)).normalized()
-	# Multi-barrel models fire each shot from its own barrel, parallel to the bore.
+	var reach := tuning.value(kind, "range")
+	var space := attacker.body.get_world_3d().direct_space_state
+	# Multi-barrel models fire each shot from its own barrel, converged on the
+	# point the centre bore line strikes (what the barrel reticle marks), so
+	# outboard and stacked barrels do not straddle a target the gunner is on.
 	var barrel := AtlasGeometry.turret_barrel(state.stats.turret_model, state.shot_sequence)
 	var origin := attacker.body.global_transform * AtlasGeometry.turret_breech(size, state.turret_yaw, state.gun_pitch, barrel)
 	var from := attacker.body.global_transform * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch, barrel)
-	var end := from + direction * float(TURRET_RANGE[kind])
+	if barrel != Vector2.ZERO:
+		var centre := attacker.body.global_transform * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch)
+		var sight := PhysicsRayQueryParameters3D.create(centre, centre + direction * reach,
+			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid()])
+		var mark := space.intersect_ray(sight)
+		var converge: Vector3 = mark.position if not mark.is_empty() else centre + direction * reach
+		# Never converge inside the pods' own spread (a wall at the muzzle).
+		if converge.distance_to(centre) > 4.0 * BotScale.from_size(size):
+			direction = (converge - from).normalized()
+	var end := from + direction * reach
+	var barrels := int(state.stats.get("turret_barrels", 1))
+	var jolt := tuning.barrel(kind, barrels, "jolt")
+	attacker.body.apply_impulse(-direction * attacker.body.mass * jolt, from - attacker.body.global_position)
+	var rock_axis := direction.cross(Vector3.UP)
+	var tilt := acos(clampf(attacker.body.global_basis.y.dot(Vector3.UP), -1.0, 1.0))
+	if rock_axis.length_squared() > 0.0001 and tilt < tuning.rock_tilt_limit:
+		var inertia := (attacker.body.inertia.x + attacker.body.inertia.z) * 0.5
+		var rock := tuning.barrel(kind, barrels, "rock")
+		attacker.body.apply_torque_impulse(rock_axis.normalized() * inertia * rock)
+	attacker.body.sleeping = false
+	if kind == "flamer":
+		_flamer_shot(attacker, bots, from, direction, tick, round_index)
+		return
+	if kind == "tesla":
+		_tesla_shot(attacker, bots, from, direction, tick, round_index)
+		return
 	# Trace from the trunnion, inside the casting, so a barrel pushed through a
 	# wall cannot fire from its far side. Allies block without taking damage.
 	var query := PhysicsRayQueryParameters3D.create(origin, end,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid()])
 	query.hit_from_inside = true
-	var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
+	var result := space.intersect_ray(query)
 	state.last_shot_from = from
 	state.last_shot_to = end if result.is_empty() else result.position
 	state.last_shot_tick = tick
@@ -454,10 +480,123 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 		if victim.body.get_instance_id() != result.collider_id:
 			continue
 		if victim.team != attacker.team and not victim.combat.eliminated:
-			_hit(attacker, victim, result.position, float(TURRET_DAMAGE[kind]),
-				direction * victim.body.mass * float(TURRET_KNOCK[kind]), tick, round_index,
-				float(TURRET_RECOIL[kind]), kind)
+			_hit(attacker, victim, result.position, tuning.value(kind, "damage"),
+				direction * victim.body.mass * tuning.value(kind, "knock"), tick, round_index,
+				tuning.value(kind, "recoil"), kind)
+			if kind == "railgun":
+				_railgun_pierce(attacker, victim, bots, result.position, end, direction, tick, round_index)
 		return
+
+## The slug punches through its first victim into whatever stands behind it.
+func _railgun_pierce(attacker: MvpBot, first: MvpBot, bots: Dictionary, at: Vector3, end: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
+	var tuning := TurretTuning.settings()
+	var query := PhysicsRayQueryParameters3D.create(at + direction * 0.05, end,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid(), first.body.get_rid()])
+	var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
+	attacker.combat.last_shot_to = end if result.is_empty() else result.position
+	if result.is_empty():
+		return
+	for id: int in bots:
+		var victim: MvpBot = bots[id]
+		if victim.body.get_instance_id() == result.collider_id and victim.team != attacker.team and not victim.combat.eliminated:
+			_hit(attacker, victim, result.position, tuning.value("railgun", "damage") * tuning.value("railgun", "pierce_share"),
+				direction * victim.body.mass * tuning.value("railgun", "knock") * 0.5, tick, round_index, 0.0, "railgun")
+			return
+
+## First unobstructed point on a bot seen from a point, or {} when anything
+## else (walls, allies, other bots) is in the way.
+func _line_of_fire(attacker: MvpBot, from: Vector3, victim: MvpBot, extra_exclude: Array[RID] = []) -> Dictionary:
+	var exclude: Array[RID] = [attacker.body.get_rid()]
+	exclude.append_array(extra_exclude)
+	var query := PhysicsRayQueryParameters3D.create(from, victim.body.global_position,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, exclude)
+	var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
+	if result.is_empty() or result.collider_id != victim.body.get_instance_id():
+		return {}
+	return result
+
+## Flame cone: every hostile inside the widening cone that the flame can
+## actually reach takes a burn tick. Walls shorten the jet; allies shield.
+func _flamer_shot(attacker: MvpBot, bots: Dictionary, from: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
+	var tuning := TurretTuning.settings()
+	var state := attacker.combat
+	var reach := tuning.value("flamer", "range")
+	var wall := PhysicsRayQueryParameters3D.create(from, from + direction * reach, BaselineConfig.WORLD_LAYER)
+	var blocked := attacker.body.get_world_3d().direct_space_state.intersect_ray(wall)
+	if not blocked.is_empty():
+		reach = from.distance_to(blocked.position)
+	state.last_shot_from = from
+	state.last_shot_to = from + direction * reach
+	state.last_shot_tick = tick
+	for id: int in bots:
+		var victim: MvpBot = bots[id]
+		if victim == attacker or victim.team == attacker.team or victim.combat.eliminated:
+			continue
+		var offset := victim.body.global_position - from
+		var along := offset.dot(direction)
+		var radius := victim.collision_bounds().size.length() * 0.35
+		if along < 0.0 or along > reach + radius:
+			continue
+		if (offset - direction * along).length() > along * tan(tuning.value("flamer", "half_angle")) + radius:
+			continue
+		var seen := _line_of_fire(attacker, from, victim)
+		if seen.is_empty():
+			continue
+		_hit(attacker, victim, seen.position, tuning.value("flamer", "damage"),
+			direction * victim.body.mass * tuning.value("flamer", "knock"), tick, round_index, 0.0, "flamer")
+
+## Tesla discharge: arcs to the nearest hostile it can see within the seek
+## cone, then chains to the nearest other hostile near that target.
+func _tesla_shot(attacker: MvpBot, bots: Dictionary, from: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
+	var tuning := TurretTuning.settings()
+	var state := attacker.combat
+	var reach := tuning.value("tesla", "range")
+	state.last_shot_from = from
+	state.last_shot_to = from + direction * 5.0
+	state.last_shot_tick = tick
+	var best: MvpBot
+	var best_hit := {}
+	var best_distance := INF
+	for id: int in bots:
+		var victim: MvpBot = bots[id]
+		if victim == attacker or victim.team == attacker.team or victim.combat.eliminated:
+			continue
+		var offset := victim.body.global_position - from
+		var distance := offset.length()
+		if distance > reach + victim.collision_bounds().size.length() * 0.35 or distance < 0.01:
+			continue
+		if offset.normalized().dot(direction) < cos(tuning.value("tesla", "seek_angle")) or distance >= best_distance:
+			continue
+		var seen := _line_of_fire(attacker, from, victim)
+		if seen.is_empty():
+			continue
+		best = victim
+		best_hit = seen
+		best_distance = distance
+	if best == null:
+		return
+	state.last_shot_to = best_hit.position
+	_hit(attacker, best, best_hit.position, tuning.value("tesla", "damage"),
+		(best.body.global_position - from).normalized() * best.body.mass * tuning.value("tesla", "knock"), tick, round_index, 0.0, "tesla")
+	var chained: MvpBot
+	var chained_hit := {}
+	var chain_distance := tuning.value("tesla", "chain_reach")
+	for id: int in bots:
+		var victim: MvpBot = bots[id]
+		if victim == attacker or victim == best or victim.team == attacker.team or victim.combat.eliminated:
+			continue
+		var distance := victim.body.global_position.distance_to(best.body.global_position)
+		if distance >= chain_distance:
+			continue
+		var seen := _line_of_fire(attacker, best.body.global_position, victim, [best.body.get_rid()])
+		if seen.is_empty():
+			continue
+		chained = victim
+		chained_hit = seen
+		chain_distance = distance
+	if chained != null:
+		_hit(attacker, chained, chained_hit.position, tuning.value("tesla", "damage") * tuning.value("tesla", "chain_share"),
+			Vector3.ZERO, tick, round_index, 0.0, "tesla")
 
 func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: int) -> void:
 	var state := attacker.combat
@@ -545,6 +684,6 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:
 		attacker.combat.attack_id += 1
 	events.append({"event_id":event_id, "round":round_index, "tick":tick, "kind":kind,
-		"attack_id":attacker.combat.shot_sequence if kind in ["minigun", "cannon", "plasma"] else attacker.combat.attack_id, "attacker":attacker.entity_id,
+		"attack_id":attacker.combat.shot_sequence if kind in ["minigun", "cannon", "plasma", "flamer", "tesla", "railgun"] else attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,
 		"normal":(point - victim.body.global_position).normalized()})

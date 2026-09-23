@@ -16,6 +16,7 @@ depression = ',\n'.join('\t"%s":%s' % (k, fmt(v)) for k, v in data['clearance'][
 barrels = ',\n'.join('\t"%s":[%s]' % (k, ', '.join(fmt(b) for b in v)) for k, v in data['barrels'].items())
 source = re.sub(r'const TURRET_DEPRESSION := \{.*?\n?\}', 'const TURRET_DEPRESSION := {\n' + depression + '}', source, count=1, flags=re.S)
 source = re.sub(r'const TURRET_BARRELS := \{.*?\n?\}', 'const TURRET_BARRELS := {\n' + barrels + '}', source, count=1, flags=re.S)
-source = re.sub(r'const TURRET_MUZZLE := \{[^}]*\}', 'const TURRET_MUZZLE := {"cannon":%g, "plasma":%g}' % (data['muzzle_offsets']['cannon'], data['muzzle_offsets']['plasma']), source, count=1)
+muzzles = ', '.join('"%s":%g' % (k, v) for k, v in data['muzzle_offsets'].items())
+source = re.sub(r'const TURRET_MUZZLE := \{[^}]*\}', 'const TURRET_MUZZLE := {' + muzzles + '}', source, count=1)
 target.write_text(source)
 print('updated', target, 'from', manifest)
