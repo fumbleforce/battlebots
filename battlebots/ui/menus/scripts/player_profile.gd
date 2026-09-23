@@ -301,11 +301,41 @@ func part_name(slot: String, id: String) -> String:
 			if item.id == id: return item.name
 	return id.capitalize()
 
-func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
-	if tab not in ["parts","paint","decals"] or sealed(): return
+## The active draft as it would be with this choice equipped, or {} when the
+## choice cannot be applied. Nothing is recorded; Customize shows it on hover.
+func equip_preview(tab: String, cat: Dictionary, item: Dictionary) -> Dictionary:
+	if tab not in ["parts","paint","decals"]: return {}
 	var draft: Dictionary = loadouts[active_bot].duplicate(true)
 	if tab == "parts" and cat.slot == "chassis":
-		var leaving: String = str(draft.get("parts", {}).get("chassis", ""))
+		return fit_body(item.id).draft
+	elif tab == "parts":
+		return _with_part(draft, cat.slot, item.id)
+	elif tab == "decals":
+		if cat.slot == "model":
+			if item.id != "sawblade": return {}
+			_ensure_body(draft)
+		elif cat.slot in SawbladeConfig.OPTIONS:
+			_ensure_body(draft)
+			draft.cosmetics.sawblade[cat.slot] = int(item.id)
+	elif cat.slot != "paint":
+		if cat.slot not in SawbladeConfig.COLORS: return {}
+		_ensure_body(draft)
+		draft.cosmetics.sawblade[cat.slot] = resolved_item(tab, cat, item).rgba.duplicate()
+	else:
+		if item.id not in ["cyan","orange","white","red"]: return {}
+		_ensure_body(draft)
+		draft.cosmetics.paint = item.id
+		var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
+		var color := Color(colors[item.id]).srgb_to_linear()
+		for channel: String in ["paint_primary", "paint_secondary"]:
+			draft.cosmetics.sawblade[channel] = [color.r, color.g, color.b, 1.0]
+	return draft
+
+func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
+	if tab not in ["parts","paint","decals"] or sealed(): return
+	var draft: Dictionary
+	if tab == "parts" and cat.slot == "chassis":
+		var leaving: String = str(loadouts[active_bot].get("parts", {}).get("chassis", ""))
 		var fitted := fit_body(item.id)
 		draft = fitted.draft
 		if draft.is_empty(): return
@@ -318,28 +348,9 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 		memory.erase(item.id)
 		if not leaving.is_empty() and leaving != item.id: memory[leaving] = lost
 		_body_swaps[active_bot] = memory
-	elif tab == "parts":
-		draft = _with_part(draft, cat.slot, item.id)
-		if draft.is_empty(): return
-	elif tab == "decals":
-		if cat.slot == "model":
-			if item.id != "sawblade": return
-			_ensure_body(draft)
-		elif cat.slot in SawbladeConfig.OPTIONS:
-			_ensure_body(draft)
-			draft.cosmetics.sawblade[cat.slot] = int(item.id)
-	elif cat.slot != "paint":
-		if cat.slot not in SawbladeConfig.COLORS: return
-		_ensure_body(draft)
-		draft.cosmetics.sawblade[cat.slot] = resolved_item(tab, cat, item).rgba.duplicate()
 	else:
-		if item.id not in ["cyan","orange","white","red"]: return
-		_ensure_body(draft)
-		draft.cosmetics.paint = item.id
-		var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
-		var color := Color(colors[item.id]).srgb_to_linear()
-		for channel: String in ["paint_primary", "paint_secondary"]:
-			draft.cosmetics.sawblade[channel] = [color.r, color.g, color.b, 1.0]
+		draft = equip_preview(tab, cat, item)
+		if draft.is_empty(): return
 
 	# Preserve invalid combinations for repair. Only a body change swaps other
 	# parts (visibly, and reversibly by switching back or Undo).

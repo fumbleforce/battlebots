@@ -39,6 +39,30 @@ func run() -> void:
 			var painted_model: Node3D = screen.build_preview.model
 			profile.undo_edit()
 			check(profile.loadouts[profile.active_bot].cosmetics.sawblade.paint_primary == original_color and screen.build_preview.model != painted_model, "Undo restores authored preview paint")
+			var weapons: int = profile.catalogue.parts.map(func(cat: Dictionary) -> String: return cat.slot).find("weapon")
+			screen.get_node("%Categories").get_child(weapons).pressed.emit()
+			var equipped_weapon: String = profile.loadouts[profile.active_bot].parts.weapon
+			var hovered: Control = null
+			var hovered_id := ""
+			for i: int in profile.catalogue.parts[weapons].items.size():
+				var tile: Control = screen.choice_tile("parts", weapons, i)
+				if tile != null and profile.catalogue.parts[weapons].items[i].id != equipped_weapon:
+					hovered = tile
+					hovered_id = profile.catalogue.parts[weapons].items[i].id
+					break
+			check(hovered != null, "Another weapon is listed to hover")
+			if hovered != null:
+				hovered.mouse_entered.emit()
+				check(screen.build_preview._draft.parts.weapon == hovered_id and profile.loadouts[profile.active_bot].parts.weapon == equipped_weapon, "Hovering a part previews it on the model without equipping it")
+				hovered.mouse_exited.emit()
+				check(screen.build_preview._draft.parts.weapon == equipped_weapon, "Leaving the part restores the equipped model")
+			check(screen.get_node("%SelDesc").visible and screen.details_toggle.icon == screen.DETAILS_CLOSE_ICON, "Description starts open with a collapse arrow")
+			screen.details_toggle.pressed.emit()
+			check(not screen.get_node("%SelDesc").visible and not screen.get_node("%SelName").visible and screen.details_toggle.visible and screen.details_toggle.icon == screen.DETAILS_OPEN_ICON, "Collapse arrow folds the description to a reopen arrow")
+			screen._refresh()
+			check(not screen.get_node("%SelDesc").visible, "Description stays folded across refreshes")
+			screen.details_toggle.pressed.emit()
+			check(screen.get_node("%SelDesc").visible and screen.get_node("%SelName").visible, "Reopen arrow restores the description")
 			check(screen.get_node("%Categories").get_child_count() == profile.catalogue.parts.size(),"Every canonical category is available")
 			screen._set_tab("paint")
 			check(screen.get_node("%Items").get_child_count() == 4,"Four canonical paints")

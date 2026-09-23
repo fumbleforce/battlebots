@@ -9,6 +9,8 @@ const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS"}
 ## Compact one-line option tiles, plus a thin swatch strip on paint choices.
 const TILE_HEIGHT := 44
 const SWATCH_HEIGHT := 6
+const DETAILS_CLOSE_ICON := preload("res://ui/menus/icons/chevron_wide_down.svg")
+const DETAILS_OPEN_ICON := preload("res://ui/menus/icons/chevron_wide_up.svg")
 
 var _tab := "parts"
 var _cat := {"parts": 0, "paint": 0, "decals": 0}
@@ -23,6 +25,9 @@ var revalidate_button: Button
 var recovery_panel: GarageRecoveryPanel
 var recovery_button: Button
 var stats_button: Button
+## Folds or reopens the chosen item's description under the choices.
+var details_toggle: Button
+var _details_collapsed := false
 var _text_scale := 1.0
 var _showing_stats := false
 var _category_page := {"parts": 0, "paint": 0, "decals": 0}
@@ -54,7 +59,7 @@ func apply_text_scale(factor: float) -> void:
 	if is_instance_valid(recovery_panel): recovery_panel.apply_text_scale(_text_scale)
 	readout.get_node("%ImageFrame").custom_minimum_size.y = 240 if _text_scale == 1.0 else 160
 	# Room for a name and three description lines keeps the preview from resizing.
-	%SelDesc.get_parent().custom_minimum_size.y = ceilf(120 * _text_scale)
+	%SelDesc.get_parent().custom_minimum_size.y = 0.0 if _details_collapsed else ceilf(120 * _text_scale)
 	for row: Control in %Categories.get_children():
 		row.custom_minimum_size.y = ceilf(82 * _text_scale)
 		row.get_node("%Current").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -62,6 +67,16 @@ func apply_text_scale(factor: float) -> void:
 		if not tile.has_node("Inner"): continue
 		tile.custom_minimum_size.y = ceilf(TILE_HEIGHT * _text_scale)
 		tile.get_node("Inner/Col/ArtBox").custom_minimum_size.y = SWATCH_HEIGHT
+
+## Folds the chosen item's name and description down to the reopen arrow.
+func _set_details_collapsed(value: bool) -> void:
+	_details_collapsed = value
+	%SelName.visible = not value
+	%SelDesc.visible = not value
+	details_toggle.icon = DETAILS_OPEN_ICON if value else DETAILS_CLOSE_ICON
+	details_toggle.tooltip_text = "Show item description" if value else "Hide item description"
+	%SelDesc.get_parent().custom_minimum_size.y = 0.0 if value else ceilf(120 * _text_scale)
+
 
 func _show_preview_stats(value: bool) -> void:
 	_showing_stats = value
@@ -148,6 +163,28 @@ func _ready() -> void:
 	var selected := %SelDesc.get_parent() as Control
 	selected.size_flags_vertical = Control.SIZE_SHRINK_END
 	%SelDesc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# A wide arrow at the top centre folds the description away for more choices.
+	details_toggle = Button.new()
+	details_toggle.name = "DetailsToggle"
+	details_toggle.focus_mode = Control.FOCUS_NONE
+	details_toggle.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	details_toggle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	for state: String in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+		var box := StyleBoxFlat.new()
+		box.bg_color = Color("#232932") if state.begins_with("hover") else Color(0, 0, 0, 0)
+		box.set_corner_radius_all(6)
+		box.content_margin_left = 16
+		box.content_margin_right = 16
+		box.content_margin_top = 2
+		box.content_margin_bottom = 2
+		details_toggle.add_theme_stylebox_override(state, box)
+	details_toggle.add_theme_color_override("icon_normal_color", Color("#8a94a0"))
+	for state: String in ["icon_hover_color", "icon_pressed_color", "icon_hover_pressed_color"]:
+		details_toggle.add_theme_color_override(state, BuildReadout.AMBER)
+	selected.add_child(details_toggle)
+	selected.move_child(details_toggle, 0)
+	details_toggle.pressed.connect(func(): _set_details_collapsed(not _details_collapsed))
+	_set_details_collapsed(false)
 	$Layout/Footer/Row/Hint1.hide()
 	var bot: Dictionary = PlayerProfile.bots[PlayerProfile.active_bot]
 	name_edit = LineEdit.new()
@@ -360,10 +397,10 @@ func _refresh() -> void:
 					PlayerProfile.equip(group_tab, group_cat, it)
 				else:
 					_refresh())
-			if _affects_stats(group_tab, group_cat):
-				# Only while the mouse is over another part: preview how it would move the build.
-				tile.mouse_entered.connect(_preview_swap.bind(group_tab, group_cat, it))
-				tile.mouse_exited.connect(readout.clear_change)
+			# Only while the mouse is over another choice: show it on the model (and how
+			# it would move the stats) without equipping it. A left click equips.
+			tile.mouse_entered.connect(_preview_swap.bind(group_tab, group_cat, it))
+			tile.mouse_exited.connect(_end_preview)
 			if _refocus == "item" and described:
 				_focus_control.call_deferred(tile)
 	_refocus = ""
@@ -393,7 +430,7 @@ func _swap(verb: String, tab: String, cat: Dictionary, item: Dictionary) -> Dict
 			var pair: Array = fitted.swaps[slot]
 			caption += "\n%s %s → %s" % [slot.to_upper(), PlayerProfile.part_name(slot, pair[0]), PlayerProfile.part_name(slot, pair[1])]
 		return {"base": GarageComparison.current(registry, loadout),
-			"target": GarageComparison.current(registry, fitted.draft), "caption": caption}
+			"target": GarageComparison.current(registry, fitted.draft), "caption": caption, "draft": fitted.draft}
 	var comparison := GarageComparison.compare_armor(registry, loadout, cat.slot, int(item.id)) if tab == "decals" \
 		else GarageComparison.compare(registry, loadout, cat.slot, item.id)
 	return {"base": comparison.current, "target": comparison.proposed, "caption": caption}
@@ -406,10 +443,24 @@ func _affects_stats(tab: String, cat: Dictionary) -> bool:
 
 func _preview_swap(tab: String, cat: Dictionary, item: Dictionary) -> void:
 	if not is_inside_tree() or PlayerProfile.item_state(tab, cat, item) == "eq":
-		readout.clear_change()
+		_end_preview()
 		return
-	var swap := _swap("PREVIEW", tab, cat, item)
-	readout.show_change(swap.base, swap.target, swap.caption)
+	var draft: Dictionary
+	if _affects_stats(tab, cat):
+		var swap := _swap("PREVIEW", tab, cat, item)
+		readout.show_change(swap.base, swap.target, swap.caption)
+		draft = swap.get("draft", {})
+	else:
+		readout.clear_change()
+	if draft.is_empty(): draft = PlayerProfile.equip_preview(tab, cat, item)
+	if not draft.is_empty(): build_preview.show_loadout(draft)
+
+
+## Returns the model and stat strip to the equipped build.
+func _end_preview() -> void:
+	if not is_inside_tree(): return
+	readout.clear_change()
+	build_preview.show_loadout(PlayerProfile.loadouts[PlayerProfile.active_bot])
 
 
 ## Right-panel choice groups for the selected category. PARTS > ARMOR lists one
