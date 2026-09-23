@@ -171,8 +171,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				_hit(a, b, a.body.global_position, raw, (direction + lift) * knockback_speed * b.body.mass, tick, round_index, 0.2, "ram")
 				_hit(b, a, b.body.global_position, raw, (-direction + lift) * knockback_speed * a.body.mass, tick, round_index, 0.2, "ram")
 				cooldowns[key] = time + 0.5
-				_open_pin_window(a, b, direction, excess_closing)
-				_open_pin_window(b, a, -direction, excess_closing)
+				_open_pin_window(a, b, direction)
+				_open_pin_window(b, a, -direction)
 	_resolve_pins(bots, tick, round_index)
 	# Collect every eligible attack before damage: mutual lethal hits share a tick.
 	for hit: Array in pending_hits:
@@ -182,16 +182,21 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		bot.previous_pose = bot.body.global_transform
 		bot.previous_velocity = bot.body.linear_velocity
 
-## Remembers which face of the victim a ram struck, for the wall-pin check.
-func _open_pin_window(attacker: MvpBot, victim: MvpBot, direction: Vector3, excess_closing: float) -> void:
+## Remembers which face of the victim a ram struck and how fast the rammer
+## itself was driving into it, for the wall-pin check. A bot that was struck
+## while not driving into the other (it was the one rammed) pins nobody.
+func _open_pin_window(attacker: MvpBot, victim: MvpBot, direction: Vector3) -> void:
 	var face := victim.zone_at(attacker.body.global_position)
 	face = COMPONENT_FACES.get(face, face)
 	var flat := Vector3(direction.x, 0.0, direction.z)
 	if flat.is_zero_approx():
 		return
+	var speed := attacker.previous_velocity.dot(flat.normalized())
+	if speed < physics.ram_pin_min_attacker_speed:
+		return
 	_pin_windows["pin:%d:%d" % [attacker.entity_id, victim.entity_id]] = {"attacker":attacker.entity_id,
 		"victim":victim.entity_id, "face":face, "direction":flat.normalized(),
-		"excess":excess_closing, "expires":time + physics.ram_pin_window_seconds}
+		"speed":speed, "expires":time + physics.ram_pin_window_seconds}
 
 ## A rammed bot shoved into static geometry behind it takes one "crush" hit per
 ## ram on the struck face. Armour there soaks only ram_pin_armour_share of it.
@@ -206,10 +211,19 @@ func _resolve_pins(bots: Dictionary, tick: int, round_index: int) -> void:
 		var wall := _far_wall_contact(victim, pin.direction)
 		if wall.is_empty():
 			continue
-		var raw := minf(physics.ram_pin_damage_max,
-			physics.ram_pin_damage_base + physics.ram_pin_damage_per_closing_speed * float(pin.excess))
+		var raw := pin_damage(physics, float(pin.speed), attacker.body.mass)
 		_hit(attacker, victim, wall[0], raw, Vector3.ZERO, tick, round_index, 0.0, "crush", pin.face, physics.ram_pin_armour_share)
 		_pin_windows.erase(key)
+
+## Crush damage from the rammer alone: its own speed into the victim and its
+## mass. The victim's mass and speed do not matter.
+static func pin_damage(tuning: BotPhysics, attacker_speed: float, attacker_mass: float) -> float:
+	var excess := maxf(0.0, attacker_speed - tuning.ram_pin_min_attacker_speed)
+	var speed_damage := minf(tuning.ram_pin_damage_max,
+		tuning.ram_pin_damage_base + tuning.ram_pin_damage_per_speed * excess)
+	var mass_factor := clampf(attacker_mass / tuning.reference_mass,
+		tuning.ram_pin_min_mass_factor, tuning.ram_pin_max_mass_factor)
+	return speed_damage * mass_factor
 
 ## The victim's contact with a wall-like static surface on the side facing away
 ## from the rammer, as [point, normal], or [] when there is none.

@@ -1048,3 +1048,13 @@ top_speed_per_kg, min, max) from `data/bot_physics.json` `mass` (100 kg, 0.005/k
 validation no longer rejects heavy builds (power stays capped at 100). Authority, client replay
 and the garage read the same stat; `DriveBody` still applies the motor
 `top_speed_multiplier` on top. Needs the matching hosted release.
+
+Build `mvp-ab-31` (#50): wall-pin (crush) damage depends only on the rammer.
+`CombatWorld.pin_damage(tuning, attacker_speed, attacker_mass)` =
+min(`ram_pin_damage_max`, `ram_pin_damage_base` + `ram_pin_damage_per_speed` x
+(rammer's own speed into the victim - `ram_pin_min_attacker_speed`)) x
+clamp(rammer mass / `mass.reference_mass`, `ram_pin_min_mass_factor`,
+`ram_pin_max_mass_factor`). A bot slower than `ram_pin_min_attacker_speed` into
+the other (the one rammed) opens no pin. `ram_pin_damage_per_closing_speed` is
+replaced by `ram_pin_damage_per_speed`. Protocol unchanged; needs a matching
+hosted release.

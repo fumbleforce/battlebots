@@ -51,13 +51,16 @@
 		"lifter_hold_acceleration_at_1g": 0.0,
 		"ram_knockback_per_closing_speed": 0.25,
 		"ram_knockback_lift_fraction": 0.08,
-		"_pin_comment": "Wall pin: a rammed bot that touches static arena geometry on its far side (within ram_pin_window_seconds of the ram) takes one crushing hit on the face the rammer struck: base + per_closing_speed * (closing - 4 m/s), capped at max. Armour on that face stops at most ram_pin_armour_share of it; the rest reaches the core. Wall contacts are those whose normal has |y| below ram_pin_wall_max_normal_y, lying on the far side (horizontal alignment with the ram direction at least ram_pin_far_side_min_alignment).",
+		"_pin_comment": "Wall pin: a rammed bot that touches static arena geometry on its far side (within ram_pin_window_seconds of the ram) takes one crushing hit on the face the rammer struck. Damage depends only on the rammer: (base + per_speed * (its own speed into the victim - min_attacker_speed), capped at max) * clamp(its mass / mass.reference_mass, min_mass_factor, max_mass_factor). A rammer slower than min_attacker_speed (e.g. the bot that was rammed) pins nobody. Armour on that face stops at most ram_pin_armour_share of it; the rest reaches the core. Wall contacts are those whose normal has |y| below ram_pin_wall_max_normal_y, lying on the far side (horizontal alignment with the ram direction at least ram_pin_far_side_min_alignment).",
 		"ram_pin_window_seconds": 0.5,
 		"ram_pin_damage_base": 60.0,
-		"ram_pin_damage_per_closing_speed": 8.0,
+		"ram_pin_min_attacker_speed": 2.0,
+		"ram_pin_damage_per_speed": 8.0,
 		"ram_pin_damage_max": 150.0,
 		"ram_pin_wall_max_normal_y": 0.5,
 		"ram_pin_far_side_min_alignment": 0.5,
-		"ram_pin_armour_share": 0.2
+		"ram_pin_armour_share": 0.2,
+		"ram_pin_min_mass_factor": 0.6,
+		"ram_pin_max_mass_factor": 1.8
 	}
 }

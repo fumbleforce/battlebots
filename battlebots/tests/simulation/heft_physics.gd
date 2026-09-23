@@ -64,6 +64,7 @@ func run() -> void:
 	await knock_slide(bot, Vector3.RIGHT)
 	await knock_slide(bot, Vector3.BACK)
 	await ram_rebound()
+	pin_damage_scaling()
 	await wall_pin(false)
 	await wall_pin(false, false)
 	await wall_pin(true)
@@ -186,18 +187,35 @@ func wall_pin(armoured: bool, walled := true) -> void:
 					follow = PIN_FOLLOW_FRAMES
 			elif event.kind == "crush":
 				pin_damage += int(event.damage)
-	print("Wall pin (armoured=%s, walled=%s): ram damage %d, pin damage %d, core %.0f -> %.0f" % [armoured, walled, ram_damage, pin_damage, core_before, b.combat.core])
+	print("Wall pin (armoured=%s, walled=%s): rammer mass %.0f, ram damage %d, pin damage %d, core %.0f -> %.0f" % [armoured, walled, a.body.mass, ram_damage, pin_damage, core_before, b.combat.core])
+	var least := physics.ram_pin_damage_base * physics.ram_pin_min_mass_factor
 	check(ram_damage > 0, "The rammer reaches the victim at ram speed")
 	if not walled:
 		check(pin_damage == 0, "No wall behind the victim, no wall pin")
 	elif armoured:
-		check(pin_damage > 0 and b.combat.core <= core_before - physics.ram_pin_damage_base * (1.0 - physics.ram_pin_armour_share),
+		check(pin_damage > 0 and b.combat.core <= core_before - least * (1.0 - physics.ram_pin_armour_share),
 			"Armour on the struck face only slightly reduces the wall pin")
 	else:
-		check(pin_damage > 0 and b.combat.core <= core_before - physics.ram_pin_damage_base,
+		check(pin_damage > 0 and b.combat.core <= core_before - least,
 			"A bare face rammed into a wall takes a crushing core hit")
 	if wall != null:
 		wall.free()
+
+## Crush damage follows the rammer's own speed and mass, within the configured caps.
+func pin_damage_scaling() -> void:
+	var slow := physics.ram_pin_min_attacker_speed + 2.0
+	var fast := physics.ram_pin_min_attacker_speed + 8.0
+	var mass := physics.reference_mass
+	check(CombatWorld.pin_damage(physics, fast, mass) > CombatWorld.pin_damage(physics, slow, mass),
+		"A faster rammer crushes harder")
+	check(CombatWorld.pin_damage(physics, fast, mass * 1.5) > CombatWorld.pin_damage(physics, fast, mass),
+		"A heavier rammer crushes harder")
+	check(is_equal_approx(CombatWorld.pin_damage(physics, physics.ram_pin_min_attacker_speed, mass), physics.ram_pin_damage_base),
+		"A reference-mass rammer at the minimum speed deals the base crush")
+	check(is_equal_approx(CombatWorld.pin_damage(physics, 1000.0, mass * 100.0), physics.ram_pin_damage_max * physics.ram_pin_max_mass_factor),
+		"Speed and mass contributions are capped")
+	check(is_equal_approx(CombatWorld.pin_damage(physics, fast, 1.0), CombatWorld.pin_damage(physics, fast, mass) * physics.ram_pin_min_mass_factor),
+		"A very light rammer keeps the minimum mass factor")
 
 ## Released-throttle hull knocked sideways or backward stops within MAX_KNOCK_SLIDE.
 func knock_slide(bot: MvpBot, direction: Vector3) -> void:

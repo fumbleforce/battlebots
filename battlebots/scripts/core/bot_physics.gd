@@ -53,16 +53,21 @@ var lifter_hold_acceleration_at_1g: float
 var ram_knockback_per_closing_speed: float
 var ram_knockback_lift_fraction: float
 ## Wall pin: seconds after a ram in which the victim touching a far-side wall
-## takes a crushing hit on the struck face (base + per m/s above the ram
-## threshold, capped); armour there stops at most armour_share of it. A wall contact has |normal.y| below wall_max_normal_y
+## takes a crushing hit on the struck face; armour there stops at most
+## armour_share of it. Damage comes from the rammer only: (base + per m/s of its
+## own speed above min_attacker_speed, capped at max) x clamp(its mass /
+## reference_mass, min_mass_factor, max_mass_factor). A wall contact has |normal.y| below wall_max_normal_y
 ## and a horizontal offset aligned with the ram by at least far_side_min_alignment.
 var ram_pin_window_seconds: float
 var ram_pin_damage_base: float
-var ram_pin_damage_per_closing_speed: float
+var ram_pin_min_attacker_speed: float
+var ram_pin_damage_per_speed: float
 var ram_pin_damage_max: float
 var ram_pin_wall_max_normal_y: float
 var ram_pin_far_side_min_alignment: float
 var ram_pin_armour_share: float
+var ram_pin_min_mass_factor: float
+var ram_pin_max_mass_factor: float
 
 const SECTIONS := {
 	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g"],
@@ -75,8 +80,9 @@ const SECTIONS := {
 	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g", "lifter_min_release_charge",
 		"minigun_impulse_multiplier", "lifter_hold_acceleration_at_1g",
 		"ram_knockback_per_closing_speed", "ram_knockback_lift_fraction",
-		"ram_pin_window_seconds", "ram_pin_damage_base", "ram_pin_damage_per_closing_speed", "ram_pin_damage_max",
-		"ram_pin_wall_max_normal_y", "ram_pin_far_side_min_alignment", "ram_pin_armour_share"],
+		"ram_pin_window_seconds", "ram_pin_damage_base", "ram_pin_min_attacker_speed", "ram_pin_damage_per_speed", "ram_pin_damage_max",
+		"ram_pin_wall_max_normal_y", "ram_pin_far_side_min_alignment", "ram_pin_armour_share",
+		"ram_pin_min_mass_factor", "ram_pin_max_mass_factor"],
 }
 
 static func settings() -> BotPhysics:
