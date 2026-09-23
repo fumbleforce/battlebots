@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2mklmd8xfsu"
-path="res://.godot/imported/conifer_branches_nor.png-73fd66ab5534088feac6834f67c59ea4.ctex"
+path.s3tc="res://.godot/imported/conifer_branches_nor.png-73fd66ab5534088feac6834f67c59ea4.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/woodland/conifer_branches_nor.png"
-dest_files=["res://.godot/imported/conifer_branches_nor.png-73fd66ab5534088feac6834f67c59ea4.ctex"]
+dest_files=["res://.godot/imported/conifer_branches_nor.png-73fd66ab5534088feac6834f67c59ea4.s3tc.ctex"]
 
 [params]
 
