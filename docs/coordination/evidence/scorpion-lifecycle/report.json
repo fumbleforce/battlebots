@@ -1,0 +1,1288 @@
+{
+  "version": "4.7.2.stable.official.ed1daf0bf",
+  "cycles": 10,
+  "generatedAt": "2026-09-23T15:53:52.435Z",
+  "upstream": "https://github.com/godotengine/godot/issues/122498",
+  "results": [
+    {
+      "name": "model",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 0,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": -1,
+          "mode": "model",
+          "objects": 2989,
+          "phase": "initial",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 0,
+          "mode": "model",
+          "objects": 3065,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 0,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 1,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 1,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 2,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 2,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 3,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 3,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 4,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 4,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 5,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 5,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 6,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 6,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 7,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 7,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 8,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 8,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 9,
+          "mode": "model",
+          "objects": 3066,
+          "phase": "built",
+          "resources": 1518,
+          "textures": 232083456
+        },
+        {
+          "cycle": 9,
+          "mode": "model",
+          "objects": 2990,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": -1,
+          "mode": "model",
+          "objects": 2985,
+          "phase": "shutdown",
+          "resources": 1462,
+          "textures": 206877696
+        }
+      ]
+    },
+    {
+      "name": "visual",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 0,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": -1,
+          "mode": "visual",
+          "objects": 2989,
+          "phase": "initial",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 0,
+          "mode": "visual",
+          "objects": 3285,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 0,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 1,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 1,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 2,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 2,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 3,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 3,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 4,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 4,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 5,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 5,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 6,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 6,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 7,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 7,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 8,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 8,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": 9,
+          "mode": "visual",
+          "objects": 3286,
+          "phase": "built",
+          "resources": 1539,
+          "textures": 243953664
+        },
+        {
+          "cycle": 9,
+          "mode": "visual",
+          "objects": 2991,
+          "phase": "freed",
+          "resources": 1462,
+          "textures": 218517504
+        },
+        {
+          "cycle": -1,
+          "mode": "visual",
+          "objects": 2986,
+          "phase": "shutdown",
+          "resources": 1462,
+          "textures": 218517504
+        }
+      ]
+    },
+    {
+      "name": "bot",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 0,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": -1,
+          "mode": "bot",
+          "objects": 2989,
+          "phase": "initial",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 0,
+          "mode": "bot",
+          "objects": 3361,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 0,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 1,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 1,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 2,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 2,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 3,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 3,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 4,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 4,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 5,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 5,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 6,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 6,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 7,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 7,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 8,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 8,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": 9,
+          "mode": "bot",
+          "objects": 3362,
+          "phase": "built",
+          "resources": 1541,
+          "textures": 244129792
+        },
+        {
+          "cycle": 9,
+          "mode": "bot",
+          "objects": 2993,
+          "phase": "freed",
+          "resources": 1463,
+          "textures": 218517504
+        },
+        {
+          "cycle": -1,
+          "mode": "bot",
+          "objects": 2988,
+          "phase": "shutdown",
+          "resources": 1463,
+          "textures": 218517504
+        }
+      ]
+    },
+    {
+      "name": "arena",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 7,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": -1,
+          "mode": "arena",
+          "objects": 2989,
+          "phase": "initial",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 0,
+          "mode": "arena",
+          "objects": 4003,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 0,
+          "mode": "arena",
+          "objects": 3009,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 1,
+          "mode": "arena",
+          "objects": 4004,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 1,
+          "mode": "arena",
+          "objects": 3009,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 2,
+          "mode": "arena",
+          "objects": 4004,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 2,
+          "mode": "arena",
+          "objects": 3027,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 3,
+          "mode": "arena",
+          "objects": 4010,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 3,
+          "mode": "arena",
+          "objects": 3020,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 4,
+          "mode": "arena",
+          "objects": 4007,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 4,
+          "mode": "arena",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 5,
+          "mode": "arena",
+          "objects": 4007,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 5,
+          "mode": "arena",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 6,
+          "mode": "arena",
+          "objects": 4007,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 6,
+          "mode": "arena",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 7,
+          "mode": "arena",
+          "objects": 4007,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 7,
+          "mode": "arena",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 8,
+          "mode": "arena",
+          "objects": 4007,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 8,
+          "mode": "arena",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": 9,
+          "mode": "arena",
+          "objects": 4007,
+          "phase": "built",
+          "resources": 1466,
+          "textures": 837773824
+        },
+        {
+          "cycle": 9,
+          "mode": "arena",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1466,
+          "textures": 827451904
+        },
+        {
+          "cycle": -1,
+          "mode": "arena",
+          "objects": 3007,
+          "phase": "shutdown",
+          "resources": 1466,
+          "textures": 827451904
+        }
+      ]
+    },
+    {
+      "name": "world",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 7,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": -1,
+          "mode": "world",
+          "objects": 2990,
+          "phase": "initial",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 0,
+          "mode": "world",
+          "objects": 4384,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 0,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 1,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 1,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 2,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 2,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 3,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 3,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 4,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 4,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 5,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 5,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 6,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 6,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 7,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 7,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 8,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 8,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": 9,
+          "mode": "world",
+          "objects": 4385,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 865843712
+        },
+        {
+          "cycle": 9,
+          "mode": "world",
+          "objects": 3012,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 829909504
+        },
+        {
+          "cycle": -1,
+          "mode": "world",
+          "objects": 3007,
+          "phase": "shutdown",
+          "resources": 1467,
+          "textures": 829909504
+        }
+      ]
+    },
+    {
+      "name": "world_no_reflections",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 0,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": -1,
+          "mode": "world_no_reflections",
+          "objects": 2996,
+          "phase": "initial",
+          "resources": 1462,
+          "textures": 206877696
+        },
+        {
+          "cycle": 0,
+          "mode": "world_no_reflections",
+          "objects": 4388,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 0,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 1,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 1,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 2,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 2,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 3,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 3,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 4,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 4,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 5,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 5,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 6,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 6,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 7,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 7,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 8,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 8,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": 9,
+          "mode": "world_no_reflections",
+          "objects": 4389,
+          "phase": "built",
+          "resources": 1545,
+          "textures": 341719552
+        },
+        {
+          "cycle": 9,
+          "mode": "world_no_reflections",
+          "objects": 3017,
+          "phase": "freed",
+          "resources": 1467,
+          "textures": 305785344
+        },
+        {
+          "cycle": -1,
+          "mode": "world_no_reflections",
+          "objects": 3012,
+          "phase": "shutdown",
+          "resources": 1467,
+          "textures": 305785344
+        }
+      ]
+    },
+    {
+      "name": "minimal_no_probe",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 0,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": 0,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 1,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 2,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 3,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 4,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 5,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 6,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 7,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 8,
+          "phase": "freed",
+          "textures": 2653696
+        },
+        {
+          "cycle": 9,
+          "phase": "freed",
+          "textures": 2653696
+        }
+      ]
+    },
+    {
+      "name": "minimal_shared_world",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 7,
+      "textureGrowthPerCycle": 0,
+      "samples": [
+        {
+          "cycle": 0,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 1,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 2,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 3,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 4,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 5,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 6,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 7,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 8,
+          "phase": "freed",
+          "textures": 526777856
+        },
+        {
+          "cycle": 9,
+          "phase": "freed",
+          "textures": 526777856
+        }
+      ]
+    },
+    {
+      "name": "minimal_replaced_world",
+      "renderer": "Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080",
+      "textureRidsAtShutdown": 70,
+      "textureGrowthPerCycle": 3145728,
+      "samples": [
+        {
+          "cycle": 0,
+          "phase": "freed",
+          "textures": 5799424
+        },
+        {
+          "cycle": 1,
+          "phase": "freed",
+          "textures": 8945152
+        },
+        {
+          "cycle": 2,
+          "phase": "freed",
+          "textures": 12090880
+        },
+        {
+          "cycle": 3,
+          "phase": "freed",
+          "textures": 15236608
+        },
+        {
+          "cycle": 4,
+          "phase": "freed",
+          "textures": 18382336
+        },
+        {
+          "cycle": 5,
+          "phase": "freed",
+          "textures": 21528064
+        },
+        {
+          "cycle": 6,
+          "phase": "freed",
+          "textures": 24673792
+        },
+        {
+          "cycle": 7,
+          "phase": "freed",
+          "textures": 27819520
+        },
+        {
+          "cycle": 8,
+          "phase": "freed",
+          "textures": 30965248
+        },
+        {
+          "cycle": 9,
+          "phase": "freed",
+          "textures": 34110976
+        }
+      ]
+    }
+  ],
+  "sourceBase": "ac8f4040d2f1627a834da9e5a9d0f5f149c0f890",
+  "validation": "Native ten-cycle run with the diagnostic sources in this commit; baseline PASS."
+}

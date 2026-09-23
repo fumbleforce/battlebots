@@ -1,0 +1,82 @@
+Native diagnostic excerpts — full memory samples are retained in report.json.
+
+Original scorpion_showcase.tscn before investigation:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+SCORPION CAPTURE /tmp/scorpion-lifecycle-before.png
+WARNING: 7 RIDs of type "Texture" were leaked.
+   at: finalize (servers/rendering/rendering_device.cpp:8900)
+
+Final control: model
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+SCORPION LIFECYCLE PASS
+
+Final control: visual
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+SCORPION LIFECYCLE PASS
+
+Final control: bot
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+SCORPION LIFECYCLE PASS
+
+Final control: arena
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+SCORPION LIFECYCLE PASS
+WARNING: 7 RIDs of type "Texture" were leaked.
+   at: finalize (servers/rendering/rendering_device.cpp:8900)
+
+Final control: world
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+SCORPION LIFECYCLE PASS
+WARNING: 7 RIDs of type "Texture" were leaked.
+   at: finalize (servers/rendering/rendering_device.cpp:8900)
+
+Final control: world_no_reflections
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+SCORPION LIFECYCLE PASS
+
+Final control: minimal_no_probe
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+REFLECTION REPRO PASS
+
+Final control: minimal_shared_world
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+REFLECTION REPRO PASS
+WARNING: 7 RIDs of type "Texture" were leaked.
+   at: finalize (servers/rendering/rendering_device.cpp:8900)
+
+Final control: minimal_replaced_world
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080
+REFLECTION REPRO PASS
+WARNING: 70 RIDs of type "Texture" were leaked.
+   at: finalize (servers/rendering/rendering_device.cpp:8900)
+
+Runner:
+Checking model (10 cycles)...
+PASS model: 0 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking visual (10 cycles)...
+PASS visual: 0 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking bot (10 cycles)...
+PASS bot: 0 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking arena (10 cycles)...
+PASS arena: 7 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking world (10 cycles)...
+PASS world: 7 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking world_no_reflections (10 cycles)...
+PASS world_no_reflections: 0 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking minimal_no_probe (10 cycles)...
+PASS minimal_no_probe: 0 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking minimal_shared_world (10 cycles)...
+PASS minimal_shared_world: 7 texture RIDs at shutdown; 0 bytes/cycle after warmup
+Checking minimal_replaced_world (10 cycles)...
+PASS minimal_replaced_world: 70 texture RIDs at shutdown; 3145728 bytes/cycle after warmup
+DIAGNOSIS VERIFIED; known engine bug remains. Evidence: /tmp/scorpion-final-evidence

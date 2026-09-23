@@ -5,6 +5,16 @@ ownership wording and "A: release required" notes are history. Hosted releases
 now deploy automatically from `main` (see services/matchmaking/DEPLOYMENT.md);
 live claims and coordination are on the GitHub issues.
 
+## Scorpion texture shutdown investigation (#18) — 23 September 2026
+
+The seven Texture RID warnings come from the pinned Godot reflection-atlas
+cleanup bug, independently reproduced without any game assets. Scorpion model,
+visual and full-bot controls free cleanly. Repeated builds/live loadout swaps in
+one World3D plateau; destroying independent worlds with probes leaks 3 MiB per
+atlas at the tested default size. Native differential checks and retained
+[evidence/limits](coordination/SCORPION_LIFECYCLE.md) document the verified engine
+issue. Engine pin, runtime, assets and release compatibility remain unchanged.
+
 ## Conventional reverse steering (#43) — 23 September 2026
 
 Backing up now reverses steering yaw, including reverse coasting. Forward
