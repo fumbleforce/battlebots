@@ -100,9 +100,10 @@ void fragment() {
 	float rut = ruts(p, tread);
 	// Gravel stones pressed into the surface.
 	vec2 cell = wl_cells(p * 7.0);
-	float stone = (1.0 - smoothstep(0.16, 0.3, cell.x)) * step(0.62, cell.y) * (1.0 - rut * 0.7);
+	// Sub-pixel gravel shimmers; it fades out before it gets that small.
+	float stone = (1.0 - smoothstep(0.16, 0.3, cell.x)) * step(0.62, cell.y) * (1.0 - rut * 0.7) * fade;
 	vec2 cell2 = wl_cells(p * 2.1 + 9.0);
-	float cobble = (1.0 - smoothstep(0.1, 0.22, cell2.x)) * step(0.9, cell2.y);
+	float cobble = (1.0 - smoothstep(0.06, 0.24, cell2.x)) * step(0.9, cell2.y) * (1.0 - smoothstep(20.0, 60.0, dist));
 	// Hollows collect water; puddles sit in the deepest parts and in the ruts.
 	float hollow = big * 0.72 + mid * 0.28 + rut * 0.08;
 	float wet = smoothstep(0.55, 0.67, hollow);
@@ -137,12 +138,12 @@ void fragment() {
 	float scorch = (1.0 - smoothstep(0.05, 0.28, sc.x)) * step(0.72, sc.y);
 	float rays = 0.6 + 0.4 * sin(atan(p.y, p.x) * 23.0 + sc.y * 40.0);
 	col = mix(col, vec3(0.04, 0.035, 0.03), scorch * rays * 0.75);
-	col = mix(col, vec3(0.34, 0.32, 0.29) * (0.7 + grain * 0.5), stone * 0.75);
-	col = mix(col, vec3(0.3, 0.29, 0.27) * (0.8 + fine * 0.4), cobble);
+	col = mix(col, col * vec3(1.18, 1.14, 1.08) * (0.85 + grain * 0.25), stone * 0.7);
+	col = mix(col, col * vec3(1.1, 1.08, 1.04) * (0.8 + fine * 0.3), cobble * 0.8);
 	col = mix(col, vec3(0.08, 0.06, 0.04), wet * 0.8);
 	vec3 green = mix(vec3(0.1, 0.13, 0.045), vec3(0.3, 0.27, 0.12), smoothstep(0.35, 0.75, fine + grain * 0.2));
 	col = mix(col, green * (0.8 + grain * 0.3), grass * 0.92);
-	vec3 water = vec3(0.03, 0.028, 0.022);
+	vec3 water = vec3(0.07, 0.055, 0.04);
 	col = mix(col, water, puddle);
 	// Submerged beds are dark silt; steep banks show wet clay.
 	float under = 1.0 - smoothstep(water_level - 0.05, water_level + 0.35, wpos.y);
@@ -161,10 +162,12 @@ void fragment() {
 	float rough = mix(0.94, 0.72, wet);
 	rough = mix(rough, 0.8, stone * 0.5);
 	// Muddy water, not a mirror: broad soft sheen instead of sun sparkles.
-	ROUGHNESS = mix(rough, 0.3, puddle);
-	SPECULAR = mix(0.36, 0.4, puddle);
+	// Puddles are wet, silty mud rather than mirrors: a mirror in a displaced rut
+	// catches the low sun as a blooming white point and flickers under TAA.
+	ROUGHNESS = mix(rough, 0.55, puddle);
+	SPECULAR = mix(0.36, 0.3, puddle);
 	float ripple = (sin(dot(p, vec2(3.0, 2.3)) + TIME * 1.2) + sin(dot(p, vec2(-2.0, 3.7)) + TIME * 1.6)) * 0.0003;
-	float h = tread * 0.006 * fade + (fine - 0.5) * 0.02 + stone * 0.012 * fade + cobble * 0.03
+	float h = tread * 0.006 * fade + (fine - 0.5) * 0.02 + stone * 0.012 * fade + cobble * 0.008 * fade
 		+ (grain - 0.5) * 0.003 * fade + grass * (wl_noise(p * 45.0) - 0.5) * 0.01 * fade;
 	h = mix(h, ripple * fade, puddle);
 	NORMAL = wl_bump(VERTEX, NORMAL, h, 1.0);
