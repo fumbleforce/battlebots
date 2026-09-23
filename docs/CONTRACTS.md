@@ -859,6 +859,9 @@ identity (#16) must own it before credits gate shared content.
 
 ## Heavy-machine physics configuration (B, #38, 23 September 2026)
 
+Build `mvp-ab-17`, protocol 7 (unchanged wire fields); catalogue unchanged.
+Gameplay change: needs A's matching hosted server release before hosted play.
+
 All heft, motor-authority and impact tuning lives in `data/bot_physics.json`,
 read through the typed `BotPhysics.settings()` loader (`scripts/core/bot_physics.gd`).
 Missing or non-numeric fields fail loading; there are no silent defaults. Server
