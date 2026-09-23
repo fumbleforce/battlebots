@@ -50,7 +50,7 @@ MATS = {}
 def mat(name):
 	if name not in MATS:
 		m = bpy.data.materials.new(name)
-		m.diffuse_color = {"timber": (0.35, 0.25, 0.16, 1), "plank": (0.45, 0.35, 0.25, 1), "iron": (0.12, 0.12, 0.12, 1)}[name]
+		m.diffuse_color = {"timber": (0.35, 0.25, 0.16, 1), "plank": (0.45, 0.35, 0.25, 1), "iron": (0.12, 0.12, 0.12, 1)}.get(name, (0.5, 0.5, 0.5, 1))
 		MATS[name] = m
 	return MATS[name]
 
@@ -125,7 +125,7 @@ def strap(x, y0, y1, z, width=0.32):
 		parts += bolt((x, y, z + 0.03), 0.07)
 	return parts
 
-def export(name):
+def export(name, prefix="palisade_"):
 	bpy.ops.object.select_all(action="SELECT")
 	bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
 	bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
@@ -155,10 +155,10 @@ def export(name):
 		scene.cycles.device = "CPU"
 		bpy.ops.object.bake(type="AO")
 	bpy.data.objects.remove(ground)
-	bpy.ops.export_scene.gltf(filepath=str(OUT / ("palisade_" + name + ".gltf")), export_format="GLTF_SEPARATE",
+	bpy.ops.export_scene.gltf(filepath=str(OUT / (prefix + name + ".gltf")), export_format="GLTF_SEPARATE",
 		use_selection=True, export_materials="EXPORT", export_image_format="NONE", export_apply=True,
 		export_vertex_color="ACTIVE")
-	print("PALISADE", name, "tris", sum(len(p.vertices) - 2 for p in joined.data.polygons))
+	print("EXPORT", prefix + name, "tris", sum(len(p.vertices) - 2 for p in joined.data.polygons))
 
 def bay(bannered):
 	reset()
@@ -229,8 +229,9 @@ def corner_post():
 		bpy.context.object.data.materials.append(mat("iron"))
 	export("corner_post")
 
-bay(False)
-bay(True)
-post()
-corner_post()
-print("PALISADE DONE")
+if __name__ == "__main__":
+	bay(False)
+	bay(True)
+	post()
+	corner_post()
+	print("PALISADE DONE")

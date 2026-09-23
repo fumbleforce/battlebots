@@ -339,10 +339,11 @@ func _team_color(local: Vector3) -> Color:
 
 var _modules: Dictionary = {}
 
-func _module(name: String, pose: Transform3D) -> void:
-	if not _modules.has(name):
-		_modules[name] = []
-	_modules[name].append(_side * pose)
+func _module(name: String, pose: Transform3D, prefix: String = "palisade_") -> void:
+	var key := prefix + name
+	if not _modules.has(key):
+		_modules[key] = []
+	_modules[key].append(_side * pose)
 
 ## Instance the Blender palisade modules with the scanned timber materials.
 func _flush_modules() -> void:
@@ -357,8 +358,15 @@ func _flush_modules() -> void:
 		m.set_shader_parameter("weathering", slot[2])
 		slots[slot[0]] = m
 	slots["iron"] = _materials.iron
+	slots["canvas"] = _materials.canvas
+	slots["lamp"] = _materials.lamp
+	var valance := StandardMaterial3D.new()
+	valance.vertex_color_use_as_albedo = true
+	valance.albedo_color = Color(0.9, 0.6, 0.35)
+	valance.roughness = 0.9
+	slots["shirt"] = valance
 	for name: String in _modules:
-		var scene: Node = load("res://assets/models/woodland/palisade_%s.gltf" % name).instantiate()
+		var scene: Node = load("res://assets/models/woodland/%s.gltf" % name).instantiate()
 		var mesh := (scene.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate() as Mesh
 		scene.free()
 		for surface: int in range(mesh.get_surface_count()):
@@ -380,6 +388,7 @@ func _flush_modules() -> void:
 
 func _flush() -> void:
 	_flush_modules()
+	_flush_fans()
 	for key: String in _batches:
 		var parts := key.split("/")
 		var batch: Dictionary = _batches[key]
@@ -521,15 +530,8 @@ func _gate(a: float, b: float, side: int, right: bool) -> void:
 		label.shaded = true
 
 func _walkway(x0: float, x1: float) -> void:
+	# The walkway itself is part of the Blender stands module.
 	var width := x1 - x0
-	var centre := (x0 + x1) * 0.5
-	_box("deck", Vector3(centre, DECK - 0.1, W - 2.8), Vector3(width, 0.2, 5.4), Vector3.ZERO, _tint(0.06))
-	_box("timber", Vector3(centre, DECK - 0.5, W - 0.3), Vector3(width, 0.9, 0.5), Vector3.ZERO, _tint(0.06))
-	for n: int in range(6):
-		var x := x0 + (n + 0.5) * width / 6.0
-		_box("rail", Vector3(x, DECK + 0.55, W - 0.45), Vector3(0.12, 1.1, 0.12), Vector3.ZERO, _tint(0.08))
-	_box("rail", Vector3(centre, DECK + 1.08, W - 0.45), Vector3(width, 0.1, 0.18), Vector3.ZERO, _tint(0.05))
-	_box("rail", Vector3(centre, DECK + 0.6, W - 0.45), Vector3(width, 0.08, 0.07), Vector3.ZERO, _tint(0.05))
 	# Standing spectators crowd the rail above the giants.
 	for row: int in range(3):
 		var z := W - 0.9 - row * 0.62
@@ -541,119 +543,77 @@ func _walkway(x0: float, x1: float) -> void:
 				continue
 			_person(Vector3(x, DECK, z), _rng.randf_range(0.93, 1.07))
 
+var _fans: Dictionary = {"fan_seated":[], "fan_standing":[]}
+
+## A spectator figure (build_stands.py) facing the arena, coloured per instance.
 func _person(at: Vector3, height: float, seated: bool = false) -> void:
-	# Faces the arena (+z in the face frame). Instance alpha carries a shared
-	# per-person phase so every part of one spectator moves together.
 	var world := _side * at
 	var palette := [Color(0.1, 0.11, 0.12), Color(0.3, 0.26, 0.2), Color(0.2, 0.23, 0.18), Color(0.36, 0.34, 0.31),
-		Color(0.19, 0.15, 0.12), Color(0.38, 0.14, 0.09), Color(0.13, 0.17, 0.25), Color(0.45, 0.42, 0.36)]
+		Color(0.19, 0.15, 0.12), Color(0.38, 0.14, 0.09), Color(0.13, 0.17, 0.25), Color(0.45, 0.42, 0.36), Color(0.55, 0.52, 0.46)]
 	var shirt: Color = palette[_rng.randi() % palette.size()]
-	var fan := _rng.randf() < 0.28
-	if fan:
-		shirt = (CYAN if _rng.randf() < (0.7 if world.z > 0 else 0.3) else ORANGE) * 0.9
-	var trousers: Color = [Color(0.08, 0.09, 0.11), Color(0.16, 0.14, 0.12), Color(0.11, 0.14, 0.2)][_rng.randi() % 3]
-	var skin: Color = [Color(0.62, 0.45, 0.34), Color(0.45, 0.31, 0.22), Color(0.28, 0.19, 0.13), Color(0.7, 0.54, 0.43)][_rng.randi() % 4]
-	var phase := _rng.randf()
-	shirt.a = phase
-	trousers.a = phase
-	skin.a = phase
-	var s := height
-	var hip := at.y + (0.46 if seated else 0.86 * s)
-	if seated:
-		_add("crowd", "box", Transform3D(Basis.IDENTITY.scaled(Vector3(0.36, 0.14, 0.44)), Vector3(at.x, hip + 0.02, at.z + 0.2)), trousers)
-		_add("crowd", "box", Transform3D(Basis.IDENTITY.scaled(Vector3(0.32, 0.44, 0.13)), Vector3(at.x, hip - 0.24, at.z + 0.4)), trousers)
-	else:
-		_add("crowd", "box", Transform3D(Basis.IDENTITY.scaled(Vector3(0.34, 0.86 * s, 0.2)), Vector3(at.x, at.y + 0.43 * s, at.z)), trousers)
-	var torso := 0.64 * s
-	_add("crowd", "body", Transform3D(Basis.IDENTITY.scaled(Vector3(0.46, torso, 0.28)), Vector3(at.x, hip + torso * 0.5, at.z)), shirt)
-	for side: float in [-1.0, 1.0]:
-		var raised := fan and _rng.randf() < 0.35
-		var arm := Basis(Vector3.BACK, side * (-0.25 if raised else 0.12)).scaled(Vector3(0.12, 0.58 * s, 0.12))
-		var shoulder := Vector3(at.x + side * 0.26, hip + torso * 0.86, at.z)
-		var reach := Vector3(side * 0.07, 0.29 * s, 0) if raised else Vector3(side * 0.03, -0.27 * s, 0)
-		_add("crowd", "body", Transform3D(arm, shoulder + reach), shirt)
-	_add("crowd", "head", Transform3D(Basis.IDENTITY.scaled(Vector3(0.22, 0.26, 0.23)), Vector3(at.x, hip + torso + 0.14, at.z)), skin)
 	if _rng.randf() < 0.3:
-		var cap := (CYAN if world.z > 0 else ORANGE) if fan else trousers
-		cap.a = phase
-		_add("crowd", "box", Transform3D(Basis.IDENTITY.scaled(Vector3(0.25, 0.08, 0.27)), Vector3(at.x, hip + torso + 0.26, at.z + 0.02)), cap)
+		shirt = (CYAN if _rng.randf() < (0.75 if world.z > 0 else 0.25) else ORANGE) * 0.95
+	shirt.a = _rng.randf()
+	var trousers: Color = [Color(0.08, 0.09, 0.11), Color(0.16, 0.14, 0.12), Color(0.11, 0.14, 0.2), Color(0.25, 0.23, 0.2)][_rng.randi() % 4]
+	trousers.a = (_rng.randi() % 4) / 4.0 + 0.1
+	var s := height * _rng.randf_range(0.95, 1.05)
+	var pose := Transform3D(Basis(Vector3.UP, _rng.randf_range(-0.25, 0.25)).scaled(Vector3(s * _rng.randf_range(0.9, 1.12), s, s)), at + Vector3(0, -0.02 if seated else 0.0, 0))
+	_fans["fan_seated" if seated else "fan_standing"].append([_side * pose, shirt, trousers])
+
+func _flush_fans() -> void:
+	var parts := {"shirt":0, "trousers":1, "skin":2, "hair":3}
+	for name: String in _fans:
+		var list: Array = _fans[name]
+		if list.is_empty():
+			continue
+		var scene: Node = load("res://assets/models/woodland/stadium_%s.gltf" % name).instantiate()
+		var mesh := (scene.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh.duplicate() as Mesh
+		scene.free()
+		for surface: int in range(mesh.get_surface_count()):
+			var mat := ShaderMaterial.new()
+			mat.shader = CROWD
+			var source := mesh.surface_get_material(surface)
+			mat.set_shader_parameter("part", parts.get(source.resource_name if source else "shirt", 0))
+			mesh.surface_set_material(surface, mat)
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.use_colors = true
+		multi.use_custom_data = true
+		multi.mesh = mesh
+		multi.instance_count = list.size()
+		for i: int in range(list.size()):
+			multi.set_instance_transform(i, list[i][0])
+			multi.set_instance_color(i, list[i][1])
+			multi.set_instance_custom_data(i, list[i][2])
+		var visual := MultiMeshInstance3D.new()
+		visual.name = "Crowd_" + name
+		visual.multimesh = multi
+		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(visual)
+		list.clear()
 
 func _stands(side: int) -> void:
-	# Stepped timber terraces rise outward behind the walkway.
+	# Blender stands module (build_stands.py); face 0 has the scoreboard, no canopy.
+	_module("stands_open" if side == 0 else "stands_canopy", Transform3D(Basis.IDENTITY, Vector3(0, 0, W)), "stadium_")
 	var front := W - 5.5
 	for k: int in range(TIERS):
-		var depth := 0.92
-		var z := front - depth * (k + 0.5)
+		var z := front - 0.92 * (k + 0.5)
 		var top := DECK + 0.5 * (k + 1)
 		var half := (-z) * 0.41421356 - 4.5
-		_box("timber", Vector3(0, (DECK + top) * 0.5, z), Vector3(half * 2.0, top - DECK, depth), Vector3.ZERO, Color(0.7, 0.68, 0.65))
-		_box("deck", Vector3(0, top + 0.02, z + 0.1), Vector3(half * 2.0, 0.05, 0.7), Vector3.ZERO, _tint(0.05))
-		_box("plank", Vector3(0, top + 0.42, z - 0.12), Vector3(half * 2.0, 0.06, 0.34), Vector3.ZERO, _tint(0.05))
 		var x := -half + 0.4
 		while x < half - 0.3:
 			if _rng.randf() < 0.82 and not (side == 0 and absf(x) < 27.0 and k > 6):
-				_person(Vector3(x + _rng.randf_range(-0.06, 0.06), top, z - 0.1), _rng.randf_range(0.92, 1.08), true)
+				_person(Vector3(x + _rng.randf_range(-0.06, 0.06), top, z + 0.05), 1.0, true)
 			x += _rng.randf_range(0.56, 0.7)
-	var back := front - 0.92 * TIERS - 0.2
-	var back_half := (-back) * 0.41421356 - 4.0
-	var roof := DECK + 0.5 * TIERS + 3.2
-	_box("timber", Vector3(0, (DECK + roof + 1.5) * 0.5, back), Vector3(back_half * 2.0, roof + 1.5 - DECK, 0.35), Vector3.ZERO, Color(0.75, 0.72, 0.68))
-	for k: int in range(int(back_half * 2.0 / 6.0) + 1):
-		_box("timber", Vector3(-back_half + k * 6.0, (DECK + roof) * 0.5, back - 0.3), Vector3(0.5, roof - DECK, 0.5), Vector3.ZERO, _tint(0.06))
-	# Canvas tents shade the middle of each stand.
-	if side == 0:
-		return
-	var eave := roof - 1.0
-	for bay: int in range(-4, 5):
-		var x0 := bay * 6.0
-		for x: float in [x0 - 3.0, x0 + 3.0]:
-			_box("rail", Vector3(x, (DECK + eave) * 0.5, front + 0.2), Vector3(0.24, eave - DECK, 0.24), Vector3.ZERO, _tint(0.06))
-			_beam("rail", Vector3(x, eave, front + 0.2), Vector3(x, roof, back), Vector2(0.2, 0.26), _tint(0.06), "box", Vector3.RIGHT)
-		_box("rail", Vector3(x0, eave, front + 0.2), Vector3(6.2, 0.24, 0.22), Vector3.ZERO, _tint(0.05))
-		var span := front - back + 0.8
-		var pitch := atan2(1.4, 3.0)
-		for half: float in [-1.0, 1.0]:
-			_box("canvas", Vector3(x0 + half * 1.5, (eave + roof) * 0.5 + 0.7, (front + back) * 0.5 + 0.4), Vector3(Vector2(3.0, 1.4).length() + 0.1, 0.03, span),
-				Vector3(0, 0, -half * pitch), Color(0.92, 0.88, 0.8))
-		_box("rail", Vector3(x0, (eave + roof) * 0.5 + 1.4, (front + back) * 0.5), Vector3(0.16, 0.16, span), Vector3.ZERO, _tint(0.05))
-		_box("canvas", Vector3(x0, eave - 0.3, front + 0.34), Vector3(6.0, 0.6, 0.02), Vector3.ZERO, _team_color(Vector3(x0, 0, front)) * 1.6)
 
 # --- Corner floodlight towers -------------------------------------------
 
 func _tower() -> void:
 	var c := Vector3(0, 0, -TOWER_RADIUS)
 	var h := TOWER_HEIGHT
-	var legs := [Vector3(-2.6, 0, -2.6), Vector3(2.6, 0, -2.6), Vector3(-2.6, 0, 2.6), Vector3(2.6, 0, 2.6)]
-	for leg: Vector3 in legs:
-		_box("timber", c + leg + Vector3(0, h * 0.5 - 1.0, 0), Vector3(1.0, h + 2.0, 1.0), Vector3.ZERO, _tint(0.06))
-		_box("rusty", c + leg + Vector3(0, 0.3, 0), Vector3(1.5, 1.2, 1.5))
-	var faces := [[legs[0], legs[1]], [legs[2], legs[3]], [legs[0], legs[2]], [legs[1], legs[3]]]
-	var levels := 8
-	for level: int in range(levels):
-		var y0 := 1.5 + level * (h - 1.5) / levels
-		var y1 := y0 + (h - 1.5) / levels
-		for pair: Array in faces:
-			var p: Vector3 = pair[0]
-			var q: Vector3 = pair[1]
-			var hint := Vector3.BACK if absf(p.z - q.z) < 0.1 else Vector3.RIGHT
-			var mid := (p + q) * 0.5
-			var push := Vector3(signf(mid.x) * 0.12 if absf(mid.x) > 1.0 else 0.0, 0, signf(mid.z) * 0.12 if absf(mid.z) > 1.0 else 0.0)
-			_beam("rail", c + p + push + Vector3(0, y0, 0), c + q + push + Vector3(0, y1, 0), Vector2(0.36, 0.26), _tint(0.08), "box", hint)
-			_beam("rail", c + q + push * 2.0 + Vector3(0, y0, 0), c + p + push * 2.0 + Vector3(0, y1, 0), Vector2(0.36, 0.26), _tint(0.08), "box", hint)
-			_beam("rail", c + p + push + Vector3(0, y1, 0), c + q + push + Vector3(0, y1, 0), Vector2(0.45, 0.45), _tint(0.08), "box", hint)
-	_box("deck", c + Vector3(0, h, 0), Vector3(7.0, 0.3, 7.0), Vector3.ZERO, _tint(0.05))
-	for s: float in [-1.0, 1.0]:
-		_box("rail", c + Vector3(s * 3.4, h + 1.1, 0), Vector3(0.12, 0.12, 6.8))
-		_box("rail", c + Vector3(0, h + 1.1, s * 3.4), Vector3(6.8, 0.12, 0.12))
+	_module("tower", Transform3D(Basis.IDENTITY, c), "stadium_")
 	var head := c + Vector3(0, h + 3.2, 2.6)
 	var aim := Basis(Vector3.RIGHT, deg_to_rad(22.0))
-	_add("iron", "box", Transform3D(aim.scaled_local(Vector3(7.2, 4.6, 0.5)), head - aim.z * 0.3))
-	for row: int in range(2):
-		for col: int in range(3):
-			var lamp := head + aim * Vector3(-2.3 + col * 2.3, -1.1 + row * 2.2, 0.0)
-			_add("iron", "cyl", Transform3D(aim * Basis(Vector3.RIGHT, PI / 2.0).scaled_local(Vector3(1.9, 0.8, 1.9)), lamp + aim.z * 0.3))
-			_add("lamp", "cyl", Transform3D(aim * Basis(Vector3.RIGHT, PI / 2.0).scaled_local(Vector3(1.6, 0.05, 1.6)), lamp + aim.z * 0.72))
-	_box("rusty", c + Vector3(0, h + 7.0, 0.8), Vector3(8.6, 2.8, 8.6), Vector3(0, PI / 4.0, 0), Color.WHITE, "pyr")
 	var light := SpotLight3D.new()
 	add_child(light)
 	light.position = _side * (head + aim.z * 1.2)
@@ -678,20 +638,7 @@ func _scoreboard() -> void:
 	# A timber-framed video board rising behind the north stand.
 	var z := W - 20.0
 	var h := 56.0
-	for x: float in [-25.0, 25.0]:
-		for dz: float in [-2.0, 2.0]:
-			_box("timber", Vector3(x, h * 0.5, z + dz), Vector3(1.3, h, 1.3), Vector3.ZERO, _tint(0.05))
-		for level: int in range(10):
-			var y := 1.0 + level * 5.2
-			_beam("rail", Vector3(x, y, z - 2.0), Vector3(x, y + 5.2, z + 2.0), Vector2(0.4, 0.3), _tint(0.06), "box", Vector3.RIGHT)
-			_box("rail", Vector3(x, y + 5.2, z), Vector3(0.5, 0.5, 4.6), Vector3.ZERO, _tint(0.06))
-	_box("timber", Vector3(0, h - 1.0, z), Vector3(52.0, 1.6, 5.0), Vector3.ZERO, _tint(0.05))
-	_box("timber", Vector3(0, 27.2, z), Vector3(52.0, 1.6, 5.0), Vector3.ZERO, _tint(0.05))
-	_box("iron", Vector3(0, 41.0, z - 0.8), Vector3(48.0, 26.0, 1.0))
-	_box("rusty", Vector3(0, h + 1.2, z), Vector3(56.0, 3.2, 8.0))
-	for x: float in [-18.0, -6.0, 6.0, 18.0]:
-		_box("iron", Vector3(x, h + 0.3, z + 2.8), Vector3(2.4, 1.4, 1.2))
-		_box("lamp", Vector3(x, h - 0.3, z + 3.2), Vector3(2.0, 0.16, 0.8))
+	_module("scoreboard", Transform3D(Basis.IDENTITY, Vector3(0, 0, z)), "stadium_")
 	var screen := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(46.0, 24.0)

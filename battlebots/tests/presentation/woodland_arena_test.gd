@@ -117,6 +117,7 @@ func _capture(world: AuthorityWorld) -> void:
 		# Tank-camera height beside the grassy wall foot.
 		["grass", Vector3(-8, 3.2, -104), Vector3(-2, 0.0, -117)],
 		# Default giant-tank chase camera: ~12 m boom, looking across open ground.
+		["tower", Vector3(-41.2, 40.0, -99.4), Vector3(-51.5, 46.0, -124.3)],
 		["chase", Vector3(-62, 6.0, 72), Vector3(-45, 1.0, 30)],
 	]
 	var only := ""
