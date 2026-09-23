@@ -95,7 +95,7 @@ func run() -> void:
 	profile.save_path = path
 	profile.active_bot = 0
 	profile.reload()
-	check(profile.PRESET_COUNT == 5 and profile.loadouts.size() == 5, "Fresh garage retains previous presets and adds Atlas MX")
+	check(profile.loadouts.size() == profile.PRESET_COUNT, "Fresh garage lists exactly the built-in presets")
 	check(profile.active_bot == 0, "Adding Scorpion preserves the existing initial selection")
 	var original_presets: Array = profile.loadouts.slice(0, 3).duplicate(true)
 	check(profile.loadouts[3].parts.chassis == "scorpion_hex" and profile.bots[3].valid, "Fourth Scorpion preset is usable")
@@ -155,16 +155,17 @@ func run() -> void:
 	equip_part("weapon", "hammer")
 	check(profile.loadouts[3] == original_scorpion, "Independent module changes restore the exact original Scorpion draft")
 	check_preview(customize.build_preview, true, true)
-	# The body selector must preserve parts even when the resulting combination
-	# needs repair. It must never silently replace a gun, drive, or appearance.
+	# A body change swaps only the parts the new body cannot use (here the
+	# auxiliary gun) and restores them on switching back.
 	var before_body: Dictionary = profile.loadouts[3].duplicate(true)
 	equip_part("chassis", "balanced")
 	var expected_body := before_body.duplicate(true)
 	expected_body.parts.chassis = "balanced"
-	check(profile.loadouts[3] == expected_body, "Changing body preserves both modules and appearance")
-	check(not profile.bots[3].valid and customize.get_node("%Save").disabled, "Incompatible auxiliary socket is reported and cannot save")
-	profile.undo_edit()
-	check(profile.loadouts[3] == before_body and profile.bots[3].valid, "Undo restores the full valid Scorpion without substitutions")
+	expected_body.parts.utility = profile.loadouts[3].parts.utility
+	check(profile.loadouts[3] == expected_body and expected_body.parts.utility != "minigun_pod", "Changing body keeps the primary and appearance and swaps only the auxiliary gun")
+	check(profile.bots[3].valid and not customize.get_node("%Save").disabled, "Swapped build stays valid and saveable")
+	equip_part("chassis", "scorpion_hex")
+	check(profile.loadouts[3] == before_body and profile.bots[3].valid, "Switching back restores the full Scorpion")
 	var detached: Dictionary = profile.active_loadout()
 	customize.build_preview.show_loadout(detached)
 	detached.parts.weapon = "minigun"

@@ -106,7 +106,6 @@ func grounded_case(weapon: String, auxiliary := false) -> void:
 	var draft := world.registry.atlas()
 	draft.parts.weapon = weapon
 	draft.parts.utility = "minigun_pod" if auxiliary else "cooling_pack"
-	draft.parts.armor = "light"
 	attacker = world.spawn(1, 0, 0, draft)
 	victim = world.spawn(2, 1, 0, world.registry.starter())
 	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 3, 4))

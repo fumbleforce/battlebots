@@ -24,8 +24,6 @@ func turret_build(kind: String, weapon := "lifter") -> Dictionary:
 	var draft := registry.atlas()
 	draft.parts.utility = "turret_" + kind
 	draft.parts.weapon = weapon
-	if kind.ends_with("_quad"):
-		draft.parts.armor = "light"
 	return draft
 
 func catalogue_rules() -> void:

@@ -19,7 +19,6 @@ func _initialize() -> void:
 			var variant := draft.duplicate(true)
 			variant.parts.weapon = weapon
 			variant.parts.utility = utility
-			variant.parts.armor = "light"
 			check(registry.validate(variant).valid == not (weapon == "minigun" and utility == "minigun_pod"),
 				"Every mounted primary/utility fits; duplicate guns do not: " + weapon + "/" + utility)
 	for drive: String in ["agile", "standard_wheels", "walker"]:
