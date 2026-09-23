@@ -41,12 +41,38 @@ float surface(vec2 xz) {
 	return h + lumps + rut_profile(m.r) * rut_depth;
 }
 
+// Rock strata on steep faces: layered ledges pushed along the slope's
+// horizontal normal (visual only, < 0.45 m from the collision surface).
+vec3 displaced(vec2 xz) {
+	float e = 0.35;
+	float h = surface(xz);
+	vec2 g = vec2(surface(xz + vec2(e, 0.0)) - surface(xz - vec2(e, 0.0)), surface(xz + vec2(0.0, e)) - surface(xz - vec2(0.0, e))) / (2.0 * e);
+	float slope = length(g);
+	float steep = smoothstep(0.7, 1.4, slope);
+	vec2 outward = -g / max(slope, 1e-4);
+	// Bands follow height, warped slowly along the face; blocky profile.
+	float along = dot(xz, vec2(-outward.y, outward.x));
+	// Uneven bed thickness, dipping beds and blocky joints between them.
+	float band = h * 0.85 + wl_fbm(vec2(along * 0.05, h * 0.15), 3) * 3.0 + along * 0.04;
+	float bed = floor(band);
+	float step_profile = fract(band);
+	float ledge = smoothstep(0.0, 0.12 + wl_hash(vec2(bed, 1.0)) * 0.2, step_profile) * (1.0 - smoothstep(0.6, 1.0, step_profile));
+	float joint_cell = floor(along / (2.5 + wl_hash(vec2(bed, 5.0)) * 4.0) + wl_hash(vec2(bed, 9.0)));
+	float blocks = wl_hash(vec2(joint_cell, bed * 3.1));
+	float push = (ledge * 0.55 + blocks * 0.45 - 0.5) * 0.9 * steep;
+	return vec3(xz.x + outward.x * push, h + steep * (blocks - 0.5) * 0.1, xz.y + outward.y * push);
+}
+
 void vertex() {
 	vec2 xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
 	float e = 0.25;
-	VERTEX.y = surface(xz);
-	vec3 n = normalize(vec3(surface(xz - vec2(e, 0.0)) - surface(xz + vec2(e, 0.0)), 2.0 * e,
-		surface(xz - vec2(0.0, e)) - surface(xz + vec2(0.0, e))));
+	vec3 p = displaced(xz);
+	VERTEX.xz += p.xz - xz;
+	VERTEX.y = p.y;
+	vec3 dx = displaced(xz + vec2(e, 0.0)) - displaced(xz - vec2(e, 0.0));
+	vec3 dz = displaced(xz + vec2(0.0, e)) - displaced(xz - vec2(0.0, e));
+	vec3 n = normalize(cross(dz, dx));
+	if (n.y < 0.0) { n = -n; }
 	NORMAL = n;
 	TANGENT = normalize(cross(n, vec3(0.0, 0.0, 1.0)));
 	BINORMAL = normalize(cross(TANGENT, n));
@@ -157,6 +183,12 @@ void fragment() {
 	if (steep > 0.01) {
 		vec3 rc = mix(texture(rock_diff, wpos.xy / 5.0).rgb, texture(rock_diff, wpos.zy / 5.0).rgb, bx);
 		vec3 ra = mix(texture(rock_arm, wpos.xy / 5.0).rgb, texture(rock_arm, wpos.zy / 5.0).rgb, bx);
+		// Weathered strata: darker seams under each ledge, lighter tops.
+		float band = fract(wpos.y * 0.85 + wl_fbm(vec2((wpos.x + wpos.z) * 0.05, wpos.y * 0.15), 3) * 3.0 + (wpos.x + wpos.z) * 0.03);
+		rc *= mix(0.6, 1.08, smoothstep(0.0, 0.18, band)) * (1.0 - smoothstep(0.88, 1.0, band) * 0.25);
+		// Lichen and water streaks down the face.
+		float streak = wl_noise(vec2((wpos.x - wpos.z) * 1.7, wpos.y * 0.12));
+		rc = mix(rc, rc * vec3(0.55, 0.52, 0.46), smoothstep(0.55, 0.85, streak) * 0.6);
 		col = mix(col, rc * 0.85, steep);
 		arm = mix(arm, ra, steep);
 	}

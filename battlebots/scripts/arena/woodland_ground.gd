@@ -17,7 +17,7 @@ const SCALE := HALF / 50.0 # Shell spawn markers scale with the octagon.
 
 # Central mesa: practice duels happen on its level top; four ramps face the
 # team lanes and the gates, cliffs fill the sectors between them.
-const MESA_TOP := 4.6
+const MESA_TOP := 7.0
 const MESA_RADIUS := 29.0
 const MESA_CLIFF := 2.4
 const MESA_RAMP := 17.0
