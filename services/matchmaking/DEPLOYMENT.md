@@ -1,10 +1,11 @@
 # Fly.io online playtest deployment
 
-Live endpoint: `https://battlebots-fumbleforce.fly.dev`. Updated 2026-09-23 to
-build `mvp-ab-14`, protocol 6, catalogue 10 from source `a84fd11`, with matching
-Linux/Windows clients. Private and Quick Play duels passed external UDP driving,
-reconnect, results and active rematch checks; stale clients still receive HTTP 409.
-See [current release and rollback evidence](../../docs/coordination/A_HOSTED_LINUX_RELEASE.md).
+Live endpoint: `https://battlebots-fumbleforce.fly.dev`. Deployed automatically
+from `main` since 2026-09-23 (first automated release: build `mvp-ab-20`,
+protocol 9 from `1dd7ea5`, external private + Quick Play duel acceptance passed).
+The live build is whatever `/healthz` reports; the latest "Linux hosted duel
+runtime" run on `main` holds its evidence. Stale clients receive HTTP 409.
+Earlier manual releases: [release and rollback evidence](../../docs/coordination/A_HOSTED_LINUX_RELEASE.md).
 The original deployment was 2026-09-20; previous catalogue-six evidence remains in
 [service synchronization](../../docs/coordination/A_QUICK_PLAY_SERVICE_SYNC.md).
 Provisioning commands below describe recreation, not a request to create duplicates.
