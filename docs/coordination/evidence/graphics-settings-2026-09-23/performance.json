@@ -1,0 +1,25 @@
+{
+  "High": {
+    "cpu_p95_ms": 1.05400002002716,
+    "gpu_median_ms": 4.24300003051758,
+    "gpu_p95_ms": 5.69999980926514,
+    "video_mib": 1808.71781921387,
+    "wall_p95_ms": 5.831
+  },
+  "Low": {
+    "cpu_p95_ms": 0.805999994277954,
+    "gpu_median_ms": 2.21799993515015,
+    "gpu_p95_ms": 3.41300010681152,
+    "video_mib": 1572.90434265137,
+    "wall_p95_ms": 3.495
+  },
+  "Ultra": {
+    "cpu_p95_ms": 0.901000022888184,
+    "gpu_median_ms": 6.01000022888184,
+    "gpu_p95_ms": 7.16900014877319,
+    "video_mib": 2062.63188171387,
+    "wall_p95_ms": 7.879
+  },
+  "adapter": "NVIDIA GeForce RTX 3080",
+  "scope": "1600x900, Vulkan Forward+, actual Foundry and Atlas, static bot and moving camera. Bounded fixture, not whole-game or low-end certification."
+}

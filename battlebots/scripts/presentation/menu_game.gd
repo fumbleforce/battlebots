@@ -15,6 +15,7 @@ var _settings_category := ""
 var _settings_dismissing := false
 var _settings_return_focus: Control
 @export var video_settings_path := "user://video.cfg"
+var graphics_runtime: GraphicsRuntime
 var video_preferences: VideoPreferences
 var video_settings: VideoSettingsPanel
 var _video_overlay: Control
@@ -352,13 +353,19 @@ func _add_settings_hub() -> void:
 	shade.color = Color(0.035, 0.045, 0.06, 0.98)
 	_video_overlay.add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	graphics_runtime = GraphicsRuntime.new()
+	add_child(graphics_runtime)
 	video_settings = VideoSettingsPanel.new()
 	_settings_center(_video_overlay).add_child(video_settings)
 	video_preferences = VideoPreferences.load_file(video_settings_path)
 	if video_preferences.load_error != OK or not FileAccess.file_exists(video_settings_path):
+		var load_error := video_preferences.load_error
 		video_preferences = VideoPreferences.capture()
+		video_preferences.load_error = load_error
 	elif DisplayServer.get_name() != "headless":
 		video_preferences.apply()
+	graphics_runtime.apply(video_preferences.graphics)
+	video_settings.graphics_apply = graphics_runtime.apply
 	video_settings.applied.connect(func(value: VideoPreferences) -> void: video_preferences = value)
 	video_settings.finished.connect(func(_saved: bool) -> void:
 		_video_overlay.hide()
@@ -368,9 +375,10 @@ func _add_settings_hub() -> void:
 	# Theme B's published settings container here; its transactions, binding
 	# capture, camera preview and source files remain owned by B.
 	var camera_panel: Control = preview.settings_panel.get_node("Center/Panel")
-	preview.settings_panel.theme = preload("res://ui/menus/theme/menu_theme.tres")
+	preview.settings_panel.theme = SettingsStyle.make_theme()
 	camera_panel.remove_theme_stylebox_override("panel")
-	camera_panel.theme_type_variation = &"PanelDark"
+	camera_panel.theme_type_variation = &""
+	camera_panel.add_theme_stylebox_override("panel",SettingsStyle.box(SettingsStyle.INK,SettingsStyle.LINE,28))
 	preview.settings_panel.form.get_node("Title").text = "CAMERA SETTINGS"
 	preview.settings_panel.form.get_node("Title").remove_theme_color_override("font_color")
 	preview.settings_panel.form.get_node("Title").theme_type_variation = &"Heading"
@@ -390,10 +398,6 @@ func _add_settings_hub() -> void:
 	get_viewport().size_changed.connect(_fit_camera_settings)
 	_fit_camera_settings()
 	preview.settings_panel.apply_text_scale(_menu_text_scale)
-	for owned_panel: Control in [audio_settings, hud_settings]:
-		owned_panel.theme = preload("res://ui/menus/theme/menu_theme.tres")
-		owned_panel.remove_theme_stylebox_override("panel")
-		owned_panel.theme_type_variation = &"PanelDark"
 
 func _fit_camera_settings() -> void:
 	var center: CenterContainer = preview.settings_panel.get_node("Center")

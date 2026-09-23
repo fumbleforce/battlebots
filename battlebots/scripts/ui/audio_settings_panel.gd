@@ -15,72 +15,47 @@ var _path := ""
 var _opened := false
 
 func _ready() -> void:
-	custom_minimum_size.x = 480
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
-	add_child(column)
-	var heading := Label.new()
-	heading.text = "Audio"
-	heading.add_theme_font_size_override("font_size", 26)
-	column.add_child(heading)
-	var navigation: Array[Control] = []
+	var page := SettingsStyle.page(self,"Audio","Set your mix. Volume changes preview immediately; Cancel restores your saved levels.")
+	page.tabs.hide()
+	SettingsStyle.section(page.content,"Volume mix")
+	var descriptions := {"master":"Overall game volume.","music":"Menu and arena music.","effects":"Motors, weapons and impacts.","ui":"Menu feedback and interface sounds.","announcements":"Arena announcements and match calls.","ambience":"Crowd and arena background sound."}
 	for key: String in AudioPreferences.DEFAULTS:
-		var row := VBoxContainer.new()
-		column.add_child(row)
-		var title := Label.new()
-		title.text = key.capitalize()
-		row.add_child(title)
+		var row := SettingsStyle.row(page.content,key.capitalize(),descriptions.get(key,"Adjust this audio channel."))
 		var line := HBoxContainer.new()
+		line.custom_minimum_size.x = 480
+		line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(line)
 		var slider := HSlider.new()
 		slider.min_value = 0
 		slider.max_value = 1
 		slider.step = 0.01
-		slider.custom_minimum_size = Vector2(300, 30)
+		slider.custom_minimum_size = Vector2(320,42)
 		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slider.tooltip_text = title.text + " volume"
+		slider.tooltip_text = key.capitalize() + " volume"
 		line.add_child(slider)
-		var amount := Label.new()
-		amount.custom_minimum_size.x = 56
+		var amount := SettingsStyle.label(line,"100%",22,SettingsStyle.ACCENT)
+		amount.custom_minimum_size.x = 80
 		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		line.add_child(amount)
 		sliders[key] = slider
 		value_labels[key] = amount
 		slider.value_changed.connect(func(_value: float) -> void: _preview())
-		navigation.append(slider)
+	var mute_row := SettingsStyle.row(page.content,"Mute all audio","Silence every channel without changing your volume mix.")
 	mute_button = CheckButton.new()
-	mute_button.text = "Mute all audio"
+	mute_button.text = "Enabled"
 	mute_button.toggled.connect(func(_value: bool) -> void: _preview())
-	column.add_child(mute_button)
-	message = Label.new()
-	message.custom_minimum_size.y = 48
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message.add_theme_font_size_override("font_size", 15)
-	column.add_child(message)
-	var buttons := HBoxContainer.new()
-	column.add_child(buttons)
-	defaults_button = _button(buttons, "Defaults", reset_defaults)
-	cancel_button = _button(buttons, "Cancel", cancel)
-	save_button = _button(buttons, "Save", save_and_close)
-	navigation.append_array([mute_button, defaults_button, cancel_button, save_button])
-	for index: int in range(navigation.size()):
-		var control := navigation[index]
-		control.focus_next = control.get_path_to(navigation[(index + 1) % navigation.size()])
-		control.focus_previous = control.get_path_to(navigation[posmod(index - 1, navigation.size())])
+	mute_row.add_child(mute_button)
+	message = page.message
+	defaults_button = SettingsStyle.button(page.footer,"Restore defaults",reset_defaults)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.footer.add_child(spacer)
+	cancel_button = SettingsStyle.button(page.footer,"Cancel",cancel)
+	save_button = SettingsStyle.button(page.footer,"Save changes",save_and_close,true)
+	SettingsStyle.focus_cycle(sliders.values() + [mute_button,defaults_button,cancel_button,save_button])
 	hide()
 
-func _button(parent: Node, text: String, callback: Callable) -> Button:
-	var result := Button.new()
-	result.text = text
-	result.custom_minimum_size.y = 40
-	result.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	result.pressed.connect(callback)
-	parent.add_child(result)
-	return result
-
 func apply_text_scale(factor: float) -> void:
-	MenuTextScale.apply(self, factor)
-	custom_minimum_size.x = 600 if factor > 1.0 else 480
+	MenuTextScale.apply(self,factor)
 
 func open_for(preferences: AudioPreferences, path: String) -> void:
 	if _opened:

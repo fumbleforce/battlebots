@@ -17,74 +17,47 @@ var _path := ""
 var _opened := false
 
 func _ready() -> void:
-	theme = preload("res://ui/menus/theme/menu_theme.tres")
-	theme_type_variation = &"PanelGlass"
-	custom_minimum_size.x = 480
-	var inset := MarginContainer.new()
-	for side: String in ["left", "right", "top", "bottom"]:
-		inset.add_theme_constant_override("margin_" + side, 20)
-	add_child(inset)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
-	inset.add_child(column)
-	_label(column, "ACCESSIBILITY", 28).theme_type_variation = &"HeadingItalic"
-	_label(column, "HUD & general menu text size", 20)
+	var page := SettingsStyle.page(self,"Accessibility","Make the interface easier to read. Changes preview immediately and can be cancelled.")
+	page.tabs.hide()
+	SettingsStyle.section(page.content,"Readability")
+	var row := SettingsStyle.row(page.content,"Text size","Scale text in the HUD and general menus.")
 	text_scale_choice = OptionButton.new()
-	for percentage: int in [100, 125, 150]:
-		text_scale_choice.add_item("%d%%" % percentage)
-	column.add_child(text_scale_choice)
-	_label(column, "HUD color preset", 20)
+	for percentage: int in [100,125,150]: text_scale_choice.add_item("%d%%" % percentage)
+	row.add_child(text_scale_choice)
+	row = SettingsStyle.row(page.content,"HUD color palette","Alternative team and status colors for color-vision accessibility.")
 	palette_choice = OptionButton.new()
-	for label: String in ["Standard", "Deuteranopia", "Protanopia", "Tritanopia"]:
-		palette_choice.add_item(label)
-	column.add_child(palette_choice)
+	for caption: String in ["Standard","Deuteranopia","Protanopia","Tritanopia"]: palette_choice.add_item(caption)
+	row.add_child(palette_choice)
+	row = SettingsStyle.row(page.content,"High contrast HUD","Stronger panel backgrounds and borders during matches.")
 	contrast_toggle = CheckButton.new()
-	contrast_toggle.text = "High contrast HUD panels"
-	column.add_child(contrast_toggle)
-	for control: Control in [text_scale_choice, palette_choice, contrast_toggle]:
-		control.add_theme_font_size_override("font_size", 20)
-		control.custom_minimum_size.y = 44
+	contrast_toggle.text = "Enabled"
+	row.add_child(contrast_toggle)
+	for control: Control in [text_scale_choice,palette_choice,contrast_toggle]:
+		control.custom_minimum_size = Vector2(390,48)
+		control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	text_scale_choice.item_selected.connect(func(_index: int) -> void: _preview())
 	palette_choice.item_selected.connect(func(_index: int) -> void: _preview())
 	contrast_toggle.toggled.connect(func(_pressed: bool) -> void: _preview())
-	_label(column, "HUD SAMPLE", 16)
+	SettingsStyle.section(page.content,"Live HUD sample")
 	sample_panel = PanelContainer.new()
-	sample_panel.custom_minimum_size.y = 94
-	column.add_child(sample_panel)
-	sample_label = _label(sample_panel, "CORE 25%\nFRONT BREACHED", 20)
+	sample_panel.custom_minimum_size.y = 100
+	page.content.add_child(sample_panel)
+	sample_label = SettingsStyle.label(sample_panel,"CORE 25%\nFRONT BREACHED",22)
 	sample_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sample_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	message = _label(column, "", 16)
-	message.custom_minimum_size.y = 56
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 12)
-	column.add_child(buttons)
-	cancel_button = _button(buttons, "CANCEL", cancel)
-	save_button = _button(buttons, "SAVE", save_and_close)
-	var navigation: Array[Control] = [text_scale_choice, palette_choice, contrast_toggle, cancel_button, save_button]
-	for index: int in range(navigation.size()):
-		var control := navigation[index]
-		control.focus_next = control.get_path_to(navigation[(index + 1) % navigation.size()])
-		control.focus_previous = control.get_path_to(navigation[posmod(index - 1, navigation.size())])
+	message = page.message
+	SettingsStyle.button(page.footer,"Restore defaults",func() -> void:
+		text_scale_choice.select(0)
+		palette_choice.select(0)
+		contrast_toggle.set_pressed_no_signal(false)
+		_preview())
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.footer.add_child(spacer)
+	cancel_button = SettingsStyle.button(page.footer,"Cancel",cancel)
+	save_button = SettingsStyle.button(page.footer,"Save changes",save_and_close,true)
+	SettingsStyle.focus_cycle([text_scale_choice,palette_choice,contrast_toggle,cancel_button,save_button])
 	hide()
-
-func _label(parent: Node, text: String, font_size: int) -> Label:
-	var item := Label.new()
-	item.text = text
-	item.add_theme_font_size_override("font_size", font_size)
-	parent.add_child(item)
-	return item
-
-func _button(parent: Node, text: String, callback: Callable) -> Button:
-	var item := Button.new()
-	item.text = text
-	item.custom_minimum_size.y = 44
-	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	item.add_theme_font_size_override("font_size", 20)
-	item.pressed.connect(callback)
-	parent.add_child(item)
-	return item
 
 func open_for(preferences: HudPreferences, path: String) -> void:
 	if _opened:
@@ -134,7 +107,7 @@ func apply_text_scale(factor: float) -> void:
 	# The sample reflects its own preview value and must not be scaled twice.
 	MenuTextScale.apply(self, factor)
 	_update_sample(_values())
-	custom_minimum_size.x = 600 if factor > 1.0 else 480
+
 
 func cancel() -> void:
 	if not _opened:

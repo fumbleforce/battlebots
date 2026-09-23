@@ -11,7 +11,7 @@ func frames(count := 8) -> void:
 func inspect_labels(node: Node, bounds: Rect2) -> void:
 	for child: Node in node.find_children("*", "Label", true, false):
 		var label := child as Label
-		if label.is_visible_in_tree():
+		if label.is_visible_in_tree() and not in_scroll(label):
 			check(bounds.encloses(label.get_global_rect()), "Visible category label fits: " + label.text)
 			check(label.get_visible_line_count() == label.get_line_count(), "Full shaped category text visible: " + label.text)
 func run() -> void:
@@ -54,11 +54,18 @@ func run() -> void:
 		if category != "controls":
 			inspect_labels(category_root, Rect2(Vector2.ZERO,Vector2(root.size)))
 		for item: Node in category_root.find_children("*", "Button", true, false):
-			if item.is_visible_in_tree() and category != "controls":
+			if item.is_visible_in_tree() and category != "controls" and not in_scroll(item):
 				check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(item.get_global_rect()), "Category action fits without scroll: " + item.text)
 		if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 			await RenderingServer.frame_post_draw
 			root.get_texture().get_image().save_png("user://settings-category-%s-720-150.png" % category)
+			if category == "video":
+				for tab: String in ["Quality","Effects"]:
+					game.video_settings.select_tab(tab)
+					await frames()
+					await RenderingServer.frame_post_draw
+					root.get_texture().get_image().save_png("user://settings-category-%s-720-150.png" % tab.to_lower())
+
 		if category == "camera":
 			var before: float = game.preview.rig.sensitivity_x
 			game.preview.settings_panel.sensitivity.value += 0.2
@@ -98,3 +105,10 @@ func run() -> void:
 	await frames()
 	print("SETTINGS HUB PASS" if failures == 0 else "SETTINGS HUB FAIL")
 	quit(0 if failures == 0 else 1)
+
+func in_scroll(node: Node) -> bool:
+	var parent := node.get_parent()
+	while parent != null:
+		if parent is ScrollContainer: return true
+		parent = parent.get_parent()
+	return false

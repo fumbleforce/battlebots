@@ -16,6 +16,9 @@ func frames() -> void:
 	await process_frame
 
 func run() -> void:
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+	root.content_scale_size = Vector2i.ZERO
+	root.size = Vector2i(1280,720)
 	var directory := "user://audio-test-%d-%d" % [OS.get_process_id(), Time.get_ticks_usec()]
 	check(DirAccess.make_dir_absolute(directory) == OK, "Unique audio test directory created")
 	var path := directory + "/settings.cfg"
@@ -74,14 +77,14 @@ func run() -> void:
 	prefs.muted = false
 	prefs.apply()
 	var panel := AudioSettingsPanel.new()
-	root.add_child(panel)
-	panel.position = Vector2(30, 30)
-	panel.size = Vector2(484, 560)
+	var frame := SettingsCategoryFrame.new()
+	root.add_child(frame)
+	frame.add_child(panel)
 	panel.finished.connect(func(saved: bool) -> void: finished_values.append(saved))
 	panel.applied.connect(func(value: AudioPreferences) -> void: published.append(value))
 	panel.open_for(prefs, path)
 	await frames()
-	check(panel.size.x <= 500 and panel.size.y <= 640, "Audio panel fits existing settings dimensions")
+	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(panel.get_global_rect()), "Audio page fits display in production category frame")
 	check(root.gui_get_focus_owner() == panel.sliders.master, "Opening focuses Master slider")
 	for control: Control in [panel.sliders.master, panel.sliders.music, panel.sliders.effects, panel.sliders.announcements, panel.mute_button, panel.save_button, panel.cancel_button, panel.defaults_button]:
 		check(panel.get_global_rect().encloses(control.get_global_rect()), "Actual settings control fits panel")

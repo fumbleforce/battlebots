@@ -47,6 +47,8 @@ $checks = @(
 	@('main_menu_fit_test.gd', 'MAIN MENU FIT PASS'),
 	@('menu_host_fit_test.gd', 'MENU HOST FIT PASS'),
 	@('video_settings_test.gd', 'VIDEO SETTINGS PASS'),
+	@('graphics_preferences_test.gd', 'GRAPHICS PREFERENCES PASS'),
+	@('graphics_runtime_test.gd', 'GRAPHICS RUNTIME PASS'),
 	@('video_settings_layout_test.gd', 'VIDEO SETTINGS LAYOUT PASS'),
 	@('settings_hub_test.gd', 'SETTINGS HUB PASS'),
 	@('private_lobby_code_test.gd', 'PRIVATE LOBBY CODE PASS'),
