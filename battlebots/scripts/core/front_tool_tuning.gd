@@ -2,6 +2,7 @@ class_name FrontToolTuning
 extends RefCounted
 ## Typed view of data/front_tools.json: Atlas MX front tool tuning (ram,
 ## spear/forklift, grinder). Server combat and presentation read one file.
+const SCRIPT := "res://scripts/core/front_tool_tuning.gd"
 const PATH := "res://data/front_tools.json"
 const FIELDS := {
 	"ram":["front_cone", "damage_multiplier", "knock_multiplier", "self_share", "punch_seconds",
@@ -31,7 +32,9 @@ static func from_json(source: String, problems: Array[String] = []) -> FrontTool
 	if not data is Dictionary:
 		problems.append("is not a JSON object")
 		return null
-	var result := FrontToolTuning.new()
+	# By path, not class name: a checkout launched with a stale editor class
+	# cache does not know this class yet (#74).
+	var result: FrontToolTuning = load(SCRIPT).new()
 	for tool: String in FIELDS:
 		var entry: Variant = data.get(tool)
 		if not entry is Dictionary:

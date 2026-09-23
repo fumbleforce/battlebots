@@ -1,4 +1,6 @@
 extends Node3D
+const COOLING_ZONE_VISUALS = preload("res://scripts/presentation/cooling_zone_visuals.gd")
+const SPREE_BANNER = preload("res://scripts/ui/spree_banner.gd")
 ## Persistent game owner; imported screens navigate without replacing the live session.
 @onready var session: MvpSession = $Session
 @onready var source: SessionBotSource = $PlayerSource
@@ -40,8 +42,8 @@ var _audio_overlay: Control
 var _audio_caption: Label
 var practice_hud: PracticeHud
 var _restart_practice: Button
-var cooling_zones: CoolingZoneVisuals
-var spree_banner: SpreeBanner
+var cooling_zones: COOLING_ZONE_VISUALS
+var spree_banner: SPREE_BANNER
 var _practice_knocked_out := false
 var _practice_return_screen := ""
 var _default_return_text := ""
@@ -143,12 +145,12 @@ func _ready() -> void:
 	session.pickup_collected.connect(func(event: Dictionary) -> void:
 		pickup_feed.notify(event, session.local_entity)
 		gameplay_audio.pickup_collected(event, session.local_entity))
-	cooling_zones = CoolingZoneVisuals.new()
+	cooling_zones = COOLING_ZONE_VISUALS.new()
 	cooling_zones.name = "CoolingZones"
 	add_child(cooling_zones)
 	cooling_zones.bind_session(session)
-	spree_banner = SpreeBanner.new()
-	spree_banner.name = "SpreeBanner"
+	spree_banner = SPREE_BANNER.new()
+	spree_banner.name = "SPREE_BANNER"
 	combat_hud.canvas.add_child(spree_banner)
 	spree_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	spree_banner.position = Vector2(-400, 150)

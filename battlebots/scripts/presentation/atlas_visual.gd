@@ -1,5 +1,7 @@
 class_name AtlasVisual
 extends Node3D
+const ATLAS_TOOL_VISUAL = preload("res://scripts/presentation/atlas_tool_visual.gd")
+const TURRET_HARPOON_EFFECTS = preload("res://scripts/presentation/turret_harpoon_effects.gd")
 ## Authored Atlas shell, socket-mounted existing weapons, observed track travel.
 ## No collision, authoritative damage, input or simulated weapon state lives here.
 const MODEL := "res://assets/models/atlas_runtime/atlas_mx.glb"
@@ -29,11 +31,11 @@ var drives: Node3D
 var legs: AtlasLegs
 var turret: Node3D
 ## Front tool (ram, spear/forklift, grinder) from atlas_tools.glb, or null.
-var tool: AtlasToolVisual
+var tool: ATLAS_TOOL_VISUAL
 var turret_kind := ""
 var turret_model := ""
 ## TurretShotEffects (cannon, plasma, mortar), TurretSpecialEffects (flamer,
-## tesla, railgun) or TurretHarpoonEffects; all expose configure/show_state/clear_effects/muzzles/shot_count.
+## tesla, railgun) or TURRET_HARPOON_EFFECTS; all expose configure/show_state/clear_effects/muzzles/shot_count.
 var turret_effects: Node3D
 ## Smoothed yaw/pitch actually drawn this frame (also drives the reticle).
 var turret_display := Vector2.ZERO
@@ -76,8 +78,8 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	else:
 		_assemble_tool_adapter()
 	var tool_kind := AtlasGeometry.tool_kind(draft)
-	if not tool_kind.is_empty() and ResourceLoader.exists(AtlasToolVisual.MODEL):
-		tool = AtlasToolVisual.new()
+	if not tool_kind.is_empty() and ResourceLoader.exists(ATLAS_TOOL_VISUAL.MODEL):
+		tool = ATLAS_TOOL_VISUAL.new()
 		tool.name = "AtlasFrontTool"
 		add_child(tool)
 		tool.assemble(tool_kind)
@@ -153,7 +155,7 @@ func _assemble_turret() -> void:
 	if turret_kind == "harpoon":
 		# The loaded head leaves the tube while the bolt is out.
 		recoils = [found.get("HarpoonHead")]
-		turret_effects = TurretHarpoonEffects.new()
+		turret_effects = TURRET_HARPOON_EFFECTS.new()
 	elif turret_kind in ["flamer", "tesla", "railgun"]:
 		turret_effects = TurretSpecialEffects.new()
 	else:

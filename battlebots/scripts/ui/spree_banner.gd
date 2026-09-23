@@ -1,5 +1,6 @@
 class_name SpreeBanner
 extends Label
+const HEAT_RELIEF = preload("res://scripts/core/heat_relief.gd")
 ## Kill-spree banner (#67): when the local bot's replicated spree combo rises,
 ## announce the kill, the combo and the heat it vented (data/heat_relief.json).
 const SECONDS := 2.2
@@ -16,7 +17,7 @@ func bind_session(value: MvpSession) -> void:
 
 static func message(combo: int) -> String:
 	var title: String = NAMES[clampi(combo, 1, NAMES.size()) - 1]
-	var vented := roundi(HeatRelief.settings().kill_vent(combo))
+	var vented := roundi(HEAT_RELIEF.settings().kill_vent(combo))
 	return ("%s   HEAT −%d" % [title, vented]) if combo <= 1 else ("%s  ×%d   HEAT −%d" % [title, combo, vented])
 
 func _ready() -> void:

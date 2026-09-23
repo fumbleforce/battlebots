@@ -1,5 +1,7 @@
 class_name CombatState
 extends RefCounted
+const FRONT_TOOL_TUNING = preload("res://scripts/core/front_tool_tuning.gd")
+const HEAT_RELIEF = preload("res://scripts/core/heat_relief.gd")
 ## Pure authoritative combat state. Presentation consumes detached snapshots.
 var stats: Dictionary
 var core: float
@@ -187,12 +189,12 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	# Perks follow weapons in MvpBot.step. A later perk activation reverses this
 	# tentative cooling before adding heat, including a warm jump release.
 	if not _heat_active:
-		var rate := float(stats.cooling) * (HeatRelief.settings().value("spree", "boost_multiplier") if cooling_boost > 0.0 else 1.0)
+		var rate := float(stats.cooling) * (HEAT_RELIEF.settings().value("spree", "boost_multiplier") if cooling_boost > 0.0 else 1.0)
 		_cooling_this_tick = minf(heat, rate * delta)
 		heat -= _cooling_this_tick
 	# Cooling zones shed heat even while weapons run.
 	if in_cooling_zone:
-		heat = maxf(0.0, heat - HeatRelief.settings().value("zones", "cooling_per_second") * delta)
+		heat = maxf(0.0, heat - HEAT_RELIEF.settings().value("zones", "cooling_per_second") * delta)
 	_enforce_heat_lock()
 
 func is_turret() -> bool:
@@ -317,7 +319,7 @@ func _tick_special_turret(delta: float, held: bool) -> void:
 func credit_kill() -> void:
 	if eliminated:
 		return
-	var relief := HeatRelief.settings()
+	var relief := HEAT_RELIEF.settings()
 	spree = mini(spree + 1, int(relief.value("spree", "max_combo")))
 	_spree_timer = relief.value("spree", "window_seconds")
 	cooling_boost = relief.value("spree", "boost_seconds")
@@ -418,7 +420,7 @@ func _tick_primary(delta: float, command: BotCommand, active: bool) -> void:
 ## (tool_pose). Grinder: primary spins the drum (charge), secondary raises the
 ## arms (tool_pose).
 func _tick_tool(delta: float, command: BotCommand) -> void:
-	var tuning := FrontToolTuning.settings()
+	var tuning := FRONT_TOOL_TUNING.settings()
 	var tool: String = AtlasGeometry.TOOL_PARTS[stats.weapon]
 	var eligible: bool = zones.weapon > 0.0 and not overheated
 	var trigger := command.primary_held and not _secondary_brake(command)

@@ -73,7 +73,7 @@ func wire_records() -> void:
 	var legacy := [1, 0.0, 0.0, 0]
 	check(WireCodec.command_from_array(legacy) == null, "Protocol-six four-field commands are rejected")
 	for bad: Array in [[1, 0.0, 0.0, 0, NAN, 0.0], [1, 0.0, 0.0, 0, 0.0, 2.0], [1, 0.0, 0.0, 0, 4.0, 0.0],
-			[1, 0.0, 0.0, 1024, 0.0, 0.0], [1, 0.0, 0.0, 0, "x", 0.0]]:
+			[1, 0.0, 0.0, 2048, 0.0, 0.0], [1, 0.0, 0.0, 0, "x", 0.0]]:
 		check(WireCodec.command_from_array(bad) == null, "Malformed aim is rejected: " + str(bad))
 	attacker.combat.turret_yaw = 2.0
 	attacker.combat.gun_pitch = 0.25

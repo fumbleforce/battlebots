@@ -54,6 +54,12 @@ docs/TEAM_WORKFLOW.md and docs/CONTRACTS.md before implementation.
   the Woodland arena was built, failures to avoid, and a checklist for new arenas).
 - Before performance or load-time work, read docs/PERFORMANCE.md (how to
   measure, what worked, warnings and open ideas).
+- New `class_name` scripts are unknown to checkouts launched with a stale
+  editor class cache (#65, #74). Runtime code must `preload` them (a static
+  factory loads its own script by path), list them in
+  `tools/check-stale-class-cache.py`, and that check must pass before pushing
+  `main`: `python3 tools/check-stale-class-cache.py --godot <godot>` after an
+  editor import.
 - Commit source `.uid` and required `.import` files; never commit `.godot/`,
   credentials or export output.
 - After shared contract/scene changes run `tools/check-baseline.ps1` (needs

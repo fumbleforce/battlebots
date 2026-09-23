@@ -1,5 +1,6 @@
 class_name AuthorityWorld
 extends Node3D
+const HEAT_RELIEF = preload("res://scripts/core/heat_relief.gd")
 ## Physics-only session world. The session owns timing, commands and match rules.
 ## Emitted after a pickup (or a replicated swap) changes a bot's match loadout.
 ## A body/drive/weapon change replaces the MvpBot node under the same entity id.
@@ -204,13 +205,13 @@ func pickup_points() -> Array[Vector3]:
 ## Arena cooling zones (data/heat_relief.json zones): floor points on the four
 ## axes. Presentation draws them from the same list.
 func cooling_zones() -> Array[Vector3]:
-	var relief := HeatRelief.settings()
+	var relief := HEAT_RELIEF.settings()
 	var half := ArenaBounds.half_extent(arena_id) * relief.value("zones", "fraction")
 	return _on_surface([Vector3(half, 0, 0), Vector3(-half, 0, 0), Vector3(0, 0, half), Vector3(0, 0, -half)])
 
 ## Coolant canister points: a ring between the spawn bearings.
 func coolant_points() -> Array[Vector3]:
-	var relief := HeatRelief.settings()
+	var relief := HEAT_RELIEF.settings()
 	var count := int(relief.value("coolant", "count"))
 	var radius := ArenaBounds.half_extent(arena_id) * relief.value("coolant", "fraction")
 	var points: Array[Vector3] = []
@@ -231,7 +232,7 @@ func _on_surface(points: Array[Vector3]) -> Array[Vector3]:
 	return points
 
 func _mark_cooling_zones() -> void:
-	var relief := HeatRelief.settings()
+	var relief := HEAT_RELIEF.settings()
 	var radius := relief.value("zones", "radius")
 	var height := relief.value("zones", "height")
 	var zones := cooling_zones()

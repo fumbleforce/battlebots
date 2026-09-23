@@ -1,5 +1,6 @@
 class_name MatchPickups
 extends RefCounted
+const HEAT_RELIEF = preload("res://scripts/core/heat_relief.gd")
 ## Authoritative in-match item pickups. Parts and perks change only the picker's
 ## match loadout until the match ends; nothing unlocks for the account. Credits
 ## are tallied here and paid into the account wallet with the match reward.
@@ -100,7 +101,7 @@ func _roll(item: Dictionary) -> Dictionary:
 	if item.get("fixed") == "coolant":
 		item.kind = "coolant"
 		item.part = ""
-		item.amount = int(HeatRelief.settings().value("coolant", "heat"))
+		item.amount = int(HEAT_RELIEF.settings().value("coolant", "heat"))
 	elif pool.is_empty() or _rng.randf() < CREDIT_CHANCE:
 		item.kind = "credits"
 		item.part = ""
@@ -132,7 +133,7 @@ func collect(item: Dictionary, entity_id: int, loadout: Dictionary) -> Dictionar
 		event.slot = registry.parts[item.part].category
 		event.loadout = next
 	item.available = false
-	item.respawn = HeatRelief.settings().value("coolant", "respawn_seconds") if item.kind == "coolant" else RESPAWN_SECONDS
+	item.respawn = HEAT_RELIEF.settings().value("coolant", "respawn_seconds") if item.kind == "coolant" else RESPAWN_SECONDS
 	events.append(event)
 	revision += 1
 	return event

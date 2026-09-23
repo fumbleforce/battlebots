@@ -1,5 +1,6 @@
 class_name CoolingZoneVisuals
 extends Node3D
+const HEAT_RELIEF = preload("res://scripts/core/heat_relief.gd")
 ## Arena cooling zones (#68) drawn at AuthorityWorld.cooling_zones(): a frosted
 ## vent grate ringed by a cold cyan band, cold vapour rising through it, a
 ## pale light and a hovering COOLING label. The authority decides who is
@@ -18,7 +19,7 @@ func _process(_delta: float) -> void:
 		return
 	_arena = session.world.arena_id
 	for child: Node in get_children(): child.queue_free()
-	var radius := HeatRelief.settings().value("zones", "radius")
+	var radius := HEAT_RELIEF.settings().value("zones", "radius")
 	for point: Vector3 in session.world.cooling_zones():
 		add_child(_zone(point, radius))
 

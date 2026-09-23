@@ -3,6 +3,7 @@ extends RefCounted
 ## Typed view of data/heat_relief.json: kill-spree heat venting and combos,
 ## arena cooling zones and coolant pickups (#67, #68). Server and client read
 ## the same file.
+const SCRIPT := "res://scripts/core/heat_relief.gd"
 const PATH := "res://data/heat_relief.json"
 const FIELDS := {
 	"spree":["window_seconds", "heat_per_kill", "heat_per_combo", "max_combo", "boost_seconds", "boost_multiplier"],
@@ -27,7 +28,9 @@ static func from_json(source: String, problems: Array[String] = []) -> HeatRelie
 	if not data is Dictionary:
 		problems.append("is not a JSON object")
 		return null
-	var result := HeatRelief.new()
+	# By path, not class name: a checkout launched with a stale editor class
+	# cache does not know this class yet (#74).
+	var result: HeatRelief = load(SCRIPT).new()
 	for group: String in FIELDS:
 		var entry: Variant = data.get(group)
 		if not entry is Dictionary:

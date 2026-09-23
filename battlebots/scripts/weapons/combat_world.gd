@@ -1,5 +1,6 @@
 class_name CombatWorld
 extends RefCounted
+const FRONT_TOOL_TUNING = preload("res://scripts/core/front_tool_tuning.gd")
 ## Server-only hit queries. No client supplies a target, damage, zone or impulse.
 var time := 0.0
 var event_id := 0
@@ -186,7 +187,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				var raw_ba := raw
 				var knock_ab := knockback_speed
 				var knock_ba := knockback_speed
-				var tools := FrontToolTuning.settings()
+				var tools := FRONT_TOOL_TUNING.settings()
 				if _ram_face(a, direction):
 					raw_ab *= tools.value("ram", "damage_multiplier")
 					knock_ab *= tools.value("ram", "knock_multiplier")
@@ -645,7 +646,7 @@ func _update_grip(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 ## Letting go throws it off; it tears free past strain_distance, after
 ## max_hold_seconds, or when the weapon is disabled or overheated.
 func _hold_impaled(attacker: MvpBot, victim: MvpBot, anchor: Vector3) -> void:
-	var tuning := FrontToolTuning.settings()
+	var tuning := FRONT_TOOL_TUNING.settings()
 	var state := attacker.combat
 	var hold := attacker.body.global_transform * AtlasGeometry.spear_hold(state.stats.size, state.tool_pose)
 	var error := hold - anchor
@@ -672,7 +673,7 @@ func _hold_impaled(attacker: MvpBot, victim: MvpBot, anchor: Vector3) -> void:
 ## Front tool contact (data/front_tools.json). Ram punch and spear thrust hit
 ## each target once per activation; the grinder drum grinds on a cadence.
 func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, round_index: int, contacts: Dictionary) -> void:
-	var tuning := FrontToolTuning.settings()
+	var tuning := FRONT_TOOL_TUNING.settings()
 	var state := attacker.combat
 	var tool: String = AtlasGeometry.TOOL_PARTS[state.stats.weapon]
 	var size: Vector3 = state.stats.size
@@ -781,7 +782,7 @@ func _ram_face(bot: MvpBot, toward: Vector3) -> bool:
 	var flat := toward.slide(Vector3.UP)
 	if nose.is_zero_approx() or flat.is_zero_approx():
 		return false
-	return nose.normalized().dot(flat.normalized()) >= FrontToolTuning.settings().value("ram", "front_cone")
+	return nose.normalized().dot(flat.normalized()) >= FRONT_TOOL_TUNING.settings().value("ram", "front_cone")
 
 ## Flies the shell along its real ballistic path to the first thing it
 ## strikes; it detonates there after the actual flight time.

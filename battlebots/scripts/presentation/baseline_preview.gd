@@ -1,4 +1,5 @@
 extends Node3D
+const MORTAR_AIM_VISUAL = preload("res://scripts/presentation/mortar_aim_visual.gd")
 const GAMEPAD_INPUT = preload("res://scripts/presentation/gamepad_input.gd")
 ## B-owned input/presentation adapter; never writes authoritative bot transforms.
 
@@ -34,7 +35,7 @@ var _diagnostics_fresh := false
 const TURRET_AIM_DISTANCE := 220.0
 var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
-var mortar_aim := MortarAimVisual.new()
+var mortar_aim := MORTAR_AIM_VISUAL.new()
 ## A local part shortcut was used (#64): slot and the session's result.
 signal dev_part_cycled(slot: String, result: Dictionary)
 const DEV_SLOTS := {&"dev_weapon":"weapon", &"dev_body":"chassis", &"dev_drive":"drive"}
