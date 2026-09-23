@@ -393,6 +393,7 @@ func read_view() -> BotView:
 	if fitted is Dictionary:
 		for face: String in fitted:
 			if float(fitted[face]) <= 0.0: view.zones.erase(face)
+			else: view.plate_max[face] = float(fitted[face])
 	view.weapon_cooldown = data.cooldown
 	view.recovery_cooldown = data.recovery_cooldown
 	view.immobilized_remaining = data.immobilized_remaining

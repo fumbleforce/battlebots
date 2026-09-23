@@ -16,6 +16,8 @@ var owner_id: int = 0
 var team: int = 0
 var server_tick: int = 0
 var zones: Dictionary = {}
+## Fitted HP of each armour area in `zones`; presentation only (HUD plate map).
+var plate_max: Dictionary = {}
 var weapon_cooldown: float = 0.0
 var recovery_cooldown: float = 0.0
 var immobilized_remaining: float = 0.0

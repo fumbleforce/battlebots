@@ -21,6 +21,7 @@ func run() -> void:
 	root.add_child(hud)
 	var bot := BotView.new()
 	bot.zones = {"front":60.0, "rear":90.0, "left":12.0, "right":0.0, "drive_left":100.0, "drive_right":0.0, "weapon":45.5}
+	bot.plate_max = {"front":90.0, "rear":90.0, "left":90.0, "right":90.0}
 	bot.core_fraction = 0.64
 	bot.heat_fraction = 0.55
 	bot.weapon_charge_fraction = 0.4
@@ -33,6 +34,12 @@ func run() -> void:
 	check(hud.components.front.text == "FRONT\n60" and hud.components.weapon.text == "WEAPON\n46", "Integrity uses raw units, with positive fractions rounded up")
 	check(hud.components.right.text.contains("BREACHED") and hud.components.drive_right.text.contains("DISABLED"), "Destroyed armor and disabled mechanisms are distinguished")
 	check(hud.recovery_label.text.ends_with("UNAVAILABLE"), "Zero cooldown does not imply recovery eligibility")
+	check(hud.plate_labels.front.text == "Front  60" and hud.plate_labels.left.text == "Left
+12", "Plate map shows each fitted plate's live HP")
+	check(hud.plate_labels.top.text == "Top  —" and hud.plate_labels.underside.text == "Bottom  —", "Bare areas read as unarmoured, not breached")
+	check(hud.plate_labels.front.modulate == hud._text_color() and hud.plate_labels.left.modulate == hud.accent and hud.plate_labels.right.modulate == hud.danger, "Damaged and breached plates are tinted by share of fitted HP")
+	check(hud.plate_labels.right.text == "Right
+0", "Breached plate keeps a numeric reading")
 	check(hud.weapon_label.text.ends_with("ACTIVE"), "Powered partial charge is not labelled ready")
 	bot.pose = Transform3D.IDENTITY
 	bot.recovery_available = true
@@ -77,9 +84,12 @@ func run() -> void:
 	check(hud.resources.Core.value.text == "--" and hud.resources.Heat.value.text == "--", "Malformed fractions are unavailable, not clamped health")
 	for key: String in CombatHud.ZONES:
 		check(hud.components[key].text.ends_with("--"), "Malformed/missing component unavailable: " + key)
+	for key: String in ["front", "rear", "left", "right"]:
+		check(hud.plate_labels[key].text.ends_with("--"), "Malformed plate unavailable: " + key)
 	hud.render(null)
 	check(hud.resources.Heat.value.text == "--" and not hud.warning_label.visible and not hud.components_panel.visible, "Missing bot clears old HUD state")
 	check(not hud.recovery_label.visible, "Missing bot hides stale recovery prompt")
+	check(hud.plate_labels.values().all(func(label: Label) -> bool: return label.text.ends_with("--")), "Missing bot clears plate readings")
 	hud.free()
 	print("COMBAT HUD PASS" if failures == 0 else "COMBAT HUD FAIL")
 	quit(0 if failures == 0 else 1)

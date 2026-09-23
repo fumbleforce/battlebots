@@ -6,6 +6,10 @@ const RED := Color("ff8a80")
 const TEXT := Color("e8ecf1")
 const MUTED := Color("9aa6b5")
 const ZONES := {"front":"FRONT", "rear":"REAR", "left":"LEFT", "right":"RIGHT", "top":"TOP", "underside":"BOTTOM", "drive_left":"L DRIVE", "drive_right":"R DRIVE", "weapon":"WEAPON"}
+## Armour areas in the Integrity diagram, as the Garage build readout names them.
+const PLATES := {"front":"Front", "rear":"Rear", "left":"Left", "right":"Right", "top":"Top", "underside":"Bottom"}
+## A fitted plate at or below this share of its fitted HP reads as damaged.
+const PLATE_DAMAGED := 0.5
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
 var text_scale := 1.0
 var palette := "standard"
@@ -17,6 +21,7 @@ var base_fonts: Dictionary = {}
 var muted_labels: Array[Label] = []
 var resources_panel: PanelContainer
 var components_panel: PanelContainer
+var systems_panel: PanelContainer
 var weapon_panel: PanelContainer
 var canvas: Control
 var resources: Dictionary = {}
@@ -33,6 +38,9 @@ var charge_gauge: Control
 var status_stack: VBoxContainer
 var perk_labels: Dictionary = {}
 var jump_gauge: HudJumpGauge
+var plate_labels: Dictionary = {}
+var _armor_box: StyleBoxFlat
+var _armor_line: ColorRect
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -52,13 +60,14 @@ func _ready() -> void:
 	var health_value := _label(health_row, "--", 28)
 	var health_bar := _bar(health_col, 6)
 	resources["Core"] = {"bar":health_bar, "value":health_value}
-	var support := HBoxContainer.new()
-	support.add_theme_constant_override("separation", 18)
-	health_col.add_child(support)
-	resources["Heat"] = _resource(support, "HEAT")
+	_build_armor(health_col)
+	systems_panel = _panel()
+	systems_panel.set("mirrored", true)
+	var systems_col := _column(systems_panel)
+	resources["Heat"] = _resource(systems_col, "HEAT")
 	var perk_rows := VBoxContainer.new()
 	perk_rows.add_theme_constant_override("separation", 2)
-	health_col.add_child(perk_rows)
+	systems_col.add_child(perk_rows)
 	for perk: String in ["NITRO", "JUMP"]:
 		var row := HBoxContainer.new()
 		perk_rows.add_child(row)
@@ -160,6 +169,9 @@ func apply_accessibility(value: float, colors: String, contrast: bool) -> void:
 		label.add_theme_color_override("font_color", _text_color())
 	for panel: PanelContainer in panels:
 		panel.call("configure", danger if panel == components_panel else accent, high_contrast)
+	var frame := Color.WHITE if high_contrast else Color("9ed8e5")
+	_armor_box.border_color = Color(frame, 0.85)
+	_armor_line.color = Color(frame, 0.45)
 	for key: String in resources:
 		var fill := StyleBoxFlat.new()
 		fill.bg_color = accent if key == "Charge" else (Color("9ed8e5") if key == "Core" else Color("80aab9"))
@@ -184,6 +196,8 @@ func _layout() -> void:
 	resources_panel.position = Vector2(28, 692 - resources_panel.size.y)
 	weapon_panel.size = Vector2(weapon_width, 0)
 	weapon_panel.position = Vector2(1252 - weapon_width, 692 - weapon_panel.size.y)
+	systems_panel.size = Vector2(weapon_width, 0)
+	systems_panel.position = Vector2(1252 - weapon_width, weapon_panel.position.y - 8 - systems_panel.size.y)
 	status_stack.size = Vector2(480, 0)
 	status_stack.position = Vector2((canvas.size.x - 480) * 0.5, canvas.size.y - 28 - status_stack.size.y)
 	connection_label.position = Vector2(910, 28)
@@ -246,6 +260,68 @@ func _resource(parent: Node, title: String) -> Dictionary:
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	return {"bar":_bar(column, 3), "value":value}
 
+## Garage-style plate map: Front/Rear/Left/Right around a Top/Bottom box.
+func _build_armor(parent: Node) -> void:
+	var grid := GridContainer.new()
+	grid.name = "ArmorMap"
+	grid.columns = 3
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 3)
+	parent.add_child(grid)
+	for cell: String in ["", "front", "", "left", "box", "right", "", "rear", ""]:
+		if cell.is_empty():
+			grid.add_child(Control.new())
+		elif cell == "box":
+			var box := PanelContainer.new()
+			_armor_box = StyleBoxFlat.new()
+			_armor_box.bg_color = Color(0.02, 0.05, 0.07, 0.45)
+			_armor_box.set_border_width_all(2)
+			_armor_box.set_corner_radius_all(6)
+			_armor_box.content_margin_left = 12
+			_armor_box.content_margin_right = 12
+			_armor_box.content_margin_top = 3
+			_armor_box.content_margin_bottom = 4
+			box.add_theme_stylebox_override("panel", _armor_box)
+			grid.add_child(box)
+			var split := VBoxContainer.new()
+			split.add_theme_constant_override("separation", 3)
+			box.add_child(split)
+			plate_labels["top"] = _plate_label(split, 13)
+			_armor_line = ColorRect.new()
+			_armor_line.custom_minimum_size = Vector2(0, 1)
+			split.add_child(_armor_line)
+			plate_labels["underside"] = _plate_label(split, 13)
+		else:
+			plate_labels[cell] = _plate_label(grid, 14)
+
+func _plate_label(parent: Node, font_size: int) -> Label:
+	var label := _label(parent, "", font_size)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return label
+
+## Live HP of each fitted plate. Bare areas read "—" (views omit them), unknown
+## data "--"; damaged plates use the accent colour and breached ones danger.
+func _render_armor(view: BotView) -> void:
+	for face: String in PLATES:
+		var value: Variant = view.zones.get(face) if view != null else null
+		var maximum: Variant = view.plate_max.get(face) if view != null else null
+		var detail := "--"
+		var color := Color.WHITE if high_contrast else MUTED
+		if view != null and not view.zones.has(face):
+			detail = "—"
+		elif _number(value) and value >= 0:
+			detail = str(ceili(float(value)))
+			color = _text_color()
+			if value == 0:
+				color = danger
+			elif _number(maximum) and maximum > 0 and value / maximum <= PLATE_DAMAGED:
+				color = accent
+		plate_labels[face].text = PLATES[face] + ("\n" if face in ["left", "right"] else "  ") + detail
+		plate_labels[face].modulate = color
+
 func _ignore_input(node: Node) -> void:
 	if node is Control: node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for child: Node in node.get_children(): _ignore_input(child)
@@ -260,18 +336,20 @@ func _resize() -> void:
 	_layout()
 	var extra := canvas.size.x - 1280.0
 	weapon_panel.position.x += extra
+	systems_panel.position.x += extra
 	connection_label.position.x += extra
 	var extra_height := canvas.size.y - 720.0
-	for control: Control in [resources_panel, weapon_panel]:
+	for control: Control in [resources_panel, weapon_panel, systems_panel]:
 		control.position.y += extra_height
-	# Preserve the jump-force instrument above the left resource housing.
-	jump_gauge.size.x = resources_panel.size.x - 28.0
-	jump_gauge.position = resources_panel.position + Vector2(14, -jump_gauge.size.y - 8)
+	# The jump-force instrument sits above the card that reports Jump status.
+	jump_gauge.size.x = systems_panel.size.x - 28.0
+	jump_gauge.position = systems_panel.position + Vector2(14, -jump_gauge.size.y - 8)
 
 func render(view: BotView, recovery_binding: String = "", opponent: BotView = null, practice := false, duel := true, combat_active := true, perk_parts: Dictionary = {}) -> void:
 	if not is_node_ready():
 		return
 	_render_perks(view, combat_active, perk_parts)
+	_render_armor(view)
 	var values := [view.core_fraction, view.heat_fraction, view.weapon_charge_fraction] if view != null else [NAN, NAN, NAN]
 	var index := 0
 	for key: String in ["Core", "Heat", "Charge"]:
