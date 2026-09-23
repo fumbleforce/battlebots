@@ -5,6 +5,9 @@ const SLOTS := ["chassis", "drive", "weapon", "armor", "utility", "nitro", "susp
 const SCHEMA := 2
 var parts: Dictionary = {}
 var content_hash: String = ""
+## Match pickups are a bonus above the construction budget. Only the authority
+## world sets this, on its own instance; lobby builds always use a strict registry.
+var enforce_budget := true
 
 func _init() -> void:
 	var source := FileAccess.get_file_as_string("res://data/mvp_parts.json")
@@ -75,9 +78,9 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		seen.append(id)
 		mass += float(part.mass)
 		power += float(part.power)
-	if mass > 120.0:
+	if enforce_budget and mass > 120.0:
 		result.reasons.append("Mass exceeds 120 kg")
-	if power > 100.0:
+	if enforce_budget and power > 100.0:
 		result.reasons.append("Installed power exceeds 100")
 	if selected.get("chassis") == "scorpion_hex" and selected.get("drive") != "walker":
 		result.reasons.append("Scorpion hex body requires the articulated walking drive")

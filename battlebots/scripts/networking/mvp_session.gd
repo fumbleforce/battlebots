@@ -6,6 +6,10 @@ signal lobby_changed(view: Dictionary)
 signal match_changed(view: Dictionary)
 signal bot_updated(entity_id: int, view: BotView)
 signal combat_event(event: Dictionary)
+## Public pickup state changed (items, per-entity match credits).
+signal pickups_changed(view: Dictionary)
+## One entity collected an item: {entity, kind, part, amount, slot?, credits?}.
+signal pickup_collected(event: Dictionary)
 const MAX_CONTROL_STATE_BYTES := 131072 # Ten players, up to five detailed round results.
 # Arena content this client understands. Older clients cannot build newer arenas,
 # so a host rejects them with a visible update message rather than a bad world.
@@ -23,6 +27,8 @@ var reconnect_token := ""
 var connection_state := "offline"
 var lobby_view: Dictionary = {}
 var match_view: Dictionary = {}
+## Public pickup state for presentation: {match_id, revision, items, credits}.
+var pickup_view: Dictionary = {}
 var diagnostics := {"rtt_ms":0.0, "correction_m":0.0, "rejected_inputs":0, "snapshot_bytes":0, "snapshots_received":0}
 var _server := false
 var _time := 0.0
@@ -64,6 +70,7 @@ var _reconnect_deadline := 0
 var _reconnecting := false
 var _tearing_down := false
 var practice_director: PracticeBotDirector
+var _pickup_revision := -1
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
@@ -185,6 +192,7 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	bot.owner_id = 1
 	practice_director = PracticeBotDirector.new()
 	_next_entity = practice_director.configure(world, local_entity, _next_entity)
+	world.begin_pickups(randi())
 	match_state.match_id = "practice"
 	match_state.round_index = 1
 	match_state.transition("active", 0)
@@ -266,6 +274,8 @@ func _disconnect() -> void:
 	hosted_config_refresh = Callable()
 	match_view = {}
 	lobby_view = {}
+	pickup_view = {}
+	_pickup_revision = -1
 	if is_instance_valid(world):
 		world.queue_free()
 		world = null
@@ -565,6 +575,10 @@ func _start() -> void:
 		_input_queue[id] = []
 		if p.peer == 1:
 			_loaded[id] = true
+	world.begin_pickups(randi())
+	_pickup_revision = world.pickups.revision
+	pickup_view = _pickup_state(false)
+	pickups_changed.emit(pickup_view.duplicate(true))
 	for peer: int in peer_entities:
 		if peer != 1 and _peer_can_receive(peer):
 			_send_baseline(peer)
@@ -572,7 +586,7 @@ func _start() -> void:
 
 func _send_baseline(peer: int) -> void:
 	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":_public_match(), "bots":_bot_snapshots(),
-		"server_tick":world.tick, "results":_results, "arena":arena_id}))
+		"server_tick":world.tick, "results":_results, "arena":arena_id, "pickups":_pickup_state(false)}))
 
 func _bot_snapshots() -> Dictionary:
 	var states := {}
@@ -612,6 +626,8 @@ func _baseline(packet: PackedByteArray) -> void:
 		bot.body.reset_pose = null
 		bot.owner_id = slot.peer
 		_snapshot(data.bots[slot.entity_id])
+	pickup_view = {}
+	_accept_pickups(data.get("pickups", {}))
 	match_changed.emit(match_view.duplicate(true))
 	lobby_changed.emit(lobby_view.duplicate(true))
 	_accept_results(data.get("results", {}))
@@ -723,6 +739,9 @@ func _physics_process(delta: float) -> void:
 	if connection_state == "practice" and practice_director != null:
 		practice_director.step(delta)
 	world.step(delta, active, match_state.round_index)
+	if world.pickups.revision != _pickup_revision:
+		_pickup_revision = world.pickups.revision
+		_publish_pickups()
 	if connection_state == "practice":
 		for event: Dictionary in world.weapons.events:
 			combat_event.emit(event.duplicate(true))
@@ -769,6 +788,9 @@ func _physics_process(delta: float) -> void:
 				_results.participants[id][field] = 0
 				for round_result: Dictionary in match_state.rounds:
 					_results.participants[id][field] += round_result.get("participants", {}).get(id, {}).get(field, 0)
+			var won: bool = id in match_state.winners if match_mode == "ffa" else 				(players.has(id) and match_state.winner >= 0 and match_state.winner == players[id].team)
+			_results.participants[id]["credits"] = MatchPickups.reward(_results.participants[id], won,
+				int(world.pickups.credits.get(id, 0)))
 		session_event.emit("results", _results.duplicate(true))
 	if match_state.phase == "results" and match_mode == "ffa":
 		var connected_count := 0
@@ -794,6 +816,9 @@ func _physics_process(delta: float) -> void:
 			if players[id].peer == 0:
 				players.erase(id)
 		world.clear_bots()
+		pickup_view = {}
+		_pickup_revision = world.pickups.revision
+		pickups_changed.emit({})
 		_publish_lobby()
 	if match_state.event_id != _last_event or world.tick % 60 == 0:
 		var changed_event := match_state.event_id != _last_event
@@ -842,6 +867,9 @@ func _match(packet: PackedByteArray) -> void:
 	if match_view.phase == "lobby":
 		world.clear_bots()
 		_remote_buffers.clear()
+		if not pickup_view.is_empty():
+			pickup_view = {}
+			pickups_changed.emit({})
 	for state: PackedByteArray in data.get("bots", {}).values():
 		_snapshot(state)
 	match_changed.emit(match_view.duplicate(true))
@@ -925,6 +953,60 @@ func _snapshot(packet: PackedByteArray) -> void:
 	bot.body.collision_layer = 0 if state.eliminated else BaselineConfig.BOT_LAYER
 	bot.body.collision_mask = 0 if state.eliminated else 3
 	bot_updated.emit(bot.entity_id, bot.read_view())
+
+## Effective match loadouts ride with every pickup update, so a client that
+## missed nothing and a reconnecting client converge on the same bots.
+func _pickup_state(with_events: bool) -> Dictionary:
+	var loadouts := {}
+	for id: int in world.bots:
+		loadouts[id] = world.bots[id].loadout.duplicate(true)
+	var state := world.pickups.snapshot()
+	state.match_id = match_state.match_id
+	state.loadouts = loadouts
+	state.events = world.pickups.events.duplicate(true) if with_events else []
+	return state
+
+func _publish_pickups() -> void:
+	var state := _pickup_state(true)
+	pickup_view = state.duplicate(true)
+	pickup_view.erase("loadouts")
+	pickup_view.erase("events")
+	for event: Dictionary in state.events:
+		var public := event.duplicate(true)
+		public.erase("loadout")
+		pickup_collected.emit(public)
+	pickups_changed.emit(pickup_view.duplicate(true))
+	if connection_state == "practice":
+		return
+	var packet := var_to_bytes(state)
+	for peer: int in peer_entities:
+		if peer != 1 and _peer_can_receive(peer):
+			_pickups.rpc_id(peer, packet)
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _pickups(packet: PackedByteArray) -> void:
+	if packet.size() <= MAX_CONTROL_STATE_BYTES:
+		_accept_pickups(bytes_to_var(packet))
+
+func _accept_pickups(data: Variant) -> void:
+	if not data is Dictionary or not data.get("items") is Array or not data.get("loadouts") is Dictionary:
+		return
+	if data.get("match_id") != match_view.get("match_id"):
+		return
+	if pickup_view.get("match_id") == data.match_id and int(data.get("revision", -1)) <= int(pickup_view.get("revision", -1)):
+		return
+	for id: Variant in data.loadouts:
+		if id is int and world.bots.has(id) and data.loadouts[id] is Dictionary:
+			world.apply_loadout(id, data.loadouts[id])
+	pickup_view = data.duplicate(true)
+	pickup_view.erase("loadouts")
+	pickup_view.erase("events")
+	for event: Variant in data.get("events", []):
+		if event is Dictionary:
+			var public: Dictionary = event.duplicate(true)
+			public.erase("loadout")
+			pickup_collected.emit(public)
+	pickups_changed.emit(pickup_view.duplicate(true))
 
 func _process(_delta: float) -> void:
 	if _reconnect_deadline > 0 and reconnect_seconds_remaining() <= 0.0:

@@ -1,11 +1,15 @@
 class_name AuthorityWorld
 extends Node3D
 ## Physics-only session world. The session owns timing, commands and match rules.
+## Emitted after a pickup (or a replicated swap) changes a bot's match loadout.
+## A body/drive/weapon change replaces the MvpBot node under the same entity id.
+signal loadout_changed(entity_id: int)
 var bots: Dictionary = {}
 var registry := ContentRegistry.new()
 var weapons := CombatWorld.new()
 var tick := 0
 var credited: Dictionary = {}
+var pickups := MatchPickups.new()
 var arena: Node3D
 var arena_id := "foundry"
 
@@ -127,6 +131,7 @@ func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 func reset_round() -> void:
 	weapons = CombatWorld.new()
 	credited.clear()
+	pickups.reset_round()
 	for id: int in bots:
 		bots[id].reset_round()
 
@@ -157,6 +162,8 @@ func step(delta: float, active: bool, round_index: int) -> void:
 		for source_id: int in bot.combat.recent_attackers:
 			if source_id != killer and bots.has(source_id) and weapons.time - float(bot.combat.recent_attackers[source_id]) <= 10:
 				bots[source_id].combat.assists += 1
+	if active:
+		_collect_pickups(delta)
 
 func combatants() -> Dictionary:
 	var result := {}
@@ -169,4 +176,138 @@ func clear_bots() -> void:
 		bots[id].queue_free()
 	bots.clear()
 	credited.clear()
+	pickups.clear()
 	weapons = CombatWorld.new()
+
+## Pickup points avoid the team spawn lanes on the Z axis: one at the centre and
+## four on the diagonals, scaled to the arena. Moon points follow its terrain.
+func pickup_points() -> Array[Vector3]:
+	var half := ArenaBounds.half_extent(arena_id)
+	var points: Array[Vector3] = [Vector3.ZERO]
+	for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
+		points.append(Vector3(cos(angle), 0.0, sin(angle)) * half * 0.5)
+	if arena_id == "moon":
+		const SURFACE = preload("res://scripts/arena/moon_surface.gd")
+		for index: int in points.size():
+			points[index].y = SURFACE.height_at(points[index].x, points[index].z)
+	return points
+
+func begin_pickups(seed: int) -> void:
+	pickups.begin(pickup_points(), seed)
+
+func _collect_pickups(delta: float) -> void:
+	pickups.tick(delta)
+	var ids: Array = bots.keys()
+	ids.sort()
+	for item: Dictionary in pickups.items:
+		if not item.available:
+			continue
+		for id: int in ids:
+			var bot: MvpBot = bots[id]
+			# Practice NPCs keep their authored training builds.
+			if bot.combat.eliminated or bot.has_meta("practice_variant") or not touches_pickup(bot, item.point):
+				continue
+			var event := pickups.collect(item, id, bot.loadout)
+			if event.is_empty():
+				continue
+			if event.has("loadout"):
+				apply_loadout(id, event.loadout)
+			break
+
+func touches_pickup(bot: MvpBot, point: Vector3) -> bool:
+	var size: Vector3 = bot.collision_bounds().size
+	var at := bot.body.global_position
+	return Vector2(at.x - point.x, at.z - point.z).length() <= maxf(size.x, size.z) * 0.5 + 0.5 		and absf(at.y - point.y) <= size.y + 1.5
+
+## Applies a match loadout to a live bot. Perk-only changes update the existing
+## bot; any other slot rebuilds it in place, keeping pose, motion, owner, score
+## counters and damage fractions. The part in each changed slot arrives intact.
+## Clients call this for replicated swaps; they never choose loadouts themselves.
+func apply_loadout(id: int, loadout: Dictionary) -> MvpBot:
+	var old: MvpBot = bots.get(id)
+	var validation := pickups.registry.validate(loadout)
+	if old == null or not validation.valid:
+		return null
+	var changed: Array[String] = []
+	for slot: String in ContentRegistry.SLOTS:
+		if old.loadout.parts.get(slot) != validation.loadout.parts[slot]:
+			changed.append(slot)
+	if changed.is_empty() and old.loadout.get("cosmetics") == validation.loadout.get("cosmetics"):
+		return old
+	var perks_only := true
+	for slot: String in changed:
+		perks_only = perks_only and slot in MatchPickups.PERK_SLOTS
+	if perks_only and old.loadout.get("cosmetics") == validation.loadout.get("cosmetics"):
+		old.loadout = validation.loadout
+		old.combat.stats.nitro = validation.stats.nitro
+		old.combat.stats.charged_jump = validation.stats.charged_jump
+		old.body.nitro_equipped = validation.stats.nitro
+		old.body.jump_equipped = validation.stats.charged_jump
+		loadout_changed.emit(id)
+		return old
+	var bot := MvpBot.create(id, old.team, validation.loadout, pickups.registry)
+	bot.name = old.name
+	bot.owner_id = old.owner_id
+	bot.server_tick = old.server_tick
+	bot.last_sequence = old.last_sequence
+	bot.input_age = old.input_age
+	bot.command = old.command
+	bot.simulated = old.simulated
+	bot.remote_state = old.remote_state
+	for key: StringName in old.get_meta_list():
+		bot.set_meta(key, old.get_meta(key))
+	var pose := old.body.global_transform
+	var display := old.presentation.global_transform
+	var linear := old.body.linear_velocity
+	var angular := old.body.angular_velocity
+	var pending: Variant = old.body.reset_pose
+	var old_clearance := old.ground_clearance()
+	var authored_spawn := old.spawn_pose
+	var old_combat := old.combat
+	var frozen := old.body.freeze
+	remove_child(old)
+	old.queue_free()
+	bots[id] = bot
+	add_child(bot)
+	bot.arena_half_extent = ArenaBounds.half_extent(arena_id)
+	bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
+	bot.body.gravity_scale = 1.62 / 9.8 if arena_id == "moon" else 1.0
+	carry_combat(old_combat, bot.combat, changed)
+	# A taller replacement starts clear of the floor it was standing on.
+	var lift := maxf(0.0, bot.ground_clearance() - old_clearance)
+	pose.origin.y += lift + (0.05 if lift > 0.0 else 0.0)
+	display.origin.y += lift
+	bot.body.global_transform = pose
+	bot.presentation.global_transform = display
+	bot.previous_pose = pose
+	bot.last_floor = old.last_floor
+	bot.spawn_pose = clear_spawn_pose(bot, authored_spawn)
+	bot.body.reset_pose = clear_spawn_pose(bot, pending) if pending is Transform3D else null
+	bot.body.freeze = frozen
+	if not frozen:
+		bot.body.linear_velocity = linear
+		bot.body.angular_velocity = angular
+	if old_combat.eliminated:
+		bot.body.collision_layer = 0
+		bot.body.collision_mask = 0
+	loadout_changed.emit(id)
+	return bot
+
+static func carry_combat(from: CombatState, to: CombatState, changed: Array[String]) -> void:
+	to.core = to.stats.core * clampf(from.core / float(from.stats.core), 0.0, 1.0)
+	var fixed := {"drive_left":100.0, "drive_right":100.0, "weapon":140.0}
+	for zone: String in to.zones:
+		var fresh := (zone == "weapon" and "weapon" in changed) 			or (zone.begins_with("drive_") and "drive" in changed) 			or (zone in ["front", "rear", "left", "right"] and "armor" in changed)
+		if fresh:
+			continue
+		var old_max: float = fixed.get(zone, float(from.stats.plate_integrity))
+		var new_max: float = fixed.get(zone, float(to.stats.plate_integrity))
+		to.zones[zone] = new_max * clampf(float(from.zones[zone]) / old_max, 0.0, 1.0)
+	to.battery = to.stats.battery * clampf(from.battery / float(from.stats.battery), 0.0, 1.0)
+	for field: String in ["heat", "overheated", "recovery_cooldown", "recovery_remaining",
+			"inverted_seconds", "immobilized_seconds", "driven_distance", "eliminated",
+			"elimination_reason", "effective_damage", "eliminations", "assists",
+			"component_disables", "recovery_count", "jump_cooldown", "attack_id",
+			"shot_sequence", "last_shot_tick"]:
+		to.set(field, from.get(field))
+	to.recent_attackers = from.recent_attackers.duplicate()
