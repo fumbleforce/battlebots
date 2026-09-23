@@ -13,7 +13,7 @@ func _ready() -> void:
 	_build_arena()
 
 func set_arena(id: String) -> void:
-	assert(id in ["foundry", "moon"])
+	assert(id in ArenaBounds.IDS)
 	if id == arena_id:
 		return
 	clear_bots()
@@ -24,7 +24,12 @@ func set_arena(id: String) -> void:
 	_build_arena()
 
 func _build_arena() -> void:
-	arena = (preload("res://scenes/arenas/moon_arena.tscn") if arena_id == "moon" else preload("res://scenes/arenas/baseline_arena.tscn")).instantiate()
+	var scene: PackedScene = preload("res://scenes/arenas/baseline_arena.tscn")
+	if arena_id == "moon":
+		scene = preload("res://scenes/arenas/moon_arena.tscn")
+	elif arena_id == "woodland":
+		scene = preload("res://scenes/arenas/woodland_arena.tscn")
+	arena = scene.instantiate()
 	arena.name = "Arena"
 	if DisplayServer.get_name() == "headless":
 		_strip_presentation(arena)
@@ -96,18 +101,23 @@ func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 			var bound := (arena_half - WALL_GAP) * sqrt(2.0) - side_x * pose.origin.x - reach
 			pose.origin.z = minf(pose.origin.z, bound) if side_z > 0 else maxf(pose.origin.z, -bound)
 	var floor_y := 0.0
+	# Terrain arenas: the physical height map is a linear interpolation of these
+	# vertices. Include every cell beneath the hull, so no corner starts in a
+	# slope even when the authored centre lies on a smaller flattened pad.
+	var surface: Script = null
 	if arena_id == "moon":
-		# The physical height map is a linear interpolation of these vertices.
-		# Include every cell beneath the hull, so no corner starts in a slope even
-		# when the authored centre lies on one of the smaller flattened pads.
-		const SURFACE = preload("res://scripts/arena/moon_surface.gd")
-		var low_x := floori((pose.origin.x - extent_x + 25.0) / SURFACE.STEP)
-		var high_x := ceili((pose.origin.x + extent_x + 25.0) / SURFACE.STEP)
-		var low_z := floori((pose.origin.z - extent_z + 25.0) / SURFACE.STEP)
-		var high_z := ceili((pose.origin.z + extent_z + 25.0) / SURFACE.STEP)
+		surface = preload("res://scripts/arena/moon_surface.gd")
+	elif arena_id == "woodland":
+		surface = preload("res://scripts/arena/woodland_ground.gd")
+	if surface != null:
+		var step: float = surface.get("STEP")
+		var low_x := floori((pose.origin.x - extent_x + arena_half) / step)
+		var high_x := ceili((pose.origin.x + extent_x + arena_half) / step)
+		var low_z := floori((pose.origin.z - extent_z + arena_half) / step)
+		var high_z := ceili((pose.origin.z + extent_z + arena_half) / step)
 		for x: int in range(low_x, high_x + 1):
 			for z: int in range(low_z, high_z + 1):
-				floor_y = maxf(floor_y, SURFACE.height_at(x * SURFACE.STEP - 25.0, z * SURFACE.STEP - 25.0))
+				floor_y = maxf(floor_y, surface.height_at(x * step - arena_half, z * step - arena_half))
 	# B publishes actual support clearance; tall modular hulls retain the common
 	# authoring scale height in stats. See coordination/B_ATLAS_MX.md.
 	var clearance := bot.ground_clearance()

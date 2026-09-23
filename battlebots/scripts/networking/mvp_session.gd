@@ -7,6 +7,11 @@ signal match_changed(view: Dictionary)
 signal bot_updated(entity_id: int, view: BotView)
 signal combat_event(event: Dictionary)
 const MAX_CONTROL_STATE_BYTES := 131072 # Ten players, up to five detailed round results.
+# Arena content this client understands. Older clients cannot build newer arenas,
+# so a host rejects them with a visible update message rather than a bad world.
+# 1 = Moon, 2 = Woodland.
+const ARENA_RULES := 2
+const ARENA_MIN_RULES := {"moon":1, "woodland":2}
 
 var registry := ContentRegistry.new()
 var match_state := MatchState.new()
@@ -71,7 +76,7 @@ func _ready() -> void:
 func host(port := 24567, listen := true, player_count := 4, mode := "teams", bind_address := "*", selected_arena := "foundry") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
-	if selected_arena not in ["foundry", "moon"]:
+	if selected_arena not in ArenaBounds.IDS:
 		return ERR_INVALID_PARAMETER
 	arena_id = selected_arena
 	_clear_reconnect()
@@ -128,7 +133,7 @@ func _join(address: String, port: int, token: String, admission_ticket: String) 
 	_join_address = address
 	_join_port = port
 	_hello_data = {"protocol":WireCodec.PROTOCOL, "build":WireCodec.BUILD, "content":registry.content_hash,
-		"token":token, "admission_ticket":admission_ticket, "arena_rules":1}
+		"token":token, "admission_ticket":admission_ticket, "arena_rules":ARENA_RULES}
 	_server = false
 	connection_state = "connecting"
 	arena_id = "foundry" # The server's validated baseline chooses the actual world.
@@ -167,7 +172,7 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 		return ERR_ALREADY_IN_USE
 	_clear_reconnect()
 	var build := registry.starter() if draft.is_empty() else draft
-	if selected_arena not in ["foundry", "moon"]:
+	if selected_arena not in ArenaBounds.IDS:
 		return ERR_INVALID_PARAMETER
 	if not registry.validate(build).valid:
 		return ERR_INVALID_DATA
@@ -351,8 +356,10 @@ func _hello(packet: PackedByteArray) -> void:
 	if data.get("protocol") != WireCodec.PROTOCOL or data.get("build") != WireCodec.BUILD or data.get("content") != registry.content_hash:
 		_rejected.rpc_id(peer, "Protocol, build or content version mismatch")
 		return
-	if arena_id == "moon" and data.get("arena_rules", 0) != 1:
-		_rejected.rpc_id(peer, "Update the game to join the Moon arena")
+	var arena_rules: Variant = data.get("arena_rules", 0)
+	var peer_rules := int(arena_rules) if arena_rules is int or arena_rules is float else 0
+	if peer_rules < ARENA_MIN_RULES.get(arena_id, 0):
+		_rejected.rpc_id(peer, "Update the game to join the %s arena" % arena_id.capitalize())
 		return
 	if hosted_admission != null and hosted_config_refresh.is_valid() and not hosted_config_refresh.call():
 		return
@@ -579,7 +586,7 @@ func _baseline(packet: PackedByteArray) -> void:
 		return
 	var data: Dictionary = bytes_to_var(packet)
 	var selected: Variant = data.get("arena", "foundry")
-	if not selected is String or selected not in ["foundry", "moon"]:
+	if not selected is String or selected not in ArenaBounds.IDS:
 		session_event.emit("error", {"message":"Unsupported arena from server"})
 		leave()
 		return

@@ -3,9 +3,16 @@ extends RefCounted
 ## Shared regular-octagon dimensions; physical scenes use the same inner planes.
 const FOUNDRY_HALF := 50.0
 const MOON_HALF := 25.0
+## Woodland is built for many giant bots: a 240 m octagon.
+const WOODLAND_HALF := 120.0
+## Every server-selectable arena.
+const IDS := ["foundry", "moon", "woodland"]
 
 static func half_extent(arena_id: String) -> float:
-	return MOON_HALF if arena_id == "moon" else FOUNDRY_HALF
+	match arena_id:
+		"moon": return MOON_HALF
+		"woodland": return WOODLAND_HALF
+	return FOUNDRY_HALF
 
 static func contains(point: Vector3, half: float, margin := 0.0) -> bool:
 	return maxf(absf(point.x), absf(point.z)) <= half - margin \

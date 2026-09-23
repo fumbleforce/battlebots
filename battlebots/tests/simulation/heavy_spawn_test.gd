@@ -39,7 +39,7 @@ func check_shapes(world: AuthorityWorld, label: String) -> void:
 					label + " entire hull clears octagonal wall planes")
 
 func run() -> void:
-	for arena_id: String in ["foundry", "moon"]:
+	for arena_id: String in ["foundry", "moon", "woodland"]:
 		var world := AuthorityWorld.new()
 		world.arena_id = arena_id
 		root.add_child(world)
@@ -65,7 +65,7 @@ func run() -> void:
 		world.free()
 		await frames(2)
 	# The public practice flow uses the same clearance after its custom placement.
-	for arena_id: String in ["foundry", "moon"]:
+	for arena_id: String in ["foundry", "moon", "woodland"]:
 		var session := MvpSession.new()
 		root.add_child(session)
 		var build := session.registry.starter(true)

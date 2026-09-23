@@ -10,6 +10,7 @@ func check(ok: bool, message: String) -> void:
 func run() -> void:
 	var path := "user://test-arena-choice.cfg"
 	check(CHOICE.save_choice("moon",path)==OK and CHOICE.load_choice(path)=="moon","Moon persists")
+	check(CHOICE.save_choice("woodland",path)==OK and CHOICE.load_choice(path)=="woodland","Woodland persists")
 	check(CHOICE.save_choice("foundry",path)==OK and CHOICE.load_choice(path)=="foundry","Foundry persists")
 	check(CHOICE.save_choice("invalid",path)==ERR_INVALID_PARAMETER,"Unknown choice rejected")
 	DirAccess.remove_absolute(path)
@@ -41,6 +42,10 @@ func run() -> void:
 	screen.get_node("%Tiles").get_child(1).pressed.emit()
 	check(screen.get_node("%DetailName").text=="LUNAR OUTPOST","Moon selectable")
 	check(screen.get_node("%DetailImage").texture!=null,"Moon preview available")
+	screen.get_node("%Tiles").get_child(2).button_pressed = true
+	screen.get_node("%Tiles").get_child(2).pressed.emit()
+	check(screen.get_node("%DetailName").text=="WOODLAND","Woodland selectable")
+	check(screen.get_node("%DetailImage").texture!=null,"Woodland preview available")
 	for resolution: Vector2i in [Vector2i(1280,720),Vector2i(1920,1080)]:
 		root.size = resolution
 		for factor: float in [1.0,1.5]:

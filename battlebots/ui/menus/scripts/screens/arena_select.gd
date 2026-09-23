@@ -8,7 +8,7 @@ const CHOICE = preload("res://scripts/arena/arena_scenery.gd")
 func apply_text_scale(factor: float) -> void:
 	_text_scale = factor
 	preload("res://scripts/ui/menu_text_scale.gd").apply(self, factor)
-	%Tiles.columns = 2
+	%Tiles.columns = MenuData.ARENAS.size()
 	%DetailName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Layout/Header/Row/TitleBox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -33,7 +33,7 @@ func _ready() -> void:
 	%Eyebrow.text = "CHOOSE YOUR ARENA" if MenuRouter.arena_intent == "practice" else "LOCAL ARENA"
 	$Layout/Header/Row/Profile.hide()
 	MenuRouter.match_setup.arena = CHOICE.IDS.find(CHOICE.load_choice())
-	%Tiles.columns = 2
+	%Tiles.columns = MenuData.ARENAS.size()
 	var group := ButtonGroup.new()
 	for i in MenuData.ARENAS.size():
 		var tile := ARENA_TILE.instantiate()

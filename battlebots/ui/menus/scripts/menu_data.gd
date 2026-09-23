@@ -20,7 +20,8 @@ const MODES := [
 ]
 const ARENAS := [
 	{"name":"THE FOUNDRY","sub":"Industrial octagon · Standard gravity","size":"100 m ACROSS · 9.8 m/s²","image":preload("res://ui/menus/art/arena_foundry.jpg"),"hazards":["Expanded flat steel combat floor","Standard gravity · No active hazards","Armored cage and spectator galleries"],"enabled":true},
-	{"name":"LUNAR OUTPOST","sub":"Moon surface · Low gravity","size":"50 m ACROSS · 1.62 m/s²","image":preload("res://ui/menus/art/arena_moon.png"),"art":"LUNAR OUTPOST","hazards":["Uneven regolith and small edge rocks","Lunar gravity · Longer airtime","Ballistic dust, floodlights and Earth overhead"],"enabled":true}
+	{"name":"LUNAR OUTPOST","sub":"Moon surface · Low gravity","size":"50 m ACROSS · 1.62 m/s²","image":preload("res://ui/menus/art/arena_moon.png"),"art":"LUNAR OUTPOST","hazards":["Uneven regolith and small edge rocks","Lunar gravity · Longer airtime","Ballistic dust, floodlights and Earth overhead"],"enabled":true},
+	{"name":"WOODLAND","sub":"Forest stadium · Giant scale","size":"240 m ACROSS · 9.8 m/s²","image":preload("res://ui/menus/art/arena_woodland.jpg"),"art":"WOODLAND","hazards":["Central cliff mesa, rock terraces and outcrops","Jump ramps, bunkers, pine groves and log cover","Rutted mud, timber palisade and roaring crowd"],"enabled":true}
 ]
 
 static func catalogue(registry: ContentRegistry) -> Dictionary:

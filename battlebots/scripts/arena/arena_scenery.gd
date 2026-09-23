@@ -1,7 +1,7 @@
 extends RefCounted
 ## Saved arena choice for practice and LAN hosting. Joining follows the server.
 const PATH := "user://arena_scenery.cfg"
-const IDS := ["foundry", "moon"]
+const IDS := ["foundry", "moon", "woodland"]
 
 static func load_choice(path: String = PATH) -> String:
 	var config := ConfigFile.new()
