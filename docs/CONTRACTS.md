@@ -870,11 +870,17 @@ gameplay change requiring a BUILD bump and a matching hosted server release.
   `model_config().gravity` includes heft, and `model_config().max_rise` supplies
   the replay rise cap. `launch_scale()` = sqrt(heft) scales jumps, weapon impulses
   and the rise cap so apex heights hold while hang time shrinks.
-- `DriveBody.hull_friction()` divides the 1 g hull friction by heft² because Jolt
-  combines friction as sqrt(hull × floor); arena drag matches its 1 g strength.
-- Motor multipliers scale catalogue acceleration, grip and yaw limit/torque in
-  `model_config()`; brakes stay catalogue strength. Walker lift supports heft weight.
+- Hull material friction is `contact.hull_friction`; arena drag grows with heft
+  weight. `DriveBody` also applies explicit Coulomb friction between touching
+  bots (`contact.bot_contact_friction`, each body half of the pair) so clashing
+  hulls bite instead of glancing off.
+- Motor multipliers scale catalogue acceleration, grip, yaw limit/torque, brakes
+  and released-throttle coast (`rolling_resistance_multiplier`, so knocked hulls
+  stop instead of sliding) in `model_config()`. Walker lift supports heft weight.
 - `CombatWorld` scales weapon impulses by `impacts.*_impulse_multiplier` and
   `launch_scale()`, adds ram knock-back proportional to closing speed above
-  `RAM_MIN_CLOSING_SPEED`, and lifter holds carry the lifted edge's share of the
-  extra weight. Damage, cadence and wire fields are unchanged.
+  `RAM_MIN_CLOSING_SPEED`. The lifter applies no hold force while charging
+  (`lifter_hold_acceleration_at_1g` 0); release launches the target with
+  `lifter_impulse_multiplier` and adds `lifter_flip_spin_at_1g` × launch_scale
+  about the horizontal axis so it flips away. The flipper arm visual lies flat
+  while charging and snaps up on release. Damage, cadence and wire fields are unchanged.

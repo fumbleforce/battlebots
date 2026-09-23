@@ -67,16 +67,10 @@ func heft() -> float:
 func launch_scale() -> float:
 	return physics.launch_scale_for(gravity_scale)
 
-## Downward acceleration (m/s²) heft adds on top of this arena's gravity.
-func heft_extra_gravity() -> float:
-	var arena_gravity := float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)) * gravity_scale
-	return arena_gravity * (heft() - 1.0)
-
-## Contact friction scales with the heavier normal force. Jolt combines
-## friction as sqrt(hull * floor), so dividing by heft squared keeps sliding and
-## coasting drag against the arena at its 1 g strength; momentum still carries.
+## Jolt material friction against the arena. Its drag grows with heft weight,
+## so a sliding heavy hull grinds to a stop.
 func hull_friction() -> float:
-	return physics.hull_friction_at_1g / (heft() * heft())
+	return physics.hull_friction
 
 func max_rise() -> float:
 	return physics.rise_speed_cap_at_1g * launch_scale()
@@ -107,11 +101,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	contact_bodies.clear()
 	for index: int in range(state.get_contact_count()):
 		contact_bodies.append(state.get_contact_collider_id(index))
+	_grip_bot_contacts(state)
 	# Extra weight on top of Jolt's arena gravity (total_gravity already
 	# includes gravity_scale). Walker lift supports the same heavier weight.
-	# Arenas may set gravity_scale after assembly (Moon); follow its heft.
-	if physics_material_override != null and not is_equal_approx(physics_material_override.friction, hull_friction()):
-		physics_material_override.friction = hull_friction()
 	var extra_weight_fraction := heft() - 1.0
 	state.apply_central_force(state.total_gravity * extra_weight_fraction * mass)
 	if not recovery_torque.is_zero_approx():
@@ -147,6 +139,28 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			* physics.yaw_torque_grip_fraction * torque_scale * steering_multiplier
 		var torque := clampf(yaw_acceleration / inverse_yaw_inertia, -torque_limit, torque_limit)
 		state.apply_torque(normal * torque)
+
+## Hull materials are slick so wheels, not the chassis, drive against the
+## floor; that also let clashing hulls glance off each other like ice. Apply
+## Coulomb friction against the other bot's contact velocity so clashes bite.
+## Each body of a pair applies its half, so together they can at most cancel
+## (never reverse) the relative sliding velocity.
+func _grip_bot_contacts(state: PhysicsDirectBodyState3D) -> void:
+	const PAIR_SHARE := 0.5
+	for index: int in range(state.get_contact_count()):
+		if not state.get_contact_collider_object(index) is DriveBody:
+			continue
+		var normal := state.get_contact_local_normal(index)
+		var relative := state.get_contact_local_velocity_at_position(index) \
+			- state.get_contact_collider_velocity_at_position(index)
+		var sliding := relative - normal * relative.dot(normal)
+		var sliding_speed := sliding.length()
+		if is_zero_approx(sliding_speed):
+			continue
+		var normal_impulse := state.get_contact_impulse(index).dot(normal)
+		var grip := minf(physics.bot_contact_friction * absf(normal_impulse), mass * sliding_speed * PAIR_SHARE)
+		var offset := state.get_contact_local_position(index) - state.transform.origin
+		state.apply_impulse(-sliding / sliding_speed * grip, offset)
 
 func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 	# Snapshots remain authoritative: only their forward extrapolation is swept,
@@ -198,12 +212,12 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 func model_config() -> Dictionary:
 	return {"speed":top_speed, "acceleration":drive_acceleration * physics.acceleration_multiplier,
 		"grip":grip_acceleration * physics.grip_multiplier,
-		"coast":coast_acceleration, "throttle_response":throttle_response,
+		"coast":coast_acceleration * physics.rolling_resistance_multiplier, "throttle_response":throttle_response,
 		"steering_response":steering_response, "yaw_response":yaw_response,
 		"yaw_acceleration_limit":yaw_acceleration_limit * physics.yaw_acceleration_multiplier, "lateral_response":lateral_response,
 		"walker":walker, "nitro":nitro_active, "nitro_equipped":nitro_equipped,
 		"charged_jump":jump_equipped, "max_rise":max_rise(),
-		"brake":brake_acceleration, "turn":turn_speed, "drive_scale":drive_multiplier,
+		"brake":brake_acceleration * physics.brake_multiplier, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,
 		"center_of_mass":center_of_mass if center_of_mass_mode == CENTER_OF_MASS_MODE_CUSTOM else Vector3.ZERO,
 		"gravity":Vector3(ProjectSettings.get_setting("physics/3d/default_gravity_vector", Vector3.DOWN))

@@ -4,26 +4,32 @@
 		"_comment": "Three-times enlarged hulls read as foam under 1 g. Bots fall under gravity_multiplier times arena gravity; launch and jump speeds scale by its square root so heights hold while hang time shrinks.",
 		"gravity_multiplier": 2.5,
 		"minimum_arena_gravity_scale": 1.0,
-		"rise_speed_cap_at_1g": 8.0,
-		"hull_friction_at_1g": 0.04
+		"rise_speed_cap_at_1g": 8.0
+	},
+	"contact": {
+		"_comment": "hull_friction is the Jolt material friction against the arena (combined as sqrt(hull * floor)); its drag grows with heft weight so sliding hulls grind. bot_contact_friction is an explicit Coulomb friction between clashing hulls so they bite into each other instead of glancing off.",
+		"hull_friction": 0.04,
+		"bot_contact_friction": 0.9
 	},
 	"motor": {
-		"_comment": "Multipliers over catalogue drive values. Brakes stay catalogue strength so heavy hulls keep real stopping distance.",
+		"_comment": "Multipliers over catalogue drive values. rolling_resistance_multiplier scales the released-throttle coast deceleration (motor controllers brake hard) so knocked hulls stop instead of sliding; brakes stay stronger than coasting.",
 		"acceleration_multiplier": 1.6,
-		"grip_multiplier": 1.6,
+		"grip_multiplier": 2.5,
 		"yaw_acceleration_multiplier": 1.6,
-		"yaw_torque_grip_fraction": 0.65
+		"yaw_torque_grip_fraction": 0.65,
+		"rolling_resistance_multiplier": 10.0,
+		"brake_multiplier": 1.5
 	},
 	"walker": {
 		"lift_headroom_acceleration": 35.0
 	},
 	"impacts": {
-		"_comment": "Scales over authored weapon impulses (m/s at equal mass). Rams add knock-back because Jolt hull contacts are plastic.",
+		"_comment": "Scales over authored weapon impulses (m/s at equal mass). Rams add knock-back because Jolt hull contacts are plastic. The lifter applies no force while charging (hold 0 keeps the flipper low) and releases one violent launch with flip spin.",
 		"weapon_impulse_multiplier": 1.6,
-		"lifter_impulse_multiplier": 1.0,
+		"lifter_impulse_multiplier": 1.5,
+		"lifter_flip_spin_at_1g": 3.0,
 		"minigun_impulse_multiplier": 0.65,
-		"lifter_hold_acceleration_at_1g": 12.0,
-		"lifter_hold_weight_share": 0.5,
+		"lifter_hold_acceleration_at_1g": 0.0,
 		"ram_knockback_per_closing_speed": 0.25,
 		"ram_knockback_lift_fraction": 0.08
 	}

@@ -1,6 +1,14 @@
 class_name MvpWeaponVisual
 extends Node3D
 ## Primitive cosmetic placeholder. Never adds collision or awards hits.
+## Lifter/flipper arm: it lies flat while charging (a loaded spring, with a
+## slight preload dip), snaps up violently on release and settles back down.
+const LIFTER_PRELOAD_ANGLE := deg_to_rad(-3.0)
+const LIFTER_LAUNCH_ANGLE := deg_to_rad(75.0)
+## Cooldown starts at 3 s on launch; the arm stays extended for its first 0.3 s.
+const LIFTER_EXTENDED_UNTIL_COOLDOWN := 2.7
+const LIFTER_SNAP_RATE := 60.0
+const LIFTER_SETTLE_RATE := 10.0
 var kind := ""
 var mechanism: Node3D
 var gun_effects: MinigunEffects
@@ -126,9 +134,11 @@ func show_state(view: BotView, delta: float) -> void:
 			angle = lerpf(-PI / 6.0, PI / 6.0, clampf(1.0 - view.weapon_cooldown / 1.4, 0, 1))
 		mechanism.rotation.x = 0.0 if disabled else angle
 	elif kind == "lifter":
-		var angle := view.weapon_charge_fraction * deg_to_rad(40)
-		if view.weapon_state == "launch" or view.weapon_cooldown > 2.7:
-			angle = deg_to_rad(75)
+		var angle := view.weapon_charge_fraction * LIFTER_PRELOAD_ANGLE
+		var rate := LIFTER_SETTLE_RATE
+		if view.weapon_state == "launch" or view.weapon_cooldown > LIFTER_EXTENDED_UNTIL_COOLDOWN:
+			angle = LIFTER_LAUNCH_ANGLE
+			rate = LIFTER_SNAP_RATE
 		if disabled:
 			angle = 0
-		mechanism.rotation.x = lerpf(mechanism.rotation.x, angle, 1 - exp(-delta * 18))
+		mechanism.rotation.x = lerpf(mechanism.rotation.x, angle, 1 - exp(-delta * rate))

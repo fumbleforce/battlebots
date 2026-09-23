@@ -10,31 +10,39 @@ static var _loaded: BotPhysics
 var gravity_multiplier: float
 var minimum_arena_gravity_scale: float
 var rise_speed_cap_at_1g: float
-var hull_friction_at_1g: float
+# contact
+var hull_friction: float
+var bot_contact_friction: float
 # motor
 var acceleration_multiplier: float
 var grip_multiplier: float
 var yaw_acceleration_multiplier: float
 var yaw_torque_grip_fraction: float
+var rolling_resistance_multiplier: float
+var brake_multiplier: float
 # walker
 var lift_headroom_acceleration: float
 # impacts
 var weapon_impulse_multiplier: float
 var lifter_impulse_multiplier: float
+## Flip angular speed (rad/s at 1 g) added to a launched target, scaled by
+## launch_scale so the flip completes within heft's shorter hang time.
+var lifter_flip_spin_at_1g: float
 var minigun_impulse_multiplier: float
+## Upward acceleration while a charging lifter holds a target; scaled by heft.
 var lifter_hold_acceleration_at_1g: float
-## Fraction of the hull weight carried by the lifted edge; the lifter adds this
-## share of heft's extra weight so the pinned edge lifts as it did at 1 g.
-var lifter_hold_weight_share: float
 var ram_knockback_per_closing_speed: float
 var ram_knockback_lift_fraction: float
 
 const SECTIONS := {
-	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g", "hull_friction_at_1g"],
-	"motor": ["acceleration_multiplier", "grip_multiplier", "yaw_acceleration_multiplier", "yaw_torque_grip_fraction"],
+	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g"],
+	"contact": ["hull_friction", "bot_contact_friction"],
+	"motor": ["acceleration_multiplier", "grip_multiplier", "yaw_acceleration_multiplier",
+		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier"],
 	"walker": ["lift_headroom_acceleration"],
-	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "minigun_impulse_multiplier",
-		"lifter_hold_acceleration_at_1g", "lifter_hold_weight_share", "ram_knockback_per_closing_speed", "ram_knockback_lift_fraction"],
+	"impacts": ["weapon_impulse_multiplier", "lifter_impulse_multiplier", "lifter_flip_spin_at_1g",
+		"minigun_impulse_multiplier", "lifter_hold_acceleration_at_1g",
+		"ram_knockback_per_closing_speed", "ram_knockback_lift_fraction"],
 }
 
 static func settings() -> BotPhysics:

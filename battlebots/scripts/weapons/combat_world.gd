@@ -115,11 +115,10 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 					if pins[key] >= 5:
 						blocked[key] = time + 3
 						pins.erase(key)
-					else:
-						# Carry the lifted edge's share of heft's extra weight so the pinned
-						# target lifts as it did at 1 g.
-						var hold_acceleration := physics.lifter_hold_acceleration_at_1g \
-							+ victim.body.heft_extra_gravity() * physics.lifter_hold_weight_share
+					elif physics.lifter_hold_acceleration_at_1g > 0.0:
+						# Zero by default: the flipper stays low while charging, then
+						# releases one violent launch instead of floating targets up.
+						var hold_acceleration := physics.lifter_hold_acceleration_at_1g * victim.body.heft()
 						victim.body.apply_force(Vector3.UP * victim.body.mass * hold_acceleration * state.charge, point - victim.body.global_position)
 				else:
 					pins.erase(key)
@@ -449,6 +448,11 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	impact_scale *= victim.body.launch_scale()
 	var delivered := impulse * mass_ratio * impact_scale
 	victim.body.apply_impulse(delivered, point - victim.body.global_position)
+	if kind == "lifter":
+		# Tip the struck near edge up and over, away from the flipper.
+		var away := (victim.body.global_position - attacker.body.global_position).slide(Vector3.UP).normalized()
+		if not away.is_zero_approx():
+			victim.body.angular_velocity += Vector3.UP.cross(away) * physics.lifter_flip_spin_at_1g * victim.body.launch_scale()
 	attacker.body.apply_central_impulse(-delivered * recoil)
 	event_id += 1
 	if attacker.combat.stats.weapon in ["vertical_spinner", "horizontal_spinner", "saw"]:

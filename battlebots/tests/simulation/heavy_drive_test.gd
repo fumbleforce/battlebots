@@ -136,16 +136,19 @@ func run() -> void:
 	check(speed_launch > 9.7 and speed_launch < 10.2, "Powerful chassis reaches its 10m/s cruising speed within 1.4 seconds")
 	await drive(156, 1)
 	check(absf(bot.body.linear_velocity.length() - 10.0) < 0.2, "Standard drive retains its10m/s cruising speed")
-	await drive(60)
+	# BotPhysics rolling resistance: released motors brake hard so knocked or
+	# released hulls stop instead of sliding, but not instantly.
+	await drive(30)
 	var coast_speed := -bot.body.linear_velocity.z
-	# High-torque motors engine-brake harder while throttle ramps to neutral.
-	check(coast_speed > 5.0 and coast_speed < 9.4, "Released throttle coasts without an instant stop")
+	check(coast_speed > 2.0 and coast_speed < 8.0, "Released throttle bites down hard without an instant stop")
+	await drive(60)
+	check(bot.body.linear_velocity.length() < 0.5, "Released heavy hull stops within 1.5 seconds instead of sliding")
 	await reset_bot()
 	await drive(240, 1)
 	var before_brake := bot.body.global_position
 	await drive(120, 1, 1, true)
 	var brake_distance := bot.body.global_position.distance_to(before_brake)
-	check(brake_distance > 4.5 and brake_distance < 6.5, "Strong brakes stop from 10m/s in about one hull length while retaining real stopping distance")
+	check(brake_distance > 2.5 and brake_distance < 5.0, "Strong brakes stop from 10m/s within one hull length while retaining real stopping distance")
 	check(bot.body.linear_velocity.length() < 0.15 and bot.body.angular_velocity.length() < 0.15, "Brakes override drive and steering")
 	await reset_bot()
 	await drive(45, 0, -1)
@@ -202,7 +205,7 @@ func run() -> void:
 	check(bot.body.global_basis.y.dot(Vector3.UP) > 0.5, "Scaled recovery torque rights the enlarged chassis")
 	await impact_stability()
 	await replay_collision_cases()
-	print("HEAVY DRIVE measured: speed1s=%.3f speed1.4s=%.3f coast1s=%.3f brake=%.3fm pivot.75s=%.3frad/s reverse.5s=%.3fm/s replay=%.4fm/%.3fdeg" %
+	print("HEAVY DRIVE measured: speed1s=%.3f speed1.4s=%.3f coast0.5s=%.3f brake=%.3fm pivot.75s=%.3frad/s reverse.5s=%.3fm/s replay=%.4fm/%.3fdeg" %
 		[speed_one, speed_launch, coast_speed, brake_distance, yaw, reverse_speed_half, position_error, rotation_error])
 	bot.free()
 	ground.free()
