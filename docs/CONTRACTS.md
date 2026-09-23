@@ -1018,7 +1018,7 @@ plasma, flamer, tesla, cannon, railgun) and the saw blade. Hammer, spinners, lif
 and rams no longer stagger; hammer knockback is unchanged. Protocol and catalogue
 unchanged. Needs a matching hosted server release.
 
-Build `mvp-ab-27` (#50): wall pin. When a ram opens (closing speed above 4 m/s),
+Build `mvp-ab-28` (#50): wall pin. When a ram opens (closing speed above 4 m/s),
 `CombatWorld` remembers the victim's struck face (drive/weapon zones map to
 left/right/front) for `impacts.ram_pin_window_seconds`. If the victim touches static
 arena geometry on its far side (new `DriveBody.static_contacts`, wall-like normals
