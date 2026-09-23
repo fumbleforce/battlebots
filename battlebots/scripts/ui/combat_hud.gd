@@ -13,6 +13,13 @@ const PLATE_DAMAGED := 0.5
 ## Seconds a struck plate or the core reading blinks in the danger colour, and blinks shown.
 const HIT_FLASH := 0.9
 const HIT_BLINKS := 3
+## Flashing readings also swell by this share of their size and shake: peak
+## rotation (radians), pivot jitter (canvas px) and shake rate (rad/s). All
+## ease out with the flash.
+const HIT_GROW := 0.35
+const HIT_SHAKE_ANGLE := 0.09
+const HIT_SHAKE_JITTER := 2.5
+const HIT_SHAKE_RATE := 55.0
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
 var text_scale := 1.0
 var palette := "standard"
@@ -385,10 +392,22 @@ func _process(delta: float) -> void:
 ## Blends a plate from the danger colour back to its resting colour while it flashes.
 func _show_plate(face: String) -> void:
 	if not _plate_color.has(face): return
-	plate_labels[face].modulate = _flash(_plate_color[face], _plate_flash.get(face, 0.0))
+	var remaining: float = _plate_flash.get(face, 0.0)
+	plate_labels[face].modulate = _flash(_plate_color[face], remaining)
+	_shake(plate_labels[face], remaining)
 
 func _show_core() -> void:
 	resources.Core.value.modulate = _flash(_core_color, _core_flash)
+	_shake(resources.Core.value, _core_flash)
+
+## Swells and shakes a flashing label about its centre. Containers own position
+## and size, so this only uses scale, rotation and the pivot.
+func _shake(label: Label, remaining: float) -> void:
+	var strength := clampf(remaining / HIT_FLASH, 0.0, 1.0)
+	var phase := remaining * HIT_SHAKE_RATE
+	label.pivot_offset = label.size * 0.5 + Vector2(sin(phase * 1.3), cos(phase)) * HIT_SHAKE_JITTER * strength
+	label.scale = Vector2.ONE * (1.0 + HIT_GROW * strength)
+	label.rotation = sin(phase) * HIT_SHAKE_ANGLE * strength
 
 func _flash(resting: Color, remaining: float) -> Color:
 	if remaining <= 0.0: return resting

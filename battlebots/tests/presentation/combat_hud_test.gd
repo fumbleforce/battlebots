@@ -64,8 +64,12 @@ func run() -> void:
 	bot.core_fraction = 0.5
 	hud.render(bot, "T", opponent)
 	check(hud._core_flash > 0.0 and hud.resources.Core.value.modulate == hud.danger, "Lost core integrity flashes the reading")
-	hud._process(CombatHud.HIT_FLASH + 0.1)
+	check(hud.resources.Core.value.scale.x > 1.0, "A flashing reading swells")
+	hud._process(CombatHud.HIT_FLASH * 0.5)
+	check(hud.resources.Core.value.rotation != 0.0 or hud.resources.Core.value.scale.x > 1.0, "A flashing reading shakes while it fades")
+	hud._process(CombatHud.HIT_FLASH)
 	check(hud.resources.Core.value.modulate == hud._text_color(), "Core flash returns to the resting colour")
+	check(hud.resources.Core.value.scale == Vector2.ONE and hud.resources.Core.value.rotation == 0.0, "Core reading settles back to rest size and angle")
 	bot.core_fraction = 0.64
 	hud.render(bot, "T", opponent)
 	check(hud._core_flash == 0.0, "Restored core integrity does not flash")
