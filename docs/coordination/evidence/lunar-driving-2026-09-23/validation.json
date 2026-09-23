@@ -54,6 +54,26 @@
       "log": "/tmp/lunar-source-client.log",
       "pass_marker": "Vulkan",
       "sha256": "e3da62522c87d2720d9ef0ab7e5ad57026eacf7e6c1076d38f3c54788447fed8"
+    },
+    {
+      "log": "/tmp/lunar-integrated-import.log",
+      "pass_marker": "[ DONE ]",
+      "sha256": "c42125c597301bc42395a72ded51bbe049e634062af384d02dfbde51b09c4cf3"
+    },
+    {
+      "log": "/tmp/lunar-integrated-baseline.log",
+      "pass_marker": "BASELINE PASS",
+      "sha256": "a1b1d389c8f8d160e204dca04603c43c8c8318a9102389eb9afa3da6366f09bc"
+    },
+    {
+      "log": "/tmp/lunar-integrated-garage.log",
+      "pass_marker": "GARAGE LOADOUT LINKS PASS",
+      "sha256": "9ca3fb48b7e9273daf913680f602ef5b9c55d15b4fced67b1a69d67a2f5c0691"
+    },
+    {
+      "log": "/tmp/lunar-integrated-dust.log",
+      "pass_marker": "LUNAR DRIVING DUST PASS",
+      "sha256": "997a17a716606946b948be92f17c91eea212db597befdc0574ccc9b57ddbb3b3"
     }
   ],
   "engine": "4.7.2.stable.official.ed1daf0bf",

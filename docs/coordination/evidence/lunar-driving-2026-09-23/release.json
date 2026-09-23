@@ -93,5 +93,7 @@
     "external": "external-acceptance.json",
     "result": "PASS",
     "scope": "Two independent clients per private/Quick Play duel, driving, transport reconnect, public-forfeit results and active rematch; not natural combat/human acceptance."
-  }
+  },
+  "source_tag": "release/lunar-effects-20260923-2d030fd",
+  "integration_note": "Concurrent main 1461afc adds unrelated Garage loadout links; integrated source includes them, this exact tested client/server release checkpoint predates them. No protocol/catalogue/authority difference."
 }

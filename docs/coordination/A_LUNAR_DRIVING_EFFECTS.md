@@ -133,6 +133,12 @@ Quick Play continues to use Foundry.
 [external report](evidence/lunar-driving-2026-09-23/external-acceptance.json).
 Local archives in this worktree: `battlebots/exports/battlebots-linux-2d030fd.tar.gz`
 and `battlebots/exports/battlebots-windows-2d030fd.zip`.
-Subsequent evidence-only commits do not change the exported runtime.
+The exact exported source is retained as Git tag
+`release/lunar-effects-20260923-2d030fd`. During final integration, B #37's Garage
+loadout links landed on main (`1461afc`). The rebase changed only those unrelated
+client-menu files and preserved both concurrent HANDOFF entries. Combined import,
+baseline, Garage links and native dust checks pass. Main includes #37; these
+explicitly versioned export archives remain the tested `2d030fd` release and do
+not claim the later Garage links. Protocol/catalogue/authority are identical.
 Other agents' #32 nitro/combat effects, #34 Woodland, #35 pickups and #36 turret
 remain separate in-progress work at this checkpoint.
