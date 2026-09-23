@@ -135,6 +135,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.linear_velocity = correction.velocity
 		state.angular_velocity = correction.angular
 		correction.clear()
+		# Re-base the blend onto the corrected path; the owner smooths the
+		# snap itself (visual_error), so interpolation must not smooth it too.
+		_previous_tick_pose.origin -= displacement
+		_current_tick_pose.origin -= displacement
 		reconciled.emit(displacement)
 	if reset_pose is Transform3D:
 		state.transform = reset_pose

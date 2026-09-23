@@ -39,6 +39,8 @@ var _speed_lines: ColorRect
 @onready var camera: Camera3D = $Camera
 
 func _ready() -> void:
+	# Run after bots and the session place this frame's presentation pose.
+	process_priority = 100
 	add_to_group(&"bot_orbit_cameras")
 	base_fov = camera.fov
 	if DisplayServer.get_name() == "headless": return
@@ -103,7 +105,10 @@ func _heading() -> float:
 		return yaw
 	return atan2(-forward.x, -forward.z)
 
-func _physics_process(delta: float) -> void:
+## Follow the anchor every rendered frame: it rides the interpolated
+## presentation pose, so a physics-rate camera would step against a smoothly
+## moving bot and jitter it on screen.
+func _process(delta: float) -> void:
 	update_camera(delta)
 
 func update_camera(delta: float) -> void:

@@ -1058,7 +1058,7 @@ func _process(_delta: float) -> void:
 		var latest: Dictionary = buffer.back()
 		degraded = degraded or _time - float(latest.arrival) > 0.25
 		if id == local_entity:
-			bot.presentation.global_transform = bot.body.global_transform
+			bot.presentation.global_transform = bot.body.interpolated_transform()
 			bot.presentation.global_position += bot.visual_error
 			continue
 		var target_tick: float = latest.tick + (_time - float(latest.arrival) - interpolation_delay) * 60
