@@ -112,7 +112,6 @@ event fields, protocol or catalogue changes. Hit stagger and hammer knockback
   and heavy-gravity launch scale) instead of pressing it into the floor.
 - Minigun: one pooled pressure ring per accepted shot at the muzzle (0.2 s) and
   barrel smoke driven by presentation heat, strongest after the trigger is released.
-- Driving rumble: the orbit camera adds a slight speed-scaled thrum and sway.
 - `BotOrbitCamera` eases in a +14 degree FOV kick, 10% boom stretch, a very light
   rumble and neutral white speed lines with a faint dark vignette (CanvasLayer -8,
   below HUD; the blue stays on the vehicle) while the followed bot boosts.

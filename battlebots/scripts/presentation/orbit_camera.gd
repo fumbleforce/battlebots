@@ -36,9 +36,6 @@ var shake_trauma := 0.0
 var base_fov := 70.0
 var _shake_time := 0.0
 var _speed_lines: ColorRect
-## Smoothed ground speed of the followed bot; drives the tank-like engine rumble.
-var ground_speed := 0.0
-var _last_anchor := Vector3.INF
 @onready var camera: Camera3D = $Camera
 
 func _ready() -> void:
@@ -63,8 +60,6 @@ func bind_source(value: BotSource) -> void:
 	source = value
 	if is_instance_valid(source): _sync_anchor_scale(source.camera_anchor())
 	_initialized = false
-	_last_anchor = Vector3.INF
-	ground_speed = 0.0
 	recenter()
 
 func _sync_anchor_scale(anchor: Node3D) -> void:
@@ -120,7 +115,6 @@ func update_camera(delta: float) -> void:
 		_apply_speed_feel(delta, false)
 		return
 	_sync_anchor_scale(anchor)
-	_track_speed(anchor.global_position, delta)
 	seconds_since_orbit += delta
 	if auto_recenter and driving and seconds_since_orbit >= 1.5:
 		yaw = lerp_angle(yaw, _heading(), 1.0 - exp(-recenter_speed * delta))
@@ -165,19 +159,6 @@ func add_impact_shake(origin: Vector3, strength: float) -> void:
 	var falloff := clampf(1.0 - global_position.distance_to(origin) / reach, 0.0, 1.0)
 	shake_trauma = minf(1.0, shake_trauma + strength * 0.5 * falloff)
 
-func _track_speed(at: Vector3, delta: float) -> void:
-	if not at.is_finite() or not is_finite(delta) or delta <= 0.0: return
-	var measured := 0.0
-	if _last_anchor.is_finite():
-		var travel := at - _last_anchor
-		travel.y = 0.0
-		measured = travel.length() / delta
-		# Respawns and teleports are not driving.
-		if measured > 40.0 * _bot_scale: measured = 0.0
-	_last_anchor = at
-	ground_speed = lerpf(ground_speed, measured, 1.0 - exp(-delta * 6.0))
-	if ground_speed < 0.01: ground_speed = 0.0
-
 func _apply_speed_feel(delta: float, boosting: bool) -> void:
 	if not is_finite(delta) or delta < 0.0: delta = 0.0
 	var target := 1.0 if boosting and speed_effects else 0.0
@@ -194,13 +175,6 @@ func _apply_speed_feel(delta: float, boosting: bool) -> void:
 	var t := _shake_time
 	var jitter := Vector2(sin(t * 53.0) * 0.6 + sin(t * 91.0 + 1.3) * 0.4,
 		sin(t * 61.0 + 0.7) * 0.6 + sin(t * 83.0 + 2.1) * 0.4) * rumble * _boom_scale
-	# Heavy-machine feel: a low engine thrum plus a slower track sway, both
-	# scaled by how fast the chassis is moving. Mostly vertical, like a hull.
-	var drive := clampf(ground_speed / (5.0 * _bot_scale), 0.0, 1.0) if speed_effects else 0.0
-	if drive > 0.0:
-		var thrum := (sin(t * 38.0) * 0.55 + sin(t * 23.0 + 0.9) * 0.45) * 0.006
-		var sway := sin(t * 7.3 + 0.4) * 0.004
-		jitter += Vector2(sway * 0.5, thrum + sway) * drive * _boom_scale
 	camera.position = Vector3(jitter.x, jitter.y, actual_distance)
 	camera.rotation = Vector3(0.0, 0.0, sin(t * 47.0 + 0.4) * 0.01 * impact)
 	if _speed_lines != null:

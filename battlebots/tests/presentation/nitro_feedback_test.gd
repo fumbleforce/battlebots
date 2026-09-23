@@ -151,23 +151,6 @@ func run() -> void:
 		check(rig.shake_trauma == before, "Invalid shake strength ignored")
 	for step: int in 90: rig.update_camera(1.0 / 60.0)
 	check(rig.shake_trauma == 0.0 and rig.camera.position.is_equal_approx(Vector3(0, 0, rig.actual_distance)), "Shake settles")
-	# Tank rumble scales with ground speed and is absent when parked.
-	source.nitro = false
-	rig.speed_effects = true
-	for step: int in 60: rig.update_camera(1.0 / 60.0)
-	check(rig.ground_speed == 0.0 and rig.camera.position.is_equal_approx(Vector3(0, 0, rig.actual_distance)), "Parked bot has no drive rumble")
-	var moved := false
-	for step: int in 60:
-		source.position.z -= 6.0 / 60.0
-		rig.update_camera(1.0 / 60.0)
-		if not is_equal_approx(rig.camera.position.y, 0.0): moved = true
-	check(rig.ground_speed > 4.0 and moved, "Driving adds a speed-scaled rumble (speed %.1f)" % rig.ground_speed)
-	check(absf(rig.camera.position.y) < 0.05 * 3.0, "Drive rumble stays slight")
-	rig.speed_effects = false
-	source.position.z -= 0.1
-	rig.update_camera(1.0 / 60.0)
-	check(rig.camera.position.is_equal_approx(Vector3(0, 0, rig.actual_distance)), "Disabling speed effects removes drive rumble")
-	rig.speed_effects = true
 	rig.free()
 	source.free()
 	if failures == 0: print("NITRO FEEDBACK PASS")
