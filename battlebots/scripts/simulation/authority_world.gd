@@ -270,8 +270,11 @@ func _collect_pickups(delta: float) -> void:
 			continue
 		for id: int in ids:
 			var bot: MvpBot = bots[id]
-			# Practice NPCs keep their authored training builds.
-			if bot.combat.eliminated or bot.has_meta("practice_variant") or not touches_pickup(bot, item.point):
+			# Practice NPCs keep their authored training builds. A bot whose spawn
+			# or respawn placement has not been applied yet still sits where its
+			# body was created (the origin), not where it is going (#80).
+			if bot.combat.eliminated or bot.has_meta("practice_variant") or bot.body.reset_pose != null \
+				or not touches_pickup(bot, item.point):
 				continue
 			var event := pickups.collect(item, id, bot.loadout)
 			if event.is_empty():

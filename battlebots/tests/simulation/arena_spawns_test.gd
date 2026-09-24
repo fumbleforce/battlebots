@@ -69,7 +69,22 @@ func check_practice(arena_id: String) -> void:
 	var session := MvpSession.new()
 	root.add_child(session)
 	check(session.practice(session.registry.starter(), arena_id) == OK, "%s practice starts" % arena_id)
-	await physics_frame
+	for round_start: int in 2:
+		# Bots are created at the origin and teleported on their first physics
+		# step; the centre pickup must not go to a bot still waiting there (#80).
+		var centres := session.world.pickups.items.filter(func(item: Dictionary) -> bool: return item.point.is_zero_approx())
+		# Woodland's giant starts on the centre, so that point is never stocked there.
+		if centres.is_empty():
+			check(arena_id == "woodland", "%s practice stocks its centre pickup" % arena_id)
+			break
+		var centre: Dictionary = centres.front()
+		centre.merge({"kind":"credits", "part":"", "amount":50, "available":true}, true)
+		for tick: int in 5:
+			await physics_frame
+		check(centre.available and session.world.pickups.credits.is_empty(),
+			"%s practice start %d leaves the centre pickup to be driven to" % [arena_id, round_start + 1])
+		if round_start == 0:
+			check(session.restart_practice() == OK, "%s practice restarts" % arena_id)
 	var half := ArenaBounds.half_extent(arena_id)
 	var player: MvpBot = session.local_source()
 	var at := player.spawn_pose.origin

@@ -59,10 +59,13 @@ func run() -> void:
 	check(game.world_markers.markers.size() == world.bots.size() and world.bots.size() == 4 + game.session.practice_director.roamers.size(),
 		"Player, the three authored NPCs and the nimble roamers retain visible health markers")
 	check(game.practice_hud.target_label.text.contains("100"), "Retained practice readout receives fresh target health")
-	check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(game.practice_hud.get_global_rect()), "Target HUD fits 720p: %s within %s" % [game.practice_hud.get_global_rect(), root.size])
+	# Controls live in stretched canvas coordinates (project stretch mode
+	# canvas_items, 1920x1080 base), not window pixels: compare like menu_flow_test.
+	var visible_rect := root.get_visible_rect()
+	check(visible_rect.encloses(game.practice_hud.get_global_rect()), "Target HUD fits 720p: %s within %s" % [game.practice_hud.get_global_rect(), visible_rect])
 	game.preview.release_controls()
 	await frames()
-	check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(game._restart_practice.get_global_rect()), "Restart fits actual pause menu")
+	check(root.get_visible_rect().encloses(game._restart_practice.get_global_rect()), "Restart fits actual pause menu")
 	check(game.preview.resume_button.get_node(game.preview.resume_button.focus_next) == game._restart_practice, "Keyboard navigation includes Restart after Resume")
 	target.combat.core = target.combat.stats.core * 0.5
 	target.combat.zones.weapon = 0

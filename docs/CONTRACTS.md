@@ -1261,3 +1261,9 @@ places them for every arena, and the Moon and Woodland roots do the same on
   central practice homes and `WoodlandBoss._edge_starts`;
   `WoodlandBoss.configure(world, first_id)` only adds the giant.
 Needs the matching hosted release.
+
+Build `mvp-ab-43` (#80): `AuthorityWorld._collect_pickups` skips a bot whose
+`body.reset_pose` is still pending. Bots are created at the origin and reach their
+spawn or respawn pose on their first physics step; before this fix a bot starting
+at the edge could collect the centre pickup on that step (practice starts at the
+edges since mvp-ab-41). Protocol unchanged; needs the matching hosted release.
