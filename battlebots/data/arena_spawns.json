@@ -1,0 +1,31 @@
+{
+	"_comment": "Authoritative start positions (#45). Server and clients place every arena's SpawnPoints markers from this file; changing any value is a gameplay change: bump WireCodec.BUILD. Game metres, arena centre at the origin, team 1 on +Z. Every start faces the arena centre; AuthorityWorld.clear_spawn_pose still pulls a hull off walls and onto its terrain.",
+	"team_lanes": {
+		"_comment": "Which of the five team lanes (1..5, left to right seen from the team's side) each match size uses. Duels meet in the centre lane.",
+		"1": [3],
+		"2": [2, 4],
+		"5": [1, 2, 3, 4, 5]
+	},
+	"arenas": {
+		"_comment": "team: the five team-1 lanes as [x, z]; team 2 is the same set mirrored through the centre. ffa_radius: the eight free-for-all starts sit on this ring, 45 degrees apart, the first on +Z. Woodland's lanes match its flattened terrain pads (woodland_ground.gd), Moon's its levelled pads (moon_surface.gd).",
+		"foundry": {
+			"team": [[-24.0, 38.0], [-12.0, 38.0], [0.0, 38.0], [12.0, 38.0], [24.0, 38.0]],
+			"ffa_radius": 40.0
+		},
+		"moon": {
+			"_comment": "A shallow arc 20 m out with 9 m between neighbours: Foundry's row scaled to this 50 m octagon left 1.2 m between hulls and pinned the outer bots against the chamfers.",
+			"team": [[-15.74, 12.34], [-8.75, 17.98], [0.0, 20.0], [8.75, 17.98], [15.74, 12.34]],
+			"ffa_radius": 20.0
+		},
+		"woodland": {
+			"team": [[-57.6, 91.2], [-28.8, 91.2], [0.0, 91.2], [28.8, 91.2], [57.6, 91.2]],
+			"ffa_radius": 96.0
+		}
+	},
+	"practice": {
+		"_comment": "Offline practice starts at the edges, not in a central huddle: the player takes team-1 lane player_lane, the stationary calibration target waits target_gap metres (hull to hull) ahead of it, and the two mobile pilots start at the free-for-all starts in pilot_starts (1..8), on the arena's flanks.",
+		"player_lane": 3,
+		"target_gap": 6.0,
+		"pilot_starts": [3, 7]
+	}
+}

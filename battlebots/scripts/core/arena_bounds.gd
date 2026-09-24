@@ -27,7 +27,8 @@ static func contains(point: Vector3, half: float, margin := 0.0) -> bool:
 		and absf(point.x) + absf(point.z) <= (half - margin) * sqrt(2.0)
 
 static func resize_shell(arena: Node3D, half: float) -> void:
-	# Inherited arenas may retain a different size from Foundry. Duplicate shared
+	# Inherited arenas may retain a different size from Foundry. Spawn markers are
+	# placed from data/arena_spawns.json, not scaled here. Duplicate shared
 	# resources before editing so loading Moon cannot shrink another live world.
 	var floor_shape: CollisionShape3D = arena.get_node("Floor/Collision")
 	var original_half: float = floor_shape.shape.size.x * 0.5
@@ -52,6 +53,3 @@ static func resize_shell(arena: Node3D, half: float) -> void:
 		if mesh:
 			mesh.mesh = mesh.mesh.duplicate()
 			mesh.mesh.size = size
-	for marker: Node3D in arena.get_node("SpawnPoints").get_children():
-		marker.position.x *= half / original_half
-		marker.position.z *= half / original_half

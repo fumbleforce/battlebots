@@ -3,20 +3,20 @@ extends Node3D
 const GRID := 81
 const STEP := 50.0 / (GRID-1)
 const ROCKS := [Vector3(21,0,7),Vector3(-21,0,-7),Vector3(7,0,-21),Vector3(-7,0,21)]
+const ARENA_SPAWNS = preload("res://scripts/core/arena_spawns.gd")
+static var _spawns := PackedVector2Array()
 
 func _enter_tree() -> void:
 	# Moon inherits the shell but keeps its authored 50m terrain/spawn contract.
 	ArenaBounds.resize_shell(self, ArenaBounds.MOON_HALF)
+	ARENA_SPAWNS.settings().place_markers(self, "moon")
 
 static func height_at(x: float, z: float) -> float:
 	var radius := Vector2(x,z).length()
 	var h := (0.32+sin(x*0.43)*cos(z*0.37)*0.18+sin(x*0.21+z*0.29)*0.08)*smoothstep(7.0,14.0,radius)
-	# Preserve every existing spawn and the central practice positions.
-	for team_z: float in [-19,19]:
-		for team_x: float in [-12,-6,0,6,12]:
-			h *= smoothstep(2.0,3.0,Vector2(x-team_x,z-team_z).length())
-	for i: int in range(8):
-		var spawn := Vector2(sin(i*PI/4),cos(i*PI/4))*20
+	# Level pads under every team and free-for-all start (data/arena_spawns.json).
+	if _spawns.is_empty(): _spawns = ARENA_SPAWNS.settings().points("moon")
+	for spawn: Vector2 in _spawns:
 		h *= smoothstep(2.0,3.0,Vector2(x,z).distance_to(spawn))
 	return maxf(0,h)
 

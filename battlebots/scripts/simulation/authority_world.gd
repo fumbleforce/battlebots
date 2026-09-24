@@ -1,6 +1,7 @@
 class_name AuthorityWorld
 extends Node3D
 const HEAT_RELIEF = preload("res://scripts/core/heat_relief.gd")
+const ARENA_SPAWNS = preload("res://scripts/core/arena_spawns.gd")
 ## Physics-only session world. The session owns timing, commands and match rules.
 ## Emitted after a pickup (or a replicated swap) changes a bot's match loadout.
 ## A body/drive/weapon change replaces the MvpBot node under the same entity id.
@@ -36,6 +37,7 @@ func _build_arena() -> void:
 		scene = preload("res://scenes/arenas/woodland_arena.tscn")
 	arena = scene.instantiate()
 	arena.name = "Arena"
+	ARENA_SPAWNS.settings().place_markers(arena, arena_id)
 	if DisplayServer.get_name() == "headless":
 		_strip_presentation(arena)
 	add_child(arena)
@@ -78,8 +80,8 @@ func spawn(id: int, team: int, slot: int, loadout: Dictionary, team_size: int = 
 	bot.camera_anchor().set_meta(&"arena_ceiling", ArenaBounds.ceiling(arena_id))
 	# B's published DriveBody replay_config already includes gravity_scale.
 	bot.body.gravity_scale = 1.62 / 9.8 if arena_id == "moon" else 1.0
-	var marker_index := slot + 1 if team_size == 5 else (2 if slot == 0 else 4)
-	var marker_path := "SpawnPoints/FFA_%d" % (slot + 1) if mode == "ffa" else "SpawnPoints/Team%d_%d" % [team + 1, marker_index]
+	var lane: int = ARENA_SPAWNS.settings().lane(team_size, slot)
+	var marker_path := "SpawnPoints/FFA_%d" % (slot + 1) if mode == "ffa" else "SpawnPoints/Team%d_%d" % [team + 1, lane]
 	var marker := arena.get_node(marker_path) as Node3D
 	var pose := clear_spawn_pose(bot, marker.global_transform)
 	bot.spawn_pose = pose

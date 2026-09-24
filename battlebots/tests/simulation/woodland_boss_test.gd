@@ -26,7 +26,7 @@ func _run() -> void:
 	check(Vector2(player.spawn_pose.origin.x, player.spawn_pose.origin.z).length() > 80.0, "Player starts at the edge, not the plateau")
 	for record: Dictionary in session.practice_director.records:
 		var at: Vector3 = record.home.origin
-		check(Vector2(at.x, at.z).length() > 80.0, "Practice bot %d starts at the edge" % record.index)
+		check(Vector2(at.x, at.z).length() > 70.0, "Practice bot %d starts at the edge" % record.index)
 	check(giant.spawn_pose.origin.y > 6.0, "Giant starts on the plateau top")
 	# It hunts: after a few seconds it has moved and chosen a target.
 	var start := giant.body.global_position

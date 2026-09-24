@@ -13,7 +13,8 @@ const WALL_HEIGHT := 16.0
 const TRUNK_RADIUS := 0.62
 const HULL_POINTS := 96
 const CUTS := 9
-const SCALE := HALF / 50.0 # Shell spawn markers scale with the octagon.
+const ARENA_SPAWNS = preload("res://scripts/core/arena_spawns.gd")
+static var _spawn_points := PackedVector2Array()
 
 # Central mesa: practice duels happen on its level top; four ramps face the
 # team lanes and the gates, cliffs fill the sectors between them.
@@ -80,14 +81,11 @@ static var _scan_shapes: Dictionary = {}
 
 # --- Shared terrain --------------------------------------------------------
 
+## Team and free-for-all starts (data/arena_spawns.json); each gets a level pad.
 static func spawn_points() -> PackedVector2Array:
-	var points := PackedVector2Array()
-	for z: float in [-38.0, 38.0]:
-		for x: float in [-24.0, -12.0, 0.0, 12.0, 24.0]:
-			points.append(Vector2(x, z) * SCALE)
-	for k: int in range(8):
-		points.append(Vector2(sin(k * PI / 4.0), cos(k * PI / 4.0)) * 40.0 * SCALE)
-	return points
+	if _spawn_points.is_empty():
+		_spawn_points = ARENA_SPAWNS.settings().points("woodland")
+	return _spawn_points
 
 const HEIGHT_CACHE := "res://assets/textures/woodland/terrain_heights.res"
 
@@ -362,8 +360,9 @@ static func ramp_points() -> PackedVector3Array:
 	return points
 
 func _enter_tree() -> void:
-	# Woodland keeps the shell's walls and spawns, at its own scale and height.
+	# Woodland keeps the shell's walls at its own scale and height.
 	ArenaBounds.resize_shell(self, HALF)
+	ARENA_SPAWNS.settings().place_markers(self, "woodland")
 	for wall: Node3D in get_node("Walls").get_children():
 		var collision: CollisionShape3D = wall.get_node("Collision")
 		var box := collision.shape as BoxShape3D

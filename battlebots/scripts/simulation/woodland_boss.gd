@@ -1,7 +1,6 @@
 class_name WoodlandBoss
 extends RefCounted
-## Offline Woodland practice (stage 1 of #45): edge starting positions and a
-## roaming giant that hunts the nearest bot. Taking it down leaves one
+## Offline Woodland practice (stage 1 of #45): a roaming giant that hunts the nearest bot. Taking it down leaves one
 ## guaranteed top-tier part pickup where it fell; the giant rebuilds later.
 ##
 ## The boss is an ordinary MvpBot on its own team, driven through BotCommand
@@ -48,9 +47,8 @@ static func build(registry: ContentRegistry) -> Dictionary:
 
 ## Moves the player and practice bots to edge starts and adds the giant.
 ## Returns the next free entity id.
-func configure(authority: AuthorityWorld, player_id: int, director: PracticeBotDirector, first_id: int) -> int:
+func configure(authority: AuthorityWorld, first_id: int) -> int:
 	world = authority
-	_edge_starts(player_id, director)
 	var registry := ContentRegistry.new()
 	registry.enforce_budget = false
 	boss = MvpBot.create(first_id, TEAM, build(registry), registry)
@@ -115,22 +113,6 @@ static func _scale(bot: MvpBot) -> void:
 static func _boost_subsystems(bot: MvpBot) -> void:
 	for zone: String in ["drive_left", "drive_right", "weapon"]:
 		bot.combat.zones[zone] = float(bot.combat.zones[zone]) * ARMOUR_SCALE
-
-func _edge_starts(player_id: int, director: PracticeBotDirector) -> void:
-	var markers := world.arena.get_node("SpawnPoints")
-	var player: MvpBot = world.bots[player_id]
-	_place(player, world.clear_spawn_pose(player, (markers.get_node("Team1_3") as Node3D).global_transform))
-	if director == null:
-		return
-	# Respawns and restarts return the player to this edge start.
-	director.player_home = player.spawn_pose
-	var starts := ["FFA_3", "FFA_5", "FFA_7"]
-	for index: int in director.records.size():
-		var record: Dictionary = director.records[index]
-		var bot: MvpBot = world.bots[record.id]
-		var pose := world.clear_spawn_pose(bot, (markers.get_node(starts[index % starts.size()]) as Node3D).global_transform)
-		record.home = pose
-		_place(bot, pose)
 
 func _place(bot: MvpBot, pose: Transform3D) -> void:
 	bot.spawn_pose = pose

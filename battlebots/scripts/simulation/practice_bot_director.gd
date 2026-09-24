@@ -2,6 +2,7 @@ class_name PracticeBotDirector
 extends RefCounted
 ## Offline authority only. These pilots use the same commands, damage and physics
 ## as a human. Appearance metadata never enters a loadout or a network baseline.
+const ARENA_SPAWNS = preload("res://scripts/core/arena_spawns.gd")
 const VARIANTS := ["wedge", "bruiser", "sentry"]
 const WRECK_SECONDS := 6.0
 ## The player's wreck returns to its spawn after this delay instead of a menu.
@@ -12,14 +13,13 @@ var player_id := 0
 var target_id := 0
 var records: Array[Dictionary] = []
 ## The four nimble bots (#61) roam wide loops and engage a player who comes
-## close. Kept apart from the authored records, which other practice fixtures
-## (Woodland edge starts) place by index.
+## close. Kept apart from the authored records (calibration target and pilots).
 var roamers: Array[Dictionary] = []
 var elapsed := 0.0
 var player_wreck_age := 0.0
 ## Counts completed player respawns so presentation can react to each one.
 var player_respawns := 0
-## Where the player spawns; the Woodland boss moves it to an edge start.
+## Where the player spawns: its team edge (data/arena_spawns.json practice).
 var player_home := Transform3D.IDENTITY
 
 func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
@@ -27,6 +27,7 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 	player_id = controlled_id
 	target_id = first_id
 	var player: MvpBot = world.bots[player_id]
+	var spawns := ARENA_SPAWNS.settings()
 	for index: int in VARIANTS.size():
 		var build := world.registry.starter(index == 0)
 		build.name = ["BULWARK / calibration", "RAMMER / mobile drone", "WATCHDOG / sentry"][index]
@@ -43,13 +44,16 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 		bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
 		world.bots[bot.entity_id] = bot
 		bot.body.gravity_scale = 1.62 / 9.8 if world.arena_id == "moon" else 1.0
-		var separation: float = (player.combat.stats.size.z + bot.combat.stats.size.z) * 0.5 + 2.0 * BotScale.FACTOR
-		var home := Vector3(0, 0, -separation * 0.5)
 		if index == 0:
-			_place(player, Transform3D(Basis.IDENTITY, Vector3(0, 0, separation * 0.5)))
-		elif index == 1: home = Vector3(-13, 0, -2)
-		else: home = Vector3(12, 0, -11)
-		_place(bot, Transform3D(Basis(Vector3.UP, PI), home))
+			# The player starts at its own edge with the calibration target ahead.
+			_place(player, spawns.team_start(world.arena_id, 0, spawns.practice_player_lane))
+			var separation: float = (player.combat.stats.size.z + bot.combat.stats.size.z) * 0.5 + spawns.practice_target_gap
+			var ahead := -player.spawn_pose.basis.z.slide(Vector3.UP).normalized()
+			_place(bot, Transform3D(player.spawn_pose.basis.rotated(Vector3.UP, PI), player.spawn_pose.origin + ahead * separation))
+		else:
+			# Mobile pilots start on the flanks and come to find the player.
+			var starts := spawns.practice_pilot_starts
+			_place(bot, spawns.ffa_start(world.arena_id, starts[(index - 1) % starts.size()]))
 		records.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":index,
 			"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
 	player_home = player.spawn_pose

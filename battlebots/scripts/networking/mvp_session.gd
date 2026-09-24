@@ -205,7 +205,7 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
 	_next_entity = practice_director.configure(world, local_entity, _next_entity)
 	if arena_id == "woodland":
 		woodland_boss = WoodlandBoss.new()
-		_next_entity = woodland_boss.configure(world, local_entity, practice_director, _next_entity)
+		_next_entity = woodland_boss.configure(world, _next_entity)
 	if pickups_enabled:
 		world.begin_pickups(randi())
 	match_state.match_id = "practice"

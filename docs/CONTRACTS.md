@@ -667,7 +667,7 @@ again at event ID one. No wire/schema version changes.
 
 Player knockout no longer opens pause (23 September 2026). `PracticeBotDirector`
 respawns the same local entity, repaired, `PLAYER_RESPAWN_SECONDS` (3 s) after
-elimination: at its own spawn (`player_home`; Woodland moves it to the edge start), or
+elimination: at its own spawn (`player_home`, its team edge; see Arena start positions), or
 else the nearest authored `SpawnPoints` marker clear of live bots, or the roomiest
 one if none is clear, so it is never held out. NPC pilots get the usual reset grace.
 `player_respawn_remaining()` (NAN while alive) drives the combat HUD's
@@ -828,7 +828,8 @@ The floor collider extends beneath the full 50 m square; diagonal walls exclude
 the corner wedges from play. Existing orbit-camera scene `corner_chamfer` is
 14.644661 so its above-wall boundary also matches the octagon.
 Team spawn markers are under SpawnPoints; names Team1_1..5 and Team2_1..5.
-For 2v2 use indices 2 and 4 (X=-6/+6). Marker Y=0.5 is historical authoring data;
+Their positions now come from `data/arena_spawns.json` (see Arena start
+positions below); the lane numbers here are historical. Marker Y=0.5 is historical authoring data;
 `clear_spawn_pose` replaces it with full-footprint terrain clearance plus half
 hull height (walker ride height instead for walking drives) and 0.05m spare.
 B's integrated arena includes perimeter walls and FFA spawn markers; A's current
@@ -1220,3 +1221,27 @@ clamp(rammer mass / `mass.reference_mass`, `ram_pin_min_mass_factor`,
 the other (the one rammed) opens no pin. `ram_pin_damage_per_closing_speed` is
 replaced by `ram_pin_damage_per_speed`. Protocol unchanged; needs a matching
 hosted release.
+
+## Arena start positions (#45, 24 September 2026)
+
+Build `mvp-ab-41`; protocol and catalogue unchanged. Gameplay change: every
+arena's `SpawnPoints` markers (Team1_1..5, Team2_1..5, FFA_1..8; names and count
+unchanged) are placed from `data/arena_spawns.json` through `ArenaSpawns`
+(`scripts/core/arena_spawns.gd`, preloaded by consumers). `ArenaBounds.resize_shell`
+no longer scales Foundry's markers with the octagon. `AuthorityWorld._build_arena`
+places them for every arena, and the Moon and Woodland roots do the same on
+`_enter_tree` for standalone scenes.
+- Team 1 lanes are authored per arena as `[x, z]`; team 2 mirrors them through
+  the centre. Every start (team and FFA) faces the arena centre. FFA starts sit
+  on `ffa_radius`, 45° apart, with FFA_1 on +Z.
+- `team_lanes` maps team size to lanes: duel `[3]` (the centre lane, previously 2),
+  2v2 `[2, 4]`, 5v5 all five. `AuthorityWorld.spawn` reads it.
+- Moon's team lanes are an arc 20 m out with 9 m between neighbours. Its levelled
+  pads (`moon_surface.gd`) follow the data. Woodland's lanes and flattened pads
+  (`woodland_ground.spawn_points()`) keep their previous positions, so no rebake.
+- Practice (every arena): the player takes team-1 lane `practice.player_lane`.
+  The calibration target waits `target_gap` m (hull to hull) ahead, facing it,
+  and the two mobile pilots start at FFA starts `pilot_starts`. This replaces the
+  central practice homes and `WoodlandBoss._edge_starts`;
+  `WoodlandBoss.configure(world, first_id)` only adds the giant.
+Needs the matching hosted release.

@@ -54,6 +54,7 @@ Invoke-MvpTest 'res://tests/simulation/saw_physics.tscn' 'SAW PHYSICS PASS' -Sce
 Invoke-MvpTest 'res://tests/simulation/rules_smoke.gd' 'RULES PASS'
 Invoke-MvpTest 'res://tests/simulation/five_v_five_rules.tscn' 'FIVE V FIVE RULES PASS' -Scene
 Invoke-MvpTest 'res://tests/simulation/ffa_rules.tscn' 'FFA RULES PASS' -Scene
+Invoke-MvpTest 'res://tests/simulation/arena_spawns_test.gd' 'ARENA SPAWNS PASS'
 Invoke-MvpTest 'res://tests/simulation/combat_physics_smoke.gd' 'COMBAT PHYSICS PASS'
 Invoke-MvpTest 'res://tests/simulation/stress_smoke.gd' 'STRESS PASS'
 Invoke-MvpTest 'res://tests/presentation/camera_arena_test.gd' 'PRESENTATION PASS'

@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Classes added after the last stable cache that runtime code must preload.
 CLASSES = ['HeatRelief', 'CoolingZoneVisuals', 'SpreeBanner', 'FrontToolTuning', 'AtlasToolVisual',
-           'TurretHarpoonEffects', 'MortarAimVisual', 'GamepadInput']
+           'TurretHarpoonEffects', 'MortarAimVisual', 'GamepadInput', 'ArenaSpawns']
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--godot', required=True)
