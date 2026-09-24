@@ -36,11 +36,18 @@ func run() -> void:
 		if copy == null: continue
 		check(copy.presentation.global_position.distance_to(giant.body.global_position) < 8.0,
 			"Client shows the giant near its server position (%.1f m)" % copy.presentation.global_position.distance_to(giant.body.global_position))
-	# Killing the giant never ends the round; it leaves one drop for the killer.
+	# Hitting and killing the giant never scores (#82), but the kill vents heat.
 	var killer: int = clients[0].local_entity
+	var hunter: MvpBot = server.world.bots[killer]
+	var health_before := total_health(giant)
+	server.world.weapons._apply_hit(hunter, giant, giant.body.global_position, 60.0, Vector3.ZERO, server.world.tick, 1)
+	check(total_health(giant) < health_before, "Damage to the giant lands (%.0f -> %.0f)" % [health_before, total_health(giant)])
+	check(hunter.combat.effective_damage == 0 and hunter.combat.component_disables == 0, "Damage to the giant is never scored (%d)" % hunter.combat.effective_damage)
 	giant.combat.recent_attackers[killer] = server.world.weapons.time
 	giant.combat.eliminate("test")
 	await frames(30)
+	check(hunter.combat.eliminations == 0 and hunter.combat.assists == 0, "Killing the giant is not an elimination")
+	check(hunter.combat.spree == 1, "Killing the giant still credits a kill spree (heat vent) like any kill")
 	check(server.match_state.phase == "active", "Destroying the giant does not decide the round")
 	var drop_id := 9000 + boss.boss_id
 	check(await until(func() -> bool: return clients.all(func(c: MvpSession) -> bool: return has_item(c, drop_id))),
@@ -59,3 +66,10 @@ func has_item(session: MvpSession, id: int) -> bool:
 		if int(item.id) == id:
 			return true
 	return false
+
+## Core plus every zone: the giant's hardened plates absorb hits before the core.
+func total_health(bot: MvpBot) -> float:
+	var total := bot.combat.core
+	for zone: String in bot.combat.zones:
+		total += float(bot.combat.zones[zone])
+	return total

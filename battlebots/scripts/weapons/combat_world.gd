@@ -1030,8 +1030,11 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 		zone = victim.zone_at(point)
 	var before: float = victim.combat.zones.get(zone, 0.0)
 	var dealt := victim.combat.damage(zone, raw, armour_share)
-	attacker.combat.effective_damage += dealt
-	if before > 0 and victim.combat.zones.get(zone, 1) <= 0:
+	# A neutral hazard (the Woodland giant) takes damage but never scores it.
+	var scored := not victim.has_meta("neutral")
+	if scored:
+		attacker.combat.effective_damage += dealt
+	if scored and before > 0 and victim.combat.zones.get(zone, 1) <= 0:
 		attacker.combat.component_disables += 1
 	if dealt > 0:
 		victim.combat.recent_attackers[attacker.entity_id] = time

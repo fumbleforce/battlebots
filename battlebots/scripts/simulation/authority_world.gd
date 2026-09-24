@@ -162,11 +162,15 @@ func step(delta: float, active: bool, round_index: int) -> void:
 			if weapons.time - at <= 10 and at > latest:
 				latest = at
 				killer = source_id
+		# A neutral hazard's wreck vents the killer's heat like any kill, but
+		# never counts as an elimination or assist (#82).
+		var scored := not bot.has_meta("neutral")
 		if killer != 0 and bots.has(killer):
-			bots[killer].combat.eliminations += 1
+			if scored:
+				bots[killer].combat.eliminations += 1
 			bots[killer].combat.credit_kill()
 		for source_id: int in bot.combat.recent_attackers:
-			if source_id != killer and bots.has(source_id) and weapons.time - float(bot.combat.recent_attackers[source_id]) <= 10:
+			if scored and source_id != killer and bots.has(source_id) and weapons.time - float(bot.combat.recent_attackers[source_id]) <= 10:
 				bots[source_id].combat.assists += 1
 	if active:
 		_collect_pickups(delta)

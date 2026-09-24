@@ -77,6 +77,9 @@ static func replica(world: AuthorityWorld, id: int) -> MvpBot:
 		return null
 	bot.name = "WoodlandGiant"
 	bot.set_meta("woodland_boss", true)
+	# Neutral hazard (#82): hits and kills on it never count toward stats,
+	# tiebreaks or rewards (CombatWorld._apply_hit, AuthorityWorld credit).
+	bot.set_meta("neutral", true)
 	_scale(bot)
 	world.add_child(bot)
 	bot.arena_half_extent = ArenaBounds.half_extent(world.arena_id)

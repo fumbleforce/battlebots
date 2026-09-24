@@ -1327,8 +1327,11 @@ Build `mvp-ab-46`, protocol 15 (new baseline field). Every Woodland match
   `woodland_boss_online` (default true). It steps only in active/overtime and is
   restored by `restart()` after each round reset.
 - Match rules, round stats and results only see players. `match_state.advance`
-  gets `fighters` (players' combat states), not `world.combatants()`. Damage dealt
-  to the giant still counts in a team's `effective_damage` tiebreak.
+  gets `fighters` (players' combat states), not `world.combatants()`. Since
+  `mvp-ab-48` (#82) bots with the `neutral` meta (the giant) take damage but never
+  score it: no `effective_damage`, component disables, eliminations or assists
+  (so no tiebreak or credit effect). The killer still gets the kill's heat vent
+  (`credit_kill`).
 - Its team is `WoodlandBoss.TEAM` (1000), which no player team can equal. It was 7,
   which collided with FFA player 7.
 - The baseline carries `npcs: {entity_id: "woodland_boss"}`. Clients build an
