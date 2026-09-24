@@ -20,6 +20,12 @@ const IGNORED_DIRECTORIES := [".godot", "exports", ".git"]
 
 var _restarting := false
 
+func _exit_tree() -> void:
+	# Autoloads leave the tree before GDScript teardown; release script statics
+	# then (#10). Loaded by path at exit so this guard still compiles when
+	# project classes do not.
+	load("res://scripts/core/static_caches.gd").release()
+
 func _init() -> void:
 	if not should_check():
 		return
