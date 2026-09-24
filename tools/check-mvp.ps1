@@ -94,6 +94,9 @@ try {
         Invoke-MvpTest 'res://tests/network/transport_session.tscn' 'TRANSPORT SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/five_v_five_session.tscn' 'FIVE V FIVE SESSION PASS' -Scene -RealTime
         Invoke-MvpTest 'res://tests/network/ffa_session.tscn' 'FFA SESSION PASS' -Scene -RealTime
+        if ($profile -eq '0') {
+            Invoke-MvpTest 'res://tests/network/woodland_boss_session_test.gd' 'NETWORK PASS' -RealTime
+        }
     }
 } finally {
     $env:BATTLEBOTS_NET_PROFILE = $previousProfile

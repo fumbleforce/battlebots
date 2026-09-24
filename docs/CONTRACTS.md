@@ -1317,3 +1317,22 @@ durable players, and records each `match_id` once. `GET /v1/me` (bearer) returns
 `{player_id, matches}`, the 10 most recent. Credits are recorded but not
 spent; the client wallet is unchanged (decision 4 in the plan).
 Protocol unchanged; the client is unchanged apart from the build.
+
+## Woodland giant in LAN/online matches (#79, 24 September 2026)
+
+Build `mvp-ab-46`, protocol 15 (new baseline field). Every Woodland match
+(Practice, LAN, hosted) includes the roaming giant (`WoodlandBoss`) as a
+**neutral hazard**:
+- `MvpSession._start` adds it after the players when `arena_id == "woodland"` and
+  `woodland_boss_online` (default true). It steps only in active/overtime and is
+  restored by `restart()` after each round reset.
+- Match rules, round stats and results only see players. `match_state.advance`
+  gets `fighters` (players' combat states), not `world.combatants()`. Damage dealt
+  to the giant still counts in a team's `effective_damage` tiebreak.
+- Its team is `WoodlandBoss.TEAM` (1000), which no player team can equal. It was 7,
+  which collided with FFA player 7.
+- The baseline carries `npcs: {entity_id: "woodland_boss"}`. Clients build an
+  identical scaled replica with `WoodlandBoss.replica(world, id)`, only on
+  Woodland and never over a player id, then apply snapshots as for remote bots.
+- Its drop is the Practice one: a single-use top-tier part pickup (id
+  9000 + giant id) through the replicated `MatchPickups`.

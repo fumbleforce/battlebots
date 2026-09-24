@@ -1,7 +1,9 @@
 class_name WoodlandBoss
 extends RefCounted
-## Offline Woodland practice (stage 1 of #45): a roaming giant that hunts the nearest bot. Taking it down leaves one
-## guaranteed top-tier part pickup where it fell; the giant rebuilds later.
+## Woodland's roaming giant (#45, #79): hunts the nearest bot in Practice and in
+## LAN/online Woodland matches. Taking it down leaves one guaranteed top-tier
+## part pickup where it fell; the giant rebuilds later. In matches it is a
+## neutral hazard: match rules, results and rewards only count players.
 ##
 ## The boss is an ordinary MvpBot on its own team, driven through BotCommand
 ## like any pilot. Its size, core, armour and mass are scaled on the derived
@@ -11,7 +13,10 @@ extends RefCounted
 const SCALE := 3.5
 const CORE_SCALE := 25.0
 const ARMOUR_SCALE := 12.0
-const TEAM := 7
+## Neutral: never equal to a player team (FFA teams are entity ids).
+const TEAM := 1000
+## Baseline `npcs` kind that tells clients to build a replica (see replica()).
+const NPC_KIND := "woodland_boss"
 const REBUILD_SECONDS := 60.0
 const RETARGET_SECONDS := 1.5
 ## Strongest first; the drop is the first one the killer can actually fit.
@@ -49,33 +54,41 @@ static func build(registry: ContentRegistry) -> Dictionary:
 ## Returns the next free entity id.
 func configure(authority: AuthorityWorld, first_id: int) -> int:
 	world = authority
-	var registry := ContentRegistry.new()
-	registry.enforce_budget = false
-	boss = MvpBot.create(first_id, TEAM, build(registry), registry)
+	boss = replica(world, first_id)
 	assert(boss != null, "The Woodland giant must pass canonical validation")
 	boss_id = first_id
-	boss.name = "WoodlandGiant"
-	boss.set_meta("woodland_boss", true)
-	_scale(boss)
-	world.add_child(boss)
-	boss.arena_half_extent = ArenaBounds.half_extent(world.arena_id)
-	boss.camera_anchor().set_meta(&"arena_half_extent", boss.arena_half_extent)
-	world.bots[boss_id] = boss
-	# A heavy machine needs a strong drive to move its mass at all.
-	boss.body.drive_acceleration = 4.2
-	boss.body.top_speed = 7.5
-	# Gentle, heavy turning: a full-lock pivot rolls a hull this size over.
-	boss.body.turn_speed = 0.45
-	boss.body.yaw_acceleration_limit = 0.8
-	boss.body.lateral_response = 0.12
-	# A low centre of mass keeps the giant planted on rocks and ramp lips.
-	boss.body.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
-	boss.body.center_of_mass = Vector3(0, -boss.ground_clearance() * 0.9, 0)
-	if DisplayServer.get_name() != "headless":
-		_dress.call_deferred(boss)
 	home = world.clear_spawn_pose(boss, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0, 0)))
 	_place(boss, home)
 	return first_id + 1
+
+## The giant as built on every peer: the server's authoritative one and each
+## client's replica, so scaled stats, collision and drive tuning agree.
+static func replica(world: AuthorityWorld, id: int) -> MvpBot:
+	var registry := ContentRegistry.new()
+	registry.enforce_budget = false
+	var bot := MvpBot.create(id, TEAM, build(registry), registry)
+	if bot == null:
+		return null
+	bot.name = "WoodlandGiant"
+	bot.set_meta("woodland_boss", true)
+	_scale(bot)
+	world.add_child(bot)
+	bot.arena_half_extent = ArenaBounds.half_extent(world.arena_id)
+	bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
+	world.bots[id] = bot
+	# A heavy machine needs a strong drive to move its mass at all.
+	bot.body.drive_acceleration = 4.2
+	bot.body.top_speed = 7.5
+	# Gentle, heavy turning: a full-lock pivot rolls a hull this size over.
+	bot.body.turn_speed = 0.45
+	bot.body.yaw_acceleration_limit = 0.8
+	bot.body.lateral_response = 0.12
+	# A low centre of mass keeps the giant planted on rocks and ramp lips.
+	bot.body.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
+	bot.body.center_of_mass = Vector3(0, -bot.ground_clearance() * 0.9, 0)
+	if DisplayServer.get_name() != "headless":
+		_dress.call_deferred(bot)
+	return bot
 
 ## Presentation dressing for the giant: normal-sized damage smoke and a title.
 ## (Turret effects cap their own scale in TurretShotEffects.MAX_EFFECT_SCALE.)

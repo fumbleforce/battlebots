@@ -75,6 +75,8 @@ var _tearing_down := false
 var practice_director: PracticeBotDirector
 ## Offline Woodland practice only (#45): edge starts and the roaming giant.
 var woodland_boss: WoodlandBoss
+## Woodland LAN/online matches include the roaming giant as a neutral hazard (#79).
+var woodland_boss_online := true
 ## Authority only: stock item pickups when a match or practice starts. Fixtures
 ## that hold MvpBot references across frames disable this, since a part pickup
 ## replaces the bot node.
@@ -610,6 +612,7 @@ func _lobby(packet: PackedByteArray) -> void:
 
 func _start() -> void:
 	world.clear_bots()
+	woodland_boss = null
 	match_state.begin(player_capacity, match_mode)
 	_loaded.clear()
 	_rematch.clear()
@@ -630,6 +633,9 @@ func _start() -> void:
 		_input_queue[id] = []
 		if p.peer == 1:
 			_loaded[id] = true
+	if arena_id == "woodland" and woodland_boss_online:
+		woodland_boss = WoodlandBoss.new()
+		_next_entity = woodland_boss.configure(world, _next_entity)
 	if pickups_enabled:
 		world.begin_pickups(randi())
 	_pickup_revision = world.pickups.revision
@@ -642,7 +648,8 @@ func _start() -> void:
 
 func _send_baseline(peer: int) -> void:
 	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":_public_match(), "bots":_bot_snapshots(),
-		"server_tick":world.tick, "results":_results, "arena":arena_id, "pickups":_pickup_state(false)}))
+		"server_tick":world.tick, "results":_results, "arena":arena_id, "pickups":_pickup_state(false),
+		"npcs":{woodland_boss.boss_id:WoodlandBoss.NPC_KIND} if woodland_boss != null and is_instance_valid(woodland_boss.boss) else {}}))
 
 func _bot_snapshots() -> Dictionary:
 	var states := {}
@@ -685,6 +692,20 @@ func _baseline(packet: PackedByteArray) -> void:
 			diagnostics.correction_m = 0.0
 			bot.body.reconciled.connect(_record_local_correction)
 		_snapshot(data.bots[slot.entity_id])
+	var npcs: Variant = data.get("npcs", {})
+	if npcs is Dictionary:
+		for id: Variant in npcs:
+			# Only the known kind, on its own arena, and never over a player.
+			if not id is int or npcs[id] != WoodlandBoss.NPC_KIND or arena_id != "woodland" \
+					or world.bots.has(id) or not data.bots.has(id):
+				continue
+			var giant := WoodlandBoss.replica(world, id)
+			if giant == null:
+				continue
+			giant.simulated = false
+			giant.body.freeze = true
+			giant.body.reset_pose = null
+			_snapshot(data.bots[id])
 	pickup_view = {}
 	_accept_pickups(data.get("pickups", {}))
 	match_changed.emit(match_view.duplicate(true))
@@ -803,7 +824,8 @@ func _physics_process(delta: float) -> void:
 	var active := match_state.phase in ["active", "overtime"]
 	if connection_state == "practice" and practice_director != null:
 		practice_director.step(delta)
-		if woodland_boss != null: woodland_boss.step(delta)
+	if woodland_boss != null and (connection_state == "practice" or active):
+		woodland_boss.step(delta)
 	world.step(delta, active, match_state.round_index)
 	if world.pickups.revision != _pickup_revision:
 		_pickup_revision = world.pickups.revision
@@ -835,21 +857,26 @@ func _physics_process(delta: float) -> void:
 					_effect.rpc_id(peer, var_to_bytes(event))
 	var old_phase := match_state.phase
 	var teams := {}
+	# Match rules and results count players only; the Woodland giant is neutral.
+	var fighters := {}
 	for id: int in players:
 		teams[id] = players[id].team
-	match_state.advance(delta, world.combatants(), teams, world.tick)
+		if world.bots.has(id):
+			fighters[id] = world.bots[id].combat
+	match_state.advance(delta, fighters, teams, world.tick)
 	if old_phase in ["active", "overtime"] and match_state.phase in ["intermission", "results"]:
 		var round_stats := {}
-		for id: int in world.bots:
+		for id: int in fighters:
 			round_stats[id] = world.bots[id].combat.snapshot()
 		match_state.rounds.back()["participants"] = round_stats
 	if old_phase == "intermission" and match_state.phase == "countdown":
 		world.reset_round()
+		if woodland_boss != null: woodland_boss.restart()
 		_forfeit.clear()
 	var publish_results := match_state.phase == "results" and _results.is_empty()
 	if publish_results:
 		_results = {"match":match_state.snapshot(), "content_hash":registry.content_hash, "build":WireCodec.BUILD, "participants":{}}
-		for id: int in world.bots:
+		for id: int in fighters:
 			_results.participants[id] = world.bots[id].combat.snapshot()
 			for field: String in ["damage", "eliminations", "assists", "component_disables", "recoveries"]:
 				_results.participants[id][field] = 0
