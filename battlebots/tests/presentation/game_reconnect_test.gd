@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Real transport loss in the composed client game; authored damage is a fixture.
 var failures := 0
 var views: Array[SubViewport] = []
@@ -48,7 +49,7 @@ func run() -> void:
 	var router: Node = root.get_node("MenuRouter")
 	router.lobby_intent = "join"
 	router.goto("lobby", false)
-	var port := 43000 + OS.get_process_id() % 9000
+	var port := FreePort.udp()
 	check(server.host(port, true, 2) == OK, "Listen server starts")
 	check(client.join("127.0.0.1", port) == OK, "Game client connects")
 	if await until(func() -> bool: return client.lobby_view.get("slots", []).size() == 2):

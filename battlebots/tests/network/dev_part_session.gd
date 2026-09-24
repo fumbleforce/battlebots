@@ -36,7 +36,7 @@ func run() -> void:
 	check(offline.dev_cycle_part("weapon").get("refused") == "remote", "No game, no shortcut")
 	# A host with a guest: the guest cannot swap.
 	server = make_session("Server")
-	var port := 39000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Host binds")
 	var guest := make_session("Guest")
 	check(guest.join("127.0.0.1", port) == OK, "Guest joins")

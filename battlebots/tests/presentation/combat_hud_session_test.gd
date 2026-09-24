@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Controlled server state over real ENet; not a natural combat acceptance test.
 const HudScript := preload("res://scripts/ui/combat_hud.gd")
 var failures := 0
@@ -63,7 +64,7 @@ func run() -> void:
 	check(client.bot_views().is_empty(), "Disconnected client exposes no fabricated bots")
 	check(not render_received() and hud.resources.Core.value.text == "--", "Missing network baseline displays unavailable")
 	check(markers.markers.is_empty(), "No world identity is invented without a baseline")
-	var port := 42000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(host.host(port, true, 2) == OK, "Duel listen host starts real ENet")
 	check(client.join("127.0.0.1", port) == OK, "HUD observer joins through ENet")
 	if not await until(func() -> bool: return client.local_entity > 0 and client.lobby_view.get("slots", []).size() == 2):

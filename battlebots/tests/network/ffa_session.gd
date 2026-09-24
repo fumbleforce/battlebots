@@ -20,9 +20,9 @@ func active_everywhere() -> bool:
 		and clients.all(func(c: MvpSession) -> bool:
 			return c.match_view.get("phase") == "active" and c.world != null and c.world.bots.size() == expected_players))
 
-func begin_fixture(port_offset: int) -> bool:
+func begin_fixture(_port_offset: int) -> bool:
 	server = make_session("FfaServer")
-	server_port = 43000 + OS.get_process_id() % 9000 + port_offset
+	server_port = FreePort.udp()
 	return await require(server.host(server_port, false, 8, "ffa") == OK, "FFA maximum-eight host binds")
 
 func add_ffa_client(index: int) -> bool:

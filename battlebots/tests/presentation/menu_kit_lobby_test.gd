@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Supplied lobby scenes over two isolated real UDP sessions; no invented players.
 var failures := 0
 var peers: Array[Dictionary] = []
@@ -59,7 +60,7 @@ func run() -> void:
 	profile.active_bot = 1
 	var host := make_peer("KitHost")
 	var client := make_peer("KitClient")
-	var udp_port := 41000 + OS.get_process_id() % 9000
+	var udp_port := FreePort.udp()
 	host.lobby.port.value = udp_port
 	client.lobby.port.value = udp_port
 	client.lobby.address.text = "  "

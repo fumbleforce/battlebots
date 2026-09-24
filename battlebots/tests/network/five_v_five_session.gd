@@ -42,7 +42,7 @@ func run() -> void:
 	jitter = 20.0 if injected_rtt == 150 else (10.0 if injected_rtt == 80 else 0.0)
 	loss = 0.03 if injected_rtt == 150 else (0.01 if injected_rtt == 80 else 0.0)
 	server = make_session("FiveServer")
-	server_port = 41000 + OS.get_process_id() % 10000
+	server_port = FreePort.udp()
 	if not await require(server.host(server_port, false, 10) == OK, "Ten-player server binds"):
 		return
 	await frames(30)

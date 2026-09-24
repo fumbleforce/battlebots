@@ -1,4 +1,5 @@
 extends Node
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Independent F6 scene: live ENet tick origins/reconnect, then isolated clock probes.
 ## Synthetic pong probes check the estimator; they do not impair control transport.
 var failures := 0
@@ -47,7 +48,7 @@ func until(predicate: Callable, limit := 1200) -> bool:
 
 func run() -> void:
 	server = make_session("ClockServer")
-	var port := 34000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Clock server binds")
 	await frames(180)
 	for index: int in range(2):

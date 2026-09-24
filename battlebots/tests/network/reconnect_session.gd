@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Real ENet recovery; damage is authored to isolate identity/state preservation.
 var failures := 0
 var sessions: Array[MvpSession] = []
@@ -46,7 +47,7 @@ func run() -> void:
 	client.session_event.connect(func(kind: String, details: Dictionary) -> void:
 		if kind == "joined": joined = details
 		if kind == "error": errors.append(details))
-	var port := 38000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(server.host(port, true, 2) == OK and client.join("127.0.0.1", port) == OK, "Duel starts")
 	if not await until(func() -> bool: return client.local_entity > 0):
 		check(false, "Client joins")

@@ -1,4 +1,5 @@
 extends Node
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Scripted test input, not gameplay AI. All movement, attacks and match outcomes
 ## use the public session API from normal spawns with unmodified production rules.
 const MATCH_TIMEOUT := 500.0
@@ -144,7 +145,7 @@ func run() -> void:
 	started_ms = Time.get_ticks_msec()
 	host = make_session("DuelHost")
 	client = make_session("DuelClient")
-	var port := 39000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(host.host(port, true, 2) == OK, "Listen host binds a normal two-player lobby")
 	check(client.join("127.0.0.1", port) == OK, "Remote attacker connects over real ENet")
 	if not await until(func() -> bool: return client.local_entity > 0, 10):

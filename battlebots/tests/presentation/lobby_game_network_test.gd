@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Full B frontend with two isolated real UDP peers and public player input.
 var failures := 0
 var peers: Array[Dictionary] = []
@@ -34,7 +35,7 @@ func make_peer(label: String) -> Dictionary:
 func run() -> void:
 	var host := make_peer("GameHost")
 	var client := make_peer("GameClient")
-	var port := 39000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	host.game.coordinator.request_host(port, 2)
 	client.game.coordinator.request_join("127.0.0.1", port)
 	var admitted := await until(func() -> bool: return client.game.session.local_entity > 0 and client.game.session.lobby_view.get("slots", []).size() == 2)

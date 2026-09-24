@@ -1,4 +1,5 @@
 extends Node
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Real ENet delivery to one observer of a server-local ten-participant fixture.
 ## This isolates legal five-round payload size, not ten-client gameplay/stress.
 class ObservedSession extends MvpSession:
@@ -67,7 +68,7 @@ func run() -> void:
 	mount_session("Server", server)
 	mount_session("Client", client)
 	client.session_event.connect(on_event)
-	var port := 53000 + OS.get_process_id() % 8000
+	var port := FreePort.udp()
 	check(server.host(port, false, 10) == OK, "Results server binds")
 	check(client.join("127.0.0.1", port) == OK, "Results observer connects")
 	if not await until(func() -> bool: return client.local_entity > 0):

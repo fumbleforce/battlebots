@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## B-owned integration fixture: actual ENet snapshots drive the read-only widget.
 var failures := 0
 var views: Array[SubViewport] = []
@@ -57,7 +58,7 @@ func text_for(peer: Dictionary) -> String:
 func run() -> void:
 	var host := make_peer("Server")
 	var client := make_peer("Client")
-	var port := 28000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(host.session.host(port, true, 2) == OK, "Diagnostic fixture binds real listen-server UDP")
 	check(client.session.join("127.0.0.1", port) == OK, "Diagnostic fixture starts real client")
 	var admitted := await until(func() -> bool: return client.session.local_entity > 0)

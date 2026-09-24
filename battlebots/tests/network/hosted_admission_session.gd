@@ -16,7 +16,7 @@ func rejected(ticket: String, label: String) -> void:
 
 func run() -> void:
 	server = make_session("HostedServer")
-	port = 45000 + OS.get_process_id() % 7000
+	port = FreePort.udp()
 	var now := Time.get_unix_time_from_system()
 	allocation = {"schema":1, "allocation_id":"network-fixture", "build":WireCodec.BUILD,
 		"protocol":WireCodec.PROTOCOL, "content_hash":server.registry.content_hash,

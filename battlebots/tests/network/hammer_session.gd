@@ -73,7 +73,7 @@ func observe_recoil(client: MvpSession, attacker: MvpBot, victim_id: int, durati
 
 func run() -> void:
 	server = make_session("HammerHost")
-	var port := 36000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	if not await require(server.host(port, true, 2) == OK, "Hammer listen host binds"):
 		return
 	var draft := server.registry.duelist()

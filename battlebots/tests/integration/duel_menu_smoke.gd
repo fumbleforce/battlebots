@@ -16,7 +16,7 @@ func check_escape(app: Node, label: String) -> void:
 		label + ": scene, world and session survive input dispatch")
 
 func run() -> void:
-	var port := 29000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	var host = make_app("Host")
 	host._build_console()
 	host.preview.set_physics_process(false)

@@ -19,7 +19,7 @@ func frame() -> void:
 func run() -> void:
 	profile = "80"
 	server = make_session("Server")
-	var port := 43000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Wall server binds")
 	for index: int in range(2):
 		var client := make_session("Client%d" % index)

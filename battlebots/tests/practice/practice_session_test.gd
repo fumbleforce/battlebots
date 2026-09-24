@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Reset contract fixture: damage/poses below are deliberate setup, not a natural
 ## combat claim. The final hit uses only public commands from the repaired spawn.
 var failures := 0
@@ -153,7 +154,7 @@ func run() -> void:
 	denied(practice, "Offline")
 	var host := make_session("Host")
 	var client := make_session("Client")
-	var port := 41000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(host.host(port, true, 2) == OK, "Non-practice host binds")
 	denied(host, "Hosting")
 	check(client.join("127.0.0.1", port) == OK, "Non-practice client begins join")

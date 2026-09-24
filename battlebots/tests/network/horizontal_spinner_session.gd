@@ -22,7 +22,7 @@ func require(ok: bool, message: String) -> bool:
 
 func run() -> void:
 	server = make_session("HorizontalHost")
-	var port := 35000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	if not await require(server.host(port, true, 2) == OK, "Horizontal listen host binds"):
 		return
 	var draft := server.registry.starter()

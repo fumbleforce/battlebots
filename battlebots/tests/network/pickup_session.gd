@@ -23,7 +23,7 @@ func take(item_index: int, kind: String, part: String, entity: int, amount := 0)
 func run() -> void:
 	server = make_session("Server")
 	server.pickups_enabled = true
-	var port := 38000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	if not await require(server.host(port, false, 2) == OK, "Pickup server binds"):
 		return
 	for index: int in range(2):

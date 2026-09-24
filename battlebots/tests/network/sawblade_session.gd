@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 var failures: Array[String] = []
 var sessions: Array[MvpSession] = []
 var containers: Array[SubViewport] = []
@@ -33,7 +34,7 @@ func run() -> void:
 	var server := session("Server")
 	var first := session("First")
 	var second := session("Second")
-	var port := 34000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Duel server starts")
 	first.join("127.0.0.1", port)
 	second.join("127.0.0.1", port)

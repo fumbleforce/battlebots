@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Real UDP lobby requests through B's adapter; authority remains in MvpSession.
 var failures := 0
 var peers: Array[Dictionary] = []
@@ -57,7 +58,7 @@ func same_build(actual: Dictionary, expected: Dictionary) -> bool:
 func run() -> void:
 	var host := make_peer("LobbyHost")
 	var client := make_peer("LobbyClient")
-	var port := 28000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	client.coordinator.request_join("   ", port)
 	check(client.session.connection_state == "offline", "Blank join preserves offline session")
 	check(not client.coordinator.notice.is_empty(), "Blank join offers visible guidance")

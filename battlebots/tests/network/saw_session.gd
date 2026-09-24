@@ -48,7 +48,7 @@ func record_hit(event: Dictionary) -> void:
 
 func run() -> void:
 	server = make_session("SawHost")
-	var port := 37000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	if not await require(server.host(port, true, 2) == OK, "Saw listen host binds"):
 		return
 	var draft := server.registry.starter()

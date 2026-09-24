@@ -3,7 +3,7 @@ extends "res://tests/network/contact_reconciliation.gd"
 ## Two real peers retain the production reliable control channel throughout.
 func run() -> void:
 	server = make_session("RecoveryServer")
-	var port := 51000 + OS.get_process_id() % 7000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Recovery server binds")
 	for index: int in range(2):
 		var client := make_session("RecoveryClient%d" % index)

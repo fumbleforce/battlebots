@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Menu composition only; damaged state is explicit fixture setup, not natural combat.
 var failures := 0
 const ARENA_CHOICE = preload("res://scripts/arena/arena_scenery.gd")
@@ -105,7 +106,7 @@ func run() -> void:
 	game.return_to_main()
 	await frames()
 	check(not game.practice_hud.visible and not game._restart_practice.visible, "Leaving removes practice-only UI")
-	check(game.session.host(39000 + OS.get_process_id() % 10000, true, 2) == OK, "Fixture starts LAN host")
+	check(game.session.host(FreePort.udp(), true, 2) == OK, "Fixture starts LAN host")
 	await frames()
 	game.restart_practice()
 	check(game.session.connection_state == "hosting" and not game._restart_practice.visible, "LAN has no restart action and ignores root restart")

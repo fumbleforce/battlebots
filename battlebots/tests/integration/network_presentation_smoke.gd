@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 var failures := 0
 var views: Array[SubViewport] = []
 var apps: Array[Node] = []
@@ -30,7 +31,7 @@ func make_app(label: String) -> Node:
 	apps.append(app)
 	return app
 func run() -> void:
-	var port := 28000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	var host = make_app("Server")
 	host._build_console()
 	host.preview.set_physics_process(false)

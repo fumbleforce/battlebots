@@ -1,7 +1,7 @@
 extends "res://tests/integration/network_presentation_smoke.gd"
 
 func run() -> void:
-	var port := 31000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	var host = make_app("FFAHost")
 	host._build_console()
 	host.preview.set_physics_process(false)

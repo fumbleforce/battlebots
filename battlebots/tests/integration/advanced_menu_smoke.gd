@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## All implemented modes use the same main menu, lobby and persistent game owner.
 var failures := 0
 
@@ -20,7 +21,7 @@ func run() -> void:
 	root.add_child(game)
 	current_scene = game
 	var router: Node = root.get_node("MenuRouter")
-	var port := 31000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	for mode: String in ["5v5", "ffa"]:
 		game.screen.get_node("%Play").pressed.emit()
 		await frames()

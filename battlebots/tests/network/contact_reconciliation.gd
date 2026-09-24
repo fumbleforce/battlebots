@@ -1,4 +1,5 @@
 extends Node
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Real ENet peers in separate physics worlds. Server-only setup; no test RPCs.
 var failures := 0
 var sessions: Array[MvpSession] = []
@@ -59,7 +60,7 @@ func settling_ms(ticks: Array[int], last_bad: int, start_tick: int) -> float:
 
 func run() -> void:
 	server = make_session("Server")
-	var port := 32000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Server binds")
 	for index: int in range(2):
 		var client := make_session("Client%d" % index)

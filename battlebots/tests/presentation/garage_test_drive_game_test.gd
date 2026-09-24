@@ -1,4 +1,5 @@
 extends Node
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 var failures: Array[String] = []
 func _ready() -> void: run.call_deferred()
 func check(ok: bool, message: String) -> void:
@@ -117,7 +118,7 @@ func run() -> void:
 	profile.loadouts[profile.active_bot] = draft.duplicate(true)
 	profile.inventory_changed.emit()
 	await frames()
-	check(game.session.host(33000 + OS.get_process_id() % 10000, true, 2) == OK, "Fixture starts real existing LAN session")
+	check(game.session.host(FreePort.udp(), true, 2) == OK, "Fixture starts real existing LAN session")
 	await frames()
 	game.start_practice("customize")
 	check(game.session.connection_state == "hosting", "Test Drive cannot replace live session")

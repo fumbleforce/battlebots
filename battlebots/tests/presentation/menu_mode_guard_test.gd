@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Every mode joins through the same menu with authoritative rules and roster.
 var failures := 0
 var views: Array[SubViewport] = []
@@ -52,7 +53,7 @@ func run() -> void:
 		if kind == "joined":
 			joined += 1)
 	var router: Node = root.get_node("MenuRouter")
-	var port := 41000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	for spec: Dictionary in [
 		{"count":8, "mode":"ffa", "label":"ffa"},
 		{"count":10, "mode":"teams", "label":"5v5"},

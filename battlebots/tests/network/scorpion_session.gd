@@ -48,7 +48,7 @@ func run() -> void:
 	input_gate.toggle_primary = true
 	input_gate.sample({}, {}, true)
 	server = make_session("ScorpionHost")
-	var port := 42000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	if not await require(server.host(port, true, 2) == OK, "Scorpion listen host binds"):
 		return
 	var client := make_session("ScorpionClient")

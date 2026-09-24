@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Imported lobby -> authoritative loading/countdown -> persistent playable arena.
 var failures := 0
 var views: Array[SubViewport] = []
@@ -49,7 +50,7 @@ func run() -> void:
 	var lobby: Control = game.screen
 	check(lobby.has_method("host_session"), "Router mounts imported lobby in persistent game")
 	check(game._menu_music.playing and not game._battle_music.playing, "Lobby plays menu music without battle music")
-	var port := 39000 + OS.get_process_id() % 10000
+	var port := FreePort.udp()
 	lobby.port.value = port
 	lobby.host_button.pressed.emit()
 	check(game.session.connection_state == "hosting", "Imported Host button starts real session")

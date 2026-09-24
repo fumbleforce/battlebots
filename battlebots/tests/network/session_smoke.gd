@@ -1,10 +1,11 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 var failures := 0
 var sessions: Array[MvpSession] = []
 var containers: Array[SubViewport] = []
 var server: MvpSession
 var clients: Array[MvpSession] = []
-var port := 25000 + OS.get_process_id() % 10000
+var port := FreePort.udp()
 
 func _initialize() -> void:
 	call_deferred("run")

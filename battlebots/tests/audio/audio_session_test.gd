@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Controlled authority state over real ENet; not natural combat acceptance.
 var failures := 0
 var viewports: Array[SubViewport] = []
@@ -50,7 +51,7 @@ func run() -> void:
 	check(host.audio_views()[0].charge >= 0.0, "Audio records cannot mutate combat state")
 	host.leave()
 	check(host.audio_views().is_empty(), "Leaving clears audio data")
-	var port := 43000 + OS.get_process_id() % 9000
+	var port := FreePort.udp()
 	check(host.host(port, true, 2) == OK and client.join("127.0.0.1", port) == OK, "Real duel transport starts")
 	if not await until(func() -> bool: return client.local_entity > 0 and client.lobby_view.get("slots", []).size() == 2):
 		check(false, "Real duel admission completes")

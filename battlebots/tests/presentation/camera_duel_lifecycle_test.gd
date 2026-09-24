@@ -1,4 +1,5 @@
 extends Node
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Two real ENet peers exercise the composed client input/camera lifecycle.
 ## Only authority elimination and phase remaining timers are fixture shortcuts.
 var failures := 0
@@ -77,7 +78,7 @@ func run() -> void:
 	game.get_node("Preview").settings_path = ""
 	client_view.add_child(game)
 	await frames()
-	var port := 42000 + OS.get_process_id() % 9000
+	var port := FreePort.udp()
 	check(host.host(port, true, 2) == OK, "Real duel host starts")
 	check(game.session.join("127.0.0.1", port) == OK, "Real composed client joins")
 	var joined := await until(func() -> bool: return game.session.local_entity > 0 and game.session.lobby_view.get("slots", []).size() == 2)

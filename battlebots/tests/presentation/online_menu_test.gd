@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 const FakeApi := preload("res://tests/fixtures/fake_public_api.gd")
 var failures := 0
 
@@ -45,7 +46,7 @@ func run() -> void:
 	var server := MvpSession.new()
 	server.name = "Session"
 	server_root.add_child(server)
-	var port := 38000 + OS.get_process_id() % 7000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Independent real ENet server binds")
 	api.assignment_port = 0
 	var game = load("res://scenes/dev/b_menu_game.tscn").instantiate()

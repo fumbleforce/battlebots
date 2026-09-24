@@ -1,4 +1,5 @@
 extends Node
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Real ENet regression: clock sync must survive an unreliable throttle of zero.
 ## ENet's actual throttle statistic proves that unreliable traffic is suppressed.
 const Relay = preload("res://tests/network/fixtures/udp_relay.gd")
@@ -55,7 +56,7 @@ func clock_case() -> void:
 	client = ObservedSession.new()
 	mount("Server", server)
 	mount("Client", client)
-	var port := 54000 + OS.get_process_id() % 7000
+	var port := FreePort.udp()
 	check(server.host(port, false, 2) == OK, "Clock fixture server binds")
 	relay = Relay.new()
 	add_child(relay)

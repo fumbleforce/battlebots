@@ -1,4 +1,5 @@
 extends SceneTree
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Main-menu routes, live hosting, selected builds and Practice arena choice.
 var failures := 0
 var game: Node3D
@@ -104,7 +105,7 @@ func host_flow() -> void:
 		return
 	var lobby: Control = game.screen
 	check(lobby.host_button.is_visible_in_tree() and not lobby.join_button.is_visible_in_tree(), "Host setup offers hosting without the join form")
-	lobby.port.value = 33000 + OS.get_process_id() % 9000
+	lobby.port.value = FreePort.udp()
 	lobby.host_button.pressed.emit()
 	await frames()
 	check(game.session.connection_state == "hosting" and game.session.player_capacity == 2, "Selected duel hosts a real two-player lobby")
