@@ -150,20 +150,26 @@ func playable_hit(session: MvpSession) -> void:
 	print("PRACTICE post-reset hit: target_core=%.2f/%.2f events=%d" % [target.combat.core, initial_core, hits.size()])
 
 func run() -> void:
+	# DIAGNOSIS ONLY (codex/shutdown-diag, #10): run one half of this test.
+	var variant := OS.get_environment("BATTLEBOTS_DIAG_VARIANT")
 	var practice := make_session("Practice")
 	denied(practice, "Offline")
-	var host := make_session("Host")
-	var client := make_session("Client")
-	var port := FreePort.udp()
-	check(host.host(port, true, 2) == OK, "Non-practice host binds")
-	denied(host, "Hosting")
-	check(client.join("127.0.0.1", port) == OK, "Non-practice client begins join")
-	denied(client, "Connecting")
-	for tick: int in range(600):
-		if client.local_entity > 0: break
-		await frames(1)
-	check(client.local_entity > 0, "Real client joins the non-practice lobby")
-	denied(client, "Connected")
+	if variant != "practice_only":
+		var host := make_session("Host")
+		var client := make_session("Client")
+		var port := FreePort.udp()
+		check(host.host(port, true, 2) == OK, "Non-practice host binds")
+		denied(host, "Hosting")
+		check(client.join("127.0.0.1", port) == OK, "Non-practice client begins join")
+		denied(client, "Connecting")
+		for tick: int in range(600):
+			if client.local_entity > 0: break
+			await frames(1)
+		check(client.local_entity > 0, "Real client joins the non-practice lobby")
+		denied(client, "Connected")
+	if variant == "network_only":
+		await teardown()
+		return
 	var draft := practice.registry.duelist()
 	check(practice.practice(draft) == OK, "Practice starts with canonical Duelist")
 	practice.session_event.connect(func(kind: String, _details: Dictionary) -> void:
@@ -182,6 +188,9 @@ func run() -> void:
 	await check_reset(practice, original_world, originals, builds, 2)
 	hits.clear()
 	await playable_hit(practice)
+	await teardown()
+
+func teardown() -> void:
 	for session: MvpSession in sessions: session.leave()
 	await physics_frame
 	for viewport: SubViewport in viewports:

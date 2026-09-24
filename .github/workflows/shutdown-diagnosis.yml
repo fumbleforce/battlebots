@@ -8,14 +8,21 @@ permissions:
   contents: read
 jobs:
   diagnose:
+    name: Practice session exits (${{ matrix.variant }})
     runs-on: windows-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [full, practice_only, network_only]
+    env:
+      BATTLEBOTS_DIAG_VARIANT: ${{ matrix.variant }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-godot
       - name: Repeat the practice session exit
         shell: pwsh
-        run: ./tools/diagnose-shutdown.ps1 -GodotPath $env:GODOT -Fixture practice -Trials 30
+        run: ./tools/diagnose-shutdown.ps1 -GodotPath $env:GODOT -Fixture practice -Trials 50
       - name: Record native Godot failures
         if: always()
         shell: pwsh
