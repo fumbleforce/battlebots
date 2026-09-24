@@ -1,5 +1,5 @@
 extends RefCounted
-## Loads the heavy bot model scenes on background threads while the player is
+## Loads the heavy bot (and Woodland outcrop) model scenes on background threads while the player is
 ## in the menus, and keeps them referenced for the whole run (#70). Without it,
 ## every Woodland start reloaded the Atlas MX models for the giant (~1.8 s on an
 ## RTX 3080 machine, measured 24 September 2026), because leaving a match freed
@@ -14,6 +14,13 @@ const PATHS := [
 	"res://assets/models/scorpion_runtime/leg_upper.glb",
 	"res://assets/models/scorpion_runtime/leg_lower.glb",
 	"res://assets/models/scorpion_runtime/leg_foot.glb",
+	# Woodland outcrop scans: their first load cost ~0.55 s of the first
+	# Woodland build (WoodlandGround.scan_mesh caches them after that).
+	"res://assets/models/woodland/granite_boulder_a.gltf",
+	"res://assets/models/woodland/granite_boulder_b.gltf",
+	"res://assets/models/woodland/granite_boulder_c.gltf",
+	"res://assets/models/woodland/granite_boulder_d.gltf",
+	"res://assets/models/woodland/granite_boulder_e.gltf",
 ]
 static var _held: Dictionary = {}
 static var _pending: Array[String] = []
