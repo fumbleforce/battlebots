@@ -28,8 +28,6 @@ See [menu integration](docs/coordination/B_MENU_KIT.md) and the kit's README.
 ## Work independently
 - **A:** `battlebots/scenes/dev/a_simulation.tscn` — real drive/contact checks.
 - **B:** `battlebots/scenes/dev/b_presentation.tscn` — arena/camera/UI with mock movement.
-- **B playable game:** `battlebots/scenes/dev/b_lobby_game.tscn` — Practice or real LAN host/join/ready, then drive and fight. The separate earlier lobby fixture remains available; F5 uses the supplied menu kit.
-- **B match HUD:** `battlebots/scenes/dev/b_match_hud.tscn` — frozen mock snapshots for independent phase/score/result inspection; Left/Right/Space cycles cases. The playable B game reads the real session.
 - **B network diagnostics:** `battlebots/scenes/dev/b_network_diagnostics.tscn` — synthetic connection states and telemetry; live preview reads the actual session.
 - **B controls:** `battlebots/scenes/dev/b_controls.tscn` — rebinding, saved input preferences and hold/toggle primary against real lifter rules.
 - **B input/menu:** `battlebots/scenes/dev/b_input_menu.tscn` — real lifter rules,

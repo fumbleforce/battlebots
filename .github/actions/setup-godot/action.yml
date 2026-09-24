@@ -1,0 +1,44 @@
+name: Set up pinned Godot and the imported project
+description: Installs Godot 4.7.2 (optionally export templates), restores the .godot import cache and imports.
+inputs:
+  export-templates:
+    description: Also install the pinned export templates.
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Install pinned Godot
+      shell: pwsh
+      run: |
+        $release = 'https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable'
+        $files = @(@('godot.zip', 'Godot_v4.7.2-stable_win64.exe.zip'))
+        if ('${{ inputs.export-templates }}' -eq 'true') { $files += ,@('templates.zip', 'Godot_v4.7.2-stable_export_templates.tpz') }
+        Invoke-WebRequest "$release/SHA512-SUMS.txt" -OutFile "$env:RUNNER_TEMP/sums.txt"
+        foreach ($pair in $files) {
+          Invoke-WebRequest "$release/$($pair[1])" -OutFile "$env:RUNNER_TEMP/$($pair[0])"
+          $actual = (Get-FileHash "$env:RUNNER_TEMP/$($pair[0])" -Algorithm SHA512).Hash.ToLower()
+          $line = Get-Content "$env:RUNNER_TEMP/sums.txt" | Where-Object { $_.EndsWith($pair[1]) }
+          if (-not $line -or $actual -ne ($line -split '\s+')[0]) { throw "Checksum mismatch: $($pair[1])" }
+        }
+        Expand-Archive "$env:RUNNER_TEMP/godot.zip" "$env:RUNNER_TEMP/godot"
+        if ('${{ inputs.export-templates }}' -eq 'true') {
+          Expand-Archive "$env:RUNNER_TEMP/templates.zip" "$env:RUNNER_TEMP/templates"
+          New-Item -ItemType Directory -Force "$env:APPDATA/Godot/export_templates/4.7.2.stable" | Out-Null
+          Copy-Item "$env:RUNNER_TEMP/templates/templates/*" "$env:APPDATA/Godot/export_templates/4.7.2.stable/"
+        }
+        "GODOT=$env:RUNNER_TEMP/godot/Godot_v4.7.2-stable_win64_console.exe" >> $env:GITHUB_ENV
+    # A cold import of every asset takes about seven minutes. Reuse the import
+    # cache of the same asset set; an older one still saves most of the work.
+    - name: Restore the asset import cache
+      uses: actions/cache@v4
+      with:
+        path: battlebots/.godot
+        key: godot-import-v1-${{ runner.os }}-${{ hashFiles('battlebots/**/*.import', 'battlebots/project.godot') }}
+        restore-keys: godot-import-v1-${{ runner.os }}-
+    - name: Import the project
+      shell: pwsh
+      run: |
+        $lines = & $env:GODOT --headless --path battlebots --editor --import --quit 2>&1
+        $code = $LASTEXITCODE
+        $lines | Select-Object -Last 20 | ForEach-Object { Write-Host $_ }
+        if ($code -ne 0) { throw "Import failed ($code)" }

@@ -8,7 +8,11 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../battlebots')).Path
 $runDirectory = Join-Path ([IO.Path]::GetTempPath()) ('battlebots-process-check-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runDirectory | Out-Null
-$port = Get-Random -Minimum 30000 -Maximum 45000
+# Let the OS choose a free UDP port: a random pick can land on a busy or
+# Windows-reserved port (#13).
+$probe = [System.Net.Sockets.UdpClient]::new(0)
+$port = ([System.Net.IPEndPoint]$probe.Client.LocalEndPoint).Port
+$probe.Close()
 $processes = @()
 try {
     foreach ($index in 0..$PlayerCount) {

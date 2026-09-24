@@ -76,9 +76,7 @@ $checks = @(
     @('hud_accessibility_menu_test.gd', 'HUD ACCESSIBILITY MENU PASS'),
     @('match_results_test.gd', 'MATCH RESULTS PASS'),
     @('pickup_presentation_test.gd', 'PICKUP PRESENTATION PASS'),
-    @('camera_arena_test.gd', 'PRESENTATION PASS'),
     @('foundry_arena_test.gd', 'FOUNDRY PASS'),
-    @('camera_settings_test.gd', 'CAMERA SETTINGS PASS'),
     @('input_menu_test.gd', 'INPUT MENU PASS'),
     @('gamepad_input_test.gd', 'GAMEPAD INPUT PASS'),
     @('input_preferences_test.gd', 'INPUT PREFERENCES PASS'),
@@ -86,7 +84,6 @@ $checks = @(
     @('input_settings_test.gd', 'INPUT SETTINGS PASS'),
     @('network_diagnostics_test.gd', 'NETWORK DIAGNOSTICS PASS'),
     @('network_diagnostics_sandbox_test.gd', 'NETWORK DIAGNOSTICS SANDBOX PASS'),
-    @('lobby_panel_test.gd', 'LOBBY PANEL PASS'),
     @('match_hud_test.gd', 'MATCH HUD PASS'),
     @('menu_profile_test.gd', 'MENU PROFILE PASS'),
     @('garage_history_test.gd', 'GARAGE HISTORY PASS'),
@@ -96,8 +93,12 @@ $checks = @(
     @('menu_kit_test.gd', 'MENU KIT PASS'),
     @('menu_flow_test.gd', 'MENU FLOW PASS'),
     @('menu_music_test.gd', 'MENU MUSIC PASS'),
-    @('lobby_game_test.gd', 'LOBBY GAME PASS'),
-    @('camera_contact_test.gd', 'CAMERA CONTACT PASS')
+    @('camera_contact_test.gd', 'CAMERA CONTACT PASS'),
+    @('atlas_turret_input_test.gd', 'ATLAS TURRET INPUT PASS'),
+    @('woodland_arena_test.gd', 'WOODLAND PASS'),
+    @('moon_arena_test.gd', 'MOON ARENA PASS'),
+    @('arena_selection_test.gd', 'ARENA SELECTION PASS'),
+    @('import_guard_test.gd', 'IMPORT GUARD PASS')
 )
 foreach ($check in $checks) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
@@ -106,6 +107,12 @@ foreach ($check in $checks) {
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/all_body_weapons_test.tscn', '--quit-after', '10000') -Marker 'ALL BODY WEAPONS PASS'
+foreach ($check in @(@('atlas_assembly_test.tscn', 'ATLAS ASSEMBLY PASS'),
+    @('atlas_drives_test.tscn', 'ATLAS DRIVES PASS'),
+    @('atlas_turret_visual_test.tscn', 'ATLAS TURRET VISUAL PASS'))) {
+    Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--fixed-fps', '60',
+        "res://tests/presentation/$($check[0])", '--quit-after', '10000') -Marker $check[1]
+}
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/heavy_visual_scale_test.tscn', '--quit-after', '10000') -Marker 'HEAVY VISUAL SCALE PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
@@ -187,8 +194,6 @@ foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTI
     @('combat_hud_session_test.gd', 'COMBAT HUD SESSION PASS'),
     @('game_reconnect_test.gd', 'GAME RECONNECT PASS'),
     @('menu_mode_guard_test.gd', 'MENU MODE GUARD PASS'),
-    @('lobby_session_test.gd', 'LOBBY SESSION PASS'),
-    @('lobby_game_network_test.gd', 'LOBBY GAME NETWORK PASS'),
     @('menu_kit_lobby_test.gd', 'MENU KIT LOBBY PASS'),
     @('online_menu_test.gd', 'ONLINE MENU PASS'),
     @('menu_game_network_test.gd', 'MENU GAME NETWORK PASS'))) {

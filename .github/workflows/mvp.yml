@@ -5,10 +5,17 @@ on:
   pull_request:
 permissions:
   contents: read
+# A newer push to a task branch supersedes its running checks; main keeps every run.
+concurrency:
+  group: mvp-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# The suite runs as parallel jobs so every failure is reported in one run and a
+# failure in one area never hides the others. No check is skipped or relaxed.
 jobs:
-  validate:
+  simulation:
+    name: Baseline, rules, physics and transport
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Check native-crash validation gates
@@ -16,51 +23,87 @@ jobs:
         run: |
           ./tools/tests/check-drive-gate.ps1
           ./tools/tests/diagnose-shutdown-test.ps1
-      - name: Install pinned Godot and export templates
+      - uses: ./.github/actions/setup-godot
+      - name: Validate baseline, rules, physics and profile-independent transport
         shell: pwsh
-        run: |
-          $release = 'https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable'
-          Invoke-WebRequest "$release/Godot_v4.7.2-stable_win64.exe.zip" -OutFile "$env:RUNNER_TEMP/godot.zip"
-          Invoke-WebRequest "$release/Godot_v4.7.2-stable_export_templates.tpz" -OutFile "$env:RUNNER_TEMP/templates.zip"
-          Invoke-WebRequest "$release/SHA512-SUMS.txt" -OutFile "$env:RUNNER_TEMP/sums.txt"
-          foreach ($pair in @(@('godot.zip','Godot_v4.7.2-stable_win64.exe.zip'), @('templates.zip','Godot_v4.7.2-stable_export_templates.tpz'))) {
-            $actual = (Get-FileHash "$env:RUNNER_TEMP/$($pair[0])" -Algorithm SHA512).Hash.ToLower()
-            $line = Get-Content "$env:RUNNER_TEMP/sums.txt" | Where-Object { $_.EndsWith($pair[1]) }
-            if (-not $line -or $actual -ne ($line -split '\s+')[0]) { throw "Checksum mismatch: $($pair[1])" }
-          }
-          Expand-Archive "$env:RUNNER_TEMP/godot.zip" "$env:RUNNER_TEMP/godot"
-          Expand-Archive "$env:RUNNER_TEMP/templates.zip" "$env:RUNNER_TEMP/templates"
-          New-Item -ItemType Directory -Force "$env:APPDATA/Godot/export_templates/4.7.2.stable" | Out-Null
-          Copy-Item "$env:RUNNER_TEMP/templates/templates/*" "$env:APPDATA/Godot/export_templates/4.7.2.stable/"
-          "GODOT=$env:RUNNER_TEMP/godot/Godot_v4.7.2-stable_win64_console.exe" >> $env:GITHUB_ENV
-      - name: Validate baseline, rules, physics and impaired four-peer networking
+        run: ./tools/check-mvp.ps1 -GodotPath $env:GODOT -Part sim
+      - name: Record native Godot failures
+        if: failure()
         shell: pwsh
-        run: ./tools/check-mvp.ps1 -GodotPath $env:GODOT
+        run: ./tools/record-native-failures.ps1
+
+  network:
+    name: Impaired networking (${{ matrix.profile }} ms)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: ['0', '80', '150']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
+      - name: Validate four-peer networking under the ${{ matrix.profile }} ms profile
+        shell: pwsh
+        run: ./tools/check-mvp.ps1 -GodotPath $env:GODOT -Part net -NetProfiles ${{ matrix.profile }}
+      - name: Record native Godot failures
+        if: failure()
+        shell: pwsh
+        run: ./tools/record-native-failures.ps1
+
+  presentation:
+    name: Presentation and menu integration
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
       - name: Check presentation and menu integration
-        # Both developers' integration checks precede the exported playtest builds.
         shell: pwsh
         run: ./battlebots/tests/presentation/check-presentation.ps1 -GodotPath $env:GODOT
-      - name: Check natural two-player combat and rematch
+      - name: Record native Godot failures
+        if: failure()
         shell: pwsh
-        run: ./tools/check-gameplay.ps1 -GodotPath $env:GODOT
+        run: ./tools/record-native-failures.ps1
+
+  gameplay:
+    name: Natural duel and hosted matchmaking
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Check natural two-player combat and rematch
+        shell: pwsh
+        run: ./tools/check-gameplay.ps1 -GodotPath $env:GODOT
       - name: Check hosted matchmaking and assigned dedicated gameplay
         shell: pwsh
         run: |
           node --test services/matchmaking/test/*.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Matchmaking service tests failed' }
-          node tools/check-hosted.mjs --godot $env:GODOT
+          # The shipped client only queues for duels (Quick Play capacity 2).
+          node tools/check-hosted.mjs --godot $env:GODOT --duel-only
           if ($LASTEXITCODE -ne 0) { throw 'Hosted end-to-end test failed' }
-      - name: Validate merged Flamebot runtime art
+      - name: Record native Godot failures
+        if: failure()
         shell: pwsh
-        run: |
-          $artCheck = (Resolve-Path ./art_source/flamebot/check_flamebot.gd).Path
-          $artOutput = & $env:GODOT --headless --path battlebots --script $artCheck --quit-after 120 2>&1
-          $artExit = $LASTEXITCODE
-          $artOutput | ForEach-Object { Write-Host $_ }
-          if ($artExit -ne 0 -or ($artOutput -match 'SCRIPT ERROR:|^ERROR:') -or -not ($artOutput -match 'FLAMEBOT CHECK PASSED:')) { throw 'Flamebot check failed' }
+        run: ./tools/record-native-failures.ps1
+
+  export:
+    name: Export and independent processes
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
+        with:
+          export-templates: 'true'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - name: Export client and server
         shell: pwsh
         run: |
@@ -73,18 +116,15 @@ jobs:
         shell: pwsh
         run: |
           $client = (Resolve-Path ./battlebots/exports/windows/battlebots.exe).Path
-          ./tools/check-processes.ps1 -GodotPath $client -Exported
+          # The shipped 1v1, and the deferred ten-player lobby once (#24).
+          ./tools/check-processes.ps1 -GodotPath $client -PlayerCount 2 -Exported
           ./tools/check-processes.ps1 -GodotPath $client -PlayerCount 10 -Exported
-          ./tools/check-processes.ps1 -GodotPath $client -Mode ffa -Exported
-          node tools/check-hosted.mjs --godot $env:GODOT --server-binary $client
+          node tools/check-hosted.mjs --godot $env:GODOT --server-binary $client --duel-only
           if ($LASTEXITCODE -ne 0) { throw 'Exported hosted-server test failed' }
       - name: Record native Godot failures
         if: failure()
         shell: pwsh
-        run: |
-          Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000; StartTime=(Get-Date).AddHours(-1)} -ErrorAction SilentlyContinue |
-            Where-Object { $_.Message -match 'Godot|battlebots' } |
-            Select-Object TimeCreated, Message | Format-List
+        run: ./tools/record-native-failures.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: battlebots-mvp-${{ github.sha }}

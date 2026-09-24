@@ -8,7 +8,11 @@ func _initialize() -> void:
 	var registry := ContentRegistry.new()
 	var draft := registry.atlas()
 	var result := registry.validate(draft)
-	check(result.valid and result.stats.mass == 103 and result.stats.power == 70,
+	# Build mass is the catalogue part masses plus fitted armour pieces (#46).
+	var expected_mass := registry.armor_mass(draft)
+	for slot: String in ContentRegistry.SLOTS:
+		expected_mass += float(registry.parts[draft.parts[slot]].mass)
+	check(result.valid and is_equal_approx(result.stats.mass, expected_mass) and result.stats.power == 70,
 		"Atlas starter uses the ordinary mass/power budgets")
 	check(result.valid and result.stats.nitro and result.stats.charged_jump,
 		"Atlas includes the upstream independent Nitro and charged-jump slots")
