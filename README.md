@@ -92,6 +92,15 @@ Use Godot 4.7.2 from the repository root (replace `$GodotPath` with your executa
 To check a Windows export, pass its `battlebots.exe` as `-GodotPath` and add
 `-Exported`. Distribute the executable and its adjacent `battlebots.pck` together.
 
+`check-mvp.ps1` takes `-Part sim` (drive, rules, physics, profile-independent
+transport) or `-Part net -NetProfiles 150` (the impaired-network loop); without
+them it runs everything. CI (`.github/workflows/mvp.yml`) runs these as parallel
+Windows jobs: simulation, networking at 0/80/150 ms, presentation, natural duel
+plus hosted matchmaking, and export plus independent processes. Each job shares
+`.github/actions/setup-godot`, which restores the `.godot` import cache. Network
+fixtures take OS-assigned ports (`tests/fixtures/free_port.gd`), never ports
+derived from the process id.
+
 Choose 2 players (1v1, the default), 4 players (2v2), or 10 players (5v5) before
 hosting. CLI hosts accept `--players=2`, `--players=4` or `--players=10`.
 The host counts as a player unless started
