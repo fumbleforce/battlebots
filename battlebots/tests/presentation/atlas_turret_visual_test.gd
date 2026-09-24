@@ -152,10 +152,24 @@ func specials(size: Vector3) -> void:
 		var shot := view_for(0.4, 0.1, 1, 11)
 		shot.turret_kind = family
 		shot.secondary_active = true
+		shot.entity_id = 7
 		visual.show_state(shot, 1.0 / 60.0)
 		if family == "flamer":
 			check(effects._flame.emitting, "Flamer jet runs while the trigger is live")
 		else:
 			check(effects.shot_count == 1, "%s draws one discharge per accepted shot" % family)
+		if family == "tesla":
+			var first := Vector3(0, 2, -60)
+			var second := Vector3(7, 2, -64)
+			effects.show_chain(shot.entity_id + 1, first, second)
+			check(effects.chain_count == 0, "Another shooter's chain is ignored")
+			get_tree().call_group(TurretSpecialEffects.CHAIN_GROUP, &"show_chain", shot.entity_id, first, second)
+			var drawn := effects._chain_segments.filter(func(segment: MeshInstance3D) -> bool: return segment.visible)
+			check(effects.chain_count == 1 and drawn.size() == effects._chain_segments.size(), "Chained discharge draws the jump arc")
+			check(drawn.front().global_position.distance_to(first) < 3.0 and drawn.back().global_position.distance_to(second) < 3.0,
+				"Chain arc runs from the first target to the chained one")
+			for frame: int in 20:
+				effects._advance_shared(1.0 / 60.0)
+			check(effects._chain_segments.all(func(segment: MeshInstance3D) -> bool: return not segment.visible), "Chain arc fades out")
 		visual.queue_free()
 		await get_tree().process_frame

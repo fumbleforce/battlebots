@@ -3,9 +3,12 @@ extends Node3D
 ## Presentation for the special turret families. Accepted views only; nothing
 ## here awards a hit (confirmed hits come from combat events).
 ## - flamer: a roaring fire jet while firing, smoke above it, a flickering glow.
-## - tesla: a jagged, re-striking lightning arc to each discharge endpoint.
+## - tesla: a jagged, re-striking lightning arc to each discharge endpoint, and
+##   a second arc from that target to the bot the discharge chains to (#76).
 ## - railgun: rails glow and whine while charging; release draws a searing beam.
 const RATE := 24000
+## CombatImpactFeedback calls show_chain on this group for confirmed chains.
+const CHAIN_GROUP := &"tesla_chain_effects"
 var kind := ""
 var muzzles: Array[Node3D] = []
 var recoils: Array[Node3D] = []
@@ -25,6 +28,14 @@ var _arc_from := Vector3.ZERO
 var _arc_to := Vector3.ZERO
 var _arc_age := 10.0
 var _arc_light: OmniLight3D
+## Entity whose turret this is (from its views), so chains find their shooter.
+var entity_id := 0
+var chain_count := 0
+var _chain_segments: Array[MeshInstance3D] = []
+var _chain_from := Vector3.ZERO
+var _chain_to := Vector3.ZERO
+var _chain_age := 10.0
+var _chain_light: OmniLight3D
 var _beam_core: MeshInstance3D
 var _beam_glow: MeshInstance3D
 var _beam_age := 10.0
@@ -54,18 +65,12 @@ func configure(weapon: String, muzzle_nodes: Array[Node3D], recoil_nodes: Array[
 			_voices.append(_voice("FlameIgnite", _stream("flame_ignite"), 0.0, 12.0, 120.0))
 		"tesla":
 			var material := _glow(Color(0.75, 0.85, 1.0), 10.0)
-			for index: int in 18:
-				var segment := MeshInstance3D.new()
-				var cylinder := CylinderMesh.new()
-				cylinder.top_radius = 0.018 * _scale
-				cylinder.bottom_radius = 0.018 * _scale
-				cylinder.height = 1.0
-				cylinder.radial_segments = 5
-				segment.mesh = cylinder
-				segment.material_override = material
-				_world(segment)
-				_arc_segments.append(segment)
+			_arc_segments = _bolt(18, 0.018, material)
 			_arc_light = _omni(Color(0.6, 0.75, 1.0), 10.0 * _scale)
+			# The chain jump: a thinner bolt, as the chained hit is weaker.
+			_chain_segments = _bolt(12, 0.013, material)
+			_chain_light = _omni(Color(0.6, 0.75, 1.0), 7.0 * _scale)
+			add_to_group(CHAIN_GROUP)
 			for index: int in 3:
 				_voices.append(_voice("TeslaZap%d" % index, _stream("tesla"), 0.0, 12.0, 130.0))
 		"railgun":
@@ -85,6 +90,21 @@ func configure(weapon: String, muzzle_nodes: Array[Node3D], recoil_nodes: Array[
 			_whine = _voice("RailWhine", _stream("rail_whine"), -6.0, 10.0, 110.0)
 			for index: int in 2:
 				_voices.append(_voice("RailReport%d" % index, _stream("railgun"), 2.0, 16.0, 200.0))
+
+func _bolt(count: int, radius: float, material: Material) -> Array[MeshInstance3D]:
+	var segments: Array[MeshInstance3D] = []
+	for index: int in count:
+		var segment := MeshInstance3D.new()
+		var cylinder := CylinderMesh.new()
+		cylinder.top_radius = radius * _scale
+		cylinder.bottom_radius = radius * _scale
+		cylinder.height = 1.0
+		cylinder.radial_segments = 5
+		segment.mesh = cylinder
+		segment.material_override = material
+		_world(segment)
+		segments.append(segment)
+	return segments
 
 func _world(node: MeshInstance3D) -> void:
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -276,6 +296,7 @@ func _smoke_jet() -> GPUParticles3D:
 
 func show_state(view: BotView, delta: float) -> void:
 	_time += delta
+	entity_id = view.entity_id
 	var baseline := _seen < 0 or view.server_tick < _tick or view.shot_sequence < _seen
 	var fired := false
 	if baseline:
@@ -321,6 +342,19 @@ func _fire(from: Vector3, to: Vector3) -> void:
 			_burst(to, 1.4)
 			_play(from)
 
+## A confirmed chain from this turret's discharge: the lightning jumps on from
+## the first target's hit point to the chained bot's. Other shooters ignore it.
+func show_chain(attacker: int, from: Vector3, to: Vector3) -> void:
+	if kind != "tesla" or attacker != entity_id or entity_id == 0 or not from.is_finite() or not to.is_finite():
+		return
+	chain_count += 1
+	_chain_from = from
+	_chain_to = to
+	_chain_age = 0.0
+	_chain_light.global_position = (from + to) * 0.5
+	_strike(_chain_segments, from, to)
+	_burst(to, 0.5)
+
 func _play(at: Vector3) -> void:
 	if not playback_enabled or _voices.is_empty(): return
 	var voice := _voices[shot_count % _voices.size()]
@@ -349,22 +383,25 @@ func _orient_beam(node: MeshInstance3D, from: Vector3, to: Vector3) -> void:
 ## Lightning: a jagged polyline between the ends, displaced perpendicular to
 ## the arc, re-randomised a few times during its short life.
 func _restrike() -> void:
-	var direction := _arc_to - _arc_from
+	_strike(_arc_segments, _arc_from, _arc_to)
+
+func _strike(segments: Array[MeshInstance3D], from: Vector3, to: Vector3) -> void:
+	var direction := to - from
 	var length := direction.length()
 	if length < 0.01:
-		for segment: MeshInstance3D in _arc_segments: segment.hide()
+		for segment: MeshInstance3D in segments: segment.hide()
 		return
 	var axis := direction / length
 	var side := axis.cross(Vector3.UP).normalized()
 	if side.is_zero_approx(): side = Vector3.RIGHT
 	var lift := side.cross(axis)
-	var points: Array[Vector3] = [_arc_from]
-	var count := _arc_segments.size()
+	var points: Array[Vector3] = [from]
+	var count := segments.size()
 	for index: int in range(1, count):
 		var t := float(index) / count
 		var sway := sin(t * PI) * minf(length * 0.08, 1.2 * _scale)
-		points.append(_arc_from + direction * t + side * randf_range(-sway, sway) + lift * randf_range(-sway, sway))
-	points.append(_arc_to)
+		points.append(from + direction * t + side * randf_range(-sway, sway) + lift * randf_range(-sway, sway))
+	points.append(to)
 	for index: int in count:
 		var a := points[index]
 		var b := points[index + 1]
@@ -372,8 +409,8 @@ func _restrike() -> void:
 		var up := span.normalized()
 		var right := up.cross(Vector3.UP).normalized()
 		if right.is_zero_approx(): right = Vector3.RIGHT
-		_arc_segments[index].global_transform = Transform3D(Basis(right, up, right.cross(up)).scaled_local(Vector3(1, span.length(), 1)), (a + b) * 0.5)
-		_arc_segments[index].visible = true
+		segments[index].global_transform = Transform3D(Basis(right, up, right.cross(up)).scaled_local(Vector3(1, span.length(), 1)), (a + b) * 0.5)
+		segments[index].visible = true
 
 func _advance_flamer(muzzle: Node3D, active: bool, delta: float) -> void:
 	if muzzle != null:
@@ -423,6 +460,12 @@ func _advance_shared(delta: float) -> void:
 		for segment: MeshInstance3D in _arc_segments:
 			segment.visible = alive and segment.visible
 		_arc_light.light_energy = (9.0 * (1.0 - _arc_age / 0.2) * randf_range(0.6, 1.0)) if alive else 0.0
+		_chain_age += delta
+		var chained := _chain_age < 0.2
+		if chained and fmod(_chain_age, 0.045) < delta: _strike(_chain_segments, _chain_from, _chain_to)
+		for segment: MeshInstance3D in _chain_segments:
+			segment.visible = chained and segment.visible
+		_chain_light.light_energy = (6.0 * (1.0 - _chain_age / 0.2) * randf_range(0.6, 1.0)) if chained else 0.0
 	if kind == "railgun":
 		_beam_age += delta
 		var alive := _beam_age < 0.45
@@ -445,8 +488,9 @@ func clear_effects() -> void:
 	_seen = -1
 	_tick = -1
 	_arc_age = 10.0
+	_chain_age = 10.0
 	_beam_age = 10.0
-	for segment: MeshInstance3D in _arc_segments: segment.hide()
+	for segment: MeshInstance3D in _arc_segments + _chain_segments: segment.hide()
 	if _beam_core != null:
 		_beam_core.hide()
 		_beam_glow.hide()
@@ -458,6 +502,7 @@ func clear_effects() -> void:
 	if _whine != null: _whine.stop()
 	if _charge_light != null: _charge_light.light_energy = 0.0
 	if _arc_light != null: _arc_light.light_energy = 0.0
+	if _chain_light != null: _chain_light.light_energy = 0.0
 	if _impact_light != null: _impact_light.light_energy = 0.0
 	for voice: AudioStreamPlayer3D in _voices: voice.stop()
 

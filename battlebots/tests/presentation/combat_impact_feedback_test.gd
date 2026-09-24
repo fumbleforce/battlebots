@@ -76,6 +76,7 @@ func run() -> void:
 	check(feedback._contexts.size() <= 16 and feedback._watermarks.size() <= 16 \
 		and feedback._retired.size() <= 16, "Replay history stays bounded across matches")
 	feedback.free()
+	check_tesla_chain()
 	check_bound_session_lifecycle()
 	for failure: String in failures: push_error(failure)
 	if failures.is_empty(): print("COMBAT IMPACT FEEDBACK PASS")
@@ -136,3 +137,45 @@ func check_bound_session_lifecycle() -> void:
 	check(not first.combat_event.is_connected(feedback._session_impact),"Unbinding removes signal connections")
 	feedback.free()
 	first.free()
+
+## Records show_chain calls the way a Tesla turret's effects receive them.
+class ChainProbe extends Node:
+	var chains: Array = []
+	func show_chain(attacker: int, from: Vector3, to: Vector3) -> void:
+		chains.append([attacker, from, to])
+
+func tesla(id: int, target: int, at: Vector3, tick := 60, attack_id := 5) -> Dictionary:
+	var event := hit(id)
+	event.kind = "tesla"
+	event.target = target
+	event.position = at
+	event.tick = tick
+	event.attack_id = attack_id
+	return event
+
+func check_tesla_chain() -> void:
+	var feedback := CombatImpactFeedback.new()
+	add_child(feedback)
+	var probe := ChainProbe.new()
+	probe.add_to_group(TurretSpecialEffects.CHAIN_GROUP)
+	add_child(probe)
+	feedback.observe_match(match_view())
+	feedback.combat_event(tesla(1, 2, Vector3(0, 1, -10)))
+	check(probe.chains.is_empty() and feedback.visual.spark_count() == 0, "A single Tesla hit draws no chain and no generic sparks")
+	feedback.combat_event(tesla(2, 3, Vector3(6, 1, -12)))
+	check(probe.chains.size() == 1 and probe.chains[0] == [1, Vector3(0, 1, -10), Vector3(6, 1, -12)],
+		"The chained hit of the same discharge arcs from the first target to the second")
+	feedback.combat_event(tesla(3, 2, Vector3(0, 1, -10), 61, 6))
+	feedback.combat_event(tesla(4, 3, Vector3(6, 1, -12), 62, 7))
+	check(probe.chains.size() == 1, "Hits from different discharges never chain")
+	feedback.combat_event(tesla(5, 2, Vector3(0, 1, -10), 70, 8))
+	feedback.combat_event(tesla(5, 3, Vector3(6, 1, -12), 70, 8))
+	check(probe.chains.size() == 1, "A replayed event id cannot draw a chain")
+	feedback.observe_match(match_view("match-a", 1, "intermission", 2))
+	feedback.observe_match(match_view("match-a", 2, "active", 3))
+	var late := tesla(1, 3, Vector3(6, 1, -12), 70, 8)
+	late.round = 2
+	feedback.combat_event(late)
+	check(probe.chains.size() == 1, "A new round forgets the previous round's discharges")
+	probe.free()
+	feedback.free()
