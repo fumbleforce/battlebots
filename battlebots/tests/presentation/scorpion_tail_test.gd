@@ -48,10 +48,19 @@ func run() -> void:
 			"Full stroke reaches low NPC armor while retaining physical floor clearance")
 		var view := BotView.new()
 		view.weapon_state = &"windup"
-		view.weapon_charge_fraction = 0.625
+		view.weapon_charge_fraction = 0.4
+		visual.show_state(view, 1.0 / 60.0)
+		check(visual.nodes.TailBase.rotation.x > 0.2 and visual.hammer_fraction == 0.0,
+			"Early windup cocks the tail up and back like a trebuchet (#17)")
+		view.weapon_charge_fraction = 0.8
 		visual.show_state(view, 1.0 / 60.0)
 		check(visual.hammer_fraction > 0.4 and visual.hammer_fraction < 0.6,
-			"Windup visibly feeds the extendible final arm")
+			"The whip feeds the extendible final arm on the way down")
+		view.weapon_charge_fraction = 1.0
+		visual.show_state(view, 1.0 / 60.0)
+		var strike_angles := ScorpionGeometry.hammer_angles(1.0)
+		check(absf(visual.nodes.TailBase.rotation.x - strike_angles.x) < 0.001 and absf(visual.nodes.HammerHead.rotation.x - strike_angles.w) < 0.001,
+			"The whip lands exactly on the authoritative strike pose")
 		view.weapon_state = &"strike"
 		visual.show_state(view, 1.0 / 60.0)
 		check(visual.hammer_fraction == 1.0, "Confirmed impact displays full extension")

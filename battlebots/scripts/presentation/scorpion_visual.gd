@@ -9,6 +9,16 @@ var diesel_exhaust: ScorpionDieselExhaust
 var fallback_weapon: MvpWeaponVisual
 var kind := "hammer"
 var hammer_fraction := 0.0
+## Trebuchet windup (#17), presentation only: the first COCK_SHARE of the
+## windup draws the tail up and back by COCK (radians per joint: base, upper,
+## fore, head); the rest whips the joints through in sequence, each starting
+## WHIP_STAGGER later, so the head lands on the authoritative strike pose at
+## the strike tick. The authority sweep and strike pose are unchanged.
+const COCK := Vector4(0.45, 0.30, -0.45, -0.70)
+const COCK_SHARE := 0.6
+const WHIP_STAGGER := 0.08
+## The head overshoots the strike angle by this share as it lands.
+const HEAD_OVERSHOOT := 0.12
 var _size := Vector3.ZERO
 
 static func enabled(draft: Dictionary) -> bool:
@@ -117,21 +127,43 @@ func _collect(root: Node3D, meshes: Array) -> void:
 
 func set_hammer_fraction(fraction: float) -> void:
 	hammer_fraction = clampf(fraction, 0.0, 1.0)
-	var angles := ScorpionGeometry.hammer_angles(hammer_fraction)
+	_pose_hammer(ScorpionGeometry.hammer_angles(hammer_fraction), hammer_fraction)
+
+## Joint angles (base, upper, fore, head) and telescopic extension fraction.
+func _pose_hammer(angles: Vector4, extension: float) -> void:
 	for index: int in 4:
 		nodes[["TailBase", "TailUpper", "TailFore", "HammerHead"][index]].rotation.x = angles[index]
 	if nodes.has("TailExtension"):
 		nodes.TailExtension.position = ScorpionGeometry.HEAD_PIVOT - ScorpionGeometry.TAIL_FORE \
-			+ ScorpionGeometry.hammer_extension_offset(hammer_fraction)
+			+ ScorpionGeometry.hammer_extension_offset(extension)
+
+## Windup pose at charge 0..1: cock back, then a staggered whip to the strike.
+func _windup_pose(charge: float) -> void:
+	if charge < COCK_SHARE:
+		hammer_fraction = 0.0
+		_pose_hammer(COCK * smoothstep(0.0, 1.0, charge / COCK_SHARE), 0.0)
+		return
+	var whip := (charge - COCK_SHARE) / (1.0 - COCK_SHARE)
+	var strike := ScorpionGeometry.hammer_angles(1.0)
+	var angles := Vector4.ZERO
+	for joint: int in 4:
+		var t := clampf((whip - joint * WHIP_STAGGER) / (1.0 - 3.0 * WHIP_STAGGER), 0.0, 1.0)
+		# Accelerating swing; the head snaps past the strike angle as it lands.
+		var target: float = strike[joint] * (1.0 + HEAD_OVERSHOOT * sin(t * PI) if joint == 3 else 1.0)
+		angles[joint] = lerpf(COCK[joint], target, t * t)
+	hammer_fraction = whip
+	_pose_hammer(angles, whip)
 
 func show_state(view: BotView, delta: float) -> void:
 	if kind == "hammer":
 		var fraction := 0.0
-		if view.weapon_state == "windup": fraction = smoothstep(0.25, 1.0, view.weapon_charge_fraction)
+		if view.weapon_state == "windup" and not view.eliminated:
+			_windup_pose(view.weapon_charge_fraction)
+			fraction = -1.0
 		elif view.weapon_state == "strike": fraction = 1.0
 		elif view.weapon_cooldown > 0.0: fraction = 1.0 - smoothstep(0.10, 1.0, 1.0 - view.weapon_cooldown / 1.4)
 		if view.eliminated or view.weapon_state == "disabled": fraction = hammer_fraction
-		set_hammer_fraction(fraction)
+		if fraction >= 0.0: set_hammer_fraction(fraction)
 	if fallback_weapon != null: fallback_weapon.show_state(view, delta)
 	if gun_effects != null: gun_effects.show_state(view, delta, kind == "minigun")
 	diesel_exhaust.show_state(view, global_transform, delta, walker_legs.terrain)
