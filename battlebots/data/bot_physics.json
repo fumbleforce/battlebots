@@ -6,6 +6,10 @@
 		"minimum_arena_gravity_scale": 1.0,
 		"rise_speed_cap_at_1g": 8.0
 	},
+	"prediction": {
+		"_comment": "Client input replay between snapshots. A grounded hull normally rests on its drive, so replay cancels gravity. Grounded also counts underside contact, so a hull launched or flipped while one edge still touches the floor is grounded but not held up: when the hull moves along its own up axis faster than support_release_speed (m/s), replay applies gravity and pivots the hull on its lowest corner, as Jolt does on the server. Driving on a slope moves along the surface, not along hull up. Client presentation only; the server does not replay.",
+		"support_release_speed": 0.2
+	},
 	"contact": {
 		"_comment": "Tracks carry the weight: while on its drive the hull has track_hull_friction against the arena (the drive model handles grip), and slope_hold_fraction of the downhill pull is cancelled by the tracks up to the grip limit, so tanks park and climb on hills. Off its drive (roof/side) the hull grinds with stranded_hull_friction (Jolt combines sqrt(hull * floor)). bot_contact_friction is explicit Coulomb friction between clashing hulls.",
 		"track_hull_friction": 0.0,

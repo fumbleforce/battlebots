@@ -1,5 +1,7 @@
 class_name DriveModel
 extends RefCounted
+## Corners within this height of the pivot floor plane count as touching it (m).
+const PIVOT_CONTACT_SLOP := 0.02
 ## Shared tire response for live Jolt drive and bounded client input replay.
 ## Vehicle steering follows travel, including reverse coasting. Near rest,
 ## throttle chooses direction; neutral pivots ignore tiny contact velocities.
@@ -45,6 +47,13 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 	var predicted_heat: float = state.get("heat", 0.0)
 	var thermal_locked: bool = state.get("overheated", false)
 	var delta := 1.0 / 60
+	# A hull grounded only by an edge while it moves along its own up axis (hit
+	# by a weapon or launched with its tail on the floor) pivots on that edge.
+	# Model the floor as a plane at its lowest corner so the fall turns into
+	# rotation, as Jolt does on the server, instead of passing through it.
+	var pivot_floor := NAN
+	if grounded and absf(velocity.dot(pose.basis.y)) > float(config.support_release_speed):
+		pivot_floor = _lowest_corner(pose, config)
 	# Contact replay is approximate: authoritative snapshots always replace outcomes.
 	for data: Array in commands.slice(maxi(0, commands.size() - 15)):
 		var command := WireCodec.command_from_array(data)
@@ -79,12 +88,22 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 				if thermal_locked: config.nitro = false
 			jump_charge = 0.0
 		jump_was_held = command.jump_held and not command.jump_cancel
+		var gravity_step: Vector3 = Vector3(config.get("gravity", Vector3(0, -9.8, 0))) * delta
 		if grounded:
 			var response := forces(pose.basis, velocity, angular, Vector3.UP, throttle, steering, command.brake, delta, config)
 			velocity += response.acceleration * delta
 			angular.y += float(response.yaw_acceleration) * delta
+			# Drive support holds a resting hull up. Grounded also counts one edge
+			# touching the floor, so a hull launched or pivoting on that edge
+			# (moving along its own up axis) still falls, as on the server.
+			if absf(velocity.dot(pose.basis.y)) > float(config.support_release_speed):
+				velocity += gravity_step
+				if not is_nan(pivot_floor):
+					var pivoted := _pivot_on_floor(pose, velocity, angular, pivot_floor, config)
+					velocity = pivoted.velocity
+					angular = pivoted.angular
 		else:
-			velocity += Vector3(config.get("gravity", Vector3(0, -9.8, 0))) * delta
+			velocity += gravity_step
 		# Free-flight roll/pitch continue between snapshots after a launch or flip.
 		angular *= maxf(0.0, 1.0 - float(config.get("angular_damp", 0.1)) * delta)
 		# Jolt linear velocity moves the center of mass. The hull origin arcs
@@ -94,4 +113,49 @@ static func replay(state: Dictionary, commands: Array, config: Dictionary) -> Di
 		if not angular.is_zero_approx():
 			pose.basis = (Basis(angular.normalized(), angular.length() * delta) * pose.basis).orthonormalized()
 		pose.origin = center + velocity * delta - pose.basis * ballast
+		if not is_nan(pivot_floor):
+			# Keep the pivot edge on the floor plane (positional drift only).
+			pose.origin.y += maxf(0.0, pivot_floor - _lowest_corner(pose, config))
 	return {"pose":pose, "velocity":velocity, "angular":angular}
+
+## Box hull corners in body space: config.hull_half_extents around config.hull_offset.
+static func _corners(config: Dictionary) -> Array[Vector3]:
+	var half: Vector3 = config.get("hull_half_extents", Vector3.ZERO)
+	var offset: Vector3 = config.get("hull_offset", Vector3.ZERO)
+	var corners: Array[Vector3] = []
+	for x: float in [-1.0, 1.0]:
+		for y: float in [-1.0, 1.0]:
+			for z: float in [-1.0, 1.0]:
+				corners.append(offset + Vector3(half.x * x, half.y * y, half.z * z))
+	return corners
+
+static func _lowest_corner(pose: Transform3D, config: Dictionary) -> float:
+	var lowest := INF
+	for corner: Vector3 in _corners(config):
+		lowest = minf(lowest, (pose * corner).y)
+	return lowest
+
+## Frictionless contact impulses at hull corners touching the floor plane and
+## moving into it. Box inertia about the hull center; the mass cancels.
+static func _pivot_on_floor(pose: Transform3D, velocity: Vector3, angular: Vector3, floor_y: float, config: Dictionary) -> Dictionary:
+	var half: Vector3 = config.get("hull_half_extents", Vector3.ZERO)
+	if half.is_zero_approx():
+		return {"velocity":velocity, "angular":angular}
+	var size := half * 2.0
+	var inverse_local := Basis.from_scale(Vector3(12.0 / (size.y * size.y + size.z * size.z),
+		12.0 / (size.x * size.x + size.z * size.z), 12.0 / (size.x * size.x + size.y * size.y)))
+	var inverse_inertia := pose.basis * inverse_local * pose.basis.transposed()
+	var center := pose * Vector3(config.get("center_of_mass", Vector3.ZERO))
+	for corner: Vector3 in _corners(config):
+		var point := pose * corner
+		if point.y > floor_y + PIVOT_CONTACT_SLOP:
+			continue
+		var arm := point - center
+		var approach := (velocity + angular.cross(arm)).y
+		if approach >= 0.0:
+			continue
+		var effective := 1.0 + Vector3.UP.dot((inverse_inertia * arm.cross(Vector3.UP)).cross(arm))
+		var impulse := -approach / effective
+		velocity.y += impulse
+		angular += inverse_inertia * arm.cross(Vector3.UP * impulse)
+	return {"velocity":velocity, "angular":angular}

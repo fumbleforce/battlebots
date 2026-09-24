@@ -223,6 +223,9 @@ func ram_case() -> void:
 			impact_frame = index
 		var distance := observed.presentation.global_position.distance_to(a.body.global_position)
 		var angle := rad_to_deg(observed.presentation.global_basis.get_rotation_quaternion().angle_to(a.body.global_basis.get_rotation_quaternion()))
+		if OS.get_environment("BATTLEBOTS_CONTACT_TRACE") == "1":
+			print("ram frame=", index + 1, " impact=", impact_frame, " server=", a.body.global_position, " client=", observed.presentation.global_position,
+				" error=", Vector2(distance, angle), " sv=", a.body.linear_velocity, " cv=", observed.body.linear_velocity, " ground=", a.body.grounded)
 		peak = maxf(peak, distance)
 		if distance > 0.25 or angle > 10:
 			last_bad = index
@@ -251,6 +254,9 @@ func recovery_case() -> void:
 		ticks.append(Engine.get_physics_frames())
 		var distance := observed.presentation.global_position.distance_to(authoritative.body.global_position)
 		var angle := rad_to_deg(observed.presentation.global_basis.get_rotation_quaternion().angle_to(authoritative.body.global_basis.get_rotation_quaternion()))
+		if OS.get_environment("BATTLEBOTS_CONTACT_TRACE") == "1":
+			print("rec frame=", index + 1, " server=", authoritative.body.global_position, " client=", observed.presentation.global_position,
+				" error=", Vector2(distance, angle), " sv=", authoritative.body.linear_velocity, " cv=", observed.body.linear_velocity, " ground=", authoritative.body.grounded, " cground=", observed.body.grounded)
 		if distance > 0.25 or angle > 10:
 			last_bad = index
 	var settle := settling_ms(ticks, last_bad, start_tick)

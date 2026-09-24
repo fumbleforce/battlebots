@@ -1,5 +1,22 @@
 # Shared contracts — local records and current MVP session API
 
+## Client replay: gravity on a lifted edge, pivot contact, sliding sweep — build mvp-ab-43 (#13)
+
+Prediction-to-drive boundary; no wire field. `DriveModel.replay` no longer
+treats a grounded hull as held up when it moves along its own up axis faster
+than `prediction.support_release_speed` in `data/bot_physics.json`
+(`BotPhysics`). Grounded also counts underside contact, so a hull launched or
+knocked back with one edge on the floor is not held up. It then falls under
+gravity, and a frictionless corner contact on a floor plane at its lowest
+corner turns that fall into rotation, as Jolt does on the server.
+`DriveBody.model_config()` gains `support_release_speed`, `hull_half_extents`
+and `hull_offset` (the box collider; zero for other shapes, which disables the
+pivot contact). `DriveBody._constrain_replay` lets a grounded hull slide along
+a surface it grazes (under `GRAZING_DOT`) instead of stopping at the snapshot
+pose, then sweeps again so walls still stop it. Landings and tumbling hulls
+stop as before. The 150 ms contact correction gate
+(`tests/network/contact_reconciliation`) is unchanged.
+
 ## Nimble bots stand on their gear — build mvp-ab-42 (#75)
 
 Gameplay/physics only; no command, snapshot, schema, catalogue or protocol

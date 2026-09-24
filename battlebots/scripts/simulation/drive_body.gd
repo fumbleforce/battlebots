@@ -20,6 +20,11 @@ var physics := BotPhysics.settings()
 var geometry_scale := 1.0
 var probe_depth := 0.32
 const INPUT_TIMEOUT := 0.25
+## Replay sweep passes: the first may slide along a surface, the second stops.
+const SWEEP_PASSES := 2
+## A replay sweep slides along a surface it enters at less than this cosine
+## (about 12 degrees); steeper hits stop the sweep.
+const GRAZING_DOT := 0.2
 ## Corner ground probes (also the four-legged walker's foot layout).
 const PROBES: Array[Vector3] = [
 	Vector3(-0.65, 0, -0.8), Vector3(0.65, 0, -0.8),
@@ -290,32 +295,62 @@ func _constrain_replay(space: PhysicsDirectSpaceState3D) -> void:
 		var normal := (contacts[index + 1] - contacts[index]).normalized()
 		motion -= normal * minf(motion.dot(normal), 0.0)
 		_block_velocity(normal)
-	query.motion = motion
-	var fractions := space.cast_motion(query)
-	if fractions[0] < 1.0:
-		# Ignore the existing floor/rest contacts when finding the newly hit normal.
-		var excluded: Array[RID] = [get_rid()]
-		for hit: Dictionary in space.intersect_shape(query):
-			excluded.append(hit.rid)
-		query.exclude = excluded
-		query.transform.origin += motion * fractions[1]
-		query.margin = 0.002
-		var hit := space.get_rest_info(query)
-		if not hit.is_empty():
-			_block_velocity(hit.normal)
-		else:
-			# Rest info can miss a tumbling hull's corner touching the floor; find
-			# the contact normals at the hit pose instead.
-			query.exclude = [get_rid()]
-			var touching := space.collide_shape(query)
-			if touching.is_empty():
-				# No normal at all: a conservative stop is safer than carrying
-				# velocity through an obstruction on a numerical boundary.
-				correction.velocity = Vector3.ZERO
-			for index: int in range(0, touching.size(), 2):
-				_block_velocity((touching[index + 1] - touching[index]).normalized())
-		motion *= fractions[0]
+	var start := query.transform
+	# Collide and slide: for a hull on its drive grazing a surface, a hit removes
+	# only the motion into it. A hull knocked back with a slight tilt meets the
+	# floor it rests on at the start of the sweep; it keeps sliding along it
+	# instead of being held at the snapshot pose. A second pass stops at walls.
+	for attempt: int in range(SWEEP_PASSES):
+		query.transform = start
+		query.exclude = [get_rid()]
+		query.margin = 0.0
+		query.motion = motion
+		var fractions := space.cast_motion(query)
+		if fractions[0] >= 1.0:
+			break
+		var normals := _sweep_hit_normals(space, query, motion * fractions[1])
+		if normals.is_empty():
+			# No normal at all: a conservative stop is safer than carrying
+			# velocity through an obstruction on a numerical boundary.
+			correction.velocity = Vector3.ZERO
+			motion *= fractions[0]
+			break
+		var slide := motion
+		var grazing := true
+		for normal: Vector3 in normals:
+			_block_velocity(normal)
+			grazing = grazing and -motion.normalized().dot(normal) < GRAZING_DOT
+			slide -= normal * minf(slide.dot(normal), 0.0)
+		# Only a hull on its drive grazing a surface slides; landings and
+		# tumbling or righting hulls stop at the hit as before.
+		if not grounded or not grazing or attempt == SWEEP_PASSES - 1 or slide.is_equal_approx(motion):
+			# Still blocked after sliding (or nothing to remove): stop at the hit.
+			motion *= fractions[0]
+			break
+		motion = slide
 	correction.pose.origin = origin.origin + motion
+
+## Contact normals where a replay sweep first touches static world geometry.
+func _sweep_hit_normals(space: PhysicsDirectSpaceState3D, query: PhysicsShapeQueryParameters3D, travel: Vector3) -> Array[Vector3]:
+	var normals: Array[Vector3] = []
+	# Ignore the existing floor/rest contacts when finding the newly hit normal.
+	var excluded: Array[RID] = [get_rid()]
+	for hit: Dictionary in space.intersect_shape(query):
+		excluded.append(hit.rid)
+	query.exclude = excluded
+	query.transform.origin += travel
+	query.margin = 0.002
+	var hit := space.get_rest_info(query)
+	if not hit.is_empty():
+		normals.append(hit.normal)
+		return normals
+	# Rest info can miss a tumbling hull's corner touching the floor; find
+	# the contact normals at the hit pose instead.
+	query.exclude = [get_rid()]
+	var touching := space.collide_shape(query)
+	for index: int in range(0, touching.size(), 2):
+		normals.append((touching[index + 1] - touching[index]).normalized())
+	return normals
 
 ## Contacts cancel replayed velocity into them so extrapolation never tunnels,
 ## except the floor under an airborne hull: a tumbling hull's low corner meets
@@ -335,7 +370,9 @@ func model_config() -> Dictionary:
 		"steering_response":steering_response, "yaw_response":yaw_response,
 		"yaw_acceleration_limit":yaw_acceleration_limit * physics.yaw_acceleration_multiplier, "lateral_response":lateral_response,
 		"walker":walker, "nitro":nitro_active, "nitro_equipped":nitro_equipped,
-		"charged_jump":jump_equipped, "max_rise":max_rise(),
+		"charged_jump":jump_equipped, "max_rise":max_rise(), "support_release_speed":physics.support_release_speed,
+		"hull_half_extents":_hull_box().size * 0.5 if _hull_box() != null else Vector3.ZERO,
+		"hull_offset":(get_node("Collision") as CollisionShape3D).position if _hull_box() != null else Vector3.ZERO,
 		"nitro_acceleration":physics.nitro_acceleration_multiplier, "nitro_speed":physics.nitro_top_speed_multiplier,
 		"nitro_grip":physics.nitro_grip_multiplier,
 		"brake":brake_acceleration * physics.brake_multiplier, "turn":turn_speed, "drive_scale":drive_multiplier,
@@ -343,6 +380,11 @@ func model_config() -> Dictionary:
 		"center_of_mass":center_of_mass if center_of_mass_mode == CENTER_OF_MASS_MODE_CUSTOM else Vector3.ZERO,
 		"gravity":Vector3(ProjectSettings.get_setting("physics/3d/default_gravity_vector", Vector3.DOWN))
 			* float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)) * gravity_scale * heft()}
+
+## The main hull collider when it is a box (replay pivots on its corners).
+func _hull_box() -> BoxShape3D:
+	var collision := get_node_or_null("Collision") as CollisionShape3D
+	return collision.shape as BoxShape3D if collision != null else null
 
 func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 	var normal_sum := Vector3.ZERO

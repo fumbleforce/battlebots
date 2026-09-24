@@ -10,6 +10,10 @@ static var _loaded: BotPhysics
 var gravity_multiplier: float
 var minimum_arena_gravity_scale: float
 var rise_speed_cap_at_1g: float
+# prediction
+## Grounded replay applies gravity while the hull moves along its up axis
+## faster than this (launched or pivoting on an edge, not resting).
+var support_release_speed: float
 # contact
 ## Hull friction against the arena while supported by its drive, and while
 ## stranded on its roof or side.
@@ -75,6 +79,7 @@ var ram_pin_max_mass_factor: float
 
 const SECTIONS := {
 	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g"],
+	"prediction": ["support_release_speed"],
 	"contact": ["track_hull_friction", "stranded_hull_friction", "slope_hold_fraction", "bot_contact_friction"],
 	"motor": ["acceleration_multiplier", "top_speed_multiplier", "grip_multiplier", "yaw_acceleration_multiplier",
 		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier", "steering_direction_threshold"],

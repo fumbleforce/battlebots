@@ -84,6 +84,7 @@ func run() -> void:
 		"coast":1.1, "drive_scale":1.0, "turn":1.65, "steering_scale":1.0,
 		"nitro":false, "nitro_equipped":true, "charged_jump":true,
 		"gravity":Vector3(0, -9.8, 0), "max_rise":BotPhysics.settings().rise_speed_cap_at_1g,
+		"support_release_speed":BotPhysics.settings().support_release_speed,
 		"nitro_acceleration":BotPhysics.settings().nitro_acceleration_multiplier,
 		"nitro_speed":BotPhysics.settings().nitro_top_speed_multiplier,
 		"nitro_grip":BotPhysics.settings().nitro_grip_multiplier}
