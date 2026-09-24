@@ -11,7 +11,8 @@ runs:
       shell: pwsh
       run: |
         $release = 'https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable'
-        $files = @(@('godot.zip', 'Godot_v4.7.2-stable_win64.exe.zip'))
+        # Leading comma: a one-pair list must stay a list of pairs, not flatten.
+        $files = @(,@('godot.zip', 'Godot_v4.7.2-stable_win64.exe.zip'))
         if ('${{ inputs.export-templates }}' -eq 'true') { $files += ,@('templates.zip', 'Godot_v4.7.2-stable_export_templates.tpz') }
         Invoke-WebRequest "$release/SHA512-SUMS.txt" -OutFile "$env:RUNNER_TEMP/sums.txt"
         foreach ($pair in $files) {
