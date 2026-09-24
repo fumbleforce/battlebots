@@ -1,5 +1,6 @@
 extends SceneTree
 ## Live Jolt pilots/hits; elimination below is explicit lifecycle fixture setup.
+const FreePort := preload("res://tests/fixtures/free_port.gd")
 var failures: Array[String] = []
 var events: Array[Dictionary] = []
 
@@ -126,7 +127,7 @@ func run() -> void:
 		"Restart returns the player to its original spawn")
 	session.leave()
 	check(session.practice_director == null and session.practice_target() == null, "Leave removes all practice authority")
-	check(session.host(42000+OS.get_process_id()%10000, true, 2) == OK, "Online host can start after practice")
+	check(session.host(FreePort.udp(), true, 2) == OK, "Online host can start after practice")
 	check(session.practice_director == null and session.world.bots.is_empty(), "Online lobby never starts practice NPCs")
 	session.leave()
 	session.queue_free()

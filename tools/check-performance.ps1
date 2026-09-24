@@ -12,7 +12,11 @@ $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../battlebots')).Path
 $enginePath = (Resolve-Path -LiteralPath $GodotPath).Path
 $runDirectory = Join-Path ([IO.Path]::GetTempPath()) ('battlebots-performance-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runDirectory | Out-Null
-$port = Get-Random -Minimum 30000 -Maximum 44000
+# Let the OS choose a free UDP port: a random pick can land on a busy or
+# Windows-reserved port (#13).
+$probe = [System.Net.Sockets.UdpClient]::new(0)
+$port = ([System.Net.IPEndPoint]$probe.Client.LocalEndPoint).Port
+$probe.Close()
 $processes = [Collections.Generic.List[object]]::new()
 $memorySamples = [Collections.Generic.List[object]]::new()
 $startedAt = [DateTime]::UtcNow
