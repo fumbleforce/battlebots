@@ -46,9 +46,7 @@ export const validRefreshToken = value => typeof value === 'string' && REFRESH.t
 
 // path ':memory:' (the default) keeps identities only while the process runs;
 // an absolute file path on a persistent volume makes them survive restarts.
-export function openIdentityStore({ path = ':memory:', overlap = 60 } = {}) {
-  if (!Number.isFinite(overlap) || overlap < 0) throw new Error('Invalid refresh overlap');
-  const db = new DatabaseSync(path);
+function migrate(db) {
   db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
   db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)');
   let version = db.prepare('SELECT version FROM schema_version').get()?.version;
@@ -68,6 +66,18 @@ export function openIdentityStore({ path = ':memory:', overlap = 60 } = {}) {
       db.exec('ROLLBACK');
       throw error;
     }
+  }
+}
+
+export function openIdentityStore({ path = ':memory:', overlap = 60 } = {}) {
+  if (!Number.isFinite(overlap) || overlap < 0) throw new Error('Invalid refresh overlap');
+  const db = new DatabaseSync(path);
+  try {
+    migrate(db);
+  } catch (error) {
+    // A refused or failed database must not stay open (Windows keeps it locked).
+    db.close();
+    throw error;
   }
   const insertPlayer = db.prepare('INSERT INTO players (id, created_at, last_seen_at) VALUES (?, ?, ?)');
   const insertToken = db.prepare('INSERT INTO refresh_tokens (hash, player_id, created_at) VALUES (?, ?, ?)');
