@@ -34,15 +34,22 @@ func run() -> void:
 	var request := HTTPRequest.new()
 	root.add_child(request)
 	var reply: Array = []
-	request.timeout = 3.0
-	request.request_completed.connect(func(result: int, status: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-		reply.assign([result, status, JSON.parse_string(body.get_string_from_utf8())]))
+	# The same request timeout as PublicServiceClient: a cold Windows runner can
+	# take several seconds to connect and build the first health reply (#13).
+	request.timeout = PublicServiceClient.REQUEST_TIMEOUT
+	request.request_completed.connect(func(result: int, status: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+		var text := body.get_string_from_utf8()
+		reply.assign([result, status, JSON.parse_string(text) if not text.is_empty() else null, headers, body.size()]))
 	check(request.request(first.url() + "/healthz") == OK, "Assigned endpoint accepts a real HTTP request")
-	var deadline := Time.get_ticks_msec() + 4000
+	var started := Time.get_ticks_msec()
+	var deadline := started + int(request.timeout * 1000.0) + 1000
 	while reply.is_empty() and Time.get_ticks_msec() < deadline:
 		await process_frame
-	check(reply.size() == 3 and reply[0] == HTTPRequest.RESULT_SUCCESS and reply[1] == 200,
-		"Real loopback health request succeeds")
+	var healthy: bool = reply.size() == 5 and reply[0] == HTTPRequest.RESULT_SUCCESS and reply[1] == 200 and reply[2] is Dictionary
+	print("Health reply after %d ms" % (Time.get_ticks_msec() - started))
+	if not healthy:
+		print("Health reply: ", reply, " fixture requests: ", first.requests, " open connections: ", first.connections.size())
+	check(healthy, "Real loopback health request succeeds")
 	var released_port: int = second.port
 	second.queue_free()
 	await process_frame

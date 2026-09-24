@@ -27,6 +27,9 @@ func start(requested_port := 0) -> Error:
 	var error := listener.listen(requested_port, "127.0.0.1")
 	if error != OK:
 		print("HTTP fixture bind failed: 127.0.0.1:%d, %s (%d)" % [requested_port, error_string(error), error])
+		# Drop the failed server now rather than keeping its closed socket
+		# until this fixture is freed (Windows socket handles are reused, #13).
+		listener = TCPServer.new()
 		return error
 	port = listener.get_local_port()
 	if port <= 0:
@@ -44,7 +47,8 @@ func _process(_delta: float) -> void:
 	for item: Dictionary in connections.duplicate():
 		var peer: StreamPeerTCP = item.peer
 		peer.poll()
-		if item.sent or peer.get_status() == StreamPeerTCP.STATUS_ERROR:
+		# A peer the client already closed is not an error on every platform.
+		if item.sent or peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 			peer.disconnect_from_host()
 			connections.erase(item)
 			continue

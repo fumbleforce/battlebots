@@ -10,6 +10,8 @@ var state := "idle"
 var message := "Choose Quick Play, create a private game, or enter a friend's code."
 var region := ""
 var membership: Dictionary = {}
+## Seconds before an online service request gives up.
+const REQUEST_TIMEOUT := 10.0
 var _http: HTTPRequest
 var _token := ""
 ## Where the durable identity's refresh token is kept; empty disables saving.
@@ -39,7 +41,7 @@ func _ready() -> void:
 	_http.name = "Request"
 	_http.body_size_limit = 65536
 	_http.download_chunk_size = 4096
-	_http.timeout = 10.0
+	_http.timeout = REQUEST_TIMEOUT
 	_http.max_redirects = 0
 	add_child(_http)
 	_http.request_completed.connect(_completed)
