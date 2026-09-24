@@ -71,6 +71,9 @@ docs/TEAM_WORKFLOW.md and docs/CONTRACTS.md before implementation.
 - Running the game from source re-imports changed assets automatically
   (`ImportGuard`, docs/coordination/IMPORT_GUARD.md); headless tests still need
   the explicit `--editor --import` step after a pull.
+- Run Godot tests and checks with `--headless` and as background jobs, so no
+  game or editor window pops up on the user's desktop and distracts them. Run
+  windowed or native-capture tests only when the user asks for them.
 - After shared contract/scene changes run `tools/check-baseline.ps1` (needs
   PowerShell) or the equivalent Godot test scripts it lists.
 - This is a developing MVP: do not describe unverified behaviour or partial scope
