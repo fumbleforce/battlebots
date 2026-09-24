@@ -9,6 +9,8 @@ extends Node3D
 const RATE := 24000
 ## CombatImpactFeedback calls show_chain on this group for confirmed chains.
 const CHAIN_GROUP := &"tesla_chain_effects"
+## Upward bow of the chain arc at its middle, as a share of its length.
+const CHAIN_BOW := 0.3
 var kind := ""
 var muzzles: Array[Node3D] = []
 var recoils: Array[Node3D] = []
@@ -67,8 +69,8 @@ func configure(weapon: String, muzzle_nodes: Array[Node3D], recoil_nodes: Array[
 			var material := _glow(Color(0.75, 0.85, 1.0), 10.0)
 			_arc_segments = _bolt(18, 0.018, material)
 			_arc_light = _omni(Color(0.6, 0.75, 1.0), 10.0 * _scale)
-			# The chain jump: a thinner bolt, as the chained hit is weaker.
-			_chain_segments = _bolt(12, 0.013, material)
+			# The chain jump: as thick as the discharge so it reads at range.
+			_chain_segments = _bolt(12, 0.018, material)
 			_chain_light = _omni(Color(0.6, 0.75, 1.0), 7.0 * _scale)
 			add_to_group(CHAIN_GROUP)
 			for index: int in 3:
@@ -343,7 +345,8 @@ func _fire(from: Vector3, to: Vector3) -> void:
 			_play(from)
 
 ## A confirmed chain from this turret's discharge: the lightning jumps on from
-## the first target's hit point to the chained bot's. Other shooters ignore it.
+## the first target's hit point to the chained bot's, bowing up over the first
+## hull (a straight bolt at hull height runs inside it). Others ignore it.
 func show_chain(attacker: int, from: Vector3, to: Vector3) -> void:
 	if kind != "tesla" or attacker != entity_id or entity_id == 0 or not from.is_finite() or not to.is_finite():
 		return
@@ -352,7 +355,7 @@ func show_chain(attacker: int, from: Vector3, to: Vector3) -> void:
 	_chain_to = to
 	_chain_age = 0.0
 	_chain_light.global_position = (from + to) * 0.5
-	_strike(_chain_segments, from, to)
+	_strike(_chain_segments, from, to, CHAIN_BOW)
 	_burst(to, 0.5)
 
 func _play(at: Vector3) -> void:
@@ -385,7 +388,7 @@ func _orient_beam(node: MeshInstance3D, from: Vector3, to: Vector3) -> void:
 func _restrike() -> void:
 	_strike(_arc_segments, _arc_from, _arc_to)
 
-func _strike(segments: Array[MeshInstance3D], from: Vector3, to: Vector3) -> void:
+func _strike(segments: Array[MeshInstance3D], from: Vector3, to: Vector3, bow := 0.0) -> void:
 	var direction := to - from
 	var length := direction.length()
 	if length < 0.01:
@@ -400,7 +403,8 @@ func _strike(segments: Array[MeshInstance3D], from: Vector3, to: Vector3) -> voi
 	for index: int in range(1, count):
 		var t := float(index) / count
 		var sway := sin(t * PI) * minf(length * 0.08, 1.2 * _scale)
-		points.append(from + direction * t + side * randf_range(-sway, sway) + lift * randf_range(-sway, sway))
+		points.append(from + direction * t + side * randf_range(-sway, sway) + lift * randf_range(-sway, sway)
+			+ Vector3.UP * sin(t * PI) * length * bow)
 	points.append(to)
 	for index: int in count:
 		var a := points[index]
@@ -462,7 +466,7 @@ func _advance_shared(delta: float) -> void:
 		_arc_light.light_energy = (9.0 * (1.0 - _arc_age / 0.2) * randf_range(0.6, 1.0)) if alive else 0.0
 		_chain_age += delta
 		var chained := _chain_age < 0.2
-		if chained and fmod(_chain_age, 0.045) < delta: _strike(_chain_segments, _chain_from, _chain_to)
+		if chained and fmod(_chain_age, 0.045) < delta: _strike(_chain_segments, _chain_from, _chain_to, CHAIN_BOW)
 		for segment: MeshInstance3D in _chain_segments:
 			segment.visible = chained and segment.visible
 		_chain_light.light_energy = (6.0 * (1.0 - _chain_age / 0.2) * randf_range(0.6, 1.0)) if chained else 0.0
