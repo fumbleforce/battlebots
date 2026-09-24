@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$GodotPath,
-    [ValidateSet('drive', 'baseline', 'views', 'practice')][string]$Fixture = 'drive',
+    [ValidateSet('drive', 'baseline', 'views', 'practice', 'load')][string]$Fixture = 'drive',
     [ValidateRange(1, 50)][int]$Trials = 8
 )
 $ErrorActionPreference = 'Stop'
@@ -19,14 +19,17 @@ $scriptPath = switch ($Fixture) {
     'views' { 'res://tests/networking/shutdown_view_diagnostic.gd' }
     # Every Windows CI exit crash on record (5/5, #10) was this test's exit.
     'practice' { 'res://tests/practice/practice_session_test.gd' }
+    # Loads only BATTLEBOTS_DIAG_LOAD (or nothing), then quits.
+    'load' { 'res://tests/networking/shutdown_load_diagnostic.gd' }
 }
 # ENet timers need wall-clock frames, as in check-presentation.
-$timing = if ($Fixture -eq 'practice') { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
+$timing = if ($Fixture -in @('practice', 'load')) { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
 $marker = switch ($Fixture) {
     'drive' { '^DRIVE PASS$' }
     'baseline' { '^BASELINE PASS$' }
     'views' { '^SHUTDOWN VIEW DONE$' }
     'practice' { '^PRACTICE SESSION PASS$' }
+    'load' { '^SHUTDOWN LOAD DONE' }
 }
 $revision = & git -C $projectRoot rev-parse HEAD
 $dirty = @(& git -C $projectRoot status --porcelain).Count -gt 0
