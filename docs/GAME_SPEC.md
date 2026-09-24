@@ -113,7 +113,7 @@ A first-time player receives a complete starter robot, enters a short practice t
 | 5v5 | 10 | First to 2 round wins | 240 seconds | Same team rules with five bots per side |
 | FFA | 4–8 | One round | 300 seconds | Last surviving bot; otherwise timeout ranking |
 
-Public 2v2 requires four connected players; matches do not start with empty slots. 5v5 uses full custom lobbies at launch. FFA supports custom lobbies and starts with at least four players. Practice supports one player with stationary or simple driving targets. AI does not fill PvP vacancies.
+Public 2v2 requires four connected players; matches do not start with empty slots. 5v5 uses full custom lobbies at launch. FFA supports custom lobbies and starts with at least four players. Practice supports one player with stationary or simple driving targets. Practice Duel is the same offline mode with a single stationary, non-aggressive Atlas MX at the arena centre and no other NPCs, Woodland giant, cooling zones or coolant canisters. AI does not fill PvP vacancies.
 
 ### Timeout judging and ties
 

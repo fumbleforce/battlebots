@@ -19,6 +19,8 @@ var pickups := MatchPickups.new()
 var props: RefCounted = ARENA_PROPS.new()
 var arena: Node3D
 var arena_id := "foundry"
+## Practice Duel (#83) runs without the arena cooling zones and coolant canisters.
+var arena_cooling_enabled := true
 
 func _ready() -> void:
 	_build_arena()
@@ -227,12 +229,16 @@ func pickup_points() -> Array[Vector3]:
 ## Arena cooling zones (data/heat_relief.json zones): floor points on the four
 ## axes. Presentation draws them from the same list.
 func cooling_zones() -> Array[Vector3]:
+	if not arena_cooling_enabled:
+		return []
 	var relief := HEAT_RELIEF.settings()
 	var half := ArenaBounds.half_extent(arena_id) * relief.value("zones", "fraction")
 	return _on_surface([Vector3(half, 0, 0), Vector3(-half, 0, 0), Vector3(0, 0, half), Vector3(0, 0, -half)])
 
 ## Coolant canister points: a ring between the spawn bearings.
 func coolant_points() -> Array[Vector3]:
+	if not arena_cooling_enabled:
+		return []
 	var relief := HEAT_RELIEF.settings()
 	var count := int(relief.value("coolant", "count"))
 	var radius := ArenaBounds.half_extent(arena_id) * relief.value("coolant", "fraction")
@@ -293,7 +299,7 @@ func _collect_pickups(delta: float) -> void:
 			# Practice NPCs keep their authored training builds. A bot whose spawn
 			# or respawn placement has not been applied yet still sits where its
 			# body was created (the origin), not where it is going (#80).
-			if bot.combat.eliminated or bot.has_meta("practice_variant") or bot.body.reset_pose != null \
+			if bot.combat.eliminated or bot.has_meta("practice_variant") or bot.has_meta("practice_fixture") or bot.body.reset_pose != null \
 				or not touches_pickup(bot, item.point):
 				continue
 			var event := pickups.collect(item, id, bot.loadout)

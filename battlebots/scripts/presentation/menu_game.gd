@@ -830,14 +830,14 @@ func _update_test_drive_entry() -> void:
 ## Player-facing Practice start: draws the loading card first, builds behind it
 ## and lifts it once the arena's first frames (and their first-use shader setup)
 ## have drawn. start_practice() stays synchronous for direct callers and tests.
-func load_practice(return_screen: String = "") -> void:
+func load_practice(return_screen: String = "", kind := "full") -> void:
 	if _practice_loading or session.connection_state != "offline":
 		return
 	_practice_loading = true
 	practice_loading.present(preload("res://scripts/arena/arena_scenery.gd").load_choice())
 	await _drawn_frame()
 	if is_inside_tree():
-		start_practice(return_screen)
+		start_practice(return_screen, kind)
 		if session.connection_state == "practice":
 			for frame: int in 2:
 				await _drawn_frame()
@@ -853,7 +853,7 @@ func _drawn_frame() -> void:
 	else:
 		await RenderingServer.frame_post_draw
 
-func start_practice(return_screen: String = "") -> void:
+func start_practice(return_screen: String = "", kind := "full") -> void:
 	if not return_screen.is_empty() and (return_screen != _test_drive_screen or not _test_drive_allowed()):
 		return
 	if session.connection_state != "offline":
@@ -862,7 +862,7 @@ func start_practice(return_screen: String = "") -> void:
 	if draft.is_empty() or not session.registry.validate(draft).valid:
 		show_notice("Repair and select a valid build in the garage before starting practice.")
 		return
-	var error := session.practice(draft, preload("res://scripts/arena/arena_scenery.gd").load_choice())
+	var error := session.practice(draft, preload("res://scripts/arena/arena_scenery.gd").load_choice(), kind)
 	if error == OK:
 		_practice_return_screen = return_screen
 		preview.return_button.text = "BACK TO BUILD" if not return_screen.is_empty() else _default_return_text

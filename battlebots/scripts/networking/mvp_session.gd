@@ -73,6 +73,11 @@ var _reconnect_deadline := 0
 var _reconnecting := false
 var _tearing_down := false
 var practice_director: PracticeBotDirector
+## Offline practice layout (#83): "full" has the NPC pilots, roamers, Woodland
+## giant, cooling zones and coolant canisters; "duel" has one stationary Atlas MX
+## at the centre.
+const PRACTICE_KINDS := ["full", "duel"]
+var practice_kind := "full"
 ## Offline Woodland practice only (#45): edge starts and the roaming giant.
 var woodland_boss: WoodlandBoss
 ## Woodland LAN/online matches include the roaming giant as a neutral hazard (#79).
@@ -189,25 +194,30 @@ func _clear_reconnect() -> void:
 	_reconnect_deadline = 0
 	_reconnecting = false
 
-func practice(draft: Dictionary = {}, selected_arena := "foundry") -> Error:
+func practice(draft: Dictionary = {}, selected_arena := "foundry", kind := "full") -> Error:
 	if connection_state != "offline":
 		return ERR_ALREADY_IN_USE
 	_clear_reconnect()
 	var build := registry.starter() if draft.is_empty() else draft
-	if selected_arena not in ArenaBounds.IDS:
+	if selected_arena not in ArenaBounds.IDS or kind not in PRACTICE_KINDS:
 		return ERR_INVALID_PARAMETER
 	if not registry.validate(build).valid:
 		return ERR_INVALID_DATA
 	_server = true
 	connection_state = "practice"
+	practice_kind = kind
 	arena_id = selected_arena
 	_make_world()
+	world.arena_cooling_enabled = kind == "full"
 	local_entity = _admit(1, build)
 	var bot := world.spawn(local_entity, 0, 0, build)
 	bot.owner_id = 1
 	practice_director = PracticeBotDirector.new()
-	_next_entity = practice_director.configure(world, local_entity, _next_entity)
-	if arena_id == "woodland":
+	if kind == "duel":
+		_next_entity = practice_director.configure_duel(world, local_entity, _next_entity)
+	else:
+		_next_entity = practice_director.configure(world, local_entity, _next_entity)
+	if arena_id == "woodland" and kind == "full":
 		woodland_boss = WoodlandBoss.new()
 		_next_entity = woodland_boss.configure(world, _next_entity)
 	if pickups_enabled:
@@ -300,6 +310,7 @@ func _disconnect() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	connection_state = "offline"
 	practice_director = null
+	practice_kind = "full"
 	woodland_boss = null
 	_server = false
 	local_entity = 0

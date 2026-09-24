@@ -29,7 +29,8 @@ func _ready() -> void:
 	$Layout/Footer/Row/Note2.hide()
 	$Layout/Body/Row/Details/Col/Text/Col/HazardsBlock/Label.text = "ENVIRONMENT"
 	$Layout/Header/Row/Sep.hide()
-	$Layout/Header/Row/TitleBox/Title.text = "PRACTICE" if MenuRouter.arena_intent == "practice" else "CHOOSE ARENA"
+	var practice_title := "PRACTICE DUEL" if MenuRouter.practice_kind == "duel" else "PRACTICE"
+	$Layout/Header/Row/TitleBox/Title.text = practice_title if MenuRouter.arena_intent == "practice" else "CHOOSE ARENA"
 	%Eyebrow.text = "CHOOSE YOUR ARENA" if MenuRouter.arena_intent == "practice" else "LOCAL ARENA"
 	$Layout/Header/Row/Profile.hide()
 	MenuRouter.match_setup.arena = CHOICE.IDS.find(CHOICE.load_choice())

@@ -59,6 +59,33 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 	player_home = player.spawn_pose
 	return _add_roamers(first_id + VARIANTS.size())
 
+## Practice Duel (#83): the player at its usual edge and one stationary,
+## non-aggressive Atlas MX at the arena centre, facing the player. No pilots
+## or roamers. The Atlas keeps its own model and never collects pickups.
+func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
+	world = authority
+	player_id = controlled_id
+	target_id = first_id
+	var player: MvpBot = world.bots[player_id]
+	var spawns := ARENA_SPAWNS.settings()
+	_place(player, spawns.team_start(world.arena_id, 0, spawns.practice_player_lane))
+	player_home = player.spawn_pose
+	var bot := MvpBot.create(first_id, 1, world.registry.atlas(), world.registry)
+	assert(bot != null, "The Atlas preset must pass canonical validation")
+	bot.name = "Practice_atlas_%d" % bot.entity_id
+	bot.set_meta("practice_fixture", true)
+	world.add_child(bot)
+	bot.arena_half_extent = ArenaBounds.half_extent(world.arena_id)
+	bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
+	world.bots[bot.entity_id] = bot
+	bot.body.gravity_scale = 1.62 / 9.8 if world.arena_id == "moon" else 1.0
+	var toward := player.spawn_pose.origin.slide(Vector3.UP)
+	_place(bot, Transform3D(Basis(Vector3.UP, atan2(-toward.x, -toward.z)), Vector3.ZERO))
+	# Index 0 is the calibration role: it never drives or attacks.
+	records.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":0,
+		"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
+	return first_id + 1
+
 func _add_roamers(next_id: int) -> int:
 	var tuning := NimbleBots.practice()
 	if world.arena_id not in tuning.arenas: return next_id

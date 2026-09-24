@@ -14,6 +14,7 @@ const SCREENS := {
 var match_setup := {"mode":"duel", "bot":0, "arena":0, "capacity":8}
 var lobby_intent := "host"
 var arena_intent := "select"
+var practice_kind := "full"
 var in_match_flow := false
 var current := "main"
 var session: MvpSession
@@ -31,8 +32,10 @@ func bind(value: Node, active_session: MvpSession) -> void:
 	lobby_intent = "host"
 	arena_intent = "select"
 
-func open_practice() -> void:
+## kind is an MvpSession.PRACTICE_KINDS layout: "full" or "duel" (#83).
+func open_practice(kind := "full") -> void:
 	arena_intent = "practice"
+	practice_kind = kind
 	_history.clear()
 	current = "main"
 	goto("arena_select")
@@ -91,9 +94,9 @@ func back() -> void:
 func start_practice() -> void:
 	if is_instance_valid(host):
 		if host.has_method("load_practice"):
-			host.load_practice()
+			host.load_practice("", practice_kind)
 		else:
-			host.start_practice()
+			host.start_practice("", practice_kind)
 
 func begin_gameplay() -> void:
 	if is_instance_valid(host):

@@ -10,12 +10,13 @@ func _ready() -> void:
 	%PlayOnline.pressed.connect(MenuRouter.open_online)
 	%Play.pressed.connect(MenuRouter.open_host)
 	%JoinGame.pressed.connect(MenuRouter.open_join)
+	%PracticeDuel.pressed.connect(MenuRouter.open_practice.bind("duel"))
 	%Practice.pressed.connect(MenuRouter.open_practice)
 	%Garage.pressed.connect(MenuRouter.goto.bind("garage"))
 	%Settings.pressed.connect(MenuRouter.open_settings)
 	%Quit.pressed.connect(get_tree().quit)
 	%CustomizeLink.pressed.connect(MenuRouter.goto.bind("customize"))
-	for button: Button in [%Play, %JoinGame, %Practice, %Garage, %Settings, %Quit]:
+	for button: Button in [%Play, %JoinGame, %PracticeDuel, %Practice, %Garage, %Settings, %Quit]:
 		_soft_hover(button)
 	featured_vehicle = FeaturedVehicle.new()
 	featured_vehicle.name = "FeaturedVehicle"
@@ -41,7 +42,7 @@ func _layout_navigation() -> void:
 		return
 	%Navigation.custom_minimum_size.x = 660 if _text_factor > 1.0 else 590
 	%PlayOnline.custom_minimum_size.y = 100 if _text_factor > 1.0 else 90
-	for button: Button in [%Practice, %Garage, %Play, %JoinGame]:
+	for button: Button in [%PracticeDuel, %Practice, %Garage, %Play, %JoinGame]:
 		button.custom_minimum_size.y = 82 if _text_factor > 1.0 else 72
 	# Keep the showcase close to the actions even on wide/tall windows.
 	%Showcase.custom_minimum_size = Vector2(820, 660 if _text_factor > 1.0 else 610)
