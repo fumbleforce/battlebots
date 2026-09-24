@@ -1305,3 +1305,15 @@ Build `mvp-ab-44`; protocol unchanged. Client and service change together.
   `identity_path` (`user://identity.cfg`) and resumes with it. When the token is
   refused, it creates a new player and sets `identity_reset`. Tests must set
   `identity_path = ""` or a temporary path, never the player's file.
+
+Build `mvp-ab-45` (#16 Step B, recording only): when a hosted match publishes
+results, `HostedWorker` adds `result` to `status.json`:
+`{match_id, mode ("teams"|"ffa"), arena, build, players:[{player (service
+player id), team, won, damage, eliminations, assists, credits (reward total)}]}`.
+It keeps publishing it until the next match replaces it, because a quick rematch
+can end the results phase within one status poll. The service validates it
+(bounded and exact), records only players still seated in that room who are
+durable players, and records each `match_id` once. `GET /v1/me` (bearer) returns
+`{player_id, matches}`, the 10 most recent. Credits are recorded but not
+spent; the client wallet is unchanged (decision 4 in the plan).
+Protocol unchanged; the client is unchanged apart from the build.

@@ -9,6 +9,7 @@ var policy := HostedAdmission.new()
 var last_poll := 0.0
 var stopping := false
 var started := false
+var last_result := {}
 
 func _ready() -> void:
 	boot.call_deferred()
@@ -26,6 +27,9 @@ func boot() -> void:
 		stop_worker("Allocation config invalid or lease expired")
 		return
 	session.hosted_admission = policy
+	# Results can last under a second when both players vote rematch at once,
+	# so capture them from the event rather than a status poll.
+	session.session_event.connect(_session_event)
 	session.hosted_config_refresh = refresh_for_admission
 	var error := session.host(int(policy.config.port), false, int(policy.config.capacity), policy.config.mode, policy.config.bind_address)
 	if error != OK:
@@ -81,6 +85,10 @@ func write_status() -> bool:
 	var status := {"allocation_id":policy.config.get("allocation_id", ""), "ready":not stopping,
 		"state":"draining" if stopping else ("ready" if phase == "lobby" else "active"),
 		"phase":phase, "connected_players":connected, "updated_at":Time.get_unix_time_from_system()}
+	# The last finished match stays published until the next one replaces it:
+	# a quick rematch must not hide a result the supervisor has not read yet.
+	if not last_result.is_empty():
+		status.result = last_result
 	var temporary := status_path + ".tmp"
 	var file := FileAccess.open(temporary, FileAccess.WRITE)
 	if file == null:
@@ -100,3 +108,38 @@ func stop_worker(reason: String) -> void:
 	if is_instance_valid(session):
 		session.leave()
 	get_tree().quit(1)
+
+func _session_event(kind: String, details: Dictionary) -> void:
+	if kind != "results" or stopping:
+		return
+	var result := match_result(details)
+	if not result.is_empty():
+		last_result = result
+		write_status()
+
+## The finished match for the supervisor to record (#16 Step B): service player
+## ids, team, win and the results-screen totals, from the session's results.
+func match_result(results: Dictionary) -> Dictionary:
+	if not is_instance_valid(session) or results.is_empty():
+		return {}
+	var match: Dictionary = results.get("match", {})
+	var entries: Array[Dictionary] = []
+	for id: Variant in results.get("participants", {}):
+		var player: Dictionary = session.players.get(int(id), {})
+		var service_id := str(player.get("service_player_id", ""))
+		if service_id.is_empty():
+			continue
+		var stats: Dictionary = results.participants[id]
+		# MatchPickups.reward gives {pickups, performance, total}.
+		var credits: Variant = stats.get("credits", 0)
+		if credits is Dictionary:
+			credits = credits.get("total", 0)
+		var won: bool = int(id) in match.get("winners", []) if match.get("mode") == "ffa" \
+			else (int(match.get("winner", -1)) >= 0 and int(match.get("winner", -1)) == int(player.get("team", -2)))
+		entries.append({"player":service_id, "team":int(player.get("team", 0)), "won":won,
+			"damage":int(stats.get("damage", 0)), "eliminations":int(stats.get("eliminations", 0)),
+			"assists":int(stats.get("assists", 0)), "credits":int(credits)})
+	if entries.is_empty():
+		return {}
+	return {"match_id":str(match.get("match_id", "")), "mode":"ffa" if match.get("mode") == "ffa" else "teams",
+		"arena":session.arena_id, "build":WireCodec.BUILD, "players":entries}

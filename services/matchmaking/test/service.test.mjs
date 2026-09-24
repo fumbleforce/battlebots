@@ -432,3 +432,43 @@ test('durable players resume with rotating refresh tokens and keep their room (#
   assert.equal(later.status, 200); assert.equal(later.body.player_id, first.player_id);
   assert.equal(JSON.stringify(later.body).includes(resumed.body.refresh_token), false, 'Used refresh token is never echoed');
 });
+
+test('hosted results are recorded once for seated durable players and shown by /v1/me (#16)', async t => {
+  const f = await fixture(t);
+  const a = (await f.request('/v1/players', 'POST', manifest)).body;
+  const b = await f.guest();
+  await f.request('/v1/queue', 'POST', { capacity: 2 }, a.access_token);
+  await f.request('/v1/queue', 'POST', { capacity: 2 }, b.access_token);
+  const worker = f.workers[0];
+  worker.ready = true;
+  const stats = { damage: 120, eliminations: 1, assists: 0, credits: 40 };
+  const result = { match_id: 'c'.repeat(24), mode: 'teams', arena: 'foundry', build: manifest.build, players: [
+    { player: a.player_id, team: 0, won: true, ...stats },
+    { player: b.player_id, team: 1, won: false, ...stats, damage: 30 }] };
+  const publish = value => {
+    worker.statusOverride = { allocation_id: worker.config.allocation_id, ready: true, state: 'active', phase: 'results',
+      connected_players: [], updated_at: f.now(), result: value };
+  };
+  const me = async token => (await f.request('/v1/me', 'GET', undefined, token)).body;
+  assert.deepEqual((await me(a.access_token)).matches, [], 'Nothing is recorded before results');
+  for (const bad of [{ ...result, match_id: 'x' }, { ...result, mode: 'duel' },
+    { ...result, players: [{ ...result.players[0], damage: -1 }] }, { ...result, players: [result.players[0], result.players[0]] }]) {
+    publish(bad);
+    await f.service.maintenance();
+  }
+  assert.deepEqual((await me(a.access_token)).matches, [], 'Malformed results are rejected');
+  publish(result);
+  await f.service.maintenance();
+  await f.service.maintenance();
+  const recorded = await me(a.access_token);
+  assert.equal(recorded.player_id, a.player_id);
+  assert.equal(recorded.matches.length, 1, 'One result per match, however often it is polled');
+  assert.deepEqual(recorded.matches[0], { match_id: result.match_id, mode: 'teams', arena: 'foundry', ended_at: f.now(),
+    team: 0, won: true, ...stats });
+  assert.deepEqual((await me(b.access_token)).matches, [], 'Anonymous guests have no durable record');
+  // A worker cannot credit someone without a seat in its room.
+  publish({ ...result, match_id: 'e'.repeat(24), players: [{ ...result.players[0], player: 'd'.repeat(32) }] });
+  await f.service.maintenance();
+  assert.equal((await me(a.access_token)).matches.length, 1, 'Unseated players are never recorded');
+  assert.equal((await f.request('/v1/me')).status, 401);
+});

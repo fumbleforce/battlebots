@@ -9,6 +9,20 @@ const roomId = () => randomBytes(16).toString('hex');
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const FRIEND_CODE = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/;
 const none = region => ({ state: 'none', region, players: 0 });
+const count = value => Number.isInteger(value) && value >= 0 && value <= 1_000_000;
+// A worker's match result (#16 Step B, record only), bounded and exact. Only
+// players still seated in that room are recorded (see inspectWorker).
+function validResult(result, room) {
+  const players = result?.players;
+  return result && typeof result === 'object' && typeof result.match_id === 'string' && /^[a-f0-9]{24}$/.test(result.match_id)
+    && ['teams', 'ffa'].includes(result.mode) && typeof result.arena === 'string' && /^[a-z]{1,16}$/.test(result.arena)
+    && typeof result.build === 'string' && result.build.length <= 64
+    && Array.isArray(players) && players.length >= 1 && players.length <= room.capacity
+    && new Set(players.map(player => player?.player)).size === players.length
+    && players.every(player => player && typeof player === 'object' && typeof player.player === 'string' && /^[a-f0-9]{32}$/.test(player.player)
+      && Number.isInteger(player.team) && player.team >= 0 && player.team <= 16 && typeof player.won === 'boolean'
+      && count(player.damage) && count(player.eliminations) && count(player.assists) && count(player.credits));
+}
 class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
 }
@@ -170,6 +184,13 @@ export function createService(options, { workerFactory, identity = null, clock =
       if (status.state === 'active' || !['offline', 'lobby'].includes(status.phase)) room.startedMatch = true;
       if (status.connected_players.length) room.lastActivity = now;
       room.state = 'ready';
+      if (status.result !== undefined && status.result?.match_id !== room.recorded) {
+        if (validResult(status.result, room)) {
+          room.recorded = status.result.match_id;
+          const seated = { ...status.result, players: status.result.players.filter(player => room.members.has(player.player)) };
+          try { identities.recordMatch(seated, now); } catch { log(JSON.stringify({ event: 'result_record_failed', room_id: room.id })); }
+        } else log(JSON.stringify({ event: 'result_rejected', room_id: room.id }));
+      }
     } else if ((room.lastStatus !== null && now - room.lastStatus > config.statusTtl)
       || (room.lastStatus === null && now - room.started > config.startupTimeout)) {
       await failRoom(room, 'server_unavailable');
@@ -294,6 +315,9 @@ export function createService(options, { workerFactory, identity = null, clock =
       return refreshToken === null ? reply : { ...reply, refresh_token: refreshToken };
     }
     const guest = auth(req);
+    if (pathname === '/v1/me' && method === 'GET') {
+      return { player_id: guest.id, matches: identities.recentMatches(guest.id) };
+    }
     if (pathname === '/v1/membership' && method === 'GET') return membership(guest);
     if (pathname === '/v1/membership' && method === 'DELETE') { await removeMember(guest); return none(config.region); }
     if (method !== 'POST') reject(404, 'not_found', 'Route not found.');

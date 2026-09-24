@@ -3,7 +3,9 @@
 Status: **proposal**, 24 September 2026. Step A is implemented in its
 reversible form (mvp-ab-44): the refresh-token flow and SQLite store run **in
 memory** in production, so no volume, retention or backup has been decided or
-provisioned. Everything else here still awaits the decisions at the end.
+provisioned. Step B's recording half is in too (mvp-ab-45): hosted results
+are recorded per durable player and shown by `GET /v1/me`. Server-held credits
+and the wallet change are not. Everything else awaits the decisions at the end.
 This covers acceptance item 1 of #16: break the next slice into concrete service,
 schema, security, migration and failure-behaviour work before anyone writes it.
 The decisions that belong to the user are listed at the end. Implementation

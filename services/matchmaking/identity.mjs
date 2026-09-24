@@ -22,6 +22,23 @@ const MIGRATIONS = [
      retired_at INTEGER
    );
    CREATE INDEX refresh_tokens_player ON refresh_tokens(player_id);`,
+  // Step B (record only): hosted match results as the worker reported them.
+  `CREATE TABLE matches (
+     id TEXT PRIMARY KEY,
+     mode TEXT NOT NULL,
+     arena TEXT NOT NULL,
+     build TEXT NOT NULL,
+     ended_at INTEGER NOT NULL
+   );
+   CREATE TABLE match_players (
+     match_id TEXT NOT NULL REFERENCES matches(id),
+     player_id TEXT NOT NULL REFERENCES players(id),
+     team INTEGER NOT NULL,
+     won INTEGER NOT NULL,
+     stats TEXT NOT NULL,
+     PRIMARY KEY (match_id, player_id)
+   );
+   CREATE INDEX match_players_player ON match_players(player_id);`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
@@ -91,6 +108,29 @@ export function openIdentityStore({ path = ':memory:', overlap = 60 } = {}) {
         seen.run(at, row.player_id);
         return { playerId: row.player_id, refreshToken: issue(row.player_id, at) };
       });
+    },
+    // Records a validated hosted result once per match id. Only durable players
+    // are recorded; anonymous guests have no row. Returns true when new.
+    recordMatch(result, now) {
+      return transaction(() => {
+        const inserted = db.prepare('INSERT OR IGNORE INTO matches (id, mode, arena, build, ended_at) VALUES (?, ?, ?, ?, ?)')
+          .run(result.match_id, result.mode, result.arena, result.build, Math.floor(now));
+        if (inserted.changes === 0) return false;
+        const known = db.prepare('SELECT 1 FROM players WHERE id = ?');
+        const add = db.prepare('INSERT INTO match_players (match_id, player_id, team, won, stats) VALUES (?, ?, ?, ?, ?)');
+        for (const player of result.players) {
+          if (!known.get(player.player)) continue;
+          add.run(result.match_id, player.player, player.team, player.won ? 1 : 0,
+            JSON.stringify({ damage: player.damage, eliminations: player.eliminations, assists: player.assists, credits: player.credits }));
+        }
+        return true;
+      });
+    },
+    recentMatches(playerId, limit = 10) {
+      return db.prepare(`SELECT m.id, m.mode, m.arena, m.ended_at, p.team, p.won, p.stats FROM match_players p
+        JOIN matches m ON m.id = p.match_id WHERE p.player_id = ? ORDER BY m.ended_at DESC, m.id LIMIT ?`).all(playerId, limit)
+        .map(row => ({ match_id: row.id, mode: row.mode, arena: row.arena, ended_at: row.ended_at, team: row.team,
+          won: row.won === 1, ...JSON.parse(row.stats) }));
     },
     playerCount() { return db.prepare('SELECT COUNT(*) AS count FROM players').get().count; },
     close() { if (db.isOpen) db.close(); },

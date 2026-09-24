@@ -161,7 +161,8 @@ try {
   assert.ok(Array.isArray(health.queue_capacities) && health.queue_capacities.includes(2),
     'Hosted service must advertise two-player Quick Play');
   async function guest() {
-    const created = await request('/v1/guests', null, 'POST', compatibility);
+    // Durable players (#16): their finished duels are recorded by the service.
+    const created = await request('/v1/players', null, 'POST', compatibility);
     ownedGuests.push(created);
     return created;
   }
@@ -243,11 +244,20 @@ try {
       assert.equal(evidence[0].scores[evidence[0].team], 0);
       assert.equal(evidence[0].scores[evidence[1].team], 2);
       assert.equal(evidence[0].rematch_id, evidence[1].rematch_id);
+      // The service recorded the finished match for both players (#16 Step B).
+      const records = await until(async () => {
+        const seen = await Promise.all(guests.map(member => request('/v1/me', member)));
+        return seen.every(me => me.matches.some(match => match.match_id === evidence[0].completed_match)) ? seen : null;
+      });
+      for (let index = 0; index < 2; index++) {
+        const match = records[index].matches.find(entry => entry.match_id === evidence[0].completed_match);
+        assert.equal(match.won, evidence[index].team === evidence[0].winner, 'Recorded result names the real winner');
+      }
     }
     // Wait for worker disconnect status before cancelling reserved memberships.
     await delay(1500);
     for (const member of guests) await request('/v1/membership', member, 'DELETE');
-    console.log(`HOSTED ${label.toUpperCase()} PASS: ${count} independent clients reached active and drove${reconnectCheck && count === 2 ? '; actual transport reconnect retained entity/match/round and idle health with rotated token' : ''}${count === 2 ? '; two public forfeit votes resolved rounds, results agreed and rematch became active (not natural combat acceptance)' : ''}`);
+    console.log(`HOSTED ${label.toUpperCase()} PASS: ${count} independent clients reached active and drove${reconnectCheck && count === 2 ? '; actual transport reconnect retained entity/match/round and idle health with rotated token' : ''}${count === 2 ? '; two public forfeit votes resolved rounds, results agreed, the service recorded them and rematch became active (not natural combat acceptance)' : ''}`);
     return evidence;
   }
   const evidence = { private: await exercise('private-duel', 2, true),

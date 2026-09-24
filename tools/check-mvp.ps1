@@ -30,6 +30,7 @@ Invoke-MvpTest 'res://tests/simulation/match_pickups_test.gd' 'MATCH PICKUPS PAS
 Invoke-MvpTest 'res://tests/network/pickup_session.tscn' 'PICKUP SESSION PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/simulation/scaled_combat.tscn' 'SCALED COMBAT PASS' -Scene
 Invoke-MvpTest 'res://tests/services/hosted_admission_test.gd' 'HOSTED ADMISSION PASS'
+Invoke-MvpTest 'res://tests/services/hosted_worker_result_test.gd' 'HOSTED WORKER RESULT PASS'
 Invoke-MvpTest 'res://tests/network/hosted_admission_session.tscn' 'HOSTED ADMISSION SESSION PASS' -Scene -RealTime
 Invoke-MvpTest 'res://tests/network/reconnect_session.gd' 'RECONNECT SESSION PASS' -RealTime
 Invoke-MvpTest 'res://tests/simulation/horizontal_spinner_state.gd' 'HORIZONTAL SPINNER STATE PASS'
