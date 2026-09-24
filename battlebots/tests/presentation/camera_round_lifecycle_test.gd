@@ -51,6 +51,15 @@ func run() -> void:
 		get_tree().quit(1)
 		return
 	camera_check(game, bot, "Active")
+	# The input gate only accepts a focused window (#78). A window manager's
+	# focus-stealing prevention can leave a terminal-launched window unfocused;
+	# report that plainly instead of as broken held input.
+	if DisplayServer.get_name() != "headless":
+		get_window().grab_focus()
+		for attempt: int in 120:
+			if get_window().has_focus(): break
+			await get_tree().process_frame
+		check(get_window().has_focus(), "Test window has keyboard focus (the gameplay input gate requires it); run under xvfb-run or focus the window")
 	check(game.gameplay_input_allowed(), "Actual composed input gate permits focused active practice")
 	held(false)
 	await frames()
