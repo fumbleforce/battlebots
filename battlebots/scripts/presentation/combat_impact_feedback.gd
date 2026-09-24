@@ -4,6 +4,8 @@ extends Node3D
 const PHASES := ["lobby", "loading", "countdown", "active", "overtime", "intermission", "results"]
 const KINDS := ["hammer", "saw", "lifter", "vertical_spinner", "horizontal_spinner", "ram", "crush", "ram_punch", "spear", "grinder"]
 const CONTEXT_LIMIT := 16
+## BotPartLoss (scripts/presentation/bot_part_loss.gd) group.
+const PART_LOSS_GROUP := &"bot_part_loss"
 ## A Tesla discharge reports its first target, then (same attacker, tick and
 ## attack_id) the bot it chains to. That second event draws the chain arc on
 ## the shooter's turret (TurretSpecialEffects.CHAIN_GROUP); Tesla hits make no
@@ -105,7 +107,7 @@ func combat_event(event: Dictionary) -> void:
 		or not _integer(event.get("event_id"), 1) or not _integer(event.get("round"), 1) \
 		or event.round != _round or not _integer(event.get("tick"), 0) \
 		or not _integer(event.get("attacker"), 1) or not _integer(event.get("target"), 1) \
-		or event.attacker == event.target or (event.get("kind") not in KINDS and event.get("kind") != CHAIN_KIND) \
+		or event.attacker == event.target or not event.get("kind") is String \
 		or not (event.get("damage") is float or event.get("damage") is int) \
 		or not is_finite(float(event.damage)) or event.damage < 0 \
 		or not event.get("position") is Vector3 or not event.position.is_finite() \
@@ -115,6 +117,9 @@ func combat_event(event: Dictionary) -> void:
 	if event.event_id <= int(_watermarks.get(context, 0)): return
 	_watermarks[context] = event.event_id
 	_trim(_watermarks)
+	# Every accepted hit tells the struck bot where parts should come off (#72).
+	get_tree().call_group(PART_LOSS_GROUP, &"note_hit", event)
+	if event.kind not in KINDS and event.kind != CHAIN_KIND: return
 	if event.kind == CHAIN_KIND:
 		_tesla_hit(event)
 		return

@@ -268,15 +268,21 @@ func upgrades() -> void:
 		var expected := ceili(60.0 / ceili(interval * 60.0 - 0.0001))
 		check(hits.size() >= expected - 1 and hits.size() <= expected, "%s alternates barrels at %d bolts/s: %d" % [model, expected, hits.size()])
 
-func extra_target(position: Vector3) -> MvpBot:
-	var extra := MvpBot.create(3, 1, registry.starter(), registry)
+func extra_target(position: Vector3, id := 3) -> MvpBot:
+	var extra := MvpBot.create(id, 1, registry.starter(), registry)
 	add_child(extra)
 	extra.body.gravity_scale = 0
 	extra.body.collision_mask = 0
 	extra.body.freeze = true
 	extra.body.global_position = position
-	bots[3] = extra
+	bots[id] = extra
 	return extra
+
+## Leaves a bot with the given core and no armour, so a slug kills it outright.
+func weaken(bot: MvpBot, core: float) -> void:
+	bot.combat.core = core
+	for face: String in bot.combat.stats.plates:
+		bot.combat.zones[face] = 0.0
 
 func release_ticks(count: int, point: Vector3) -> Array:
 	return run_ticks(count, point, false)
@@ -322,8 +328,38 @@ func specials() -> void:
 	var slug := release_ticks(2, aim)
 	check(slug.size() == 2 and slug[0].kind == "railgun", "A full charge fires one slug that pierces into a second target: %d" % slug.size())
 	check(victim.combat.core < victim.combat.stats.core and behind.combat.core < behind.combat.stats.core, "Both lined-up targets take railgun damage")
+	check(victim.combat.death.is_empty() and slug[1].damage < slug[0].damage, "A slug that kills nothing pierces once at the reduced share")
 	bots.erase(3)
 	behind.queue_free()
+	await overpenetration(level)
+
+## #72: a slug that destroys weak targets flies on with its unspent energy.
+func overpenetration(level: float) -> void:
+	var tuning := TurretTuning.settings()
+	var aim := Vector3(0, level, -25)
+	await reset_case(aim)
+	var second := extra_target(Vector3(0, level, -40))
+	var third := extra_target(Vector3(0, level, -55), 4)
+	await flush_physics()
+	weaken(victim, 5.0)
+	weaken(second, 5.0)
+	run_ticks(40, aim, false)
+	run_ticks(80, aim, true)
+	var slug := release_ticks(2, aim)
+	check(slug.size() == 3, "A slug that destroys two weak bots reaches a third: %d hits" % slug.size())
+	check(victim.combat.eliminated and second.combat.eliminated and not third.combat.eliminated, "Both weak bots are destroyed; the healthy one survives")
+	var full := tuning.value("railgun", "damage")
+	check(slug.size() == 3 and slug[2].damage > full * tuning.value("railgun", "pierce_share"),
+		"Overpenetration carries more than the plain pierce share: %s" % str(slug.map(func(hit: Dictionary) -> int: return hit.damage)))
+	var death := victim.combat.death
+	check(death.get("kind") == "railgun" and death.axis.dot(victim.body.global_basis.inverse() * Vector3.FORWARD) > 0.99,
+		"The kill records the slug's flight in the victim frame: %s" % str(death))
+	var wire := WireCodec.decode_bot(WireCodec.encode_bot(victim, "m:1"), victim.combat.stats)
+	check(wire.get("death", {}).get("kind") == "railgun" and wire.death.point.is_equal_approx(death.point), "The death record survives the snapshot wire")
+	check(WireCodec.decode_bot(WireCodec.encode_bot(third, "m:1"), third.combat.stats).get("death") == {}, "A living bot sends an empty death record")
+	for id: int in [3, 4]:
+		bots[id].queue_free()
+		bots.erase(id)
 
 func run() -> void:
 	catalogue_rules()

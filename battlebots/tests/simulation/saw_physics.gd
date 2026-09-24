@@ -112,6 +112,19 @@ func run() -> void:
 		and victim.combat.zones.rear == 80.0 and victim.combat.zones.weapon == 140.0,
 		"Blade contacting the bare top sends all 6 raw to the core without damaging unrelated zones")
 
+	# #72: a saw kill records the blade plane so the wreck is sawn in half.
+	await reset_case(Vector3(0, 9.6, -1.4) * BotScale.FACTOR, ORIGIN, 0.4)
+	victim.combat.core = 5.0
+	var kill := resolve(20)
+	var blade_axle := victim.body.global_basis.inverse() * attacker.body.global_basis.x
+	check(kill.size() == 1 and victim.combat.eliminated and victim.combat.death.get("kind") == "saw"
+		and absf(victim.combat.death.axis.dot(blade_axle)) > 0.999,
+		"A saw kill records its blade axle as the cut normal: %s" % str(victim.combat.death))
+	check(kill.size() == 1 and absf(kill[0].axis.dot(attacker.body.global_basis.x)) > 0.999, "Saw events carry the blade axle")
+	var local_contact: Vector3 = victim.body.global_transform.affine_inverse() * kill[0].position if kill.size() == 1 else Vector3.INF
+	check(victim.combat.death.get("point", Vector3.ZERO).is_equal_approx(local_contact), "The death point is the contact in the victim frame")
+	await reset_case()
+	check(victim.combat.death.is_empty(), "A repaired bot starts with no death record")
 	await reset_case()
 	resolve(19)
 	await place(victim, Vector3(0, 10, -5) * BotScale.FACTOR)

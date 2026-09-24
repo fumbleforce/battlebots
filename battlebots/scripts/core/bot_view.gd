@@ -51,3 +51,7 @@ var tool_pose := 0.0
 ## post-kill boost), from data/heat_relief.json rules.
 var spree := 0
 var cooling := false
+## How the bot was destroyed (#72): {kind, point, axis, force}, with point and
+## axis in the body frame, or empty while alive or after a non-combat knockout.
+## Presentation breaks the wreck to match (saw halves, railgun tunnel, blast).
+var death: Dictionary = {}

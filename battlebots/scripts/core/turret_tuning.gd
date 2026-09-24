@@ -6,7 +6,7 @@ const PATH := "res://data/turret_weapons.json"
 const REQUIRED := ["range", "damage", "knock", "recoil"]
 const BARREL_FIELDS := ["interval", "heat", "jolt", "rock"]
 const FAMILY_EXTRAS := {"flamer":["half_angle"], "tesla":["seek_angle", "chain_reach", "chain_share"],
-	"railgun":["pierce_share", "charge_seconds", "charge_heat_per_second"],
+	"railgun":["pierce_share", "overpenetration_retain", "max_penetrations", "charge_seconds", "charge_heat_per_second"],
 	"harpoon":["max_length", "min_length", "pull_acceleration", "reel_speed", "reaction_share", "max_seconds", "reel_heat_per_second"],
 	"mortar":["muzzle_speed", "shell_gravity", "min_elevation", "blast_radius", "blast_edge_share"]}
 

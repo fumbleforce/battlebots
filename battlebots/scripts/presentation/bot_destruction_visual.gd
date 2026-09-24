@@ -4,6 +4,9 @@ extends Node3D
 const CLOUD := preload("res://scripts/presentation/destruction_cloud.gdshader")
 const RING := preload("res://scripts/presentation/destruction_ring.gdshader")
 const WRECK := preload("res://scripts/presentation/destruction_wreck.gdshader")
+const WRECK_PIECES := preload("res://scripts/presentation/wreck_pieces.gd")
+const WRECK_PIECE := preload("res://scripts/presentation/wreck_piece.gd")
+const TUNING := preload("res://scripts/core/destruction_tuning.gd")
 const MAX_BURSTS := 2
 const SPARKS := 64
 const PANELS := 8
@@ -36,6 +39,11 @@ var _detachable: Array[MeshInstance3D] = []
 var _detached_sources: Array[MeshInstance3D] = []
 var _chunks: Array[MeshInstance3D] = []
 var _chunk_paths: Array[Dictionary] = []
+## #72: the killing blow breaks the real meshes into physics pieces.
+var _visual_root: Node3D
+var _pieces_root: Node3D
+var _broken := false
+var _broken_sources: Array[MeshInstance3D] = []
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -45,6 +53,7 @@ func configure(visual_root: Node3D, size: Vector3, excluded_meshes: Array = []) 
 	reset_observation()
 	_surfaces.clear()
 	_detachable.clear()
+	_visual_root = visual_root
 	_geometry_scale = BotScale.from_size(size)
 	_size = size / _geometry_scale
 	if is_instance_valid(_flash):
@@ -72,7 +81,11 @@ func observe(view: BotView) -> void:
 	var destroyed := view.eliminated and view.core_fraction <= 0.0
 	_set_wreck(destroyed)
 	if not view.eliminated: clear_effects()
-	if _observed and not _eliminated and destroyed:
+	var witnessed := _observed and not _eliminated and destroyed
+	# A wreck first seen already destroyed (join, reconnect) breaks silently at rest.
+	if destroyed and not _broken and not view.death.is_empty():
+		_break(view, witnessed)
+	if witnessed:
 		_explode(view.pose.origin, view.entity_id)
 	_observed = true
 	_eliminated = view.eliminated
@@ -80,6 +93,7 @@ func observe(view: BotView) -> void:
 func reset_observation() -> void:
 	clear_effects()
 	_set_wreck(false)
+	_unbreak()
 	_observed = false
 	_eliminated = false
 
@@ -96,6 +110,53 @@ func _set_wreck(enabled: bool) -> void:
 
 func _exit_tree() -> void:
 	_set_wreck(false)
+	_unbreak()
+
+## Replaces the bot's meshes with physics pieces cut the way it died.
+func _break(view: BotView, moving: bool) -> void:
+	if _visual_root == null or not is_instance_valid(_visual_root) or not is_inside_tree():
+		return
+	var tuning := TUNING.settings()
+	var captured := WRECK_PIECES.capture(_visual_root, view.pose)
+	if captured.is_empty():
+		return
+	var layout := WRECK_PIECES.plan(view.death, WRECK_PIECES.bounds_of(captured), view.entity_id, _geometry_scale, tuning)
+	var bodies := WRECK_PIECES.build(captured, view.pose, layout, _wreck_material, tuning)
+	if bodies.is_empty():
+		return
+	_broken = true
+	if _pieces_root == null:
+		_pieces_root = Node3D.new()
+		_pieces_root.name = "WreckPieces"
+		add_child(_pieces_root)
+		_pieces_root.top_level = true
+	for body: RigidBody3D in bodies:
+		if not moving:
+			body.linear_velocity = Vector3.ZERO
+			body.angular_velocity = Vector3.ZERO
+		_pieces_root.add_child(body)
+		body.global_transform = view.pose
+	for entry: Dictionary in captured:
+		var source: MeshInstance3D = entry.source
+		source.hide()
+		_broken_sources.append(source)
+	WRECK_PIECE.enforce_budget(get_tree(), int(tuning.value("debris", "max_pieces")), tuning.value("debris", "sink_seconds"))
+
+func _unbreak() -> void:
+	_broken = false
+	for source: MeshInstance3D in _broken_sources:
+		if is_instance_valid(source): source.show()
+	_broken_sources.clear()
+	if _pieces_root != null and is_instance_valid(_pieces_root):
+		for piece: Node in _pieces_root.get_children():
+			piece.queue_free()
+
+func broken_pieces() -> Array[Node]:
+	var result: Array[Node] = []
+	if _pieces_root != null and is_instance_valid(_pieces_root):
+		for piece: Node in _pieces_root.get_children():
+			if not piece.is_queued_for_deletion(): result.append(piece)
+	return result
 
 func clear_effects() -> void:
 	active = false
@@ -131,7 +192,13 @@ func _explode(origin: Vector3, identity: int) -> void:
 		_spark_paths.append({"velocity": direction * random.randf_range(5.0, 13.0),
 			"life": random.randf_range(0.45, 1.35)})
 	_panel_paths.clear()
-	_launch_authored_chunks(origin, random)
+	# Real pieces already carry the recognisable assemblies; only shrapnel remains.
+	if _broken:
+		_chunk_paths.clear()
+		for chunk: MeshInstance3D in _chunks: chunk.hide()
+		_panels.multimesh.visible_instance_count = PANELS
+	else:
+		_launch_authored_chunks(origin, random)
 	for index: int in PANELS - _chunk_paths.size():
 		var angle := TAU * float(index) / PANELS + random.randf_range(-0.2, 0.2)
 		_panel_paths.append({"origin": Vector3(cos(angle) * _size.x * 0.35, 0.1, sin(angle) * _size.z * 0.35),

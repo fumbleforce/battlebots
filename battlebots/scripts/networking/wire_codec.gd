@@ -1,8 +1,12 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 15
-const BUILD := "mvp-ab-48"
-const SNAPSHOT_FIELDS := 45
+const PROTOCOL := 16
+const BUILD := "mvp-ab-49"
+const SNAPSHOT_FIELDS := 46
+## Longest weapon kind name a death record may carry.
+const DEATH_KIND_MAX := 24
+## Body-frame bound (m) on a death point; the scaled Woodland boss stays inside.
+const DEATH_POINT_MAX := 40.0
 const ZONES := ["front", "rear", "left", "right", "top", "underside", "drive_left", "drive_right", "weapon"]
 
 static func snapshot_epoch(match_id: String, round_index: int) -> String:
@@ -59,7 +63,29 @@ static func encode_bot(bot: MvpBot, epoch: String) -> PackedByteArray:
 		false if resetting else bot.body.grounded,
 		c.secondary_charge, c.secondary_active, c.shot_sequence,
 		c.last_shot_from, c.last_shot_to, c.last_shot_tick, c.gun_pitch,
-		c.nitro_active, c.jump_charge, c.jump_cooldown, c.turret_yaw, c.grip_target, c.grip_point, c.tool_pose, c.spree, c.in_cooling_zone or c.cooling_boost > 0.0])
+		c.nitro_active, c.jump_charge, c.jump_cooldown, c.turret_yaw, c.grip_target, c.grip_point, c.tool_pose, c.spree, c.in_cooling_zone or c.cooling_boost > 0.0,
+		death_to_array(c.death)])
+
+## The killing blow as [kind, point, axis, force], or [] (see CombatState.death).
+static func death_to_array(death: Dictionary) -> Array:
+	if death.is_empty():
+		return []
+	return [death.kind, death.point, death.axis, death.force]
+
+static func death_from_array(data: Variant) -> Variant:
+	if not data is Array:
+		return null
+	if data.is_empty():
+		return {}
+	if data.size() != 4 or not data[0] is String or data[0].is_empty() or data[0].length() > DEATH_KIND_MAX:
+		return null
+	if not data[1] is Vector3 or not data[1].is_finite() or data[1].length() > DEATH_POINT_MAX:
+		return null
+	if not data[2] is Vector3 or not data[2].is_finite() or absf(data[2].length() - 1.0) > 0.01:
+		return null
+	if not (data[3] is float or data[3] is int) or not is_finite(float(data[3])) or data[3] < 0.0 or data[3] > CombatState.DEATH_FORCE_MAX:
+		return null
+	return {"kind":data[0], "point":data[1], "axis":data[2], "force":float(data[3])}
 
 static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary:
 	if packet.size() > 1200:
@@ -94,6 +120,9 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		return {}
 	if not values[9] is bool or not (values[10] is float or values[10] is int) or not is_finite(float(values[10])) or values[10] < 0.0 or values[10] > CombatState.HEAT_LIMIT:
 		return {}
+	var death: Variant = death_from_array(values[45])
+	if death == null:
+		return {}
 	var zones := {}
 	if not values[8] is Array or values[8].size() != ZONES.size():
 		return {}
@@ -111,7 +140,7 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		"last_shot_from":values[32], "last_shot_to":values[33], "last_shot_tick":values[34], "gun_pitch":values[35],
 		"nitro_active":values[36], "jump_charge":values[37], "jump_cooldown":values[38], "turret_yaw":values[39],
 		"grip_target":values[40], "grip_point":values[41], "tool_pose":values[42],
-		"spree":values[43], "cooling":values[44]}
+		"spree":values[43], "cooling":values[44], "death":death}
 
 static func read_json(packet: PackedByteArray, limit: int) -> Dictionary:
 	if packet.size() > limit:

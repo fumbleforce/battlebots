@@ -82,6 +82,12 @@ var _spree_timer := 0.0
 var cooling_boost := 0.0
 ## Set by the world each tick while the bot stands in an arena cooling zone.
 var in_cooling_zone := false
+## The blow that destroyed this bot (#72), replicated so every client breaks
+## the wreck the same way: {kind, point, axis, force}. point and axis are in the
+## body's own frame; force is the raw hit over the core it had left. Empty for
+## bots that are alive or were knocked out some other way (immobilized, forfeit).
+var death: Dictionary = {}
+const DEATH_FORCE_MAX := 20.0
 
 func _init(derived: Dictionary) -> void:
 	stats = derived.duplicate(true)
@@ -582,6 +588,27 @@ func damage(zone: String, raw: float, armour_share := 1.0) -> int:
 	if core <= 0:
 		eliminate("core")
 	return roundi(core_damage + component_damage)
+
+## Raw energy a hit would carry past this bot after destroying it (the armour
+## it spends and the core it takes), or a negative value when it would not be
+## lethal. Mirrors damage() without changing anything.
+func overkill(zone: String, raw: float, armour_share := 1.0) -> float:
+	if eliminated or not is_finite(raw) or raw <= 0:
+		return -1.0
+	if stats.plates.has(zone):
+		var absorbed := minf(zones[zone], raw * clampf(armour_share, 0.0, 1.0))
+		return raw - absorbed - core if raw - absorbed >= core else -1.0
+	if zone in ["drive_left", "drive_right", "weapon"]:
+		# A quarter of a component hit reaches the core.
+		return raw - core * 4.0 if raw * 0.25 >= core else -1.0
+	return -1.0
+
+## Remembers the lethal blow in the body frame (see death).
+func record_death(kind: String, local_point: Vector3, local_axis: Vector3, force: float) -> void:
+	if not eliminated or not death.is_empty():
+		return
+	var axis := local_axis.normalized() if local_axis.length_squared() > 0.000001 else Vector3.UP
+	death = {"kind":kind, "point":local_point, "axis":axis, "force":clampf(force, 0.0, DEATH_FORCE_MAX)}
 
 func eliminate(reason: String) -> void:
 	eliminated = true

@@ -3,6 +3,7 @@ extends BotSource
 
 ## Steps around the axle of the monowheel's revolved tyre collider.
 const TYRE_SEGMENTS := 24
+const BOT_PART_LOSS := preload("res://scripts/presentation/bot_part_loss.gd")
 var entity_id := 0
 var team := 0
 var owner_id := 0
@@ -30,6 +31,8 @@ var practice_npc_visual: PracticeNpcVisual
 var nimble_visual: NimbleVisual
 var damage_visual: BotDamageVisual
 var destruction_visual: BotDestructionVisual
+## Progressive part loss (#72), scripts/presentation/bot_part_loss.gd.
+var part_loss: Node3D
 var nitro_visual: NitroFlameVisual
 var hammer_slam: HammerSlamDetector
 
@@ -209,7 +212,11 @@ func _ready() -> void:
 		var gun_offset := AtlasGeometry.gun_offset(loadout, stats.size)
 		for node: Node in presentation.find_children("*", "Node3D", true, false):
 			if node is MinigunEffects: (node as MinigunEffects).set_shot_geometry(stats.size, gun_offset)
-		_create_damage_visual(stats.size)
+		var components := _create_damage_visual(stats.size)
+		part_loss = BOT_PART_LOSS.new()
+		part_loss.name = "PartLoss"
+		add_child(part_loss)
+		part_loss.configure(presentation, components, stats.size, entity_id)
 		destruction_visual = BotDestructionVisual.new()
 		add_child(destruction_visual)
 		var damaged_meshes: Array = []
@@ -266,9 +273,12 @@ func _process(delta: float) -> void:
 	# A newly spawned remote bot has default healthy combat until its baseline is
 	# accepted. Never use that fallback to invent a destruction edge on reconnect.
 	if destruction_visual != null and (simulated or not remote_state.is_empty()):
+		# Lost parts hide first, so a later wreck break never copies them back.
+		if part_loss != null: part_loss.observe(view)
 		destruction_visual.observe(view)
 
-func _create_damage_visual(size: Vector3) -> void:
+## Returns the visual's component mesh groups (weapon, drive sides).
+func _create_damage_visual(size: Vector3) -> Dictionary:
 	var groups: Dictionary
 	if practice_npc_visual != null:
 		groups = practice_npc_visual.component_meshes()
@@ -315,6 +325,7 @@ func _create_damage_visual(size: Vector3) -> void:
 			-size.x * 0.5 if zone == "drive_left" else size.x * 0.5, size.y * 0.5, 0)
 		damage_visual.bind_component(zone, groups[zone], anchor)
 	damage_visual.show_state(read_view())
+	return groups
 
 func submit_command(intent: BotCommand) -> void:
 	if intent == null or not intent.is_valid() or intent.sequence <= last_sequence:
@@ -375,6 +386,7 @@ func step(delta: float, active: bool) -> void:
 
 func reset_round() -> void:
 	if destruction_visual != null: destruction_visual.reset_observation()
+	if part_loss != null: part_loss.reset_observation()
 	if scorpion_visual != null: scorpion_visual.reset_observation()
 	if nimble_visual != null: nimble_visual.reset_observation()
 	if atlas_visual != null: atlas_visual.reset_observation()
@@ -422,8 +434,10 @@ func zone_at(world_point: Vector3) -> String:
 	return "front" if point.z < 0 else "rear"
 
 func read_view() -> BotView:
-	var data := remote_state if not simulated and not remote_state.is_empty() else combat.snapshot()
+	var remote := not simulated and not remote_state.is_empty()
+	var data := remote_state if remote else combat.snapshot()
 	var view := BotView.new()
+	view.death = (remote_state.get("death", {}) if remote else combat.death).duplicate()
 	view.entity_id = entity_id
 	view.owner_id = owner_id
 	view.team = team

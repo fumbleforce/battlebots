@@ -124,7 +124,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				var contact_seconds := float(_saw_contacts.get(key, 0.0)) + delta
 				var cadence := 1.0 / 3.0
 				while contact_seconds + 0.000001 >= cadence:
-					_hit(attacker, victim, point, 6, Vector3.ZERO, tick, round_index)
+					# The blade disc stands in the attacker's YZ plane: its axle is the cut normal.
+					_hit(attacker, victim, point, 6, Vector3.ZERO, tick, round_index, 0.2, "", "", 1.0, attacker.body.global_basis.x)
 					contact_seconds = maxf(0.0, contact_seconds - cadence)
 				saw_contacts[key] = contact_seconds
 			elif state.stats.weapon == "hammer":
@@ -580,12 +581,13 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 		if victim.body.get_instance_id() != result.collider_id:
 			continue
 		if victim.team != attacker.team and not victim.combat.eliminated:
+			if kind == "railgun":
+				_railgun_path(attacker, victim, bots, result.position, end, direction, tick, round_index)
+				return
 			_hit(attacker, victim, result.position, tuning.value(kind, "damage"),
 				direction * victim.body.mass * tuning.value(kind, "knock"), tick, round_index,
 				tuning.value(kind, "recoil"), kind)
-			if kind == "railgun":
-				_railgun_pierce(attacker, victim, bots, result.position, end, direction, tick, round_index)
-			elif kind == "harpoon" and state.grip_target == 0:
+			if kind == "harpoon" and state.grip_target == 0:
 				state.grip_mode = "harpoon"
 				state.grip_target = victim.entity_id
 				state.grip_local = victim.body.global_transform.affine_inverse() * result.position
@@ -698,7 +700,8 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 				if victim.combat.stats.plates.has(zone) and float(victim.combat.zones.get(zone, 0.0)) > 0.0:
 					raw *= tuning.value("grinder", "plate_multiplier")
 				var inward := (attacker.body.global_position - victim.body.global_position).slide(Vector3.UP).normalized()
-				_hit(attacker, victim, point, raw, inward * victim.body.mass * tuning.value("grinder", "pull"), tick, round_index, 0.0, "grinder", zone)
+				# The drum chews in from the front: it parts the target across the attacker's nose.
+				_hit(attacker, victim, point, raw, inward * victim.body.mass * tuning.value("grinder", "pull"), tick, round_index, 0.0, "grinder", zone, 1.0, forward)
 				seconds = maxf(0.0, seconds - cadence)
 			contacts[key] = seconds
 		return
@@ -861,21 +864,44 @@ func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
 			_hit(attacker, victim, nearest, tuning.value("mortar", "damage") * share, impulse, tick, round_index,
 				0.0, "mortar")
 
-## The slug punches through its first victim into whatever stands behind it.
-func _railgun_pierce(attacker: MvpBot, first: MvpBot, bots: Dictionary, at: Vector3, end: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
+## The slug punches through what it strikes (#72). A slug that destroys a bot
+## flies on with overpenetration_retain of the energy it did not spend, through
+## up to max_penetrations bodies; one that does not still pierces a single
+## body behind for pierce_share. Walls and allies stop it.
+func _railgun_path(attacker: MvpBot, first: MvpBot, bots: Dictionary, at: Vector3, end: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
 	var tuning := TurretTuning.settings()
-	var query := PhysicsRayQueryParameters3D.create(at + direction * 0.05, end,
-		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid(), first.body.get_rid()])
-	var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
-	attacker.combat.last_shot_to = end if result.is_empty() else result.position
-	if result.is_empty():
-		return
-	for id: int in bots:
-		var victim: MvpBot = bots[id]
-		if victim.body.get_instance_id() == result.collider_id and victim.team != attacker.team and not victim.combat.eliminated:
-			_hit(attacker, victim, result.position, tuning.value("railgun", "damage") * tuning.value("railgun", "pierce_share"),
-				direction * victim.body.mass * tuning.value("railgun", "knock") * 0.5, tick, round_index, 0.0, "railgun")
+	var full := tuning.value("railgun", "damage")
+	var energy := full
+	var victim := first
+	var passes := 0
+	var exclude: Array[RID] = [attacker.body.get_rid()]
+	while victim != null:
+		var leftover := victim.combat.overkill(victim.zone_at(at), energy)
+		_hit(attacker, victim, at, energy, direction * victim.body.mass * tuning.value("railgun", "knock") * energy / full,
+			tick, round_index, tuning.value("railgun", "recoil") if passes == 0 else 0.0, "railgun", "", 1.0, direction)
+		passes += 1
+		exclude.append(victim.body.get_rid())
+		if leftover >= 0.0:
+			energy = leftover * tuning.value("railgun", "overpenetration_retain")
+		elif passes == 1:
+			energy *= tuning.value("railgun", "pierce_share")
+		else:
 			return
+		if passes > int(tuning.value("railgun", "max_penetrations")) or energy <= 0.0:
+			return
+		var query := PhysicsRayQueryParameters3D.create(at + direction * 0.05, end,
+			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, exclude)
+		query.hit_from_inside = true
+		var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
+		attacker.combat.last_shot_to = end if result.is_empty() else result.position
+		if result.is_empty():
+			return
+		at = result.position
+		victim = null
+		for id: int in bots:
+			var next: MvpBot = bots[id]
+			if next.body.get_instance_id() == result.collider_id and next.team != attacker.team and not next.combat.eliminated:
+				victim = next
 
 ## First unobstructed point on a bot seen from a point, or {} when anything
 ## else (walls, allies, other bots) is in the way.
@@ -1017,19 +1043,29 @@ func _hammer_impulse(attacker: MvpBot, victim: MvpBot) -> Vector3:
 	away = away.normalized() if away.length_squared() > 0.0001 else Vector3.FORWARD
 	return (away * HAMMER_KNOCKBACK + Vector3.UP * HAMMER_LIFT) * victim.body.mass
 
-func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "", zone := "", armour_share := 1.0) -> void:
+## axis orients the blow for destruction (#72): the saw blade's axle, the
+## grinder's approach or the slug's flight. Zero falls back to the impulse, then
+## to the direction from the victim's centre to the point.
+func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "", zone := "", armour_share := 1.0, axis := Vector3.ZERO) -> void:
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
-		attacker.combat.stats.weapon if kind.is_empty() else kind, zone, armour_share])
+		attacker.combat.stats.weapon if kind.is_empty() else kind, zone, armour_share, axis])
 
 ## zone overrides the struck zone derived from point (wall pins name the face);
 ## armour_share is the part of the hit an intact plate may stop (see CombatState.damage).
-func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "", zone := "", armour_share := 1.0) -> void:
+func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "", zone := "", armour_share := 1.0, axis := Vector3.ZERO) -> void:
 	if victim.combat.eliminated:
 		return
 	if zone.is_empty():
 		zone = victim.zone_at(point)
+	var normal := (point - victim.body.global_position).normalized()
+	if axis.is_zero_approx():
+		axis = impulse.normalized() if not impulse.is_zero_approx() else normal
 	var before: float = victim.combat.zones.get(zone, 0.0)
+	var core_before := victim.combat.core
 	var dealt := victim.combat.damage(zone, raw, armour_share)
+	if victim.combat.eliminated:
+		var frame := victim.body.global_transform.affine_inverse()
+		victim.combat.record_death(kind, frame * point, frame.basis * axis, raw / maxf(core_before, 1.0))
 	# A neutral hazard (the Woodland giant) takes damage but never scores it.
 	var scored := not victim.has_meta("neutral")
 	if scored:
@@ -1066,4 +1102,4 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	events.append({"event_id":event_id, "round":round_index, "tick":tick, "kind":kind,
 		"attack_id":attacker.combat.shot_sequence if kind in SHOT_KINDS else attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,
-		"normal":(point - victim.body.global_position).normalized()})
+		"normal":normal, "axis":axis.normalized()})

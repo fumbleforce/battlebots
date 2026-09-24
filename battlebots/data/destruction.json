@@ -1,0 +1,59 @@
+{
+	"_comment": "Progressive destruction (#72). Client presentation only: wreck pieces, cut look, debris physics and which model parts come off as their zone is worn down. The authoritative killing blow (kind, point, axis, force) comes from the snapshot; railgun overpenetration tuning lives in turret_weapons.json. Distances are metres at the bot's runtime scale unless noted; speeds m/s; times s.",
+	"debris": {
+		"_comment": "Physics debris collides with the world only, never with bots or camera rays. max_pieces bounds live bodies per client (oldest sink away first). Bodies freeze after rest_seconds of stillness; sinking takes sink_seconds.",
+		"max_pieces": 48,
+		"rest_seconds": 3.0,
+		"sink_seconds": 1.4,
+		"linear_damp": 0.15,
+		"angular_damp": 0.6,
+		"friction": 0.9,
+		"bounce": 0.12,
+		"density": 900.0,
+		"hull_grid": 6
+	},
+	"parts": {
+		"_comment": "Parts lost while a bot still fights. Each model's component meshes (weapon, left/right drive) and its smaller hull panels, grouped by the face they sit on, are split into clusters. A cluster comes off each time the zone's HP fraction falls through a threshold (0 = whatever is left goes). Hull panels also come off as the core falls through core_thresholds, on the face last hit. Meshes bigger than hull_share of the bot's volume never come off, so the silhouette survives until the kill. The cluster nearest a hit seen within hit_memory seconds goes first. sever_kinds cut parts off with a glowing seam. speed/lift/spin launch detached parts (before geometry scale).",
+		"component_thresholds": [0.6, 0.3, 0.0],
+		"armour_thresholds": [0.5, 0.0],
+		"core_thresholds": [0.75, 0.5, 0.3, 0.15],
+		"hull_share": 0.08,
+		"hit_memory": 1.0,
+		"speed": 3.2,
+		"lift": 0.7,
+		"spin": 4.5,
+		"sever_heat": 1.0,
+		"sever_kinds": ["saw", "grinder"]
+	},
+	"cut": {
+		"_comment": "heat_seconds: how long cut seams glow; glow_band: width of the hot seam; tear_frequency: seam roughness per metre; soot: how blackened wreck metal is (0..1).",
+		"heat_seconds": 6.0,
+		"glow_band": 0.07,
+		"tear_frequency": 7.0,
+		"soot": 0.75
+	},
+	"styles": {
+		"_comment": "How a destroyed bot comes apart. pieces: 1 (intact wreck), 2 (split by a plane through the blow; the saw's plane is its blade) or 3..5 Voronoi shards around the blow. tear: seam roughness (m). tunnel: bore radius (m) along the blow's axis (railgun). centre_pull: 0 cuts through the blow point, 1 through the bot's centre. speed: separation speed away from the blow; lift: upward share; spin: tumble (rad/s). split_force: overkill (raw hit over the core left) at which a tunnel-only wreck also splits.",
+		"saw": {"pieces": 2, "tear": 0.0, "tunnel": 0.0, "centre_pull": 0.35, "speed": 2.6, "lift": 0.35, "spin": 1.6, "heat": 1.0},
+		"grinder": {"pieces": 2, "tear": 0.16, "tunnel": 0.0, "centre_pull": 0.55, "speed": 3.2, "lift": 0.5, "spin": 2.4, "heat": 0.8},
+		"railgun": {"pieces": 1, "tear": 0.05, "tunnel": 0.3, "centre_pull": 1.0, "speed": 7.0, "lift": 0.25, "spin": 2.0, "heat": 1.0, "split_force": 1.6},
+		"explosive": {"pieces": 5, "tear": 0.12, "tunnel": 0.0, "centre_pull": 0.5, "speed": 8.5, "lift": 0.8, "spin": 5.0, "heat": 0.7},
+		"blunt": {"pieces": 3, "tear": 0.14, "tunnel": 0.0, "centre_pull": 0.6, "speed": 4.2, "lift": 0.6, "spin": 3.2, "heat": 0.35},
+		"burn": {"pieces": 2, "tear": 0.2, "tunnel": 0.0, "centre_pull": 0.8, "speed": 2.2, "lift": 0.3, "spin": 1.4, "heat": 0.9}
+	},
+	"kinds": {
+		"_comment": "Event kind of the killing blow -> style. Anything unlisted uses default.",
+		"default": "blunt",
+		"saw": "saw",
+		"grinder": "grinder",
+		"railgun": "railgun",
+		"mortar": "explosive",
+		"cannon": "explosive",
+		"vertical_spinner": "blunt",
+		"horizontal_spinner": "blunt",
+		"hammer": "blunt",
+		"plasma": "burn",
+		"flamer": "burn",
+		"tesla": "burn"
+	}
+}
