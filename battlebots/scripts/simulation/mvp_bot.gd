@@ -1,6 +1,8 @@
 class_name MvpBot
 extends BotSource
 
+## Steps around the axle of the monowheel's revolved tyre collider.
+const TYRE_SEGMENTS := 24
 var entity_id := 0
 var team := 0
 var owner_id := 0
@@ -95,11 +97,11 @@ func _ready() -> void:
 			# The monowheel's tyre is solid: rams and weapons meet it below the hull.
 			var wheel := CollisionShape3D.new()
 			wheel.name = "WheelCollision"
-			var tyre := CylinderShape3D.new()
-			tyre.radius = nimble.wheel.radius
-			tyre.height = nimble.wheel.width
+			# Its rounded profile, revolved, so a leaning tyre meets the floor where it is drawn.
+			var tyre := ConvexPolygonShape3D.new()
+			tyre.points = NimbleBots.tyre_points(nimble.wheel, TYRE_SEGMENTS)
 			wheel.shape = tyre
-			wheel.transform = Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0, nimble.wheel.centre_y, 0))
+			wheel.position = Vector3(0, nimble.wheel.centre_y, 0)
 			body.add_child(wheel)
 		if nimble.has("leg_collision"):
 			# Legs and spring are solid down to a floor clearance: walls stop them.

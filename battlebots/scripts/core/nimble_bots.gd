@@ -13,10 +13,11 @@ const PRACTICE_FIELDS := ["home_radius_fraction", "patrol_radius", "patrol_point
 const BOT_FIELDS := ["ride_height", "reach", "max_step", "turn_speed", "lateral_response", "coast_acceleration"]
 const GAIT_FIELDS := {
 	"stride": ["step_length", "pivot_steps_per_radian", "speed_surge", "bob", "sway_degrees", "lift_headroom"],
-	"roll": ["lean_scale", "max_lean_degrees", "pitch_per_acceleration", "max_pitch_degrees", "pivot_fraction", "full_turn_speed"],
-	"hop": ["hop_speed", "stance_seconds", "carry", "air_turn_rate", "air_acceleration", "landing_headroom"],
+	"roll": ["lean_scale", "max_lean_degrees", "pitch_per_acceleration", "max_pitch_degrees", "pivot_fraction", "full_turn_speed", "carve_grip_share"],
+	"hop": ["hop_speed", "stance_seconds", "carry", "air_turn_rate", "air_acceleration", "landing_headroom", "stance_grip"],
 	"skate": ["stroke_seconds", "push_seconds", "push_drive", "glide_drive", "lean_scale", "max_lean_degrees", "crouch"],
 }
+const WHEEL_FIELDS := ["radius", "width", "centre_y", "clearance"]
 ## Catalogue order of the showcase presets.
 const ORDER := ["strider_09", "monowheel_07", "pogo_03", "skater_12"]
 
@@ -64,6 +65,13 @@ static func from_json(source: String, problems: Array[String] = []) -> Dictionar
 		for slot: String in LOCKED_SLOTS:
 			if not parts is Dictionary or not parts.get(slot) is String:
 				problems.append("%s lacks its locked %s" % [chassis, slot])
+		if bot.get("gait") == "roll":
+			var wheel: Variant = bot.get("wheel")
+			for field: String in WHEEL_FIELDS:
+				if not wheel is Dictionary or not _number(wheel.get(field)): problems.append("lacks numeric %s.wheel.%s" % [chassis, field])
+			var profile: Variant = wheel.get("profile") if wheel is Dictionary else null
+			if not profile is Array or profile.size() < 2 or not profile.all(func(pair: Variant) -> bool: return pair is Array and pair.size() == 2 and pair.all(_number)):
+				problems.append("%s.wheel needs a profile of [axial, radius] pairs" % chassis)
 		if parts is Dictionary and parts.get("weapon") == "minigun" and not _vector(bot.get("gun_pivot")):
 			problems.append("%s needs gun_pivot for its minigun" % chassis)
 		if parts is Dictionary and parts.get("weapon") == "hammer" and not _vector(bot.get("hammer_socket")):
@@ -135,6 +143,17 @@ static func presets(registry: ContentRegistry) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for chassis: String in ORDER: result.append(preset(registry, chassis))
 	return result
+
+## Convex tyre collider points: the wheel profile revolved about the X axle
+## (hull frame, centred on the wheel) in `segments` steps.
+static func tyre_points(wheel: Dictionary, segments: int) -> PackedVector3Array:
+	var points := PackedVector3Array()
+	for pair: Array in wheel.profile:
+		for side: float in [-1.0, 1.0]:
+			for step: int in segments:
+				var angle := TAU * step / segments
+				points.append(Vector3(side * float(pair[0]), cos(angle) * float(pair[1]), sin(angle) * float(pair[1])))
+	return points
 
 static func vector(values: Array) -> Vector3:
 	return Vector3(values[0], values[1], values[2])

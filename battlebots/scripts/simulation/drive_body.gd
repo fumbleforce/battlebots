@@ -224,10 +224,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if not grounded:
 		GaitDrive.airborne(state, self, braking)
 		return
+	if GaitDrive.stance(state, self, normal): return
 	_hold_slope(state, normal)
 	var config := model_config()
 	if gait != "": GaitDrive.tune(config, self, state, normal, braking)
-	var response := DriveModel.forces(state.transform.basis, state.linear_velocity, state.angular_velocity,
+	var response := DriveModel.forces(state.transform.basis, GaitDrive.grip_velocity(self, state), state.angular_velocity,
 		normal, _drive_input, _turn_input, braking, state.step, config)
 	state.apply_central_force(response.acceleration * mass)
 	var yaw_acceleration: float = response.yaw_acceleration

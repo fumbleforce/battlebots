@@ -1,5 +1,21 @@
 # Shared contracts — local records and current MVP session API
 
+## Nimble bots stand on their gear — build mvp-ab-42 (#75)
+
+Gameplay/physics only; no command, snapshot, schema, catalogue or protocol
+change. `data/nimble_bots.json`: every bot's `reach` is its gear's reach
+(Strider 4.6, Hellwheel 2.25, Pogo 4.2, Skater 3.1); Hellwheel `ride_height`
+2.04 with `wheel.clearance` and `wheel.profile` (validated by `NimbleBots`),
+`lateral_response` 0.15 and `roll.carve_grip_share`; Pogo `hop.stance_grip`
+and `carry` 1.0. `GaitDrive.ride_height(body, basis)` now takes the hull basis
+(monowheel tyre contact via `tyre_depth`); `GaitDrive.stance` (pogo pad grip)
+and `GaitDrive.grip_velocity` (monowheel contact-patch tyre forces) run in
+`DriveBody`. The Hellwheel's `WheelCollision` is a convex revolved tyre
+profile (`NimbleBots.tyre_points`). The Skater model gains `ForkFL/FR/BL/BR`
+nodes (fork, stub axle and mudguard swivel about the shin); `NimbleVisual`
+steers them. Peers need the matching build.
+[Details](coordination/NIMBLE_BOTS.md).
+
 ## Heat relief and grinder v2 — build mvp-ab-40, protocol 14 (#67, #68, #69)
 
 The snapshot gains `spree` (int, kill combo) and `cooling` (bool, in a

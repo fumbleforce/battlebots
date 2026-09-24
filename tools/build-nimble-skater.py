@@ -468,24 +468,32 @@ def build_leg(root, label, side, end, stance):
     cylinder('Damper rod', S(0, -.18, .060), S(0, -.245, .060), .009, steel, shin, 12, .001)
     for y in (-.065, -.25):
         box('Damper eye lug', S(0, y, .048), (.032, .018, .030), sec, shin, .003)
-    # Fork crown: carries the single-sided inboard fork arm and the mudguard.
+    # Kingpin: the shin ends in a round bearing housing; the fork below it
+    # swivels about the shin axis (the runtime steers each wheel along its own
+    # travel, #75) and carries the single-sided inboard arm and the mudguard.
     fx = -.079                          # inboard arm mid-plane (tyre half-width .045 + clearance)
-    zloft_s('Fork crown casting', [(-.255, chamfered(.036, .040, .011)), (-.285, [(x + fx / 2 - .004, z) for x, z in chamfered(.054, .042, .012)])], sec, .005)
+    zloft_s('Kingpin housing', [(-.240, chamfered(.036, .040, .011)), (-.252, [(x * 1.25, z * 1.2) for x, z in chamfered(.036, .040, .011)])], sec, .004)
+    turned('Kingpin bearing cap', S(0, -.252, 0), (0, -1, 0), [(0, .058), (.006, .058), (.009, .052), (.009, 0.0)], steel, shin, 28)
+    fork = part('Fork' + label, tuple(ankle), root)
+    turned('Fork swivel crown', S(0, -.262, 0), (0, -1, 0), [(0, .056), (.004, .096), (.022, .096), (.028, .088), (.028, 0.0)], sec, fork, 36)
+    for a in range(6):
+        ang = a * math.tau / 6 + math.pi / 6
+        fastener(S(math.cos(ang) * .074, -.262, math.sin(ang) * .074), (0, 1, 0), fork, .0055)
     arm = [(-.042, -.265), (.042, -.265), (.044, -.40)] + [(math.cos(a) * .044, -.48 + math.sin(a) * .044) for a in [i * math.pi / 10 for i in range(0, -11, -1)]] + [(-.044, -.40)]
-    slab('Single-sided fork arm', arm, ((knee.x + side * (fx - .011), knee.y, knee.z), (0, 0, 1), (0, 1, 0), (side, 0, 0)), 0, .022, paint, shin, .004)
-    cylinder('Stub axle', S(fx + .011, -.48, 0), S(-.028, -.48, 0), .017, steel, shin, 20, .001)
-    turned('Axle retaining nut', S(fx - .011, -.48, 0), (-side, 0, 0), [(0, .022), (.008, .022), (.011, .016), (.011, 0.0)], steel, shin, 6)
-    fastener(S(fx - .011, -.33, 0), (-side, 0, 0), shin, .006)
+    slab('Single-sided fork arm', arm, ((knee.x + side * (fx - .011), knee.y, knee.z), (0, 0, 1), (0, 1, 0), (side, 0, 0)), 0, .022, paint, fork, .004)
+    cylinder('Stub axle', S(fx + .011, -.48, 0), S(-.028, -.48, 0), .017, steel, fork, 20, .001)
+    turned('Axle retaining nut', S(fx - .011, -.48, 0), (-side, 0, 0), [(0, .022), (.008, .022), (.011, .016), (.011, 0.0)], steel, fork, 6)
+    fastener(S(fx - .011, -.33, 0), (-side, 0, 0), fork, .006)
     # Guard hoop: outside the tyre's bounding sphere (r .1376) at r .150-.162, so
     # the shin can tilt about the upright wheel without touching it.
     hoop = [(math.cos(a) * .162, math.sin(a) * .162) for a in [math.radians(40 + i * 10) for i in range(10)]]
     hoop += [(math.cos(a) * .150, math.sin(a) * .150) for a in [math.radians(130 - i * 10) for i in range(10)]]
-    slab('Mudguard hoop', [(-u, v) for u, v in hoop], ((ankle.x + side * (fx + .011), ankle.y, ankle.z), (0, 0, 1), (0, 1, 0), (side, 0, 0)), 0, .058 - (fx + .011), paint, shin, .003)
+    slab('Mudguard hoop', [(-u, v) for u, v in hoop], ((ankle.x + side * (fx + .011), ankle.y, ankle.z), (0, 0, 1), (0, 1, 0), (side, 0, 0)), 0, .058 - (fx + .011), paint, fork, .003)
 
     # ---------------- wheel (spins about hull X at the ankle)
     wheel = part('Wheel' + label, tuple(ankle), root)
     build_wheel(ankle, side, wheel)
-    return thigh, shin, wheel
+    return thigh, shin, fork, wheel
 
 
 def mesh_loft_y(name, origin, levels, mat, group, bevel, up):
@@ -603,13 +611,18 @@ def leg_solution(side, end, crouch=0.0, kick=0.0):
     return hip, knee, ankle
 
 
-def pose(legs, gun_mount, crouch=0.0, kick=0.0, pitch=0.0, spin=0.0):
+def pose(legs, gun_mount, crouch=0.0, kick=0.0, pitch=0.0, spin=0.0, steer=0.0):
+    """NimbleVisual._pose_skater: the fork swivels about the shin axis by steer
+    (radians) and the wheel spins in the fork."""
     for label, side, end in LABELS:
-        thigh, shin, wheel = legs[label]
+        thigh, shin, fork, wheel = legs[label]
         hip, knee, ankle = leg_solution(side, end, crouch, kick)
         set_node(thigh, segment_basis(hip, knee), hip)
-        set_node(shin, segment_basis(knee, ankle), knee)
-        set_node(wheel, Matrix.Rotation(spin, 3, 'X'), ankle)
+        shin_basis = segment_basis(knee, ankle)
+        set_node(shin, shin_basis, knee)
+        fork_basis = shin_basis @ Matrix.Rotation(steer, 3, 'Y')
+        set_node(fork, fork_basis, ankle)
+        set_node(wheel, fork_basis @ Matrix.Rotation(spin, 3, 'X'), ankle)
     set_node(gun_mount, Matrix.Rotation(math.radians(pitch), 3, 'X'), PIVOT)
     bpy.context.view_layer.update()
 
@@ -707,6 +720,8 @@ def main():
         'rear_kick': lambda t: pose(legs, mount, kick=t, spin=step * t),
         'rear_kick_crouched': lambda t: pose(legs, mount, crouch=CROUCH, kick=t, spin=step * t),
         'gun_pitch': lambda t: pose(legs, mount, crouch=CROUCH * .5, pitch=-35 + 57 * t),
+        'steer': lambda t: pose(legs, mount, steer=math.radians(-80 + 160 * t), spin=step * t),
+        'steer_crouched_kick': lambda t: pose(legs, mount, crouch=CROUCH, kick=t, steer=math.radians(-80 + 160 * t)),
     }
     if '--profile' in sys.argv:
         profile(root)

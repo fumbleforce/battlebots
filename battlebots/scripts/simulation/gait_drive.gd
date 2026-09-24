@@ -5,7 +5,7 @@ extends RefCounted
 ## DriveModel differently:
 ## - stride: the target speed surges once per step, the hull bobs and sways;
 ## - roll: leans into turns and pitches with throttle, barely pivots at rest;
-## - hop: bounds on its spring and steers in the air;
+## - hop: bounds on its spring, grips on its pads and steers in the air;
 ## - skate: alternating kick strokes, long glides, carving lean and crouch.
 ## Server and predicting client run this on their Jolt bodies; gait phase is
 ## local body state, so snapshots still correct the pose.
@@ -13,16 +13,53 @@ extends RefCounted
 static func _forward(state: PhysicsDirectBodyState3D, normal: Vector3) -> Vector3:
 	return (-state.transform.basis.z).slide(normal).normalized()
 
-## Hull centre height above the floor for the current gait phase.
-static func ride_height(body: DriveBody) -> float:
+## Hull centre height above the floor for the current gait phase and hull tilt.
+static func ride_height(body: DriveBody, basis: Basis) -> float:
 	var spec := body.gait_spec
 	var ride := float(spec.ride_height)
-	if body.gait == "stride":
+	if body.gait == "roll":
+		# The tyre carries the hull: lower it by how far leaning and pitching
+		# raise the tyre's lowest edge above its upright contact.
+		ride += tyre_depth(spec.wheel, basis) - tyre_depth(spec.wheel, Basis.IDENTITY)
+	elif body.gait == "stride":
 		# Lowest at each footfall (legs spread), highest mid-stride.
 		ride -= float(spec.stride.bob) * 0.5 * (1.0 + cos(TAU * body.gait_phase))
 	elif body.gait == "skate":
 		ride -= float(spec.skate.crouch) * body.gait_crouch
 	return ride
+
+## Height of the hull centre above the lowest point of the monowheel's tyre
+## (its profile revolved about the hull's X axle) for a hull oriented by basis.
+static func tyre_depth(wheel: Dictionary, basis: Basis) -> float:
+	var axle := absf(basis.x.y)
+	var across := sqrt(maxf(0.0, 1.0 - axle * axle))
+	var lowest := 0.0
+	for pair: Array in wheel.profile:
+		lowest = maxf(lowest, float(pair[0]) * axle + float(pair[1]) * across)
+	return -(basis * Vector3(0.0, float(wheel.centre_y), 0.0)).y + lowest
+
+## World offset from the hull centre to the monowheel tyre's contact patch
+## (the lowest point of its revolved profile) for a hull oriented by basis.
+static func tyre_patch(wheel: Dictionary, basis: Basis) -> Vector3:
+	var axle := basis.x.normalized()
+	var down := (Vector3.DOWN - axle * Vector3.DOWN.dot(axle)).normalized()
+	var centre := basis * Vector3(0.0, float(wheel.centre_y), 0.0)
+	var best := -INF
+	var patch := centre
+	for pair: Array in wheel.profile:
+		var point := centre + axle * (-float(pair[0]) * signf(axle.y)) + down * float(pair[1])
+		if -point.y > best:
+			best = -point.y
+			patch = point
+	return patch
+
+## Velocity the tyre forces act on: a monowheel grips at its contact patch, so
+## leaning or pitching the hull about its centre moves the hull over a still
+## patch instead of scrubbing the tyre sideways (#75).
+static func grip_velocity(body: DriveBody, state: PhysicsDirectBodyState3D) -> Vector3:
+	if body.gait != "roll": return state.linear_velocity
+	var tilt := state.angular_velocity - Vector3.UP * state.angular_velocity.y
+	return state.linear_velocity + tilt.cross(tyre_patch(body.gait_spec.wheel, state.transform.basis))
 
 ## Vertical velocity (x) and acceleration (y) of the stride bob, fed forward so
 ## the spring tracks each step instead of smoothing it away.
@@ -65,7 +102,7 @@ static func support(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3
 	if body.walker_contacts.size() < 2: return Vector3.ZERO
 	var normal := normal_sum.normalized()
 	body.gait_floor = floor_height
-	var desired_y := floor_height + ride_height(body)
+	var desired_y := floor_height + ride_height(body, state.transform.basis)
 	# Carry DriveBody's heft weight, not only Jolt's arena gravity.
 	var gravity := maxf(0.0, -state.total_gravity.y) * body.heft()
 	var headroom := float(tuning.lift_headroom)
@@ -141,15 +178,30 @@ static func tune(config: Dictionary, body: DriveBody, state: PhysicsDirectBodySt
 			config.speed = float(config.speed) * (1.0 + float(stride.speed_surge) * cos(TAU * body.gait_phase))
 		"roll":
 			var roll: Dictionary = spec.roll
-			# A monowheel steers by leaning: it needs speed to turn.
+			# A monowheel steers by leaning: it needs speed to turn, and it never
+			# turns tighter than a share of its tyre grip can hold, so the tyre
+			# carves instead of skidding sideways (#75).
 			config.turn = float(config.turn) * lerpf(float(roll.pivot_fraction), 1.0,
 				clampf(absf(speed) / float(roll.full_turn_speed), 0.0, 1.0))
+			if absf(speed) > 0.0:
+				config.turn = minf(float(config.turn), float(config.grip) * float(roll.carve_grip_share) / absf(speed))
 		"skate":
 			var skate: Dictionary = spec.skate
 			if not braking and body._drive_input > 0.05:
 				body.gait_phase = fposmod(body.gait_phase + state.step / float(skate.stroke_seconds), 2.0)
 				var pushing := fmod(body.gait_phase, 1.0) * float(skate.stroke_seconds) < float(skate.push_seconds)
 				config.drive_scale = float(config.drive_scale) * float(skate.push_drive if pushing else skate.glide_drive)
+
+## Pogo stance: while its tripod stands on the floor the pads grip, so planar
+## velocity and yaw decay instead of skidding and the motor does not drive.
+## Returns true when the stance replaced the ordinary tyre forces.
+static func stance(state: PhysicsDirectBodyState3D, body: DriveBody, normal: Vector3) -> bool:
+	if body.gait != "hop": return false
+	var hold := 1.0 - exp(-float(body.gait_spec.hop.stance_grip) * state.step)
+	var along := normal * state.linear_velocity.dot(normal)
+	state.linear_velocity -= (state.linear_velocity - along) * hold
+	state.angular_velocity -= normal * state.angular_velocity.dot(normal) * hold
+	return true
 
 ## Pogo launch after its stance on the spring. Returns true when it left the ground.
 static func hop(state: PhysicsDirectBodyState3D, body: DriveBody, braking: bool) -> bool:

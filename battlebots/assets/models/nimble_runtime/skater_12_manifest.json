@@ -3,8 +3,12 @@
   "runtime": "skater_12.glb",
   "generator": "tools/build-nimble-skater.py",
   "authoring": "Godot metres in the hull frame, X right Y up -Z forward; runtime factor three applied by NimbleVisual",
-  "triangles": 69872,
+  "triangles": 76528,
   "nodes": [
+    "ForkBL",
+    "ForkBR",
+    "ForkFL",
+    "ForkFR",
     "GunBarrels",
     "GunFrame",
     "GunMount",
@@ -32,8 +36,8 @@
   "surface_atlases": {
     "version": 1,
     "uv": "TEXCOORD_0",
-    "unique_meshes": 15,
-    "mesh_instances": 15,
+    "unique_meshes": 19,
+    "mesh_instances": 19,
     "families": {
       "Primary": {
         "resolution": 2048,
@@ -46,38 +50,38 @@
         },
         "occupied_fraction": 0.75848,
         "ao_min": 0.0,
-        "ao_mean": 0.59987,
+        "ao_mean": 0.59256,
         "roughness_min": 0.37,
         "roughness_max": 0.8308
       },
       "Secondary": {
         "resolution": 1024,
-        "faces": 6128,
+        "faces": 6740,
         "images": {
           "base": "Nimble12Secondary_base.png",
           "orm": "Nimble12Secondary_orm.png",
           "normal": "Nimble12Secondary_normal.png",
           "coverage": "Nimble12Secondary_coverage.png"
         },
-        "occupied_fraction": 0.82516,
+        "occupied_fraction": 0.77749,
         "ao_min": 0.0,
-        "ao_mean": 0.47681,
+        "ao_mean": 0.49698,
         "roughness_min": 0.37,
-        "roughness_max": 0.812
+        "roughness_max": 0.79729
       },
       "Hardware": {
         "resolution": 2048,
-        "faces": 21452,
+        "faces": 23524,
         "images": {
           "base": "Nimble12Hardware_base.png",
           "orm": "Nimble12Hardware_orm.png",
           "normal": "Nimble12Hardware_normal.png"
         },
-        "occupied_fraction": 0.65685,
+        "occupied_fraction": 0.66173,
         "ao_min": 0.0,
-        "ao_mean": 0.48538,
-        "roughness_min": 0.30975,
-        "roughness_max": 0.95301
+        "ao_mean": 0.48642,
+        "roughness_min": 0.31156,
+        "roughness_max": 0.95354
       }
     },
     "paint_coverage": {
@@ -89,35 +93,15 @@
       "distance_metres": 0.06
     },
     "material_references": {
-      "Nimble12_GunMetal": {
+      "Nimble12_PaintPrimaryEdge": {
         "linear_color": [
-          0.036306485533714294,
-          0.036306485533714294,
-          0.03797231987118721,
+          0.21404114365577698,
+          0.010022825561463833,
+          0.005531959235668182,
           1.0
         ],
-        "metallic": 0.8600000143051147,
-        "roughness": 0.46000000834465027
-      },
-      "Nimble12_MachinedSteel": {
-        "linear_color": [
-          0.27383843064308167,
-          0.2632734179496765,
-          0.24286681413650513,
-          1.0
-        ],
-        "metallic": 0.9200000166893005,
-        "roughness": 0.36000001430511475
-      },
-      "Nimble12_Rubber": {
-        "linear_color": [
-          0.003671423764899373,
-          0.0035010159481316805,
-          0.0033353136386722326,
-          1.0
-        ],
-        "metallic": 0.0,
-        "roughness": 0.8600000143051147
+        "metallic": 0.08,
+        "roughness": 0.66
       },
       "Nimble12_Recess": {
         "linear_color": [
@@ -129,7 +113,7 @@
         "metallic": 0.4000000059604645,
         "roughness": 0.550000011920929
       },
-      "Nimble12_PaintPrimaryEdge": {
+      "Nimble12_PaintPrimary": {
         "linear_color": [
           0.21404114365577698,
           0.010022825561463833,
@@ -137,17 +121,7 @@
           1.0
         ],
         "metallic": 0.08,
-        "roughness": 0.66
-      },
-      "Nimble12_SpringSteel": {
-        "linear_color": [
-          0.10653922706842422,
-          0.09462962299585342,
-          0.07828831672668457,
-          1.0
-        ],
-        "metallic": 0.8199999928474426,
-        "roughness": 0.41999998688697815
+        "roughness": 0.6200000047683716
       },
       "Nimble12_RubberOchreBand": {
         "linear_color": [
@@ -159,6 +133,36 @@
         "metallic": 0.0,
         "roughness": 0.7400000095367432
       },
+      "Nimble12_SpringSteel": {
+        "linear_color": [
+          0.10653922706842422,
+          0.09462962299585342,
+          0.07828831672668457,
+          1.0
+        ],
+        "metallic": 0.8199999928474426,
+        "roughness": 0.41999998688697815
+      },
+      "Nimble12_GunMetal": {
+        "linear_color": [
+          0.036306485533714294,
+          0.036306485533714294,
+          0.03797231987118721,
+          1.0
+        ],
+        "metallic": 0.8600000143051147,
+        "roughness": 0.46000000834465027
+      },
+      "Nimble12_Rubber": {
+        "linear_color": [
+          0.003671423764899373,
+          0.0035010159481316805,
+          0.0033353136386722326,
+          1.0
+        ],
+        "metallic": 0.0,
+        "roughness": 0.8600000143051147
+      },
       "Nimble12_PaintSecondary": {
         "linear_color": [
           0.02322782389819622,
@@ -169,16 +173,6 @@
         "metallic": 0.08,
         "roughness": 0.5799999833106995
       },
-      "Nimble12_PaintPrimary": {
-        "linear_color": [
-          0.21404114365577698,
-          0.010022825561463833,
-          0.005531959235668182,
-          1.0
-        ],
-        "metallic": 0.08,
-        "roughness": 0.6200000047683716
-      },
       "Nimble12_OxidizedMetal": {
         "linear_color": [
           0.07828831672668457,
@@ -188,6 +182,16 @@
         ],
         "metallic": 0.7799999713897705,
         "roughness": 0.5799999833106995
+      },
+      "Nimble12_MachinedSteel": {
+        "linear_color": [
+          0.27383843064308167,
+          0.2632734179496765,
+          0.24286681413650513,
+          1.0
+        ],
+        "metallic": 0.9200000166893005,
+        "roughness": 0.36000001430511475
       }
     }
   },
