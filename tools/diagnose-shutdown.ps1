@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$GodotPath,
-    [ValidateSet('drive', 'baseline', 'views')][string]$Fixture = 'drive',
+    [ValidateSet('drive', 'baseline', 'views', 'practice')][string]$Fixture = 'drive',
     [ValidateRange(1, 50)][int]$Trials = 8
 )
 $ErrorActionPreference = 'Stop'
@@ -17,11 +17,16 @@ $scriptPath = switch ($Fixture) {
     'drive' { 'res://tests/simulation/drive_smoke.gd' }
     'baseline' { 'res://tests/baseline_smoke.gd' }
     'views' { 'res://tests/networking/shutdown_view_diagnostic.gd' }
+    # Every Windows CI exit crash on record (5/5, #10) was this test's exit.
+    'practice' { 'res://tests/practice/practice_session_test.gd' }
 }
+# ENet timers need wall-clock frames, as in check-presentation.
+$timing = if ($Fixture -eq 'practice') { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
 $marker = switch ($Fixture) {
     'drive' { '^DRIVE PASS$' }
     'baseline' { '^BASELINE PASS$' }
     'views' { '^SHUTDOWN VIEW DONE$' }
+    'practice' { '^PRACTICE SESSION PASS$' }
 }
 $revision = & git -C $projectRoot rev-parse HEAD
 $dirty = @(& git -C $projectRoot status --porcelain).Count -gt 0
@@ -29,7 +34,7 @@ $results = @()
 Write-Host "Shutdown diagnosis: $Trials $Fixture trials. Logs: $runDirectory"
 for ($trial = 1; $trial -le $Trials; $trial++) {
     $started = [DateTime]::UtcNow
-    $lines = @(& $engine --headless --path $projectRoot --fixed-fps 60 --script $scriptPath 2>&1)
+    $lines = @(& $engine --headless --path $projectRoot @timing --script $scriptPath 2>&1)
     $engineExit = $LASTEXITCODE
     $logName = "$Fixture-$trial.log"
     $lines | Set-Content -LiteralPath (Join-Path $runDirectory $logName) -Encoding utf8

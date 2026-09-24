@@ -1,0 +1,22 @@
+name: Windows shutdown diagnosis
+# Diagnosis branches only (#10): repeated exits of one fixture, every outcome
+# retained. Not a gate and never a retry of a CI check.
+on:
+  push:
+    branches: ['codex/shutdown-diag*']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
+      - name: Repeat the practice session exit
+        shell: pwsh
+        run: ./tools/diagnose-shutdown.ps1 -GodotPath $env:GODOT -Fixture practice -Trials 30
+      - name: Record native Godot failures
+        if: always()
+        shell: pwsh
+        run: ./tools/record-native-failures.ps1
