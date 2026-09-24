@@ -91,8 +91,10 @@ func _ready() -> void:
 	multiplayer.peer_connected.connect(_peer_connected)
 	multiplayer.peer_disconnected.connect(_peer_disconnected)
 	multiplayer.connected_to_server.connect(_connected)
-	multiplayer.connection_failed.connect(func() -> void: _transport_failed("Connection failed"))
-	multiplayer.server_disconnected.connect(func() -> void: _transport_failed("Server disconnected"))
+	# Bound methods, not lambdas: the scene multiplayer can outlive this node, and a
+	# lambda connection left on it was destroyed during engine teardown (#10).
+	multiplayer.connection_failed.connect(_transport_failed.bind("Connection failed"))
+	multiplayer.server_disconnected.connect(_transport_failed.bind("Server disconnected"))
 	multiplayer.allow_object_decoding = false
 
 func host(port := 24567, listen := true, player_count := 4, mode := "teams", bind_address := "*", selected_arena := "foundry") -> Error:

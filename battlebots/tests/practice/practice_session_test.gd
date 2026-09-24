@@ -153,6 +153,20 @@ func playable_hit(session: MvpSession) -> void:
 func run() -> void:
 	# DIAGNOSIS ONLY (codex/shutdown-diag, #10): run one half of this test.
 	var variant := OS.get_environment("BATTLEBOTS_DIAG_VARIANT")
+	if variant == "registry_only":
+		var registry := ContentRegistry.new()
+		await frames(60)
+		check(registry.content_hash != "", "Registry loads")
+		await teardown()
+		return
+	if variant == "empty_viewport":
+		var viewport := SubViewport.new()
+		viewport.own_world_3d = true
+		root.add_child(viewport)
+		viewports.append(viewport)
+		await frames(60)
+		await teardown()
+		return
 	if variant in ["sessions_only", "sessions_no_mp", "one_session"]:
 		for index: int in range(1 if variant == "one_session" else 3):
 			make_session("Session%d" % index)

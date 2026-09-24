@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [sessions_only, sessions_no_mp, one_session]
+        variant: [one_session, registry_only, empty_viewport]
     env:
       BATTLEBOTS_DIAG_VARIANT: ${{ matrix.variant }}
     steps:
