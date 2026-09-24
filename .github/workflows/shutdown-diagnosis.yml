@@ -8,21 +8,19 @@ permissions:
   contents: read
 jobs:
   diagnose:
-    name: Exit after loading '${{ matrix.load }}'
+    name: Exit with a ${{ matrix.fixture }} member
     runs-on: windows-latest
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        load: ['', 'res://scripts/networking/mvp_session.gd', 'res://tests/practice/practice_session_test.gd']
-    env:
-      BATTLEBOTS_DIAG_LOAD: ${{ matrix.load }}
+        fixture: [typed_array, typed_var]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-godot
       - name: Repeat the practice session exit
         shell: pwsh
-        run: ./tools/diagnose-shutdown.ps1 -GodotPath $env:GODOT -Fixture load -Trials 50
+        run: ./tools/diagnose-shutdown.ps1 -GodotPath $env:GODOT -Fixture ${{ matrix.fixture }} -Trials 50
       - name: Record native Godot failures
         if: always()
         shell: pwsh

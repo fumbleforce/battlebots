@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$GodotPath,
-    [ValidateSet('drive', 'baseline', 'views', 'practice', 'load')][string]$Fixture = 'drive',
+    [ValidateSet('drive', 'baseline', 'views', 'practice', 'load', 'typed_array', 'typed_var')][string]$Fixture = 'drive',
     [ValidateRange(1, 50)][int]$Trials = 8
 )
 $ErrorActionPreference = 'Stop'
@@ -21,15 +21,19 @@ $scriptPath = switch ($Fixture) {
     'practice' { 'res://tests/practice/practice_session_test.gd' }
     # Loads only BATTLEBOTS_DIAG_LOAD (or nothing), then quits.
     'load' { 'res://tests/networking/shutdown_load_diagnostic.gd' }
+    'typed_array' { 'res://tests/networking/shutdown_typed_array_diagnostic.gd' }
+    'typed_var' { 'res://tests/networking/shutdown_typed_var_diagnostic.gd' }
 }
 # ENet timers need wall-clock frames, as in check-presentation.
-$timing = if ($Fixture -in @('practice', 'load')) { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
+$timing = if ($Fixture -in @('practice', 'load', 'typed_array', 'typed_var')) { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
 $marker = switch ($Fixture) {
     'drive' { '^DRIVE PASS$' }
     'baseline' { '^BASELINE PASS$' }
     'views' { '^SHUTDOWN VIEW DONE$' }
     'practice' { '^PRACTICE SESSION PASS$' }
     'load' { '^SHUTDOWN LOAD DONE' }
+    'typed_array' { '^SHUTDOWN LOAD DONE' }
+    'typed_var' { '^SHUTDOWN LOAD DONE' }
 }
 $revision = & git -C $projectRoot rev-parse HEAD
 $dirty = @(& git -C $projectRoot status --porcelain).Count -gt 0
