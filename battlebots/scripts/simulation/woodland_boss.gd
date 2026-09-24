@@ -19,6 +19,12 @@ const TEAM := 1000
 const NPC_KIND := "woodland_boss"
 const REBUILD_SECONDS := 60.0
 const RETARGET_SECONDS := 1.5
+## The turret fires only once its bore is within this angle of the prey (#81).
+const AIM_TOLERANCE := deg_to_rad(1.2)
+## Pitch/roll rate (rad/s) the stabilisers allow while driving, and while a
+## committed volley is firing (recoil otherwise walks the later shells off).
+const TILT_RATE_LIMIT := 0.35
+const VOLLEY_TILT_RATE_LIMIT := 0.03
 ## Strongest first; the drop is the first one the killer can actually fit.
 const DROPS := ["turret_plasma_quad", "turret_cannon_quad", "hammer", "vertical_spinner"]
 
@@ -185,7 +191,8 @@ func _stabilise() -> void:
 	var spin := boss.body.angular_velocity
 	var yaw := up * spin.dot(up)
 	var tilt := (spin - yaw) * 0.8
-	boss.body.angular_velocity = yaw + tilt.limit_length(0.35)
+	var firing := boss.combat._volley_left > 0 or boss.combat.gun_shot
+	boss.body.angular_velocity = yaw + tilt.limit_length(VOLLEY_TILT_RATE_LIMIT if firing else TILT_RATE_LIMIT)
 	if boss.body.linear_velocity.y > 1.5:
 		boss.body.linear_velocity.y = 1.5
 
@@ -228,14 +235,34 @@ func _hunt(prey: MvpBot, intent: BotCommand, delta: float) -> void:
 	intent.brake = absf(intent.throttle) < 0.05
 	# Hammer slams whenever the prey is under the head.
 	intent.primary_held = absf(angle) < 0.35 and distance < contact + 3.0 and fmod(_clock, 1.8) < 0.3
-	# Quad cannon tracks the prey and fires in volleys at range.
-	var muzzle_height: float = boss.combat.stats.size.y
-	var aim := prey.body.global_position + Vector3(0, prey.combat.stats.size.y * 0.3, 0) \
-		- (boss.body.global_position + Vector3(0, muzzle_height, 0))
+	# Quad cannon tracks the prey and fires in volleys at range. Aim from the
+	# turret's own trunnion (not the hull top) at the prey's centre, and only
+	# fire once the servo has actually brought the bore onto it (#81).
+	var state := boss.combat
+	var breech := boss.body.global_transform * AtlasGeometry.turret_breech(state.stats.size, state.turret_yaw, state.gun_pitch)
+	var aim := prey.body.global_position - breech
 	intent.aim_valid = true
 	intent.aim_yaw = atan2(-aim.x, -aim.z)
 	intent.aim_pitch = atan2(aim.y, Vector2(aim.x, aim.z).length())
-	intent.auxiliary_held = distance > contact + 2.0 and distance < 140.0 and fmod(_clock, 4.0) < 2.6
+	var bore := boss.body.global_basis * AtlasGeometry.turret_direction(state.turret_yaw, state.gun_pitch)
+	var on_target := bore.angle_to(aim) < AIM_TOLERANCE and _clear_shot(breech, bore, prey)
+	intent.auxiliary_held = on_target and distance > contact + 2.0 and distance < 140.0 and fmod(_clock, 4.0) < 2.6
+	# At range, stop and swing the nose onto the prey: the quad turret can only
+	# depress about 2 degrees over the flanks but about 20 over the nose, and
+	# this turret sits high above its prey. Hold still through the volley.
+	var gunnery := distance > contact + 2.0 and distance < 140.0 and fmod(_clock, 4.0) < 2.6
+	if gunnery or state._volley_left > 0:
+		intent.throttle = 0.0
+		intent.steering = clampf(angle * 0.9, -0.6, 0.6) if state._volley_left == 0 and absf(angle) > 0.05 else 0.0
+		intent.brake = intent.steering == 0.0
+
+## True when the bore line reaches the prey before terrain, cover or another
+## bot: the giant holds fire at a target hidden behind the mesa lip or a rock.
+func _clear_shot(breech: Vector3, bore: Vector3, prey: MvpBot) -> bool:
+	var query := PhysicsRayQueryParameters3D.create(breech, breech + bore * 160.0,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [boss.body.get_rid()])
+	var hit := boss.body.get_world_3d().direct_space_state.intersect_ray(query)
+	return not hit.is_empty() and hit.collider_id == prey.body.get_instance_id()
 
 func _killer() -> int:
 	var latest := -1.0
