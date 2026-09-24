@@ -85,7 +85,9 @@ func _run() -> void:
 	for child: Node in hud.find_children("*", "Control", true, false):
 		_check(child.mouse_filter == Control.MOUSE_FILTER_IGNORE, "HUD cannot intercept game mouse: " + child.name)
 	var panel: Control = hud.get_node("Panel")
-	_check(panel.get_global_rect().position.x >= 440 and panel.get_global_rect().end.x <= 840 and panel.get_global_rect().end.y < 130, "Context result fits the compact centered header at 720p")
+	# Thresholds are 720p window pixels; map the logical canvas rect through the root stretch transform.
+	var panel_rect: Rect2 = root.get_final_transform() * panel.get_global_rect()
+	_check(panel_rect.position.x >= 440 and panel_rect.end.x <= 840 and panel_rect.end.y < 130, "Context result fits the compact centered header at 720p")
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("user://b-match-hud.png")

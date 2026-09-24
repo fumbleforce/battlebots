@@ -35,8 +35,10 @@ func run() -> void:
 			await process_frame
 			await process_frame
 			check(panel.overview.visible != panel.scores_page.visible, "Exactly one content page is visible")
-			check(panel.leave.get_global_rect().end.x <= resolution.x and panel.leave.get_global_rect().end.y <= resolution.y, "Footer fits viewport")
-			check(panel.score.get_global_rect().end.x <= resolution.x, "Score fits viewport")
+			# Global rects are in the root's logical canvas (canvas_items stretch), not physical pixels.
+			var bounds := root.get_visible_rect()
+			check(bounds.encloses(panel.leave.get_global_rect()), "Footer fits viewport")
+			check(panel.score.get_global_rect().end.x <= bounds.end.x, "Score fits viewport")
 			if details:
 				check(panel.table.size.x <= panel.scores_page.size.x, "Duel stats fit without horizontal scrolling")
 			if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":

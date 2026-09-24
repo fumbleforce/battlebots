@@ -103,10 +103,9 @@ func run() -> void:
 			service.message = "This game build does not match the online service. Install the current game build."
 			service.changed.emit()
 			await frames()
-			var scroll: Node = screen.status_label.get_parent()
-			while not scroll is ScrollContainer:
-				scroll = scroll.get_parent()
-			check(scroll.get_global_rect().encloses(screen.status_label.get_global_rect()), "Compatibility failure remains inside the visible scroll area at %s/%s" % [resolution, text_scale])
+			# #7 removed the online scroll container: the reason must fit the visible screen without scrolling.
+			var visible_bounds := Rect2(Vector2.ZERO, Vector2(root.content_scale_size))
+			check(visible_bounds.encloses(screen.status_label.get_global_rect()) and screen.status_label.get_visible_line_count() == screen.status_label.get_line_count(), "Compatibility failure remains fully visible without scrolling at %s/%s" % [resolution, text_scale])
 	service.endpoint = ""
 	service.state = "idle"
 	service.changed.emit()

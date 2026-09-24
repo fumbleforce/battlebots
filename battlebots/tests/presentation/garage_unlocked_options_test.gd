@@ -29,7 +29,8 @@ func _ready() -> void:
 	for item: Dictionary in body.items: body_ids.append(item.id)
 	check(body_ids == ["balanced", "scorpion_hex", "atlas_mx"], "All authored bodies offered without legacy placeholders")
 	for draft: Dictionary in profile.loadouts:
-		check(ScorpionVisual.enabled(draft) or SawbladeConfig.enabled(draft), "Every starter has authored body")
+		# Sealed nimble presets (#61) carry their own authored NimbleVisual bodies.
+		check(ScorpionVisual.enabled(draft) or SawbladeConfig.enabled(draft) or NimbleBots.enabled(draft), "Every starter has authored body")
 	for tab: String in profile.catalogue:
 		for cat: Dictionary in profile.catalogue[tab]:
 			for item: Dictionary in cat.items:

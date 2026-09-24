@@ -45,7 +45,10 @@ func run() -> void:
 	var local_id: int = game.session.local_entity
 	var target: BotSource = game.session.practice_target()
 	var target_id: int = target.read_view().entity_id
-	check(game.world_markers.visible and game.world_markers.markers.size() == 4, "Actual practice supplies player and three NPC world identities")
+	# The player, the authored NPCs and, in the roamer arenas, the nimble roamers (#61).
+	var roamers := NimbleBots.ORDER.size() if game.session.world.arena_id in NimbleBots.practice().arenas else 0
+	check(game.world_markers.visible and game.world_markers.markers.size() == 1 + PracticeBotDirector.VARIANTS.size() + roamers,
+		"Actual practice supplies player and every NPC world identity")
 	check(game.world_markers.markers[local_id].text.is_empty() and game.world_markers.markers[target_id].text.contains("TARGET"), "Practice retains target identity without a redundant local floating tag")
 	check(not game.world_markers.markers[local_id].get_node("Leader").visible and game.world_markers.markers[target_id].get_node("Leader").visible, "Only target retains the floating identity stem")
 	check_health(game, game.session.local_source().read_view())

@@ -13,6 +13,10 @@ func settle() -> void:
 func scaled(control: Control, factor: float) -> bool:
 	return control.has_meta("menu_base_font_size") and control.get_theme_font_size("font_size") == roundi(float(control.get_meta("menu_base_font_size")) * factor)
 
+## Control rect in physical window pixels: canvas-layer transform plus the root's canvas_items stretch.
+func window_rect(control: Control) -> Rect2:
+	return control.get_viewport().get_final_transform() * control.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, control.size)
+
 func run() -> void:
 	# The real game's MP3 playback runs on an audio thread, so let teardown advance
 	# at the game's render cadence instead of exiting after a few unthrottled ms.
@@ -51,7 +55,7 @@ func run() -> void:
 	get_window().size = Vector2i(1280, 720)
 	await settle()
 	for entry: Button in [game.audio_settings_button, game.hud_settings_button]:
-		check(Rect2(0, 0, 1280, 720).encloses(entry.get_global_rect()), "Settings hub entries remain visible after resize")
+		check(Rect2(0, 0, 1280, 720).encloses(window_rect(entry)), "Settings hub entries remain visible after resize")
 	game.queue_free()
 	await settle()
 	game = load("res://scenes/dev/b_menu_game.tscn").instantiate()
@@ -70,7 +74,7 @@ func run() -> void:
 			await settle()
 			for control: Node in game.screen.find_children("*", "Control", true, false):
 				if (control is BaseButton or control is Label) and control.is_visible_in_tree():
-					var rect: Rect2 = control.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, control.size)
+					var rect: Rect2 = window_rect(control)
 					check(Rect2(Vector2(-1,-1), Vector2(extent) + Vector2(2,2)).encloses(rect), screen_name + " composed responsive bounds " + str(control.name))
 	get_window().size = Vector2i(1280,720)
 	await settle()
@@ -93,7 +97,7 @@ func run() -> void:
 	for control: Node in settings.find_children("*", "Control", true, false):
 		if control is ScrollContainer: check(false, "Control settings must not require scrolling")
 		if control is BaseButton and control.is_visible_in_tree():
-			check(Rect2(0, 0, 1280, 720).encloses(control.get_global_rect()), "Themed composed controls fit720p: " + str(control.name))
+			check(Rect2(0, 0, 1280, 720).encloses(window_rect(control)), "Themed composed controls fit720p: " + str(control.name))
 	game.queue_free()
 	await settle()
 	for suffix: String in ["", ".bak", ".tmp"]:

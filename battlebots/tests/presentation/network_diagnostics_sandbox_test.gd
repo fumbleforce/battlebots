@@ -25,7 +25,8 @@ func run() -> void:
 		scene.show_scenario(index)
 		await process_frame
 		check(not scene.panel.title_label.text.is_empty(), "Scenario has status")
-		check(Rect2(Vector2.ZERO, Vector2(1280, 720)).encloses(scene.panel.get_global_rect()),
+		# Global rects are in the root's logical canvas (canvas_items stretch), not physical pixels.
+		check(root.get_visible_rect().encloses(scene.panel.get_global_rect()),
 			"Expanded scenario fits the viewport")
 	scene.show_scenario(1)
 	if "--capture" in OS.get_cmdline_user_args():

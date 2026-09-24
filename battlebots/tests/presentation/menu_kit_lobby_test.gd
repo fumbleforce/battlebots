@@ -91,8 +91,11 @@ func run() -> void:
 		client.lobby.team_choice.item_selected.emit(1)
 		check(await until(func() -> bool: return int(local_slot(client).get("team", -1)) == 1), "Client can return to opposing team")
 		profile.active_bot = 0
+		# Preset 0 is the Sawblade Tank since 312cb3a; expect whatever weapon it carries.
+		var selected_weapon: String = profile.active_loadout().get("parts", {}).get("weapon", "")
+		check(not selected_weapon.is_empty() and selected_weapon != "lifter", "Selected build differs from the loadout already on the server")
 		client.lobby.build_button.pressed.emit()
-		check(await until(func() -> bool: return local_slot(client).get("loadout", {}).get("parts", {}).get("weapon") == "vertical_spinner"), "Use selected build updates server-accepted loadout")
+		check(await until(func() -> bool: return local_slot(client).get("loadout", {}).get("parts", {}).get("weapon") == selected_weapon), "Use selected build updates server-accepted loadout")
 		# Four-player setup must stay in lobby with two real players, even both ready.
 		host.lobby.get_node("%Ready").pressed.emit()
 		client.lobby.get_node("%Ready").pressed.emit()

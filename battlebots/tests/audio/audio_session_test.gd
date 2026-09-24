@@ -37,7 +37,10 @@ func run() -> void:
 	check(host.audio_views().is_empty(), "Offline session has no audio records")
 	check(host.practice() == OK, "Practice starts")
 	var records := host.audio_views()
-	check(records.size() == 4, "All three practice NPC audio records are independent of the admitted roster")
+	# The player, the authored NPCs and, in the roamer arenas, the nimble roamers (#61).
+	var roamers := NimbleBots.ORDER.size() if host.world.arena_id in NimbleBots.practice().arenas else 0
+	check(records.size() == 1 + PracticeBotDirector.VARIANTS.size() + roamers,
+		"All practice NPC audio records are independent of the admitted roster")
 	for record: Dictionary in records:
 		check(record.velocity == Vector3.ZERO and record.angular == Vector3.ZERO
 			and record.drive_input == 0.0 and record.turn_input == 0.0

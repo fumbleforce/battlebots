@@ -2,6 +2,9 @@ extends SceneTree
 ## Real practice commands and controlled authoritative damage, not a natural duel.
 var failures := 0
 var cues: Array[String] = []
+## Every text the actual HUD caption label shows. The saw reaches speed early and
+## its caption expires (CAPTION_SECONDS) before the 150-step hold below ends.
+var shown: Array[String] = []
 
 func _initialize() -> void:
 	run.call_deferred()
@@ -21,6 +24,8 @@ func run() -> void:
 	game.get_node("Preview").settings_path = ""
 	root.add_child(game)
 	game.gameplay_audio.cue_played.connect(func(cue: String) -> void: cues.append(cue))
+	# Connected after the game's own handler, so this reads the updated label.
+	game.gameplay_audio.caption_changed.connect(func(_text: String) -> void: shown.append(game._audio_caption.text))
 	await frames()
 	game.start_practice()
 	await frames(30)
@@ -34,8 +39,10 @@ func run() -> void:
 		game.session.submit_local(command)
 		await physics_frame
 	await frames(2)
-	check(cues.count("weapon_ready") == 1 and game._audio_caption.text == "Spinner at full speed", "Real spin-up reaches composed status audio and caption")
 	var bot: MvpBot = game.session.local_source()
+	# The default practice build is the Sawblade Tank (PlayerProfile preset 0).
+	check(bot.loadout.parts.weapon == SawbladeConfig.starter(game.session.world.registry).parts.weapon
+		and cues.count("weapon_ready") == 1 and shown.count("Saw running") == 1, "Real spin-up reaches composed status audio and caption")
 	# The practice build fits side armour only; unarmoured faces have nothing to breach.
 	bot.combat.damage("left", bot.combat.zones.left)
 	await frames(4)

@@ -45,7 +45,8 @@ func run() -> void:
 		check(game._audio_caption.get_parent() == game.combat_hud.canvas, "Audio captions share scalable HUD layout")
 		check(not game._audio_caption.get_global_rect().intersects(game.combat_hud.recovery_label.get_global_rect()), "Caption does not overlap recovery state")
 		check(not game.practice_hud.get_global_rect().intersects(game.combat_hud.components.front.get_global_rect()), "Practice target does not overlap component diagram")
-		var bounds := Rect2(Vector2.ZERO, Vector2(resolution))
+		# Global rects are in the root's logical canvas (canvas_items stretch), not physical pixels.
+		var bounds := root.get_visible_rect()
 		check(bounds.encloses(game.practice_hud.get_global_rect()) and bounds.encloses(game.preview.network_diagnostics.get_global_rect()), "Auxiliary panels fit scalable HUD")
 		if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless" and resolution.x <= 1920:
 			await RenderingServer.frame_post_draw

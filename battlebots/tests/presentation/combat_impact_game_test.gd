@@ -53,6 +53,8 @@ func run() -> void:
 	var draft := SawbladeConfig.starter(ContentRegistry.new())
 	draft.parts.weapon = "saw"
 	profile.loadouts[profile.active_bot] = draft
+	# The fixture holds MvpBot references; a part pickup (#35) would replace them.
+	game.session.pickups_enabled = false
 	game.start_practice()
 	await frames(30)
 	game.preview.set_physics_process(false)

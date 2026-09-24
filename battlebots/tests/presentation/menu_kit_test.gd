@@ -27,7 +27,8 @@ func run() -> void:
 	check(game.menu_host.visible and not game.preview.controls_enabled, "Escape cannot capture controls behind main menu")
 	var play: Button = game.screen.get_node("%Play")
 	var click := InputEventMouseButton.new()
-	click.position = play.get_global_rect().get_center()
+	# push_input takes window pixels; map the logical canvas centre through the root stretch transform.
+	click.position = root.get_final_transform() * play.get_global_rect().get_center()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	root.push_input(click)

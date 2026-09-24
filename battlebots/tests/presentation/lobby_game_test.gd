@@ -25,10 +25,10 @@ func run() -> void:
 	check(game.session.local_source() != null and game.preview.controls_enabled and not game.lobby.visible,
 		"Practice enters actual arena with a controllable bot")
 	var player: BotSource = game.session.local_source()
-	var enemy: Node3D
-	for id: int in game.session.world.bots:
-		if id != game.session.local_entity:
-			enemy = game.session.world.bots[id]
+	# Practice also spawns flank pilots and nimble roamers (#45, #61): the opponent
+	# straight ahead of the player's start is the calibration target.
+	var enemy: Node3D = game.session.practice_target()
+	check(enemy != null and game.session.world.bots.get(game.session.local_entity) != enemy, "Practice places an opponent ahead of the player")
 	var before: Vector3 = player.read_view().pose.origin
 	var enemy_core: float = enemy.combat.core
 	Input.action_press("primary")

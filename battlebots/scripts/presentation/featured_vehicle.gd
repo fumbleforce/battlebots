@@ -82,7 +82,9 @@ func _apply_layout() -> void:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER if _compact else Control.SIZE_FILL
 	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF if _compact else TextServer.AUTOWRAP_WORD_SMART
-	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS if _compact else TextServer.OVERRUN_NO_TRIMMING
+	# Long names wrap to at most two lines (full name in the tooltip) so the lobby column fits at 150% text.
+	name_label.max_lines_visible = -1 if _compact else 2
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	name_label.set_meta("menu_base_font_size", 24 if _compact else 28)
 	count_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if _compact else Control.SIZE_EXPAND_FILL

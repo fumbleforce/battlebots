@@ -34,8 +34,11 @@ func run() -> void:
 	check(audio._bots.is_empty() and not audio._arena.playing, "Main menu does not play arena sound")
 	game.start_practice()
 	await frames(45)
-	check(game.session.audio_views().size() == 4 and audio._bots.size() == 2 and audio._arena.playing,
-		"Practice publishes four records while the existing two-bot loop pool and arena ambience stay bounded")
+	# The player, the authored NPCs and, in the roamer arenas, the nimble roamers (#61).
+	var roamers := NimbleBots.ORDER.size() if game.session.world.arena_id in NimbleBots.practice().arenas else 0
+	var practice_records := 1 + PracticeBotDirector.VARIANTS.size() + roamers
+	check(game.session.audio_views().size() == practice_records and audio._bots.size() == audio.MAX_BOTS and audio._arena.playing,
+		"Practice publishes every bot's record while the existing two-bot loop pool and arena ambience stay bounded")
 	if DisplayServer.get_name() != "headless":
 		var scorpion: ScorpionVisual = game.session.local_source().scorpion_visual
 		action_audio = [scorpion.walker_legs.footfall_audio, scorpion.gun_effects.weapon_audio]
@@ -74,8 +77,8 @@ func run() -> void:
 	game._close_settings_hub()
 	game.restart_practice()
 	await frames(12)
-	check(game.session.audio_views().size() == 4 and audio._bots.size() == 2 and audio._arena.playing,
-		"Practice restart republishes four fresh records through the existing bounded loop pool")
+	check(game.session.audio_views().size() == practice_records and audio._bots.size() == audio.MAX_BOTS and audio._arena.playing,
+		"Practice restart republishes every bot's fresh record through the existing bounded loop pool")
 	check_action_audio(true, "Restart and resume")
 	game._recovering = true
 	await frames()
