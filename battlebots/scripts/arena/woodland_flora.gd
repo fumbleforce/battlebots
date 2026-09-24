@@ -145,8 +145,16 @@ func _variants(set_name: String, max_tris: int = 1 << 30, tint: Color = Color.WH
 	scene.free()
 	return out
 
-## Instances bucketed into 24 m chunks so culling and visibility ranges work.
-func _scatter(label: String, meshes: Array[Mesh], poses: Array, range_end: float, shadows: bool) -> void:
+## Scatter placement is identical on every load: the unpacked poses and each
+## chunk's MultiMesh buffers are computed once per run and reused (#70).
+static var _scatter_poses: Dictionary = {}
+static var _scatter_chunks: Dictionary = {}
+
+## Per chunk: key (x, z, variant), centre and ready MultiMesh buffers for the
+## dense copy and the thinned (every third instance) far copy.
+static func scatter_chunks(label: String, poses: Array) -> Array:
+	if _scatter_chunks.has(label):
+		return _scatter_chunks[label]
 	var buckets: Dictionary = {}
 	for entry: Array in poses:
 		var pose: Transform3D = entry[1]
@@ -154,16 +162,38 @@ func _scatter(label: String, meshes: Array[Mesh], poses: Array, range_end: float
 		if not buckets.has(key):
 			buckets[key] = []
 		buckets[key].append(pose)
+	var chunks: Array = []
 	for key: Vector3i in buckets:
 		var centre := Vector3((key.x + 0.5) * CHUNK, 0.0, (key.y + 0.5) * CHUNK)
 		var list: Array = buckets[key]
+		var dense := PackedFloat32Array()
+		dense.resize(list.size() * 12)
+		var sparse := PackedFloat32Array()
+		sparse.resize((list.size() + 2) / 3 * 12)
+		for i: int in range(list.size()):
+			var pose: Transform3D = list[i]
+			var b := pose.basis
+			var o := pose.origin - centre
+			# MultiMesh TRANSFORM_3D buffer layout: a 3x4 row-major matrix.
+			var row := [b.x.x, b.y.x, b.z.x, o.x, b.x.y, b.y.y, b.z.y, o.y, b.x.z, b.y.z, b.z.z, o.z]
+			for f: int in 12:
+				dense[i * 12 + f] = row[f]
+				if i % 3 == 0:
+					sparse[i / 3 * 12 + f] = row[f]
+		chunks.append({"key":key, "centre":centre, "dense":dense, "sparse":sparse})
+	_scatter_chunks[label] = chunks
+	return chunks
+
+## Instances bucketed into 24 m chunks so culling and visibility ranges work.
+func _scatter(label: String, meshes: Array[Mesh], poses: Array, range_end: float, shadows: bool) -> void:
+	for chunk: Dictionary in scatter_chunks(label, poses):
+		var key: Vector3i = chunk.key
+		var centre: Vector3 = chunk.centre
 		var multi := MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
 		multi.mesh = meshes[key.z]
-		multi.instance_count = list.size()
-		for i: int in range(list.size()):
-			var pose: Transform3D = list[i]
-			multi.set_instance_transform(i, Transform3D(pose.basis, pose.origin - centre))
+		multi.instance_count = chunk.dense.size() / 12
+		multi.buffer = chunk.dense
 		var visual := MultiMeshInstance3D.new()
 		visual.name = "%s_%d_%d_%d" % [label, key.x, key.y, key.z]
 		visual.multimesh = multi
@@ -176,9 +206,8 @@ func _scatter(label: String, meshes: Array[Mesh], poses: Array, range_end: float
 		var sparse := MultiMesh.new()
 		sparse.transform_format = MultiMesh.TRANSFORM_3D
 		sparse.mesh = multi.mesh
-		sparse.instance_count = (list.size() + 2) / 3
-		for i: int in range(sparse.instance_count):
-			sparse.set_instance_transform(i, multi.get_instance_transform(i * 3))
+		sparse.instance_count = chunk.sparse.size() / 12
+		sparse.buffer = chunk.sparse
 		var far := MultiMeshInstance3D.new()
 		far.name = visual.name + "_far"
 		far.multimesh = sparse
@@ -240,12 +269,14 @@ func _interior_grass() -> void:
 	var counts := {"grass":grass.size(), "fern":ferns.size(), "pebble":pebbles.size(), "rock":rocks.size()}
 	# Placement is deterministic but ~7 s of GDScript: load the baked result
 	# (tools/bake_woodland_cache.gd) and only compute when it is missing.
-	var poses: Dictionary = {}
-	if ResourceLoader.exists(SCATTER_CACHE):
+	# Unpacking is itself ~0.1 s; keep the result for later Woodland loads (#70).
+	var poses: Dictionary = _scatter_poses
+	if poses.is_empty() and ResourceLoader.exists(SCATTER_CACHE):
 		poses = unpack_scatter(load(SCATTER_CACHE))
 	if poses.is_empty():
 		push_warning("Woodland scatter cache missing; computing placement (slow)")
 		poses = compute_scatter(counts)
+	_scatter_poses = poses
 	_scatter("Grass", grass, poses.grass, 90.0, false)
 	_scatter("Ferns", ferns, poses.fern, 120.0, true)
 	_scatter("Pebbles", pebbles, poses.pebble, 80.0, false)
