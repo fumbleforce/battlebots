@@ -3,8 +3,6 @@ const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Reset contract fixture: damage/poses below are deliberate setup, not a natural
 ## combat claim. The final hit uses only public commands from the repaired spawn.
 var failures := 0
-## Frames between teardown stages (#10).
-const SETTLE_FRAMES := 5
 var sessions: Array[MvpSession] = []
 var viewports: Array[SubViewport] = []
 var restart_events := 0
@@ -185,14 +183,10 @@ func run() -> void:
 	hits.clear()
 	await playable_hit(practice)
 	for session: MvpSession in sessions: session.leave()
-	# Let bots, worlds and custom multiplayers go before the engine shuts down:
-	# freeing them in the quitting frame crashed Windows exits (#10).
-	await frames(SETTLE_FRAMES)
-	for session: MvpSession in sessions: session.queue_free()
-	await frames(SETTLE_FRAMES)
+	await physics_frame
 	for viewport: SubViewport in viewports:
 		set_multiplayer(null, viewport.get_path())
 		viewport.queue_free()
-	await frames(SETTLE_FRAMES)
+	await process_frame
 	print("PRACTICE SESSION PASS" if failures == 0 else "PRACTICE SESSION FAIL")
 	quit(0 if failures == 0 else 1)
