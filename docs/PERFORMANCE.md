@@ -15,6 +15,10 @@ Forward+, Vulkan); treat them as relative guides, not budgets.
 
 ## How to measure (do this before and after every change)
 
+- **Windowed without a desktop window:** `xvfb-run -a -s "-screen 0 1920x1080x24" godot ...`
+  renders on the real GPU (Vulkan) invisibly, so load and first-draw timings
+  and captures work from a terminal session.
+
 - **Stress, not static.** `tools/stress_woodland.gd` fights 12 bots with every
   turret, melee weapon, nitro and jumps next to the boss, reports frame/GPU/CPU/
   physics percentiles and peak effect counts, names new nodes in any stalled
@@ -47,6 +51,7 @@ Forward+, Vulkan); treat them as relative guides, not budgets.
 | Visibility ranges per scatter group, thinned far copies | Chunked MultiMeshes with ranges cull small props cheaply. | draws and triangles |
 | Shader work moved to the vertex stage or skipped when weight is small | Terrain layers sampled only where they contribute; macro noise per vertex. | ~1 ms terrain |
 | Bake deterministic load-time data | Heights, scatter poses and collision hulls computed identically every load were seconds of GDScript. | load ~9 s → ~2 s |
+| Load bot models in the background from the menus and keep them (`bot_model_warmup.gd`, #70) | Leaving a match freed the last reference, so every Woodland start reloaded the giant's Atlas MX GLBs on the main thread. | Woodland practice build 1.9–2.1 s → 0.45–0.65 s |
 | Derive normals from neighbouring grid vertices | Re-sampling noise four extra times per vertex was most of the valley build. | 144 → 40 ms |
 
 ## Reminders

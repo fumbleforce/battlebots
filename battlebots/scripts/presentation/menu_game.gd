@@ -2,6 +2,7 @@ extends Node3D
 const COOLING_ZONE_VISUALS = preload("res://scripts/presentation/cooling_zone_visuals.gd")
 const SPREE_BANNER = preload("res://scripts/ui/spree_banner.gd")
 const PRACTICE_LOADING = preload("res://scripts/ui/practice_loading_overlay.gd")
+const BOT_MODEL_WARMUP = preload("res://scripts/presentation/bot_model_warmup.gd")
 ## Persistent game owner; imported screens navigate without replacing the live session.
 @onready var session: MvpSession = $Session
 @onready var source: SessionBotSource = $PlayerSource
@@ -53,6 +54,8 @@ var _test_drive_screen := ""
 ## Loading card shown while a practice arena builds (#70).
 var practice_loading: PRACTICE_LOADING
 var _practice_loading := false
+## True once the heavy bot models are loaded and held (#70).
+var _models_warm := true
 var game_menu_page: Control
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
@@ -186,6 +189,11 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_resize_menu)
 	_resize_menu()
 	show_screen("main")
+	# Load the heavy bot models in the background while the player is in the
+	# menus, so starting a match does not pay for them (#70).
+	if DisplayServer.get_name() != "headless":
+		BOT_MODEL_WARMUP.begin()
+		_models_warm = false
 	if "--practice" in args:
 		load_practice()
 
@@ -646,6 +654,8 @@ func _process(_delta: float) -> void:
 	if _cli_handoff:
 		return
 	_update_test_drive_entry()
+	if not _models_warm:
+		_models_warm = BOT_MODEL_WARMUP.poll()
 	var phase := str(session.match_view.get("phase", "lobby"))
 	var bot := session.local_source()
 	if _resume_after_reconnect and not session.match_view.is_empty() and (bot != null or phase == "lobby"):
