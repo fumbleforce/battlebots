@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { isIP } from 'node:net';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { openIdentityStore, validRefreshToken } from './identity.mjs';
 
 const digest = value => createHash('sha256').update(value, 'utf8').digest('hex');
 const secret = () => randomBytes(32).toString('hex');
@@ -18,7 +19,7 @@ function exactKeys(body, keys) {
   }
 }
 
-export function createService(options, { workerFactory, clock = () => Date.now() / 1000, log = () => {} } = {}) {
+export function createService(options, { workerFactory, identity = null, clock = () => Date.now() / 1000, log = () => {} } = {}) {
   const config = {
     region: 'arn', publicAddress: '127.0.0.1', bindAddress: '127.0.0.1',
     firstPort: 24570, portCount: 4, guestTtl: 7200, ticketTtl: 120,
@@ -35,6 +36,8 @@ export function createService(options, { workerFactory, clock = () => Date.now()
   for (const key of ['guestTtl', 'ticketTtl', 'roomTtl', 'idleTtl', 'codeTtl', 'queueTtl', 'startupTimeout', 'statusTtl', 'leaseTtl', 'leaseRefresh', 'maxGuests', 'maxRooms', 'requestsPerMinute', 'guestsPerMinute', 'maxRateEntries']) {
     if (!Number.isFinite(config[key]) || config[key] <= 0) throw new Error(`Invalid ${key}`);
   }
+  // Durable players (#16): in memory unless the caller passes a store on disk.
+  const identities = identity ?? openIdentityStore();
   const guests = new Map(); // Token hashes only; the access token is returned once.
   const players = new Map();
   const rooms = new Map();
@@ -212,7 +215,10 @@ export function createService(options, { workerFactory, clock = () => Date.now()
   const maintain = async () => {
     const now = clock();
     for (const [tokenHash, guest] of guests) {
-      if (guest.expires <= now) { await removeMember(guest); guests.delete(tokenHash); players.delete(guest.id); }
+      if (guest.expires <= now) {
+        await removeMember(guest); guests.delete(tokenHash);
+        if (players.get(guest.id) === guest) players.delete(guest.id);
+      }
     }
     for (const room of [...rooms.values()]) {
       if (now >= room.codeExpires) codes.delete(room.code);
@@ -249,25 +255,43 @@ export function createService(options, { workerFactory, clock = () => Date.now()
       const occupied = [...rooms.values()].filter(room => room.members.size > 0);
       const connected = occupied.reduce((total, room) => total + (room.status?.connected_players?.length ?? 0), 0);
       return { ...config.manifest, region: config.region, queue_capacities: [2, 4],
-        active_rooms: occupied.length, connected_players: connected };
+        active_rooms: occupied.length, connected_players: connected,
+        persistence: identities.degraded ? 'degraded' : (identities.durable ? 'disk' : 'memory') };
     }
     // Enable only behind Fly's trusted HTTP proxy. Never honor arbitrary X-Forwarded-For.
     const flyAddress = req.headers['fly-client-ip'];
     const address = config.trustFlyProxy === true && typeof flyAddress === 'string' && isIP(flyAddress)
       ? flyAddress : req.socket.remoteAddress;
     rateLimit(`ip:${address}`, config.requestsPerMinute * 4);
-    if (method === 'POST' && pathname === '/v1/guests') {
+    if (method === 'POST' && ['/v1/guests', '/v1/players', '/v1/sessions'].includes(pathname)) {
       rateLimit(`guest:${address}`, config.guestsPerMinute);
-      exactKeys(body, ['build', 'protocol', 'content_hash']);
+      const fields = ['build', 'protocol', 'content_hash'];
+      exactKeys(body, pathname === '/v1/sessions' ? [...fields, 'refresh_token'] : fields);
       if (body.build !== config.manifest.build || body.protocol !== config.manifest.protocol || body.content_hash !== config.manifest.content_hash) {
         reject(409, 'version_mismatch', 'Update the game to join this service.');
       }
       await maintain();
-      if (guests.size >= config.maxGuests) reject(503, 'capacity_unavailable', 'Service is busy. Please try again later.');
+      let playerId = roomId();
+      let refreshToken = null;
+      if (pathname === '/v1/sessions') {
+        if (!validRefreshToken(body.refresh_token)) reject(400, 'invalid_request', 'Invalid request fields.');
+        const resumed = identities.rotate(body.refresh_token, clock());
+        if (!resumed) reject(401, 'invalid_refresh', 'Your saved online identity could not be restored.');
+        ({ playerId, refreshToken } = resumed);
+      }
+      // A resumed player keeps its live session (and any room); its old
+      // access token stops working.
+      let guest = players.get(playerId);
+      if (!guest && guests.size >= config.maxGuests) reject(503, 'capacity_unavailable', 'Service is busy. Please try again later.');
+      if (pathname === '/v1/players') ({ playerId, refreshToken } = identities.createPlayer(clock()));
+      if (guest) guests.delete(guest.tokenHash);
+      else guest = { id: playerId, roomId: null };
       const token = secret();
-      const guest = { id: roomId(), expires: Math.floor(clock() + config.guestTtl), roomId: null };
-      guests.set(digest(token), guest); players.set(guest.id, guest);
-      return { player_id: guest.id, access_token: token, expires_at: guest.expires, region: config.region };
+      guest.tokenHash = digest(token);
+      guest.expires = Math.floor(clock() + config.guestTtl);
+      guests.set(guest.tokenHash, guest); players.set(guest.id, guest);
+      const reply = { player_id: guest.id, access_token: token, expires_at: guest.expires, region: config.region };
+      return refreshToken === null ? reply : { ...reply, refresh_token: refreshToken };
     }
     const guest = auth(req);
     if (pathname === '/v1/membership' && method === 'GET') return membership(guest);
@@ -367,6 +391,7 @@ export function createService(options, { workerFactory, clock = () => Date.now()
         for (const room of [...rooms.values()]) await destroyRoom(room);
       });
       await new Promise(resolve => server.close(resolve));
+      if (!identity) identities.close();
     },
   };
 }

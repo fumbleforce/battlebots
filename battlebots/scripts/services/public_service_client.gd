@@ -1,6 +1,8 @@
 class_name PublicServiceClient
 extends Node
-## Credentials stay in memory. One bounded HTTP request at a time; never log bodies.
+## Access tokens stay in memory; only the refresh token that restores this
+## player's identity is saved, in identity_path (#16). One bounded HTTP request
+## at a time; never log bodies or tokens.
 signal changed
 signal assignment_ready(assignment: Dictionary)
 var endpoint := ""
@@ -10,6 +12,11 @@ var region := ""
 var membership: Dictionary = {}
 var _http: HTTPRequest
 var _token := ""
+## Where the durable identity's refresh token is kept; empty disables saving.
+var identity_path := "user://identity.cfg"
+## True after a saved identity could not be restored and a new one was made.
+var identity_reset := false
+var _refresh := ""
 var _expires_at := 0.0
 var _generation := 0
 var _flight_generation := 0
@@ -36,6 +43,7 @@ func _ready() -> void:
 	_http.max_redirects = 0
 	add_child(_http)
 	_http.request_completed.connect(_completed)
+	_refresh = _load_refresh()
 	if endpoint.is_empty():
 		message = "Online play is not configured in this build. LAN and Practice are available from the main menu."
 	elif not valid_endpoint(endpoint):
@@ -133,7 +141,7 @@ func _request(operation: String, path: String, method: HTTPClient.Method, data :
 	_flight = operation
 	_flight_generation = _generation
 	var headers := PackedStringArray(["Content-Type: application/json", "Accept: application/json"])
-	if operation not in ["health", "guest"]:
+	if operation not in ["health", "guest", "player", "session"]:
 		headers.append("Authorization: Bearer " + _token)
 	var error := _http.request(endpoint + path, headers, method, "" if method in [HTTPClient.METHOD_GET, HTTPClient.METHOD_DELETE] else JSON.stringify(data))
 	if error != OK:
@@ -147,11 +155,22 @@ func _completed(result: int, code: int, _headers: PackedStringArray, body: Packe
 	_flight = ""
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8()) if body.size() <= 65536 and not body.is_empty() else {}
 	var ok := result == HTTPRequest.RESULT_SUCCESS and code >= 200 and code < 300 and parsed is Dictionary
-	if operation == "guest" and ok:
+	if operation == "session" and code == 401:
+		# The saved identity is gone (expired or the service lost it): start a
+		# new player instead of failing, and say so.
+		_save_refresh("")
+		identity_reset = true
+		if not _cancel_requested and generation == _generation:
+			_request("player", "/v1/players", HTTPClient.METHOD_POST, _compatibility())
+			return
+	if operation in ["guest", "player", "session"] and ok:
 		var token: Variant = parsed.get("access_token")
-		if token is String and token.length() in range(1, 4097) and not token.contains("\n") and not token.contains("\r"):
+		var refresh: Variant = parsed.get("refresh_token", "")
+		if _valid_token(token) and (operation == "guest" or _valid_token(refresh)):
 			_token = token
 			_expires_at = float(parsed.get("expires_at", 0))
+			if operation != "guest":
+				_save_refresh(refresh)
 		else:
 			ok = false
 	if operation == "delete":
@@ -171,8 +190,9 @@ func _completed(result: int, code: int, _headers: PackedStringArray, body: Packe
 		var detail := ""
 		if parsed is Dictionary and parsed.get("error") is Dictionary and parsed.error.get("message") is String:
 			detail = str(parsed.error.message).left(240)
-			if not _token.is_empty():
-				detail = detail.replace(_token, "[hidden]")
+			for hidden: String in [_token, _refresh]:
+				if not hidden.is_empty():
+					detail = detail.replace(hidden, "[hidden]")
 		if code == 401:
 			_token = ""
 			_expires_at = 0.0
@@ -203,13 +223,46 @@ func _completed(result: int, code: int, _headers: PackedStringArray, body: Packe
 				return
 		if _token.is_empty() or _expires_at <= Time.get_unix_time_from_system() + 30:
 			_token = ""
-			_request("guest", "/v1/guests", HTTPClient.METHOD_POST, {"build":WireCodec.BUILD, "protocol":WireCodec.PROTOCOL, "content_hash":registry.content_hash})
+			if _refresh.is_empty():
+				_request("player", "/v1/players", HTTPClient.METHOD_POST, _compatibility())
+			else:
+				var resume := _compatibility()
+				resume.refresh_token = _refresh
+				_request("session", "/v1/sessions", HTTPClient.METHOD_POST, resume)
 		else:
 			_start_action()
-	elif operation == "guest":
+	elif operation in ["guest", "player", "session"]:
 		_start_action()
 	else:
 		_accept_membership(data)
+
+func _compatibility() -> Dictionary:
+	return {"build":WireCodec.BUILD, "protocol":WireCodec.PROTOCOL, "content_hash":ContentRegistry.new().content_hash}
+
+static func _valid_token(value: Variant) -> bool:
+	var expression := RegEx.new()
+	expression.compile("^[a-f0-9]{64}$")
+	return value is String and expression.search(value) != null
+
+func _load_refresh() -> String:
+	if identity_path.is_empty(): return ""
+	var config := ConfigFile.new()
+	if config.load(identity_path) != OK: return ""
+	var value: Variant = config.get_value("identity", "refresh_token", "")
+	return value if _valid_token(value) else ""
+
+## Saves (or with "" forgets) the refresh token; written to a temporary file
+## and renamed so a crash never leaves half a credential.
+func _save_refresh(value: String) -> void:
+	_refresh = value
+	if identity_path.is_empty(): return
+	if value.is_empty():
+		DirAccess.remove_absolute(identity_path)
+		return
+	var config := ConfigFile.new()
+	config.set_value("identity", "refresh_token", value)
+	if config.save(identity_path + ".tmp") == OK:
+		DirAccess.rename_absolute(identity_path + ".tmp", identity_path)
 
 func _start_action() -> void:
 	_cleanup_required = true # POST may commit even if its response is interrupted.

@@ -25,8 +25,11 @@ func run() -> void:
 	var api := FakeApi.new()
 	root.add_child(api)
 	check(api.start() == OK, "HTTP fixture binds loopback")
+	var identity := "user://test-identity-%d.cfg" % OS.get_process_id()
+	DirAccess.remove_absolute(identity)
 	var client := PublicServiceClient.new()
 	client.endpoint = api.url()
+	client.identity_path = identity
 	root.add_child(client)
 	var assignments: Array = []
 	client.assignment_ready.connect(func(value: Dictionary) -> void: assignments.append(value))
@@ -76,7 +79,46 @@ func run() -> void:
 	client.quick_play()
 	check(await until(func() -> bool: return client.state == "failed"), "HTTP timeout produces recoverable failure")
 	client.queue_free()
+	await process_frame
+	await check_identity(api, identity)
 	api.queue_free()
 	await process_frame
 	print("PUBLIC SERVICE CLIENT PASS" if failures == 0 else "PUBLIC SERVICE CLIENT FAIL")
 	quit(0 if failures == 0 else 1)
+
+## Durable identity (#16): the first handshake creates a player and saves its
+## refresh token; the next launch resumes it; a refused token starts afresh.
+func check_identity(api: Node, identity: String) -> void:
+	var saved := ConfigFile.new()
+	check(saved.load(identity) == OK and str(saved.get_value("identity", "refresh_token", "")).length() == 64,
+		"First online action created a durable player and saved only its refresh token")
+	check(not FileAccess.get_file_as_string(identity).contains("a".repeat(64)), "The access token is never written to disk")
+	var remembered: String = saved.get_value("identity", "refresh_token")
+	var created := int(api.guest_count)
+	var next := PublicServiceClient.new()
+	next.endpoint = api.url()
+	next.identity_path = identity
+	root.add_child(next)
+	next.quick_play()
+	check(await until(func() -> bool: return next.state == "waiting"), "A new launch resumes online play")
+	check(api.session_count == 1 and api.last_refresh == remembered and api.guest_count == created,
+		"The new launch resumed the saved identity instead of creating a player")
+	saved.load(identity)
+	check(saved.get_value("identity", "refresh_token") != remembered, "The rotated refresh token replaces the used one")
+	next.cancel()
+	await until(func() -> bool: return next.state == "idle")
+	next.queue_free()
+	await process_frame
+	api.refuse_refresh = true
+	var third := PublicServiceClient.new()
+	third.endpoint = api.url()
+	third.identity_path = identity
+	root.add_child(third)
+	third.quick_play()
+	check(await until(func() -> bool: return third.state == "waiting"), "A refused identity still reaches online play")
+	check(third.identity_reset and api.guest_count == created + 1, "A refused identity is replaced by a new player, and the client says so")
+	third.cancel()
+	await until(func() -> bool: return third.state == "idle")
+	third.queue_free()
+	api.refuse_refresh = false
+	DirAccess.remove_absolute(identity)

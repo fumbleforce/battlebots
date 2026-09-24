@@ -46,7 +46,7 @@ async function fixture(t, options = {}) {
 test('health and guest enforce exact release identity and bounded authentication', async t => {
   const f = await fixture(t, { guestTtl: 30 });
   assert.deepEqual((await f.request('/healthz')).body,
-    { ...manifest, region: 'arn', queue_capacities: [2, 4], active_rooms: 0, connected_players: 0 });
+    { ...manifest, region: 'arn', queue_capacities: [2, 4], active_rooms: 0, connected_players: 0, persistence: 'memory' });
   for (const change of [{ build: 'old' }, { protocol: 3 }, { content_hash: 'b'.repeat(64) }]) {
     const bad = await f.request('/v1/guests', 'POST', { ...manifest, ...change });
     assert.equal(bad.status, 409); assert.equal(bad.body.error.code, 'version_mismatch');
@@ -395,4 +395,40 @@ test('Fly client address is trusted only with explicit proxy configuration', asy
     const spoof = await f.request('/v1/guests', 'POST', manifest, undefined, { headers: { 'Fly-Client-IP': '192.0.2.1', 'X-Forwarded-For': '192.0.2.100' } });
     assert.equal(spoof.status, 429);
   }
+});
+
+test('durable players resume with rotating refresh tokens and keep their room (#16)', async t => {
+  const f = await fixture(t, { guestTtl: 30 });
+  const created = await f.request('/v1/players', 'POST', manifest);
+  assert.equal(created.status, 200);
+  assert.match(created.body.refresh_token, /^[a-f0-9]{64}$/);
+  assert.match(created.body.access_token, /^[a-f0-9]{64}$/);
+  assert.notEqual(created.body.refresh_token, created.body.access_token);
+  const first = created.body;
+  const room = await f.request('/v1/rooms', 'POST', { mode: 'teams', capacity: 2 }, first.access_token);
+  assert.equal(room.status, 200);
+  const resume = refresh => f.request('/v1/sessions', 'POST', { ...manifest, refresh_token: refresh });
+  const resumed = await resume(first.refresh_token);
+  assert.equal(resumed.status, 200);
+  assert.equal(resumed.body.player_id, first.player_id);
+  assert.notEqual(resumed.body.refresh_token, first.refresh_token);
+  assert.equal((await f.request('/v1/membership', 'GET', undefined, first.access_token)).status, 401, 'Old access token is revoked');
+  const membership = await f.request('/v1/membership', 'GET', undefined, resumed.body.access_token);
+  assert.equal(membership.status, 200);
+  assert.equal(membership.body.code, room.body.code, 'Resuming keeps the live room');
+  // A lost response: the retired token still works briefly, then never again.
+  assert.equal((await resume(first.refresh_token)).status, 200);
+  f.advance(61);
+  const stale = await resume(first.refresh_token);
+  assert.equal(stale.status, 401); assert.equal(stale.body.error.code, 'invalid_refresh');
+  assert.equal((await resume('f'.repeat(64))).status, 401);
+  for (const bad of [{ ...manifest }, { ...manifest, refresh_token: 'short' }, { ...manifest, refresh_token: resumed.body.refresh_token, extra: 1 }]) {
+    assert.equal((await f.request('/v1/sessions', 'POST', bad)).status, 400);
+  }
+  assert.equal((await f.request('/v1/sessions', 'POST', { ...manifest, build: 'old', refresh_token: resumed.body.refresh_token })).status, 409);
+  // After the access token expires, the refresh token still restores the same player.
+  f.advance(31);
+  const later = await resume(resumed.body.refresh_token);
+  assert.equal(later.status, 200); assert.equal(later.body.player_id, first.player_id);
+  assert.equal(JSON.stringify(later.body).includes(resumed.body.refresh_token), false, 'Used refresh token is never echoed');
 });

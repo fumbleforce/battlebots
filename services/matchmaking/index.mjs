@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve, isAbsolute } from 'node:path';
 import { createService } from './service.mjs';
+import { openIdentityStore } from './identity.mjs';
 import { processWorkerFactory } from './worker.mjs';
 import { resolveGameAddress } from './address.mjs';
 
@@ -22,13 +23,26 @@ async function main() {
     workDirectory: resolve(process.env.STATE_DIRECTORY || process.env.ALLOCATION_DIRECTORY || './allocations'),
     log: code => process.stderr.write(`${code}\n`),
   });
+  // Durable identities (#16) need an absolute path on a persistent volume.
+  // Without one, players persist only while this process runs. If the file
+  // cannot be opened, play continues on an in-memory store and /healthz says
+  // persistence is degraded.
+  const identityPath = process.env.IDENTITY_DB_PATH;
+  if (identityPath !== undefined && !isAbsolute(identityPath)) throw new Error('IDENTITY_DB_PATH must be absolute');
+  let identity;
+  try {
+    identity = openIdentityStore(identityPath ? { path: identityPath } : {});
+  } catch {
+    process.stderr.write('IDENTITY STORE UNAVAILABLE: continuing without durable identities.\n');
+    identity = Object.assign(openIdentityStore(), { degraded: true });
+  }
   const service = createService({
     manifest: { build: manifest.build, protocol: manifest.protocol, content_hash: manifest.content_hash },
     region: process.env.REGION || 'arn', publicAddress,
     trustFlyProxy: process.env.TRUST_FLY_PROXY === '1',
     bindAddress: process.env.BIND_ADDRESS || (localMode ? '127.0.0.1' : 'fly-global-services'),
     firstPort: positiveInteger('FIRST_UDP_PORT', 24570), portCount: positiveInteger('MAX_WORKERS', 4),
-  }, { workerFactory, log: code => process.stderr.write(`${code}\n`) });
+  }, { workerFactory, identity, log: code => process.stderr.write(`${code}\n`) });
   const address = await service.listen(positiveInteger('PORT', 8080), process.env.HOST || process.env.HTTP_BIND_ADDRESS || '0.0.0.0');
   process.stdout.write(`MATCHMAKING READY port=${address.port}\n`);
   let stopping = false;

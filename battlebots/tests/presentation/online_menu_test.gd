@@ -53,6 +53,7 @@ func run() -> void:
 	root.add_child(game)
 	current_scene = game
 	game.public_service.endpoint = api.url()
+	game.public_service.identity_path = "" # Never touch the player's saved identity.
 	var router: Node = root.get_node("MenuRouter")
 	var profile: Node = root.get_node("PlayerProfile")
 	var original_bot: int = profile.active_bot

@@ -26,6 +26,7 @@ func run() -> void:
 		return
 	var client := PublicServiceClient.new()
 	client.endpoint = api.url()
+	client.identity_path = "" # Never touch the player's saved identity.
 	root.add_child(client)
 	for capabilities: Variant in [null, [4], "2", {"2":true}]:
 		api.queue_capacities = capabilities
@@ -43,8 +44,9 @@ func run() -> void:
 	check(client.can_start() and not client.can_cancel() and client.membership.is_empty() and client._token.is_empty(), "Expired allocation clears credentials and cleanup lock")
 	check(api.requests.count("POST /v1/queue") == 1 and api.guest_count == 1, "Expired allocation does not silently reauthenticate or replay")
 	client.quick_play()
-	check(await until(func() -> bool: return client.state == "waiting"), "Explicit retry gets a fresh guest and queues")
-	check(api.guest_count == 2 and api.last_payload.size() == 1 and api.last_payload.get("capacity") == 2 and client.membership.get("code") == "" and client.message.contains("opponent"), "Duel queue requests two players with appropriate waiting text")
+	check(await until(func() -> bool: return client.state == "waiting"), "Explicit retry gets a fresh access token and queues")
+	# The retry resumes the same durable player (#16) rather than minting another.
+	check(api.guest_count == 1 and api.session_count == 1 and api.last_payload.size() == 1 and api.last_payload.get("capacity") == 2 and client.membership.get("code") == "" and client.message.contains("opponent"), "Duel queue requests two players with appropriate waiting text")
 	api.unauthorized_route = "GET /v1/membership"
 	client._next_poll = 0
 	check(await until(func() -> bool: return client.state == "failed"), "Expired polling session fails visibly")

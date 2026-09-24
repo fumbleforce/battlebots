@@ -1284,3 +1284,24 @@ Build `mvp-ab-43` (#80): `AuthorityWorld._collect_pickups` skips a bot whose
 spawn or respawn pose on their first physics step; before this fix a bot starting
 at the edge could collect the centre pickup on that step (practice starts at the
 edges since mvp-ab-41). Protocol unchanged; needs the matching hosted release.
+
+## Durable player identity, Step A (#16, 24 September 2026)
+
+Build `mvp-ab-44`; protocol unchanged. Client and service change together.
+- Service: `POST /v1/players` `{build, protocol, content_hash}` returns
+  `{player_id, access_token, expires_at, region, refresh_token}`. `POST /v1/sessions`
+  takes the same fields plus `refresh_token` and returns the same shape. It rotates
+  the refresh token (a retired one works for 60 s more, then never), keeps a live
+  session and room, and revokes the previous access token. An unknown or stale
+  token gets `401 invalid_refresh`. Both routes are rate-limited like
+  `/v1/guests`, which stays for older clients and the hosted acceptance check.
+  `/healthz` adds `persistence`: `memory`, `disk` or `degraded`.
+- Storage: `services/matchmaking/identity.mjs` uses SQLite through `node:sqlite`
+  (no npm dependency) and stores only sha256 hashes of refresh tokens. Numbered
+  migrations run at start, and a newer schema is refused. It is in memory unless
+  `IDENTITY_DB_PATH` (absolute) is set; production does not set it yet (see the
+  open decisions in docs/coordination/A_DURABLE_IDENTITY_PLAN.md).
+- Client: `PublicServiceClient` saves only the refresh token in
+  `identity_path` (`user://identity.cfg`) and resumes with it. When the token is
+  refused, it creates a new player and sets `identity_reset`. Tests must set
+  `identity_path = ""` or a temporary path, never the player's file.

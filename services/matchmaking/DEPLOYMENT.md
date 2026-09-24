@@ -162,3 +162,14 @@ tickets. Worker allocation files contain ticket hashes and live leases. They are
 local runtime files with restrictive permissions and do not enter exports. A
 worker stops when the supervisor lease expires, preventing an orphaned process
 from continuing to accept allocations after a control-service crash.
+
+## Durable identities (#16)
+
+Players and their refresh-token hashes live in an in-memory SQLite database
+unless `IDENTITY_DB_PATH` is set to an absolute path. Without it, a player keeps
+the same identity across launches only while this Machine runs; a restart or
+deploy forgets everyone, as before. To make identities durable, create a Fly
+volume, mount it (a `[mounts]` entry in `fly.toml`) and set
+`IDENTITY_DB_PATH=/data/identity.db`. This is still pending the decisions in
+docs/coordination/A_DURABLE_IDENTITY_PLAN.md. If the file cannot be opened, the
+service keeps running on memory and `/healthz` reports `persistence: "degraded"`.

@@ -8,7 +8,12 @@ var membership := {"state":"none", "region":"test-region", "players":0}
 var room_delay_ms := 0
 var health_delay_ms := 0
 var assignment_port := 0
+## Identities created (guests or durable players).
 var guest_count := 0
+var session_count := 0
+var refresh_issued := 0
+var last_refresh := ""
+var refuse_refresh := false
 var delete_count := 0
 var last_payload := {}
 var health_build := WireCodec.BUILD
@@ -81,9 +86,21 @@ func respond(item: Dictionary, route: String, data: Dictionary) -> void:
 			if oversize_health:
 				response["padding"] = "x".repeat(70000)
 			delay = maxi(1, health_delay_ms)
-		"POST /v1/guests":
+		"POST /v1/guests", "POST /v1/players":
 			guest_count += 1
-			response = {"player_id":"fixture-player", "access_token":"fixture-memory-only", "expires_at":Time.get_unix_time_from_system() + 3600, "region":"test-region"}
+			refresh_issued += 1
+			response = {"player_id":"fixture-player", "access_token":"a".repeat(64), "expires_at":Time.get_unix_time_from_system() + 3600, "region":"test-region"}
+			if route == "POST /v1/players":
+				response.refresh_token = "%064x" % refresh_issued
+		"POST /v1/sessions":
+			session_count += 1
+			last_refresh = str(data.get("refresh_token", ""))
+			if refuse_refresh:
+				code = 401
+				response = {"error":{"code":"invalid_refresh", "message":"Your saved online identity could not be restored."}}
+			else:
+				refresh_issued += 1
+				response = {"player_id":"fixture-player", "access_token":"a".repeat(64), "expires_at":Time.get_unix_time_from_system() + 3600, "region":"test-region", "refresh_token":"%064x" % refresh_issued}
 		"DELETE /v1/membership":
 			delete_count += 1
 			membership = {"state":"none", "region":"test-region", "players":0}
