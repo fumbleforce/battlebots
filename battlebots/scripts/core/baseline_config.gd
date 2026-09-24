@@ -10,3 +10,6 @@ const ARENA_HALF_SIZE := 50.0
 const WORLD_LAYER := 1
 const BOT_LAYER := 2
 const HIT_ZONE_LAYER := 4
+## Destructible arena props (#71) carry this bit on top of WORLD_LAYER, so
+## weapon queries can find them without sifting terrain contacts.
+const PROP_LAYER := 8

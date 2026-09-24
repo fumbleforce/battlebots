@@ -80,7 +80,7 @@ The signature encounter is a teammate lifting an opponent, exposing its undersid
 
 ### Scope boundaries
 
-The first release excludes freeform CAD construction, arbitrary player scripts or imported meshes, voxel destruction, fluid simulation, flying robots, ranged weapons, campaign content, console/mobile support, split screen, built-in voice chat, and a user-created arena editor. Physics debris is cosmetic. Ranked matchmaking is a later addition; public 2v2 is unranked initially.
+The first release excludes freeform CAD construction, arbitrary player scripts or imported meshes, voxel destruction, fluid simulation, flying robots, ranged weapons, campaign content, console/mobile support, split screen, built-in voice chat, and a user-created arena editor. Physics debris is cosmetic: it collides with the world only, never with bots, weapons or cameras. Destructible props change collision on every peer through replicated state (#71). Ranked matchmaking is a later addition; public 2v2 is unranked initially.
 
 ## 2. Player experience and game loops
 
@@ -326,7 +326,7 @@ Audio layers include drive load, wheel skid, weapon spin-up, weapon-ready cues, 
 
 Use grounded stylized industrial art: believable metal construction with simplified surfaces and strong color blocks. Bots need distinct front/rear silhouettes, visible weapon states, and readable damage at normal follow distance. Avoid relying on tiny scratches for critical component status.
 
-Damage uses staged meshes/materials, sparks, smoke, and limited detached fragments. Intact, damaged, and disabled states must be recognizable for drive pods and weapons. There is no gameplay mesh fracturing. Cosmetic fragments have short lifetimes, no damage, and no collision with bots.
+Damage uses staged meshes/materials, sparks, smoke, and detached parts. Intact, damaged, and disabled states must be recognizable for drive pods and weapons. Progressive destruction (#72; user direction 24 September 2026) works on every model with no per-model authoring. Parts come off a fighting bot as the replicated HP of their zone falls through thresholds: wheels and legs, the weapon, and hull panels on the struck face, with saws and grinders severing them. The killing blow breaks the wreck. A saw or grinder halves it along the blade, a railgun bores through it and splits it on heavy overkill, and blasts shatter it. The server replicates only zone HP and the killing blow (kind, body-frame point, axis, overkill). Which cluster detaches is chosen from accepted hit events, so a lost event changes only which part goes, never how many. There is no gameplay mesh fracturing. Pieces and lost parts are world-only physics debris with no damage and no collision with bots. They stay until the round resets, within a client budget.
 
 The current user-defined vehicle inventory supersedes the original three-chassis
 plan: retain the authored Sawblade and Scorpion bodies and add Atlas MX. The six
@@ -336,7 +336,7 @@ preserve selected parts. Armor, utilities, paint and cosmetic modules remain
 selectable, with complete HUD/menu icons and effects/audio for each weapon and
 damage state as content targets.
 
-Art targets: approximately 20k–40k triangles per assembled bot at highest detail, two lower LODs, shared materials and texture atlases where practical, and no more than 20 cosmetic debris pieces alive per client. These are provisional budgets, validated with ten bots in view. Mounts, forward axes, collision envelopes, and animation limits must be documented alongside each asset.
+Art targets: approximately 20k–40k triangles per assembled bot at highest detail, two lower LODs, shared materials and texture atlases where practical, and no more than 48 physics debris pieces alive per client (`data/destruction.json` debris.max_pieces; the oldest sink away first). These are provisional budgets, validated with ten bots in view. Mounts, forward axes, collision envelopes, and animation limits must be documented alongside each asset.
 
 ## 10. Godot 4.7.2 implementation architecture
 

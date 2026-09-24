@@ -82,6 +82,8 @@ var woodland_boss_online := true
 ## replaces the bot node.
 var pickups_enabled := true
 var _pickup_revision := -1
+## Last published destructible prop revision (#71); -1 forces a publish.
+var _props_revision := -1
 ## Catalogue slots the local part shortcuts cycle.
 const DEV_SLOTS := ["weapon", "chassis", "drive"]
 
@@ -333,6 +335,7 @@ func _disconnect() -> void:
 	lobby_view = {}
 	pickup_view = {}
 	_pickup_revision = -1
+	_props_revision = -1
 	if is_instance_valid(world):
 		world.queue_free()
 		world = null
@@ -649,7 +652,8 @@ func _start() -> void:
 func _send_baseline(peer: int) -> void:
 	_baseline.rpc_id(peer, var_to_bytes({"lobby":_public_lobby(), "match":_public_match(), "bots":_bot_snapshots(),
 		"server_tick":world.tick, "results":_results, "arena":arena_id, "pickups":_pickup_state(false),
-		"npcs":{woodland_boss.boss_id:WoodlandBoss.NPC_KIND} if woodland_boss != null and is_instance_valid(woodland_boss.boss) else {}}))
+		"npcs":{woodland_boss.boss_id:WoodlandBoss.NPC_KIND} if woodland_boss != null and is_instance_valid(woodland_boss.boss) else {},
+		"props":world.props.snapshot()}))
 
 func _bot_snapshots() -> Dictionary:
 	var states := {}
@@ -708,6 +712,7 @@ func _baseline(packet: PackedByteArray) -> void:
 			_snapshot(data.bots[id])
 	pickup_view = {}
 	_accept_pickups(data.get("pickups", {}))
+	world.props.accept(data.get("props", {}))
 	match_changed.emit(match_view.duplicate(true))
 	lobby_changed.emit(lobby_view.duplicate(true))
 	_accept_results(data.get("results", {}))
@@ -830,6 +835,9 @@ func _physics_process(delta: float) -> void:
 	if world.pickups.revision != _pickup_revision:
 		_pickup_revision = world.pickups.revision
 		_publish_pickups()
+	if world.props.revision != _props_revision:
+		_props_revision = world.props.revision
+		_publish_props()
 	_deliver_refusals()
 	if connection_state == "practice":
 		for event: Dictionary in world.weapons.events:
@@ -1098,6 +1106,23 @@ func _pickup_refused(packet: PackedByteArray) -> void:
 		return
 	event.erase("match_id")
 	pickup_refused.emit(event)
+
+## Broken arena props (#71): every peer drops the same colliders.
+func _publish_props() -> void:
+	if connection_state == "practice":
+		return
+	var packet := var_to_bytes({"match_id":match_state.match_id, "props":world.props.snapshot()})
+	for peer: int in peer_entities:
+		if peer != 1 and _peer_can_receive(peer):
+			_props.rpc_id(peer, packet)
+
+@rpc("authority", "call_remote", "reliable", 0)
+func _props(packet: PackedByteArray) -> void:
+	if packet.size() > MAX_CONTROL_STATE_BYTES:
+		return
+	var data: Variant = bytes_to_var(packet)
+	if data is Dictionary and data.get("match_id") == match_view.get("match_id"):
+		world.props.accept(data.get("props"))
 
 @rpc("authority", "call_remote", "reliable", 0)
 func _pickups(packet: PackedByteArray) -> void:

@@ -1,6 +1,7 @@
 class_name CombatWorld
 extends RefCounted
 const FRONT_TOOL_TUNING = preload("res://scripts/core/front_tool_tuning.gd")
+const ARENA_PROPS = preload("res://scripts/simulation/arena_props.gd")
 ## Server-only hit queries. No client supplies a target, damage, zone or impulse.
 var time := 0.0
 var event_id := 0
@@ -19,6 +20,11 @@ var _saw_round := -1
 var _pin_windows: Dictionary = {}
 ## Mortar shells in flight: {attacker, point, lands} resolved when they land.
 var _shells: Array[Dictionary] = []
+## Destructible arena props (#71, scripts/simulation/arena_props.gd), set by
+## AuthorityWorld; null on arenas without any.
+var props: RefCounted
+## Prop contact bookkeeping: "attacker:prop" -> last attack id or cooldown end.
+var _prop_strikes: Dictionary = {}
 ## Component zones lie on these armour faces for the wall-pin hit.
 const COMPONENT_FACES := {"drive_left":"left", "drive_right":"right", "weapon":"front"}
 const MINIGUN_RANGE := 24.0
@@ -87,6 +93,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 		# resulting lockout prevents the next activation, not this paid strike.
 		if state.zones.weapon <= 0 or (state.overheated and not state.strike):
 			continue
+		_melee_props(attacker, delta)
 		if state.stats.weapon in AtlasGeometry.TOOL_PARTS:
 			_front_tool(attacker, bots, delta, tick, round_index, saw_contacts)
 			continue
@@ -202,6 +209,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				cooldowns[key] = time + 0.5
 				_open_pin_window(a, b, direction)
 				_open_pin_window(b, a, -direction)
+	_ram_props(bots)
 	_resolve_pins(bots, tick, round_index)
 	# Collect every eligible attack before damage: mutual lethal hits share a tick.
 	for hit: Array in pending_hits:
@@ -576,14 +584,14 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 		return
 	if origin.distance_squared_to(result.position) < origin.distance_squared_to(from):
 		state.last_shot_from = origin
+	if kind == "railgun":
+		_railgun_path(attacker, bots, result, end, direction, tick, round_index)
+		return
 	for id: int in bots:
 		var victim: MvpBot = bots[id]
 		if victim.body.get_instance_id() != result.collider_id:
 			continue
 		if victim.team != attacker.team and not victim.combat.eliminated:
-			if kind == "railgun":
-				_railgun_path(attacker, victim, bots, result.position, end, direction, tick, round_index)
-				return
 			_hit(attacker, victim, result.position, tuning.value(kind, "damage"),
 				direction * victim.body.mass * tuning.value(kind, "knock"), tick, round_index,
 				tuning.value(kind, "recoil"), kind)
@@ -594,6 +602,8 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 				state.grip_point = result.position
 				state.grip_seconds = 0.0
 		return
+	# No bot took it: a destructible prop may (#71).
+	_prop_hit(result.collider_id, result.position, tuning.value(kind, "damage"), kind, direction)
 
 ## Harpoon tether: follows its anchor on the victim and, while the shooter
 ## holds the trigger, reels the victim toward the muzzle with part of the pull
@@ -863,24 +873,43 @@ func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
 			var impulse := (away + Vector3.UP * 0.8) * victim.body.mass * tuning.value("mortar", "knock") * share
 			_hit(attacker, victim, nearest, tuning.value("mortar", "damage") * share, impulse, tick, round_index,
 				0.0, "mortar")
+		if props != null:
+			for found: Dictionary in props.within(point, radius):
+				var share := lerpf(1.0, tuning.value("mortar", "blast_edge_share"), float(found.distance) / radius)
+				var at: Vector3 = props.props[found.name].at
+				props.damage(found.name, tuning.value("mortar", "damage") * share, "mortar", point, (at - point).normalized() + Vector3.UP)
 
-## The slug punches through what it strikes (#72). A slug that destroys a bot
-## flies on with overpenetration_retain of the energy it did not spend, through
-## up to max_penetrations bodies; one that does not still pierces a single
-## body behind for pierce_share. Walls and allies stop it.
-func _railgun_path(attacker: MvpBot, first: MvpBot, bots: Dictionary, at: Vector3, end: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
+## The slug punches through what it strikes (#72, #71). A slug that destroys a
+## bot or breaks a prop flies on with overpenetration_retain of the energy it
+## did not spend, through up to max_penetrations bodies; one that does not
+## still pierces a single body behind a bot for pierce_share. Walls, allies
+## and props left standing stop it.
+func _railgun_path(attacker: MvpBot, bots: Dictionary, result: Dictionary, end: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
 	var tuning := TurretTuning.settings()
 	var full := tuning.value("railgun", "damage")
 	var energy := full
-	var victim := first
 	var passes := 0
 	var exclude: Array[RID] = [attacker.body.get_rid()]
-	while victim != null:
-		var leftover := victim.combat.overkill(victim.zone_at(at), energy)
-		_hit(attacker, victim, at, energy, direction * victim.body.mass * tuning.value("railgun", "knock") * energy / full,
-			tick, round_index, tuning.value("railgun", "recoil") if passes == 0 else 0.0, "railgun", "", 1.0, direction)
+	while not result.is_empty():
+		var at: Vector3 = result.position
+		var victim: MvpBot = null
+		for id: int in bots:
+			if bots[id].body.get_instance_id() == result.collider_id:
+				victim = bots[id]
+		var leftover := -1.0
+		if victim != null:
+			if victim.team == attacker.team or victim.combat.eliminated:
+				return
+			leftover = victim.combat.overkill(victim.zone_at(at), energy)
+			_hit(attacker, victim, at, energy, direction * victim.body.mass * tuning.value("railgun", "knock") * energy / full,
+				tick, round_index, tuning.value("railgun", "recoil") if passes == 0 else 0.0, "railgun", "", 1.0, direction)
+			exclude.append(victim.body.get_rid())
+		else:
+			leftover = _prop_hit(result.collider_id, at, energy, "railgun", direction)
+			if leftover < 0.0:
+				return
+			exclude.append(result.rid)
 		passes += 1
-		exclude.append(victim.body.get_rid())
 		if leftover >= 0.0:
 			energy = leftover * tuning.value("railgun", "overpenetration_retain")
 		elif passes == 1:
@@ -892,16 +921,99 @@ func _railgun_path(attacker: MvpBot, first: MvpBot, bots: Dictionary, at: Vector
 		var query := PhysicsRayQueryParameters3D.create(at + direction * 0.05, end,
 			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, exclude)
 		query.hit_from_inside = true
-		var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
+		result = attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
 		attacker.combat.last_shot_to = end if result.is_empty() else result.position
-		if result.is_empty():
-			return
-		at = result.position
-		victim = null
-		for id: int in bots:
-			var next: MvpBot = bots[id]
-			if next.body.get_instance_id() == result.collider_id and next.team != attacker.team and not next.combat.eliminated:
-				victim = next
+
+## Damages the prop behind a collider. Returns the energy left after breaking
+## it (>= 0), or a negative value when it is no prop or still stands.
+func _prop_hit(collider_id: int, point: Vector3, raw: float, kind: String, axis: Vector3) -> float:
+	if props == null:
+		return -1.0
+	var name: String = props.prop_at(collider_id)
+	if name.is_empty():
+		return -1.0
+	return props.damage(name, raw, kind, point, axis)
+
+## A running weapon chews into props ahead of the hull (data/arena_props.json
+## melee): saws and grinders continuously, hammers, spinners and front tools
+## per strike.
+func _melee_props(attacker: MvpBot, delta: float) -> void:
+	if props == null or props.props.is_empty():
+		return
+	var state := attacker.combat
+	var weapon: String = AtlasGeometry.TOOL_PARTS.get(state.stats.weapon, state.stats.weapon)
+	var melee: Dictionary = ARENA_PROPS.settings().melee
+	if not melee.has(weapon):
+		return
+	var rule: Dictionary = melee[weapon]
+	var engaged := false
+	var raw := 0.0
+	match weapon:
+		"saw":
+			engaged = state.weapon_phase == "active"
+			raw = float(rule.get("dps", 0.0)) * delta
+		"grinder":
+			engaged = state.charge >= 0.3
+			raw = float(rule.get("dps", 0.0)) * state.charge * delta
+		"vertical_spinner", "horizontal_spinner":
+			engaged = state.charge >= 0.25
+			raw = float(rule.get("hit", 0.0)) * state.charge
+		_:
+			engaged = state.strike and state.attack_id > 0
+			raw = float(rule.get("hit", 0.0))
+	if not engaged or raw <= 0.0:
+		return
+	var size: Vector3 = state.stats.size
+	var linear := BotScale.from_size(size)
+	var reach := float(melee.reach) * linear
+	var shape := SphereShape3D.new()
+	shape.radius = reach
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	query.transform = attacker.body.global_transform * Transform3D(Basis.IDENTITY, Vector3(0, 0.1 * linear, -size.z * 0.5 - reach * 0.5))
+	query.collision_mask = BaselineConfig.PROP_LAYER
+	var axis := attacker.body.global_basis.x if weapon == "saw" else (-attacker.body.global_basis.z)
+	for hit: Dictionary in attacker.body.get_world_3d().direct_space_state.intersect_shape(query, 8):
+		var name: String = props.prop_at(hit.collider_id)
+		if name.is_empty():
+			continue
+		var key := "%d:%s" % [attacker.entity_id, name]
+		if rule.has("cooldown"):
+			if float(_prop_strikes.get(key, -INF)) > time:
+				continue
+			_prop_strikes[key] = time + float(rule.cooldown)
+		elif not rule.has("dps"):
+			if _prop_strikes.get(key) == state.attack_id:
+				continue
+			_prop_strikes[key] = state.attack_id
+		props.damage(name, raw, weapon, query.transform.origin, axis)
+
+## Driving into a prop at speed batters it (data/arena_props.json ram).
+func _ram_props(bots: Dictionary) -> void:
+	if props == null or props.props.is_empty():
+		return
+	var rule: Dictionary = ARENA_PROPS.settings().ram
+	for id: int in bots:
+		var bot: MvpBot = bots[id]
+		if bot.combat.eliminated:
+			continue
+		for collider: int in bot.body.contact_bodies:
+			var name: String = props.prop_at(collider)
+			if name.is_empty():
+				continue
+			var key := "ram:%d:%s" % [bot.entity_id, name]
+			if float(_prop_strikes.get(key, -INF)) > time:
+				continue
+			var at: Vector3 = props.props[name].at
+			var toward := Vector3(at.x - bot.body.global_position.x, 0.0, at.z - bot.body.global_position.z)
+			if toward.is_zero_approx():
+				continue
+			var closing := bot.previous_velocity.dot(toward.normalized())
+			if closing <= rule.min_closing_speed:
+				continue
+			_prop_strikes[key] = time + rule.cooldown
+			var raw: float = (closing - rule.min_closing_speed) * rule.damage_per_speed * bot.body.mass / maxf(rule.reference_mass, 1.0)
+			props.damage(name, raw, "ram", bot.body.global_position, toward.normalized())
 
 ## First unobstructed point on a bot seen from a point, or {} when anything
 ## else (walls, allies, other bots) is in the way.
@@ -925,6 +1037,8 @@ func _flamer_shot(attacker: MvpBot, bots: Dictionary, from: Vector3, direction: 
 	var blocked := attacker.body.get_world_3d().direct_space_state.intersect_ray(wall)
 	if not blocked.is_empty():
 		reach = from.distance_to(blocked.position)
+		# The jet licks whatever it splashes against; timber burns (#71).
+		_prop_hit(blocked.collider_id, blocked.position, tuning.value("flamer", "damage"), "flamer", direction)
 	state.last_shot_from = from
 	state.last_shot_to = from + direction * reach
 	state.last_shot_tick = tick
@@ -1031,6 +1145,7 @@ func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: i
 			_hit(attacker, victim, result.position, MINIGUN_DAMAGE,
 				direction * victim.body.mass * 0.035, tick, round_index, 0.08, "minigun")
 		return
+	_prop_hit(result.collider_id, result.position, MINIGUN_DAMAGE, "minigun", direction)
 
 ## Hammer blows knock the target away from the attacker and pop it off the floor.
 ## A straight-down impulse was absorbed by the arena and read as no reaction.

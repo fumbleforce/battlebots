@@ -2,6 +2,8 @@ class_name AuthorityWorld
 extends Node3D
 const HEAT_RELIEF = preload("res://scripts/core/heat_relief.gd")
 const ARENA_SPAWNS = preload("res://scripts/core/arena_spawns.gd")
+const ARENA_PROPS = preload("res://scripts/simulation/arena_props.gd")
+const ARENA_PROP_VISUAL = preload("res://scripts/arena/arena_prop_visual.gd")
 ## Physics-only session world. The session owns timing, commands and match rules.
 ## Emitted after a pickup (or a replicated swap) changes a bot's match loadout.
 ## A body/drive/weapon change replaces the MvpBot node under the same entity id.
@@ -12,6 +14,9 @@ var weapons := CombatWorld.new()
 var tick := 0
 var credited: Dictionary = {}
 var pickups := MatchPickups.new()
+## Destructible arena props (#71): authoritative on the server, adopted from
+## replicated state on clients. Shared with every CombatWorld.
+var props: RefCounted = ARENA_PROPS.new()
 var arena: Node3D
 var arena_id := "foundry"
 
@@ -41,6 +46,13 @@ func _build_arena() -> void:
 	if DisplayServer.get_name() == "headless":
 		_strip_presentation(arena)
 	add_child(arena)
+	props.configure(arena)
+	weapons.props = props
+	if DisplayServer.get_name() != "headless" and not props.props.is_empty():
+		var breaks: Node3D = ARENA_PROP_VISUAL.new()
+		breaks.name = "PropBreaks"
+		arena.add_child(breaks)
+		breaks.configure(arena, props)
 
 func _strip_presentation(node: Node) -> void:
 	for child: Node in node.get_children():
@@ -134,6 +146,8 @@ func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 
 func reset_round() -> void:
 	weapons = CombatWorld.new()
+	weapons.props = props
+	props.reset_round()
 	credited.clear()
 	pickups.reset_round()
 	for id: int in bots:
@@ -188,6 +202,8 @@ func clear_bots() -> void:
 	credited.clear()
 	pickups.clear()
 	weapons = CombatWorld.new()
+	weapons.props = props
+	props.reset_round()
 
 ## Pickup points avoid the team spawn lanes on the Z axis: one at the centre and
 ## four on the diagonals, scaled to the arena. Terrain arenas follow their ground.

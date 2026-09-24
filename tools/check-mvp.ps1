@@ -52,6 +52,7 @@ Invoke-MvpTest 'res://tests/simulation/armour_layout_test.gd' 'ARMOUR LAYOUT PAS
 Invoke-MvpTest 'res://tests/simulation/saw_state.gd' 'SAW STATE PASS'
 Invoke-MvpTest 'res://tests/simulation/saw_visual.gd' 'SAW VISUAL PASS'
 Invoke-MvpTest 'res://tests/simulation/saw_physics.tscn' 'SAW PHYSICS PASS' -Scene
+Invoke-MvpTest 'res://tests/simulation/arena_props_test.gd' 'ARENA PROPS PASS'
 Invoke-MvpTest 'res://tests/simulation/rules_smoke.gd' 'RULES PASS'
 Invoke-MvpTest 'res://tests/simulation/five_v_five_rules.tscn' 'FIVE V FIVE RULES PASS' -Scene
 Invoke-MvpTest 'res://tests/simulation/ffa_rules.tscn' 'FFA RULES PASS' -Scene

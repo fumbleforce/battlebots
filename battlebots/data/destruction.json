@@ -1,5 +1,5 @@
 {
-	"_comment": "Progressive destruction (#72). Client presentation only: wreck pieces, cut look, debris physics and which model parts come off as their zone is worn down. The authoritative killing blow (kind, point, axis, force) comes from the snapshot; railgun overpenetration tuning lives in turret_weapons.json. Distances are metres at the bot's runtime scale unless noted; speeds m/s; times s.",
+	"_comment": "Progressive destruction (#72). Client presentation only: wreck pieces, cut look, debris physics and which model parts come off as their zone is worn down. The authoritative killing blow (kind, point, axis, force) comes from the snapshot; railgun overpenetration tuning lives in turret_weapons.json. Style and part distances and speeds are metres (m/s) before the bot's geometry scale (BotScale, x3 at runtime); cut values are world metres; times s.",
 	"debris": {
 		"_comment": "Physics debris collides with the world only, never with bots or camera rays. max_pieces bounds live bodies per client (oldest sink away first). Bodies freeze after rest_seconds of stillness; sinking takes sink_seconds.",
 		"max_pieces": 48,

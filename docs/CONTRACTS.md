@@ -1,5 +1,53 @@
 # Shared contracts — local records and current MVP session API
 
+## Progressive destruction and destructible props — build mvp-ab-46, protocol 15 (#72, #71)
+
+Snapshot field 45 is new, making 46 fields in total. It carries the killing
+blow as `[kind, point, axis, force]`, or `[]` while alive or after a
+non-combat knockout. `point` and `axis` are in the body frame, and `force` is
+the raw hit over the core left, capped at `CombatState.DEATH_FORCE_MAX`.
+- `CombatState.death` is set in `CombatWorld._apply_hit` through
+  `record_death`. It stays out of `CombatState.snapshot()`, so round results
+  and hosted recording are unchanged.
+- `WireCodec.death_to_array` / `death_from_array` validate the record, and
+  `BotView.death` exposes it to presentation.
+
+Combat events add `axis`: the saw blade's axle, the grinder's approach, the
+slug's flight, otherwise the impulse direction. `CombatWorld._hit` takes an
+optional trailing `axis`.
+
+Railgun over-penetration is tuned in `data/turret_weapons.json` railgun
+(`overpenetration_retain`, `max_penetrations`, read by `TurretTuning`). A slug
+that destroys a bot or breaks a prop flies on with its unspent energy.
+`CombatState.overkill(zone, raw)` previews that energy without changing
+anything.
+
+Destructible Woodland props (trees, barricades, outcrop boulders) are
+authoritative:
+- **Rules.** `scripts/simulation/arena_props.gd`, tuned in
+  `data/arena_props.json`: HP, weapon multipliers, melee reach and dps/hit,
+  and rams. A broken prop drops its collider on every peer until the round
+  resets. Props carry the new `BaselineConfig.PROP_LAYER` (8) bit on top of the
+  world layer.
+- **Replication.** State `{revision, destroyed: {name: [kind, point, axis]}}`
+  is published by a new reliable `MvpSession._props` RPC and in baselines
+  (`props`), and clients adopt it with `ArenaProps.accept`.
+- **Access.** `AuthorityWorld.props` is shared with each `CombatWorld.props`.
+
+Presentation is client-only and driven by snapshots:
+- **Wrecks.** `WreckPieces` breaks wrecks with the shared cut shader
+  (`destruction_cut.gdshaderinc`, `destruction_surface.gdshader`).
+- **Part loss.** `BotPartLoss` sheds parts as zone HP falls.
+  `CombatImpactFeedback` broadcasts every accepted event to the
+  `bot_part_loss` group, which only chooses which part goes.
+- **Props.** `ArenaPropVisual` breaks props.
+- **Debris.** `WreckPiece` bodies collide with the world only, within the
+  `data/destruction.json` budget.
+
+`MvpBot._create_damage_visual` now returns the component groups. Needs the
+matching hosted release.
+[System, checklists and evidence](coordination/PROGRESSIVE_DESTRUCTION.md).
+
 ## Client replay: gravity on a lifted edge, pivot contact, sliding sweep — build mvp-ab-43 (#13)
 
 Prediction-to-drive boundary; no wire field. `DriveModel.replay` no longer

@@ -224,7 +224,9 @@ func budget() -> void:
 	PIECE.enforce_budget(get_tree(), 3, 0.2)
 	check(made[0].sinking and made[1].sinking and not made[2].sinking and not made[4].sinking, "The budget sinks the oldest pieces first")
 	check(made[0].collision_mask == 0 and made[0].freeze, "Sinking pieces leave the world")
-	for frame: int in 30:
+	# Headless frames may be far shorter than the sink time; wait on the clock.
+	var deadline := Time.get_ticks_msec() + 2000
+	while is_instance_valid(made[0]) and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame
 	check(not is_instance_valid(made[0]) and is_instance_valid(made[2]), "Sunk pieces free themselves")
 	root.queue_free()

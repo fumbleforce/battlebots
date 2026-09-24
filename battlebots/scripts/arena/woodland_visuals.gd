@@ -37,6 +37,11 @@ const TOWER_RADIUS := 134.5
 const TOWER_HEIGHT := 44.0
 @export var arena_path: NodePath = NodePath("..")
 var _batches: Dictionary = {}
+## Destructible props (#71): obstacle name -> [[batch key or MultiMeshInstance3D, index]].
+## _owner names the obstacle whose pieces _add is recording.
+var _owned: Dictionary = {}
+var _owner := ""
+var _batch_nodes: Dictionary = {}
 var _materials: Dictionary = {}
 var _meshes: Dictionary = {}
 var _side := Transform3D.IDENTITY
@@ -80,7 +85,10 @@ func _build() -> void:
 		match item.kind:
 			"barricade":
 				_side = Transform3D(Basis(Vector3.UP, item.yaw), item.at)
+				_owner = item.name
+				_owned[_owner] = []
 				_barricade(item.length)
+				_owner = ""
 			"ramp":
 				# The Blender model rises toward -Z; the collision wedge toward +Z.
 				_structure("jump_ramp", Transform3D(Basis(Vector3.UP, float(item.yaw) + PI), item.at))
@@ -351,6 +359,8 @@ func _add(mat: String, kind: String, pose: Transform3D, color: Color = Color.WHI
 		_batches[key] = {"poses":[], "colors":[]}
 	_batches[key].poses.append(_side * pose)
 	_batches[key].colors.append(color)
+	if not _owner.is_empty():
+		_owned[_owner].append([key, _batches[key].poses.size() - 1])
 
 func _box(mat: String, at: Vector3, size: Vector3, rotation: Vector3 = Vector3.ZERO, color: Color = Color.WHITE, kind: String = "box") -> void:
 	_add(mat, kind, Transform3D(Basis.from_euler(rotation).scaled_local(size), at), color)
@@ -452,7 +462,11 @@ func _flush() -> void:
 		var casts := parts[0] in ["plank", "timber", "rail", "deck", "log", "canvas", "concrete", "steel"] and parts[1] in ["box", "pyr"]
 		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if casts else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(visual)
+		_batch_nodes[key] = visual
 	_batches.clear()
+	for name: String in _owned:
+		for piece: Array in _owned[name]:
+			if piece[0] is String: piece[0] = _batch_nodes.get(piece[0])
 
 func _text(words: String, at: Vector3, size: int, pixel: float, color: Color, outline: int = 0) -> Label3D:
 	var label := Label3D.new()
@@ -850,6 +864,7 @@ func _outcrops() -> void:
 			continue
 		var pose := GROUND.boulder_pose(item)
 		groups[pose.model].append(Transform3D(pose.basis, item.at - Vector3(0, pose.sink, 0)))
+		_owned[item.name] = [[pose.model, groups[pose.model].size() - 1]]
 	for model: String in groups:
 		var poses: Array = groups[model]
 		if poses.is_empty():
@@ -864,6 +879,9 @@ func _outcrops() -> void:
 		visual.name = "Granite_" + model
 		visual.multimesh = multi
 		add_child(visual)
+		for name: String in _owned:
+			for piece: Array in _owned[name]:
+				if piece[0] is String and piece[0] == model: piece[0] = visual
 
 func _icosphere(subdivisions: int) -> Dictionary:
 	var t := (1.0 + sqrt(5.0)) / 2.0
@@ -974,3 +992,8 @@ func _lighting(arena: Node) -> void:
 	sun.directional_shadow_max_distance = 120.0
 	sun.directional_shadow_fade_start = 0.85
 	sun.light_volumetric_fog_energy = 1.2
+
+## The batched instances drawing a destructible prop (#71), as
+## [[MultiMeshInstance3D, instance index]]; empty for anything else.
+func prop_instances(name: String) -> Array:
+	return _owned.get(name, []).filter(func(piece: Array) -> bool: return piece[0] is MultiMeshInstance3D)

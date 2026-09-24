@@ -1,0 +1,39 @@
+{
+	"_comment": "Authoritative destructible arena props (#71), read by the server and clients through ArenaProps. Changing any value is a gameplay change: bump WireCodec.BUILD and ship a matching hosted server release. kinds: which arena obstacles break (by obstacle kind and name prefix) and their HP. A broken prop loses its collider on every peer until the next round.",
+	"kinds": {
+		"tree": {"hp": 60.0, "names": ["Trunk"]},
+		"barricade": {"hp": 150.0, "names": ["Barricade"]},
+		"boulder": {"hp": 320.0, "names": ["Boulder"]}
+	},
+	"multipliers": {
+		"_comment": "Weapon kind -> prop kind -> damage multiplier (unlisted = 1). Saws and grinders fell timber; guns barely chip granite.",
+		"saw": {"tree": 4.0, "barricade": 2.5, "boulder": 0.4},
+		"grinder": {"tree": 3.0, "barricade": 2.5, "boulder": 0.8},
+		"mortar": {"tree": 1.6, "barricade": 1.6, "boulder": 1.3},
+		"cannon": {"tree": 1.2, "barricade": 1.2, "boulder": 1.2},
+		"railgun": {"tree": 1.5, "barricade": 1.2, "boulder": 0.9},
+		"flamer": {"tree": 2.5, "barricade": 2.5, "boulder": 0.0},
+		"minigun": {"tree": 0.6, "barricade": 0.6, "boulder": 0.15},
+		"plasma": {"tree": 0.8, "barricade": 0.8, "boulder": 0.4},
+		"hammer": {"tree": 1.2, "barricade": 1.8, "boulder": 0.8},
+		"ram": {"tree": 1.0, "barricade": 1.5, "boulder": 0.3}
+	},
+	"melee": {
+		"_comment": "Weapon contact with props, keyed by weapon (Atlas front tools by tool: grinder, ram, spear). The tool reaches a sphere of reach (m, before geometry scale) ahead of the hull. dps: continuous damage while the weapon runs (saw, grinder at full spin); hit: one blow per strike or per cooldown seconds (spinners).",
+		"reach": 0.9,
+		"saw": {"dps": 18.0},
+		"grinder": {"dps": 35.0},
+		"hammer": {"hit": 38.0},
+		"vertical_spinner": {"hit": 45.0, "cooldown": 0.3},
+		"horizontal_spinner": {"hit": 40.0, "cooldown": 0.3},
+		"ram": {"hit": 24.0},
+		"spear": {"hit": 30.0}
+	},
+	"ram": {
+		"_comment": "A bot driving into a prop above min_closing_speed (m/s) deals damage_per_speed per m/s over it, scaled by the bot's mass over reference_mass, once per cooldown seconds per prop.",
+		"min_closing_speed": 4.0,
+		"damage_per_speed": 9.0,
+		"reference_mass": 100.0,
+		"cooldown": 0.5
+	}
+}

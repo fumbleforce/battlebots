@@ -53,7 +53,7 @@ func _run() -> void:
 			mirrored = mirrored or (other.kind == item.kind and other.at.distance_to(Vector3(-item.at.x, item.at.y, -item.at.z)) < 0.01)
 		check(mirrored, "Obstacle lacks its mirrored partner: %s" % str(item.at))
 	for body: StaticBody3D in obstacles.get_children():
-		check(body.collision_layer == 1 and body.collision_mask == 2, "Obstacle layers differ from the arena shell")
+		check(body.collision_layer & ~BaselineConfig.PROP_LAYER == 1 and body.collision_mask == 2, "Obstacle layers differ from the arena shell")
 	# Spawns, the open centre and practice homes stay clear with room to turn.
 	var clear_points: Array[Vector3] = [Vector3.ZERO, Vector3(0, 0, 4), Vector3(0, 0, -4), Vector3(-13, 0, -2), Vector3(12, 0, -11)]
 	for marker: Node3D in arena.get_node("SpawnPoints").get_children():

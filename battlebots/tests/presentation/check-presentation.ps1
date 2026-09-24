@@ -117,6 +117,12 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/destruction_runtime_test.tscn', '--quit-after', '10000') -Marker 'DESTRUCTION RUNTIME PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/wreck_pieces_test.tscn', '--quit-after', '10000') -Marker 'WRECK PIECES PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/bot_part_loss_test.tscn', '--quit-after', '10000') -Marker 'BOT PART LOSS PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
+    'res://tests/presentation/destruction_models_test.tscn', '--quit-after', '10000') -Marker 'DESTRUCTION MODELS PASS'
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/player_health_bars_test.tscn', '--quit-after', '10000') -Marker 'PLAYER HEALTH BARS PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/combat_impact_feedback_test.tscn', '--quit-after', '10000') -Marker 'COMBAT IMPACT FEEDBACK PASS'
