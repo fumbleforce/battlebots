@@ -1,6 +1,7 @@
 extends Node3D
 const COOLING_ZONE_VISUALS = preload("res://scripts/presentation/cooling_zone_visuals.gd")
 const SPREE_BANNER = preload("res://scripts/ui/spree_banner.gd")
+const PRACTICE_LOADING = preload("res://scripts/ui/practice_loading_overlay.gd")
 ## Persistent game owner; imported screens navigate without replacing the live session.
 @onready var session: MvpSession = $Session
 @onready var source: SessionBotSource = $PlayerSource
@@ -49,6 +50,9 @@ var _practice_return_screen := ""
 var _default_return_text := ""
 var _test_drive_entry: GarageTestDriveEntry
 var _test_drive_screen := ""
+## Loading card shown while a practice arena builds (#70).
+var practice_loading: PRACTICE_LOADING
+var _practice_loading := false
 var game_menu_page: Control
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
@@ -110,6 +114,8 @@ func _ready() -> void:
 	add_child(scoreboard_layer)
 	duel_scoreboard = DuelScoreboard.new()
 	scoreboard_layer.add_child(duel_scoreboard)
+	practice_loading = PRACTICE_LOADING.new()
+	add_child(practice_loading)
 	var recovery_layer := CanvasLayer.new()
 	recovery_layer.layer = 10
 	add_child(recovery_layer)
@@ -181,7 +187,7 @@ func _ready() -> void:
 	_resize_menu()
 	show_screen("main")
 	if "--practice" in args:
-		start_practice()
+		load_practice()
 
 func _resize_menu() -> void:
 	var extent := get_viewport().get_visible_rect().size
@@ -207,7 +213,7 @@ func show_screen(key: String) -> void:
 	_test_drive_screen = key if key in ["garage", "customize"] else ""
 	_test_drive_entry = null
 	if not _test_drive_screen.is_empty():
-		_test_drive_entry = GarageTestDriveEntry.install(screen, start_practice.bind(key))
+		_test_drive_entry = GarageTestDriveEntry.install(screen, load_practice.bind(key))
 		_update_test_drive_entry()
 	if screen.has_method("apply_text_scale"):
 		screen.apply_text_scale(_menu_text_scale)
@@ -810,6 +816,32 @@ func _update_test_drive_entry() -> void:
 	var index: int = PlayerProfile.active_bot
 	var draft: Dictionary = PlayerProfile.loadouts[index] if index >= 0 and index < PlayerProfile.loadouts.size() else {}
 	_test_drive_entry.render(draft, _test_drive_allowed())
+
+## Player-facing Practice start: draws the loading card first, builds behind it
+## and lifts it once the arena's first frames (and their first-use shader setup)
+## have drawn. start_practice() stays synchronous for direct callers and tests.
+func load_practice(return_screen: String = "") -> void:
+	if _practice_loading or session.connection_state != "offline":
+		return
+	_practice_loading = true
+	practice_loading.present(preload("res://scripts/arena/arena_scenery.gd").load_choice())
+	await _drawn_frame()
+	if is_inside_tree():
+		start_practice(return_screen)
+		if session.connection_state == "practice":
+			for frame: int in 2:
+				await _drawn_frame()
+	_practice_loading = false
+	if is_inside_tree():
+		practice_loading.lift()
+
+## Waits until a frame has been drawn; headless builds draw nothing, so a
+## processed frame stands in.
+func _drawn_frame() -> void:
+	if DisplayServer.get_name() == "headless":
+		await get_tree().process_frame
+	else:
+		await RenderingServer.frame_post_draw
 
 func start_practice(return_screen: String = "") -> void:
 	if not return_screen.is_empty() and (return_screen != _test_drive_screen or not _test_drive_allowed()):

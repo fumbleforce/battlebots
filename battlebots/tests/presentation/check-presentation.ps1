@@ -177,6 +177,7 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
 # Real transport checks run at wall-clock speed; accelerated ENet can throttle.
 foreach ($check in @(@('network_diagnostics_session_test.gd', 'NETWORK DIAGNOSTICS SESSION PASS'),
     @('pickup_camera_test.gd', 'PICKUP CAMERA PASS'),
+    @('practice_loading_test.gd', 'PRACTICE LOADING PASS'),
     @('combat_hud_session_test.gd', 'COMBAT HUD SESSION PASS'),
     @('game_reconnect_test.gd', 'GAME RECONNECT PASS'),
     @('menu_mode_guard_test.gd', 'MENU MODE GUARD PASS'),

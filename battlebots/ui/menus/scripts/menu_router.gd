@@ -90,7 +90,10 @@ func back() -> void:
 
 func start_practice() -> void:
 	if is_instance_valid(host):
-		host.start_practice()
+		if host.has_method("load_practice"):
+			host.load_practice()
+		else:
+			host.start_practice()
 
 func begin_gameplay() -> void:
 	if is_instance_valid(host):
