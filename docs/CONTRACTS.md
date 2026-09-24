@@ -1,6 +1,6 @@
 # Shared contracts — local records and current MVP session API
 
-## Progressive destruction and destructible props — build mvp-ab-46, protocol 15 (#72, #71)
+## Progressive destruction and destructible props — build mvp-ab-49, protocol 16 (#72, #71)
 
 Snapshot field 45 is new, making 46 fields in total. It carries the killing
 blow as `[kind, point, axis, force]`, or `[]` while alive or after a
