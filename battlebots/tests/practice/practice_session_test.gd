@@ -1,4 +1,4 @@
-extends SceneTree
+extends Node
 const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Reset contract fixture: damage/poses below are deliberate setup, not a natural
 ## combat claim. The final hit uses only public commands from the repaired spawn.
@@ -8,7 +8,10 @@ var viewports: Array[SubViewport] = []
 var restart_events := 0
 var hits: Array[Dictionary] = []
 
-func _initialize() -> void:
+# A scene, not a SceneTree main-loop script: on Windows the script main loop
+# of this test crashed intermittently after passing, during engine teardown
+# (#10; diagnosis runs on codex/shutdown-diag, about 4% of exits).
+func _ready() -> void:
 	run.call_deferred()
 
 func check(ok: bool, message: String) -> void:
@@ -20,9 +23,8 @@ func make_session(label: String) -> MvpSession:
 	var viewport := SubViewport.new()
 	viewport.name = label
 	viewport.own_world_3d = true
-	root.add_child(viewport)
-	if OS.get_environment("BATTLEBOTS_DIAG_VARIANT") != "sessions_no_mp":
-		set_multiplayer(SceneMultiplayer.new(), viewport.get_path())
+	add_child(viewport)
+	get_tree().set_multiplayer(SceneMultiplayer.new(), viewport.get_path())
 	var session := MvpSession.new()
 	session.name = "Session"
 	viewport.add_child(session)
@@ -32,8 +34,8 @@ func make_session(label: String) -> MvpSession:
 
 func frames(count: int) -> void:
 	for index: int in range(count):
-		await physics_frame
-		await process_frame
+		await get_tree().physics_frame
+		await get_tree().process_frame
 
 func denied(session: MvpSession, label: String) -> void:
 	check(session.practice_target() == null, label + " exposes no practice target")
@@ -151,46 +153,20 @@ func playable_hit(session: MvpSession) -> void:
 	print("PRACTICE post-reset hit: target_core=%.2f/%.2f events=%d" % [target.combat.core, initial_core, hits.size()])
 
 func run() -> void:
-	# DIAGNOSIS ONLY (codex/shutdown-diag, #10): run one half of this test.
-	var variant := OS.get_environment("BATTLEBOTS_DIAG_VARIANT")
-	if variant == "registry_only":
-		var registry := ContentRegistry.new()
-		await frames(60)
-		check(registry.content_hash != "", "Registry loads")
-		await teardown()
-		return
-	if variant == "empty_viewport":
-		var viewport := SubViewport.new()
-		viewport.own_world_3d = true
-		root.add_child(viewport)
-		viewports.append(viewport)
-		await frames(60)
-		await teardown()
-		return
-	if variant in ["sessions_only", "sessions_no_mp", "one_session"]:
-		for index: int in range(1 if variant == "one_session" else 3):
-			make_session("Session%d" % index)
-		await frames(60)
-		await teardown()
-		return
 	var practice := make_session("Practice")
 	denied(practice, "Offline")
-	if variant != "practice_only":
-		var host := make_session("Host")
-		var client := make_session("Client")
-		var port := FreePort.udp()
-		check(host.host(port, true, 2) == OK, "Non-practice host binds")
-		denied(host, "Hosting")
-		check(client.join("127.0.0.1", port) == OK, "Non-practice client begins join")
-		denied(client, "Connecting")
-		for tick: int in range(600):
-			if client.local_entity > 0: break
-			await frames(1)
-		check(client.local_entity > 0, "Real client joins the non-practice lobby")
-		denied(client, "Connected")
-	if variant == "network_only":
-		await teardown()
-		return
+	var host := make_session("Host")
+	var client := make_session("Client")
+	var port := FreePort.udp()
+	check(host.host(port, true, 2) == OK, "Non-practice host binds")
+	denied(host, "Hosting")
+	check(client.join("127.0.0.1", port) == OK, "Non-practice client begins join")
+	denied(client, "Connecting")
+	for tick: int in range(600):
+		if client.local_entity > 0: break
+		await frames(1)
+	check(client.local_entity > 0, "Real client joins the non-practice lobby")
+	denied(client, "Connected")
 	var draft := practice.registry.duelist()
 	check(practice.practice(draft) == OK, "Practice starts with canonical Duelist")
 	practice.session_event.connect(func(kind: String, _details: Dictionary) -> void:
@@ -209,15 +185,11 @@ func run() -> void:
 	await check_reset(practice, original_world, originals, builds, 2)
 	hits.clear()
 	await playable_hit(practice)
-	await teardown()
-
-func teardown() -> void:
 	for session: MvpSession in sessions: session.leave()
-	await physics_frame
+	await get_tree().physics_frame
 	for viewport: SubViewport in viewports:
-		if OS.get_environment("BATTLEBOTS_DIAG_VARIANT") != "sessions_no_mp":
-			set_multiplayer(null, viewport.get_path())
+		get_tree().set_multiplayer(null, viewport.get_path())
 		viewport.queue_free()
-	await process_frame
+	await get_tree().process_frame
 	print("PRACTICE SESSION PASS" if failures == 0 else "PRACTICE SESSION FAIL")
-	quit(0 if failures == 0 else 1)
+	get_tree().quit(0 if failures == 0 else 1)

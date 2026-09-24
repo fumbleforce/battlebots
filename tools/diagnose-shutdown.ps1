@@ -18,7 +18,7 @@ $scriptPath = switch ($Fixture) {
     'baseline' { 'res://tests/baseline_smoke.gd' }
     'views' { 'res://tests/networking/shutdown_view_diagnostic.gd' }
     # Every Windows CI exit crash on record (5/5, #10) was this test's exit.
-    'practice' { 'res://tests/practice/practice_session_test.gd' }
+    'practice' { 'res://tests/practice/practice_session_test.tscn' }
     # Loads only BATTLEBOTS_DIAG_LOAD (or nothing), then quits.
     'load' { 'res://tests/networking/shutdown_load_diagnostic.gd' }
     'typed_array' { 'res://tests/networking/shutdown_typed_array_diagnostic.gd' }
@@ -43,7 +43,8 @@ $results = @()
 Write-Host "Shutdown diagnosis: $Trials $Fixture trials. Logs: $runDirectory"
 for ($trial = 1; $trial -le $Trials; $trial++) {
     $started = [DateTime]::UtcNow
-    $lines = @(& $engine --headless --path $projectRoot @timing --script $scriptPath 2>&1)
+    $target = if ($scriptPath.EndsWith('.tscn')) { @($scriptPath) } else { @('--script', $scriptPath) }
+    $lines = @(& $engine --headless --path $projectRoot @timing @target 2>&1)
     $engineExit = $LASTEXITCODE
     $logName = "$Fixture-$trial.log"
     $lines | Set-Content -LiteralPath (Join-Path $runDirectory $logName) -Encoding utf8
