@@ -21,7 +21,8 @@ func make_session(label: String) -> MvpSession:
 	viewport.name = label
 	viewport.own_world_3d = true
 	root.add_child(viewport)
-	set_multiplayer(SceneMultiplayer.new(), viewport.get_path())
+	if OS.get_environment("BATTLEBOTS_DIAG_VARIANT") != "sessions_no_mp":
+		set_multiplayer(SceneMultiplayer.new(), viewport.get_path())
 	var session := MvpSession.new()
 	session.name = "Session"
 	viewport.add_child(session)
@@ -152,6 +153,12 @@ func playable_hit(session: MvpSession) -> void:
 func run() -> void:
 	# DIAGNOSIS ONLY (codex/shutdown-diag, #10): run one half of this test.
 	var variant := OS.get_environment("BATTLEBOTS_DIAG_VARIANT")
+	if variant in ["sessions_only", "sessions_no_mp", "one_session"]:
+		for index: int in range(1 if variant == "one_session" else 3):
+			make_session("Session%d" % index)
+		await frames(60)
+		await teardown()
+		return
 	var practice := make_session("Practice")
 	denied(practice, "Offline")
 	if variant != "practice_only":
@@ -194,7 +201,8 @@ func teardown() -> void:
 	for session: MvpSession in sessions: session.leave()
 	await physics_frame
 	for viewport: SubViewport in viewports:
-		set_multiplayer(null, viewport.get_path())
+		if OS.get_environment("BATTLEBOTS_DIAG_VARIANT") != "sessions_no_mp":
+			set_multiplayer(null, viewport.get_path())
 		viewport.queue_free()
 	await process_frame
 	print("PRACTICE SESSION PASS" if failures == 0 else "PRACTICE SESSION FAIL")
