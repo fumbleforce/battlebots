@@ -16,14 +16,20 @@ func run() -> void:
 	root.add_child(first)
 	root.add_child(second)
 	check(first.start() == OK and first.port > 0, "OS assigns a real loopback listener")
+	check(second.start() == OK and second.port > 0 and second.port != first.port,
+		"Concurrent fixture avoids an occupied listener without retries")
+	# Occupy a throwaway listener, never the one the health request below uses:
+	# on Windows a refused bind on a port can disturb that port's listener.
+	var holder := FakeApi.new()
+	root.add_child(holder)
+	check(holder.start() == OK, "A throwaway listener binds")
 	var occupied := FakeApi.new()
 	root.add_child(occupied)
-	var bind_error: Error = occupied.start(first.port)
+	var bind_error: Error = occupied.start(holder.port)
 	check(bind_error != OK and occupied.port == 0 and not occupied.listener.is_listening(),
 		"Explicit occupied port returns actual bind failure without inventing an endpoint")
 	occupied.queue_free()
-	check(second.start() == OK and second.port > 0 and second.port != first.port,
-		"Concurrent fixture avoids an occupied listener without retries")
+	holder.queue_free()
 	check(first.url() == "http://127.0.0.1:%d" % first.listener.get_local_port(), "Advertised endpoint matches bound socket")
 	var request := HTTPRequest.new()
 	root.add_child(request)
