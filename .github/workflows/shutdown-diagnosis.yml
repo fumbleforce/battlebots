@@ -8,19 +8,21 @@ permissions:
   contents: read
 jobs:
   diagnose:
-    name: Exit with a ${{ matrix.fixture }} member
+    name: Exit after physics (${{ matrix.physics }})
     runs-on: windows-latest
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        fixture: [typed_array, typed_var]
+        physics: [frames, body]
+    env:
+      BATTLEBOTS_DIAG_PHYSICS: ${{ matrix.physics }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-godot
       - name: Repeat the practice session exit
         shell: pwsh
-        run: ./tools/diagnose-shutdown.ps1 -GodotPath $env:GODOT -Fixture ${{ matrix.fixture }} -Trials 50
+        run: ./tools/diagnose-shutdown.ps1 -GodotPath $env:GODOT -Fixture physics -Trials 50
       - name: Record native Godot failures
         if: always()
         shell: pwsh

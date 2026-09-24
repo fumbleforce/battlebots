@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$GodotPath,
-    [ValidateSet('drive', 'baseline', 'views', 'practice', 'load', 'typed_array', 'typed_var')][string]$Fixture = 'drive',
+    [ValidateSet('drive', 'baseline', 'views', 'practice', 'load', 'typed_array', 'typed_var', 'physics')][string]$Fixture = 'drive',
     [ValidateRange(1, 50)][int]$Trials = 8
 )
 $ErrorActionPreference = 'Stop'
@@ -23,9 +23,10 @@ $scriptPath = switch ($Fixture) {
     'load' { 'res://tests/networking/shutdown_load_diagnostic.gd' }
     'typed_array' { 'res://tests/networking/shutdown_typed_array_diagnostic.gd' }
     'typed_var' { 'res://tests/networking/shutdown_typed_var_diagnostic.gd' }
+    'physics' { 'res://tests/networking/shutdown_physics_diagnostic.gd' }
 }
 # ENet timers need wall-clock frames, as in check-presentation.
-$timing = if ($Fixture -in @('practice', 'load', 'typed_array', 'typed_var')) { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
+$timing = if ($Fixture -in @('practice', 'load', 'typed_array', 'typed_var', 'physics')) { @('--max-fps', '60') } else { @('--fixed-fps', '60') }
 $marker = switch ($Fixture) {
     'drive' { '^DRIVE PASS$' }
     'baseline' { '^BASELINE PASS$' }
@@ -34,6 +35,7 @@ $marker = switch ($Fixture) {
     'load' { '^SHUTDOWN LOAD DONE' }
     'typed_array' { '^SHUTDOWN LOAD DONE' }
     'typed_var' { '^SHUTDOWN LOAD DONE' }
+    'physics' { '^SHUTDOWN LOAD DONE' }
 }
 $revision = & git -C $projectRoot rev-parse HEAD
 $dirty = @(& git -C $projectRoot status --porcelain).Count -gt 0
