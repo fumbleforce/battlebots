@@ -13,18 +13,19 @@ const POP_FROM := 0.35
 
 var tuning: TUNING = TUNING.settings() as TUNING
 ## Live numbers, oldest first: {label, origin, offset, velocity, age, damage,
-## incoming, size}.
+## part, size}.
 var _live: Array[Dictionary] = []
 var _serial := 0
 
 func _process(delta: float) -> void:
 	advance(delta)
 
-## One number per hit, thrown up and to the side from `position` (never along
-## the hit normal, which points at the attacker and so usually the camera).
-## `incoming` marks hits on the local player's bot.
-func spawn(position: Vector3, damage: float, incoming := false) -> void:
-	if not position.is_finite() or not is_finite(damage) \
+## One number per part of a hit, thrown up and to the side from `position`
+## (never along the hit normal, which points at the attacker and so usually the
+## camera). `part` is what took the damage and sets the colour: "armour",
+## "core" or "pierce" (TUNING.PARTS).
+func spawn(position: Vector3, damage: float, part := "core") -> void:
+	if not position.is_finite() or not is_finite(damage) or part not in TUNING.PARTS \
 		or damage < tuning.value("text", "min_damage"): return
 	while _live.size() >= int(tuning.value("text", "max_live")):
 		_live.pop_front().label.queue_free()
@@ -46,7 +47,7 @@ func spawn(position: Vector3, damage: float, incoming := false) -> void:
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(label)
 	var entry := {"label":label, "origin":position, "offset":Vector3.ZERO, "velocity":velocity,
-		"age":0.0, "damage":damage, "incoming":incoming}
+		"age":0.0, "damage":damage, "part":part}
 	_live.append(entry)
 	_style(entry)
 	_place(entry)
@@ -90,14 +91,7 @@ func _style(entry: Dictionary) -> void:
 	var label: Label3D = entry.label
 	label.text = format(entry.damage)
 	var weight := clampf(float(entry.damage) / tuning.value("text", "big_damage"), 0.0, 1.0)
-	var tint: Color
-	if entry.incoming:
-		tint = tuning.color("incoming")
-	elif weight < 0.5:
-		tint = tuning.color("small").lerp(tuning.color("mid"), weight * 2.0)
-	else:
-		tint = tuning.color("mid").lerp(tuning.color("big"), weight * 2.0 - 1.0)
-	label.modulate = tint
+	label.modulate = tuning.color(entry.part)
 	entry.size = lerpf(tuning.value("text", "small_scale"), tuning.value("text", "big_scale"), weight)
 
 ## Keeps a readable on-screen size at any camera distance; the spray scales

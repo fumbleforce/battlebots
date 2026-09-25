@@ -118,8 +118,11 @@ first version also pushed them along the hit normal, but that normal points
 at the attacker, so the numbers flew into the player's camera. Rams report
 the attacker's centre, so their numbers start where a ray from that centre
 meets the victim's hull, the actual collision point. Text keeps its
-on-screen size at any camera distance, and hits on your own bot use the
-incoming colour. Tuning is in `data/damage_numbers.json`. Settings → GAME
+on-screen size at any camera distance. Colour says what took the damage:
+the event's `armour`/`core`/`pierce` split becomes one number each, with
+armour (plates, drive pods and the front weapon) in blue, the core in white
+and piercing in purple. For example, a 10 hit with 10% piercing on healthy
+armour shows a blue 9 and a purple 1. Tuning is in `data/damage_numbers.json`. Settings → GAME
 has separate toggles for numbers on other bots and on your own bot.
 
 ## 3. Sound: low, punchy, layered

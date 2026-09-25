@@ -14,7 +14,7 @@
 		"small_scale": 0.75, "big_scale": 1.45, "big_damage": 45.0, "min_damage": 0.05, "max_live": 60
 	},
 	"colors": {
-		"_comment": "Hits on other bots blend small -> mid -> big with damage; hits on your own bot use incoming.",
-		"small": "#f4f1e6", "mid": "#ffd166", "big": "#ff6b35", "incoming": "#ff4d5e", "outline": "#0d1117"
+		"_comment": "By what the damage hit: armour (a plate, or a drive pod or front weapon) is blue, the core white, and piercing damage (the part armour may not stop, e.g. spear, wall crush) purple.",
+		"armour": "#5aa9ff", "core": "#f4f1e6", "pierce": "#b36bff", "outline": "#0d1117"
 	}
 }

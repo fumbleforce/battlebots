@@ -1315,6 +1315,7 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	var before: float = victim.combat.zones.get(zone, 0.0)
 	var core_before := victim.combat.core
 	var dealt := victim.combat.damage(zone, raw, armour_share)
+	var split: Dictionary = victim.combat.last_split.duplicate()
 	if victim.combat.eliminated:
 		var frame := victim.body.global_transform.affine_inverse()
 		victim.combat.record_death(kind, frame * point, frame.basis * axis, raw / maxf(core_before, 1.0))
@@ -1364,4 +1365,6 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	events.append({"event_id":event_id, "round":round_index, "tick":tick, "kind":kind,
 		"attack_id":attacker.combat.shot_sequence if kind in SHOT_KINDS else attacker.combat.attack_id, "attacker":attacker.entity_id,
 		"target":victim.entity_id, "zone":zone, "damage":dealt, "position":point,
-		"normal":normal, "axis":axis.normalized()})
+		"normal":normal, "axis":axis.normalized(),
+		# Damage-number split (#85): armour (or drive pod/weapon), core past it, piercing.
+		"armour":float(split.armour), "core":float(split.core), "pierce":float(split.pierce)})

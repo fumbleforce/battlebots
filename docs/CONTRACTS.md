@@ -1,5 +1,18 @@
 # Shared contracts — local records and current MVP session API
 
+## Damage split on combat events — build mvp-ab-52, protocol 17 (#85)
+
+Wire change (combat event payload); gameplay, health and catalogue unchanged.
+- `CombatState.damage(zone, raw, armour_share)` also records `last_split`
+  `{armour, core, pierce}`: what the plate (or drive pod / front weapon) took,
+  what reached the core past it, and the piercing part (`raw * (1 - armour_share)`
+  on a plate face, capped by the core it could take). The returned total is unchanged.
+- Every `combat_event` carries those three floats as `armour`, `core` and `pierce`
+  beside `damage` (the rounded total).
+- `CombatImpactFeedback` sprays one damage number per non-zero part: armour blue,
+  core white, piercing purple (`data/damage_numbers.json` colours). An event
+  without a valid split shows its total as core.
+
 ## Stagger caps top speed; Practice stagger is a strength — build mvp-ab-51 (#89)
 
 Gameplay change; protocol and catalogue unchanged. The mvp-ab-50 speed bleed alone

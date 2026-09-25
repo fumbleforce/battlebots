@@ -143,7 +143,8 @@ func combat_event(event: Dictionary) -> void:
 		var own: bool = local > 0 and event.target == local
 		if show_player_damage_numbers if own else show_damage_numbers:
 			var at: Vector3 = _collision_point(event) if event.kind in COLLISION_KINDS else event.position
-			damage_numbers.spawn(at, float(event.damage), own)
+			for part: Array in damage_parts(event):
+				damage_numbers.spawn(at, part[1], part[0])
 	if event.kind not in KINDS and event.kind != CHAIN_KIND: return
 	if event.kind == CHAIN_KIND:
 		_tesla_hit(event)
@@ -160,6 +161,18 @@ func _tesla_hit(event: Dictionary) -> void:
 		return
 	_discharges[event.attacker] = {"tick":event.tick, "attack_id":event.attack_id, "target":event.target, "position":event.position}
 	_trim(_discharges)
+
+## [[part, amount], ...] for the damage numbers: armour, core and piercing
+## from the event's split (#85). An event without a valid split (an older
+## server) shows its total as core damage.
+static func damage_parts(event: Dictionary) -> Array:
+	var parts := []
+	for part: String in ["armour", "core", "pierce"]:
+		var amount: Variant = event.get(part)
+		if not (amount is float or amount is int) or not is_finite(float(amount)) or amount < 0:
+			return [["core", float(event.damage)]]
+		if amount > 0: parts.append([part, float(amount)])
+	return parts if not parts.is_empty() else [["core", float(event.damage)]]
 
 ## Where two rammed hulls met. The event carries the attacker's centre, so ray
 ## from it toward the victim's centre and take where the victim's hull is

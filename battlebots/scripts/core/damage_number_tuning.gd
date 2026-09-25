@@ -9,7 +9,9 @@ const FIELDS := {
 	"timing":["lifetime_seconds", "pop_seconds", "pop_scale", "fade_seconds"],
 	"text":["font_size", "outline_size", "screen_fraction", "min_height", "max_height",
 		"small_scale", "big_scale", "big_damage", "min_damage", "max_live"]}
-const COLORS := ["small", "mid", "big", "incoming", "outline"]
+## Number colour per part of a hit (CombatState.last_split), plus the outline.
+const PARTS := ["armour", "core", "pierce"]
+const COLORS := ["armour", "core", "pierce", "outline"]
 
 static var _loaded: RefCounted
 

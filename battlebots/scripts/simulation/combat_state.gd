@@ -97,6 +97,8 @@ var in_cooling_zone := false
 ## body's own frame; force is the raw hit over the core it had left. Empty for
 ## bots that are alive or were knocked out some other way (immobilized, forfeit).
 var death: Dictionary = {}
+## How the latest damage() call split: {armour, core, pierce} (see damage).
+var last_split: Dictionary = {"armour":0.0, "core":0.0, "pierce":0.0}
 const DEATH_FORCE_MAX := 20.0
 
 func _init(derived: Dictionary) -> void:
@@ -615,14 +617,20 @@ func mobility(delta: float, wheel_contact: bool, upside_down: bool, self_driven_
 ## armour_share is the part of a hit an intact plate may stop; the rest always
 ## reaches the core (wall pins crush through armour).
 func damage(zone: String, raw: float, armour_share := 1.0) -> int:
+	last_split = {"armour":0.0, "core":0.0, "pierce":0.0}
 	if eliminated or not is_finite(raw) or raw <= 0:
 		return 0
 	var core_damage := 0.0
 	var component_damage := 0.0
+	# The part of the hit no plate may stop (1 - armour_share); it goes
+	# straight to the core.
+	var piercing := 0.0
 	if stats.plates.has(zone):
 		# Intact armour fully shields its face; only damage beyond its remaining
 		# HP reaches the core. A bare face passes every hit to the core.
-		component_damage = minf(zones[zone], raw * clampf(armour_share, 0.0, 1.0))
+		var stoppable := raw * clampf(armour_share, 0.0, 1.0)
+		piercing = raw - stoppable
+		component_damage = minf(zones[zone], stoppable)
 		core_damage = raw - component_damage
 	elif zone in ["drive_left", "drive_right", "weapon"]:
 		core_damage = raw * 0.25
@@ -635,6 +643,10 @@ func damage(zone: String, raw: float, armour_share := 1.0) -> int:
 	core -= core_damage
 	if core <= 0:
 		eliminate("core")
+	# Presentation split for damage numbers (#85): what armour (or a drive pod
+	# or weapon) took, what reached the core past it, and the piercing part.
+	var pierced := minf(piercing, core_damage)
+	last_split = {"armour":component_damage, "core":core_damage - pierced, "pierce":pierced}
 	return roundi(core_damage + component_damage)
 
 ## Raw energy a hit would carry past this bot after destroying it (the armour

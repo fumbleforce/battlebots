@@ -1,6 +1,6 @@
 extends SceneTree
-## Floating damage numbers (#85): spray, merging, expiry, the feedback hook and
-## the GAME settings toggle. Headless; no rendering is inspected.
+## Floating damage numbers (#85): spray, expiry, the armour/core/piercing
+## split and colours, the feedback hook and the GAME settings toggles. Headless; no rendering is inspected.
 const NUMBERS := preload("res://scripts/presentation/damage_numbers.gd")
 const TUNING := preload("res://scripts/core/damage_number_tuning.gd")
 const GAME_PREFERENCES := preload("res://scripts/ui/game_preferences.gd")
@@ -53,6 +53,46 @@ func run() -> void:
 	check(numbers.live_count() == int(tuning.value("text", "max_live")), "Live numbers are capped")
 	check(NUMBERS.format(0.4) == "0.4" and NUMBERS.format(69.6) == "70", "Formatting")
 	numbers.queue_free()
+
+	# Colour by what took the damage.
+	numbers.clear()
+	for part: String in ["armour", "core", "pierce"]:
+		numbers.spawn(Vector3.ZERO, 5.0, part)
+	numbers.spawn(Vector3.ZERO, 5.0, "shield")
+	var tints: Array[Color] = []
+	for entry: Dictionary in numbers._live: tints.append(Color((entry.label as Label3D).modulate, 1.0))
+	check(tints == [tuning.color("armour"), tuning.color("core"), tuning.color("pierce")], "Armour blue, core white, piercing purple; unknown parts show nothing")
+
+	# The authoritative split behind those colours.
+	var registry := ContentRegistry.new()
+	var stats: Dictionary = registry.validate(registry.atlas()).stats
+	var state := CombatState.new(stats)
+	var face := ""
+	for plate: String in stats.plates:
+		if float(state.zones.get(plate, 0.0)) >= 20.0: face = plate
+	check(not face.is_empty(), "The Atlas has an armoured face")
+	if not face.is_empty():
+		var core_before := state.core
+		state.damage(face, 10.0, 0.9)
+		check(is_equal_approx(state.last_split.armour, 9.0) and is_equal_approx(state.last_split.pierce, 1.0)
+			and is_zero_approx(state.last_split.core) and is_equal_approx(core_before - state.core, 1.0),
+			"A 10 hit with 10%% piercing on healthy armour splits 9 armour, 1 piercing: %s" % state.last_split)
+		state.zones[face] = 3.0
+		state.damage(face, 10.0, 0.9)
+		check(is_equal_approx(state.last_split.armour, 3.0) and is_equal_approx(state.last_split.core, 6.0)
+			and is_equal_approx(state.last_split.pierce, 1.0), "What worn armour cannot stop reaches the core: %s" % state.last_split)
+		state.damage(face, 10.0)
+		check(is_zero_approx(state.last_split.armour) and is_equal_approx(state.last_split.core, 10.0)
+			and is_zero_approx(state.last_split.pierce), "A broken face passes a normal hit to the core: %s" % state.last_split)
+	state.damage("drive_left", 8.0, 0.5)
+	check(is_equal_approx(state.last_split.armour + state.last_split.core, 8.0) and is_equal_approx(state.last_split.core, 2.0)
+		and is_zero_approx(state.last_split.pierce), "A drive pod hit is component and core damage: %s" % state.last_split)
+	var split_hit := hit(0)
+	split_hit.merge({"damage":10, "armour":9.0, "core":0.0, "pierce":1.0}, true)
+	check(CombatImpactFeedback.damage_parts(split_hit) == [["armour", 9.0], ["pierce", 1.0]], "Split events give one part each")
+	check(CombatImpactFeedback.damage_parts(hit(0)) == [["core", 18.0]], "Events without a split show their total as core")
+	split_hit.pierce = NAN
+	check(CombatImpactFeedback.damage_parts(split_hit) == [["core", 10.0]], "A bad split falls back to the total")
 
 	# The hook: any accepted damaging kind, including turret shots with no sparks.
 	var feedback := CombatImpactFeedback.new()
