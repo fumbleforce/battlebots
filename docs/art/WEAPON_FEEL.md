@@ -109,6 +109,16 @@ above the turret. The crosshair lands in the world, the turret chases it, and
 a second ring shows where the barrel actually points. Tank buttons follow the
 genre: LMB fires the main gun.
 
+**Damage numbers come from the confirmed event, never a prediction (#85).**
+`scripts/presentation/damage_numbers.gd` sprays a number out of the struck
+bot at the event's `position` along its `normal` for every accepted hit with
+damage above zero, turret shots included. The number shown is the damage
+actually dealt after armour. Rapid hits from one attacker on one target
+(minigun, flamer) add up in one live number instead of a stream. Text keeps
+its on-screen size at any camera distance, and hits on your own bot use the
+incoming colour. Tuning is in `data/damage_numbers.json`. Players can turn
+the numbers off under Settings → GAME.
+
 ## 3. Sound: low, punchy, layered
 
 The user listened to rendered WAVs (`paplay`) and judged each iteration. The

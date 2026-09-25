@@ -11,7 +11,12 @@ const PART_LOSS_GROUP := &"bot_part_loss"
 ## the shooter's turret (TurretSpecialEffects.CHAIN_GROUP); Tesla hits make no
 ## generic impact sparks here.
 const CHAIN_KIND := "tesla"
+const DAMAGE_NUMBERS := preload("res://scripts/presentation/damage_numbers.gd")
 var visual: CombatImpactVisual
+## Floating damage numbers for every accepted damaging hit (#85).
+var damage_numbers: DAMAGE_NUMBERS
+## Game settings toggle (GamePreferences.show_damage_numbers).
+var show_damage_numbers := true
 var session: MvpSession
 var _bound := false
 var _match := ""
@@ -29,6 +34,13 @@ var _discharges: Dictionary = {}
 func _ready() -> void:
 	visual = CombatImpactVisual.new()
 	add_child(visual)
+	damage_numbers = DAMAGE_NUMBERS.new()
+	damage_numbers.name = "DamageNumbers"
+	add_child(damage_numbers)
+
+func set_show_damage_numbers(enabled: bool) -> void:
+	show_damage_numbers = enabled
+	if not enabled and damage_numbers != null: damage_numbers.clear()
 
 func bind_session(value: MvpSession) -> void:
 	if is_instance_valid(session):
@@ -73,7 +85,7 @@ func reset() -> void:
 	_phase_event = -1
 	_practice = false
 	_discharges.clear()
-	if visual != null: visual.clear_effects()
+	_clear_effects()
 
 func observe_match(view: Dictionary, practice := false) -> void:
 	if not view.get("match_id") is String or view.match_id.is_empty() or view.match_id.length() > 128 \
@@ -81,7 +93,7 @@ func observe_match(view: Dictionary, practice := false) -> void:
 		or not _integer(view.get("round"), 0 if view.phase == "lobby" else 1) \
 		or not _integer(view.get("event_id"), 0):
 		_phase = ""
-		if visual != null: visual.clear_effects()
+		_clear_effects()
 		return
 	if not practice and view.match_id in _retired: return
 	var saved: Dictionary = _contexts.get(view.match_id, {})
@@ -93,7 +105,7 @@ func observe_match(view: Dictionary, practice := false) -> void:
 		_network_match = view.match_id
 	if _match != view.match_id or _round != view.round or _phase != view.phase:
 		_discharges.clear()
-		if visual != null: visual.clear_effects()
+		_clear_effects()
 	_match = view.match_id
 	_round = view.round
 	_phase = view.phase
@@ -119,6 +131,10 @@ func combat_event(event: Dictionary) -> void:
 	_trim(_watermarks)
 	# Every accepted hit tells the struck bot where parts should come off (#72).
 	get_tree().call_group(PART_LOSS_GROUP, &"note_hit", event)
+	if show_damage_numbers and damage_numbers != null and event.damage > 0:
+		var local := session.local_entity if is_instance_valid(session) else 0
+		damage_numbers.spawn(event.position, event.normal, float(event.damage), event.attacker, event.target,
+			local > 0 and event.target == local)
 	if event.kind not in KINDS and event.kind != CHAIN_KIND: return
 	if event.kind == CHAIN_KIND:
 		_tesla_hit(event)
@@ -135,6 +151,10 @@ func _tesla_hit(event: Dictionary) -> void:
 		return
 	_discharges[event.attacker] = {"tick":event.tick, "attack_id":event.attack_id, "target":event.target, "position":event.position}
 	_trim(_discharges)
+
+func _clear_effects() -> void:
+	if visual != null: visual.clear_effects()
+	if damage_numbers != null: damage_numbers.clear()
 
 func _integer(value: Variant, minimum: int) -> bool:
 	return value is int and value >= minimum

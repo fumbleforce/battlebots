@@ -2,7 +2,7 @@ class_name SettingsHub
 extends Control
 signal category_requested(category: String)
 signal back_requested
-const CATEGORIES := {"video":"Display, anti-aliasing, performance and lighting.","audio":"Master volume, music, effects and announcements.","accessibility":"Text size, color palettes and HUD contrast.","camera":"Sensitivity, inversion, recentering and motion.","controls":"Keyboard, mouse and weapon bindings."}
+const CATEGORIES := {"game":"Damage numbers and in-match feedback.","video":"Display, anti-aliasing, performance and lighting.","audio":"Master volume, music, effects and announcements.","accessibility":"Text size, color palettes and HUD contrast.","camera":"Sensitivity, inversion, recentering and motion.","controls":"Keyboard, mouse and weapon bindings."}
 var buttons: Dictionary = {}
 var back_button: Button
 var canvas: Control
@@ -30,18 +30,18 @@ func _ready() -> void:
 	var categories := VBoxContainer.new()
 	categories.custom_minimum_size.x = 1000
 	categories.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	categories.add_theme_constant_override("separation",12)
+	categories.add_theme_constant_override("separation",8)
 	content.add_child(categories)
 	for category: String in CATEGORIES:
 		var line := VBoxContainer.new()
-		line.add_theme_constant_override("separation",5)
+		line.add_theme_constant_override("separation",4)
 		categories.add_child(line)
 		var button := Button.new()
 		button.text = "VIDEO & GRAPHICS" if category == "video" else category.to_upper()
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_font_override("font",preload("res://ui/menus/fonts/BarlowCondensed-SemiBold.ttf"))
 		button.add_theme_font_size_override("font_size",30)
-		button.custom_minimum_size.y = 66
+		button.custom_minimum_size.y = 58
 		line.add_child(button)
 		button.pressed.connect(func() -> void: category_requested.emit(category))
 		buttons[category] = button

@@ -51,6 +51,7 @@ $checks = @(
 	@('graphics_runtime_test.gd', 'GRAPHICS RUNTIME PASS'),
 	@('video_settings_layout_test.gd', 'VIDEO SETTINGS LAYOUT PASS'),
 	@('settings_hub_test.gd', 'SETTINGS HUB PASS'),
+	@('damage_numbers_test.gd', 'DAMAGE NUMBERS PASS'),
 	@('private_lobby_code_test.gd', 'PRIVATE LOBBY CODE PASS'),
 	@('duel_scoreboard_test.gd', 'DUEL SCOREBOARD PASS'),
 	@('world_markers_test.gd', 'WORLD MARKERS PASS'),

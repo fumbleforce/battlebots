@@ -21,6 +21,7 @@ func run() -> void:
 	var game = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.audio_settings_path = ""
 	game.hud_settings_path = ""
+	game.game_settings_path = ""
 	game.video_settings_path = ""
 	game.get_node("Preview").settings_path = ""
 	root.add_child(game)
@@ -45,12 +46,12 @@ func run() -> void:
 	var preferences = game.hud_preferences.copy()
 	preferences.text_scale = 1.5
 	game._apply_hud_preferences(preferences)
-	for category in ["audio","accessibility","camera","controls","video"]:
+	for category in ["game","audio","accessibility","camera","controls","video"]:
 		game._apply_hud_preferences(preferences)
 		game.settings_hub.buttons[category].pressed.emit()
 		await frames()
 		check(not game.settings_hub.visible and not game.preview.controls_enabled and not game.preview.pause_menu.visible, "Category modal: " + category)
-		var category_root: Control = game.preview.settings_panel if category in ["camera", "controls"] else (game._audio_overlay if category == "audio" else (game._hud_overlay if category == "accessibility" else game._video_overlay))
+		var category_root: Control = game.preview.settings_panel if category in ["camera", "controls"] else (game._audio_overlay if category == "audio" else (game._hud_overlay if category == "accessibility" else (game._game_overlay if category == "game" else game._video_overlay)))
 		if category != "controls":
 			inspect_labels(category_root, Rect2(Vector2.ZERO,Vector2(root.size)))
 		for item: Node in category_root.find_children("*", "Button", true, false):

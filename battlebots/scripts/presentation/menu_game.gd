@@ -73,6 +73,12 @@ var hud_preferences: HudPreferences
 var hud_settings: HudSettingsPanel
 var hud_settings_button: Button
 var _hud_overlay: Control
+const GAME_PREFERENCES = preload("res://scripts/ui/game_preferences.gd")
+const GAME_SETTINGS_PANEL = preload("res://scripts/ui/game_settings_panel.gd")
+@export var game_settings_path := "user://game.cfg"
+var game_preferences: GAME_PREFERENCES
+var game_settings: GAME_SETTINGS_PANEL
+var _game_overlay: Control
 var _menu_text_scale := 1.0
 
 func _ready() -> void:
@@ -183,6 +189,7 @@ func _ready() -> void:
 	_audio_caption.size = Vector2(568, 40)
 	_style_auxiliary_hud()
 	_add_hud_settings()
+	_add_game_settings()
 	_add_settings_hub()
 	_add_menu_music()
 	_add_battle_music()
@@ -396,6 +403,38 @@ func _add_hud_settings() -> void:
 	_hud_overlay.hide()
 	_apply_hud_preferences(hud_preferences)
 
+func _add_game_settings() -> void:
+	game_preferences = GAME_PREFERENCES.load_file(game_settings_path)
+	var layer := CanvasLayer.new()
+	layer.layer = 20
+	add_child(layer)
+	_game_overlay = Control.new()
+	layer.add_child(_game_overlay)
+	_game_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade := ColorRect.new()
+	shade.color = Color(0, 0, 0, 0.85)
+	_game_overlay.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	game_settings = GAME_SETTINGS_PANEL.new()
+	_settings_center(_game_overlay).add_child(game_settings)
+	game_settings.preview_changed.connect(_apply_game_preferences)
+	game_settings.applied.connect(func(value: GAME_PREFERENCES) -> void: game_preferences = value)
+	game_settings.finished.connect(func(_saved: bool) -> void:
+		_game_overlay.hide()
+		_return_to_settings_hub())
+	_game_overlay.hide()
+	game_settings.apply_text_scale(_menu_text_scale)
+	_apply_game_preferences(game_preferences)
+
+func _apply_game_preferences(value: GAME_PREFERENCES) -> void:
+	impact_feedback.set_show_damage_numbers(value.show_damage_numbers)
+
+func open_game_settings() -> void:
+	_prepare_settings_category("game")
+	preview.settings_panel.hide()
+	_game_overlay.show()
+	game_settings.open_for(game_preferences, game_settings_path)
+
 func _add_settings_hub() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 19
@@ -447,7 +486,7 @@ func _add_settings_hub() -> void:
 	preview.settings_panel.form.get_node("Title").remove_theme_color_override("font_color")
 	preview.settings_panel.form.get_node("Title").theme_type_variation = &"Heading"
 	preview.settings_panel.form.get_node("Buttons/Save").text = "Save"
-	for overlay: Control in [_audio_overlay, _hud_overlay, _video_overlay, preview.settings_panel]:
+	for overlay: Control in [_audio_overlay, _hud_overlay, _game_overlay, _video_overlay, preview.settings_panel]:
 		var background := TextureRect.new()
 		background.texture = preload("res://ui/menus/art/bg_arena_blur.jpg")
 		background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -481,6 +520,7 @@ func _open_settings_category(category: String) -> void:
 	match category:
 		"audio": open_audio_settings()
 		"accessibility": open_hud_settings()
+		"game": open_game_settings()
 		"video":
 			_prepare_settings_category(category)
 			_video_overlay.show()
@@ -532,6 +572,8 @@ func _dismiss_settings() -> void:
 		audio_settings.cancel()
 	if is_instance_valid(_hud_overlay) and _hud_overlay.visible:
 		hud_settings.cancel()
+	if is_instance_valid(_game_overlay) and _game_overlay.visible:
+		game_settings.cancel()
 	if is_instance_valid(_video_overlay) and _video_overlay.visible:
 		video_settings.cancel()
 	# Capture cancellation, controls cancellation and camera cancellation are
@@ -559,12 +601,15 @@ func open_hud_settings() -> void:
 
 func _general_settings_open() -> bool:
 	return _audio_overlay.visible or (is_instance_valid(_hud_overlay) and _hud_overlay.visible) \
+		or (is_instance_valid(_game_overlay) and _game_overlay.visible) \
 		or (is_instance_valid(settings_hub) and settings_hub.visible) \
 		or (is_instance_valid(_video_overlay) and _video_overlay.visible)
 
 func _cancel_general_settings() -> void:
 	if _hud_overlay.visible:
 		hud_settings.cancel()
+	elif is_instance_valid(_game_overlay) and _game_overlay.visible:
+		game_settings.cancel()
 	elif _audio_overlay.visible:
 		audio_settings.cancel()
 	elif is_instance_valid(_video_overlay) and _video_overlay.visible:
@@ -581,7 +626,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	for entry: Button in [audio_settings_button, hud_settings_button]:
 		if is_instance_valid(entry):
 			MenuTextScale.apply(entry, _menu_text_scale)
-	for panel: Control in [screen, game_menu_page, results_panel, reconnect_panel, audio_settings, hud_settings, settings_hub, video_settings]:
+	for panel: Control in [screen, game_menu_page, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
