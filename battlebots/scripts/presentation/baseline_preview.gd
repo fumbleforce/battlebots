@@ -1,6 +1,7 @@
 extends Node3D
 const MORTAR_AIM_VISUAL = preload("res://scripts/presentation/mortar_aim_visual.gd")
 const GAMEPAD_INPUT = preload("res://scripts/presentation/gamepad_input.gd")
+const CAMERA_RECOIL = preload("res://scripts/core/camera_recoil.gd")
 ## B-owned input/presentation adapter; never writes authoritative bot transforms.
 
 @export var source_path: NodePath
@@ -303,17 +304,28 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 		tank_sight.active = wanted
 		tank_sight.artillery = artillery
 		_kick_sequence = -1
-	# Every accepted own shot kicks the sight; cannon volleys stack hard.
-	if wanted and not view.eliminated:
+	# Every accepted own shot kicks the view (the sight, else the orbit rig);
+	# cannon volleys stack hard.
+	if view != null and is_instance_valid(source) and not view.eliminated:
 		if _kick_sequence >= 0 and view.shot_sequence > _kick_sequence:
-			var shells := mini(view.shot_sequence - _kick_sequence, 4)
-			var per_shell: float = {"plasma":0.12, "flamer":0.0, "tesla":0.18, "railgun":1.3, "harpoon":0.3, "mortar":0.9}.get(view.turret_kind, 0.12)
-			if view.turret_kind == "cannon":
-				per_shell = 0.85 if view.turret_model == "cannon" else (0.6 if view.turret_model.ends_with("_dual") else 0.45)
-			tank_sight.kick(per_shell * float(shells))
+			var kick := _camera_recoil(view) * float(mini(view.shot_sequence - _kick_sequence, 4))
+			if wanted: tank_sight.kick(kick)
+			else: rig.add_recoil(kick)
 		_kick_sequence = view.shot_sequence
 	if wanted:
 		tank_sight.update_view(delta, source)
+
+## Camera kick per own shot: the turret's (or the minigun's) default, or the
+## Practice Duel Camera recoil override (#91).
+func _camera_recoil(view: BotView) -> float:
+	var kind := view.turret_kind if view.turret_kind != "" else "minigun"
+	var kick := CAMERA_RECOIL.per_shot(kind, view.turret_model)
+	if source is SessionBotSource and is_instance_valid(source.session):
+		var lab: RefCounted = source.session.practice_tuning()
+		var bot: MvpBot = (source.session.local_source() as MvpBot) if lab != null else null
+		if bot != null:
+			kick = lab.camera_recoil(bot.combat.stats, kind, kick)
+	return kick
 
 func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	var camera := aim_camera()

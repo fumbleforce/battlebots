@@ -59,6 +59,12 @@ func run() -> void:
 	lab.set_value("primary", "stagger", 0.0)
 	check(lab.stagger("primary", minigun_stagger).is_empty(), "Stagger 0% turns stagger off")
 	lab.clear_value("primary", "stagger")
+	# #91: Camera recoil is the own-shot camera kick, presentation only.
+	check(lab.has_field("primary", "camera_recoil") and lab.value("primary", "camera_recoil") == preload("res://scripts/core/camera_recoil.gd").per_shot("minigun", ""),
+		"Camera recoil defaults to the minigun's camera kick")
+	lab.set_value("primary", "camera_recoil", 0.6)
+	check(lab.camera_recoil(player.combat.stats, "minigun", 0.0) == 0.6, "Camera recoil override reaches the camera kick")
+	lab.clear_value("primary", "camera_recoil")
 	check(is_equal_approx(lab.total_mass(), float(player.combat.stats.mass)), "Body plus weapon weight is the bot's mass")
 	# The Esc-menu panel lists the weapon and body and writes straight into the tuning.
 	var panel: VBoxContainer = preload("res://scripts/ui/practice_tuning_panel.gd").new()
@@ -75,6 +81,7 @@ func run() -> void:
 	check(body_column != weapon_column and body_column.get_parent() == weapon_column.get_parent()
 		and body_column.get_index() < weapon_column.get_index(), "Body is the left column and Weapon the right")
 	check(texts.has("Fire rate (/s)") and texts.has("Max speed (km/h)") and texts.has("Health"), "Panel lists weapon and body values")
+	check(texts.has("Stagger (%)") and texts.has("Camera recoil"), "Panel lists stagger strength and camera recoil")
 	var spins := panel.find_children("*", "SpinBox", true, false)
 	# The damage row: its label, then its box, then its DEFAULT button.
 	var damage_label: Node = heading.call("Damage")

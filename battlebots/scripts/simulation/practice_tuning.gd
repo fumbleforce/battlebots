@@ -8,11 +8,13 @@ extends RefCounted
 ##
 ## Values are absolute. Rate, damage, range, knockback, recoil and AoE apply as
 ## a scale of the weapon's default; piercing and stagger (strength, % of top
-## speed and drive control removed) replace the default.
+## speed and drive control removed) replace the default. Camera recoil (#91) is
+## presentation only: the own-shot camera kick, read by the local preview.
 ## Loaded by path, not class name: a stale editor class cache must not break it.
 const COMBAT_WORLD = preload("res://scripts/weapons/combat_world.gd")
 const COMBAT_STATE = preload("res://scripts/simulation/combat_state.gd")
 const FRONT_TOOL_TUNING = preload("res://scripts/core/front_tool_tuning.gd")
+const CAMERA_RECOIL = preload("res://scripts/core/camera_recoil.gd")
 ## Drive force behind MvpBot's default acceleration (acceleration = force / mass).
 const DRIVE_FORCE := 8.0 * 103.0
 ## Stagger duration (s) for a weapon that has none by default but is given a strength.
@@ -21,9 +23,10 @@ const DEFAULT_STAGGER_SECONDS := 0.3
 const WEAPON_FIELDS := [
 	["rate", "Fire rate", "/s"], ["damage", "Damage", ""], ["range", "Range", "m"],
 	["knockback", "Knockback", "×mass"], ["recoil", "Recoil", ""], ["weight", "Weight", "kg"],
-	["pierce", "Piercing", "%"], ["aoe", "Area of effect", "m"], ["stagger", "Stagger", "%"]]
+	["pierce", "Piercing", "%"], ["aoe", "Area of effect", "m"], ["stagger", "Stagger", "%"],
+	["camera_recoil", "Camera recoil", ""]]
 ## Fields whose override replaces the default instead of scaling it.
-const ABSOLUTE := ["pierce", "stagger", "weight", "aoe"]
+const ABSOLUTE := ["pierce", "stagger", "weight", "aoe", "camera_recoil"]
 
 var heat_enabled := true
 ## Off: a charged jump can be repeated as soon as the bot lands.
@@ -172,7 +175,8 @@ func _primary_defaults(id: String) -> Dictionary:
 func _minigun_defaults() -> Dictionary:
 	return {"rate":1.0 / COMBAT_STATE.MINIGUN_CADENCE, "damage":COMBAT_WORLD.MINIGUN_DAMAGE,
 		"range":COMBAT_WORLD.MINIGUN_RANGE, "knockback":COMBAT_WORLD.MINIGUN_KNOCKBACK,
-		"recoil":COMBAT_WORLD.MINIGUN_RECOIL, "pierce":0.0, "stagger":_stagger_strength("minigun")}
+		"recoil":COMBAT_WORLD.MINIGUN_RECOIL, "pierce":0.0, "stagger":_stagger_strength("minigun"),
+		"camera_recoil":CAMERA_RECOIL.per_shot("minigun", "")}
 
 func _secondary_defaults(stats: Dictionary) -> Dictionary:
 	var family: String = stats.secondary_weapon
@@ -182,7 +186,8 @@ func _secondary_defaults(stats: Dictionary) -> Dictionary:
 	var barrels := maxi(1, int(stats.get("turret_barrels", 1)))
 	var defaults := {"rate":1.0 / turret.barrel(family, barrels, "interval"), "damage":turret.value(family, "damage"),
 		"knockback":turret.value(family, "knock"), "recoil":turret.barrel(family, barrels, "jolt"),
-		"pierce":0.0, "stagger":_stagger_strength(family)}
+		"pierce":0.0, "stagger":_stagger_strength(family),
+		"camera_recoil":CAMERA_RECOIL.per_shot(family, str(stats.get("turret_model", "")))}
 	# The mortar's reach comes from its ballistics; its blast is the only true area.
 	if family == "mortar":
 		defaults.aoe = turret.value("mortar", "blast_radius")
@@ -231,6 +236,13 @@ func scale(slot: String, field: String) -> float:
 ## Only positive defaults can be scaled; absolute fields are always editable.
 func editable(slot: String, field: String) -> bool:
 	return has_field(slot, field) and (field in ABSOLUTE or float(weapons[slot].defaults[field]) > 0.0)
+
+## Camera kick per shot for the weapon firing `kind`; fallback when untuned.
+func camera_recoil(stats: Dictionary, kind: String, fallback: float) -> float:
+	var slot := slot_of(stats, kind)
+	if not has_field(slot, "camera_recoil"):
+		return fallback
+	return value(slot, "camera_recoil")
 
 ## The part of a hit an intact plate may stop: 1 - piercing.
 func armour_share(slot: String, share: float) -> float:

@@ -33,6 +33,8 @@ var _boom_scale := 1.0
 var _probe := SphereShape3D.new()
 var nitro_blend := 0.0
 var shake_trauma := 0.0
+## Own-shot recoil kick (add_recoil), 0..1.6.
+var _recoil := 0.0
 var base_fov := 70.0
 var _shake_time := 0.0
 var _speed_lines: ColorRect
@@ -164,6 +166,13 @@ func add_impact_shake(origin: Vector3, strength: float) -> void:
 	var falloff := clampf(1.0 - global_position.distance_to(origin) / reach, 0.0, 1.0)
 	shake_trauma = minf(1.0, shake_trauma + strength * 0.5 * falloff)
 
+## Own-shot camera recoil (#91): a punch up and back plus shake, stacking
+## under sustained fire and decaying quickly, like the tank sight's kick.
+func add_recoil(strength: float) -> void:
+	if not is_finite(strength) or strength <= 0.0: return
+	_recoil = clampf(_recoil + strength, 0.0, 1.6)
+	shake_trauma = minf(1.0, shake_trauma + strength * 0.25)
+
 func _apply_speed_feel(delta: float, boosting: bool) -> void:
 	if not is_finite(delta) or delta < 0.0: delta = 0.0
 	var target := 1.0 if boosting and speed_effects else 0.0
@@ -181,7 +190,9 @@ func _apply_speed_feel(delta: float, boosting: bool) -> void:
 	var jitter := Vector2(sin(t * 53.0) * 0.6 + sin(t * 91.0 + 1.3) * 0.4,
 		sin(t * 61.0 + 0.7) * 0.6 + sin(t * 83.0 + 2.1) * 0.4) * rumble * _boom_scale
 	camera.position = Vector3(jitter.x, jitter.y, actual_distance)
-	camera.rotation = Vector3(0.0, 0.0, sin(t * 47.0 + 0.4) * 0.01 * impact)
+	camera.position.z += 0.35 * _recoil * _boom_scale
+	camera.rotation = Vector3(0.035 * _recoil, 0.0, sin(t * 47.0 + 0.4) * 0.01 * impact)
+	_recoil = move_toward(_recoil * exp(-delta * 5.5), 0.0, delta * 0.05)
 	if _speed_lines != null:
 		_speed_lines.visible = eased > 0.01
 		if _speed_lines.visible:
