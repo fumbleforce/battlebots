@@ -68,6 +68,8 @@
 		"ram_pin_far_side_min_alignment": 0.5,
 		"ram_pin_armour_share": 0.2,
 		"ram_pin_min_mass_factor": 0.6,
-		"ram_pin_max_mass_factor": 1.8
+		"ram_pin_max_mass_factor": 1.8,
+		"_stagger_comment": "Each staggering hit (CombatWorld.STAGGER kinds) removes stagger depth x stagger_speed_bleed of a grounded victim's horizontal speed, so a bot driving through minigun fire stutters with every bullet instead of cruising on at top speed.",
+		"stagger_speed_bleed": 0.6
 	}
 }

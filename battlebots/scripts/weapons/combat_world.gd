@@ -30,7 +30,8 @@ var _bots: Dictionary = {}
 ## Component zones lie on these armour faces for the wall-pin hit.
 const COMPONENT_FACES := {"drive_left":"left", "drive_right":"right", "weapon":"front"}
 const MINIGUN_RANGE := 24.0
-## [seconds, depth] of lost drive control while a bot is being shot or sawn.
+## [seconds, depth] of lost drive control while a bot is being shot or sawn;
+## each hit also takes depth x physics.stagger_speed_bleed of its ground speed.
 ## Only projectiles and the saw blade stagger; hammer, spinners, lifter and rams
 ## rely on their impulses. Saw contact repeats every 1/3 s and the minigun fires
 ## about 12 times a second, so their victims stay staggered while under fire.
@@ -1337,6 +1338,7 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 		impact_scale = physics.lifter_impulse_multiplier
 	impact_scale *= victim.body.launch_scale()
 	var delivered := impulse * mass_ratio * impact_scale
+	var ground_velocity := victim.body.linear_velocity.slide(Vector3.UP)
 	victim.body.apply_impulse(delivered, point - victim.body.global_position)
 	var stagger: Array = STAGGER.get(kind, [])
 	var lab: RefCounted = attacker.combat.practice_tuning
@@ -1344,6 +1346,11 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 		stagger = lab.stagger(lab.slot_of(attacker.combat.stats, kind), stagger)
 	if not stagger.is_empty():
 		victim.combat.stagger(stagger[0], stagger[1])
+		# Lost drive control never slows a bot already at top speed, so each
+		# hit also checks its ground speed: it stutters under sustained fire.
+		if victim.body.grounded:
+			var bleed := clampf(float(stagger[1]) * physics.stagger_speed_bleed, 0.0, 1.0)
+			victim.body.apply_central_impulse(-ground_velocity * bleed * victim.body.mass)
 	if kind == "lifter":
 		# Tip the struck near edge up and over, away from the flipper.
 		var away := (victim.body.global_position - attacker.body.global_position).slide(Vector3.UP).normalized()

@@ -76,6 +76,9 @@ var ram_pin_far_side_min_alignment: float
 var ram_pin_armour_share: float
 var ram_pin_min_mass_factor: float
 var ram_pin_max_mass_factor: float
+## Share of a grounded victim's horizontal speed each staggering hit removes,
+## times that hit's stagger depth (CombatWorld.STAGGER).
+var stagger_speed_bleed: float
 
 const SECTIONS := {
 	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g"],
@@ -91,7 +94,7 @@ const SECTIONS := {
 		"ram_knockback_per_closing_speed", "ram_knockback_lift_fraction",
 		"ram_pin_window_seconds", "ram_pin_damage_base", "ram_pin_min_attacker_speed", "ram_pin_damage_per_speed", "ram_pin_damage_max",
 		"ram_pin_wall_max_normal_y", "ram_pin_far_side_min_alignment", "ram_pin_armour_share",
-		"ram_pin_min_mass_factor", "ram_pin_max_mass_factor"],
+		"ram_pin_min_mass_factor", "ram_pin_max_mass_factor", "stagger_speed_bleed"],
 }
 
 static func settings() -> BotPhysics:

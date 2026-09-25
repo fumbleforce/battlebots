@@ -1,5 +1,20 @@
 # Shared contracts — local records and current MVP session API
 
+## Hit stagger slows moving targets — build mvp-ab-50 (#89)
+
+Gameplay change; protocol and catalogue unchanged. Stagger used to scale only the
+victim's drive acceleration, steering and grip. A bot already at top speed needs
+no acceleration, so it drove through minigun fire without slowing. Every staggering
+hit (`CombatWorld.STAGGER` kinds and the Practice Duel stagger override) on a
+grounded victim now also removes `depth × impacts.stagger_speed_bleed` (0.6,
+`data/bot_physics.json`) of its horizontal velocity, as a central impulse in
+`CombatWorld._apply_hit`. The velocity is read before that hit's knockback. A
+minigun bullet (depth 0.3) takes 18% of the ground speed. At 12 hits/s a cruising
+starter hull averages 29% slower (`tests/simulation/stagger_speed.gd`). Stagger
+stays authority-only: the owner client does not predict it, so its speed loss
+arrives through the usual snapshot correction and visual-error smoothing. Needs
+the matching hosted server release (automatic on the `main` push).
+
 ## Speedometer HUD block (#86)
 
 `BotView` adds presentation-only `speed_fraction` and `nitro_speed_fraction`,

@@ -79,6 +79,7 @@ if ($Part -ne 'net') {
     Invoke-MvpTest 'res://tests/network/remote_extrapolation.tscn' 'REMOTE EXTRAPOLATION PASS' -Scene -RealTime
     Invoke-MvpTest 'res://tests/network/wall_contact.tscn' 'WALL CONTACT PASS' -Scene -RealTime
     Invoke-MvpTest 'res://tests/simulation/heft_physics.gd' 'HEFT PHYSICS PASS'
+    Invoke-MvpTest 'res://tests/simulation/stagger_speed.gd' 'STAGGER SPEED PASS'
     Invoke-MvpTest 'res://tests/simulation/heat_relief_test.gd' 'HEAT RELIEF PASS'
     Invoke-MvpTest 'res://tests/simulation/atlas_catalogue.gd' 'ATLAS CATALOGUE PASS'
     Invoke-MvpTest 'res://tests/simulation/atlas_tools_physics.gd' 'ATLAS TOOLS PHYSICS PASS'
