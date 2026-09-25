@@ -2,8 +2,8 @@ class_name HudSpeedGauge
 extends Control
 ## Speedometer dial driven only by the published BotView speed fields. The inner
 ## arc spans 0-100% of the drive's normal top speed; with nitro fitted, an outer
-## nitro-blue ring sweeps in while nitro burns (or the bot is still above normal
-## top speed) and fills with the extra share nitro adds, up to the nitro top speed.
+## nitro-blue ring is always shown as a dim track and fills with the extra share
+## nitro adds, up to the nitro top speed.
 ## Inside, the actual speed in km/h sits small above the share of top speed.
 const FONT := preload("res://ui/menus/fonts/Barlow-SemiBold.ttf")
 const TEXT := Color("e8ecf1")
@@ -28,11 +28,8 @@ const RING_GAP := 2.0
 const VALUE_FONT := 0.5
 const SPEED_FONT := 0.3
 const KMH_PER_MPS := 3.6
-## Exponential rates (1/s) for the needle and for the overdrive ring sweeping
-## in and settling out.
+## Exponential rate (1/s) for the needle.
 const NEEDLE_RATE := 14.0
-const EXTEND_RATE := 9.0
-const RETRACT_RATE := 4.0
 var speed := NAN
 var nitro_top := 1.0
 var nitro_active := false
@@ -43,9 +40,8 @@ var show_speed_value := true:
 	set(value):
 		show_speed_value = value
 		queue_redraw()
-## Displayed speed and how far the overdrive ring is shown (0-1).
+## Displayed speed.
 var shown := 0.0
-var extension := 0.0
 var high_contrast := false
 
 func _ready() -> void:
@@ -71,18 +67,12 @@ func render(view: BotView) -> void:
 	nitro_top = maxf(1.0, top) if is_finite(top) else 1.0
 	nitro_active = view != null and view.nitro_active and nitro_top > 1.0
 	top_speed = view.top_speed if view != null and is_finite(view.top_speed) and view.top_speed > 0.0 else 0.0
-	if not is_finite(speed):
-		shown = 0.0
-		extension = 0.0
+	if not is_finite(speed): shown = 0.0
 	queue_redraw()
 
 func _process(delta: float) -> void:
 	if not visible or not is_finite(speed): return
 	shown = lerpf(shown, speed, 1.0 - exp(-delta * NEEDLE_RATE))
-	# Past nitro, the ring stays while the bot is still over normal top speed.
-	var target := 1.0 if nitro_active else (clampf((shown - 1.0) / (nitro_top - 1.0), 0.0, 1.0) if nitro_top > 1.0 else 0.0)
-	extension = lerpf(extension, target, 1.0 - exp(-delta * (EXTEND_RATE if target > extension else RETRACT_RATE)))
-	if extension < 0.001: extension = 0.0
 	queue_redraw()
 
 ## Extra share of normal top speed nitro is currently adding (0 when none).
@@ -95,7 +85,7 @@ func speed_text() -> String:
 
 func _draw() -> void:
 	var known := is_finite(speed)
-	var boosting := known and extension > 0.0
+	var boosting := known and (nitro_active or overdrive() > 0.0)
 	var outer_radius := _radius(size.y)
 	var center := Vector2(size.x * 0.5, outer_radius)
 	var outer := outer_radius - NITRO_WIDTH * 0.5
@@ -109,12 +99,12 @@ func _draw() -> void:
 	for tick: int in range(1, 10):
 		var direction := Vector2.from_angle(SWEEP_START + SWEEP * tick / 10.0)
 		draw_line(center + direction * (radius - RING_WIDTH * 0.5), center + direction * (radius + RING_WIDTH * 0.5), TICK, 1)
-	# Overdrive: the outer ring sweeps in from 0% and fills with nitro's extra share.
-	if extension > 0.0 and nitro_top > 1.0:
-		draw_arc(center, outer, SWEEP_START, SWEEP_START + SWEEP * extension, 48, Color(NITRO, 0.28), NITRO_WIDTH, true)
+	# Overdrive: with nitro fitted the outer track always shows and fills with nitro's extra share.
+	if nitro_top > 1.0:
+		draw_arc(center, outer, SWEEP_START, SWEEP_START + SWEEP, 48, Color(NITRO, 0.28), NITRO_WIDTH, true)
 		var extra := overdrive() / (nitro_top - 1.0)
 		if extra > 0.0:
-			draw_arc(center, outer, SWEEP_START, SWEEP_START + SWEEP * minf(extra, extension), 48, NITRO, NITRO_WIDTH, true)
+			draw_arc(center, outer, SWEEP_START, SWEEP_START + SWEEP * extra, 48, NITRO, NITRO_WIDTH, true)
 	# Readings: km/h small above the share of top speed.
 	var value_size := roundi(outer_radius * VALUE_FONT)
 	var speed_size := roundi(outer_radius * SPEED_FONT)

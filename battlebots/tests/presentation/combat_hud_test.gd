@@ -54,24 +54,24 @@ func run() -> void:
 	bot.top_speed = 10.0
 	hud.render(bot, "T", opponent)
 	gauge._process(5.0)
-	check(is_equal_approx(gauge.shown, 0.5) and gauge.extension == 0.0 and gauge.overdrive() == 0.0, "Normal driving spans 0-100% of top speed")
+	check(is_equal_approx(gauge.shown, 0.5) and gauge.overdrive() == 0.0, "Normal driving spans 0-100% of top speed")
 	check(gauge.speed_text() == "18 km/h", "Actual speed reads in km/h from the share of top speed")
 	bot.nitro_active = true
 	bot.speed_fraction = 1.8
 	hud.render(bot, "T", opponent)
 	gauge._process(5.0)
-	check(is_equal_approx(gauge.extension, 1.0) and is_equal_approx(gauge.overdrive(), 0.8), "Nitro adds its extra top speed on top of 100%")
+	check(is_equal_approx(gauge.overdrive(), 0.8), "Nitro adds its extra top speed on top of 100%")
 	bot.nitro_active = false
 	bot.speed_fraction = 1.0
 	hud.render(bot, "T", opponent)
 	gauge._process(5.0)
-	check(gauge.extension == 0.0, "Overdrive section retracts once back at normal speed")
+	check(gauge.overdrive() == 0.0, "Overdrive fill empties once back at normal speed")
 	bot.nitro_speed_fraction = 1.0
 	bot.nitro_active = true
 	bot.speed_fraction = 1.3
 	hud.render(bot, "T", opponent)
 	gauge._process(5.0)
-	check(gauge.extension == 0.0 and not gauge.nitro_active, "Without nitro fitted the track never extends")
+	check(gauge.overdrive() == 0.0 and not gauge.nitro_active, "Without nitro fitted there is no overdrive")
 	bot.speed_fraction = NAN
 	bot.nitro_active = false
 	bot.zones.front = 50.0
