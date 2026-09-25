@@ -78,6 +78,9 @@ var practice_director: PracticeBotDirector
 ## at the centre.
 const PRACTICE_KINDS := ["full", "duel"]
 var practice_kind := "full"
+const PRACTICE_TUNING = preload("res://scripts/simulation/practice_tuning.gd")
+## Slots the Practice Duel panel can swap: Weapon 1, the body and Weapon 2 (utility).
+const PRACTICE_PART_SLOTS := ["weapon", "chassis", "utility"]
 ## Offline Woodland practice only (#45): edge starts and the roaming giant.
 var woodland_boss: WoodlandBoss
 ## Woodland LAN/online matches include the roaming giant as a neutral hazard (#79).
@@ -215,6 +218,7 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry", kind := "full
 	practice_director = PracticeBotDirector.new()
 	if kind == "duel":
 		_next_entity = practice_director.configure_duel(world, local_entity, _next_entity)
+		world.practice_tuning[local_entity] = PRACTICE_TUNING.new()
 	else:
 		_next_entity = practice_director.configure(world, local_entity, _next_entity)
 	if arena_id == "woodland" and kind == "full":
@@ -241,31 +245,77 @@ func dev_cycle_part(slot: String) -> Dictionary:
 		return {"refused":"unavailable"}
 	if not _server or hosted_admission != null or connection_state not in ["practice", "hosting"] or not is_instance_valid(world):
 		return {"refused":"remote"}
+	return _cycle_part(slot, 1)
+
+## Next (step 1) or previous (step -1) part that fits the local bot's slot.
+func _cycle_part(slot: String, step: int) -> Dictionary:
 	var bot: MvpBot = world.bots.get(local_entity)
 	if bot == null or bot.combat.eliminated:
 		return {"refused":"unavailable"}
-	var pickups := world.pickups
-	var options: Array[String] = []
-	for id: String in pickups.registry.parts:
-		if pickups.registry.parts[id].category == slot and (slot != "chassis" or id in MatchPickups.OFFERED_CHASSIS):
-			options.append(id)
-	var current: String = bot.loadout.parts.get(slot, "")
-	var start := options.find(current)
-	for step: int in range(1, options.size()):
-		var part := options[(start + step) % options.size()]
-		var next := pickups.swapped(bot.loadout, part)
-		if next.is_empty() and slot == "chassis":
-			# A body that cannot carry the fitted weapon takes the lifter.
-			var fallback: Dictionary = bot.loadout.duplicate(true)
-			fallback.parts.weapon = "lifter"
-			next = pickups.swapped(fallback, part)
+	var options := _slot_parts(slot)
+	var start := options.find(str(bot.loadout.parts.get(slot, "")))
+	for offset: int in range(1, options.size()):
+		var part := options[posmod(start + offset * step, options.size())]
+		var next := _fitted(bot, part, slot)
 		if next.is_empty():
 			continue
-		world.apply_loadout(local_entity, next)
-		# Publish like a pickup so a local host's guests rebuild the same bot.
-		pickups.revision += 1
+		_swap_local_part(next)
 		return {"part":part}
 	return {"refused":"no_fit"}
+
+func _slot_parts(slot: String) -> Array[String]:
+	var options: Array[String] = []
+	for id: String in world.pickups.registry.parts:
+		if world.pickups.registry.parts[id].category == slot and (slot != "chassis" or id in MatchPickups.OFFERED_CHASSIS):
+			options.append(id)
+	return options
+
+## The local bot's loadout with part fitted, or {} when it cannot fit.
+func _fitted(bot: MvpBot, part: String, slot: String) -> Dictionary:
+	var next := world.pickups.swapped(bot.loadout, part)
+	if next.is_empty() and slot == "chassis":
+		# A body that cannot carry the fitted weapon takes the lifter.
+		var fallback: Dictionary = bot.loadout.duplicate(true)
+		fallback.parts.weapon = "lifter"
+		next = world.pickups.swapped(fallback, part)
+	return next
+
+func _swap_local_part(loadout: Dictionary) -> void:
+	world.apply_loadout(local_entity, loadout)
+	# Publish like a pickup so a local host's guests rebuild the same bot.
+	world.pickups.revision += 1
+
+## Practice Duel tuning (#84): the weapon, chassis or utility parts in the panel's
+## dropdown, each {part, fits, current}. Empty outside Practice Duel.
+func practice_part_options(slot: String) -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	var bot: MvpBot = world.bots.get(local_entity) if practice_tuning() != null and slot in PRACTICE_PART_SLOTS else null
+	if bot == null:
+		return options
+	var current := str(bot.loadout.parts.get(slot, ""))
+	for part: String in _slot_parts(slot):
+		options.append({"part":part, "current":part == current, "fits":part == current or not _fitted(bot, part, slot).is_empty()})
+	return options
+
+## Practice Duel tuning: fit part (from practice_part_options) to the local bot.
+## Returns {"part": id} or {"refused": "unavailable" | "no_fit"}.
+func practice_set_part(slot: String, part: String) -> Dictionary:
+	var bot: MvpBot = world.bots.get(local_entity) if practice_tuning() != null and slot in PRACTICE_PART_SLOTS else null
+	if bot == null or bot.combat.eliminated or part not in _slot_parts(slot):
+		return {"refused":"unavailable"}
+	if bot.loadout.parts.get(slot) == part:
+		return {"part":part}
+	var next := _fitted(bot, part, slot)
+	if next.is_empty():
+		return {"refused":"no_fit"}
+	_swap_local_part(next)
+	return {"part":part}
+
+## Practice Duel tuning: the next (1) or previous (-1) part that fits.
+func practice_step_part(slot: String, step: int) -> Dictionary:
+	if practice_tuning() == null or slot not in PRACTICE_PART_SLOTS:
+		return {"refused":"unavailable"}
+	return _cycle_part(slot, signi(step) if step != 0 else 1)
 
 func practice_target() -> BotSource:
 	if connection_state != "practice" or not is_instance_valid(world):
@@ -273,6 +323,13 @@ func practice_target() -> BotSource:
 	if practice_director != null:
 		return world.bots.get(practice_director.target_id)
 	return null
+
+## Practice Duel only (#84): the local player's live, session-only tuning
+## (scripts/simulation/practice_tuning.gd); null in every other mode.
+func practice_tuning() -> RefCounted:
+	if connection_state != "practice" or practice_kind != "duel" or not _server or not is_instance_valid(world):
+		return null
+	return world.practice_tuning.get(local_entity)
 
 func restart_practice() -> Error:
 	# Local training is the only mode allowed to repair on demand. This is not an RPC.

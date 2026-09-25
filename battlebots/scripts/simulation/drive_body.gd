@@ -65,6 +65,9 @@ var drive_multiplier: float = 1.0
 var nitro_equipped := false
 var jump_equipped := false
 var nitro_active := false
+## Scales the nitro acceleration and top-speed boost. Only Practice Duel
+## tuning (#84) changes it; 1 everywhere else, so prediction is unaffected.
+var nitro_boost_scale := 1.0
 var _jump_queued := 0.0
 var steering_multiplier: float = 1.0
 ## Hit stagger loosens tyre grip so knockback carries the hull.
@@ -373,7 +376,8 @@ func model_config() -> Dictionary:
 		"charged_jump":jump_equipped, "max_rise":max_rise(), "support_release_speed":physics.support_release_speed,
 		"hull_half_extents":_hull_box().size * 0.5 if _hull_box() != null else Vector3.ZERO,
 		"hull_offset":(get_node("Collision") as CollisionShape3D).position if _hull_box() != null else Vector3.ZERO,
-		"nitro_acceleration":physics.nitro_acceleration_multiplier, "nitro_speed":physics.nitro_top_speed_multiplier,
+		"nitro_acceleration":physics.nitro_acceleration_multiplier * nitro_boost_scale,
+		"nitro_speed":physics.nitro_top_speed_multiplier * nitro_boost_scale,
 		"nitro_grip":physics.nitro_grip_multiplier,
 		"brake":brake_acceleration * physics.brake_multiplier, "turn":turn_speed, "drive_scale":drive_multiplier,
 		"steering_scale":steering_multiplier, "angular_damp":angular_damp,

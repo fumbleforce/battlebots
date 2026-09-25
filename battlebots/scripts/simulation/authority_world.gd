@@ -21,6 +21,9 @@ var arena: Node3D
 var arena_id := "foundry"
 ## Practice Duel (#83) runs without the arena cooling zones and coolant canisters.
 var arena_cooling_enabled := true
+## Practice Duel tuning (#84): entity id -> practice_tuning.gd overrides.
+## Only the offline Practice Duel session fills it.
+var practice_tuning: Dictionary = {}
 
 func _ready() -> void:
 	_build_arena()
@@ -157,6 +160,9 @@ func reset_round() -> void:
 
 func step(delta: float, active: bool, round_index: int) -> void:
 	tick += 1
+	for id: int in practice_tuning:
+		if bots.has(id):
+			practice_tuning[id].apply(bots[id], registry)
 	_mark_cooling_zones()
 	for id: int in bots:
 		bots[id].server_tick = tick

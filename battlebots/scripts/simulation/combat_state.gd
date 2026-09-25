@@ -44,6 +44,13 @@ var _hammer_windup := 0.0
 const MINIGUN_SPINUP := 0.6
 const MINIGUN_CADENCE := 1.0 / 12.0
 const MINIGUN_SHOT_HEAT := 1.4
+const HAMMER_WINDUP := 0.35
+const HAMMER_COOLDOWN := 1.4
+const LIFTER_COOLDOWN := 3.0
+## Practice Duel tuning (#84, scripts/simulation/practice_tuning.gd): the
+## player's session-only overrides, set each tick by the offline AuthorityWorld.
+## Null everywhere else, which leaves every rule untouched.
+var practice_tuning: RefCounted
 var secondary_charge := 0.0
 var secondary_active := false
 var gun_shot := false
@@ -115,10 +122,27 @@ const HEAT_LIMIT := 100.0
 const HEAT_RESUME := 50.0
 const NITRO_HEAT_RATE := 14.0
 const JUMP_HEAT := 20.0
+const JUMP_COOLDOWN := 4.0
+## Take-off speed (m/s) of a charged jump, at no charge and at full charge.
+const JUMP_MIN_SPEED := 3.5
+const JUMP_MAX_SPEED := 7.5
 const RECOVERY_HEAT := 30.0
+
+## Fire-rate scale of a Practice Duel override (1 = untuned).
+func _rate(slot: String) -> float:
+	return 1.0 if practice_tuning == null else practice_tuning.scale(slot, "rate")
+
+## Practice Duel "Allow auto fire" for the weapon slot ("primary"/"secondary").
+func _auto_fire(slot: String) -> bool:
+	return practice_tuning != null and practice_tuning.auto_fire.get(slot, false)
+
+func _heat_disabled() -> bool:
+	return practice_tuning != null and not practice_tuning.heat_enabled
 
 func _add_heat(amount: float) -> void:
 	_heat_active = true
+	if _heat_disabled():
+		return
 	heat = minf(HEAT_LIMIT, heat + _cooling_this_tick + amount)
 	_cooling_this_tick = 0.0
 	if heat >= HEAT_LIMIT:
@@ -156,8 +180,8 @@ func tick_perks(delta: float, command: BotCommand, active: bool, grounded: bool)
 		elif not command.jump_held:
 			if _jump_was_held and jump_charge > 0.0 and grounded and not overheated and jump_cooldown <= 0.0:
 				_add_heat(JUMP_HEAT)
-				jump_release_speed = lerpf(3.5, 7.5, jump_charge)
-				jump_cooldown = 4.0
+				jump_release_speed = lerpf(JUMP_MIN_SPEED, JUMP_MAX_SPEED, jump_charge) * (1.0 if practice_tuning == null else practice_tuning.jump_scale())
+				jump_cooldown = 0.0 if practice_tuning != null and not practice_tuning.jump_cooldown_enabled else JUMP_COOLDOWN
 			jump_charge = 0.0
 		elif not grounded or overheated:
 			jump_charge = 0.0
@@ -178,6 +202,9 @@ func tick(delta: float, command: BotCommand, active: bool) -> void:
 	if _spree_timer <= 0.0: spree = 0
 	cooling_boost = maxf(0.0, cooling_boost - delta)
 	if active and not eliminated and overheated and heat <= HEAT_RESUME:
+		overheated = false
+	if _heat_disabled():
+		heat = 0.0
 		overheated = false
 	_tick_primary(delta, command, active)
 	if not active or eliminated:
@@ -219,7 +246,7 @@ func _tick_turret(delta: float, held: bool) -> void:
 	var family: String = stats.secondary_weapon
 	var cannon := family == "cannon"
 	var barrels := maxi(1, int(stats.get("turret_barrels", 1)))
-	var interval := tuning.barrel(family, barrels, "interval")
+	var interval := tuning.barrel(family, barrels, "interval") / _rate("secondary")
 	var shot_heat := tuning.barrel(family, barrels, "heat")
 	_gun_cooldown = maxf(0.0, _gun_cooldown - delta)
 	if _gun_cooldown < 0.000001:
@@ -258,7 +285,7 @@ func _tick_turret(delta: float, held: bool) -> void:
 func _tick_special_turret(delta: float, held: bool) -> void:
 	var tuning := TurretTuning.settings()
 	var family: String = stats.secondary_weapon
-	var interval := tuning.barrel(family, 1, "interval")
+	var interval := tuning.barrel(family, 1, "interval") / _rate("secondary")
 	var shot_heat := tuning.barrel(family, 1, "heat")
 	_gun_cooldown = maxf(0.0, _gun_cooldown - delta)
 	if _gun_cooldown < 0.000001:
@@ -285,6 +312,11 @@ func _tick_special_turret(delta: float, held: bool) -> void:
 			if held and eligible and _gun_cooldown <= 0.0:
 				_rail_charge = minf(1.0, _rail_charge + delta / tuning.value("railgun", "charge_seconds"))
 				_add_heat(tuning.value("railgun", "charge_heat_per_second") * delta)
+				if _auto_fire("secondary") and _rail_charge >= 1.0:
+					# Allow auto fire (#84): a held railgun fires once fully charged.
+					_fire_turret_shot(shot_heat)
+					_gun_cooldown = interval
+					_rail_charge = 0.0
 			elif not held and _turret_was_held and _rail_charge >= 1.0 and eligible:
 				# Release a full charge; an early release simply discharges.
 				_fire_turret_shot(shot_heat)
@@ -303,7 +335,8 @@ func _tick_special_turret(delta: float, held: bool) -> void:
 		"harpoon":
 			# Press to fire; while the tether holds, keep holding to reel the
 			# target in. A fresh press cuts the cable. Reloads after either.
-			var pressed := held and not _turret_was_held
+			# Allow auto fire (#84): holding fires again once reloaded and untethered.
+			var pressed := held and (not _turret_was_held or (_auto_fire("secondary") and grip_target == 0))
 			if grip_target != 0 and grip_mode == "harpoon":
 				if pressed:
 					release_grip()
@@ -406,10 +439,12 @@ func _tick_primary(delta: float, command: BotCommand, active: bool) -> void:
 		_add_heat(heat_rate * delta)
 		charge = minf(1, charge + delta / spinup)
 	# Preserve #38's partial release threshold and charge-scaled launch.
-	if stats.weapon == "lifter" and _previous_held and not command.primary_held and not _secondary_brake(command) and eligible \
-			and charge >= BotPhysics.settings().lifter_min_release_charge:
+	# Allow auto fire (#84): a held lifter launches by itself once fully charged.
+	var auto_release: bool = _auto_fire("primary") and command.primary_held and charge >= 1.0 - 0.000001
+	if stats.weapon == "lifter" and _previous_held and (not command.primary_held or auto_release) and not _secondary_brake(command) \
+			and eligible and charge >= BotPhysics.settings().lifter_min_release_charge:
 		_add_heat(18.0)
-		cooldown = 3.0
+		cooldown = LIFTER_COOLDOWN / _rate("primary")
 		attack_id += 1
 		launch = true
 	if not powered:
@@ -430,7 +465,8 @@ func _tick_tool(delta: float, command: BotCommand) -> void:
 	var tool: String = AtlasGeometry.TOOL_PARTS[stats.weapon]
 	var eligible: bool = zones.weapon > 0.0 and not overheated
 	var trigger := command.primary_held and not _secondary_brake(command)
-	var pressed := trigger and not _previous_held
+	# Allow auto fire (#84): a held trigger punches or thrusts again when ready.
+	var pressed := trigger and (not _previous_held or (_auto_fire("primary") and cooldown <= 0.0))
 	var powered := false
 	if tool == "grinder":
 		powered = eligible and trigger
@@ -447,13 +483,17 @@ func _tick_tool(delta: float, command: BotCommand) -> void:
 	else:
 		var ram := tool == "ram"
 		var seconds := tuning.value(tool, "punch_seconds" if ram else "thrust_seconds")
+		# Allow auto fire (#84): a held spear lets its impaled target go and
+		# thrusts again once ready, instead of carrying it.
+		if not ram and grip_mode == "spear" and pressed and _auto_fire("primary") and _tool_timer <= 0.0 and cooldown <= 0.0 and eligible:
+			release_grip()
 		if pressed and _tool_timer <= 0.0 and grip_mode != "spear":
 			if not eligible or cooldown > 0.0:
 				failure_reason = "disabled" if zones.weapon <= 0.0 else ("overheated" if overheated else "cooldown")
 			else:
 				attack_id += 1
 				_tool_timer = seconds
-				cooldown = tuning.value(tool, "punch_cooldown" if ram else "cooldown")
+				cooldown = tuning.value(tool, "punch_cooldown" if ram else "cooldown") / _rate("primary")
 				_add_heat(tuning.value(tool, "punch_heat" if ram else "thrust_heat"))
 		charge = 0.0
 		if _tool_timer > 0.0:
@@ -498,21 +538,23 @@ func _tick_hammer(delta: float, command: BotCommand) -> void:
 		charge = 0.0
 		if command.primary_pressed:
 			failure_reason = "disabled"
-	elif _hammer_windup <= 0.0 and command.primary_pressed and not _secondary_brake(command):
+	# Allow auto fire (#84): a held button swings again as soon as the hammer is ready.
+	elif _hammer_windup <= 0.0 and not _secondary_brake(command) and (command.primary_pressed
+			or (_auto_fire("primary") and command.primary_held and not recovering and not overheated)):
 		if recovering or overheated:
 			failure_reason = "overheated" if overheated else "cooldown"
 		else:
 			attack_id += 1
-			_hammer_windup = 0.35
+			_hammer_windup = HAMMER_WINDUP
 	if _hammer_windup > 0.0:
 		_hammer_windup = maxf(0.0, _hammer_windup - delta)
-		charge = clampf(1.0 - _hammer_windup / 0.35, 0.0, 1.0)
+		charge = clampf(1.0 - _hammer_windup / HAMMER_WINDUP, 0.0, 1.0)
 		_heat_active = true
 		if _hammer_windup < 0.000001:
 			_hammer_windup = 0.0
 			charge = 1.0
 			strike = true
-			cooldown = 1.4
+			cooldown = HAMMER_COOLDOWN / _rate("primary")
 			_add_heat(20.0)
 	else:
 		charge = 0.0
@@ -535,7 +577,7 @@ func _tick_minigun(delta: float, held: bool, auxiliary: bool) -> void:
 			_add_heat(MINIGUN_SHOT_HEAT)
 			gun_shot = true
 			shot_sequence += 1
-			_gun_cooldown = MINIGUN_CADENCE
+			_gun_cooldown = MINIGUN_CADENCE / _rate("secondary" if auxiliary else "primary")
 	if not powered:
 		spool = move_toward(spool, 0.0, delta * 2.0)
 	if zones.weapon <= 0.0 or overheated:

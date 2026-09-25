@@ -25,6 +25,8 @@ var _shells: Array[Dictionary] = []
 var props: RefCounted
 ## Prop contact bookkeeping: "attacker:prop" -> last attack id or cooldown end.
 var _prop_strikes: Dictionary = {}
+## This tick's bots, for Practice Duel splash hits (#84).
+var _bots: Dictionary = {}
 ## Component zones lie on these armour faces for the wall-pin hit.
 const COMPONENT_FACES := {"drive_left":"left", "drive_right":"right", "weapon":"front"}
 const MINIGUN_RANGE := 24.0
@@ -41,6 +43,26 @@ const SHOT_KINDS := ["minigun", "cannon", "plasma", "flamer", "tesla", "railgun"
 const HAMMER_KNOCKBACK := 2.0
 const HAMMER_LIFT := 1.5
 const MINIGUN_DAMAGE := 6.0
+## Primary weapon hits. Knockback values scale the victim's mass; recoil is the
+## share of the delivered impulse pushed back into the attacker.
+const HAMMER_DAMAGE := 38.0
+const SAW_DAMAGE := 6.0
+const SAW_CADENCE := 1.0 / 3.0
+const VERTICAL_SPINNER_DAMAGE := 45.0
+const VERTICAL_SPINNER_KNOCKBACK := 2.0
+const HORIZONTAL_SPINNER_DAMAGE := 40.0
+const HORIZONTAL_SPINNER_KNOCKBACK := 4.0
+const HORIZONTAL_SPINNER_RECOIL := 0.6
+## A spinner hits the same target at most once per interval.
+const SPINNER_HIT_INTERVAL := 0.3
+const LIFTER_DAMAGE := 8.0
+const LIFTER_KNOCKBACK := 6.0
+const MINIGUN_KNOCKBACK := 0.035
+const MINIGUN_RECOIL := 0.08
+const RAM_PUNCH_RECOIL := 0.3
+const SPEAR_KNOCKBACK := 1.0
+const SPEAR_RECOIL := 0.1
+const HIT_RECOIL := 0.2
 ## Rams below this closing speed (m/s) deal no damage or knock-back.
 const RAM_MIN_CLOSING_SPEED := 4.0
 ## Impact scaling and ram knock-back tuning: data/bot_physics.json "impacts".
@@ -61,6 +83,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	_saw_last_tick = tick
 	_saw_round = round_index
 	var saw_contacts: Dictionary = {}
+	_bots = bots
 	_detonate_shells(bots, tick, round_index)
 	for key: String in cooldowns.keys():
 		if cooldowns[key] <= time:
@@ -129,32 +152,34 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 			var point := victim.body.global_transform * local_point
 			if state.stats.weapon == "saw":
 				var contact_seconds := float(_saw_contacts.get(key, 0.0)) + delta
-				var cadence := 1.0 / 3.0
+				var cadence := SAW_CADENCE / _lab_scale(attacker, "primary", "rate")
 				while contact_seconds + 0.000001 >= cadence:
 					# The blade disc stands in the attacker's YZ plane: its axle is the cut normal.
-					_hit(attacker, victim, point, 6, Vector3.ZERO, tick, round_index, 0.2, "", "", 1.0, attacker.body.global_basis.x)
+					_hit(attacker, victim, point, SAW_DAMAGE, Vector3.ZERO, tick, round_index, HIT_RECOIL, "", "", 1.0, attacker.body.global_basis.x)
 					contact_seconds = maxf(0.0, contact_seconds - cadence)
 				saw_contacts[key] = contact_seconds
 			elif state.stats.weapon == "hammer":
 				if not _hammer_hits[id].targets.has(target_id):
-					_hit(attacker, victim, point, 38, _hammer_impulse(attacker, victim), tick, round_index)
+					_hit(attacker, victim, point, HAMMER_DAMAGE, _hammer_impulse(attacker, victim), tick, round_index)
 					_hammer_hits[id].targets[target_id] = true
 			elif state.stats.weapon == "vertical_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
-				_hit(attacker, victim, point, 45 * state.charge, (direction * 2 + Vector3.UP * 2) * victim.body.mass, tick, round_index)
+				_hit(attacker, victim, point, VERTICAL_SPINNER_DAMAGE * state.charge,
+					(direction + Vector3.UP) * VERTICAL_SPINNER_KNOCKBACK * victim.body.mass, tick, round_index)
 				state.charge *= 0.5
-				cooldowns[key] = time + 0.3
+				cooldowns[key] = time + SPINNER_HIT_INTERVAL / _lab_scale(attacker, "primary", "rate")
 			elif state.stats.weapon == "horizontal_spinner" and state.charge >= 0.25 and not cooldowns.has(key):
 				var lateral := Vector3(victim.body.global_position.x - contact_origin.x, 0, victim.body.global_position.z - contact_origin.z).normalized()
 				if lateral.is_zero_approx():
 					lateral = Vector3(direction.x, 0, direction.z).normalized()
-				_hit(attacker, victim, point, 40 * state.charge, lateral * 4 * victim.body.mass, tick, round_index, 0.6)
+				_hit(attacker, victim, point, HORIZONTAL_SPINNER_DAMAGE * state.charge, lateral * HORIZONTAL_SPINNER_KNOCKBACK * victim.body.mass,
+					tick, round_index, HORIZONTAL_SPINNER_RECOIL)
 				state.charge *= 0.4
-				cooldowns[key] = time + 0.3
+				cooldowns[key] = time + SPINNER_HIT_INTERVAL / _lab_scale(attacker, "primary", "rate")
 			elif state.stats.weapon == "lifter" and not blocked.has(key):
 				if state.launch:
 					# Charge at release (decayed one tick) sets the launch strength.
 					var strength := clampf(state.charge, physics.lifter_min_release_charge, 1.0)
-					_hit(attacker, victim, point, 8 * strength, (Vector3.UP * 6 + direction) * victim.body.mass * strength, tick, round_index)
+					_hit(attacker, victim, point, LIFTER_DAMAGE * strength, (Vector3.UP * LIFTER_KNOCKBACK + direction) * victim.body.mass * strength, tick, round_index)
 				elif state.weapon_phase == "active":
 					pins[key] = float(pins.get(key, 0)) + delta if victim.body.linear_velocity.length() < 0.5 else 0.0
 					if pins[key] >= 5:
@@ -170,6 +195,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	# Only eligible contacts this tick survive. Breaking contact or power cannot
 	# bank a nearly complete damage interval for a later touch.
 	_saw_contacts = saw_contacts
+	_hammer_blasts(bots, tick, round_index)
 	# One unordered ram pair per half-second; resolve both struck zones once.
 	var ids := bots.keys()
 	for i: int in range(ids.size()):
@@ -378,10 +404,8 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := SphereShape3D.new()
 	shape.radius = 0.2 * linear_scale
-	# The Strider (#61) swings its hammer from a low shoulder socket.
-	var pivot := Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15 * linear_scale) \
-		+ NimbleBots.hammer_socket(bot.loadout)
-	var arm := Vector3(0, 0, -1.2 * linear_scale)
+	var pivot := _hammer_pivot(bot)
+	var arm := Vector3(0, 0, -HAMMER_ARM * linear_scale)
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
 	var body_angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
@@ -394,7 +418,7 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 	for index: int in range(steps):
 		var fraction := float(index) / (steps - 1)
 		var pose := start.interpolate_with(finish, fraction)
-		var angle := lerpf(PI / 2.0, -PI / 6.0, fraction)
+		var angle := lerpf(PI / 2.0, HAMMER_STRIKE_ANGLE, fraction)
 		var head := pivot + Basis(Vector3.RIGHT, angle) * arm
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
@@ -406,6 +430,46 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 				found.append(hit.collider_id)
 				_sweep_origins[hit.collider_id] = query.transform.origin
 	return found
+
+## Arm length (before bot scale) and the swing end angle of the plain hammer.
+const HAMMER_ARM := 1.2
+const HAMMER_STRIKE_ANGLE := -PI / 6.0
+
+## The plain hammer's shoulder, in the bot's frame.
+func _hammer_pivot(bot: MvpBot) -> Vector3:
+	var linear_scale := BotScale.from_size(bot.combat.stats.size)
+	# The Strider (#61) swings its hammer from a low shoulder socket.
+	return Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15 * linear_scale) \
+		+ NimbleBots.hammer_socket(bot.loadout)
+
+## Where the hammer head lands at the strike, in world space.
+func _hammer_head(bot: MvpBot) -> Vector3:
+	var size: Vector3 = bot.combat.stats.size
+	var pose := bot.body.global_transform
+	if ScorpionGeometry.enabled(bot.loadout):
+		return (pose * ScorpionGeometry.hammer_transform(size, 1.0)).origin
+	if SawbladeConfig.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout):
+		return pose * SawbladeGeometry.hammer_center(size, SawbladeGeometry.HAMMER_SWING)
+	var arm := Vector3(0, 0, -HAMMER_ARM * BotScale.from_size(size))
+	return pose * (_hammer_pivot(bot) + Basis(Vector3.RIGHT, HAMMER_STRIKE_ANGLE) * arm)
+
+## Practice Duel (#84): a hammer with a tuned area of effect blasts a sphere
+## around where its head lands, hit or miss. Bots the head struck directly
+## this swing already took the full blow and are not hit twice.
+func _hammer_blasts(bots: Dictionary, tick: int, round_index: int) -> void:
+	for id: int in bots:
+		var attacker: MvpBot = bots[id]
+		var state := attacker.combat
+		var lab: RefCounted = state.practice_tuning
+		if lab == null or not state.strike or state.stats.weapon != "hammer" or state.eliminated or state.zones.weapon <= 0:
+			continue
+		var radius: float = lab.value("primary", "aoe")
+		if radius <= 0.0:
+			continue
+		var struck: Array = _hammer_hits.get(id, {}).get("targets", {}).keys()
+		_splash(attacker, _hammer_head(attacker), HAMMER_DAMAGE * lab.scale("primary", "damage"),
+			HAMMER_KNOCKBACK * lab.scale("primary", "knockback"), radius, tick, round_index, "hammer",
+			lab.armour_share("primary", 1.0), struck)
 
 func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 	var size: Vector3 = bot.combat.stats.size
@@ -471,7 +535,7 @@ func _update_gun_aim(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 	var origin := attacker.body.global_transform * pivot
 	var forward := -attacker.body.global_basis.z
 	var desired := 0.0
-	var nearest := MINIGUN_RANGE + 1.5 * BotScale.from_size(state.stats.size)
+	var nearest := minigun_range(attacker) + 1.5 * BotScale.from_size(state.stats.size)
 	for id: int in bots:
 		var candidate: MvpBot = bots[id]
 		if candidate == attacker or candidate.team == attacker.team or candidate.combat.eliminated:
@@ -534,7 +598,7 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 	var size: Vector3 = state.stats.size
 	var basis := attacker.body.global_basis
 	var direction := (basis * AtlasGeometry.turret_direction(state.turret_yaw, state.gun_pitch)).normalized()
-	var reach := tuning.value(kind, "range")
+	var reach := tuning.value(kind, "range") * _lab_scale(attacker, "secondary", "range")
 	var space := attacker.body.get_world_3d().direct_space_state
 	# Multi-barrel models fire each shot from its own barrel, converged on the
 	# point the centre bore line strikes (what the barrel reticle marks), so
@@ -553,13 +617,13 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 			direction = (converge - from).normalized()
 	var end := from + direction * reach
 	var barrels := int(state.stats.get("turret_barrels", 1))
-	var jolt := tuning.barrel(kind, barrels, "jolt")
+	var jolt := tuning.barrel(kind, barrels, "jolt") * _lab_scale(attacker, "secondary", "recoil")
 	attacker.body.apply_impulse(-direction * attacker.body.mass * jolt, from - attacker.body.global_position)
 	var rock_axis := direction.cross(Vector3.UP)
 	var tilt := acos(clampf(attacker.body.global_basis.y.dot(Vector3.UP), -1.0, 1.0))
 	if rock_axis.length_squared() > 0.0001 and tilt < tuning.rock_tilt_limit:
 		var inertia := (attacker.body.inertia.x + attacker.body.inertia.z) * 0.5
-		var rock := tuning.barrel(kind, barrels, "rock")
+		var rock := tuning.barrel(kind, barrels, "rock") * _lab_scale(attacker, "secondary", "recoil")
 		attacker.body.apply_torque_impulse(rock_axis.normalized() * inertia * rock)
 	attacker.body.sleeping = false
 	if kind == "flamer":
@@ -603,6 +667,7 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 				state.grip_seconds = 0.0
 		return
 	# No bot took it: a destructible prop may (#71).
+	_splash_miss(attacker, result.position, tuning.value(kind, "damage"), tuning.value(kind, "knock"), kind, tick, round_index)
 	_prop_hit(result.collider_id, result.position, tuning.value(kind, "damage"), kind, direction)
 
 ## Harpoon tether: follows its anchor on the victim and, while the shooter
@@ -698,7 +763,7 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 		shape.radius = AtlasGeometry.GRINDER_REACH * linear
 		shape.height = AtlasGeometry.GRINDER_HALF_WIDTH * 2.0 * linear
 		var local := Transform3D(Basis(Vector3.BACK, PI * 0.5), AtlasGeometry.grinder_drum(size, state.tool_pose))
-		var cadence := tuning.value("grinder", "cadence")
+		var cadence := tuning.value("grinder", "cadence") / _lab_scale(attacker, "primary", "rate")
 		for victim: MvpBot in _tool_contacts(attacker, bots, shape, local):
 			var key := "grind:%d:%d" % [attacker.entity_id, victim.entity_id]
 			var seconds := float(_saw_contacts.get(key, 0.0)) + delta
@@ -732,7 +797,7 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 			activation.targets[victim.entity_id] = true
 			var impulse := (forward + Vector3.UP * tuning.value("ram", "punch_lift")) * victim.body.mass * tuning.value("ram", "punch_speed")
 			_hit(attacker, victim, _nearest_on(victim, attacker.body.global_transform * local.origin),
-				tuning.value("ram", "punch_damage"), impulse, tick, round_index, 0.3, "ram_punch")
+				tuning.value("ram", "punch_damage"), impulse, tick, round_index, RAM_PUNCH_RECOIL, "ram_punch")
 		return
 	# Spear: the first enemy the blades reach is pierced and impaled.
 	if state.grip_target != 0:
@@ -752,8 +817,8 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 		return
 	activation.targets[best.entity_id] = true
 	var point := _nearest_on(best, tip)
-	_hit(attacker, best, point, tuning.value("spear", "thrust_damage"), forward * best.body.mass * 1.0, tick, round_index,
-		0.1, "spear", "", tuning.value("spear", "armour_share"))
+	_hit(attacker, best, point, tuning.value("spear", "thrust_damage"), forward * best.body.mass * SPEAR_KNOCKBACK, tick, round_index,
+		SPEAR_RECOIL, "spear", "", tuning.value("spear", "armour_share"))
 	state.grip_mode = "spear"
 	state.grip_target = best.entity_id
 	state.grip_local = best.body.global_transform.affine_inverse() * point
@@ -839,7 +904,6 @@ static func mortar_trace(space: PhysicsDirectSpaceState3D, from: Vector3, direct
 ## see, full damage at the centre falling to blast_edge_share at the edge.
 func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
 	var tuning := TurretTuning.settings()
-	var radius := tuning.value("mortar", "blast_radius")
 	for shell: Dictionary in _shells.duplicate():
 		if shell.lands > time + 0.000001:
 			continue
@@ -850,6 +914,7 @@ func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
 				attacker = bots[id]
 		if attacker == null:
 			continue
+		var radius := tuning.value("mortar", "blast_radius") * _lab_scale(attacker, "secondary", "aoe")
 		var point: Vector3 = shell.point
 		for id: int in bots:
 			var victim: MvpBot = bots[id]
@@ -1032,7 +1097,7 @@ func _line_of_fire(attacker: MvpBot, from: Vector3, victim: MvpBot, extra_exclud
 func _flamer_shot(attacker: MvpBot, bots: Dictionary, from: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
 	var tuning := TurretTuning.settings()
 	var state := attacker.combat
-	var reach := tuning.value("flamer", "range")
+	var reach := tuning.value("flamer", "range") * _lab_scale(attacker, "secondary", "range")
 	var wall := PhysicsRayQueryParameters3D.create(from, from + direction * reach, BaselineConfig.WORLD_LAYER)
 	var blocked := attacker.body.get_world_3d().direct_space_state.intersect_ray(wall)
 	if not blocked.is_empty():
@@ -1064,7 +1129,7 @@ func _flamer_shot(attacker: MvpBot, bots: Dictionary, from: Vector3, direction: 
 func _tesla_shot(attacker: MvpBot, bots: Dictionary, from: Vector3, direction: Vector3, tick: int, round_index: int) -> void:
 	var tuning := TurretTuning.settings()
 	var state := attacker.combat
-	var reach := tuning.value("tesla", "range")
+	var reach := tuning.value("tesla", "range") * _lab_scale(attacker, "secondary", "range")
 	state.last_shot_from = from
 	state.last_shot_to = from + direction * 5.0
 	state.last_shot_tick = tick
@@ -1123,7 +1188,7 @@ func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: i
 	var from := attacker.body.global_transform * muzzle
 	var origin := attacker.body.global_transform * breech
 	var direction := (attacker.body.global_basis * local_direction).normalized()
-	var end := from + direction * MINIGUN_RANGE
+	var end := from + direction * minigun_range(attacker)
 	# Start at the breech so a protruding barrel cannot shoot through a wall.
 	# The first body always occludes: allies block fire without receiving damage.
 	var query := PhysicsRayQueryParameters3D.create(origin, end,
@@ -1143,8 +1208,9 @@ func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: i
 			continue
 		if victim.team != attacker.team and not victim.combat.eliminated:
 			_hit(attacker, victim, result.position, MINIGUN_DAMAGE,
-				direction * victim.body.mass * 0.035, tick, round_index, 0.08, "minigun")
+				direction * victim.body.mass * MINIGUN_KNOCKBACK, tick, round_index, MINIGUN_RECOIL, "minigun")
 		return
+	_splash_miss(attacker, result.position, MINIGUN_DAMAGE, MINIGUN_KNOCKBACK, "minigun", tick, round_index)
 	_prop_hit(result.collider_id, result.position, MINIGUN_DAMAGE, "minigun", direction)
 
 ## Hammer blows knock the target away from the attacker and pop it off the floor.
@@ -1161,9 +1227,79 @@ func _hammer_impulse(attacker: MvpBot, victim: MvpBot) -> Vector3:
 ## axis orients the blow for destruction (#72): the saw blade's axle, the
 ## grinder's approach or the slug's flight. Zero falls back to the impulse, then
 ## to the direction from the victim's centre to the point.
-func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := 0.2, kind := "", zone := "", armour_share := 1.0, axis := Vector3.ZERO) -> void:
+func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse: Vector3, tick: int, round_index: int, recoil := HIT_RECOIL, kind := "", zone := "", armour_share := 1.0, axis := Vector3.ZERO) -> void:
+	if kind.is_empty():
+		kind = attacker.combat.stats.weapon
+	# Practice Duel tuning (#84): the player's session-only weapon overrides.
+	var lab: RefCounted = attacker.combat.practice_tuning
+	if lab != null:
+		var slot: String = lab.slot_of(attacker.combat.stats, kind)
+		if not slot.is_empty():
+			raw *= lab.scale(slot, "damage")
+			# Knockback moves only the target and recoil only the attacker. The
+			# attacker's push is a share of the delivered impulse, so take the
+			# knockback scale back out of that share.
+			var knockback: float = lab.scale(slot, "knockback")
+			impulse *= knockback
+			recoil *= lab.scale(slot, "recoil") / knockback if knockback > 0.0 else 0.0
+			armour_share = lab.armour_share(slot, armour_share)
+			# A tuned area of effect splashes everyone else near the hit.
+			var radius: float = lab.splash_radius(slot, kind)
+			if radius > 0.0:
+				_splash(attacker, point, raw, impulse.length() / maxf(victim.body.mass, 0.001), radius, tick, round_index,
+					kind, armour_share, [victim.entity_id])
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
-		attacker.combat.stats.weapon if kind.is_empty() else kind, zone, armour_share, axis])
+		kind, zone, armour_share, axis])
+
+## Practice Duel splash (#84) for a shot that struck the world at point: the
+## same falloff as a direct-hit splash, from the weapon's tuned base values.
+func _splash_miss(attacker: MvpBot, point: Vector3, raw: float, knock: float, kind: String, tick: int, round_index: int) -> void:
+	var lab: RefCounted = attacker.combat.practice_tuning
+	if lab == null:
+		return
+	var slot: String = lab.slot_of(attacker.combat.stats, kind)
+	var radius: float = lab.splash_radius(slot, kind) if not slot.is_empty() else 0.0
+	if radius > 0.0:
+		_splash(attacker, point, raw * lab.scale(slot, "damage"), knock * lab.scale(slot, "knockback"), radius, tick, round_index,
+			kind, lab.armour_share(slot, 1.0), [])
+
+## Hits every visible hostile within radius of centre (except the one struck
+## directly, by entity id in exclude): full damage at the centre falling to the
+## mortar's edge share.
+## knock is the impulse per unit of victim mass at the centre.
+func _splash(attacker: MvpBot, centre: Vector3, raw: float, knock: float, radius: float, tick: int, round_index: int,
+		kind: String, armour_share: float, exclude: Array) -> void:
+	var edge := TurretTuning.settings().value("mortar", "blast_edge_share")
+	var space := attacker.body.get_world_3d().direct_space_state
+	for id: int in _bots:
+		var victim: MvpBot = _bots[id]
+		if victim.entity_id in exclude or victim == attacker or victim.team == attacker.team or victim.combat.eliminated:
+			continue
+		var bounds := victim.collision_bounds()
+		var local := victim.body.global_transform.affine_inverse() * centre
+		var nearest := victim.body.global_transform * local.clamp(bounds.position, bounds.end)
+		var distance := centre.distance_to(nearest)
+		if distance > radius:
+			continue
+		var sight := PhysicsRayQueryParameters3D.create(centre + Vector3.UP * 0.4, nearest, BaselineConfig.WORLD_LAYER)
+		var cover := space.intersect_ray(sight)
+		if not cover.is_empty() and cover.position.distance_to(nearest) > 0.3:
+			continue
+		var share := lerpf(1.0, edge, distance / radius)
+		var away := (victim.body.global_position - centre).slide(Vector3.UP)
+		away = away.normalized() if away.length_squared() > 0.0001 else Vector3.ZERO
+		pending_hits.append([attacker, victim, nearest, raw * share, (away + Vector3.UP * 0.5) * victim.body.mass * knock * share,
+			tick, round_index, 0.0, kind, "", armour_share, Vector3.ZERO])
+
+## Scale of a Practice Duel override for the attacker's weapon (1 = untuned).
+func _lab_scale(attacker: MvpBot, slot: String, field: String) -> float:
+	var lab: RefCounted = attacker.combat.practice_tuning
+	return 1.0 if lab == null else lab.scale(slot, field)
+
+## The minigun reach, primary gun or Atlas pod, after any Practice Duel override.
+func minigun_range(attacker: MvpBot) -> float:
+	var slot := "primary" if attacker.combat.stats.weapon == "minigun" else "secondary"
+	return MINIGUN_RANGE * _lab_scale(attacker, slot, "range")
 
 ## zone overrides the struck zone derived from point (wall pins name the face);
 ## armour_share is the part of the hit an intact plate may stop (see CombatState.damage).
@@ -1202,8 +1338,12 @@ func _apply_hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, im
 	impact_scale *= victim.body.launch_scale()
 	var delivered := impulse * mass_ratio * impact_scale
 	victim.body.apply_impulse(delivered, point - victim.body.global_position)
-	if STAGGER.has(kind):
-		victim.combat.stagger(STAGGER[kind][0], STAGGER[kind][1])
+	var stagger: Array = STAGGER.get(kind, [])
+	var lab: RefCounted = attacker.combat.practice_tuning
+	if lab != null:
+		stagger = lab.stagger(lab.slot_of(attacker.combat.stats, kind), stagger)
+	if not stagger.is_empty():
+		victim.combat.stagger(stagger[0], stagger[1])
 	if kind == "lifter":
 		# Tip the struck near edge up and over, away from the flipper.
 		var away := (victim.body.global_position - attacker.body.global_position).slide(Vector3.UP).normalized()

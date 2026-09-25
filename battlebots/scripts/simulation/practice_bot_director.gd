@@ -70,21 +70,59 @@ func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int
 	var spawns := ARENA_SPAWNS.settings()
 	_place(player, spawns.team_start(world.arena_id, 0, spawns.practice_player_lane))
 	player_home = player.spawn_pose
-	var bot := MvpBot.create(first_id, 1, world.registry.atlas(), world.registry)
-	assert(bot != null, "The Atlas preset must pass canonical validation")
-	bot.name = "Practice_atlas_%d" % bot.entity_id
+	var toward := player.spawn_pose.origin.slide(Vector3.UP)
+	_add_fixture(first_id, world.registry.atlas(), "atlas", Transform3D(Basis(Vector3.UP, atan2(-toward.x, -toward.z)), Vector3.ZERO))
+	return _add_monowheel_row(player, first_id + 1)
+
+## A tight row of stationary monowheels on the player's left, seen from its
+## start, facing into the room (data/arena_spawns.json duel.monowheels).
+func _add_monowheel_row(player: MvpBot, next_id: int) -> int:
+	var spawns := ARENA_SPAWNS.settings()
+	var count := spawns.duel_monowheel_count
+	if count <= 0:
+		return next_id
+	var forward := (-player.spawn_pose.basis.z).slide(Vector3.UP).normalized()
+	var left := Vector3.UP.cross(forward).normalized()
+	var centre := left * ArenaBounds.half_extent(world.arena_id) * spawns.duel_monowheel_side_for(world.arena_id)
+	# Facing into the room: each hull's forward points away from the left wall.
+	var facing := Basis(Vector3.UP, atan2(left.x, left.z))
+	# Rows one behind the other: the front row nearest the room, the rest
+	# stepping back toward the left wall.
+	var rows := mini(spawns.duel_monowheel_rows, count)
+	var per_row := ceili(float(count) / float(rows))
+	var wheels: Array[MvpBot] = []
+	for index: int in count:
+		wheels.append(_add_fixture(next_id + index, NimbleBots.preset(world.registry, "monowheel_07"), "monowheel", Transform3D(facing, centre)))
+	var hull := wheels[0].collision_bounds().size
+	var offsets: Array[Vector3] = []
+	for index: int in count:
+		var row := index / per_row
+		var in_row := mini(per_row, count - row * per_row)
+		# Hull to hull: width plus the gap along a row, length plus the gap between rows.
+		var along := (float(index % per_row) - float(in_row - 1) * 0.5) * (hull.x + spawns.duel_monowheel_gap)
+		var back := (float(row) - float(rows - 1) * 0.5) * (hull.z + spawns.duel_monowheel_gap)
+		offsets.append(forward * along + left * back)
+	for index: int in count:
+		_place(wheels[index], Transform3D(facing, centre + offsets[index]))
+		records[records.size() - count + index].home = wheels[index].spawn_pose
+	return next_id + count
+
+## A stationary, non-aggressive fixture (records index 0: it never drives or
+## attacks) that keeps its own model and never collects pickups.
+func _add_fixture(id: int, build: Dictionary, label: String, pose: Transform3D) -> MvpBot:
+	var bot := MvpBot.create(id, 1, build, world.registry)
+	assert(bot != null, "Practice Duel fixtures must pass canonical validation")
+	bot.name = "Practice_%s_%d" % [label, bot.entity_id]
 	bot.set_meta("practice_fixture", true)
 	world.add_child(bot)
 	bot.arena_half_extent = ArenaBounds.half_extent(world.arena_id)
 	bot.camera_anchor().set_meta(&"arena_half_extent", bot.arena_half_extent)
 	world.bots[bot.entity_id] = bot
 	bot.body.gravity_scale = 1.62 / 9.8 if world.arena_id == "moon" else 1.0
-	var toward := player.spawn_pose.origin.slide(Vector3.UP)
-	_place(bot, Transform3D(Basis(Vector3.UP, atan2(-toward.x, -toward.z)), Vector3.ZERO))
-	# Index 0 is the calibration role: it never drives or attacks.
+	_place(bot, pose)
 	records.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":0,
 		"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
-	return first_id + 1
+	return bot
 
 func _add_roamers(next_id: int) -> int:
 	var tuning := NimbleBots.practice()

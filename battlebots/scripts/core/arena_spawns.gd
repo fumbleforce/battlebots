@@ -17,6 +17,13 @@ var arenas: Dictionary = {}
 var practice_player_lane := 3
 var practice_target_gap := 0.0
 var practice_pilot_starts: Array[int] = []
+## Practice Duel monowheel row (duel.monowheels).
+var duel_monowheel_count := 0
+var duel_monowheel_rows := 1
+var duel_monowheel_gap := 0.0
+var duel_monowheel_side := 0.0
+## Arena id -> side fraction overriding duel_monowheel_side there.
+var duel_monowheel_side_by_arena: Dictionary = {}
 
 static func settings() -> ArenaSpawns:
 	if _loaded == null:
@@ -78,7 +85,31 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 	result.practice_player_lane = player[0]
 	result.practice_target_gap = float(gap)
 	result.practice_pilot_starts = pilots
+	var duel: Variant = data.get("duel")
+	var row: Variant = duel.get("monowheels") if duel is Dictionary else null
+	if not row is Dictionary or not _number(row.get("count")) or int(row.count) < 0 or not _number(row.get("gap")) \
+			or float(row.gap) < 0.0 or not _number(row.get("side_fraction")) or float(row.side_fraction) < 0.0 \
+			or not _number(row.get("rows")) or int(row.rows) < 1:
+		problems.append("duel.monowheels needs a non-negative count, gap and side_fraction and at least one row")
+		return null
+	result.duel_monowheel_count = int(row.count)
+	result.duel_monowheel_rows = int(row.rows)
+	result.duel_monowheel_gap = float(row.gap)
+	result.duel_monowheel_side = float(row.side_fraction)
+	var by_arena: Variant = row.get("side_fraction_by_arena", {})
+	if not by_arena is Dictionary:
+		problems.append("duel.monowheels.side_fraction_by_arena must be an object")
+		return null
+	for arena_id: String in by_arena:
+		if arena_id not in ArenaBounds.IDS or not _number(by_arena[arena_id]) or float(by_arena[arena_id]) < 0.0:
+			problems.append("duel.monowheels.side_fraction_by_arena.%s needs a known arena and a non-negative fraction" % arena_id)
+			return null
+		result.duel_monowheel_side_by_arena[arena_id] = float(by_arena[arena_id])
 	return result
+
+## Practice Duel monowheel block offset (fraction of the half-extent) on an arena.
+func duel_monowheel_side_for(arena_id: String) -> float:
+	return float(duel_monowheel_side_by_arena.get(arena_id, duel_monowheel_side))
 
 static func _number(value: Variant) -> bool:
 	return (value is float or value is int) and is_finite(float(value))

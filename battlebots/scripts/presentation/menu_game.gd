@@ -713,7 +713,7 @@ func _process(_delta: float) -> void:
 			results_panel.hide()
 			results_panel.clear_record()
 	results_panel.render(session.match_view, session.local_entity, bot.read_view().team if bot != null else -1)
-	game_menu_page.render(session.match_view, session.connection_state == "practice")
+	game_menu_page.render(session.match_view, session.connection_state == "practice", session.practice_tuning(), session)
 	var menu_open := menu_host.visible
 	var game_menu_open: bool = preview.pause_menu.visible or results_panel.visible or _general_settings_open()
 	preview.get_node("CanvasLayer").visible = not menu_open and not preview.settings_panel.visible

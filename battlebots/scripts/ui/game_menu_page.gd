@@ -5,6 +5,15 @@ var context: Label
 var score: Label
 var phase_label: Label
 var description: Label
+var details_margin: MarginContainer
+var summary: VBoxContainer
+var tuning_panel: VBoxContainer
+## Details card margins. The tuning panel uses a taller, wider card: its left
+## edge stops just clear of the menu actions (which end at 1920 - 1060).
+const SUMMARY_BOTTOM := 220
+const TUNING_BOTTOM := 84
+const SUMMARY_SIDES := Vector2i(1000, 112)
+const TUNING_SIDES := Vector2i(890, 60)
 
 func configure(existing_panel: PanelContainer) -> void:
 	panel = existing_panel
@@ -59,13 +68,13 @@ func configure(existing_panel: PanelContainer) -> void:
 	(actions.get_node("Resume") as Button).text = "RESUME GAME"
 	(actions.get_node("Settings") as Button).text = "SETTINGS"
 	(actions.get_node("Return") as Button).text = "LEAVE TO MAIN MENU"
-	var details_margin := MarginContainer.new()
+	details_margin = MarginContainer.new()
 	details_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(details_margin)
-	details_margin.add_theme_constant_override("margin_left", 1000)
-	details_margin.add_theme_constant_override("margin_right", 112)
+	details_margin.add_theme_constant_override("margin_left", SUMMARY_SIDES.x)
+	details_margin.add_theme_constant_override("margin_right", SUMMARY_SIDES.y)
 	details_margin.add_theme_constant_override("margin_top", 244)
-	details_margin.add_theme_constant_override("margin_bottom", 220)
+	details_margin.add_theme_constant_override("margin_bottom", SUMMARY_BOTTOM)
 	var card := PanelContainer.new()
 	card.theme_type_variation = &"PanelGlass"
 	details_margin.add_child(card)
@@ -76,6 +85,11 @@ func configure(existing_panel: PanelContainer) -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 24)
 	inset.add_child(column)
+	summary = column
+	# Practice Duel (#84) swaps the summary for live weapon and body tuning.
+	tuning_panel = preload("res://scripts/ui/practice_tuning_panel.gd").new()
+	tuning_panel.hide()
+	inset.add_child(tuning_panel)
 	context = _label(column, "", &"HeadingWide", 30)
 	_label(column, "THE FOUNDRY", &"HeadingItalic", 58)
 	column.add_child(HSeparator.new())
@@ -116,7 +130,22 @@ func _resize() -> void:
 	scale = Vector2.ONE * ratio
 	position = (extent - size * ratio) * 0.5
 
-func render(view: Dictionary, practice: bool) -> void:
+## tuning is the Practice Duel's live tuning (MvpSession.practice_tuning()) and parts
+## the session that swaps its weapon and chassis; both null otherwise.
+func render(view: Dictionary, practice: bool, tuning: RefCounted = null, parts: Node = null) -> void:
+	var tuned := tuning != null
+	if tuning_panel.visible != tuned:
+		tuning_panel.visible = tuned
+		summary.visible = not tuned
+		# The card sits below the network diagnostics; the tuning list uses the full height.
+		# The margin spans the whole page, so it must keep ignoring the mouse or
+		# it would swallow the menu buttons on the left.
+		details_margin.add_theme_constant_override("margin_bottom", TUNING_BOTTOM if tuned else SUMMARY_BOTTOM)
+		var sides := TUNING_SIDES if tuned else SUMMARY_SIDES
+		details_margin.add_theme_constant_override("margin_left", sides.x)
+		details_margin.add_theme_constant_override("margin_right", sides.y)
+	if tuned:
+		tuning_panel.render(tuning, parts)
 	context.text = "PRACTICE" if practice else str(view.get("mode", "1v1")).to_upper() + " / MATCH IN PROGRESS"
 	description.text = "Take a moment to adjust your setup.\nThe arena stays live while this menu is open."
 	score.text = "TEST YOUR BUILD" if practice else "ROUND %d" % int(view.get("round", 0))
