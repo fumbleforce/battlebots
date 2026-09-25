@@ -1,4 +1,4 @@
-extends SceneTree
+extends Node
 const FreePort := preload("res://tests/fixtures/free_port.gd")
 ## Reset contract fixture: damage/poses below are deliberate setup, not a natural
 ## combat claim. The final hit uses only public commands from the repaired spawn.
@@ -8,7 +8,11 @@ var viewports: Array[SubViewport] = []
 var restart_events := 0
 var hits: Array[Dictionary] = []
 
-func _initialize() -> void:
+# A scene, not a SceneTree main-loop script (#10). As a main-loop script this
+# test hit a Godot 4.7.2 use-after-free in GDScriptLanguage::finish() at exit
+# (0xC0000005 after PASS): freeing one script's constants released the next
+# script in the list it was walking. Run as a scene, it exits cleanly.
+func _ready() -> void:
 	run.call_deferred()
 
 func check(ok: bool, message: String) -> void:
@@ -20,8 +24,8 @@ func make_session(label: String) -> MvpSession:
 	var viewport := SubViewport.new()
 	viewport.name = label
 	viewport.own_world_3d = true
-	root.add_child(viewport)
-	set_multiplayer(SceneMultiplayer.new(), viewport.get_path())
+	add_child(viewport)
+	get_tree().set_multiplayer(SceneMultiplayer.new(), viewport.get_path())
 	var session := MvpSession.new()
 	session.name = "Session"
 	viewport.add_child(session)
@@ -31,8 +35,8 @@ func make_session(label: String) -> MvpSession:
 
 func frames(count: int) -> void:
 	for index: int in range(count):
-		await physics_frame
-		await process_frame
+		await get_tree().physics_frame
+		await get_tree().process_frame
 
 func denied(session: MvpSession, label: String) -> void:
 	check(session.practice_target() == null, label + " exposes no practice target")
@@ -183,10 +187,10 @@ func run() -> void:
 	hits.clear()
 	await playable_hit(practice)
 	for session: MvpSession in sessions: session.leave()
-	await physics_frame
+	await get_tree().physics_frame
 	for viewport: SubViewport in viewports:
-		set_multiplayer(null, viewport.get_path())
+		get_tree().set_multiplayer(null, viewport.get_path())
 		viewport.queue_free()
-	await process_frame
+	await get_tree().process_frame
 	print("PRACTICE SESSION PASS" if failures == 0 else "PRACTICE SESSION FAIL")
-	quit(0 if failures == 0 else 1)
+	get_tree().quit(0 if failures == 0 else 1)

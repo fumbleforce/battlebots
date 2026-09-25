@@ -67,3 +67,39 @@ Later observation: Windows [run35502338810](https://github.com/fumbleforce/battl
 at35ef6a6 passed the full workflow, including the new gate regressions and exports.
 This supersedes the earlier lack of a green run for that checkpoint; it does not
 invalidate the retained intermittent failures or establish a runtime fix.
+
+## Resolution (2026-09-25, #10)
+
+Root cause: a Godot 4.7.2 use-after-free in `GDScriptLanguage::finish()`
+during `Main::cleanup` (`ScriptServer::finish_languages`). The loop over
+`script_list` advances `s = s->next()` and only then releases its
+`Ref<GDScript> scr`. `GDScript::clear()` keeps `constants`, `subclasses` and
+`base`, so when that `Ref` was the last one, destroying the script can free
+the next script in the list, and the following `s->self()` reads freed memory.
+Upstream `master` has since rewritten `finish()` to snapshot the list first.
+Whether it fires depends on the script-list order and on what is left in the
+freed block, which is why it was intermittent. It was never a separate crash
+per test: the old `drive_smoke` fault offset `0x547f2c` is inside the same
+function.
+
+Two traps hid it:
+- `Godot_v4.7.2-stable_win64_console.exe` is a launcher that relays the
+  child `Godot_v4.7.2-stable_win64.exe` exit code, so debugging the console
+  exe shows no exception. Debug the plain exe instead.
+- The crash handler prints nothing because the fault is in engine teardown.
+
+Deterministic reproduction: run the plain exe under any debugger. The Windows
+debug heap fills freed blocks with `0xFEEEFEEE`, so the dangling read faults
+on every exit (`practice_session_test.gd` as `--script`: 2/2, 6/6), rather than
+in about a quarter of exits (local, 6/24 without a debugger).
+
+Scope: under the debug heap only `tests/practice/practice_session_test.gd` out
+of the 50 SceneTree `--script` tests in `tools/` and the workflows faults at
+exit. Bisection showed it is the script's compiled dependency set, not its
+runtime work (the same script faulted with no session at all).
+
+Fix: that test runs as a scene (`practice_session_test.tscn`, checks
+unchanged). That exits cleanly under the debug heap (6/6) and without a
+debugger (40/40 at 4.5-6 s). A new SceneTree test that faults like this can
+be moved to a scene the same way; the debugger method above detects it in
+one run.
