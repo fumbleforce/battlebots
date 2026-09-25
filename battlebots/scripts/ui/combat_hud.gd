@@ -234,7 +234,8 @@ func _layout() -> void:
 	# Recompute after visibility/text changes; containers can shrink after a warning.
 	resources_panel.size = Vector2(health_width, 0)
 	resources_panel.position = Vector2(28, 692 - resources_panel.size.y)
-	speed_panel.size = Vector2(health_width, 0)
+	# The dial block hugs its content rather than matching the Integrity width.
+	speed_panel.size = Vector2.ZERO
 	speed_panel.position = Vector2(28, resources_panel.position.y - 8 - speed_panel.size.y)
 	weapon_panel.size = Vector2(weapon_width, 0)
 	weapon_panel.position = Vector2(1252 - weapon_width, 692 - weapon_panel.size.y)

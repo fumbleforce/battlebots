@@ -40,19 +40,19 @@ func run() -> void:
 	check(hud.plate_labels.right.text == "Right\n0", "Breached plate keeps a numeric reading")
 	check(hud._plate_flash.is_empty(), "First reading of a bot is not a hit")
 	var gauge := hud.speed_gauge
-	check(hud.speed_panel.visible and hud.speed_panel.get_rect().end.y < hud.resources_panel.position.y
+	check(hud.speed_panel.visible and hud.speed_panel.get_rect().end.y < hud.resources_panel.position.y and hud.speed_panel.size.x < hud.resources_panel.size.x
 		and is_equal_approx(hud.speed_panel.position.x, hud.resources_panel.position.x), "Speedometer block sits just above Integrity")
 	check(not is_finite(gauge.speed), "Unknown speed does not invent a reading")
 	bot.speed_fraction = 0.5
 	bot.nitro_speed_fraction = 2.0
 	hud.render(bot, "T", opponent)
 	gauge._process(5.0)
-	check(is_equal_approx(gauge.shown, 0.5) and gauge.extension == 0.0 and gauge.normal_width() == 1.0, "Normal driving spans 0-100% of top speed")
+	check(is_equal_approx(gauge.shown, 0.5) and gauge.extension == 0.0 and gauge.overdrive() == 0.0, "Normal driving spans 0-100% of top speed")
 	bot.nitro_active = true
 	bot.speed_fraction = 1.8
 	hud.render(bot, "T", opponent)
 	gauge._process(5.0)
-	check(is_equal_approx(gauge.normal_width(), 0.5) and is_equal_approx(gauge.shown, 1.8), "Nitro adds its extra top speed on top of 100%")
+	check(is_equal_approx(gauge.extension, 1.0) and is_equal_approx(gauge.overdrive(), 0.8), "Nitro adds its extra top speed on top of 100%")
 	bot.nitro_active = false
 	bot.speed_fraction = 1.0
 	hud.render(bot, "T", opponent)
