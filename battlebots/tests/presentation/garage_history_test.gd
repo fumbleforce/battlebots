@@ -30,7 +30,7 @@ func run() -> void:
 	profile.equip("paint", paint, paint.items[0])
 	check(profile.can_redo(), "No-op edit retains redo")
 	profile.redo_edit()
-	check(profile.loadouts[0].cosmetics.paint == "orange", "Redo restores paint")
+	check(profile.loadouts[0].cosmetics.sawblade[paint.slot] == paint.items[1].rgba, "Redo restores paint")
 	profile.undo_edit()
 	profile.rename_draft("History test")
 	check(not profile.can_redo(), "New edit invalidates redo")

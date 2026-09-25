@@ -59,7 +59,6 @@ func _ready() -> void:
 				profile.equip(tab, cat, item)
 				var config: Dictionary = profile.loadouts[0].cosmetics.sawblade
 				if tab == "decals": check(config[cat.slot] == int(item.id), "Every module equips")
-				elif cat.slot == "paint": check(profile.loadouts[0].cosmetics.paint == item.id, "Every overall paint equips")
 				else: check(config[cat.slot] == item.rgba, "Every channel paint equips")
 	var store := LoadoutStore.new(profile.save_path)
 	for old_hash: String in LoadoutStore.REVISION_FIVE_HASHES:

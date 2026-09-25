@@ -18,10 +18,10 @@ func run() -> void:
 	profile.active_bot = 0
 	var paint: Dictionary = profile.catalogue.paint[0]
 	profile.equip("paint",paint,paint.items[1])
-	check(profile.active_loadout().cosmetics.paint == "orange","Canonical paint equipped")
+	check(profile.active_loadout().cosmetics.sawblade[paint.slot] == paint.items[1].rgba,"Premade paint equipped")
 	check(profile.save_active("Office Striker") == OK,"Named build persists")
 	var saved := LoadoutStore.new(path).load_saved()
-	check(saved.loadouts.size() == 1 and saved.loadouts[0].cosmetics.paint == "orange","Save can be reloaded")
+	check(saved.loadouts.size() == 1 and Color(saved.loadouts[0].cosmetics.sawblade[paint.slot][0], saved.loadouts[0].cosmetics.sawblade[paint.slot][1], saved.loadouts[0].cosmetics.sawblade[paint.slot][2]).is_equal_approx(Color(paint.items[1].rgba[0], paint.items[1].rgba[1], paint.items[1].rgba[2])),"Save can be reloaded")
 	profile.reload()
 	check(profile.bots.size() == profile.PRESET_COUNT + 1 and profile.bots[profile.PRESET_COUNT].name == "Office Striker","Built-in starters and saved build loaded")
 	profile.active_bot = profile.PRESET_COUNT
@@ -60,7 +60,7 @@ func run() -> void:
 	profile.loadouts[profile.PRESET_COUNT].parts = "malformed"
 	profile.loadouts[profile.PRESET_COUNT].cosmetics = false
 	check(profile.equipped_name("parts",profile.catalogue.parts[0]) == "Missing / invalid","Malformed parts safe in Customize")
-	check(profile.equipped_name("paint",profile.catalogue.paint[0]) == "Missing / invalid","Malformed cosmetics safe in Customize")
+	check(profile.equipped_name("paint",profile.catalogue.paint[0]) == "Choose Sawblade Tank","Malformed cosmetics safe in Customize")
 	profile.active_bot = 0
 	check(profile.save_active("New") == OK,"Unrelated valid save succeeds without requiring every sibling repair")
 	var preserved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))

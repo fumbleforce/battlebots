@@ -49,11 +49,9 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 		if slot == "suspension": categories.back().label = "SUSPENSION PERK"
 		# Armour is chosen per area in the ARMOR sections, not as one package part.
 		if slot == "weapon": categories.append({"label":"ARMOR","slot":"armor","items":[]})
-	var paints: Array = []
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
-	for id: String in colors:
-		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Apply this paint to the body, secondary panels and armour. Individual layers can be changed separately; paint has no performance effect."})
-	var paint_categories: Array = [{"label":"OVERALL PAINT","slot":"paint","items":paints}]
+	# Paint layers only; cosmetics.paint (the classic-bot preset) has no picker.
+	var paint_categories: Array = []
 	for channel: String in SawbladeConfig.COLORS:
 		var choices: Array = []
 		var desc := "Paint the added armour pieces." if channel == "paint_armor" \

@@ -26,6 +26,8 @@ func run() -> void:
 					screen._set_tab(tab)
 					await settle()
 					print("PAGINATION ",tab," scale ",factor," categories ",screen._category_capacity)
+					if tab == "paint": check(screen._category_ranges.size() == 1 and not screen._category_pager.visible,
+						"Every paint layer fits on one page at text scale %s" % factor)
 					for category: int in PlayerProfile.catalogue[tab].size():
 						screen._cat[tab] = category
 						screen._category_page[tab] = screen._page_for_item(screen._category_ranges, category)

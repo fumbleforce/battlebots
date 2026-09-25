@@ -172,6 +172,18 @@ func run() -> void:
 	detached.cosmetics.sawblade.paint_primary[0] = 0.0
 	check(profile.loadouts[3] == before_body, "Editing a detached active draft cannot mutate the profile")
 	check(customize.build_preview._draft == before_body, "Preview owns a detached nested draft")
+	var repainted: Dictionary = profile.registry.scorpion()
+	repainted.cosmetics.sawblade.paint_primary = [0.55, 0.025, 0.02, 1.0]
+	var painted_visual := ScorpionVisual.new()
+	add_child(painted_visual)
+	painted_visual.assemble(repainted, profile.registry.validate(repainted).stats.size)
+	var tinted := 0
+	for mesh: MeshInstance3D in painted_visual.find_children("*", "MeshInstance3D", true, false):
+		for surface: int in mesh.mesh.get_surface_count():
+			var override := mesh.get_surface_override_material(surface) as StandardMaterial3D
+			if override != null and override.albedo_color.is_equal_approx(Color(0.55, 0.025, 0.02).linear_to_srgb()): tinted += 1
+	check(tinted > 0, "The Primary paint layer tints the Scorpion's orange ceramic")
+	painted_visual.free()
 	check(profile.loadouts.slice(0, 3) == original_presets, "Scorpion edits never change the three existing preset drafts")
 	check(profile.save_active("Scorpion Saved") == OK, "Complete two-module Scorpion saves")
 	# JSON stores every number as float; compare all fields after the same

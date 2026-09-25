@@ -192,7 +192,7 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 		for face: String in registry.armor_faces:
 			if float(plates[face]) > 0.0: covered.append(face.capitalize())
 		return "No armour · core exposed" if covered.is_empty() else " · ".join(covered)
-	if tab == "decals" or (tab == "paint" and cat.slot != "paint"):
+	if tab == "decals" or tab == "paint":
 		if cat.slot == "model": return "Sawblade Tank" if SawbladeConfig.enabled(draft) else "Classic bot"
 		if not SawbladeConfig.enabled(draft): return "Choose Sawblade Tank"
 		var config: Dictionary = draft.cosmetics.sawblade
@@ -202,15 +202,15 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 				if Color(rgba[0], rgba[1], rgba[2]).is_equal_approx(Color(item.rgba[0], item.rgba[1], item.rgba[2])): return item.name
 			return "Factory finish"
 		return SawbladeConfig.OPTIONS[cat.slot][int(config[cat.slot])]
-	var raw: Variant = draft.get("cosmetics") if tab == "paint" else draft.get("parts")
+	var raw: Variant = draft.get("parts")
 	var selected := ""
 	if raw is Dictionary:
-		selected = str(raw.get("paint" if tab == "paint" else cat.slot,""))
+		selected = str(raw.get(cat.slot,""))
 	for item: Dictionary in cat.items:
 		if item.id == selected: return item.name
 	if tab == "parts" and cat.slot == "chassis" and registry.parts.has(selected) and registry.parts[selected].category == "chassis":
 		return "Legacy body"
-	return "Unavailable" if tab == "decals" else "Missing / invalid"
+	return "Missing / invalid"
 
 func item_state(tab: String, cat: Dictionary, item: Dictionary) -> String:
 	return "eq" if equipped_name(tab, cat) == item.name else "own"
@@ -312,18 +312,10 @@ func equip_preview(tab: String, cat: Dictionary, item: Dictionary) -> Dictionary
 		elif cat.slot in SawbladeConfig.OPTIONS:
 			_ensure_body(draft)
 			draft.cosmetics.sawblade[cat.slot] = int(item.id)
-	elif cat.slot != "paint":
+	else:
 		if cat.slot not in SawbladeConfig.COLORS: return {}
 		_ensure_body(draft)
 		draft.cosmetics.sawblade[cat.slot] = item.rgba.duplicate()
-	else:
-		if item.id not in ["cyan","orange","white","red"]: return {}
-		_ensure_body(draft)
-		draft.cosmetics.paint = item.id
-		var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
-		var color := Color(colors[item.id]).srgb_to_linear()
-		for channel: String in ["paint_primary", "paint_secondary", "paint_armor"]:
-			draft.cosmetics.sawblade[channel] = [color.r, color.g, color.b, 1.0]
 	return draft
 
 func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:

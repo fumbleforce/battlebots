@@ -12,9 +12,11 @@ Loadout validation change; wire records, gameplay and catalogue hash unchanged.
   `paint_primary`/`paint_secondary` never tint armour; metal and rubber still do.
 - Customize Paint offers only the premade colours (cyan, orange, white, red) on
   every layer. The Original tile and the CUSTOM COLOR picker are gone, and so is
-  `PlayerProfile.set_sawblade_color`/`resolved_item`. Overall paint sets
-  primary, secondary and armour. A colour that matches no preset shows as
-  "Factory finish".
+  `PlayerProfile.set_sawblade_color`/`resolved_item`. There is no Overall
+  Paint layer: `cosmetics.paint` stays in the record (validation and classic
+  bots) but has no picker, and Scorpion tints its ceramic from `paint_primary`
+  when that differs from the factory primary. A colour that matches no preset
+  shows as "Factory finish". The five layers always fit one page (rows shrink).
 
 ## Damage split on combat events — build mvp-ab-52, protocol 17 (#85)
 

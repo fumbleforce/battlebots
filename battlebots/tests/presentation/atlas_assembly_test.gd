@@ -362,9 +362,8 @@ func garage_case(registry: ContentRegistry) -> void:
 		"Atlas and Atlas turret are additional presets; existing preset order is retained")
 	profile.active_bot = 4
 	var layers: Array = profile.catalogue.paint.map(func(category: Dictionary) -> String: return category.slot)
-	check(layers == ["paint"] + SawbladeConfig.COLORS, "Paint layers are Overall, Primary, Secondary, Armor, Metal and Rubber")
+	check(layers == SawbladeConfig.COLORS, "Paint layers are Primary, Secondary, Armor, Metal and Rubber; no Overall paint")
 	for category: Dictionary in profile.catalogue.paint:
-		if category.slot not in SawbladeConfig.COLORS: continue
 		check(category.items.map(func(item: Dictionary) -> String: return item.id) == ["cyan", "orange", "white", "red"],
 			"Every paint layer offers only the premade colours")
 		check(profile.equipped_name("paint", category) == "Factory finish", "The authored Atlas colour is shown as the factory finish")
@@ -378,10 +377,6 @@ func garage_case(registry: ContentRegistry) -> void:
 	check(profile.active_loadout().cosmetics.sawblade.paint_armor == armor_layer.items[2].rgba,
 		"Primary paint no longer changes the armour layer")
 	check(registry.validate(profile.active_loadout()).valid, "A build with an armour paint layer validates")
-	var overall: Dictionary = profile.catalogue.paint[0]
-	profile.equip("paint", overall, overall.items[1])
-	check(profile.active_loadout().cosmetics.sawblade.paint_armor == profile.active_loadout().cosmetics.sawblade.paint_primary,
-		"Overall paint also paints the armour")
 	var preview := GarageBotPreview.new()
 	add_child(preview)
 	preview.show_loadout(profile.active_loadout())

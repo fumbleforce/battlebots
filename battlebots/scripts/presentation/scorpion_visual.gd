@@ -98,9 +98,16 @@ func _mount_piece(mesh: PrimitiveMesh, at: Vector3, material: Material) -> MeshI
 	return visual
 
 func _apply_paint(draft: Dictionary) -> void:
-	var paint_id: String = draft.cosmetics.get("paint", "orange")
-	if paint_id == "orange": return
-	var tint: Color = GarageBotPreview.PAINTS.get(paint_id, Color.WHITE)
+	# The Primary paint layer tints the ceramic; builds still on the factory
+	# primary keep their older overall paint preset.
+	var tint: Color = GarageBotPreview.PAINTS.get(draft.cosmetics.get("paint", "orange"), Color.WHITE)
+	var repainted: bool = draft.cosmetics.get("paint", "orange") != "orange"
+	if SawbladeConfig.enabled(draft):
+		var rgba: Array = draft.cosmetics.sawblade.paint_primary
+		if rgba != SawbladeConfig.defaults().paint_primary:
+			tint = Color(rgba[0], rgba[1], rgba[2]).linear_to_srgb()
+			repainted = true
+	if not repainted: return
 	var shared := {}
 	for mesh: MeshInstance3D in find_children("*", "MeshInstance3D", true, false):
 		for index: int in mesh.mesh.get_surface_count():

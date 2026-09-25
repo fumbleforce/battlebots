@@ -9,6 +9,8 @@ const SLOT_HEADINGS := {"parts": "PART SLOTS", "paint": "PAINT LAYERS"}
 ## Compact one-line option tiles, plus a thin swatch strip on paint choices.
 const TILE_HEIGHT := 44
 const SWATCH_HEIGHT := 6
+## Least vertical padding a squeezed paint layer row keeps around its text.
+const COMPACT_ROW_MARGIN := 4
 const DETAILS_CLOSE_ICON := preload("res://ui/menus/icons/chevron_wide_down.svg")
 const DETAILS_OPEN_ICON := preload("res://ui/menus/icons/chevron_wide_up.svg")
 
@@ -554,6 +556,7 @@ func _process(_delta: float) -> void:
 		tile.custom_minimum_size.y = maxf(ceilf(TILE_HEIGHT * _text_scale), tile.get_node("Inner").get_combined_minimum_size().y)
 		# Inner grows both ways; resizing it here shifted contents into neighbouring tiles.
 		tile.get_node("Inner").set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if _tab == "paint": _fit_category_rows(category_heights)
 	_category_ranges = _pack_pages(category_heights, _page_budget(%Categories, _category_pager, false), _page_budget(%Categories, _category_pager, true), %Categories.get_theme_constant("separation"), 1)
 	_category_page[_tab] = _page_for_item(_category_ranges, int(_cat[_tab]))
 	var category_page: int = _category_page[_tab]
@@ -562,6 +565,24 @@ func _process(_delta: float) -> void:
 	for i in %Categories.get_child_count(): %Categories.get_child(i).visible = i >= category_range.x and i < category_range.y
 	_category_pager.visible = _category_ranges.size() > 1
 	_category_page_label.text = "Page %d of %d" % [category_page + 1, _category_ranges.size()]
+
+
+## Paint layers share one page: each row shrinks toward its text, trimming its
+## padding down to COMPACT_ROW_MARGIN, instead of paging.
+func _fit_category_rows(heights: Array[float]) -> void:
+	var rows := %Categories.get_children()
+	if rows.is_empty(): return
+	var gap := float(%Categories.get_theme_constant("separation"))
+	var share := floorf((_page_budget(%Categories, _category_pager, false) - gap * (rows.size() - 1)) / rows.size())
+	for i in rows.size():
+		if heights[i] <= share: continue
+		var pad: MarginContainer = rows[i].get_node("Pad")
+		var text: float = pad.get_node("Col").get_combined_minimum_size().y
+		var margin := clampf(floorf((share - text) * 0.5), COMPACT_ROW_MARGIN, pad.get_theme_constant("margin_top"))
+		pad.add_theme_constant_override("margin_top", int(margin))
+		pad.add_theme_constant_override("margin_bottom", int(margin))
+		rows[i].custom_minimum_size.y = maxf(share, text + 2 * margin)
+		heights[i] = rows[i].get_combined_minimum_size().y
 
 
 func _page_budget(list: Container, pager: Control, with_pager: bool) -> float:
