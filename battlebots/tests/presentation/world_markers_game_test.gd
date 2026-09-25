@@ -1,8 +1,10 @@
-extends SceneTree
+extends Node
 ## Actual practice composition, camera and public command/view integration.
 var failures := 0
 
-func _initialize() -> void:
+# A scene, not a SceneTree main-loop script: as one it hit the Godot 4.7.2
+# GDScriptLanguage::finish() use-after-free at exit (#10).
+func _ready() -> void:
 	run.call_deferred()
 
 func check(ok: bool, message: String) -> void:
@@ -12,7 +14,7 @@ func check(ok: bool, message: String) -> void:
 
 func frames(count := 8) -> void:
 	for index: int in range(count):
-		await process_frame
+		await get_tree().process_frame
 
 func check_health(game: Node, view: BotView) -> void:
 	var marker: Label3D = game.world_markers.markers[view.entity_id]
@@ -31,13 +33,13 @@ func check_health(game: Node, view: BotView) -> void:
 		if width < 124: check(pixels.get_pixel(2 + width, 6).is_equal_approx(BotWorldMarkers.HEALTH_RED), "Lost health is red")
 
 func run() -> void:
-	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
-	root.size = Vector2i(1280, 720)
+	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+	get_tree().root.size = Vector2i(1280, 720)
 	var game = load("res://scenes/dev/b_menu_game.tscn").instantiate()
 	game.audio_settings_path = ""
 	game.hud_settings_path = ""
 	game.get_node("Preview").settings_path = ""
-	root.add_child(game)
+	get_tree().root.add_child(game)
 	await frames()
 	check(not game.world_markers.visible and game.world_markers.markers.is_empty(), "Main menu has no world badges")
 	game.start_practice()
@@ -61,7 +63,7 @@ func run() -> void:
 		command.sequence = step
 		command.throttle = -1.0
 		game.session.submit_local(command)
-		await physics_frame
+		await get_tree().physics_frame
 	game.preview.set_physics_process(true)
 	await frames()
 	game._update_world_markers()
@@ -95,11 +97,11 @@ func run() -> void:
 	check_health(game, target.read_view())
 	check_health(game, local_bot.read_view())
 	for extent: Vector2i in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
-		root.size = extent
+		get_tree().root.size = extent
 		await frames()
 		if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 			await RenderingServer.frame_post_draw
-			root.get_texture().get_image().save_png("user://a-world-markers-game-%d.png" % extent.x)
+			get_tree().root.get_texture().get_image().save_png("user://a-world-markers-game-%d.png" % extent.x)
 	game.preview.release_controls()
 	await frames()
 	check(not game.world_markers.visible, "Game menu suppresses world labels")
@@ -121,4 +123,4 @@ func run() -> void:
 	game.queue_free()
 	await frames()
 	print("WORLD MARKERS GAME PASS" if failures == 0 else "WORLD MARKERS GAME FAIL")
-	quit(0 if failures == 0 else 1)
+	get_tree().quit(0 if failures == 0 else 1)

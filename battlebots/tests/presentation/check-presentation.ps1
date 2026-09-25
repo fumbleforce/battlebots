@@ -57,7 +57,6 @@ $checks = @(
 	@('private_lobby_code_test.gd', 'PRIVATE LOBBY CODE PASS'),
 	@('duel_scoreboard_test.gd', 'DUEL SCOREBOARD PASS'),
 	@('world_markers_test.gd', 'WORLD MARKERS PASS'),
-	@('world_markers_game_test.gd', 'WORLD MARKERS GAME PASS'),
     @('menu_text_settings_test.gd', 'MENU TEXT SETTINGS PASS'),
     @('menu_text_screens_test.gd', 'MENU TEXT SCREENS PASS'),
     @('online_menu_fit_test.gd', 'ONLINE MENU FIT PASS'),
@@ -108,6 +107,9 @@ foreach ($check in $checks) {
         '--fixed-fps', '60', '--script', "res://tests/presentation/$($check[0])",
         '--quit-after', '10000') -Marker $check[1]
 }
+# A scene: as a --script main loop it hit a Godot exit crash (#10).
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--fixed-fps', '60',
+    'res://tests/presentation/world_markers_game_test.tscn', '--quit-after', '10000') -Marker 'WORLD MARKERS GAME PASS'
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/all_body_weapons_test.tscn', '--quit-after', '10000') -Marker 'ALL BODY WEAPONS PASS'
 foreach ($check in @(@('atlas_assembly_test.tscn', 'ATLAS ASSEMBLY PASS'),
