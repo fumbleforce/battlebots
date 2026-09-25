@@ -107,8 +107,8 @@ func run() -> void:
 	# #93: the Debug section sits above Tuning and writes into the tuning.
 	check(texts.has("DEBUG") and heading.call("DEBUG").get_index() < heading.call("TUNING").get_parent().get_index()
 		and heading.call("DEBUG").get_parent() == panel, "Debug sits above Tuning")
-	check(not lab.debug_trajectories and not lab.debug_impacts and lab.debug_linger == 60.0
-		and panel.linger_spin.value == 60.0, "Debug views start off and marks linger a minute")
+	check(not lab.debug_trajectories and not lab.debug_impacts and lab.debug_linger == 5.0
+		and panel.linger_spin.value == 5.0, "Debug views start off and marks linger 5 s")
 	panel.trajectory_toggle.button_pressed = true
 	panel.impact_toggle.button_pressed = true
 	panel.hitbox_toggle.button_pressed = true

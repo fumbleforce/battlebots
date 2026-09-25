@@ -39,7 +39,7 @@ var auto_fire := {"primary":false, "secondary":false}
 ## impact reached. CombatWorld records marks for this bot while a view is on;
 ## the preview's PracticeDebugDraw drains them and keeps each on screen for
 ## debug_linger seconds.
-const DEFAULT_DEBUG_LINGER := 60.0
+const DEFAULT_DEBUG_LINGER := 5.0
 ## Marks kept while nothing drains them (no preview, e.g. headless tests).
 const MAX_DEBUG_MARKS := 512
 ## Zones struck through a component rather than armour.
