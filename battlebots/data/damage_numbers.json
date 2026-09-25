@@ -1,21 +1,20 @@
 {
 	"_comment": "Floating damage numbers (#85). Presentation only: changing these needs no WireCodec.BUILD bump. Seconds, metres and metres per second; motion is scaled up with camera distance so the spray keeps its on-screen size.",
 	"motion": {
-		"_comment": "Each number leaves the impact point along the hit normal (outward), fans sideways (spread, golden-angle around the normal) and is thrown up (up), then falls under gravity with linear drag. offset lifts the spawn point off the struck face.",
-		"outward": 2.4, "spread": 1.7, "up": 3.4, "gravity": 8.0, "drag": 1.6, "offset": 0.2
+		"_comment": "Every hit throws one number from the impact point: up at up m/s and sideways at spread m/s in a golden-angle fan around the vertical (never toward the camera by design), then it falls under gravity with linear drag.",
+		"spread": 1.6, "up": 3.6, "gravity": 8.0, "drag": 1.6
 	},
 	"timing": {
-		"_comment": "A number pops to pop_scale over pop_seconds, settles, and fades out over the last fade_seconds of lifetime_seconds. Hits from one attacker on one target within merge_seconds of the previous one add to the live number (minigun, flamer) until it is merge_span_seconds old.",
-		"lifetime_seconds": 1.15, "pop_seconds": 0.14, "pop_scale": 1.55, "fade_seconds": 0.4,
-		"merge_seconds": 0.16, "merge_span_seconds": 0.55
+		"_comment": "A number pops to pop_scale over pop_seconds, settles, and fades out over the last fade_seconds of lifetime_seconds.",
+		"lifetime_seconds": 1.15, "pop_seconds": 0.14, "pop_scale": 1.55, "fade_seconds": 0.4
 	},
 	"text": {
 		"_comment": "Text height is screen_fraction of the view height at the number's distance, clamped to min/max_height metres, then scaled from small_scale to big_scale as damage rises to big_damage. Hits below min_damage show nothing. max_live caps numbers on screen (oldest recycled first).",
 		"font_size": 96, "outline_size": 22, "screen_fraction": 0.038, "min_height": 0.22, "max_height": 2.4,
-		"small_scale": 0.75, "big_scale": 1.45, "big_damage": 45.0, "min_damage": 0.05, "max_live": 40
+		"small_scale": 0.75, "big_scale": 1.45, "big_damage": 45.0, "min_damage": 0.05, "max_live": 60
 	},
 	"colors": {
-		"_comment": "Outgoing hits blend small -> mid -> big with damage; hits on your own bot use incoming.",
+		"_comment": "Hits on other bots blend small -> mid -> big with damage; hits on your own bot use incoming.",
 		"small": "#f4f1e6", "mid": "#ffd166", "big": "#ff6b35", "incoming": "#ff4d5e", "outline": "#0d1117"
 	}
 }

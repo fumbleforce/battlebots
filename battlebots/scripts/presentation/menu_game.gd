@@ -427,7 +427,7 @@ func _add_game_settings() -> void:
 	_apply_game_preferences(game_preferences)
 
 func _apply_game_preferences(value: GAME_PREFERENCES) -> void:
-	impact_feedback.set_show_damage_numbers(value.show_damage_numbers)
+	impact_feedback.set_damage_numbers(value.show_damage_numbers, value.show_player_damage_numbers)
 
 func open_game_settings() -> void:
 	_prepare_settings_category("game")

@@ -5,7 +5,9 @@ extends RefCounted
 const SCRIPT := "res://scripts/ui/game_preferences.gd"
 const DEFAULT_PATH := "user://game.cfg"
 const VERSION := 1
+## Numbers on other bots, and on the local player's own bot.
 var show_damage_numbers := true
+var show_player_damage_numbers := true
 var load_error: Error = OK
 
 static func create() -> RefCounted:
@@ -14,6 +16,7 @@ static func create() -> RefCounted:
 func copy() -> RefCounted:
 	var result := create()
 	result.show_damage_numbers = show_damage_numbers
+	result.show_player_damage_numbers = show_player_damage_numbers
 	result.load_error = load_error
 	return result
 
@@ -53,10 +56,13 @@ static func load_file(path: String = DEFAULT_PATH) -> RefCounted:
 		result.load_error = ERR_FILE_UNRECOGNIZED
 		return result
 	var numbers: Variant = config.get_value("game", "show_damage_numbers", null)
-	if not numbers is bool:
+	# Added after the first release of this file: absent means the default.
+	var player_numbers: Variant = config.get_value("game", "show_player_damage_numbers", true)
+	if not numbers is bool or not player_numbers is bool:
 		result.load_error = ERR_INVALID_DATA
 		return result
 	result.show_damage_numbers = numbers
+	result.show_player_damage_numbers = player_numbers
 	return result
 
 func save_file(path: String = DEFAULT_PATH) -> Error:
@@ -65,6 +71,7 @@ func save_file(path: String = DEFAULT_PATH) -> Error:
 	var config := ConfigFile.new()
 	config.set_value("game", "version", VERSION)
 	config.set_value("game", "show_damage_numbers", show_damage_numbers)
+	config.set_value("game", "show_player_damage_numbers", show_player_damage_numbers)
 	var temporary := path + ".tmp"
 	var error := config.save(temporary)
 	if error != OK:

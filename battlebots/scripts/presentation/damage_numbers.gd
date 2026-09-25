@@ -8,46 +8,30 @@ const GOLDEN_ANGLE := 2.39996323
 ## Used when there is no camera (headless tests): typical gameplay framing.
 const FALLBACK_DISTANCE := 10.0
 const FALLBACK_FOV := 70.0
+## Scale a number starts its pop from.
+const POP_FROM := 0.35
 
 var tuning: TUNING = TUNING.settings() as TUNING
-## Live numbers, oldest first: {label, origin, offset, velocity, age, born,
-## last, damage, key, incoming, pop_from}.
+## Live numbers, oldest first: {label, origin, offset, velocity, age, damage,
+## incoming, size}.
 var _live: Array[Dictionary] = []
 var _serial := 0
-var _clock := 0.0
 
 func _process(delta: float) -> void:
 	advance(delta)
 
-## `attacker`/`target` are entity ids; hits from one attacker on one target
-## in quick succession merge into one number. `incoming` marks hits on the
-## local player's bot.
-func spawn(position: Vector3, normal: Vector3, damage: float, attacker := 0, target := 0, incoming := false) -> void:
-	if not position.is_finite() or not normal.is_finite() or not is_finite(damage) \
+## One number per hit, thrown up and to the side from `position` (never along
+## the hit normal, which points at the attacker and so usually the camera).
+## `incoming` marks hits on the local player's bot.
+func spawn(position: Vector3, damage: float, incoming := false) -> void:
+	if not position.is_finite() or not is_finite(damage) \
 		or damage < tuning.value("text", "min_damage"): return
-	var key := "%d>%d" % [attacker, target] if attacker > 0 and target > 0 else ""
-	if not key.is_empty():
-		for index: int in range(_live.size() - 1, -1, -1):
-			var entry: Dictionary = _live[index]
-			if entry.key == key and _clock - float(entry.last) <= tuning.value("timing", "merge_seconds") \
-				and _clock - float(entry.born) <= tuning.value("timing", "merge_span_seconds"):
-				entry.damage += damage
-				entry.last = _clock
-				entry.age = 0.0
-				entry.pop_from = 1.0
-				_style(entry)
-				return
 	while _live.size() >= int(tuning.value("text", "max_live")):
 		_live.pop_front().label.queue_free()
-	# Scale before normalising so finite, unusually large normals cannot overflow.
-	var extent := maxf(absf(normal.x), maxf(absf(normal.y), absf(normal.z)))
-	var outward := (normal / extent).normalized() if extent > 0.000001 else Vector3.UP
-	var tangent := outward.cross(Vector3.UP if absf(outward.y) < 0.9 else Vector3.RIGHT).normalized()
-	var bitangent := outward.cross(tangent)
 	var angle := float(_serial) * GOLDEN_ANGLE
 	_serial += 1
-	var side := (tangent * cos(angle) + bitangent * sin(angle)) * tuning.value("motion", "spread")
-	var velocity := outward * tuning.value("motion", "outward") + side + Vector3.UP * tuning.value("motion", "up")
+	var side := Vector3(cos(angle), 0.0, sin(angle)) * tuning.value("motion", "spread")
+	var velocity := side + Vector3.UP * tuning.value("motion", "up")
 	var label := Label3D.new()
 	label.font = FONT
 	label.font_size = int(tuning.value("text", "font_size"))
@@ -61,22 +45,19 @@ func spawn(position: Vector3, normal: Vector3, damage: float, attacker := 0, tar
 	label.outline_render_priority = 9
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(label)
-	var entry := {"label":label, "origin":position + outward * tuning.value("motion", "offset"),
-		"offset":Vector3.ZERO, "velocity":velocity, "age":0.0, "born":_clock, "last":_clock,
-		"damage":damage, "key":key, "incoming":incoming, "pop_from":0.35}
+	var entry := {"label":label, "origin":position, "offset":Vector3.ZERO, "velocity":velocity,
+		"age":0.0, "damage":damage, "incoming":incoming}
 	_live.append(entry)
 	_style(entry)
 	_place(entry)
 
 func advance(delta: float) -> void:
 	if delta <= 0.0 or not is_finite(delta): return
-	_clock += delta
 	var lifetime := tuning.value("timing", "lifetime_seconds")
 	var gravity := tuning.value("motion", "gravity")
 	var drag := tuning.value("motion", "drag")
 	for index: int in range(_live.size() - 1, -1, -1):
 		var entry: Dictionary = _live[index]
-		# Merged hits reset `age` for a fresh pop but keep the travelled path.
 		entry.age += delta
 		if entry.age >= lifetime:
 			entry.label.queue_free()
@@ -139,7 +120,7 @@ func _place(entry: Dictionary) -> void:
 	if pop_seconds > 0.0 and entry.age < pop_seconds * 2.0:
 		# Up to pop_scale over pop_seconds, then settle back over the same time.
 		var t: float = entry.age / pop_seconds
-		pop = lerpf(entry.pop_from, tuning.value("timing", "pop_scale"), t) if t < 1.0 \
+		pop = lerpf(POP_FROM, tuning.value("timing", "pop_scale"), t) if t < 1.0 \
 			else lerpf(tuning.value("timing", "pop_scale"), 1.0, t - 1.0)
 	label.pixel_size = height * entry.size * pop / tuning.value("text", "font_size")
 	var lifetime := tuning.value("timing", "lifetime_seconds")

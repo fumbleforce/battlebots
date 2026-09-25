@@ -5,8 +5,8 @@ extends RefCounted
 const SCRIPT := "res://scripts/core/damage_number_tuning.gd"
 const PATH := "res://data/damage_numbers.json"
 const FIELDS := {
-	"motion":["outward", "spread", "up", "gravity", "drag", "offset"],
-	"timing":["lifetime_seconds", "pop_seconds", "pop_scale", "fade_seconds", "merge_seconds", "merge_span_seconds"],
+	"motion":["spread", "up", "gravity", "drag"],
+	"timing":["lifetime_seconds", "pop_seconds", "pop_scale", "fade_seconds"],
 	"text":["font_size", "outline_size", "screen_fraction", "min_height", "max_height",
 		"small_scale", "big_scale", "big_damage", "min_damage", "max_live"]}
 const COLORS := ["small", "mid", "big", "incoming", "outline"]

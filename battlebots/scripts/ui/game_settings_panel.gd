@@ -6,6 +6,7 @@ signal preview_changed(preferences: RefCounted)
 signal applied(preferences: RefCounted)
 signal finished(saved: bool)
 var damage_numbers_toggle: CheckButton
+var player_numbers_toggle: CheckButton
 var save_button: Button
 var cancel_button: Button
 var message: Label
@@ -17,23 +18,18 @@ func _ready() -> void:
 	var page := SettingsStyle.page(self,"Game","In-match feedback. Changes apply immediately and can be cancelled.")
 	page.tabs.hide()
 	SettingsStyle.section(page.content,"Combat feedback")
-	var row := SettingsStyle.row(page.content,"Damage numbers","Show the damage of each hit as numbers spraying out of the struck bot.")
-	damage_numbers_toggle = CheckButton.new()
-	damage_numbers_toggle.text = "Enabled"
-	damage_numbers_toggle.custom_minimum_size = Vector2(390,48)
-	damage_numbers_toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(damage_numbers_toggle)
-	damage_numbers_toggle.toggled.connect(func(_pressed: bool) -> void: _preview())
+	damage_numbers_toggle = _toggle(page.content,"Damage numbers","Numbers spray out of other bots for each hit they take.")
+	player_numbers_toggle = _toggle(page.content,"Damage numbers on your bot","Numbers spray out of your own bot for each hit you take.")
 	message = page.message
 	SettingsStyle.button(page.footer,"Restore defaults",func() -> void:
-		damage_numbers_toggle.set_pressed_no_signal(GAME_PREFERENCES.create().show_damage_numbers)
+		_set_toggles(GAME_PREFERENCES.create())
 		_preview())
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.footer.add_child(spacer)
 	cancel_button = SettingsStyle.button(page.footer,"Cancel",cancel)
 	save_button = SettingsStyle.button(page.footer,"Save changes",save_and_close,true)
-	SettingsStyle.focus_cycle([damage_numbers_toggle,cancel_button,save_button])
+	SettingsStyle.focus_cycle([damage_numbers_toggle,player_numbers_toggle,cancel_button,save_button])
 	hide()
 
 func open_for(preferences: RefCounted, path: String) -> void:
@@ -42,7 +38,7 @@ func open_for(preferences: RefCounted, path: String) -> void:
 	_original = preferences.copy()
 	_path = path
 	_opened = true
-	damage_numbers_toggle.set_pressed_no_signal(preferences.show_damage_numbers)
+	_set_toggles(preferences)
 	message.text = "" if preferences.load_error == OK else "Settings could not be loaded. Defaults are shown; Save replaces the file."
 	show()
 	damage_numbers_toggle.grab_focus()
@@ -50,6 +46,7 @@ func open_for(preferences: RefCounted, path: String) -> void:
 func _values() -> RefCounted:
 	var result := GAME_PREFERENCES.create()
 	result.show_damage_numbers = damage_numbers_toggle.button_pressed
+	result.show_player_damage_numbers = player_numbers_toggle.button_pressed
 	return result
 
 func _preview() -> void:
@@ -91,3 +88,25 @@ func _unhandled_input(event: InputEvent) -> void:
 func _exit_tree() -> void:
 	if _opened and _original != null:
 		preview_changed.emit(_original.copy())
+
+func _toggle(parent: Node, caption: String, description: String) -> CheckButton:
+	var row := SettingsStyle.row(parent, caption, description)
+	var toggle := CheckButton.new()
+	toggle.custom_minimum_size = Vector2(390, 48)
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(toggle)
+	toggle.toggled.connect(func(_pressed: bool) -> void:
+		_caption(toggle)
+		_preview())
+	_caption(toggle)
+	return toggle
+
+## The caption states the current value; it used to read "Enabled" either way.
+func _caption(toggle: CheckButton) -> void:
+	toggle.text = "On" if toggle.button_pressed else "Off"
+
+func _set_toggles(preferences: RefCounted) -> void:
+	damage_numbers_toggle.set_pressed_no_signal(preferences.show_damage_numbers)
+	player_numbers_toggle.set_pressed_no_signal(preferences.show_player_damage_numbers)
+	_caption(damage_numbers_toggle)
+	_caption(player_numbers_toggle)

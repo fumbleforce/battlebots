@@ -15,8 +15,13 @@ const DAMAGE_NUMBERS := preload("res://scripts/presentation/damage_numbers.gd")
 var visual: CombatImpactVisual
 ## Floating damage numbers for every accepted damaging hit (#85).
 var damage_numbers: DAMAGE_NUMBERS
-## Game settings toggle (GamePreferences.show_damage_numbers).
+## Game settings toggles (game_preferences.gd): numbers on other bots, and on
+## the local player's own bot.
 var show_damage_numbers := true
+var show_player_damage_numbers := true
+## Bot-on-bot rams report the attacker's centre; their numbers start where the
+## hulls met (see _collision_point).
+const COLLISION_KINDS := ["ram"]
 var session: MvpSession
 var _bound := false
 var _match := ""
@@ -38,9 +43,11 @@ func _ready() -> void:
 	damage_numbers.name = "DamageNumbers"
 	add_child(damage_numbers)
 
-func set_show_damage_numbers(enabled: bool) -> void:
-	show_damage_numbers = enabled
-	if not enabled and damage_numbers != null: damage_numbers.clear()
+func set_damage_numbers(others: bool, own: bool) -> void:
+	if (show_damage_numbers and not others) or (show_player_damage_numbers and not own):
+		if damage_numbers != null: damage_numbers.clear()
+	show_damage_numbers = others
+	show_player_damage_numbers = own
 
 func bind_session(value: MvpSession) -> void:
 	if is_instance_valid(session):
@@ -131,10 +138,12 @@ func combat_event(event: Dictionary) -> void:
 	_trim(_watermarks)
 	# Every accepted hit tells the struck bot where parts should come off (#72).
 	get_tree().call_group(PART_LOSS_GROUP, &"note_hit", event)
-	if show_damage_numbers and damage_numbers != null and event.damage > 0:
+	if damage_numbers != null and event.damage > 0:
 		var local := session.local_entity if is_instance_valid(session) else 0
-		damage_numbers.spawn(event.position, event.normal, float(event.damage), event.attacker, event.target,
-			local > 0 and event.target == local)
+		var own: bool = local > 0 and event.target == local
+		if show_player_damage_numbers if own else show_damage_numbers:
+			var at: Vector3 = _collision_point(event) if event.kind in COLLISION_KINDS else event.position
+			damage_numbers.spawn(at, float(event.damage), own)
 	if event.kind not in KINDS and event.kind != CHAIN_KIND: return
 	if event.kind == CHAIN_KIND:
 		_tesla_hit(event)
@@ -151,6 +160,27 @@ func _tesla_hit(event: Dictionary) -> void:
 		return
 	_discharges[event.attacker] = {"tick":event.tick, "attack_id":event.attack_id, "target":event.target, "position":event.position}
 	_trim(_discharges)
+
+## Where two rammed hulls met. The event carries the attacker's centre, so ray
+## from it toward the victim's centre and take where the victim's hull is
+## crossed; fall back to the midpoint of the two centres.
+func _collision_point(event: Dictionary) -> Vector3:
+	var world: AuthorityWorld = session.world if is_instance_valid(session) else null
+	if world == null or not world.bots.has(event.target): return event.position
+	var victim: MvpBot = world.bots[event.target]
+	if not is_instance_valid(victim) or not is_instance_valid(victim.body): return event.position
+	var from: Vector3 = event.position
+	var to := victim.body.global_position
+	var midpoint := from.lerp(to, 0.5)
+	if not is_inside_tree() or from.distance_squared_to(to) < 0.0001: return midpoint
+	var space := get_world_3d().direct_space_state
+	if space == null: return midpoint
+	var ray := PhysicsRayQueryParameters3D.create(from, to, BaselineConfig.BOT_LAYER)
+	if world.bots.has(event.attacker) and is_instance_valid(world.bots[event.attacker].body):
+		ray.exclude = [world.bots[event.attacker].body.get_rid()]
+	var hit := space.intersect_ray(ray)
+	if hit.is_empty() or hit.collider != victim.body: return midpoint
+	return hit.position
 
 func _clear_effects() -> void:
 	if visual != null: visual.clear_effects()
