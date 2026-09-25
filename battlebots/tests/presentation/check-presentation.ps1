@@ -18,12 +18,14 @@ function Invoke-PresentationCheck {
 }
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--editor', '--import', '--quit')
 foreach ($check in @(@('practice_hud_test.gd', 'PRACTICE HUD PASS'),
-    @('practice_session_test.gd', 'PRACTICE SESSION PASS'),
     @('practice_menu_test.gd', 'PRACTICE MENU PASS'))) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
         '--max-fps', '60', '--script', "res://tests/practice/$($check[0])",
         '--quit-after', '6000') -Marker $check[1]
 }
+# A scene: as a --script main loop it hit a Godot exit crash (#10).
+Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--max-fps', '60',
+    'res://tests/practice/practice_session_test.tscn', '--quit-after', '6000') -Marker 'PRACTICE SESSION PASS'
 foreach ($check in @(@('gameplay_audio_test.gd', 'GAMEPLAY AUDIO PASS'),
     @('crowd_sound_bank_test.gd', 'CROWD_SOUND_BANK_PASS'),
     @('crowd_audio_test.gd', 'CROWD AUDIO PASS'),

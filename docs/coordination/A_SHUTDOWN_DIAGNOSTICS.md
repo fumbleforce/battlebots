@@ -90,13 +90,14 @@ Two traps hid it:
 
 Deterministic reproduction: run the plain exe under any debugger. The Windows
 debug heap fills freed blocks with `0xFEEEFEEE`, so the dangling read faults
-on every exit (`practice_session_test.gd` as `--script`: 2/2, 6/6), rather than
+on every exit (`practice_session_test.gd` as `--script`: 5/5 debugged runs) instead of
 in about a quarter of exits (local, 6/24 without a debugger).
 
 Scope: under the debug heap only `tests/practice/practice_session_test.gd` out
-of the 50 SceneTree `--script` tests in `tools/` and the workflows faults at
-exit. Bisection showed it is the script's compiled dependency set, not its
-runtime work (the same script faulted with no session at all).
+of the 50 SceneTree `--script` tests named by path in `tools/` and the
+workflows faults at exit. The tests `check-presentation.ps1` names by file are
+swept separately (#10). Bisection showed the trigger is the script's compiled
+dependency set, not its runtime work: the same script faulted with no session.
 
 Fix: that test runs as a scene (`practice_session_test.tscn`, checks
 unchanged). That exits cleanly under the debug heap (6/6) and without a
