@@ -27,6 +27,12 @@ func run() -> void:
 	await frames()
 	check(game.combat_hud.visible and not game.preview.hud.visible and not game.preview.hint.visible, "Composed HUD replaces old resource and hint overlays")
 	check(game.combat_hud.resources.Core.value.text == "100%", "Actual practice bot provides full core")
+	var banner_left: float = game.spree_banner.get_global_rect().position.x
+	check(absf(banner_left - game.combat_hud.resources_panel.get_global_rect().position.x) <= 1.0, "Kill-spree banner sits on the left HUD margin, on screen (%.0f)" % banner_left)
+	game.spree_banner.show()
+	game.spree_banner.enabled = false
+	check(not game.spree_banner.visible, "The Game settings toggle hides the kill-spree banner")
+	game.spree_banner.enabled = true
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("user://a-hud-redesign-practice.png")

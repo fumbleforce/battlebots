@@ -167,10 +167,16 @@ func _ready() -> void:
 	spree_banner = SPREE_BANNER.new()
 	spree_banner.name = "SPREE_BANNER"
 	combat_hud.canvas.add_child(spree_banner)
-	spree_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	spree_banner.position = Vector2(-400, 150)
-	spree_banner.size = Vector2(800, 60)
-	spree_banner.pivot_offset = Vector2(400, 30)
+	spree_banner.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	# Left-aligned on the HUD margin, set as offsets so canvas resizes cannot push
+	# it off screen (a position set here once baked in the startup width).
+	spree_banner.offset_left = 28
+	spree_banner.offset_right = 828
+	# Below the pickup feed (credits plus up to three toasts from y 28).
+	spree_banner.offset_top = 200
+	spree_banner.offset_bottom = 260
+	# The pop swells from the text's left end, so it never crosses the screen edge.
+	spree_banner.pivot_offset = Vector2(0, 30)
 	spree_banner.bind_session(session)
 	pickup_notice = PickupNotice.new()
 	pickup_notice.name = "PickupNotice"
@@ -430,6 +436,7 @@ func _apply_game_preferences(value: GAME_PREFERENCES) -> void:
 	impact_feedback.set_damage_numbers(value.show_damage_numbers, value.show_player_damage_numbers)
 	combat_hud.show_speedometer = value.show_speedometer
 	combat_hud.speed_gauge.show_speed_value = value.show_speed_value
+	spree_banner.enabled = value.show_spree_banner
 
 func open_game_settings() -> void:
 	_prepare_settings_category("game")

@@ -9,6 +9,7 @@ var damage_numbers_toggle: CheckButton
 var player_numbers_toggle: CheckButton
 var speedometer_toggle: CheckButton
 var speed_value_toggle: CheckButton
+var spree_toggle: CheckButton
 var save_button: Button
 var cancel_button: Button
 var message: Label
@@ -25,6 +26,7 @@ func _ready() -> void:
 	SettingsStyle.section(page.content,"HUD")
 	speedometer_toggle = _toggle(page.content,"Speedometer","A dial above Integrity shows your speed; nitro adds an outer ring.")
 	speed_value_toggle = _toggle(page.content,"Speed in km/h","The dial also shows your actual speed above the share of top speed.")
+	spree_toggle = _toggle(page.content,"Kill streak banner","The large banner announcing each kill, its streak and the heat it vented.")
 	message = page.message
 	SettingsStyle.button(page.footer,"Restore defaults",func() -> void:
 		_set_toggles(GAME_PREFERENCES.create())
@@ -34,7 +36,7 @@ func _ready() -> void:
 	page.footer.add_child(spacer)
 	cancel_button = SettingsStyle.button(page.footer,"Cancel",cancel)
 	save_button = SettingsStyle.button(page.footer,"Save changes",save_and_close,true)
-	SettingsStyle.focus_cycle([damage_numbers_toggle,player_numbers_toggle,speedometer_toggle,speed_value_toggle,cancel_button,save_button])
+	SettingsStyle.focus_cycle([damage_numbers_toggle,player_numbers_toggle,speedometer_toggle,speed_value_toggle,spree_toggle,cancel_button,save_button])
 	hide()
 
 func open_for(preferences: RefCounted, path: String) -> void:
@@ -54,6 +56,7 @@ func _values() -> RefCounted:
 	result.show_player_damage_numbers = player_numbers_toggle.button_pressed
 	result.show_speedometer = speedometer_toggle.button_pressed
 	result.show_speed_value = speed_value_toggle.button_pressed
+	result.show_spree_banner = spree_toggle.button_pressed
 	return result
 
 func _preview() -> void:
@@ -117,7 +120,9 @@ func _set_toggles(preferences: RefCounted) -> void:
 	player_numbers_toggle.set_pressed_no_signal(preferences.show_player_damage_numbers)
 	speedometer_toggle.set_pressed_no_signal(preferences.show_speedometer)
 	speed_value_toggle.set_pressed_no_signal(preferences.show_speed_value)
+	spree_toggle.set_pressed_no_signal(preferences.show_spree_banner)
 	_caption(damage_numbers_toggle)
 	_caption(player_numbers_toggle)
 	_caption(speedometer_toggle)
 	_caption(speed_value_toggle)
+	_caption(spree_toggle)

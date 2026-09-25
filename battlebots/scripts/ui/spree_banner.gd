@@ -9,6 +9,12 @@ const NAMES := ["ELIMINATED", "DOUBLE KILL", "TRIPLE KILL", "QUAD KILL", "RAMPAG
 const COLOR := Color("ffd24a")
 var session: MvpSession
 var text_scale := 1.0
+## Game settings toggle (game_preferences.gd). Off still tracks the combo, so
+## switching it back on never replays an old kill.
+var enabled := true:
+	set(value):
+		enabled = value
+		if not enabled: hide()
 var _seen := 0
 var _age := SECONDS
 
@@ -22,7 +28,7 @@ static func message(combo: int) -> String:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	add_theme_color_override("font_color", COLOR)
 	add_theme_color_override("font_outline_color", Color(0.05, 0.03, 0.02, 0.95))
 	add_theme_constant_override("outline_size", 10)
@@ -37,7 +43,7 @@ func _process(delta: float) -> void:
 	var spree := 0
 	if is_instance_valid(session) and session.local_source() != null:
 		spree = session.local_source().read_view().spree
-	if spree > _seen:
+	if spree > _seen and enabled:
 		text = message(spree)
 		_age = 0.0
 		scale = Vector2.ONE * 1.25

@@ -91,13 +91,14 @@ func run() -> void:
 	var path := "user://damage_numbers_test_game.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	var defaults: RefCounted = GAME_PREFERENCES.load_file(path)
-	check(defaults.load_error == OK and defaults.show_damage_numbers and defaults.show_player_damage_numbers and defaults.show_speedometer and defaults.show_speed_value, "Numbers and speedometer default on")
+	check(defaults.load_error == OK and defaults.show_damage_numbers and defaults.show_player_damage_numbers and defaults.show_speedometer and defaults.show_speed_value and defaults.show_spree_banner, "Numbers, speedometer and kill banner default on")
 	defaults.show_damage_numbers = false
 	defaults.show_speedometer = false
 	defaults.show_speed_value = false
+	defaults.show_spree_banner = false
 	check(defaults.save_file(path) == OK, "Game settings save")
 	var loaded: RefCounted = GAME_PREFERENCES.load_file(path)
-	check(loaded.load_error == OK and not loaded.show_damage_numbers and loaded.show_player_damage_numbers and not loaded.show_speedometer and not loaded.show_speed_value, "Toggles round-trip")
+	check(loaded.load_error == OK and not loaded.show_damage_numbers and loaded.show_player_damage_numbers and not loaded.show_speedometer and not loaded.show_speed_value and not loaded.show_spree_banner, "Toggles round-trip")
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string("[game]
 version=1
@@ -105,7 +106,7 @@ show_damage_numbers=true
 ")
 	file.close()
 	var older: RefCounted = GAME_PREFERENCES.load_file(path)
-	check(older.load_error == OK and older.show_player_damage_numbers and older.show_speedometer and older.show_speed_value, "A file without the newer keys keeps their defaults")
+	check(older.load_error == OK and older.show_player_damage_numbers and older.show_speedometer and older.show_speed_value and older.show_spree_banner, "A file without the newer keys keeps their defaults")
 	file = FileAccess.open(path, FileAccess.WRITE)
 	file.store_string("[game]\nversion=1\nshow_damage_numbers=\"yes\"\n")
 	file.close()
@@ -121,7 +122,7 @@ show_damage_numbers=true
 	shown.show_player_damage_numbers = false
 	shown.show_speedometer = false
 	panel.open_for(shown, path)
-	check(panel.damage_numbers_toggle.text == "On" and panel.player_numbers_toggle.text == "Off" and panel.speedometer_toggle.text == "Off" and panel.speed_value_toggle.text == "On", "Captions show each toggle's state")
+	check(panel.damage_numbers_toggle.text == "On" and panel.player_numbers_toggle.text == "Off" and panel.speedometer_toggle.text == "Off" and panel.speed_value_toggle.text == "On" and panel.spree_toggle.text == "On", "Captions show each toggle's state")
 	panel.damage_numbers_toggle.button_pressed = false
 	check(panel.damage_numbers_toggle.text == "Off", "Caption follows a click")
 	panel.cancel()
