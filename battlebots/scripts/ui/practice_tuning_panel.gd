@@ -164,7 +164,7 @@ func _weapon_rows(slot: String) -> void:
 			_row(grid, field[1], null, Callable(), "")
 			continue
 		var spin := _spin(func() -> float: return tuning.value(slot, key),
-			func(amount: float) -> void: tuning.set_value(slot, key, amount), 100.0 if key == "pierce" else SPIN_MAX)
+			func(amount: float) -> void: tuning.set_value(slot, key, amount), 100.0 if key in ["pierce", "stagger"] else SPIN_MAX)
 		_row(grid, field[1], spin, func() -> void: tuning.clear_value(slot, key), field[2])
 
 ## Dropdown of every part for the slot (unfit ones greyed) between previous

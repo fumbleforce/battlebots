@@ -70,7 +70,8 @@ var nitro_active := false
 var nitro_boost_scale := 1.0
 var _jump_queued := 0.0
 var steering_multiplier: float = 1.0
-## Hit stagger loosens tyre grip so knockback carries the hull.
+## Hit stagger lowers the top speed and loosens tyre grip so knockback carries the hull.
+var speed_multiplier: float = 1.0
 var grip_multiplier: float = 1.0
 var recovery_torque: Vector3 = Vector3.ZERO
 var probe_half_width: float = 0.65
@@ -367,7 +368,7 @@ func _block_velocity(normal: Vector3) -> void:
 	correction.velocity -= normal * minf(Vector3(correction.velocity).dot(normal), 0.0)
 
 func model_config() -> Dictionary:
-	return {"speed":top_speed * physics.top_speed_multiplier, "acceleration":drive_acceleration * physics.acceleration_multiplier,
+	return {"speed":top_speed * physics.top_speed_multiplier * speed_multiplier, "acceleration":drive_acceleration * physics.acceleration_multiplier,
 		"grip":grip_acceleration * physics.grip_multiplier * grip_multiplier,
 		"coast":coast_acceleration * physics.rolling_resistance_multiplier, "throttle_response":throttle_response,
 		"steering_response":steering_response, "yaw_response":yaw_response,

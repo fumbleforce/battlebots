@@ -351,6 +351,7 @@ func step(delta: float, active: bool) -> void:
 	var stagger := combat.stagger_factor()
 	body.drive_multiplier = pods * stagger
 	body.steering_multiplier = (0.0 if pods == 0 else (0.6 if pods < 1 else 1.0)) * stagger
+	body.speed_multiplier = stagger
 	body.grip_multiplier = lerpf(0.3, 1.0, stagger)
 	body.accept_command(command)
 	body.nitro_active = combat.nitro_active

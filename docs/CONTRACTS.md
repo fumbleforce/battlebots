@@ -1,5 +1,23 @@
 # Shared contracts — local records and current MVP session API
 
+## Stagger caps top speed; Practice stagger is a strength — build mvp-ab-51 (#89)
+
+Gameplay change; protocol and catalogue unchanged. The mvp-ab-50 speed bleed alone
+recovered within about 3 physics frames, so a staggered bot barely slowed.
+- `CombatState.stagger_factor()` now also scales the top speed:
+  `DriveBody.speed_multiplier`, set by `MvpBot.step`, multiplies `model_config().speed`
+  and `GaitDrive._desired_planar`. The client's own copy stays 1 (stagger is not
+  replicated).
+- A short stagger now reaches its full depth. The easing window is
+  `min(STAGGER_RECOVERY, half the stagger)` (`CombatState._stagger_recovery`).
+  Before, the minigun's 0.15 s stagger eased over 0.3 s and never passed half depth.
+- Practice Duel's weapon **Stagger** field is now the strength in % (the depth,
+  0–100), not a duration. The duration stays the weapon's (0.3 s,
+  `DEFAULT_STAGGER_SECONDS`, for weapons without one).
+- Measured on real Jolt: a Practice Atlas walking at 45% throttle (5.6 m/s) averages
+  3.8 m/s under the default minigun (30%), 2.1 m/s at 60% and 0.35 m/s at 100%. The
+  cruising starter hull in `stagger_speed.gd` drops from 16.1 to 9.1 m/s.
+
 ## Hit stagger slows moving targets — build mvp-ab-50 (#89)
 
 Gameplay change; protocol and catalogue unchanged. Stagger used to scale only the

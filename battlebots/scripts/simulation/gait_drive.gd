@@ -226,7 +226,7 @@ static func hop(state: PhysicsDirectBodyState3D, body: DriveBody, braking: bool)
 ## Driven horizontal velocity: throttle times top speed along the hull heading.
 static func _desired_planar(state: PhysicsDirectBodyState3D, body: DriveBody) -> Vector3:
 	var forward := (-state.transform.basis.z).slide(Vector3.UP).normalized()
-	var top := body.top_speed * body.physics.top_speed_multiplier
+	var top := body.top_speed * body.physics.top_speed_multiplier * body.speed_multiplier
 	if body.nitro_active: top *= body.physics.nitro_top_speed_multiplier
 	return forward * body._drive_input * top * minf(1.0, body.drive_multiplier)
 

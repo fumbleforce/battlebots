@@ -7,20 +7,21 @@ extends RefCounted
 ## plays exactly as before.
 ##
 ## Values are absolute. Rate, damage, range, knockback, recoil and AoE apply as
-## a scale of the weapon's default; piercing and stagger replace the default.
+## a scale of the weapon's default; piercing and stagger (strength, % of top
+## speed and drive control removed) replace the default.
 ## Loaded by path, not class name: a stale editor class cache must not break it.
 const COMBAT_WORLD = preload("res://scripts/weapons/combat_world.gd")
 const COMBAT_STATE = preload("res://scripts/simulation/combat_state.gd")
 const FRONT_TOOL_TUNING = preload("res://scripts/core/front_tool_tuning.gd")
 ## Drive force behind MvpBot's default acceleration (acceleration = force / mass).
 const DRIVE_FORCE := 8.0 * 103.0
-## Stagger depth for a weapon that has none by default but is given a duration.
-const DEFAULT_STAGGER_DEPTH := 0.5
+## Stagger duration (s) for a weapon that has none by default but is given a strength.
+const DEFAULT_STAGGER_SECONDS := 0.3
 ## Weapon fields in panel order, with their labels and units.
 const WEAPON_FIELDS := [
 	["rate", "Fire rate", "/s"], ["damage", "Damage", ""], ["range", "Range", "m"],
 	["knockback", "Knockback", "×mass"], ["recoil", "Recoil", ""], ["weight", "Weight", "kg"],
-	["pierce", "Piercing", "%"], ["aoe", "Area of effect", "m"], ["stagger", "Stagger", "s"]]
+	["pierce", "Piercing", "%"], ["aoe", "Area of effect", "m"], ["stagger", "Stagger", "%"]]
 ## Fields whose override replaces the default instead of scaling it.
 const ABSOLUTE := ["pierce", "stagger", "weight", "aoe"]
 
@@ -131,8 +132,9 @@ func _configure(bot: MvpBot, registry: ContentRegistry, ids: Array) -> void:
 			"jump":COMBAT_STATE.JUMP_MAX_SPEED, "nitro":BotPhysics.settings().nitro_top_speed_multiplier,
 			"plates":stats.plates.duplicate()}
 
-static func _stagger_seconds(kind: String) -> float:
-	return float(COMBAT_WORLD.STAGGER.get(kind, [0.0])[0])
+## Default stagger strength in percent (the weapon's STAGGER depth).
+static func _stagger_strength(kind: String) -> float:
+	return float(COMBAT_WORLD.STAGGER.get(kind, [0.0, 0.0])[1]) * 100.0
 
 func _primary_defaults(id: String) -> Dictionary:
 	var tools := FRONT_TOOL_TUNING.settings()
@@ -148,7 +150,7 @@ func _primary_defaults(id: String) -> Dictionary:
 				"knockback":COMBAT_WORLD.HAMMER_KNOCKBACK, "recoil":COMBAT_WORLD.HIT_RECOIL, "pierce":0.0, "stagger":0.0}
 		"saw":
 			return {"rate":1.0 / COMBAT_WORLD.SAW_CADENCE, "damage":COMBAT_WORLD.SAW_DAMAGE, "pierce":0.0,
-				"stagger":_stagger_seconds("saw")}
+				"stagger":_stagger_strength("saw")}
 		"lifter":
 			return {"rate":1.0 / COMBAT_STATE.LIFTER_COOLDOWN, "damage":COMBAT_WORLD.LIFTER_DAMAGE,
 				"knockback":COMBAT_WORLD.LIFTER_KNOCKBACK, "recoil":COMBAT_WORLD.HIT_RECOIL, "pierce":0.0, "stagger":0.0}
@@ -157,20 +159,20 @@ func _primary_defaults(id: String) -> Dictionary:
 		"battering_ram":
 			return {"rate":1.0 / tools.value("ram", "punch_cooldown"), "damage":tools.value("ram", "punch_damage"),
 				"knockback":tools.value("ram", "punch_speed"), "recoil":COMBAT_WORLD.RAM_PUNCH_RECOIL, "pierce":0.0,
-				"stagger":_stagger_seconds("ram_punch")}
+				"stagger":_stagger_strength("ram_punch")}
 		"spear_fork":
 			return {"rate":1.0 / tools.value("spear", "cooldown"), "damage":tools.value("spear", "thrust_damage"),
 				"knockback":COMBAT_WORLD.SPEAR_KNOCKBACK, "recoil":COMBAT_WORLD.SPEAR_RECOIL,
-				"pierce":(1.0 - tools.value("spear", "armour_share")) * 100.0, "stagger":_stagger_seconds("spear")}
+				"pierce":(1.0 - tools.value("spear", "armour_share")) * 100.0, "stagger":_stagger_strength("spear")}
 		"grinder_drum":
 			return {"rate":1.0 / tools.value("grinder", "cadence"), "damage":tools.value("grinder", "damage"),
-				"knockback":tools.value("grinder", "pull"), "pierce":0.0, "stagger":_stagger_seconds("grinder")}
+				"knockback":tools.value("grinder", "pull"), "pierce":0.0, "stagger":_stagger_strength("grinder")}
 	return {"pierce":0.0, "stagger":0.0}
 
 func _minigun_defaults() -> Dictionary:
 	return {"rate":1.0 / COMBAT_STATE.MINIGUN_CADENCE, "damage":COMBAT_WORLD.MINIGUN_DAMAGE,
 		"range":COMBAT_WORLD.MINIGUN_RANGE, "knockback":COMBAT_WORLD.MINIGUN_KNOCKBACK,
-		"recoil":COMBAT_WORLD.MINIGUN_RECOIL, "pierce":0.0, "stagger":_stagger_seconds("minigun")}
+		"recoil":COMBAT_WORLD.MINIGUN_RECOIL, "pierce":0.0, "stagger":_stagger_strength("minigun")}
 
 func _secondary_defaults(stats: Dictionary) -> Dictionary:
 	var family: String = stats.secondary_weapon
@@ -180,7 +182,7 @@ func _secondary_defaults(stats: Dictionary) -> Dictionary:
 	var barrels := maxi(1, int(stats.get("turret_barrels", 1)))
 	var defaults := {"rate":1.0 / turret.barrel(family, barrels, "interval"), "damage":turret.value(family, "damage"),
 		"knockback":turret.value(family, "knock"), "recoil":turret.barrel(family, barrels, "jolt"),
-		"pierce":0.0, "stagger":_stagger_seconds(family)}
+		"pierce":0.0, "stagger":_stagger_strength(family)}
 	# The mortar's reach comes from its ballistics; its blast is the only true area.
 	if family == "mortar":
 		defaults.aoe = turret.value("mortar", "blast_radius")
@@ -210,7 +212,7 @@ func value(slot: String, field: String) -> float:
 func set_value(slot: String, field: String, amount: float) -> void:
 	if not has_field(slot, field) or not is_finite(amount) or amount < 0.0:
 		return
-	if field == "pierce":
+	if field in ["pierce", "stagger"]:
 		amount = minf(amount, 100.0)
 	weapons[slot].values[field] = amount
 
@@ -236,14 +238,15 @@ func armour_share(slot: String, share: float) -> float:
 		return share
 	return clampf(1.0 - float(weapons[slot].values.pierce) / 100.0, 0.0, 1.0)
 
-## [seconds, depth] of hit stagger after any override; [] for none.
+## [seconds, depth] of hit stagger after any override; [] for none. The
+## override is the strength (depth, in percent); the duration stays the weapon's.
 func stagger(slot: String, fallback: Array) -> Array:
 	if not has_field(slot, "stagger") or not weapons[slot].values.has("stagger"):
 		return fallback
-	var seconds := float(weapons[slot].values.stagger)
-	if seconds <= 0.0:
+	var depth := clampf(float(weapons[slot].values.stagger) / 100.0, 0.0, 1.0)
+	if depth <= 0.0:
 		return []
-	return [seconds, fallback[1] if fallback.size() > 1 else DEFAULT_STAGGER_DEPTH]
+	return [fallback[0] if not fallback.is_empty() else DEFAULT_STAGGER_SECONDS, depth]
 
 func body_value(field: String, face := "") -> float:
 	if field == "plates":

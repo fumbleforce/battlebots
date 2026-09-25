@@ -33,10 +33,13 @@ var jump_cooldown := 0.0
 var jump_release_speed := 0.0
 var _jump_was_held := false
 var recent_attackers: Dictionary = {}
-## Hit stagger: seconds left and the share of drive/steer/grip control it removes.
+## Hit stagger: seconds left and the share of top speed, drive, steer and grip it removes.
 var stagger_seconds := 0.0
 var stagger_depth := 0.0
 const STAGGER_RECOVERY := 0.3
+## Easing window of the current stagger: STAGGER_RECOVERY, or half of a
+## shorter stagger so it holds full depth before easing off.
+var _stagger_recovery := STAGGER_RECOVERY
 var _previous_held := false
 var _heat_active := false
 var _cooling_this_tick := 0.0
@@ -109,10 +112,13 @@ func stagger(seconds: float, depth: float) -> void:
 	if eliminated or not is_finite(seconds) or not is_finite(depth) or seconds <= 0.0: return
 	stagger_seconds = maxf(stagger_seconds, seconds)
 	stagger_depth = clampf(maxf(stagger_depth, depth), 0.0, 1.0)
+	_stagger_recovery = minf(STAGGER_RECOVERY, stagger_seconds * 0.5)
 
-## Remaining drive control, easing back to full over the last STAGGER_RECOVERY seconds.
+## Remaining drive control, easing back to full over the stagger's last
+## recovery window. A short stagger (the minigun's) now reaches full depth.
 func stagger_factor() -> float:
-	return 1.0 - stagger_depth * clampf(stagger_seconds / STAGGER_RECOVERY, 0.0, 1.0)
+	if stagger_seconds <= 0.0: return 1.0
+	return 1.0 - stagger_depth * clampf(stagger_seconds / _stagger_recovery, 0.0, 1.0)
 
 func drive_scale() -> float:
 	var pods := int(zones.drive_left > 0) + int(zones.drive_right > 0)

@@ -51,6 +51,14 @@ func run() -> void:
 	check(player.combat.practice_tuning == lab and target.combat.practice_tuning == null, "Only the player's bot is tuned")
 	check(lab.value("primary", "damage") == CombatWorld.MINIGUN_DAMAGE and lab.value("primary", "range") == CombatWorld.MINIGUN_RANGE,
 		"Defaults are the minigun's real values")
+	# #89: Stagger is a strength in percent; the duration stays the weapon's.
+	var minigun_stagger: Array = CombatWorld.STAGGER.minigun
+	check(is_equal_approx(lab.value("primary", "stagger"), minigun_stagger[1] * 100.0), "Stagger defaults to the minigun's strength in percent")
+	lab.set_value("primary", "stagger", 1000.0)
+	check(lab.stagger("primary", minigun_stagger) == [minigun_stagger[0], 1.0], "Stagger strength caps at 100% and keeps the weapon's duration")
+	lab.set_value("primary", "stagger", 0.0)
+	check(lab.stagger("primary", minigun_stagger).is_empty(), "Stagger 0% turns stagger off")
+	lab.clear_value("primary", "stagger")
 	check(is_equal_approx(lab.total_mass(), float(player.combat.stats.mass)), "Body plus weapon weight is the bot's mass")
 	# The Esc-menu panel lists the weapon and body and writes straight into the tuning.
 	var panel: VBoxContainer = preload("res://scripts/ui/practice_tuning_panel.gd").new()
