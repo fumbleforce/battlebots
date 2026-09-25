@@ -144,7 +144,9 @@ func _add(mark: Dictionary) -> void:
 func _render_hitboxes(others: Array) -> void:
 	var seen: Dictionary = {}
 	for bot: MvpBot in others:
-		if not is_instance_valid(bot) or not is_instance_valid(bot.body) or not bot.body.is_inside_tree():
+		if not is_instance_valid(bot) or not is_instance_valid(bot.body) or not bot.body.is_inside_tree() \
+				or bot.combat.eliminated:
+			# A dead bot's hitboxes go with it, as a broken plate's do.
 			continue
 		var key := bot.get_instance_id()
 		seen[key] = true

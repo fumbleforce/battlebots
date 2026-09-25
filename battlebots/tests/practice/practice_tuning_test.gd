@@ -258,6 +258,16 @@ func run() -> void:
 		target.combat.zones[face] = armour_left[face]
 	lab.debug_hitboxes = false
 	draw.render(lab, 0.0, [target])
+	lab.debug_hitboxes = true
+	draw.render(lab, 0.0, [target])
+	target.combat.eliminated = true
+	draw.render(lab, 0.0, [target])
+	check(draw._hitboxes.is_empty(), "A dead bot's hitboxes go with it")
+	target.combat.eliminated = false
+	draw.render(lab, 0.0, [target])
+	check(draw._hitboxes.size() == 1, "They come back when it does")
+	lab.debug_hitboxes = false
+	draw.render(lab, 0.0, [target])
 	check(draw._hitboxes.is_empty(), "Turning hitboxes off removes them")
 	draw.queue_free()
 	lab.debug_impacts = true
