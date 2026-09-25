@@ -42,12 +42,20 @@ func run() -> void:
 	var gauge := hud.speed_gauge
 	check(hud.speed_panel.visible and hud.speed_panel.get_rect().end.y < hud.resources_panel.position.y and hud.speed_panel.size.x < hud.resources_panel.size.x
 		and is_equal_approx(hud.speed_panel.position.x, hud.resources_panel.position.x), "Speedometer block sits just above Integrity")
+	check(is_equal_approx(hud.speed_panel.size.y, hud.resources_panel.size.y), "Speedometer block matches the Integrity height")
+	check(gauge.speed_text() == "-- km/h", "Unknown speed reads no km/h")
+	hud.show_speedometer = false
+	hud.render(bot, "T", opponent)
+	check(not hud.speed_panel.visible, "The Game settings toggle hides the speedometer")
+	hud.show_speedometer = true
 	check(not is_finite(gauge.speed), "Unknown speed does not invent a reading")
 	bot.speed_fraction = 0.5
 	bot.nitro_speed_fraction = 2.0
+	bot.top_speed = 10.0
 	hud.render(bot, "T", opponent)
 	gauge._process(5.0)
 	check(is_equal_approx(gauge.shown, 0.5) and gauge.extension == 0.0 and gauge.overdrive() == 0.0, "Normal driving spans 0-100% of top speed")
+	check(gauge.speed_text() == "18 km/h", "Actual speed reads in km/h from the share of top speed")
 	bot.nitro_active = true
 	bot.speed_fraction = 1.8
 	hud.render(bot, "T", opponent)

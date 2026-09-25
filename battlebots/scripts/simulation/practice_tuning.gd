@@ -87,7 +87,9 @@ func apply(bot: MvpBot, registry: ContentRegistry) -> void:
 	bot.body.grip_acceleration = float(body.get("grip", body_defaults.grip)) / physics.grip_multiplier
 	bot.body.turn_speed = float(body.get("turn", body_defaults.turn))
 	bot.body.nitro_boost_scale = float(body.get("nitro", body_defaults.nitro)) / physics.nitro_top_speed_multiplier
-	bot.body.top_speed = float(body.get("speed", float(stats.drive_speed) * BotPhysics.settings().top_speed_factor(bot.body.mass)))
+	# Max speed is shown as driven too (after the motor multiplier), matching the HUD speedometer.
+	bot.body.top_speed = float(body.speed) / physics.top_speed_multiplier if body.has("speed") \
+		else float(stats.drive_speed) * physics.top_speed_factor(bot.body.mass)
 
 ## Chassis, drive, armour and perks together; the weapons' own weight is separate.
 func total_mass() -> float:
@@ -124,7 +126,7 @@ func _configure(bot: MvpBot, registry: ContentRegistry, ids: Array) -> void:
 		for slot: String in weapons:
 			weapon_mass += float(weapons[slot].defaults.weight)
 		body_defaults = {"core":float(stats.core), "weight":float(stats.mass) - weapon_mass,
-			"speed":float(stats.speed), "acceleration":DRIVE_FORCE / float(stats.mass) * BotPhysics.settings().acceleration_multiplier,
+			"speed":float(stats.speed) * BotPhysics.settings().top_speed_multiplier, "acceleration":DRIVE_FORCE / float(stats.mass) * BotPhysics.settings().acceleration_multiplier,
 			"grip":bot.body.grip_acceleration * BotPhysics.settings().grip_multiplier, "turn":bot.body.turn_speed,
 			"jump":COMBAT_STATE.JUMP_MAX_SPEED, "nitro":BotPhysics.settings().nitro_top_speed_multiplier,
 			"plates":stats.plates.duplicate()}

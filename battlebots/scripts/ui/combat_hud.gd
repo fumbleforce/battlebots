@@ -37,6 +37,8 @@ var muted_labels: Array[Label] = []
 var resources_panel: PanelContainer
 var speed_panel: PanelContainer
 var speed_gauge: SpeedGauge
+## Game settings toggle for the speedometer block (game_preferences.gd).
+var show_speedometer := true
 var components_panel: PanelContainer
 var systems_panel: PanelContainer
 var weapon_panel: PanelContainer
@@ -219,7 +221,7 @@ func apply_accessibility(value: float, colors: String, contrast: bool) -> void:
 		background.bg_color = Color("384553")
 		resources[key].bar.add_theme_stylebox_override("background", background)
 	jump_gauge.apply_accessibility(text_scale, accent, high_contrast)
-	speed_gauge.apply_accessibility(text_scale, accent, high_contrast)
+	speed_gauge.apply_accessibility(high_contrast)
 	_layout()
 	_resize()
 
@@ -234,7 +236,8 @@ func _layout() -> void:
 	# Recompute after visibility/text changes; containers can shrink after a warning.
 	resources_panel.size = Vector2(health_width, 0)
 	resources_panel.position = Vector2(28, 692 - resources_panel.size.y)
-	# The dial block hugs its content rather than matching the Integrity width.
+	# The dial block matches the Integrity height and hugs the dial across.
+	speed_gauge.fit_height(resources_panel.size.y - speed_panel.get_theme_stylebox("panel").get_minimum_size().y)
 	speed_panel.size = Vector2.ZERO
 	speed_panel.position = Vector2(28, resources_panel.position.y - 8 - speed_panel.size.y)
 	weapon_panel.size = Vector2(weapon_width, 0)
@@ -467,7 +470,7 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 	_render_perks(view, combat_active, perk_parts)
 	_render_armor(view)
 	speed_gauge.render(view)
-	speed_panel.visible = view != null and not view.eliminated
+	speed_panel.visible = show_speedometer and view != null and not view.eliminated
 	var values := [view.core_fraction, view.heat_fraction, view.weapon_charge_fraction] if view != null else [NAN, NAN, NAN]
 	var index := 0
 	for key: String in ["Core", "Heat", "Charge"]:

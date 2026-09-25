@@ -163,9 +163,10 @@ func run() -> void:
 	await frames(2)
 	check(player.combat.core == 500.0 and float(player.combat.stats.core) == 500.0, "Health sets current and maximum core")
 	check(is_equal_approx(player.body.mass, 400.0 + lab.value("primary", "weight")), "Weight sets the body mass")
-	check(player.body.top_speed == 3.0 and is_equal_approx(player.body.model_config().acceleration, 2.0)
+	check(is_equal_approx(player.body.model_config().speed, 3.0) and is_equal_approx(player.body.model_config().acceleration, 2.0)
 		and is_equal_approx(player.body.model_config().grip, 50.0 * player.body.grip_multiplier) and player.body.turn_speed == 3.0,
-		"Speed, applied acceleration, grip and turn speed reach the drive")
+		"Applied speed, acceleration, grip and turn speed reach the drive")
+	check(is_equal_approx(player.read_view().top_speed, 3.0), "Max speed is the top speed the HUD speedometer measures against")
 	var face: String = lab.body_defaults.plates.keys()[0]
 	lab.set_body("plates", 77.0, face)
 	await frames(2)

@@ -428,6 +428,8 @@ func _add_game_settings() -> void:
 
 func _apply_game_preferences(value: GAME_PREFERENCES) -> void:
 	impact_feedback.set_damage_numbers(value.show_damage_numbers, value.show_player_damage_numbers)
+	combat_hud.show_speedometer = value.show_speedometer
+	combat_hud.speed_gauge.show_speed_value = value.show_speed_value
 
 func open_game_settings() -> void:
 	_prepare_settings_category("game")

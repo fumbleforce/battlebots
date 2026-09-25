@@ -8,6 +8,10 @@ const VERSION := 1
 ## Numbers on other bots, and on the local player's own bot.
 var show_damage_numbers := true
 var show_player_damage_numbers := true
+## The speedometer dial above Integrity (#86).
+var show_speedometer := true
+## Its actual speed (km/h) above the share of top speed.
+var show_speed_value := true
 var load_error: Error = OK
 
 static func create() -> RefCounted:
@@ -17,6 +21,8 @@ func copy() -> RefCounted:
 	var result := create()
 	result.show_damage_numbers = show_damage_numbers
 	result.show_player_damage_numbers = show_player_damage_numbers
+	result.show_speedometer = show_speedometer
+	result.show_speed_value = show_speed_value
 	result.load_error = load_error
 	return result
 
@@ -58,11 +64,15 @@ static func load_file(path: String = DEFAULT_PATH) -> RefCounted:
 	var numbers: Variant = config.get_value("game", "show_damage_numbers", null)
 	# Added after the first release of this file: absent means the default.
 	var player_numbers: Variant = config.get_value("game", "show_player_damage_numbers", true)
-	if not numbers is bool or not player_numbers is bool:
+	var speedometer: Variant = config.get_value("game", "show_speedometer", true)
+	var speed_value: Variant = config.get_value("game", "show_speed_value", true)
+	if not numbers is bool or not player_numbers is bool or not speedometer is bool or not speed_value is bool:
 		result.load_error = ERR_INVALID_DATA
 		return result
 	result.show_damage_numbers = numbers
 	result.show_player_damage_numbers = player_numbers
+	result.show_speedometer = speedometer
+	result.show_speed_value = speed_value
 	return result
 
 func save_file(path: String = DEFAULT_PATH) -> Error:
@@ -72,6 +82,8 @@ func save_file(path: String = DEFAULT_PATH) -> Error:
 	config.set_value("game", "version", VERSION)
 	config.set_value("game", "show_damage_numbers", show_damage_numbers)
 	config.set_value("game", "show_player_damage_numbers", show_player_damage_numbers)
+	config.set_value("game", "show_speedometer", show_speedometer)
+	config.set_value("game", "show_speed_value", show_speed_value)
 	var temporary := path + ".tmp"
 	var error := config.save(temporary)
 	if error != OK:

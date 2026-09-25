@@ -480,6 +480,7 @@ func read_view() -> BotView:
 	var velocity: Variant = remote_state.get("velocity") if not simulated else \
 		(Vector3.ZERO if body.reset_pose is Transform3D else body.linear_velocity)
 	var top := body.top_speed * body.physics.top_speed_multiplier
+	view.top_speed = top
 	if velocity is Vector3 and top > 0.0:
 		var up := view.pose.basis.y.normalized()
 		view.speed_fraction = (velocity - up * velocity.dot(up)).length() / top

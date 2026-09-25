@@ -36,6 +36,8 @@ var nitro_active := false
 ## reaches on the same scale (1.0 without nitro, e.g. 2.0 with it).
 var speed_fraction := NAN
 var nitro_speed_fraction := 1.0
+## The normal top speed those fractions are measured against, in m/s.
+var top_speed := 0.0
 var jump_charge_fraction := 0.0
 var jump_cooldown := 0.0
 ## Atlas roof turret: "cannon", "plasma" or empty. Yaw is chassis-relative;

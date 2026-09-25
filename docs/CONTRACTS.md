@@ -9,9 +9,14 @@ is the speed in the hull plane over the drive's normal top speed
 the server body, or the client's accepted snapshot velocity; NAN when unknown.
 `nitro_speed_fraction` is the nitro top speed on that scale
 (`nitro_top_speed_multiplier * nitro_boost_scale`), 1.0 without nitro fitted.
-`CombatHud` shows them in a new `HudSpeedGauge` dial above Integrity: the inner
-ring spans 0–100%; an outer nitro ring fills with the extra share nitro adds.
-No command, wire, gameplay or BUILD change.
+`top_speed` carries that normal top speed (m/s) for the km/h reading.
+`CombatHud` shows them in a new `HudSpeedGauge` dial above Integrity, as tall
+as the Integrity block: the inner ring spans 0–100%; an outer nitro-blue ring
+fills with the extra share nitro adds; km/h sits above the %. Game settings
+(`user://game.cfg`) add `show_speedometer` and `show_speed_value`, both
+defaulting on when absent. The Practice Duel tuning panel's Max speed is now
+the top speed as driven (after `top_speed_multiplier`), like acceleration and
+grip, so it matches the HUD. No command, wire, gameplay or BUILD change.
 
 ## Progressive destruction and destructible props — build mvp-ab-49, protocol 16 (#72, #71)
 

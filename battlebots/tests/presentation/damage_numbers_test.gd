@@ -91,11 +91,13 @@ func run() -> void:
 	var path := "user://damage_numbers_test_game.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	var defaults: RefCounted = GAME_PREFERENCES.load_file(path)
-	check(defaults.load_error == OK and defaults.show_damage_numbers and defaults.show_player_damage_numbers, "Numbers default on")
+	check(defaults.load_error == OK and defaults.show_damage_numbers and defaults.show_player_damage_numbers and defaults.show_speedometer and defaults.show_speed_value, "Numbers and speedometer default on")
 	defaults.show_damage_numbers = false
+	defaults.show_speedometer = false
+	defaults.show_speed_value = false
 	check(defaults.save_file(path) == OK, "Game settings save")
 	var loaded: RefCounted = GAME_PREFERENCES.load_file(path)
-	check(loaded.load_error == OK and not loaded.show_damage_numbers and loaded.show_player_damage_numbers, "Toggles round-trip")
+	check(loaded.load_error == OK and not loaded.show_damage_numbers and loaded.show_player_damage_numbers and not loaded.show_speedometer and not loaded.show_speed_value, "Toggles round-trip")
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string("[game]
 version=1
@@ -103,7 +105,7 @@ show_damage_numbers=true
 ")
 	file.close()
 	var older: RefCounted = GAME_PREFERENCES.load_file(path)
-	check(older.load_error == OK and older.show_player_damage_numbers, "A file without the own-bot key keeps its default")
+	check(older.load_error == OK and older.show_player_damage_numbers and older.show_speedometer and older.show_speed_value, "A file without the newer keys keeps their defaults")
 	file = FileAccess.open(path, FileAccess.WRITE)
 	file.store_string("[game]\nversion=1\nshow_damage_numbers=\"yes\"\n")
 	file.close()
@@ -117,8 +119,9 @@ show_damage_numbers=true
 	root.add_child(panel)
 	var shown: RefCounted = GAME_PREFERENCES.create()
 	shown.show_player_damage_numbers = false
+	shown.show_speedometer = false
 	panel.open_for(shown, path)
-	check(panel.damage_numbers_toggle.text == "On" and panel.player_numbers_toggle.text == "Off", "Captions show each toggle's state")
+	check(panel.damage_numbers_toggle.text == "On" and panel.player_numbers_toggle.text == "Off" and panel.speedometer_toggle.text == "Off" and panel.speed_value_toggle.text == "On", "Captions show each toggle's state")
 	panel.damage_numbers_toggle.button_pressed = false
 	check(panel.damage_numbers_toggle.text == "Off", "Caption follows a click")
 	panel.cancel()
