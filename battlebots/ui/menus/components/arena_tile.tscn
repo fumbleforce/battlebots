@@ -161,6 +161,7 @@ layout_mode = 2
 text = "THE FOUNDRY"
 theme_type_variation = &"Heading"
 theme_override_font_sizes/font_size = 36
+autowrap_mode = 3
 unique_name_in_owner = true
 
 [node name="Sub" type="Label" parent="Inner/Col/Text/Col"]
@@ -168,4 +169,5 @@ layout_mode = 2
 text = "Medium · Floor saws"
 theme_type_variation = &"Muted"
 theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
 unique_name_in_owner = true

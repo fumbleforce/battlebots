@@ -212,6 +212,7 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry", kind := "full
 	arena_id = selected_arena
 	_make_world()
 	world.arena_cooling_enabled = kind == "full"
+	world.centre_pickup_enabled = kind == "full"
 	local_entity = _admit(1, build)
 	var bot := world.spawn(local_entity, 0, 0, build)
 	bot.owner_id = 1

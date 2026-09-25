@@ -61,19 +61,21 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 	player_home = player.spawn_pose
 	return _add_roamers(first_id + VARIANTS.size())
 
-## Practice Duel (#83, #88): the player at its usual edge, a stationary,
-## non-aggressive Atlas MX straight ahead facing the player, the monowheel block
-## on the left, and a second Atlas on the right that shuttles forward and back.
-## The far Atlas and the shuttle stand as far from their walls as the monowheel
-## block does from the left wall. No pilots or roamers. The Atlases keep their
-## own model and never collect pickups.
+## Practice Duel (#83, #88, #90): the player in the middle of the room, facing
+## as from its usual lane, a stationary, non-aggressive Atlas MX straight ahead
+## facing the player, the monowheel block on the left, and a second Atlas on the
+## right that shuttles forward and back. The far Atlas and the shuttle stand as
+## far from their walls as the monowheel block does from the left wall. No
+## pilots or roamers, and no centre pickup under the player. The Atlases keep
+## their own model and never collect pickups.
 func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
 	player_id = controlled_id
 	target_id = first_id
 	var player: MvpBot = world.bots[player_id]
 	var spawns := ARENA_SPAWNS.settings()
-	_place(player, spawns.team_start(world.arena_id, 0, spawns.practice_player_lane))
+	var lane := spawns.team_start(world.arena_id, 0, spawns.practice_player_lane)
+	_place(player, Transform3D(lane.basis, Vector3.ZERO))
 	player_home = player.spawn_pose
 	var forward := (-player.spawn_pose.basis.z).slide(Vector3.UP).normalized()
 	var left := Vector3.UP.cross(forward).normalized()

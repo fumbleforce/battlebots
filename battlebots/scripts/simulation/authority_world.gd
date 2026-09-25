@@ -21,6 +21,8 @@ var arena: Node3D
 var arena_id := "foundry"
 ## Practice Duel (#83) runs without the arena cooling zones and coolant canisters.
 var arena_cooling_enabled := true
+## Practice Duel (#90) starts the player in the middle: no pickup there.
+var centre_pickup_enabled := true
 ## Practice Duel tuning (#84): entity id -> practice_tuning.gd overrides.
 ## Only the offline Practice Duel session fills it.
 var practice_tuning: Dictionary = {}
@@ -217,7 +219,9 @@ func clear_bots() -> void:
 ## four on the diagonals, scaled to the arena. Terrain arenas follow their ground.
 func pickup_points() -> Array[Vector3]:
 	var half := ArenaBounds.half_extent(arena_id)
-	var points: Array[Vector3] = [Vector3.ZERO]
+	var points: Array[Vector3] = []
+	if centre_pickup_enabled:
+		points.append(Vector3.ZERO)
 	for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
 		points.append(Vector3(cos(angle), 0.0, sin(angle)) * half * 0.5)
 	var surface: Script = null

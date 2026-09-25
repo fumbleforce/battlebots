@@ -1,5 +1,5 @@
 extends SceneTree
-## Practice Duel (#83, #88): the player, a stationary, non-aggressive Atlas MX
+## Practice Duel (#83, #88, #90): the player in the middle, a stationary, non-aggressive Atlas MX
 ## ahead, a shuttling Atlas on the right and the monowheel block on the left,
 ## with no pilots, roamers, Woodland giant or cooling zones.
 var failures: Array[String] = []
@@ -32,6 +32,10 @@ func run() -> void:
 		check(session.practice_director.roamers.is_empty() and session.practice_director.records.size() == 2 + wheels_count, "No pilots or roamers")
 		var target := session.practice_target() as MvpBot
 		var player: MvpBot = session.local_source()
+		# #90: the player starts in the middle of the room, with no pickup there.
+		check(Vector2(player.spawn_pose.origin.x, player.spawn_pose.origin.z).length() < 0.5, "%s duel player starts in the middle" % arena)
+		check(not session.world.pickups.items.any(func(item: Dictionary) -> bool:
+			return item.kind != "coolant" and Vector2(item.point.x, item.point.z).length() < 1.0), "%s duel has no centre pickup" % arena)
 		check(target != null and AtlasGeometry.enabled(target.loadout), "%s duel target is an Atlas MX" % arena)
 		check(not target.has_meta("practice_variant"), "The Atlas keeps its own model, not a training-NPC shell")
 		var start := target.body.global_position
