@@ -3,8 +3,8 @@ const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## Practice Duel debug views (#93): draws the marks the offline authority
 ## records on the player's PracticeTuning (scripts/simulation/practice_tuning.gd)
 ## while the Esc menu's Debug toggles are on. Shot paths are lines; impacts are
-## white see-through spheres the size of the area of effect, or small cubes for
-## weapons without one. Each mark stays for the tuning's debug_linger seconds
+## see-through spheres the size of the area of effect (red when they did
+## damage), or small solid cubes for weapons without one. Each mark stays for the tuning's debug_linger seconds
 ## of unpaused play; turning a toggle off clears its marks.
 ##
 ## With hitboxes on, every other bot shows its core in red: its real collision
@@ -15,9 +15,13 @@ const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## hit reaches first is in front. Components take most of a hit on them (the
 ## blue part of its damage numbers, #85). Presentation only.
 const PATH_COLOR := Color(1.0, 0.85, 0.2, 0.9)
-const IMPACT_COLOR := Color(1.0, 1.0, 1.0, 0.3)
-## A point impact on a bot takes the colour of what it hit (its hitbox layer),
-## solid and this much brighter.
+## Area-of-effect spheres are see-through: red when the blast damaged
+## something, white when it did not.
+const AREA_COLOR := Color(1.0, 1.0, 1.0, 0.15)
+const AREA_DAMAGE_COLOR := Color(1.0, 0.1, 0.1, 0.18)
+## Point impacts are solid cubes: white when they hit nothing, else the colour
+## of what they hit on a bot (its hitbox layer) this much brighter.
+const IMPACT_MISS_COLOR := Color.WHITE
 const IMPACT_HIT_BRIGHTEN := 0.35
 ## Edge of the cube marking an impact without an area of effect (m).
 const IMPACT_CUBE_SIZE := 0.35
@@ -56,8 +60,10 @@ const COMPONENT_FACES := {"weapon":Vector3.FORWARD, "drive_left":Vector3.LEFT, "
 ## [MeshInstance3D, type, age] per mark on screen.
 var _shown: Array = []
 var _path_material := StandardMaterial3D.new()
-var _impact_material := StandardMaterial3D.new()
-## Hitbox layer ("armour", "component", "core") -> its solid impact material.
+var _area_material := StandardMaterial3D.new()
+var _area_damage_material := StandardMaterial3D.new()
+## Hitbox layer ("armour", "component", "core", "" for a miss) -> its solid
+## point-impact material.
 var _impact_hit_materials: Dictionary = {}
 var _core_material := StandardMaterial3D.new()
 var _armour_material := StandardMaterial3D.new()
@@ -68,20 +74,21 @@ var _hitboxes: Dictionary = {}
 func _init() -> void:
 	name = "PracticeDebugDraw"
 	top_level = true
-	for material: StandardMaterial3D in [_path_material, _impact_material, _core_material,
+	for material: StandardMaterial3D in [_path_material, _area_material, _area_damage_material, _core_material,
 			_armour_material, _component_material]:
 		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		material.cull_mode = BaseMaterial3D.CULL_DISABLED
 		material.disable_receive_shadows = true
 	_path_material.albedo_color = PATH_COLOR
-	_impact_material.albedo_color = IMPACT_COLOR
-	var layers := {"armour":ARMOUR_COLOR, "component":COMPONENT_COLOR, "core":CORE_COLOR}
+	_area_material.albedo_color = AREA_COLOR
+	_area_damage_material.albedo_color = AREA_DAMAGE_COLOR
+	var layers := {"armour":ARMOUR_COLOR, "component":COMPONENT_COLOR, "core":CORE_COLOR, "":IMPACT_MISS_COLOR}
 	for layer: String in layers:
 		var colour: Color = layers[layer]
 		var solid := StandardMaterial3D.new()
 		solid.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		solid.albedo_color = Color(colour.lightened(IMPACT_HIT_BRIGHTEN), 1.0)
+		solid.albedo_color = Color(colour.lightened(IMPACT_HIT_BRIGHTEN) if not layer.is_empty() else colour, 1.0)
 		_impact_hit_materials[layer] = solid
 	_core_material.albedo_color = CORE_COLOR
 	_armour_material.albedo_color = ARMOUR_COLOR
@@ -135,8 +142,11 @@ func _add(mark: Dictionary) -> void:
 			var cube := BoxMesh.new()
 			cube.size = Vector3.ONE * IMPACT_CUBE_SIZE
 			item.mesh = cube
-		# A point impact on a bot is solid in its layer's colour; areas and misses stay white.
-		item.material_override = _impact_hit_materials.get(mark.get("layer", ""), _impact_material) if radius <= 0.0 else _impact_material
+		var layer: String = mark.get("layer", "")
+		if radius > 0.0:
+			item.material_override = _area_material if layer.is_empty() else _area_damage_material
+		else:
+			item.material_override = _impact_hit_materials[layer]
 		item.position = mark.position
 	add_child(item)
 	_shown.append([item, mark.type, 0.0])

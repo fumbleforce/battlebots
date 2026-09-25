@@ -327,7 +327,8 @@ func debug_path(points: PackedVector3Array) -> void:
 		_debug_mark({"type":"path", "points":points})
 
 ## What an impact reached: a sphere of radius, or the point itself for 0.
-## layer is what a bot hit there took it on (hit_layer), "" for none.
+## layer is what a bot hit there took it on (hit_layer), "" for none; for an
+## area (radius > 0), "damage" when it damaged something.
 func debug_impact(position: Vector3, radius := 0.0, layer := "") -> void:
 	if debug_impacts:
 		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0), "layer":layer})

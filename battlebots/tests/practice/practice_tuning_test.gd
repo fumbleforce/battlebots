@@ -180,7 +180,18 @@ func run() -> void:
 	check(meshes.size() == 3 and meshes[0] is SphereMesh and is_equal_approx((meshes[0] as SphereMesh).radius, 3.0)
 		and meshes[1] is BoxMesh and meshes[2] is ImmediateMesh, "An area impact draws its sphere, a point impact a cube, a shot a line")
 	var miss_material: StandardMaterial3D = (draw.get_child(1) as MeshInstance3D).material_override
-	check(miss_material.albedo_color.is_equal_approx(draw.IMPACT_COLOR), "An impact on nothing stays white")
+	var area_material: StandardMaterial3D = (draw.get_child(0) as MeshInstance3D).material_override
+	check(miss_material.albedo_color.is_equal_approx(Color.WHITE) and miss_material.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED
+		and area_material.albedo_color.is_equal_approx(draw.AREA_COLOR) and area_material.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED,
+		"An impact on nothing is solid white; an area that damaged nothing is see-through white")
+	lab.debug_impact(target.body.global_position, 2.0, "damage")
+	draw.render(lab, 0.0)
+	check(((draw.get_child(3) as MeshInstance3D).material_override as StandardMaterial3D).albedo_color.is_equal_approx(draw.AREA_DAMAGE_COLOR),
+		"An area that did damage is see-through red")
+	var area_mark: Node = draw.get_child(3)
+	draw.remove_child(area_mark)
+	area_mark.free()
+	draw._shown.pop_back()
 	lab.debug_impact(target.body.global_position, 0.0, "core")
 	draw.render(lab, 0.0)
 	var hit_material: StandardMaterial3D = (draw.get_child(3) as MeshInstance3D).material_override
@@ -407,9 +418,12 @@ func run() -> void:
 	lab.set_value("primary", "aoe", reach)
 	check(blasted.call(), "A tuned hammer blasts the Atlas %.0f m from the head without touching it" % (reach - 5.0))
 	var blast_marks: Array[Dictionary] = lab.take_debug_marks()
-	check(blast_marks.size() == 1 and is_equal_approx(blast_marks[0].radius, reach), "A tuned hammer strike marks a sphere of its area of effect")
+	check(blast_marks.size() == 1 and is_equal_approx(blast_marks[0].radius, reach) and blast_marks[0].layer == "damage",
+		"A tuned hammer strike marks a sphere of its area of effect, as damaging")
 	lab.set_value("primary", "aoe", 1.0)
 	check(not blasted.call(), "A small blast does not reach it")
+	blast_marks = lab.take_debug_marks()
+	check(blast_marks.size() == 1 and blast_marks[0].layer == "", "A blast that reaches no one is marked harmless")
 	session.leave()
 	# Allow auto fire, through the real weapon rules: hold the button for 8 s
 	# (the lifter reloads for 3 s after each launch).

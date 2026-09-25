@@ -466,13 +466,16 @@ func _hammer_blasts(bots: Dictionary, tick: int, round_index: int) -> void:
 		if lab == null or not state.strike or state.stats.weapon != "hammer" or state.eliminated or state.zones.weapon <= 0:
 			continue
 		var radius: float = lab.value("primary", "aoe")
-		lab.debug_impact(_hammer_head(attacker), radius)
+		var head := _hammer_head(attacker)
 		if radius <= 0.0:
+			lab.debug_impact(head)
 			continue
 		var struck: Array = _hammer_hits.get(id, {}).get("targets", {}).keys()
-		_splash(attacker, _hammer_head(attacker), HAMMER_DAMAGE * lab.scale("primary", "damage"),
+		var splashed := _splash(attacker, head, HAMMER_DAMAGE * lab.scale("primary", "damage"),
 			HAMMER_KNOCKBACK * lab.scale("primary", "knockback"), radius, tick, round_index, "hammer",
 			lab.armour_share("primary", 1.0), struck)
+		# The blast's mark shows whether the strike damaged anyone, blast or head.
+		lab.debug_impact(head, radius, "damage" if splashed or not struck.is_empty() else "")
 
 func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 	var size: Vector3 = bot.combat.stats.size
@@ -921,7 +924,7 @@ func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
 			continue
 		var radius := tuning.value("mortar", "blast_radius") * _lab_scale(attacker, "secondary", "aoe")
 		var point: Vector3 = shell.point
-		_debug_impact(attacker, point, radius)
+		var damaged := false
 		for id: int in bots:
 			var victim: MvpBot = bots[id]
 			if victim.team == attacker.team or victim.combat.eliminated:
@@ -944,11 +947,14 @@ func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
 			var impulse := (away + Vector3.UP * 0.8) * victim.body.mass * tuning.value("mortar", "knock") * share
 			_hit(attacker, victim, nearest, tuning.value("mortar", "damage") * share, impulse, tick, round_index,
 				0.0, "mortar")
+			damaged = true
 		if props != null:
 			for found: Dictionary in props.within(point, radius):
 				var share := lerpf(1.0, tuning.value("mortar", "blast_edge_share"), float(found.distance) / radius)
 				var at: Vector3 = props.props[found.name].at
 				props.damage(found.name, tuning.value("mortar", "damage") * share, "mortar", point, (at - point).normalized() + Vector3.UP)
+				damaged = true
+		_debug_impact(attacker, point, radius, "damage" if damaged else "")
 
 ## The slug punches through what it strikes (#72, #71). A slug that destroys a
 ## bot or breaks a prop flies on with overpenetration_retain of the energy it
@@ -1255,10 +1261,11 @@ func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse:
 			if radius > 0.0:
 				_splash(attacker, point, raw, impulse.length() / maxf(victim.body.mass, 0.001), radius, tick, round_index,
 					kind, armour_share, [victim.entity_id])
-			# The mortar's blast marks its own sphere where the shell lands. The
-			# mark takes the colour of what the hit lands on (before this tick's damage).
+			# The mortar's blast marks its own sphere where the shell lands. A point
+			# mark takes the colour of what the hit lands on (before this tick's
+			# damage); a splash here always damaged the bot struck.
 			if kind != "mortar":
-				lab.debug_impact(point, radius, lab.hit_layer(victim.combat, zone if not zone.is_empty() else victim.zone_at(point)))
+				lab.debug_impact(point, radius, "damage" if radius > 0.0 else lab.hit_layer(victim.combat, zone if not zone.is_empty() else victim.zone_at(point)))
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
 		kind, zone, armour_share, axis])
 
@@ -1270,18 +1277,21 @@ func _splash_miss(attacker: MvpBot, point: Vector3, raw: float, knock: float, ki
 		return
 	var slot: String = lab.slot_of(attacker.combat.stats, kind)
 	var radius: float = lab.splash_radius(slot, kind) if not slot.is_empty() else 0.0
-	if not slot.is_empty():
-		lab.debug_impact(point, radius)
 	if radius > 0.0:
-		_splash(attacker, point, raw * lab.scale(slot, "damage"), knock * lab.scale(slot, "knockback"), radius, tick, round_index,
+		var splashed := _splash(attacker, point, raw * lab.scale(slot, "damage"), knock * lab.scale(slot, "knockback"), radius, tick, round_index,
 			kind, lab.armour_share(slot, 1.0), [])
+		lab.debug_impact(point, radius, "damage" if splashed else "")
+	elif not slot.is_empty():
+		lab.debug_impact(point)
 
 ## Hits every visible hostile within radius of centre (except the one struck
 ## directly, by entity id in exclude): full damage at the centre falling to the
 ## mortar's edge share.
-## knock is the impulse per unit of victim mass at the centre.
+## knock is the impulse per unit of victim mass at the centre. Returns whether
+## anyone was hit.
 func _splash(attacker: MvpBot, centre: Vector3, raw: float, knock: float, radius: float, tick: int, round_index: int,
-		kind: String, armour_share: float, exclude: Array) -> void:
+		kind: String, armour_share: float, exclude: Array) -> bool:
+	var hit := false
 	var edge := TurretTuning.settings().value("mortar", "blast_edge_share")
 	var space := attacker.body.get_world_3d().direct_space_state
 	for id: int in _bots:
@@ -1303,6 +1313,8 @@ func _splash(attacker: MvpBot, centre: Vector3, raw: float, knock: float, radius
 		away = away.normalized() if away.length_squared() > 0.0001 else Vector3.ZERO
 		pending_hits.append([attacker, victim, nearest, raw * share, (away + Vector3.UP * 0.5) * victim.body.mass * knock * share,
 			tick, round_index, 0.0, kind, "", armour_share, Vector3.ZERO])
+		hit = true
+	return hit
 
 ## Practice Duel debug view (#93): the path of the shot this tick, straight
 ## from muzzle to where it stopped. The mortar records its arc when it fires.
@@ -1313,9 +1325,9 @@ func _debug_shot(attacker: MvpBot, tick: int) -> void:
 	state.practice_tuning.debug_path(PackedVector3Array([state.last_shot_from, state.last_shot_to]))
 
 ## Practice Duel debug view (#93): an impact of the attacker's, radius 0 for no area.
-func _debug_impact(attacker: MvpBot, point: Vector3, radius := 0.0) -> void:
+func _debug_impact(attacker: MvpBot, point: Vector3, radius := 0.0, layer := "") -> void:
 	if attacker.combat.practice_tuning != null:
-		attacker.combat.practice_tuning.debug_impact(point, radius)
+		attacker.combat.practice_tuning.debug_impact(point, radius, layer)
 
 ## Scale of a Practice Duel override for the attacker's weapon (1 = untuned).
 func _lab_scale(attacker: MvpBot, slot: String, field: String) -> float:
