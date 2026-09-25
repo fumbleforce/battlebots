@@ -42,6 +42,33 @@ func run() -> void:
 	var malformed := draft.duplicate(true)
 	malformed.cosmetics.sawblade.paint_primary[3] = 0.0
 	check(not registry.validate(malformed).valid, "Reject invisible paint")
+	var older := draft.duplicate(true)
+	older.cosmetics.sawblade.erase("paint_armor")
+	check(registry.validate(older).valid and SawbladeConfig.armor_color(older.cosmetics.sawblade) == older.cosmetics.sawblade.paint_primary,
+		"Saves from before the armour layer stay legal and paint armour like the primary")
+	malformed = draft.duplicate(true)
+	malformed.cosmetics.sawblade.paint_armor = [2.0, 0.0, 0.0, 1.0]
+	check(not registry.validate(malformed).valid, "Reject out-of-range armour paint")
+	var armor_look := draft.duplicate(true)
+	armor_look.cosmetics.sawblade.paint_primary = [0.02, 0.55, 0.72, 1.0]
+	armor_look.cosmetics.sawblade.paint_armor = [0.55, 0.025, 0.02, 1.0]
+	var armored := SawbladeVisual.new()
+	add_child(armored)
+	armored.assemble(armor_look, registry.validate(armor_look).stats.size)
+	var armor_paint := Color(0.55, 0.025, 0.02).linear_to_srgb()
+	var primary_paint := Color(0.02, 0.55, 0.72).linear_to_srgb()
+	var armor_surfaces := 0
+	for key: String in armored.nodes:
+		if not key.begins_with("Module_armor_"): continue
+		for mesh: MeshInstance3D in armored.nodes[key].find_children("*", "MeshInstance3D", true, false):
+			for surface: int in mesh.mesh.get_surface_count():
+				var paint: Color = mesh.get_surface_override_material(surface).get_shader_parameter("paint")
+				check(not paint.is_equal_approx(primary_paint), "Primary paint never reaches Sawblade armour")
+				if str(mesh.mesh.surface_get_material(surface).resource_name).begins_with("01"):
+					check(paint.is_equal_approx(armor_paint), "Sawblade armour enamel takes the armour paint")
+					armor_surfaces += 1
+	check(armor_surfaces > 0, "Sawblade armour modules carry enamel for the armour layer")
+	armored.free()
 	var host := Control.new()
 	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(host)
@@ -129,14 +156,17 @@ func run() -> void:
 	profile.reload()
 	profile.active_bot = 0
 	var before: Dictionary = profile.loadouts[0].duplicate(true)
-	profile.set_sawblade_color("paint_primary", Color.RED)
-	check(profile.loadouts[0].cosmetics.sawblade.paint_primary != before.cosmetics.sawblade.paint_primary, "Custom palette edits the draft")
+	var primary: Dictionary = profile.catalogue.paint.filter(func(cat: Dictionary) -> bool: return cat.slot == "paint_primary")[0]
+	var red: Dictionary = primary.items.filter(func(item: Dictionary) -> bool: return item.id == "red")[0]
+	profile.equip("paint", primary, red)
+	check(profile.loadouts[0].cosmetics.sawblade.paint_primary != before.cosmetics.sawblade.paint_primary, "Premade paint edits the draft")
 	profile.undo_edit()
 	check(profile.loadouts[0] == before, "Undo restores all model properties")
 	profile.redo_edit()
 	check(profile.save_active("Painted sawblade") == OK, "Profile saves model appearance")
 	profile.reload()
-	check(profile.loadouts[profile.PRESET_COUNT].cosmetics.sawblade.paint_primary[0] == 1, "Profile reload preserves custom paint")
+	var reloaded: Array = profile.loadouts[profile.PRESET_COUNT].cosmetics.sawblade.paint_primary
+	check(Color(reloaded[0], reloaded[1], reloaded[2]).is_equal_approx(Color(red.rgba[0], red.rgba[1], red.rgba[2])), "Profile reload preserves the chosen paint")
 	var screen: Control = load("res://ui/menus/screens/customize.tscn").instantiate()
 	get_window().content_scale_size = Vector2i(1920, 1080)
 	get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS

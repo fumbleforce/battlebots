@@ -243,6 +243,7 @@ func _apply_paint(config: Dictionary) -> void:
 	var shared := {}
 	var defaults := AtlasGeometry.paint_defaults()
 	for mesh: MeshInstance3D in find_children("*", "MeshInstance3D", true, false):
+		var armor := _is_armor(mesh)
 		for index: int in mesh.mesh.get_surface_count():
 			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
 			if original == null: continue
@@ -253,9 +254,13 @@ func _apply_paint(config: Dictionary) -> void:
 			elif "metal" in label: channel = "paint_metal"
 			elif "rubber" in label: channel = "paint_rubber"
 			if channel.is_empty(): continue
-			if config[channel] == defaults[channel]: continue
-			if not shared.has(original):
-				var rgba: Array = config[channel]
+			# Armour modules take the armour paint; their trim keeps the factory secondary.
+			var rgba: Array = config[channel]
+			if armor and channel == "paint_primary": rgba = SawbladeConfig.armor_color(config)
+			elif armor and channel == "paint_secondary": rgba = defaults.paint_secondary
+			if rgba == defaults[channel]: continue
+			var key := [original, armor]
+			if not shared.has(key):
 				var tint := Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb()
 				if original.albedo_texture != null:
 					var coverage: Texture2D
@@ -266,13 +271,20 @@ func _apply_paint(config: Dictionary) -> void:
 							continue
 						coverage = load(coverage_path)
 					var source: Array = defaults[channel]
-					shared[original] = _repaint_material(original, coverage, tint,
+					shared[key] = _repaint_material(original, coverage, tint,
 						Color(source[0], source[1], source[2], 1).linear_to_srgb())
 				else:
 					var material := original.duplicate() as StandardMaterial3D
 					material.albedo_color = tint
-					shared[original] = material
-			mesh.set_surface_override_material(index, shared[original])
+					shared[key] = material
+			mesh.set_surface_override_material(index, shared[key])
+
+func _is_armor(mesh: Node) -> bool:
+	var node := mesh
+	while node != null and node != self:
+		if str(node.name).begins_with("Armor"): return true
+		node = node.get_parent()
+	return false
 
 func _repaint_material(original: StandardMaterial3D, coverage: Texture2D, tint: Color, authored: Color) -> ShaderMaterial:
 	var material := ShaderMaterial.new()

@@ -133,6 +133,7 @@ static func paint_defaults() -> Dictionary:
 	for channel: String in colors:
 		var color: Color = colors[channel].srgb_to_linear()
 		config[channel] = [color.r, color.g, color.b, 1.0]
+	config.paint_armor = config.paint_primary.duplicate()
 	return config
 
 ## Continuous capsule loop; x is supplied by the authored left/right track.

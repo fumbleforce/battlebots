@@ -54,6 +54,12 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	for index: int in 3:
 		nodes["Module_exhaust_" + ["small", "medium", "large"][index]].visible = config.exhaust == index + 1
 	var materials := {}
+	# Armour modules take the armour paint; their trim keeps the factory secondary.
+	var armor_meshes := {}
+	for key: String in nodes:
+		if key.begins_with("Module_armor_"):
+			for mesh: Node in nodes[key].find_children("*", "MeshInstance3D", true, false):
+				armor_meshes[mesh] = true
 	for node: Node3D in nodes.values():
 		if str(node.get_meta("extras", {}).get("source_name", "")).begins_with("Wheel_SPIN_X") or str(node.get_meta("extras", {}).get("source_name", "")).begins_with("Drive wheel"):
 			_wheel_rest[node] = node.basis
@@ -62,12 +68,16 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 			var original: StandardMaterial3D = node.mesh.surface_get_material(surface)
 			if original == null: continue
 			var label := original.resource_name
-			if not materials.has(label):
+			var armor := armor_meshes.has(node)
+			var key := ("armor|" if armor else "") + label
+			if not materials.has(key):
 				var channel := "paint_secondary"
 				if label.begins_with("01") or label.begins_with("08"): channel = "paint_primary"
 				elif label.begins_with("03"): channel = "paint_rubber"
 				elif label.left(2) in ["04", "05", "06", "09"]: channel = "paint_metal"
 				var rgba: Array = config[channel]
+				if armor and channel == "paint_primary": rgba = SawbladeConfig.armor_color(config)
+				elif armor and channel == "paint_secondary": rgba = SawbladeConfig.defaults().paint_secondary
 				var material := ShaderMaterial.new()
 				material.shader = PAINT
 				material.set_shader_parameter("surface_atlas", original.albedo_texture)
@@ -75,8 +85,8 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 				material.set_shader_parameter("paint", Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb())
 				material.set_shader_parameter("metal", original.metallic)
 				material.set_shader_parameter("rough", original.roughness)
-				materials[label] = material
-			node.set_surface_override_material(surface, materials[label])
+				materials[key] = material
+			node.set_surface_override_material(surface, materials[key])
 	_ramp_pivot = Node3D.new()
 	nodes.SawbladeTank_ROOT.add_child(_ramp_pivot)
 	_ramp_pivot.position = Vector3(0, 0.36, -0.30)

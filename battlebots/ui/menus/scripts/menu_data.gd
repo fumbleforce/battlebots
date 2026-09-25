@@ -52,17 +52,16 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 	var paints: Array = []
 	var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 	for id: String in colors:
-		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Apply this paint to the body and secondary panels. Individual channels can be adjusted separately; paint has no performance effect."})
+		paints.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],"desc":"Apply this paint to the body, secondary panels and armour. Individual layers can be changed separately; paint has no performance effect."})
 	var paint_categories: Array = [{"label":"OVERALL PAINT","slot":"paint","items":paints}]
 	for channel: String in SawbladeConfig.COLORS:
 		var choices: Array = []
-		var original: Array = SawbladeConfig.defaults()[channel]
-		choices.append({"id":"original", "name":"Original", "default":"own", "rgba":original,
-			"swatch":Color(original[0], original[1], original[2]).linear_to_srgb().to_html(), "desc":"Authored module color. Use CUSTOM COLOR for any color."})
+		var desc := "Paint the added armour pieces." if channel == "paint_armor" \
+			else "Tint this layer across compatible painted modules. Armour pieces keep their own paint."
 		for id: String in colors:
 			var color := Color(colors[id]).srgb_to_linear()
 			choices.append({"id":id,"name":id.capitalize(),"default":"own","swatch":colors[id],
-				"rgba":[color.r,color.g,color.b,1.0],"desc":"Tint this channel across compatible painted modules."})
+				"rgba":[color.r,color.g,color.b,1.0],"desc":desc})
 		paint_categories.append({"label":channel.trim_prefix("paint_").to_upper(),"slot":channel,"items":choices})
 	var vehicle: Array = []
 	for slot: String in SawbladeConfig.OPTIONS:

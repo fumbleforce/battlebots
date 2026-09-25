@@ -1,5 +1,21 @@
 # Shared contracts — local records and current MVP session API
 
+## Armour paint layer — build mvp-ab-53, protocol 17 (#92)
+
+Loadout validation change; wire records, gameplay and catalogue hash unchanged.
+- `cosmetics.sawblade` may carry a tenth key, `paint_armor` (finite linear RGBA
+  in 0–1, alpha exactly 1). It is optional: nine-key records from older saves stay
+  valid, and `SawbladeConfig.armor_color(config)` falls back to `paint_primary`.
+  `SawbladeConfig.defaults()` and `AtlasGeometry.paint_defaults()` include it.
+- Sawblade and Atlas visuals paint the armour modules' primary enamel from
+  `paint_armor`. Armour secondary trim keeps the factory secondary colour.
+  `paint_primary`/`paint_secondary` never tint armour; metal and rubber still do.
+- Customize Paint offers only the premade colours (cyan, orange, white, red) on
+  every layer. The Original tile and the CUSTOM COLOR picker are gone, and so is
+  `PlayerProfile.set_sawblade_color`/`resolved_item`. Overall paint sets
+  primary, secondary and armour. A colour that matches no preset shows as
+  "Factory finish".
+
 ## Damage split on combat events — build mvp-ab-52, protocol 17 (#85)
 
 Wire change (combat event payload); gameplay, health and catalogue unchanged.
@@ -578,7 +594,8 @@ See [reproduction and validation](coordination/B_TERRAIN_CAMERA.md).
 
 B's optional `cosmetics.sawblade` record has armor_side (0–2), armor_top/front/rear
 (0–1), exhaust (0–3), and paint_primary/secondary/metal/rubber (four finite linear
-RGBA channels in 0–1, alpha exactly 1). All nine keys are required when present.
+RGBA channels in 0–1, alpha exactly 1). All nine keys are required when present
+(plus the optional paint_armor since mvp-ab-53, #92).
 Weapon IDs remain saw/hammer/lifter; drive traction renders tracks, agile/standard
 render wheels, and new canonical `walker` supplies physical leg suspension and
 procedural IK. Walker requires this vehicle. Exhaust is cosmetic; armour covers are gameplay pieces since #46.

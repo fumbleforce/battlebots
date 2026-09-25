@@ -53,6 +53,7 @@ static func build(registry: ContentRegistry) -> Dictionary:
 	look.armor_rear = 1
 	look.paint_primary = [0.2, 0.035, 0.03, 1.0]
 	look.paint_secondary = [0.03, 0.03, 0.032, 1.0]
+	look.paint_armor = look.paint_primary.duplicate()
 	draft.cosmetics = {"paint":"red", "sawblade":look}
 	return draft
 

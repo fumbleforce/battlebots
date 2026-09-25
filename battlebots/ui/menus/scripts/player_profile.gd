@@ -196,7 +196,11 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 		if cat.slot == "model": return "Sawblade Tank" if SawbladeConfig.enabled(draft) else "Classic bot"
 		if not SawbladeConfig.enabled(draft): return "Choose Sawblade Tank"
 		var config: Dictionary = draft.cosmetics.sawblade
-		if tab == "paint": return "Custom color"
+		if tab == "paint":
+			var rgba: Array = SawbladeConfig.armor_color(config) if cat.slot == "paint_armor" else config[cat.slot]
+			for item: Dictionary in cat.items:
+				if Color(rgba[0], rgba[1], rgba[2]).is_equal_approx(Color(item.rgba[0], item.rgba[1], item.rgba[2])): return item.name
+			return "Factory finish"
 		return SawbladeConfig.OPTIONS[cat.slot][int(config[cat.slot])]
 	var raw: Variant = draft.get("cosmetics") if tab == "paint" else draft.get("parts")
 	var selected := ""
@@ -210,15 +214,6 @@ func equipped_name(tab: String, cat: Dictionary) -> String:
 
 func item_state(tab: String, cat: Dictionary, item: Dictionary) -> String:
 	return "eq" if equipped_name(tab, cat) == item.name else "own"
-
-func resolved_item(tab: String, cat: Dictionary, item: Dictionary) -> Dictionary:
-	if tab != "paint" or cat.slot not in SawbladeConfig.COLORS or item.id != "original": return item
-	if not AtlasGeometry.enabled(loadouts[active_bot]): return item
-	var choice := item.duplicate(true)
-	choice.rgba = AtlasGeometry.paint_defaults()[cat.slot]
-	var rgba: Array = choice.rgba
-	choice.swatch = Color(rgba[0], rgba[1], rgba[2]).linear_to_srgb().to_html()
-	return choice
 
 func _ensure_body(draft: Dictionary) -> void:
 	if not draft.get("cosmetics") is Dictionary: draft.cosmetics = {"paint":"cyan"}
@@ -320,14 +315,14 @@ func equip_preview(tab: String, cat: Dictionary, item: Dictionary) -> Dictionary
 	elif cat.slot != "paint":
 		if cat.slot not in SawbladeConfig.COLORS: return {}
 		_ensure_body(draft)
-		draft.cosmetics.sawblade[cat.slot] = resolved_item(tab, cat, item).rgba.duplicate()
+		draft.cosmetics.sawblade[cat.slot] = item.rgba.duplicate()
 	else:
 		if item.id not in ["cyan","orange","white","red"]: return {}
 		_ensure_body(draft)
 		draft.cosmetics.paint = item.id
 		var colors := {"cyan":"#29cce5","orange":"#ef922a","white":"#eeeeee","red":"#d93c39"}
 		var color := Color(colors[item.id]).srgb_to_linear()
-		for channel: String in ["paint_primary", "paint_secondary"]:
+		for channel: String in ["paint_primary", "paint_secondary", "paint_armor"]:
 			draft.cosmetics.sawblade[channel] = [color.r, color.g, color.b, 1.0]
 	return draft
 
@@ -359,16 +354,6 @@ func equip(tab: String, cat: Dictionary, item: Dictionary) -> void:
 	errors = registry.validate(draft).reasons
 	_refresh_bots()
 	inventory_changed.emit()
-
-func set_sawblade_color(channel: String, color: Color) -> void:
-	if channel not in SawbladeConfig.COLORS or sealed(): return
-	var draft: Dictionary = loadouts[active_bot].duplicate(true)
-	_ensure_body(draft)
-	var linear := color.srgb_to_linear()
-	draft.cosmetics.sawblade[channel] = [linear.r, linear.g, linear.b, 1.0]
-	if not _record_edit(draft): return
-	loadouts[active_bot] = draft
-	_draft_changed()
 
 func rename_draft(value: String) -> void:
 	if sealed(): return

@@ -36,7 +36,6 @@ var _category_pager: HBoxContainer
 var _category_page_label: Label
 var _category_capacity := 3
 var _category_ranges: Array[Vector2i] = [Vector2i(0, 3)]
-var _color_picker: ColorPickerButton
 ## Catalogue indices of the first choice group's tiles, in display order.
 var _shown_items: Array[int] = []
 ## Choice group ("tab:category") whose selected tile fills the description.
@@ -111,13 +110,6 @@ func _ready() -> void:
 			_category_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			_category_page_label.theme_type_variation = &"Muted"
 			_category_pager.add_child(_category_page_label)
-	_color_picker = ColorPickerButton.new()
-	_color_picker.text = "CUSTOM COLOR"
-	_color_picker.edit_alpha = false
-	%Items.get_parent().add_child(_color_picker)
-	_color_picker.popup_closed.connect(func():
-		var category: Dictionary = PlayerProfile.catalogue[_tab][_cat[_tab]]
-		if _tab == "paint" and category.slot != "paint": PlayerProfile.set_sawblade_color(category.slot, _color_picker.color))
 	var options := %Items.get_parent()
 	_choice_scroll = ScrollContainer.new()
 	_choice_scroll.name = "ChoiceScroll"
@@ -333,10 +325,6 @@ func _refresh() -> void:
 	var ci: int = _cat[_tab]
 	var cat: Dictionary = cats[ci]
 	_category_page_label.text = "Page %d of %d" % [_category_page[_tab] + 1, _category_ranges.size()]
-	_color_picker.visible = _tab == "paint" and cat.slot != "paint" and SawbladeConfig.enabled(PlayerProfile.loadouts[PlayerProfile.active_bot])
-	if _color_picker.visible:
-		var rgba: Array = PlayerProfile.loadouts[PlayerProfile.active_bot].cosmetics.sawblade[cat.slot]
-		_color_picker.color = Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb()
 	var key := "%s:%d" % [_tab, ci]
 	var groups := _choice_groups(cat, ci)
 	var group_keys: Array = groups.map(func(group: Dictionary) -> String: return "%s:%d" % [group.tab, group.index])
@@ -379,7 +367,7 @@ func _refresh() -> void:
 		total_count += group_cat.items.size()
 		if not str(group.heading).is_empty(): _add_section_heading(group.heading)
 		for i: int in items:
-			var it: Dictionary = PlayerProfile.resolved_item(group.tab, group_cat, group_cat.items[i])
+			var it: Dictionary = group_cat.items[i]
 			var tile := ITEM_TILE.instantiate()
 			%Items.add_child(tile)
 			tile.setup(it, PlayerProfile.item_state(group.tab, group_cat, it))

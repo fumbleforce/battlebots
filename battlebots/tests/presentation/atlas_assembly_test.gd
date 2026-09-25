@@ -186,6 +186,9 @@ func paint_case(registry: ContentRegistry) -> void:
 				check(mesh.get_surface_override_material(index) == null, "Primary repaint leaves the independently selected steel finish unchanged")
 				untouched_steel += 1
 			if not ("PaintPrimary" in original.resource_name or "PaintSecondary" in original.resource_name): continue
+			if cyan._is_armor(mesh):
+				check(mesh.get_surface_override_material(index) == null, "Primary and secondary paint leave armour enamel unchanged")
+				continue
 			check(not "PaintPrimaryEdge" in original.resource_name, "Baked painted chamfers belong to the worn primary atlas")
 			var painted := mesh.get_surface_override_material(index) as ShaderMaterial
 			check(painted != null, "Both baked paint families accept their selected custom colors")
@@ -225,6 +228,24 @@ func paint_case(registry: ContentRegistry) -> void:
 		for index: int in mesh.mesh.get_surface_count():
 			check(mesh.get_surface_override_material(index) == null,
 				"Changing another build never alters the original authored yellow material")
+	var armored := AtlasVisual.new()
+	add_child(armored)
+	var armor_draft := registry.atlas()
+	armor_draft.cosmetics.sawblade.paint_armor = [0.55, 0.025, 0.02, 1.0]
+	armored.assemble(armor_draft, registry.validate(armor_draft).stats.size)
+	var armor_painted := 0
+	for mesh: MeshInstance3D in armored.model.find_children("*", "MeshInstance3D", true, false):
+		for index: int in mesh.mesh.get_surface_count():
+			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
+			if original == null: continue
+			var override := mesh.get_surface_override_material(index)
+			if armored._is_armor(mesh) and original.resource_name == "Atlas_PaintPrimary":
+				check(override is ShaderMaterial, "Armour paint reaches the armour pieces' primary enamel")
+				armor_painted += 1
+			else:
+				check(override == null, "Armour paint leaves the hull and armour trim at their own colours")
+	check(armor_painted > 0, "Atlas armour pieces carry primary enamel for the armour layer")
+	armored.free()
 	if DisplayServer.get_name() != "headless":
 		await paint_coverage_render_case(cyan)
 		yellow.position.x = -4.0
@@ -340,15 +361,27 @@ func garage_case(registry: ContentRegistry) -> void:
 		and profile.loadouts[4].parts.chassis == "atlas_mx" and profile.loadouts[5].parts.utility == "turret_cannon",
 		"Atlas and Atlas turret are additional presets; existing preset order is retained")
 	profile.active_bot = 4
+	var layers: Array = profile.catalogue.paint.map(func(category: Dictionary) -> String: return category.slot)
+	check(layers == ["paint"] + SawbladeConfig.COLORS, "Paint layers are Overall, Primary, Secondary, Armor, Metal and Rubber")
 	for category: Dictionary in profile.catalogue.paint:
 		if category.slot not in SawbladeConfig.COLORS: continue
-		profile.set_sawblade_color(category.slot, Color.CYAN)
-		profile.equip("paint", category, category.items[0])
-		check(profile.active_loadout().cosmetics.sawblade[category.slot] == AtlasGeometry.paint_defaults()[category.slot],
-			"Original restores the current Atlas channel's authored color")
-		var resolved: Dictionary = profile.resolved_item("paint", category, category.items[0])
-		check(resolved.rgba == AtlasGeometry.paint_defaults()[category.slot],
-			"Original paint tile shows the correct Atlas color rather than another chassis palette")
+		check(category.items.map(func(item: Dictionary) -> String: return item.id) == ["cyan", "orange", "white", "red"],
+			"Every paint layer offers only the premade colours")
+		check(profile.equipped_name("paint", category) == "Factory finish", "The authored Atlas colour is shown as the factory finish")
+		profile.equip("paint", category, category.items[3])
+		check(profile.active_loadout().cosmetics.sawblade[category.slot] == category.items[3].rgba
+			and profile.equipped_name("paint", category) == "Red", "A premade colour equips on its own layer")
+	var armor_layer: Dictionary = profile.catalogue.paint[layers.find("paint_armor")]
+	profile.equip("paint", armor_layer, armor_layer.items[2])
+	var primary_layer: Dictionary = profile.catalogue.paint[layers.find("paint_primary")]
+	profile.equip("paint", primary_layer, primary_layer.items[0])
+	check(profile.active_loadout().cosmetics.sawblade.paint_armor == armor_layer.items[2].rgba,
+		"Primary paint no longer changes the armour layer")
+	check(registry.validate(profile.active_loadout()).valid, "A build with an armour paint layer validates")
+	var overall: Dictionary = profile.catalogue.paint[0]
+	profile.equip("paint", overall, overall.items[1])
+	check(profile.active_loadout().cosmetics.sawblade.paint_armor == profile.active_loadout().cosmetics.sawblade.paint_primary,
+		"Overall paint also paints the armour")
 	var preview := GarageBotPreview.new()
 	add_child(preview)
 	preview.show_loadout(profile.active_loadout())
