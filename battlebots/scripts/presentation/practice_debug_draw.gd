@@ -1,56 +1,91 @@
 extends Node3D
+const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## Practice Duel debug views (#93): draws the marks the offline authority
 ## records on the player's PracticeTuning (scripts/simulation/practice_tuning.gd)
 ## while the Esc menu's Debug toggles are on. Shot paths are lines; impacts are
-## red see-through spheres the size of the area of effect, or small cubes for
+## white see-through spheres the size of the area of effect, or small cubes for
 ## weapons without one. Each mark stays for the tuning's debug_linger seconds
-## of unpaused play; turning a toggle off clears its marks. With hitboxes on,
-## every other bot shows its real collision shapes (what a shot or sweep can
-## strike) and, over its collision bounds, the armour zones MvpBot.zone_at()
-## sorts each hit into, labelled with what each zone has left. Presentation only.
+## of unpaused play; turning a toggle off clears its marks.
+##
+## With hitboxes on, every other bot shows its core in red: its real collision
+## shapes. Over it, a see-through box per intact armour plate (blue) and per
+## working component, the weapon strip and drive pods (amber), each covering
+## the area of the collision bounds MvpBot.zone_at() assigns to it. Armour sits
+## a little out from the core and components a little further, so the part a
+## hit reaches first is in front. Components take most of a hit on them (the
+## blue part of its damage numbers, #85). Presentation only.
 const PATH_COLOR := Color(1.0, 0.85, 0.2, 0.9)
-const IMPACT_COLOR := Color(1.0, 0.1, 0.1, 0.3)
+const IMPACT_COLOR := Color(1.0, 1.0, 1.0, 0.3)
+## A point impact on a bot takes the colour of what it hit (its hitbox layer),
+## solid and this much brighter.
+const IMPACT_HIT_BRIGHTEN := 0.35
 ## Edge of the cube marking an impact without an area of effect (m).
 const IMPACT_CUBE_SIZE := 0.35
 ## Sphere tessellation.
 const SPHERE_SEGMENTS := 24
 const SPHERE_RINGS := 12
-## Hitboxes: collision shapes, zone boundaries and the zone labels.
-const SHAPE_COLOR := Color(0.3, 1.0, 0.4, 0.9)
-const ZONE_COLOR := Color(0.2, 0.8, 1.0, 0.95)
-const LABEL_FONT := 40
-const LABEL_PIXEL := 0.004
-## Zone name -> its label in bounds-centred shares of the half size; the
-## drive pods' and sides' heights are placed per bot.
-const ZONE_LABELS := {"top":Vector3(0, 1, 0), "underside":Vector3(0, -1, 0), "weapon":Vector3(0, 0, -1),
-	"front":Vector3(0.72, 0, -1), "rear":Vector3(0, 0, 1), "left":Vector3(-1, 0, 0), "right":Vector3(1, 0, 0),
-	"drive_left":Vector3(-1, 0, 0), "drive_right":Vector3(1, 0, 0)}
+## Hitboxes, depth tested so the arena and bot models hide them as usual.
+const CORE_COLOR := Color(1.0, 0.15, 0.15, 0.6)
+const ARMOUR_COLOR := Color(0.2, 0.4, 1.0, 0.35)
+const COMPONENT_COLOR := Color(1.0, 0.6, 0.05, 0.4)
+const LABEL_COLOR := Color(0.55, 0.7, 1.0)
+const COMPONENT_LABEL_COLOR := Color(1.0, 0.78, 0.4)
+## The core's health: a billboard at the centre of its hitbox, larger than the
+## zone labels, drawn over the bot it belongs to.
+const CORE_LABEL_COLOR := Color(1.0, 0.3, 0.3)
+const CORE_LABEL_PIXEL := 0.03
+## Box thickness and how far (m) armour boxes stand out from the core;
+## component boxes stand twice as far, in front of the armour around them.
+const LAYER_THICKNESS := 0.02
+const LAYER_OFFSET := 0.03
+## Zone labels lie flat on the outer face of their box, facing out; world size
+## (m per font pixel).
+const LABEL_FONT := 20
+const LABEL_PIXEL := 0.022
+## A thick black outline keeps the small text readable over any backdrop.
+const LABEL_OUTLINE := 10
+## Labels stand this far (m) off their box's face, so the box never hides them.
+const LABEL_LIFT := 0.05
+## Armour and weapon labels stand this much (m) further out.
+const OUTER_LABEL_LIFT := 0.15
+## Armour face -> its outward direction in the bot's frame.
+const ARMOUR_FACES := {"top":Vector3.UP, "underside":Vector3.DOWN, "front":Vector3.FORWARD,
+	"rear":Vector3.BACK, "left":Vector3.LEFT, "right":Vector3.RIGHT}
+## Component zone -> its outward direction.
+const COMPONENT_FACES := {"weapon":Vector3.FORWARD, "drive_left":Vector3.LEFT, "drive_right":Vector3.RIGHT}
 ## [MeshInstance3D, type, age] per mark on screen.
 var _shown: Array = []
 var _path_material := StandardMaterial3D.new()
 var _impact_material := StandardMaterial3D.new()
-var _shape_material := StandardMaterial3D.new()
-var _zone_material := StandardMaterial3D.new()
+## Hitbox layer ("armour", "component", "core") -> its solid impact material.
+var _impact_hit_materials: Dictionary = {}
+var _core_material := StandardMaterial3D.new()
+var _armour_material := StandardMaterial3D.new()
+var _component_material := StandardMaterial3D.new()
 ## Bot instance id -> {rig:Node3D, signature, labels:{zone:Label3D}}.
 var _hitboxes: Dictionary = {}
 
 func _init() -> void:
 	name = "PracticeDebugDraw"
 	top_level = true
-	for material: StandardMaterial3D in [_path_material, _impact_material]:
+	for material: StandardMaterial3D in [_path_material, _impact_material, _core_material,
+			_armour_material, _component_material]:
 		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		material.cull_mode = BaseMaterial3D.CULL_DISABLED
 		material.disable_receive_shadows = true
 	_path_material.albedo_color = PATH_COLOR
 	_impact_material.albedo_color = IMPACT_COLOR
-	for material: StandardMaterial3D in [_shape_material, _zone_material]:
-		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		# Seen through the bot's own model, which covers most of its shapes.
-		material.no_depth_test = true
-	_shape_material.albedo_color = SHAPE_COLOR
-	_zone_material.albedo_color = ZONE_COLOR
+	var layers := {"armour":ARMOUR_COLOR, "component":COMPONENT_COLOR, "core":CORE_COLOR}
+	for layer: String in layers:
+		var colour: Color = layers[layer]
+		var solid := StandardMaterial3D.new()
+		solid.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		solid.albedo_color = Color(colour.lightened(IMPACT_HIT_BRIGHTEN), 1.0)
+		_impact_hit_materials[layer] = solid
+	_core_material.albedo_color = CORE_COLOR
+	_armour_material.albedo_color = ARMOUR_COLOR
+	_component_material.albedo_color = COMPONENT_COLOR
 
 ## Called every frame with the local player's tuning (null outside Practice)
 ## and the other bots (MvpBot) whose hitboxes may show.
@@ -100,7 +135,8 @@ func _add(mark: Dictionary) -> void:
 			var cube := BoxMesh.new()
 			cube.size = Vector3.ONE * IMPACT_CUBE_SIZE
 			item.mesh = cube
-		item.material_override = _impact_material
+		# A point impact on a bot is solid in its layer's colour; areas and misses stay white.
+		item.material_override = _impact_hit_materials.get(mark.get("layer", ""), _impact_material) if radius <= 0.0 else _impact_material
 		item.position = mark.position
 	add_child(item)
 	_shown.append([item, mark.type, 0.0])
@@ -113,30 +149,35 @@ func _render_hitboxes(others: Array) -> void:
 		var key := bot.get_instance_id()
 		seen[key] = true
 		var bounds := bot.collision_bounds()
-		var signature := "%s|%d|%s" % [bounds, bot.body.get_child_count(), bot.loadout.parts]
+		var zones := _hit_zones(bot)
+		var signature := "%s|%d|%s|%s" % [bounds, bot.body.get_child_count(), bot.loadout.parts, zones]
 		var entry: Dictionary = _hitboxes.get(key, {})
 		if entry.get("signature") != signature:
 			if entry.has("rig"): entry.rig.queue_free()
-			entry = _build_hitbox(bot, bounds)
+			entry = _build_hitbox(bot, bounds, zones)
 			entry.signature = signature
 			_hitboxes[key] = entry
 		entry.rig.global_transform = bot.body.global_transform
 		for zone: String in entry.labels:
-			var label: Label3D = entry.labels[zone]
-			var left: float = bot.combat.zones.get(zone, 0.0)
-			var fitted: float = bot.combat.stats.plates.get(zone, -1.0)
-			if fitted == 0.0:
-				label.text = "%s  bare" % zone.to_upper()
-			else:
-				label.text = "%s  %.0f" % [zone.to_upper(), left]
+			entry.labels[zone].text = "%s  %.0f" % [zone.to_upper(), float(bot.combat.zones.get(zone, 0.0))]
+		entry.core_label.text = "CORE  %.0f" % bot.combat.core
 	for key: int in _hitboxes.keys():
 		if not seen.has(key):
 			_hitboxes[key].rig.queue_free()
 			_hitboxes.erase(key)
 
-## One bot's hitbox rig in its body frame: every collision shape, then the zone
-## boundaries on the surface of its collision bounds.
-func _build_hitbox(bot: MvpBot, bounds: AABB) -> Dictionary:
+## Zones layered over the core: armour plates fitted and not yet broken, and
+## components still working.
+func _hit_zones(bot: MvpBot) -> Array[String]:
+	var zones: Array[String] = []
+	for zone: String in ARMOUR_FACES.keys() + COMPONENT_FACES.keys():
+		if TUNING.hit_layer(bot.combat, zone) != "core":
+			zones.append(zone)
+	return zones
+
+## One bot's hitbox rig in its body frame: the core's collision shapes, then a
+## box and label per layered zone, and the core's health at its centre.
+func _build_hitbox(bot: MvpBot, bounds: AABB, zones: Array[String]) -> Dictionary:
 	var rig := Node3D.new()
 	rig.name = "Hitboxes_%d" % bot.entity_id
 	add_child(rig)
@@ -144,66 +185,101 @@ func _build_hitbox(bot: MvpBot, bounds: AABB) -> Dictionary:
 		var collider := child as CollisionShape3D
 		if collider == null or collider.shape == null or collider.disabled:
 			continue
-		var outline := MeshInstance3D.new()
-		outline.mesh = collider.shape.get_debug_mesh()
-		outline.transform = collider.transform
-		outline.material_override = _shape_material
-		outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		rig.add_child(outline)
+		var core := MeshInstance3D.new()
+		core.name = "CoreShape"
+		core.mesh = collider.shape.get_debug_mesh()
+		core.transform = collider.transform
+		core.material_override = _core_material
+		core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		rig.add_child(core)
 	var c := bounds.get_center()
 	var h := bounds.size * 0.5
 	var slab := h.y * MvpBot.ZONE_SLAB
 	var drive_top := clampf(MvpBot.ZONE_DRIVE_TOP * bot.body.geometry_scale, -slab, slab)
 	var drive_z := h.z * MvpBot.ZONE_DRIVE_LENGTH
 	var weapon_x := h.x * MvpBot.ZONE_WEAPON_WIDTH
-	var lines := PackedVector3Array()
-	var corners := [Vector2(-h.x, -h.z), Vector2(h.x, -h.z), Vector2(h.x, h.z), Vector2(-h.x, h.z)]
-	for index: int in 4:
-		var a: Vector2 = corners[index]
-		var b: Vector2 = corners[(index + 1) % 4]
-		# Box edges, and the top and underside slab lines around the sides.
-		for y: float in [-h.y, h.y, -slab, slab]:
-			lines.append_array([Vector3(a.x, y, a.y), Vector3(b.x, y, b.y)])
-		lines.append_array([Vector3(a.x, -h.y, a.y), Vector3(a.x, h.y, a.y)])
-		# Inside, sides and ends meet on the diagonals from the centre to the corners.
-		for y: float in [-slab, slab]:
-			lines.append_array([Vector3(0, y, 0), Vector3(a.x, y, a.y)])
-	for x: float in [-h.x, h.x]:
-		# Drive pod: the low middle of each side.
-		lines.append_array([Vector3(x, drive_top, -drive_z), Vector3(x, drive_top, drive_z),
-			Vector3(x, -slab, -drive_z), Vector3(x, drive_top, -drive_z),
-			Vector3(x, -slab, drive_z), Vector3(x, drive_top, drive_z)])
-	for x: float in [-weapon_x, weapon_x]:
-		# Weapon: the middle strip of the front.
-		lines.append_array([Vector3(x, -slab, -h.z), Vector3(x, slab, -h.z)])
-	var mesh := ImmediateMesh.new()
-	mesh.surface_begin(Mesh.PRIMITIVE_LINES, _zone_material)
-	for point: Vector3 in lines:
-		mesh.surface_add_vertex(c + point)
-	mesh.surface_end()
-	var zones := MeshInstance3D.new()
-	zones.mesh = mesh
-	zones.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	rig.add_child(zones)
 	var labels: Dictionary = {}
-	var side_y := (drive_top + slab) * 0.5
-	var drive_y := (drive_top - slab) * 0.5
-	for zone: String in ZONE_LABELS:
-		if not bot.combat.zones.has(zone) and not bot.combat.stats.plates.has(zone):
-			continue
-		var share: Vector3 = ZONE_LABELS[zone]
-		var at := c + share * h
-		if zone in ["left", "right"]: at.y = c.y + side_y
-		elif zone in ["drive_left", "drive_right"]: at.y = c.y + drive_y
+	for zone: String in zones:
+		var component := COMPONENT_FACES.has(zone)
+		var normal: Vector3 = COMPONENT_FACES[zone] if component else ARMOUR_FACES[zone]
+		# The area it covers, [low corner, high corner], bounds-centred. Side and
+		# front plates span their whole face; the drive pods and the weapon strip
+		# stand in front of them.
+		var area: Array = []
+		match zone:
+			"top":
+				area = [Vector3(-h.x, slab, -h.z), Vector3(h.x, h.y, h.z)]
+			"underside":
+				area = [Vector3(-h.x, -h.y, -h.z), Vector3(h.x, -slab, h.z)]
+			"left", "right", "front", "rear":
+				area = [Vector3(-h.x, -slab, -h.z), Vector3(h.x, slab, h.z)]
+			"weapon":
+				area = [Vector3(-weapon_x, -slab, -h.z), Vector3(weapon_x, slab, h.z)]
+			"drive_left", "drive_right":
+				area = [Vector3(-h.x, -slab, -drive_z), Vector3(h.x, drive_top, drive_z)]
+		var box := _layer_box(zone, normal, area, h, LAYER_OFFSET * (2.0 if component else 1.0),
+			_component_material if component else _armour_material)
+		box.position += c
+		rig.add_child(box)
 		var label := Label3D.new()
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.no_depth_test = true
-		label.fixed_size = true
+		label.double_sided = false
 		label.pixel_size = LABEL_PIXEL
 		label.font_size = LABEL_FONT
-		label.outline_size = 8
-		label.modulate = ZONE_COLOR
-		label.position = at
+		label.outline_size = LABEL_OUTLINE
+		label.modulate = COMPONENT_LABEL_COLOR if component else LABEL_COLOR
+		label.outline_modulate = Color.BLACK
+		# Label3D reads from its +Z side: turn that to face out of the box.
+		var up := Vector3.FORWARD if absf(normal.y) > 0.5 else Vector3.UP
+		label.basis = Basis.looking_at(-normal, up)
+		var depth: float = (box.mesh as BoxMesh).size[normal.abs().max_axis_index()]
+		label.position = box.position + normal * (depth * 0.5 + LABEL_LIFT)
+		# Armour and weapon labels stand further out, in front of the drive pods'.
+		if not component or zone == "weapon":
+			label.position += normal * OUTER_LABEL_LIFT
+		# The front label keeps beside the weapon strip, clear of the weapon's label.
+		if zone == "front":
+			label.position.x = c.x + (weapon_x + h.x) * 0.5
+		# Text and its outline both draw after the see-through boxes (the outline
+		# just before the text), so no box tints over either.
+		label.render_priority = 2
+		label.outline_render_priority = 1
 		rig.add_child(label)
 		labels[zone] = label
-	return {"rig":rig, "labels":labels}
+	var core_label := Label3D.new()
+	core_label.name = "CoreLabel"
+	core_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	core_label.no_depth_test = true
+	core_label.pixel_size = CORE_LABEL_PIXEL
+	core_label.font_size = LABEL_FONT
+	core_label.outline_size = LABEL_OUTLINE
+	core_label.modulate = CORE_LABEL_COLOR
+	core_label.outline_modulate = Color.BLACK
+	core_label.render_priority = 2
+	core_label.outline_render_priority = 1
+	core_label.position = c
+	rig.add_child(core_label)
+	return {"rig":rig, "labels":labels, "core_label":core_label}
+
+## A thin see-through box over the area, standing offset out from its face;
+## the top and underside plates are their whole slab, grown by offset.
+func _layer_box(zone: String, normal: Vector3, area: Array, h: Vector3, offset: float, material: Material) -> MeshInstance3D:
+	var low: Vector3 = area[0]
+	var high: Vector3 = area[1]
+	if zone in ["top", "underside"]:
+		low -= Vector3.ONE * offset
+		high += Vector3.ONE * offset
+	else:
+		# Flatten onto its face: the face plane plus offset, LAYER_THICKNESS deep.
+		var axis := normal.abs().max_axis_index()
+		var face := (h[axis] + offset) * normal[axis]
+		low[axis] = face - LAYER_THICKNESS * 0.5
+		high[axis] = face + LAYER_THICKNESS * 0.5
+	var mesh := BoxMesh.new()
+	mesh.size = high - low
+	var item := MeshInstance3D.new()
+	item.name = "Layer_" + zone
+	item.mesh = mesh
+	item.position = (low + high) * 0.5
+	item.material_override = material
+	item.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return item

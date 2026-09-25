@@ -166,6 +166,10 @@ func run() -> void:
 	check(paths.size() >= tuned_hits.size() and impacts.size() >= tuned_hits.size() and impacts.all(func(m: Dictionary) -> bool: return m.radius == 0.0),
 		"Shots record their paths (%d) and impacts (%d) as points" % [paths.size(), impacts.size()])
 	check(impacts.any(func(m: Dictionary) -> bool: return m.position.distance_to(tuned_hits[0].position) < 0.001), "An impact mark sits where a hit landed")
+	check(impacts.filter(func(m: Dictionary) -> bool: return m.position.distance_to(tuned_hits[0].position) < 0.001)
+		.all(func(m: Dictionary) -> bool: return m.layer in ["armour", "component", "core"]), "A hit on the bot records the hitbox layer it landed on")
+	check(lab.hit_layer(target.combat, "weapon") == "component" and lab.hit_layer(target.combat, "underside") == ("armour" if float(target.combat.stats.plates.get("underside", 0.0)) > 0.0 and float(target.combat.zones.get("underside", 0.0)) > 0.0 else "core"),
+		"Hit layers: components, and plates while fitted and intact")
 	var draw: Node3D = preload("res://scripts/presentation/practice_debug_draw.gd").new()
 	root.add_child(draw)
 	lab.debug_impact(target.body.global_position, 3.0)
@@ -175,6 +179,16 @@ func run() -> void:
 	var meshes := draw.get_children().map(func(n: Node) -> Mesh: return (n as MeshInstance3D).mesh)
 	check(meshes.size() == 3 and meshes[0] is SphereMesh and is_equal_approx((meshes[0] as SphereMesh).radius, 3.0)
 		and meshes[1] is BoxMesh and meshes[2] is ImmediateMesh, "An area impact draws its sphere, a point impact a cube, a shot a line")
+	var miss_material: StandardMaterial3D = (draw.get_child(1) as MeshInstance3D).material_override
+	check(miss_material.albedo_color.is_equal_approx(draw.IMPACT_COLOR), "An impact on nothing stays white")
+	lab.debug_impact(target.body.global_position, 0.0, "core")
+	draw.render(lab, 0.0)
+	var hit_material: StandardMaterial3D = (draw.get_child(3) as MeshInstance3D).material_override
+	check(hit_material.albedo_color.a == 1.0 and hit_material.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED
+		and hit_material.albedo_color.is_equal_approx(Color(draw.CORE_COLOR.lightened(draw.IMPACT_HIT_BRIGHTEN), 1.0)),
+		"An impact on the core is solid, brighter core red")
+	(draw.get_child(3) as MeshInstance3D).queue_free()
+	draw._shown.pop_back()
 	lab.debug_linger = 5.0
 	draw.render(lab, 4.0)
 	check(draw._shown.size() == 3, "Marks stay until the linger time")
@@ -186,17 +200,62 @@ func run() -> void:
 	draw.render(lab, 0.0)
 	lab.debug_impact(Vector3.ZERO)
 	check(draw._shown.is_empty() and lab.debug_marks.is_empty(), "Turning a view off clears its marks and records no more")
-	# Hitboxes: the other bots' real collision shapes and armour zones, never the player's.
+	# Hitboxes: the other bots' core (their collision shapes) in red, with a box
+	# per intact plate (blue) and working component (amber) layered in front;
+	# never the player's own.
 	lab.debug_hitboxes = true
 	draw.render(lab, 0.0, [target])
 	check(draw._hitboxes.size() == 1, "Hitboxes show for each other bot")
 	var rig: Node3D = draw._hitboxes.values()[0].rig
-	var colliders := target.body.get_children().filter(func(n: Node) -> bool: return n is CollisionShape3D and not n.disabled)
-	check(rig.get_children().filter(func(n: Node) -> bool: return n is MeshInstance3D).size() == colliders.size() + 1,
-		"Every collision shape draws its wireframe, plus the zone boundaries")
 	check(rig.global_transform.is_equal_approx(target.body.global_transform), "Hitboxes follow the bot's body")
+	var core_label: Label3D = rig.get_node("CoreLabel")
+	check(core_label.billboard == BaseMaterial3D.BILLBOARD_ENABLED and core_label.position.is_equal_approx(target.collision_bounds().get_center())
+		and core_label.text == "CORE  %.0f" % target.combat.core, "A billboard at the core's centre shows its health")
+	var colliders := target.body.get_children().filter(func(n: Node) -> bool: return n is CollisionShape3D and not n.disabled)
+	check(rig.get_children().filter(func(n: Node) -> bool: return n.name.begins_with("CoreShape")).size() == colliders.size(),
+		"Every collision shape draws the core")
 	var zone_labels: Array = draw._hitboxes.values()[0].labels.keys()
-	check(zone_labels.has("front") and zone_labels.has("weapon") and zone_labels.has("drive_left"), "Every armour and component zone is labelled")
+	var fitted: Array = target.combat.stats.plates.keys().filter(func(f: String) -> bool: return float(target.combat.stats.plates[f]) > 0.0)
+	var bare: Array = target.combat.stats.plates.keys().filter(func(f: String) -> bool: return float(target.combat.stats.plates[f]) <= 0.0)
+	var components := ["weapon", "drive_left", "drive_right"]
+	check(not fitted.is_empty() and zone_labels.size() == fitted.size() + components.size()
+		and (fitted + components).all(func(z: String) -> bool: return zone_labels.has(z) and rig.has_node("Layer_" + z)),
+		"Each fitted plate and working component gets a box and a label")
+	check(bare.all(func(f: String) -> bool: return not zone_labels.has(f) and not rig.has_node("Layer_" + f)), "Bare armour faces draw nothing (%s)" % [bare])
+	# Layering: a component stands in front of the plate on its face, which stands in front of the core.
+	var bounds := target.collision_bounds()
+	var outward := func(zone: String, normal: Vector3) -> float:
+		return ((rig.get_node("Layer_" + zone) as Node3D).position - bounds.get_center()).dot(normal)
+	var half_x := bounds.size.x * 0.5
+	check(outward.call("drive_left", Vector3.LEFT) > half_x and (not fitted.has("left") or outward.call("drive_left", Vector3.LEFT) > outward.call("left", Vector3.LEFT))
+		and (not fitted.has("left") or outward.call("left", Vector3.LEFT) > half_x), "Drive pod over side armour over the core")
+	var pod_label: Label3D = draw._hitboxes.values()[0].labels.drive_left
+	var pod_box: MeshInstance3D = rig.get_node("Layer_drive_left")
+	check(pod_label.billboard == BaseMaterial3D.BILLBOARD_DISABLED and pod_label.basis.z.is_equal_approx(Vector3.LEFT)
+		and (pod_label.position - pod_box.position).dot(Vector3.LEFT) > (pod_box.mesh as BoxMesh).size.x * 0.5,
+		"Labels lie flat on the outside of their box, facing out")
+	if fitted.has("left"):
+		var side_label: Label3D = draw._hitboxes.values()[0].labels.left
+		check(side_label.position.dot(Vector3.LEFT) > pod_label.position.dot(Vector3.LEFT)
+			and is_equal_approx(side_label.position.y, (rig.get_node("Layer_left") as Node3D).position.y), "Side armour labels stay centred, out past the drive pod's")
+	var plate: String = fitted[0]
+	var plate_left: float = target.combat.zones[plate]
+	target.combat.zones[plate] = 0.0
+	draw.render(lab, 0.0, [target])
+	rig = draw._hitboxes.values()[0].rig
+	check(not draw._hitboxes.values()[0].labels.has(plate) and not rig.has_node("Layer_" + plate), "A broken plate stops drawing")
+	target.combat.zones[plate] = plate_left
+	# With every plate and component gone, only the red core is left.
+	var armour_left: Dictionary = {}
+	for face: String in fitted + components:
+		armour_left[face] = target.combat.zones[face]
+		target.combat.zones[face] = 0.0
+	draw.render(lab, 0.0, [target])
+	rig = draw._hitboxes.values()[0].rig
+	check(draw._hitboxes.values()[0].labels.is_empty() and rig.get_children().all(func(n: Node) -> bool: return n.name.begins_with("CoreShape") or n.name == "CoreLabel"),
+		"A bot without armour or working components shows only its core")
+	for face: String in armour_left:
+		target.combat.zones[face] = armour_left[face]
 	lab.debug_hitboxes = false
 	draw.render(lab, 0.0, [target])
 	check(draw._hitboxes.is_empty(), "Turning hitboxes off removes them")

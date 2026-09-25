@@ -1255,9 +1255,10 @@ func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse:
 			if radius > 0.0:
 				_splash(attacker, point, raw, impulse.length() / maxf(victim.body.mass, 0.001), radius, tick, round_index,
 					kind, armour_share, [victim.entity_id])
-			# The mortar's blast marks its own sphere where the shell lands.
+			# The mortar's blast marks its own sphere where the shell lands. The
+			# mark takes the colour of what the hit lands on (before this tick's damage).
 			if kind != "mortar":
-				lab.debug_impact(point, radius)
+				lab.debug_impact(point, radius, lab.hit_layer(victim.combat, zone if not zone.is_empty() else victim.zone_at(point)))
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
 		kind, zone, armour_share, axis])
 

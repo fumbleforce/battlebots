@@ -42,6 +42,8 @@ var auto_fire := {"primary":false, "secondary":false}
 const DEFAULT_DEBUG_LINGER := 60.0
 ## Marks kept while nothing drains them (no preview, e.g. headless tests).
 const MAX_DEBUG_MARKS := 512
+## Zones struck through a component rather than armour.
+const COMPONENT_ZONES := ["weapon", "drive_left", "drive_right"]
 var debug_trajectories := false
 var debug_impacts := false
 ## Wireframes of the other bots' collision shapes and armour zones (drawn from
@@ -325,9 +327,20 @@ func debug_path(points: PackedVector3Array) -> void:
 		_debug_mark({"type":"path", "points":points})
 
 ## What an impact reached: a sphere of radius, or the point itself for 0.
-func debug_impact(position: Vector3, radius := 0.0) -> void:
+## layer is what a bot hit there took it on (hit_layer), "" for none.
+func debug_impact(position: Vector3, radius := 0.0, layer := "") -> void:
 	if debug_impacts:
-		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0)})
+		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0), "layer":layer})
+
+## What a hit on this zone of a bot lands on first: "armour" (a fitted plate
+## not yet broken), "component" (the weapon or a drive pod still working) or
+## "core". Shared by the debug impact marks and the hitbox view.
+static func hit_layer(combat: RefCounted, zone: String) -> String:
+	if float(combat.stats.plates.get(zone, 0.0)) > 0.0 and float(combat.zones.get(zone, 0.0)) > 0.0:
+		return "armour"
+	if zone in COMPONENT_ZONES and float(combat.zones.get(zone, 0.0)) > 0.0:
+		return "component"
+	return "core"
 
 func _debug_mark(mark: Dictionary) -> void:
 	if debug_marks.size() >= MAX_DEBUG_MARKS:
