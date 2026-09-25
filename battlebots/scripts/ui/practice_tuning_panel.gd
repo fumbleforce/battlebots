@@ -140,16 +140,18 @@ func _rebuild() -> void:
 		_row(armour, face.capitalize(), spin, func() -> void: tuning.clear_body("plates", face), "")
 	_label(_column, "MOVEMENT", &"Eyebrow", HINT_FONT)
 	jump_toggle = _toggle(_column, "JumpCooldownToggle", "Jump cooldown", func(on: bool) -> void: tuning.jump_cooldown_enabled = on)
-	_body_rows([["speed", "Max speed", "m/s"], ["acceleration", "Acceleration", "m/s²"], ["grip", "Grip", "m/s²"],
+	# Max speed reads in km/h like the HUD speedometer; the tuning keeps m/s.
+	_body_rows([["speed", "Max speed", "km/h", preload("res://scripts/ui/hud_speed_gauge.gd").KMH_PER_MPS], ["acceleration", "Acceleration", "m/s²"], ["grip", "Grip", "m/s²"],
 		["turn", "Turn speed", "rad/s"], ["jump", "Jump force", "m/s"], ["nitro", "Nitro boost", "×"]])
 
-## Body values: [key, label, unit] rows editing tuning.body.
+## Body values: [key, label, unit, optional display scale] rows editing tuning.body.
 func _body_rows(fields: Array) -> void:
 	var grid := _grid()
 	for field: Array in fields:
 		var key: String = field[0]
-		var spin := _spin(func() -> float: return tuning.body_value(key),
-			func(amount: float) -> void: tuning.set_body(key, amount), SPIN_MAX, 0.01)
+		var scale: float = field[3] if field.size() > 3 else 1.0
+		var spin := _spin(func() -> float: return tuning.body_value(key) * scale,
+			func(amount: float) -> void: tuning.set_body(key, amount / scale), SPIN_MAX, 0.01)
 		_row(grid, field[1], spin, func() -> void: tuning.clear_body(key), field[2])
 
 func _weapon_rows(slot: String) -> void:

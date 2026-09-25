@@ -16,7 +16,8 @@ fills with the extra share nitro adds; km/h sits above the %. Game settings
 (`user://game.cfg`) add `show_speedometer` and `show_speed_value`, both
 defaulting on when absent. The Practice Duel tuning panel's Max speed is now
 the top speed as driven (after `top_speed_multiplier`), like acceleration and
-grip, so it matches the HUD. No command, wire, gameplay or BUILD change.
+grip, and reads in km/h, so it matches the HUD. No command, wire, gameplay or
+BUILD change.
 
 ## Progressive destruction and destructible props — build mvp-ab-49, protocol 16 (#72, #71)
 

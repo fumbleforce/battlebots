@@ -66,7 +66,7 @@ func run() -> void:
 	var weapon_column: Node = heading.call("WEAPON 1").get_parent()
 	check(body_column != weapon_column and body_column.get_parent() == weapon_column.get_parent()
 		and body_column.get_index() < weapon_column.get_index(), "Body is the left column and Weapon the right")
-	check(texts.has("Fire rate (/s)") and texts.has("Max speed (m/s)") and texts.has("Health"), "Panel lists weapon and body values")
+	check(texts.has("Fire rate (/s)") and texts.has("Max speed (km/h)") and texts.has("Health"), "Panel lists weapon and body values")
 	var spins := panel.find_children("*", "SpinBox", true, false)
 	# The damage row: its label, then its box, then its DEFAULT button.
 	var damage_label: Node = heading.call("Damage")
@@ -88,6 +88,12 @@ func run() -> void:
 		and heading.call("MOVEMENT").get_index() < panel.jump_toggle.get_index() and heading.call("MOVEMENT").get_parent() == body_column,
 		"Heat sits under Body; Movement follows Armour and holds the jump cooldown toggle")
 	check(texts.has("Jump force (m/s)") and texts.has("Acceleration (m/s²)"), "Movement lists speed, acceleration and jump force")
+	var speed_label: Node = heading.call("Max speed (km/h)")
+	var speed_spin: SpinBox = speed_label.get_parent().get_child(speed_label.get_index() + 1)
+	check(is_equal_approx(speed_spin.value, lab.body_value("speed") * 3.6), "Max speed shows the tuned top speed in km/h")
+	speed_spin.value = 54.0
+	check(is_equal_approx(lab.body_value("speed"), 15.0), "Typing km/h tunes the top speed in m/s")
+	speed_label.get_parent().get_child(speed_label.get_index() + 2).pressed.emit()
 	panel.jump_toggle.button_pressed = false
 	check(not lab.jump_cooldown_enabled, "The jump cooldown toggle switches it off")
 	var weapon_picker: OptionButton = panel.pickers.weapon
