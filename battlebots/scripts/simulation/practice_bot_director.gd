@@ -8,6 +8,8 @@ const WRECK_SECONDS := 6.0
 ## The player's wreck returns to its spawn after this delay instead of a menu.
 const PLAYER_RESPAWN_SECONDS := 3.0
 const RESET_GRACE := 1.0
+## Practice Duel shuttle (#88): metres ahead on its line it steers toward.
+const SHUTTLE_LOOKAHEAD := 6.0
 var world: AuthorityWorld
 var player_id := 0
 var target_id := 0
@@ -59,9 +61,12 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 	player_home = player.spawn_pose
 	return _add_roamers(first_id + VARIANTS.size())
 
-## Practice Duel (#83): the player at its usual edge and one stationary,
-## non-aggressive Atlas MX at the arena centre, facing the player. No pilots
-## or roamers. The Atlas keeps its own model and never collects pickups.
+## Practice Duel (#83, #88): the player at its usual edge, a stationary,
+## non-aggressive Atlas MX straight ahead facing the player, the monowheel block
+## on the left, and a second Atlas on the right that shuttles forward and back.
+## The far Atlas and the shuttle stand as far from their walls as the monowheel
+## block does from the left wall. No pilots or roamers. The Atlases keep their
+## own model and never collect pickups.
 func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
 	player_id = controlled_id
@@ -70,9 +75,40 @@ func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int
 	var spawns := ARENA_SPAWNS.settings()
 	_place(player, spawns.team_start(world.arena_id, 0, spawns.practice_player_lane))
 	player_home = player.spawn_pose
-	var toward := player.spawn_pose.origin.slide(Vector3.UP)
-	_add_fixture(first_id, world.registry.atlas(), "atlas", Transform3D(Basis(Vector3.UP, atan2(-toward.x, -toward.z)), Vector3.ZERO))
-	return _add_monowheel_row(player, first_id + 1)
+	var forward := (-player.spawn_pose.basis.z).slide(Vector3.UP).normalized()
+	var left := Vector3.UP.cross(forward).normalized()
+	var facing_player := _facing(-forward)
+	var atlas := _add_fixture(first_id, world.registry.atlas(), "atlas", Transform3D(facing_player, Vector3.ZERO))
+	var next_id := _add_monowheel_row(player, first_id + 1)
+	var reach := _monowheel_reach(left)
+	# Back from the player: the Atlas's rear sits as far from the far wall as the
+	# block's outer row does from the left wall.
+	var depth := maxf(0.0, reach - atlas.collision_bounds().size.z * 0.5)
+	_place(atlas, Transform3D(facing_player, forward * depth))
+	records[0].home = atlas.spawn_pose
+	# On the right, a quarter turn from facing the middle: it faces along the
+	# player's forward axis, its side toward the right wall.
+	var shuttle := _add_fixture(next_id, world.registry.atlas(), "atlas_shuttle", Transform3D(_facing(forward), -left * reach))
+	var inset := maxf(0.0, reach - shuttle.collision_bounds().size.x * 0.5)
+	_place(shuttle, Transform3D(_facing(forward), -left * inset))
+	records[records.size() - 1].home = shuttle.spawn_pose
+	records[records.size() - 1].shuttle = 1.0
+	return next_id + 1
+
+## Yaw basis whose forward (-Z) points along direction.
+static func _facing(direction: Vector3) -> Basis:
+	return Basis(Vector3.UP, atan2(-direction.x, -direction.z))
+
+## How far from the centre, toward the left wall, the monowheel block's outer
+## hull edge reaches; the configured block offset when there are none.
+func _monowheel_reach(left: Vector3) -> float:
+	var reach := -INF
+	for bot: MvpBot in world.bots.values():
+		if bot.has_meta("practice_fixture") and NimbleBots.enabled(bot.loadout):
+			reach = maxf(reach, bot.spawn_pose.origin.dot(left) + bot.collision_bounds().size.z * 0.5)
+	if is_finite(reach):
+		return reach
+	return ArenaBounds.half_extent(world.arena_id) * ARENA_SPAWNS.settings().duel_monowheel_side_for(world.arena_id)
 
 ## A tight row of stationary monowheels on the player's left, seen from its
 ## start, facing into the room (data/arena_spawns.json duel.monowheels).
@@ -162,6 +198,7 @@ func restart() -> void:
 		record.wreck_age = 0.0
 		record.previous_primary = false
 		record.patrol = 0
+		if record.has("shuttle"): record.shuttle = 1.0
 		record.grace = RESET_GRACE
 		var bot: MvpBot = world.bots[record.id]
 		_place(bot, record.home)
@@ -188,7 +225,9 @@ func step(delta: float) -> void:
 		var intent := BotCommand.new()
 		intent.sequence = bot.last_sequence + 1
 		intent.brake = true
-		if int(record.index) != 0 and float(record.grace) <= 0.0 and not player.combat.eliminated:
+		if record.has("shuttle"):
+			if float(record.grace) <= 0.0: _shuttle(bot, record, intent)
+		elif int(record.index) != 0 and float(record.grace) <= 0.0 and not player.combat.eliminated:
 			_pilot(bot, player, record, intent)
 		# The calibration target never drives or attacks, but can recover after a flip.
 		intent.recovery_pressed = bot.body.global_basis.y.y < -0.25 and bot.combat.recovery_cooldown <= 0.0
@@ -233,6 +272,29 @@ func _pilot(bot: MvpBot, player: MvpBot, record: Dictionary, intent: BotCommand)
 	intent.steering = clampf(angle * 1.5, -1.0, 1.0) * DriveModel.steering_direction(
 		bot.body.linear_velocity.dot(forward), intent.throttle)
 	intent.brake = absf(intent.throttle) < 0.06 and absf(angle) < 0.12
+
+## Practice Duel shuttle (#88): drives along its home heading, reversing at
+## duel.shuttle travel metres either side of home without turning or attacking.
+## It steers for a point ahead on its own line, so knocks and reversing do not
+## walk it off course.
+func _shuttle(bot: MvpBot, record: Dictionary, intent: BotCommand) -> void:
+	var spawns := ARENA_SPAWNS.settings()
+	var home: Transform3D = record.home
+	var axis := (-home.basis.z).slide(Vector3.UP).normalized()
+	var along := (bot.body.global_position - home.origin).dot(axis)
+	if along >= spawns.duel_shuttle_travel: record.shuttle = -1.0
+	elif along <= -spawns.duel_shuttle_travel: record.shuttle = 1.0
+	intent.brake = false
+	intent.throttle = spawns.duel_shuttle_throttle * float(record.shuttle)
+	# Aim for a point on the line in the direction of travel. Reversing, the rear
+	# leads: face directly away from that point instead.
+	var position := bot.body.global_position
+	var aim := home.origin + axis * (along + SHUTTLE_LOOKAHEAD * float(record.shuttle))
+	var desired := aim if float(record.shuttle) > 0.0 else position * 2.0 - aim
+	var local := bot.body.global_basis.inverse() * (desired - position)
+	var forward := (-bot.body.global_basis.z).slide(Vector3.UP).normalized()
+	intent.steering = clampf(atan2(local.x, -local.z) * 1.5, -1.0, 1.0) * DriveModel.steering_direction(
+		bot.body.linear_velocity.dot(forward), intent.throttle)
 
 ## Seconds until the knocked-out player returns; NAN while the player is alive.
 func player_respawn_remaining() -> float:
@@ -304,3 +366,4 @@ func _try_respawn(bot: MvpBot, record: Dictionary) -> void:
 	record.wreck_age = 0.0
 	record.previous_primary = false
 	record.grace = RESET_GRACE
+	if record.has("shuttle"): record.shuttle = 1.0

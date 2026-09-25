@@ -24,6 +24,10 @@ var duel_monowheel_gap := 0.0
 var duel_monowheel_side := 0.0
 ## Arena id -> side fraction overriding duel_monowheel_side there.
 var duel_monowheel_side_by_arena: Dictionary = {}
+## Practice Duel shuttling Atlas (duel.shuttle): metres either side of its
+## start and the throttle it drives at.
+var duel_shuttle_travel := 0.0
+var duel_shuttle_throttle := 0.0
 
 static func settings() -> ArenaSpawns:
 	if _loaded == null:
@@ -105,6 +109,13 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 			problems.append("duel.monowheels.side_fraction_by_arena.%s needs a known arena and a non-negative fraction" % arena_id)
 			return null
 		result.duel_monowheel_side_by_arena[arena_id] = float(by_arena[arena_id])
+	var shuttle: Variant = duel.get("shuttle")
+	if not shuttle is Dictionary or not _number(shuttle.get("travel")) or float(shuttle.travel) <= 0.0 \
+			or not _number(shuttle.get("throttle")) or float(shuttle.throttle) <= 0.0 or float(shuttle.throttle) > 1.0:
+		problems.append("duel.shuttle needs a positive travel and a throttle in (0, 1]")
+		return null
+	result.duel_shuttle_travel = float(shuttle.travel)
+	result.duel_shuttle_throttle = float(shuttle.throttle)
 	return result
 
 ## Practice Duel monowheel block offset (fraction of the half-extent) on an arena.

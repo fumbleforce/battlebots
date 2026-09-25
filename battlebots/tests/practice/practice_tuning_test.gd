@@ -110,7 +110,9 @@ func run() -> void:
 	check(is_equal_approx(damage_spin.value, CombatWorld.MINIGUN_DAMAGE) and panel.heat_toggle.button_pressed, "Reset shows the defaults again")
 	panel.queue_free()
 	# Park the player 10 m in front of the Atlas, facing it.
-	player.body.reset_pose = session.world.clear_spawn_pose(player, Transform3D(Basis.IDENTITY, Vector3(0, 0, 10)))
+	var atlas_front := (-target.spawn_pose.basis.z).slide(Vector3.UP).normalized()
+	player.body.reset_pose = session.world.clear_spawn_pose(player, Transform3D(target.spawn_pose.basis.rotated(Vector3.UP, PI),
+		Vector3(target.spawn_pose.origin.x, 0, target.spawn_pose.origin.z) + atlas_front * 10.0))
 	await frames(30)
 	var base_hits := await fire(session, target, 150)
 	check(base_hits.size() > 6, "Untuned minigun hits the Atlas (%d hits)" % base_hits.size())

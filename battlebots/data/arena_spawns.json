@@ -29,8 +29,10 @@
 		"pilot_starts": [3, 7]
 	},
 	"duel": {
-		"_comment": "Practice Duel (#83, #84): besides the stationary Atlas at the centre, `count` stationary monowheels stand on the player's left, seen from its start, in `rows` tight rows one behind the other. Each row runs along the player's forward axis; the block is centred side_fraction of the arena half-extent to the left of the centre, facing into the room, with gap metres between neighbouring hulls (side by side and front to back). side_fraction_by_arena overrides it per arena: on Woodland the block stands on the left of the raised central plateau (flat out to about 0.22), clear of the slopes and jump ramps below.",
+		"_comment": "Practice Duel (#83, #84, #88): besides the stationary Atlas (see shuttle), `count` stationary monowheels stand on the player's left, seen from its start, in `rows` tight rows one behind the other. Each row runs along the player's forward axis; the block is centred side_fraction of the arena half-extent to the left of the centre, facing into the room, with gap metres between neighbouring hulls (side by side and front to back). side_fraction_by_arena overrides it per arena: on Woodland the block stands on the left of the raised central plateau (flat out to about 0.22), clear of the slopes and jump ramps below.",
 		"monowheels": {"count": 6, "rows": 2, "gap": 0.3, "side_fraction": 0.55,
-			"side_fraction_by_arena": {"woodland": 0.15}}
+			"side_fraction_by_arena": {"woodland": 0.15}},
+		"shuttle": {"_comment": "#88: the centre Atlas stands back from the player, as far from the far wall as the monowheel block is from the left wall. A second Atlas stands the same distance from the right wall, facing along the player's forward axis, and drives forward and back travel metres either side of its start at throttle, reversing direction at each end without turning.",
+			"travel": 8.0, "throttle": 0.45}
 	}
 }

@@ -1,6 +1,7 @@
 extends SceneTree
-## Practice Duel (#83): the player plus one stationary, non-aggressive Atlas MX
-## at the arena centre, with no pilots, roamers, Woodland giant or cooling zones.
+## Practice Duel (#83, #88): the player, a stationary, non-aggressive Atlas MX
+## ahead, a shuttling Atlas on the right and the monowheel block on the left,
+## with no pilots, roamers, Woodland giant or cooling zones.
 var failures: Array[String] = []
 
 func _initialize() -> void:
@@ -23,17 +24,16 @@ func run() -> void:
 		check(session.practice_kind == "duel", "Session reports the duel layout")
 		await frames(5)
 		var wheels_count := ArenaSpawns.settings().duel_monowheel_count
-		check(session.world.bots.size() == 2 + wheels_count, "%s duel has the player, the Atlas and %d monowheels" % [arena, wheels_count])
+		check(session.world.bots.size() == 3 + wheels_count, "%s duel has the player, two Atlases and %d monowheels" % [arena, wheels_count])
 		check(session.woodland_boss == null, "%s duel has no roaming giant" % arena)
 		check(session.world.cooling_zones().is_empty(), "%s duel has no cooling zones" % arena)
 		check(session.world.pickups.items.size() > 0 and not session.world.pickups.items.any(func(item: Dictionary) -> bool:
 			return item.kind == "coolant"), "%s duel keeps part pickups but has no coolant canisters" % arena)
-		check(session.practice_director.roamers.is_empty() and session.practice_director.records.size() == 1 + wheels_count, "No pilots or roamers")
+		check(session.practice_director.roamers.is_empty() and session.practice_director.records.size() == 2 + wheels_count, "No pilots or roamers")
 		var target := session.practice_target() as MvpBot
 		var player: MvpBot = session.local_source()
 		check(target != null and AtlasGeometry.enabled(target.loadout), "%s duel target is an Atlas MX" % arena)
 		check(not target.has_meta("practice_variant"), "The Atlas keeps its own model, not a training-NPC shell")
-		check(Vector2(target.spawn_pose.origin.x, target.spawn_pose.origin.z).length() < 1.0, "%s Atlas starts at the arena centre" % arena)
 		var start := target.body.global_position
 		var wheels: Array[MvpBot] = []
 		for bot: MvpBot in session.world.bots.values():
@@ -67,9 +67,46 @@ func run() -> void:
 			row_gaps.append(behind - hull.z)
 		check(side_gaps.all(func(g: float) -> bool: return g > 0.0 and g < 1.0) and row_gaps.all(func(g: float) -> bool: return g > 0.0 and g < 1.0),
 			"%s monowheels are tightly packed without overlapping (side %s, rows %s)" % [arena, str(side_gaps), str(row_gaps)])
+		# #88: the far Atlas and the shuttle stand as far from their walls as the
+		# monowheel block's outer row does from the left wall (octagon walls sit
+		# half_extent out on each axis).
+		var half := ArenaBounds.half_extent(arena)
+		var wheel_reach := -INF
+		for w: MvpBot in wheels: wheel_reach = maxf(wheel_reach, w.spawn_pose.origin.dot(left) + hull.z * 0.5)
+		var atlas_hull := target.collision_bounds().size
+		var far_gap := half - (target.spawn_pose.origin.dot(forward) + atlas_hull.z * 0.5)
+		check(absf(far_gap - (half - wheel_reach)) < 0.3 and absf(target.spawn_pose.origin.dot(left)) < 0.3,
+			"%s far Atlas stands straight ahead, %.2f m from its wall like the monowheels (%.2f m)" % [arena, far_gap, half - wheel_reach])
+		check((-target.spawn_pose.basis.z).dot(-forward) > 0.99, "%s far Atlas faces the player" % arena)
+		var atlases := session.world.bots.values().filter(func(b: MvpBot) -> bool: return AtlasGeometry.enabled(b.loadout) and b != target)
+		check(atlases.size() == 1, "%s duel has one shuttling Atlas" % arena)
+		var shuttle: MvpBot = atlases[0]
+		var right_gap := half - (-shuttle.spawn_pose.origin.dot(left) + atlas_hull.x * 0.5)
+		check(absf(right_gap - (half - wheel_reach)) < 0.3 and shuttle.has_meta("practice_fixture"),
+			"%s shuttle stands on the right, %.2f m from its wall like the monowheels (%.2f m)" % [arena, right_gap, half - wheel_reach])
+		var shuttle_axis := (-shuttle.spawn_pose.basis.z).slide(Vector3.UP).normalized()
+		check(absf(shuttle_axis.dot(forward)) > 0.99, "%s shuttle is turned a quarter from facing the middle" % arena)
 		var wheel_starts := wheels.map(func(w: MvpBot) -> Vector3: return w.body.global_position)
 		var initial_core := player.combat.core
-		await frames(240)
+		# The shuttle drives both ways along its line, upright, and never strays far.
+		var home := shuttle.spawn_pose.origin
+		var travel := ArenaSpawns.settings().duel_shuttle_travel
+		var reach_ahead := 0.0
+		var reach_back := 0.0
+		var drift := 0.0
+		var tilt := 1.0
+		for frame: int in (1500 if arena == "foundry" else 240):
+			await frames(1)
+			var offset := shuttle.body.global_position - home
+			reach_ahead = maxf(reach_ahead, offset.dot(shuttle_axis))
+			reach_back = minf(reach_back, offset.dot(shuttle_axis))
+			drift = maxf(drift, absf(offset.dot(shuttle_axis.cross(Vector3.UP))))
+			tilt = minf(tilt, shuttle.body.global_basis.y.y)
+		check(reach_ahead > 2.0, "%s shuttle drives forward (%.1f m)" % [arena, reach_ahead])
+		if arena == "foundry":
+			check(reach_ahead > travel - 0.5 and reach_back < -(travel - 0.5) and reach_ahead < travel + 3.0 and reach_back > -(travel + 3.0),
+				"Foundry shuttle runs to both ends of its %.0f m travel (%.1f, %.1f)" % [travel, reach_ahead, reach_back])
+		check(drift < 1.0 and tilt > 0.7, "%s shuttle holds its line upright (drift %.2f m, up %.2f)" % [arena, drift, tilt])
 		check(target.body.global_position.distance_to(start) < 0.3, "%s Atlas stays put" % arena)
 		for index: int in wheels.size():
 			check(wheels[index].body.global_position.distance_to(wheel_starts[index]) < 0.5 and wheels[index].body.global_basis.y.y > 0.7,
@@ -78,7 +115,7 @@ func run() -> void:
 		check(player.combat.core == initial_core, "%s Atlas never attacks the player" % arena)
 		check(session.restart_practice() == OK, "%s duel practice restarts" % arena)
 		await frames(2)
-		check(session.world.bots.size() == 2 + wheels_count, "Restart keeps the duel layout")
+		check(session.world.bots.size() == 3 + wheels_count, "Restart keeps the duel layout")
 		session.leave()
 		check(session.practice_kind == "full", "Leaving resets the practice layout")
 		check(session.practice(session.registry.starter(), arena) == OK and not session.world.cooling_zones().is_empty(),
