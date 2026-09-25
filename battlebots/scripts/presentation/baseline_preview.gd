@@ -2,6 +2,7 @@ extends Node3D
 const MORTAR_AIM_VISUAL = preload("res://scripts/presentation/mortar_aim_visual.gd")
 const GAMEPAD_INPUT = preload("res://scripts/presentation/gamepad_input.gd")
 const CAMERA_RECOIL = preload("res://scripts/core/camera_recoil.gd")
+const PRACTICE_DEBUG_DRAW = preload("res://scripts/presentation/practice_debug_draw.gd")
 ## B-owned input/presentation adapter; never writes authoritative bot transforms.
 
 @export var source_path: NodePath
@@ -37,6 +38,8 @@ const TURRET_AIM_DISTANCE := 220.0
 var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
 var mortar_aim := MORTAR_AIM_VISUAL.new()
+## Practice Duel debug views (#93): shot paths, impact areas and hitboxes.
+var practice_debug := PRACTICE_DEBUG_DRAW.new()
 ## A local part shortcut was used (#64): slot and the session's result.
 signal dev_part_cycled(slot: String, result: Dictionary)
 const DEV_SLOTS := {&"dev_weapon":"weapon", &"dev_body":"chassis", &"dev_drive":"drive"}
@@ -52,6 +55,7 @@ func _ready() -> void:
 	tank_sight.rig = rig
 	add_child(tank_sight)
 	add_child(mortar_aim)
+	add_child(practice_debug)
 	rig.bind_source(source)
 	var preferences := CameraPreferences.load_file(settings_path)
 	preferences.apply_to(rig)
@@ -315,6 +319,17 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 	if wanted:
 		tank_sight.update_view(delta, source)
 
+## Practice Duel debug views (#93): the player's marks and the other bots' hitboxes.
+func _render_practice_debug(delta: float) -> void:
+	var session: MvpSession = source.session if source is SessionBotSource and is_instance_valid(source.session) else null
+	var lab: RefCounted = session.practice_tuning() if session != null else null
+	var others: Array = []
+	if lab != null and lab.debug_hitboxes:
+		for id: int in session.world.bots:
+			if id != session.local_entity:
+				others.append(session.world.bots[id])
+	practice_debug.render(lab, delta, others)
+
 ## Camera kick per own shot: the turret's (or the minigun's) default, or the
 ## Practice Duel Camera recoil override (#91).
 func _camera_recoil(view: BotView) -> float:
@@ -401,6 +416,7 @@ func _process(delta: float) -> void:
 	hud.show_view(view)
 	_update_tank_sight(view, delta)
 	_render_turret_reticle(view, delta)
+	_render_practice_debug(delta)
 	refresh_diagnostics()
 	hint.text = "Mouse  Orbit  |  %s / %s  Zoom  |  %s  Recenter  |  Esc  Menu" % [
 		input_preferences.label_for(&"camera_zoom_in"), input_preferences.label_for(&"camera_zoom_out"),

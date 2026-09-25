@@ -1,9 +1,10 @@
 extends VBoxContainer
 ## Practice Duel Esc-menu tuning (#84): live, session-only values for the
 ## player's weapons and body (scripts/simulation/practice_tuning.gd), plus
-## weapon and chassis pickers. Nothing here is saved; leaving practice
-## discards it. Presentation only: the offline authority applies the values on
-## its next tick and swaps parts through MvpSession.practice_set_part().
+## weapon and chassis pickers, under the debug views (#93). Nothing here is
+## saved; leaving practice discards it. Presentation only: the offline
+## authority applies the values on its next tick and swaps parts through
+## MvpSession.practice_set_part().
 const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 const SPIN_MAX := 100000.0
 ## Compact rows: text size, editor size and row gap.
@@ -19,6 +20,11 @@ var tuning: RefCounted
 var session: Node
 var heat_toggle: CheckButton
 var jump_toggle: CheckButton
+## Debug views (#93).
+var trajectory_toggle: CheckButton
+var impact_toggle: CheckButton
+var hitbox_toggle: CheckButton
+var linger_spin: SpinBox
 ## Weapon slot ("primary"/"secondary") -> its "Allow auto fire" toggle.
 var auto_toggles: Dictionary = {}
 var reset_button: Button
@@ -35,6 +41,8 @@ var _spins: Array = []
 func _init() -> void:
 	name = "PracticeTuning"
 	add_theme_constant_override("separation", 8)
+	_debug_section()
+	add_child(HSeparator.new())
 	var header := HBoxContainer.new()
 	add_child(header)
 	var title := _label(header, "TUNING", &"HeadingWide", 24)
@@ -58,6 +66,47 @@ func _init() -> void:
 	content.add_theme_constant_override("separation", 18)
 	scroll.add_child(content)
 
+## Debug views (#93): shot paths, impact areas and the other bots' armour
+## hitboxes, drawn in the arena by the preview's PracticeDebugDraw, and how
+## long each mark stays.
+func _debug_section() -> void:
+	_label(self, "DEBUG", &"HeadingWide", 24)
+	# Wraps when the three toggles do not fit one line.
+	var toggles := HFlowContainer.new()
+	toggles.add_theme_constant_override("h_separation", 18)
+	add_child(toggles)
+	trajectory_toggle = _toggle(toggles, "TrajectoryToggle", "Projectile trajectories",
+		func(on: bool) -> void: tuning.debug_trajectories = on)
+	impact_toggle = _toggle(toggles, "ImpactToggle", "Impact areas",
+		func(on: bool) -> void: tuning.debug_impacts = on)
+	hitbox_toggle = _toggle(toggles, "HitboxToggle", "Armour hitboxes",
+		func(on: bool) -> void: tuning.debug_hitboxes = on)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	add_child(row)
+	_label(row, "Marks linger (s)", &"Body", ROW_FONT)
+	linger_spin = SpinBox.new()
+	linger_spin.name = "DebugLinger"
+	linger_spin.min_value = 1.0
+	linger_spin.max_value = SPIN_MAX
+	linger_spin.step = 0.1
+	linger_spin.custom_arrow_step = 5.0
+	linger_spin.select_all_on_focus = true
+	linger_spin.custom_minimum_size = SPIN_SIZE
+	linger_spin.get_line_edit().add_theme_font_size_override("font_size", ROW_FONT)
+	linger_spin.value = TUNING.DEFAULT_DEBUG_LINGER
+	linger_spin.value_changed.connect(func(seconds: float) -> void:
+		if tuning != null: tuning.debug_linger = seconds)
+	row.add_child(linger_spin)
+	var default := Button.new()
+	default.text = "DEFAULT"
+	default.theme_type_variation = &"TextLink"
+	default.add_theme_font_size_override("font_size", HINT_FONT)
+	default.pressed.connect(func() -> void:
+		if tuning != null: tuning.debug_linger = TUNING.DEFAULT_DEBUG_LINGER
+		linger_spin.set_value_no_signal(TUNING.DEFAULT_DEBUG_LINGER))
+	row.add_child(default)
+
 func _label(parent: Node, text: String, variation: StringName, font_size: int) -> Label:
 	var item := Label.new()
 	item.text = text
@@ -79,6 +128,11 @@ func render(value: RefCounted, parts: Node = null) -> void:
 		_rebuild()
 	heat_toggle.set_pressed_no_signal(tuning.heat_enabled)
 	jump_toggle.set_pressed_no_signal(tuning.jump_cooldown_enabled)
+	trajectory_toggle.set_pressed_no_signal(tuning.debug_trajectories)
+	impact_toggle.set_pressed_no_signal(tuning.debug_impacts)
+	hitbox_toggle.set_pressed_no_signal(tuning.debug_hitboxes)
+	if not linger_spin.get_line_edit().has_focus():
+		linger_spin.set_value_no_signal(tuning.debug_linger)
 	for slot: String in auto_toggles:
 		auto_toggles[slot].set_pressed_no_signal(tuning.auto_fire.get(slot, false))
 	for pair: Array in _spins:
@@ -125,7 +179,11 @@ func _rebuild() -> void:
 	_label(_column, "BODY", &"HeadingItalic", HEADING_FONT)
 	_picker("chassis")
 	heat_toggle = _toggle(_column, "HeatToggle", "Heat", func(on: bool) -> void: tuning.heat_enabled = on)
-	_body_rows([["core", "Health", ""], ["weight", "Weight", "kg"]])
+	jump_toggle = _toggle(_column, "JumpCooldownToggle", "Jump cooldown", func(on: bool) -> void: tuning.jump_cooldown_enabled = on)
+	# Max speed reads in km/h like the HUD speedometer; the tuning keeps m/s.
+	_body_rows([["speed", "Max speed", "km/h", preload("res://scripts/ui/hud_speed_gauge.gd").KMH_PER_MPS], ["acceleration", "Acceleration", "m/s²"], ["grip", "Grip", "m/s²"],
+		["turn", "Turn speed", "rad/s"], ["jump", "Jump force", "m/s"], ["nitro", "Nitro boost", "×"],
+		["core", "Health", ""], ["weight", "Weight", "kg"]])
 	mass_label = _label(_column, "", &"Muted", HINT_FONT)
 	_label(_column, "ARMOUR", &"Eyebrow", HINT_FONT)
 	var armour := _grid()
@@ -138,11 +196,6 @@ func _rebuild() -> void:
 		var spin := _spin(func() -> float: return tuning.body_value("plates", face),
 			func(amount: float) -> void: tuning.set_body("plates", amount, face), SPIN_MAX)
 		_row(armour, face.capitalize(), spin, func() -> void: tuning.clear_body("plates", face), "")
-	_label(_column, "MOVEMENT", &"Eyebrow", HINT_FONT)
-	jump_toggle = _toggle(_column, "JumpCooldownToggle", "Jump cooldown", func(on: bool) -> void: tuning.jump_cooldown_enabled = on)
-	# Max speed reads in km/h like the HUD speedometer; the tuning keeps m/s.
-	_body_rows([["speed", "Max speed", "km/h", preload("res://scripts/ui/hud_speed_gauge.gd").KMH_PER_MPS], ["acceleration", "Acceleration", "m/s²"], ["grip", "Grip", "m/s²"],
-		["turn", "Turn speed", "rad/s"], ["jump", "Jump force", "m/s"], ["nitro", "Nitro boost", "×"]])
 
 ## Body values: [key, label, unit, optional display scale] rows editing tuning.body.
 func _body_rows(fields: Array) -> void:

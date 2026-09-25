@@ -109,6 +109,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 				_turret_shot(attacker, bots, tick, round_index)
 			else:
 				_minigun_shot(attacker, bots, tick, round_index)
+			_debug_shot(attacker, tick)
 		if state.grip_target != 0:
 			_update_grip(attacker, bots, delta)
 		if state.stats.weapon == "minigun":
@@ -465,6 +466,7 @@ func _hammer_blasts(bots: Dictionary, tick: int, round_index: int) -> void:
 		if lab == null or not state.strike or state.stats.weapon != "hammer" or state.eliminated or state.zones.weapon <= 0:
 			continue
 		var radius: float = lab.value("primary", "aoe")
+		lab.debug_impact(_hammer_head(attacker), radius)
 		if radius <= 0.0:
 			continue
 		var struck: Array = _hammer_hits.get(id, {}).get("targets", {}).keys()
@@ -871,6 +873,8 @@ func _mortar_shot(attacker: MvpBot, from: Vector3, direction: Vector3, tick: int
 	state.last_shot_from = from
 	state.last_shot_to = path.point
 	state.last_shot_tick = tick
+	if state.practice_tuning != null:
+		state.practice_tuning.debug_path(PackedVector3Array(path.points))
 	if path.landed:
 		_shells.append({"attacker":attacker.entity_id, "point":path.point, "lands":time + path.flight})
 
@@ -917,6 +921,7 @@ func _detonate_shells(bots: Dictionary, tick: int, round_index: int) -> void:
 			continue
 		var radius := tuning.value("mortar", "blast_radius") * _lab_scale(attacker, "secondary", "aoe")
 		var point: Vector3 = shell.point
+		_debug_impact(attacker, point, radius)
 		for id: int in bots:
 			var victim: MvpBot = bots[id]
 			if victim.team == attacker.team or victim.combat.eliminated:
@@ -972,6 +977,7 @@ func _railgun_path(attacker: MvpBot, bots: Dictionary, result: Dictionary, end: 
 			exclude.append(victim.body.get_rid())
 		else:
 			leftover = _prop_hit(result.collider_id, at, energy, "railgun", direction)
+			_debug_impact(attacker, at)
 			if leftover < 0.0:
 				return
 			exclude.append(result.rid)
@@ -1249,6 +1255,9 @@ func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse:
 			if radius > 0.0:
 				_splash(attacker, point, raw, impulse.length() / maxf(victim.body.mass, 0.001), radius, tick, round_index,
 					kind, armour_share, [victim.entity_id])
+			# The mortar's blast marks its own sphere where the shell lands.
+			if kind != "mortar":
+				lab.debug_impact(point, radius)
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
 		kind, zone, armour_share, axis])
 
@@ -1260,6 +1269,8 @@ func _splash_miss(attacker: MvpBot, point: Vector3, raw: float, knock: float, ki
 		return
 	var slot: String = lab.slot_of(attacker.combat.stats, kind)
 	var radius: float = lab.splash_radius(slot, kind) if not slot.is_empty() else 0.0
+	if not slot.is_empty():
+		lab.debug_impact(point, radius)
 	if radius > 0.0:
 		_splash(attacker, point, raw * lab.scale(slot, "damage"), knock * lab.scale(slot, "knockback"), radius, tick, round_index,
 			kind, lab.armour_share(slot, 1.0), [])
@@ -1291,6 +1302,19 @@ func _splash(attacker: MvpBot, centre: Vector3, raw: float, knock: float, radius
 		away = away.normalized() if away.length_squared() > 0.0001 else Vector3.ZERO
 		pending_hits.append([attacker, victim, nearest, raw * share, (away + Vector3.UP * 0.5) * victim.body.mass * knock * share,
 			tick, round_index, 0.0, kind, "", armour_share, Vector3.ZERO])
+
+## Practice Duel debug view (#93): the path of the shot this tick, straight
+## from muzzle to where it stopped. The mortar records its arc when it fires.
+func _debug_shot(attacker: MvpBot, tick: int) -> void:
+	var state := attacker.combat
+	if state.practice_tuning == null or state.last_shot_tick != tick or state.stats.get("secondary_weapon", "") == "mortar":
+		return
+	state.practice_tuning.debug_path(PackedVector3Array([state.last_shot_from, state.last_shot_to]))
+
+## Practice Duel debug view (#93): an impact of the attacker's, radius 0 for no area.
+func _debug_impact(attacker: MvpBot, point: Vector3, radius := 0.0) -> void:
+	if attacker.combat.practice_tuning != null:
+		attacker.combat.practice_tuning.debug_impact(point, radius)
 
 ## Scale of a Practice Duel override for the attacker's weapon (1 = untuned).
 func _lab_scale(attacker: MvpBot, slot: String, field: String) -> float:

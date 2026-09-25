@@ -98,10 +98,25 @@ func run() -> void:
 	damage_spin.value = 9.0
 	panel.heat_toggle.button_pressed = false
 	check(not lab.heat_enabled, "The heat toggle switches heat off")
-	check(panel.heat_toggle.text == "Heat" and panel.heat_toggle.get_index() < heading.call("ARMOUR").get_index()
-		and heading.call("ARMOUR").get_index() < heading.call("MOVEMENT").get_index()
-		and heading.call("MOVEMENT").get_index() < panel.jump_toggle.get_index() and heading.call("MOVEMENT").get_parent() == body_column,
-		"Heat sits under Body; Movement follows Armour and holds the jump cooldown toggle")
+	# #93: the movement rows follow Heat directly, with no Movement label.
+	var speed_grid: Node = heading.call("Max speed (km/h)").get_parent()
+	check(panel.heat_toggle.text == "Heat" and panel.jump_toggle.get_parent() == body_column
+		and panel.jump_toggle.get_index() == panel.heat_toggle.get_index() + 1 and speed_grid.get_index() == panel.jump_toggle.get_index() + 1
+		and speed_grid.get_index() < heading.call("ARMOUR").get_index() and not texts.has("MOVEMENT"),
+		"Heat sits under Body, followed by the jump cooldown toggle and the movement values; no Movement label")
+	# #93: the Debug section sits above Tuning and writes into the tuning.
+	check(texts.has("DEBUG") and heading.call("DEBUG").get_index() < heading.call("TUNING").get_parent().get_index()
+		and heading.call("DEBUG").get_parent() == panel, "Debug sits above Tuning")
+	check(not lab.debug_trajectories and not lab.debug_impacts and lab.debug_linger == 60.0
+		and panel.linger_spin.value == 60.0, "Debug views start off and marks linger a minute")
+	panel.trajectory_toggle.button_pressed = true
+	panel.impact_toggle.button_pressed = true
+	panel.hitbox_toggle.button_pressed = true
+	check(lab.debug_hitboxes, "The hitbox toggle reaches the tuning")
+	panel.hitbox_toggle.button_pressed = false
+	panel.linger_spin.value = 12.0
+	check(lab.debug_trajectories and lab.debug_impacts and lab.debug_linger == 12.0, "Debug toggles and linger time reach the tuning")
+	lab.debug_linger = lab.DEFAULT_DEBUG_LINGER
 	check(texts.has("Jump force (m/s)") and texts.has("Acceleration (m/s²)"), "Movement lists speed, acceleration and jump force")
 	var speed_label: Node = heading.call("Max speed (km/h)")
 	var speed_spin: SpinBox = speed_label.get_parent().get_child(speed_label.get_index() + 1)
@@ -144,6 +159,50 @@ func run() -> void:
 	check(tuned_hits.all(func(e: Dictionary) -> bool: return is_equal_approx(float(e.damage), 12.0)), "Tuned hits deal the set damage")
 	check(is_equal_approx(float(target.combat.zones.get("front", 0.0)), front_before), "100% piercing leaves the plate untouched")
 	check(player.combat.heat == 0.0 and not player.combat.overheated, "Heat off keeps the gun cool")
+	# #93: every shot records its path and every impact a point (no area of effect).
+	var marks: Array[Dictionary] = lab.take_debug_marks()
+	var paths := marks.filter(func(m: Dictionary) -> bool: return m.type == "path")
+	var impacts := marks.filter(func(m: Dictionary) -> bool: return m.type == "impact")
+	check(paths.size() >= tuned_hits.size() and impacts.size() >= tuned_hits.size() and impacts.all(func(m: Dictionary) -> bool: return m.radius == 0.0),
+		"Shots record their paths (%d) and impacts (%d) as points" % [paths.size(), impacts.size()])
+	check(impacts.any(func(m: Dictionary) -> bool: return m.position.distance_to(tuned_hits[0].position) < 0.001), "An impact mark sits where a hit landed")
+	var draw: Node3D = preload("res://scripts/presentation/practice_debug_draw.gd").new()
+	root.add_child(draw)
+	lab.debug_impact(target.body.global_position, 3.0)
+	lab.debug_impact(target.body.global_position)
+	lab.debug_path(PackedVector3Array([Vector3.ZERO, Vector3.UP]))
+	draw.render(lab, 0.0)
+	var meshes := draw.get_children().map(func(n: Node) -> Mesh: return (n as MeshInstance3D).mesh)
+	check(meshes.size() == 3 and meshes[0] is SphereMesh and is_equal_approx((meshes[0] as SphereMesh).radius, 3.0)
+		and meshes[1] is BoxMesh and meshes[2] is ImmediateMesh, "An area impact draws its sphere, a point impact a cube, a shot a line")
+	lab.debug_linger = 5.0
+	draw.render(lab, 4.0)
+	check(draw._shown.size() == 3, "Marks stay until the linger time")
+	draw.render(lab, 1.5)
+	check(draw._shown.is_empty(), "Marks go after the linger time")
+	lab.debug_impact(Vector3.ZERO)
+	draw.render(lab, 0.0)
+	lab.debug_impacts = false
+	draw.render(lab, 0.0)
+	lab.debug_impact(Vector3.ZERO)
+	check(draw._shown.is_empty() and lab.debug_marks.is_empty(), "Turning a view off clears its marks and records no more")
+	# Hitboxes: the other bots' real collision shapes and armour zones, never the player's.
+	lab.debug_hitboxes = true
+	draw.render(lab, 0.0, [target])
+	check(draw._hitboxes.size() == 1, "Hitboxes show for each other bot")
+	var rig: Node3D = draw._hitboxes.values()[0].rig
+	var colliders := target.body.get_children().filter(func(n: Node) -> bool: return n is CollisionShape3D and not n.disabled)
+	check(rig.get_children().filter(func(n: Node) -> bool: return n is MeshInstance3D).size() == colliders.size() + 1,
+		"Every collision shape draws its wireframe, plus the zone boundaries")
+	check(rig.global_transform.is_equal_approx(target.body.global_transform), "Hitboxes follow the bot's body")
+	var zone_labels: Array = draw._hitboxes.values()[0].labels.keys()
+	check(zone_labels.has("front") and zone_labels.has("weapon") and zone_labels.has("drive_left"), "Every armour and component zone is labelled")
+	lab.debug_hitboxes = false
+	draw.render(lab, 0.0, [target])
+	check(draw._hitboxes.is_empty(), "Turning hitboxes off removes them")
+	draw.queue_free()
+	lab.debug_impacts = true
+	lab.debug_linger = lab.DEFAULT_DEBUG_LINGER
 
 	# Knockback pushes only the target; recoil only the shooter (#84 feedback).
 	var queued := func() -> Array:
@@ -270,8 +329,16 @@ func run() -> void:
 		return session.world.weapons.pending_hits.any(func(hit: Array) -> bool: return hit[1] == atlas and float(hit[3]) > 0.0)
 	var reach: float = session.world.weapons._hammer_head(hammerer).distance_to(atlas.body.global_position) + 5.0
 	check(not blasted.call(), "An untuned hammer strike has no blast")
+	lab.debug_impacts = true
+	lab.take_debug_marks()
+	blasted.call()
+	var strike_marks: Array[Dictionary] = lab.take_debug_marks()
+	check(strike_marks.size() == 1 and strike_marks[0].radius == 0.0
+		and strike_marks[0].position.distance_to(session.world.weapons._hammer_head(hammerer)) < 0.001, "An untuned hammer strike marks a point where its head lands")
 	lab.set_value("primary", "aoe", reach)
 	check(blasted.call(), "A tuned hammer blasts the Atlas %.0f m from the head without touching it" % (reach - 5.0))
+	var blast_marks: Array[Dictionary] = lab.take_debug_marks()
+	check(blast_marks.size() == 1 and is_equal_approx(blast_marks[0].radius, reach), "A tuned hammer strike marks a sphere of its area of effect")
 	lab.set_value("primary", "aoe", 1.0)
 	check(not blasted.call(), "A small blast does not reach it")
 	session.leave()

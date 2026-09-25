@@ -35,6 +35,22 @@ var jump_cooldown_enabled := true
 ## weapons (hammer, ram, spear, harpoon) and fires release-fired ones (lifter,
 ## railgun) as soon as they are fully charged.
 var auto_fire := {"primary":false, "secondary":false}
+## Debug views (#93), presentation only: draw every shot's path and what each
+## impact reached. CombatWorld records marks for this bot while a view is on;
+## the preview's PracticeDebugDraw drains them and keeps each on screen for
+## debug_linger seconds.
+const DEFAULT_DEBUG_LINGER := 60.0
+## Marks kept while nothing drains them (no preview, e.g. headless tests).
+const MAX_DEBUG_MARKS := 512
+var debug_trajectories := false
+var debug_impacts := false
+## Wireframes of the other bots' collision shapes and armour zones (drawn from
+## the live bots, nothing recorded).
+var debug_hitboxes := false
+var debug_linger := DEFAULT_DEBUG_LINGER
+## {type:"path", points:PackedVector3Array} or {type:"impact", position,
+## radius}; radius 0 marks a weapon without an area of effect.
+var debug_marks: Array[Dictionary] = []
 ## slot ("primary"/"secondary") -> {id, title, defaults:{field:value}, values:{field:value}}.
 var weapons: Dictionary = {}
 ## Body defaults and overrides: core, weight, speed, acceleration and grip (m/s²
@@ -302,6 +318,27 @@ func reset() -> void:
 	heat_enabled = true
 	jump_cooldown_enabled = true
 	auto_fire = {"primary":false, "secondary":false}
+
+## A shot's flight path, while trajectories are shown.
+func debug_path(points: PackedVector3Array) -> void:
+	if debug_trajectories and points.size() >= 2:
+		_debug_mark({"type":"path", "points":points})
+
+## What an impact reached: a sphere of radius, or the point itself for 0.
+func debug_impact(position: Vector3, radius := 0.0) -> void:
+	if debug_impacts:
+		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0)})
+
+func _debug_mark(mark: Dictionary) -> void:
+	if debug_marks.size() >= MAX_DEBUG_MARKS:
+		debug_marks.pop_front()
+	debug_marks.append(mark)
+
+## Hands over the marks recorded since the last call.
+func take_debug_marks() -> Array[Dictionary]:
+	var marks := debug_marks
+	debug_marks = []
+	return marks
 
 ## The tuned bot's chassis part id.
 func chassis() -> String:

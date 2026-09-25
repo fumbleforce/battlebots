@@ -417,20 +417,31 @@ func ground_clearance() -> float:
 		return float(body.gait_spec.ride_height)
 	return -collision_bounds().position.y
 
+## zone_at() splits the collision bounds (centred, as shares of the half size):
+## top and underside are the outer slabs past ZONE_SLAB of the half height; in
+## between, the sides are where |x|/half.x beats |z|/half.z. A side's drive pod
+## lies below ZONE_DRIVE_TOP m (x geometry scale) above the centre and within
+## ZONE_DRIVE_LENGTH of the half length; the weapon is the front strip within
+## ZONE_WEAPON_WIDTH of the half width. Practice debug hitboxes (#93) draw these.
+const ZONE_SLAB := 0.8
+const ZONE_DRIVE_TOP := 0.05
+const ZONE_DRIVE_LENGTH := 0.8
+const ZONE_WEAPON_WIDTH := 0.45
+
 func zone_at(world_point: Vector3) -> String:
 	var point := body.global_transform.affine_inverse() * world_point
 	var bounds := collision_bounds()
 	point -= bounds.get_center()
 	var half := bounds.size * 0.5
-	if point.y > half.y * 0.8:
+	if point.y > half.y * ZONE_SLAB:
 		return "top"
-	if point.y < -half.y * 0.8:
+	if point.y < -half.y * ZONE_SLAB:
 		return "underside"
 	if absf(point.x) / half.x > absf(point.z) / half.z:
-		if point.y < 0.05 * body.geometry_scale and absf(point.z) < half.z * 0.8:
+		if point.y < ZONE_DRIVE_TOP * body.geometry_scale and absf(point.z) < half.z * ZONE_DRIVE_LENGTH:
 			return "drive_left" if point.x < 0 else "drive_right"
 		return "left" if point.x < 0 else "right"
-	if point.z < 0 and absf(point.x) < half.x * 0.45:
+	if point.z < 0 and absf(point.x) < half.x * ZONE_WEAPON_WIDTH:
 		return "weapon"
 	return "front" if point.z < 0 else "rear"
 
