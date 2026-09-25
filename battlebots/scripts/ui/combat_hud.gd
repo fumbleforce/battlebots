@@ -22,6 +22,7 @@ const HIT_SHAKE_JITTER := 2.5
 const HIT_SHAKE_RATE := 55.0
 ## A bare side flashes a deeper red: the palette's danger hue at this saturation.
 const BARE_HIT_SATURATION := 1.0
+const SpeedGauge := preload("res://scripts/ui/hud_speed_gauge.gd")
 const PHASES := {"idle":"IDLE", "active":"ACTIVE", "disabled":"DISABLED", "overheated":"OVERHEATED", "launch":"LAUNCH", "windup":"WINDUP", "strike":"STRIKE", "cooldown":"COOLDOWN"}
 var text_scale := 1.0
 var palette := "standard"
@@ -34,6 +35,8 @@ var panels: Array[PanelContainer] = []
 var base_fonts: Dictionary = {}
 var muted_labels: Array[Label] = []
 var resources_panel: PanelContainer
+var speed_panel: PanelContainer
+var speed_gauge: SpeedGauge
 var components_panel: PanelContainer
 var systems_panel: PanelContainer
 var weapon_panel: PanelContainer
@@ -72,6 +75,12 @@ func _ready() -> void:
 	theme = preload("res://ui/menus/theme/menu_theme.tres")
 	canvas = Control.new()
 	add_child(canvas)
+	# Speedometer block, stacked above the Integrity block.
+	speed_panel = _panel()
+	speed_panel.name = "SpeedPanel"
+	speed_gauge = SpeedGauge.new()
+	speed_gauge.name = "SpeedGauge"
+	speed_panel.add_child(speed_gauge)
 	resources_panel = _panel()
 	# One compact row: the core reading, then the plate map beside it.
 	var health_body := HBoxContainer.new()
@@ -210,6 +219,7 @@ func apply_accessibility(value: float, colors: String, contrast: bool) -> void:
 		background.bg_color = Color("384553")
 		resources[key].bar.add_theme_stylebox_override("background", background)
 	jump_gauge.apply_accessibility(text_scale, accent, high_contrast)
+	speed_gauge.apply_accessibility(text_scale, accent, high_contrast)
 	_layout()
 	_resize()
 
@@ -224,6 +234,8 @@ func _layout() -> void:
 	# Recompute after visibility/text changes; containers can shrink after a warning.
 	resources_panel.size = Vector2(health_width, 0)
 	resources_panel.position = Vector2(28, 692 - resources_panel.size.y)
+	speed_panel.size = Vector2(health_width, 0)
+	speed_panel.position = Vector2(28, resources_panel.position.y - 8 - speed_panel.size.y)
 	weapon_panel.size = Vector2(weapon_width, 0)
 	weapon_panel.position = Vector2(1252 - weapon_width, 692 - weapon_panel.size.y)
 	systems_panel.size = Vector2(weapon_width, 0)
@@ -442,7 +454,7 @@ func _resize() -> void:
 	systems_panel.position.x += extra
 	connection_label.position.x += extra
 	var extra_height := canvas.size.y - 720.0
-	for control: Control in [resources_panel, weapon_panel, systems_panel]:
+	for control: Control in [resources_panel, speed_panel, weapon_panel, systems_panel]:
 		control.position.y += extra_height
 	# The jump-force instrument sits above the card that reports Jump status.
 	jump_gauge.size.x = systems_panel.size.x - 28.0
@@ -453,6 +465,8 @@ func render(view: BotView, recovery_binding: String = "", opponent: BotView = nu
 		return
 	_render_perks(view, combat_active, perk_parts)
 	_render_armor(view)
+	speed_gauge.render(view)
+	speed_panel.visible = view != null and not view.eliminated
 	var values := [view.core_fraction, view.heat_fraction, view.weapon_charge_fraction] if view != null else [NAN, NAN, NAN]
 	var index := 0
 	for key: String in ["Core", "Heat", "Charge"]:

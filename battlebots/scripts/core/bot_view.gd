@@ -31,6 +31,11 @@ var last_shot_to := Vector3.ZERO
 var last_shot_tick := -1
 var gun_pitch := 0.0
 var nitro_active := false
+## Speedometer (presentation only): authoritative speed in the hull plane over
+## the drive's normal top speed (NAN when unknown), and the top speed nitro
+## reaches on the same scale (1.0 without nitro, e.g. 2.0 with it).
+var speed_fraction := NAN
+var nitro_speed_fraction := 1.0
 var jump_charge_fraction := 0.0
 var jump_cooldown := 0.0
 ## Atlas roof turret: "cannon", "plasma" or empty. Yaw is chassis-relative;

@@ -32,6 +32,10 @@ func run() -> void:
 		root.get_texture().get_image().save_png("user://a-hud-redesign-practice.png")
 	check(game.match_hud.phase_label.text == "PRACTICE" and not game.practice_hud.visible and not game._diagnostics_canvas.visible, "Practice has no fabricated duel rival")
 	var bot: MvpBot = game.session.local_source()
+	var moving := bot.read_view()
+	var expected_nitro := bot.body.physics.nitro_top_speed_multiplier * bot.body.nitro_boost_scale if bot.body.nitro_equipped else 1.0
+	check(is_finite(moving.speed_fraction) and moving.speed_fraction >= 0.0 and is_equal_approx(moving.nitro_speed_fraction, expected_nitro)
+		and game.combat_hud.speed_panel.visible, "Actual practice bot publishes speed and its nitro top speed to the speedometer")
 	bot.combat.core = bot.combat.stats.core * 0.2
 	# The Sawblade starter fits only side armour; a depleted fitted piece reads BREACHED.
 	bot.combat.zones.left = 0.0

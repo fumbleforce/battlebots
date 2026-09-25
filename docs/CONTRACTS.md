@@ -1,5 +1,18 @@
 # Shared contracts — local records and current MVP session API
 
+## Speedometer HUD block (#86)
+
+`BotView` adds presentation-only `speed_fraction` and `nitro_speed_fraction`,
+filled locally by `MvpBot.read_view` (never sent on the wire). `speed_fraction`
+is the speed in the hull plane over the drive's normal top speed
+(`top_speed * top_speed_multiplier`), taken from authority like engine audio:
+the server body, or the client's accepted snapshot velocity; NAN when unknown.
+`nitro_speed_fraction` is the nitro top speed on that scale
+(`nitro_top_speed_multiplier * nitro_boost_scale`), 1.0 without nitro fitted.
+`CombatHud` shows them in a new `HudSpeedGauge` block above Integrity: 0–100%
+normally, extended by the nitro section while nitro burns. No command, wire,
+gameplay or BUILD change.
+
 ## Progressive destruction and destructible props — build mvp-ab-49, protocol 16 (#72, #71)
 
 Snapshot field 45 is new, making 46 fields in total. It carries the killing

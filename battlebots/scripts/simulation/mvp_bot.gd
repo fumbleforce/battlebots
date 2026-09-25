@@ -475,6 +475,15 @@ func read_view() -> BotView:
 	view.last_shot_tick = data.get("last_shot_tick", -1)
 	view.gun_pitch = data.get("gun_pitch", 0.0)
 	view.nitro_active = data.get("nitro_active", false)
+	# Movement comes from authority (as for engine audio), never from smoothing
+	# or prediction: the server body, or the client's accepted snapshot.
+	var velocity: Variant = remote_state.get("velocity") if not simulated else \
+		(Vector3.ZERO if body.reset_pose is Transform3D else body.linear_velocity)
+	var top := body.top_speed * body.physics.top_speed_multiplier
+	if velocity is Vector3 and top > 0.0:
+		var up := view.pose.basis.y.normalized()
+		view.speed_fraction = (velocity - up * velocity.dot(up)).length() / top
+	view.nitro_speed_fraction = body.physics.nitro_top_speed_multiplier * body.nitro_boost_scale if body.nitro_equipped else 1.0
 	view.jump_charge_fraction = data.get("jump_charge", 0.0)
 	view.jump_cooldown = data.get("jump_cooldown", 0.0)
 	view.grip_target = data.get("grip_target", 0)
