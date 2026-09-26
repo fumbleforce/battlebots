@@ -265,7 +265,7 @@ func run() -> void:
 		var health: float = session.world.bots[id].combat.core
 		target_panel.health_up.pressed.emit()
 		await frames()
-		check(is_equal_approx(session.world.bots[id].combat.core, health + target_panel.HEALTH_STEP), "+100 adds health (%s -> %s)" % [health, session.world.bots[id].combat.core])
+		check(is_equal_approx(session.world.bots[id].combat.core, health + target_panel.STEP), "+100 adds health (%s -> %s)" % [health, session.world.bots[id].combat.core])
 		target_panel.health_down.pressed.emit()
 		await frames()
 		check(is_equal_approx(session.world.bots[id].combat.core, health), "-100 takes it again")
@@ -275,7 +275,7 @@ func run() -> void:
 		await frames()
 		npc = session.world.bots[id]
 		for face: String in plates:
-			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face]) + target_panel.ARMOUR_STEP),
+			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face]) + target_panel.STEP),
 				"+armour adds to the %s face (%s -> %s)" % [face, plates[face], npc.combat.stats.plates[face]])
 		# A spawn where an NPC already stands lands on top of it.
 		target_panel.armour_down.pressed.emit()
@@ -283,25 +283,30 @@ func run() -> void:
 		npc = session.world.bots[id]
 		for face: String in plates:
 			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face])), "-armour takes it again from the %s face" % face)
-		# Weapon and drive durability, under the armour buttons.
-		check(target_panel.weapon_down.get_parent().get_index() > target_panel.armour_up.get_parent().get_index()
-			and target_panel.drive_down.get_parent().get_index() > target_panel.weapon_down.get_parent().get_index(),
-			"Weapon then drive durability rows sit under the armour row")
+		# Under a line and a "+/- 100 Durability" caption: -HP +HP -A +A, then -W +W -D +D.
+		var body_row: Control = target_panel.health_down.get_parent()
+		var parts_row: Control = target_panel.weapon_down.get_parent()
+		var rows: Node = body_row.get_parent()
+		check(body_row.get_children() == [target_panel.health_down, target_panel.health_up, target_panel.armour_down, target_panel.armour_up]
+			and parts_row.get_children() == [target_panel.weapon_down, target_panel.weapon_up, target_panel.drive_down, target_panel.drive_up]
+			and parts_row.get_index() == body_row.get_index() + 1
+			and rows.get_child(body_row.get_index() - 1) is Label and (rows.get_child(body_row.get_index() - 1) as Label).text == "+/- 100 Durability"
+			and rows.get_child(body_row.get_index() - 2) is HSeparator, "The durability buttons sit in two rows under a line and their caption")
 		var zones: Dictionary = session.world.bots[id].combat.zones.duplicate()
 		target_panel.weapon_up.pressed.emit()
 		target_panel.drive_down.pressed.emit()
 		await frames()
 		var now: Dictionary = session.world.bots[id].combat.zones
-		check(is_equal_approx(now.weapon, zones.weapon + target_panel.DURABILITY_STEP)
-			and is_equal_approx(now.drive_left, maxf(0.0, zones.drive_left - target_panel.DURABILITY_STEP))
-			and is_equal_approx(now.drive_right, maxf(0.0, zones.drive_right - target_panel.DURABILITY_STEP)),
+		check(is_equal_approx(now.weapon, zones.weapon + target_panel.STEP)
+			and is_equal_approx(now.drive_left, maxf(0.0, zones.drive_left - target_panel.STEP))
+			and is_equal_approx(now.drive_right, maxf(0.0, zones.drive_right - target_panel.STEP)),
 			"+W adds weapon durability and -D takes both drives' (%s -> %s)" % [zones, now])
 		target_panel.weapon_down.pressed.emit()
 		target_panel.drive_up.pressed.emit()
 		await frames()
 		now = session.world.bots[id].combat.zones
 		check(is_equal_approx(now.weapon, zones.weapon) and now.drive_left > 0.0 and now.drive_right > 0.0, "-W and +D give them back")
-		check(target_panel.weapon_down.text == "-100 W" and target_panel.drive_up.text == "+100 D", "They read -100 W / +100 D")
+		check(target_panel.health_down.text == "-HP" and target_panel.weapon_down.text == "-W" and target_panel.drive_up.text == "+D", "They read -HP, -W, +D")
 		var stacked: int = session.practice_spawn_npc(npc.body.global_position + Vector3.UP * 6.0, Vector3.DOWN)
 		var above: MvpBot = session.world.bots.get(stacked)
 		check(above != null and above.body.reset_pose is Transform3D and above.body.reset_pose.origin.y > npc.body.global_position.y + 0.5,
@@ -347,8 +352,8 @@ func run() -> void:
 			"Possess tops the target card's options")
 		check(target_panel.possess_button.get_theme_stylebox("normal").bg_color == target_panel.POSSESS_COLOR
 			and target_panel.remove_button.get_theme_stylebox("normal").bg_color == target_panel.REMOVE_COLOR, "Possess is green and Remove red")
-		check(target_panel.hitbox_toggle.text == "Hitbox" and target_panel.armour_down.text == "-100 A" and target_panel.armour_up.text == "+100 A",
-			"The target card reads Hitbox, -100 A and +100 A")
+		check(target_panel.hitbox_toggle.text == "Hitbox" and target_panel.armour_down.text == "-A" and target_panel.armour_up.text == "+A",
+			"The target card reads Hitbox, -A and +A")
 		target_panel.possess_button.pressed.emit()
 		await frames(4)
 		check(session.local_entity == fresh_id and session.practice_npc(old_player) != null and session.practice_npc(fresh_id) == null,

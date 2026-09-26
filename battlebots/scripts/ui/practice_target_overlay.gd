@@ -16,11 +16,9 @@ const BUTTON_FONT := 18
 const ROW_FONT := 18
 ## Width of the captions left of the dropdowns.
 const CAPTION_WIDTH := 92
-## Health, and armour on every face, the -/+ buttons take or give.
-const HEALTH_STEP := 100.0
-const ARMOUR_STEP := 100.0
-## Weapon and drive durability the -/+ buttons take or give.
-const DURABILITY_STEP := 100.0
+## Health, armour on every face, weapon and drive durability: what each -/+
+## button takes or gives.
+const STEP := 100.0
 const DRIVE_ZONES := ["drive_left", "drive_right"]
 ## Possess is green, Remove red.
 const POSSESS_COLOR := Color("2e8b45")
@@ -101,26 +99,27 @@ func _init() -> void:
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
 	hitbox_toggle = _switch(column, "TargetHitboxes", func(on: bool) -> void: hitboxes_toggled.emit(target, on))
 	hitbox_toggle.text = "Hitbox"
-	var health_row := _row(column)
-	health_down = _button(health_row, "TargetHealthDown", "-%d HP" % HEALTH_STEP, func() -> void:
-		if session != null: session.practice_add_npc_health(target, -HEALTH_STEP))
-	health_up = _button(health_row, "TargetHealthUp", "+%d HP" % HEALTH_STEP, func() -> void:
-		if session != null: session.practice_add_npc_health(target, HEALTH_STEP))
-	var armour_row := _row(column)
-	armour_down = _button(armour_row, "TargetArmourDown", "-%d A" % ARMOUR_STEP, func() -> void:
-		if session != null: session.practice_add_npc_armour(target, -ARMOUR_STEP))
-	armour_up = _button(armour_row, "TargetArmourUp", "+%d A" % ARMOUR_STEP, func() -> void:
-		if session != null: session.practice_add_npc_armour(target, ARMOUR_STEP))
-	var weapon_row := _row(column)
-	weapon_down = _button(weapon_row, "TargetWeaponDown", "-%d W" % DURABILITY_STEP, func() -> void:
-		if session != null: session.practice_add_npc_durability(target, ["weapon"], -DURABILITY_STEP))
-	weapon_up = _button(weapon_row, "TargetWeaponUp", "+%d W" % DURABILITY_STEP, func() -> void:
-		if session != null: session.practice_add_npc_durability(target, ["weapon"], DURABILITY_STEP))
-	var drive_row := _row(column)
-	drive_down = _button(drive_row, "TargetDriveDown", "-%d D" % DURABILITY_STEP, func() -> void:
-		if session != null: session.practice_add_npc_durability(target, DRIVE_ZONES, -DURABILITY_STEP))
-	drive_up = _button(drive_row, "TargetDriveUp", "+%d D" % DURABILITY_STEP, func() -> void:
-		if session != null: session.practice_add_npc_durability(target, DRIVE_ZONES, DURABILITY_STEP))
+	# Health, armour, weapon and drive, each taken or given STEP at a time.
+	column.add_child(HSeparator.new())
+	_label(column, "+/- %d Durability" % STEP, &"Body", ROW_FONT)
+	var body_row := _row(column)
+	health_down = _button(body_row, "TargetHealthDown", "-HP", func() -> void:
+		if session != null: session.practice_add_npc_health(target, -STEP))
+	health_up = _button(body_row, "TargetHealthUp", "+HP", func() -> void:
+		if session != null: session.practice_add_npc_health(target, STEP))
+	armour_down = _button(body_row, "TargetArmourDown", "-A", func() -> void:
+		if session != null: session.practice_add_npc_armour(target, -STEP))
+	armour_up = _button(body_row, "TargetArmourUp", "+A", func() -> void:
+		if session != null: session.practice_add_npc_armour(target, STEP))
+	var parts_row := _row(column)
+	weapon_down = _button(parts_row, "TargetWeaponDown", "-W", func() -> void:
+		if session != null: session.practice_add_npc_durability(target, ["weapon"], -STEP))
+	weapon_up = _button(parts_row, "TargetWeaponUp", "+W", func() -> void:
+		if session != null: session.practice_add_npc_durability(target, ["weapon"], STEP))
+	drive_down = _button(parts_row, "TargetDriveDown", "-D", func() -> void:
+		if session != null: session.practice_add_npc_durability(target, DRIVE_ZONES, -STEP))
+	drive_up = _button(parts_row, "TargetDriveUp", "+D", func() -> void:
+		if session != null: session.practice_add_npc_durability(target, DRIVE_ZONES, STEP))
 	column.add_child(HSeparator.new())
 	_picker_column = VBoxContainer.new()
 	_picker_column.add_theme_constant_override("separation", 6)
@@ -134,7 +133,7 @@ func _label(parent: Node, text: String, variation: StringName, font_size: int) -
 	parent.add_child(label)
 	return label
 
-## Two buttons sharing a row equally.
+## Buttons sharing a row equally.
 func _row(parent: Control) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
