@@ -279,6 +279,21 @@ func run() -> void:
 	await key(KEY_F2)
 	check(not world_panel.visible and not tuning_panel.visible and not preview.free_cursor,
 		"F2 hides the world panel and recaptures the cursor")
+	# Escape closes the F1/F2 panels first; only then does it open the pause menu.
+	await key(KEY_F2)
+	check(world_panel.visible, "F2 opens the world panel again")
+	await key(KEY_ESCAPE)
+	check(not world_panel.visible and not preview.pause_menu.visible and preview.controls_enabled and not preview.free_cursor,
+		"Escape closes the world panel without the pause menu")
+	await key(KEY_F1)
+	check(tuning_panel.visible, "F1 opens the tuning panel")
+	await key(KEY_ESCAPE)
+	check(not tuning_panel.visible and not preview.pause_menu.visible and preview.controls_enabled, "Escape closes the tuning panel without the pause menu")
+	await key(KEY_ESCAPE)
+	check(preview.pause_menu.visible and not preview.controls_enabled, "Escape with no panel open shows the pause menu")
+	game.resume_gameplay()
+	await frames()
+	check(not world_panel.visible and not tuning_panel.visible and preview.controls_enabled, "Resuming does not bring a closed panel back")
 	game.return_to_main()
 	await frames()
 	check(not world_panel.visible and not game._practice_world_open, "Leaving practice closes the world panel")

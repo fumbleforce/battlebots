@@ -1034,7 +1034,8 @@ an NPC where the view camera's centre points (friendly; onto any NPC already
 there), clear all NPCs, and switches for every NPC's behaviour and hitboxes
 (the Hitboxes switch moved here from the tuning panel). Both panel actions are
 matched exactly in `menu_game._unhandled_input`; opening one panel closes the
-other. Same presentation-only, not-rebindable terms as `practice_panel`. The
+other, and Escape (`pause`) closes an open one before it would open the pause
+menu. Same presentation-only, not-rebindable terms as `practice_panel`. The
 buttons call the offline authority through `MvpSession.practice_*` helpers,
 which do nothing outside a Practice Duel (`practice_tuning()` null). Spawn
 reach is `data/arena_spawns.json` `duel.spawn.reach`. No wire, `BotCommand` or

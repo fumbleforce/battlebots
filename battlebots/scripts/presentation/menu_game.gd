@@ -1161,7 +1161,13 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif not menu_host.visible:
 		get_viewport().set_input_as_handled()
-		if preview.controls_enabled:
+		if preview.controls_enabled and (_practice_tuning_open or _practice_world_open):
+			# Escape closes the F1/F2 practice panels (#97); only with neither
+			# showing does it open the pause menu.
+			_practice_tuning_open = false
+			_practice_world_open = false
+			_update_practice_tuning_overlay()
+		elif preview.controls_enabled:
 			preview.release_controls()
 		else:
 			resume_gameplay()
