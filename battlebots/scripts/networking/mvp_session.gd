@@ -457,7 +457,7 @@ func practice_add_npc_health(id: int, amount: float) -> void:
 
 ## Adds amount (negative to take, never below 0) to the NPC's current
 ## durability in each of zones ("weapon", or "drive_left" and "drive_right");
-## the result is also what those parts start from until changed again.
+## a respawn restores them.
 func practice_add_npc_durability(id: int, zones: Array, amount: float) -> void:
 	var tuning := _npc_tuning(id)
 	if tuning == null:

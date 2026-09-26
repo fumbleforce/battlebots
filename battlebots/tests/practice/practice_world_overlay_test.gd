@@ -306,6 +306,14 @@ func run() -> void:
 		await frames()
 		now = session.world.bots[id].combat.zones
 		check(is_equal_approx(now.weapon, zones.weapon) and now.drive_left > 0.0 and now.drive_right > 0.0, "-W and +D give them back")
+		target_panel.weapon_down.pressed.emit()
+		target_panel.drive_down.pressed.emit()
+		await frames()
+		session.world.bots[id].reset_round()
+		await frames()
+		now = session.world.bots[id].combat.zones
+		check(is_equal_approx(now.weapon, zones.weapon) and is_equal_approx(now.drive_left, zones.drive_left)
+			and is_equal_approx(now.drive_right, zones.drive_right), "A respawn restores weapon and drives (%s)" % now)
 		check(target_panel.health_down.text == "-HP" and target_panel.weapon_down.text == "-W" and target_panel.drive_up.text == "+D", "They read -HP, -W, +D")
 		var stacked: int = session.practice_spawn_npc(npc.body.global_position + Vector3.UP * 6.0, Vector3.DOWN)
 		var above: MvpBot = session.world.bots.get(stacked)

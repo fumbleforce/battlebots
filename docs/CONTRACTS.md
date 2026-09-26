@@ -1055,7 +1055,8 @@ NPC until they change), takes or gives 100 health, 100 armour on every face and
 and has chassis/drive/weapon/utility pickers. `practice_part_options` and
 `practice_set_part` take an optional NPC entity id (0, the default, is the
 player). NPC health and armour go through a `practice_tuning.gd` instance made
-for that NPC on first edit, so they hold through its respawns.
+for that NPC on first edit, so they hold through its respawns; weapon and
+drive durability changes last only until the next respawn, which restores them.
 `baseline_preview.cursor_panels` lists extra cards whose presses stay off the
 weapons. The player's own bot is never selectable; with a target selected the
 orbit camera turns toward it (`BotOrbitCamera.look_target`).

@@ -64,8 +64,8 @@ var weapons: Dictionary = {}
 var body_defaults: Dictionary = {}
 var body: Dictionary = {}
 ## Weapon and drive durability (#97, the practice target card): component zone
-## -> the value it starts from, as health and armour do; written as its
-## current value too when changed.
+## -> the value written as its current durability on the next apply. Unlike
+## health and armour it is not held: a respawn restores weapon and drives.
 var components: Dictionary = {}
 var _weapon_ids := ["", ""]
 var _chassis := ""
@@ -108,8 +108,9 @@ func apply(bot: MvpBot, registry: ContentRegistry) -> void:
 			stats.plates[face] = float(body.plates[face])
 			if fresh or _body_dirty: state.zones[face] = float(body.plates[face])
 	for zone: String in components:
-		if state.zones.has(zone) and (fresh or _body_dirty):
+		if state.zones.has(zone):
 			state.zones[zone] = float(components[zone])
+	components.clear()
 	_body_dirty = false
 	var mass := total_mass()
 	if mass > 0.0 and not is_equal_approx(bot.body.mass, mass):
@@ -311,14 +312,15 @@ func set_body(field: String, amount: float, face := "") -> void:
 		body[field] = amount
 	_body_dirty = true
 
-## One body value back to its default. Health and armour also refill at once;
-## weight, speed and acceleration return to their derived values.
-## Sets a component zone's durability (weapon, drive_left, drive_right).
+## Sets a component zone's current durability (weapon, drive_left,
+## drive_right) until the bot respawns.
 func set_component(zone: String, amount: float) -> void:
 	if zone in COMPONENT_ZONES and is_finite(amount) and amount >= 0.0:
 		components[zone] = amount
 		_body_dirty = true
 
+## One body value back to its default. Health and armour also refill at once;
+## weight, speed and acceleration return to their derived values.
 func clear_body(field: String, face := "") -> void:
 	if field == "core":
 		set_body("core", float(body_defaults.get("core", 0.0)))
