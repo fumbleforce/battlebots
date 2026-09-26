@@ -64,6 +64,10 @@ var _practice_tuning_open := false
 ## (Shift+Z). At most one of the two practice panels is open.
 var practice_world_overlay: Control
 var _practice_world_open := false
+## Beside it, the target panel (#97) for the NPC last looked at (entity id,
+## 0 for none) while the world panel shows.
+var practice_target_overlay: Control
+var _practice_target := 0
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
@@ -130,6 +134,10 @@ func _ready() -> void:
 	tuning_layer.add_child(practice_world_overlay)
 	practice_world_overlay.hide()
 	practice_world_overlay.spawn_requested.connect(_spawn_practice_npc)
+	practice_target_overlay = preload("res://scripts/ui/practice_target_overlay.gd").new()
+	tuning_layer.add_child(practice_target_overlay)
+	practice_target_overlay.hide()
+	preview.cursor_panels.append(practice_target_overlay.card)
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
 	add_child(results_layer)
@@ -654,7 +662,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	for entry: Button in [audio_settings_button, hud_settings_button]:
 		if is_instance_valid(entry):
 			MenuTextScale.apply(entry, _menu_text_scale)
-	for panel: Control in [screen, game_menu_page, practice_tuning_overlay, practice_world_overlay, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
+	for panel: Control in [screen, game_menu_page, practice_tuning_overlay, practice_world_overlay, practice_target_overlay, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
@@ -888,6 +896,7 @@ func _update_practice_tuning_overlay() -> void:
 	practice_world_overlay.visible = shown and _practice_world_open
 	if practice_world_overlay.visible:
 		practice_world_overlay.render(session)
+	_update_practice_target()
 	preview.cursor_panel = practice_world_overlay.card if _practice_world_open else practice_tuning_overlay.card
 
 ## World panel (#97): spawns an NPC where the view camera's centre (the
@@ -896,6 +905,26 @@ func _spawn_practice_npc() -> void:
 	var camera: Camera3D = preview.aim_camera()
 	if is_instance_valid(camera) and camera.is_inside_tree():
 		session.practice_spawn_npc(camera.global_position, -camera.global_basis.z)
+
+## Target panel (#97): while the world panel shows, the NPC under the view
+## camera's centre becomes the target and stays it until another NPC is
+## looked at, it is removed, or the world panel closes.
+func _update_practice_target() -> void:
+	if not practice_world_overlay.visible:
+		if not _practice_world_open:
+			_practice_target = 0
+		practice_target_overlay.hide()
+		return
+	var camera: Camera3D = preview.aim_camera()
+	if is_instance_valid(camera) and camera.is_inside_tree():
+		var looked: int = session.practice_npc_at(camera.global_position, -camera.global_basis.z)
+		if looked != 0:
+			_practice_target = looked
+	if session.practice_npc(_practice_target) == null:
+		_practice_target = 0
+	practice_target_overlay.visible = _practice_target != 0
+	if practice_target_overlay.visible:
+		practice_target_overlay.render(session, _practice_target)
 
 func _update_world_markers() -> void:
 	if not is_instance_valid(world_markers) or not is_instance_valid(session):

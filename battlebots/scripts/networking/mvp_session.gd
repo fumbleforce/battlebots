@@ -282,15 +282,27 @@ func _fitted(bot: MvpBot, part: String, slot: String) -> Dictionary:
 	return next
 
 func _swap_local_part(loadout: Dictionary) -> void:
-	world.apply_loadout(local_entity, loadout)
+	_swap_part(local_entity, loadout)
+
+func _swap_part(entity: int, loadout: Dictionary) -> void:
+	world.apply_loadout(entity, loadout)
 	# Publish like a pickup so a local host's guests rebuild the same bot.
 	world.pickups.revision += 1
 
+## The bot a Practice Duel panel's part pickers edit: the player (entity 0,
+## the default) or, for the target panel (#97), one of the NPCs.
+func _practice_bot(slot: String, entity: int) -> MvpBot:
+	if practice_tuning() == null or slot not in PRACTICE_PART_SLOTS:
+		return null
+	if entity == 0 or entity == local_entity:
+		return world.bots.get(local_entity)
+	return practice_npc(entity)
+
 ## Practice Duel tuning (#84): the weapon, chassis, drive (#94) or utility parts in the panel's
 ## dropdown, each {part, fits, current}. Empty outside Practice Duel.
-func practice_part_options(slot: String) -> Array[Dictionary]:
+func practice_part_options(slot: String, entity := 0) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
-	var bot: MvpBot = world.bots.get(local_entity) if practice_tuning() != null and slot in PRACTICE_PART_SLOTS else null
+	var bot := _practice_bot(slot, entity)
 	if bot == null:
 		return options
 	var current := str(bot.loadout.parts.get(slot, ""))
@@ -305,7 +317,7 @@ func practice_part_options(slot: String) -> Array[Dictionary]:
 		options.append({"part":part, "current":part == current, "fits":part == current or not _fitted(bot, part, slot).is_empty()})
 	return options
 
-## The local bot's loadout on each chassis the practice chassis dropdown can fit.
+## The bot's loadout on each chassis the practice chassis dropdown can fit.
 func _offered_bodies(bot: MvpBot) -> Array[Dictionary]:
 	var bodies: Array[Dictionary] = []
 	for chassis: String in _slot_parts("chassis"):
@@ -314,10 +326,10 @@ func _offered_bodies(bot: MvpBot) -> Array[Dictionary]:
 			bodies.append(body)
 	return bodies
 
-## Practice Duel tuning: fit part (from practice_part_options) to the local bot.
-## Returns {"part": id} or {"refused": "unavailable" | "no_fit"}.
-func practice_set_part(slot: String, part: String) -> Dictionary:
-	var bot: MvpBot = world.bots.get(local_entity) if practice_tuning() != null and slot in PRACTICE_PART_SLOTS else null
+## Practice Duel tuning: fit part (from practice_part_options) to the player's
+## bot or an NPC. Returns {"part": id} or {"refused": "unavailable" | "no_fit"}.
+func practice_set_part(slot: String, part: String, entity := 0) -> Dictionary:
+	var bot := _practice_bot(slot, entity)
 	if bot == null or bot.combat.eliminated or part not in _slot_parts(slot):
 		return {"refused":"unavailable"}
 	if bot.loadout.parts.get(slot) == part:
@@ -325,7 +337,7 @@ func practice_set_part(slot: String, part: String) -> Dictionary:
 	var next := _fitted(bot, part, slot)
 	if next.is_empty():
 		return {"refused":"no_fit"}
-	_swap_local_part(next)
+	_swap_part(bot.entity_id, next)
 	return {"part":part}
 
 ## Practice Duel tuning: the next (1) or previous (-1) part that fits.
@@ -348,6 +360,7 @@ func practice_tuning() -> RefCounted:
 		return null
 	return world.practice_tuning.get(local_entity)
 
+
 ## Practice Duel world panel (#97, Shift+Z): offline authority only, like
 ## practice_tuning(). Removes every NPC; returns how many were removed.
 func practice_clear_npcs() -> int:
@@ -357,32 +370,94 @@ func practice_clear_npcs() -> int:
 	practice_director.clear_npcs()
 	return count
 
-## Spawns a non-aggressive NPC where the ray from origin along direction first
-## meets the arena or a bot, at most duel.spawn.reach metres away (the ray's
-## end when it meets nothing). The player's own bot never stops the ray.
-## Returns the NPC's entity id, or 0 outside a Practice Duel.
-func practice_spawn_npc(origin: Vector3, direction: Vector3) -> int:
-	if practice_tuning() == null or practice_director == null or direction.is_zero_approx():
-		return 0
+## The ray a world-panel action casts from origin along direction: at most
+## duel.spawn.reach metres, never stopped by the player's own bot.
+func _practice_ray(origin: Vector3, direction: Vector3) -> PhysicsRayQueryParameters3D:
 	var ray := PhysicsRayQueryParameters3D.create(origin,
 		origin + direction.normalized() * ArenaSpawns.settings().duel_spawn_reach,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER)
 	var player: MvpBot = world.bots.get(local_entity)
 	if player != null:
 		ray.exclude = [player.body.get_rid()]
+	return ray
+
+## Spawns a non-aggressive NPC where the ray from origin along direction first
+## meets the arena or a bot (the ray's end when it meets nothing).
+## Returns the NPC's entity id, or 0 outside a Practice Duel.
+func practice_spawn_npc(origin: Vector3, direction: Vector3) -> int:
+	if practice_tuning() == null or practice_director == null or direction.is_zero_approx():
+		return 0
+	var ray := _practice_ray(origin, direction)
 	var hit := world.get_world_3d().direct_space_state.intersect_ray(ray)
 	var id := _next_entity
 	_next_entity += 1
 	practice_director.spawn_npc(id, hit.position if not hit.is_empty() else ray.to, direction)
 	return id
 
-## Whether every NPC hunts the player (true) or keeps its idle behaviour.
+## Every NPC hunts the player (true) or keeps its idle behaviour.
 func practice_set_npcs_aggressive(aggressive: bool) -> void:
 	if practice_tuning() != null and practice_director != null:
-		practice_director.aggressive = aggressive
+		practice_director.set_all_aggressive(aggressive)
 
+## Whether there are NPCs and all of them are aggressive.
 func practice_npcs_aggressive() -> bool:
-	return practice_tuning() != null and practice_director != null and practice_director.aggressive
+	return practice_tuning() != null and practice_director != null and practice_director.all_aggressive()
+
+## Target panel (#97): the NPC the ray from origin along direction meets
+## first, or 0 when it meets the arena, nothing, or a bot that is no NPC.
+func practice_npc_at(origin: Vector3, direction: Vector3) -> int:
+	if practice_tuning() == null or practice_director == null or direction.is_zero_approx():
+		return 0
+	var hit := world.get_world_3d().direct_space_state.intersect_ray(_practice_ray(origin, direction))
+	if hit.is_empty():
+		return 0
+	for id: int in world.bots:
+		if world.bots[id].body.get_instance_id() == hit.collider_id:
+			return id if practice_npc(id) != null else 0
+	return 0
+
+## The NPC with this entity id in a Practice Duel, else null.
+func practice_npc(id: int) -> MvpBot:
+	if practice_tuning() == null or practice_director == null or practice_director.npc_record(id).is_empty():
+		return null
+	return world.bots.get(id)
+
+func practice_remove_npc(id: int) -> bool:
+	return practice_npc(id) != null and practice_director.remove_npc(id)
+
+func practice_npc_aggressive(id: int) -> bool:
+	return practice_npc(id) != null and practice_director.npc_record(id).get("aggressive", false)
+
+func practice_set_npc_aggressive(id: int, on: bool) -> void:
+	if practice_npc(id) != null:
+		practice_director.set_aggressive(id, on)
+
+## The NPC's session-only tuning (scripts/simulation/practice_tuning.gd),
+## made on first use, so its health and armour hold through respawns; null
+## for a missing or wrecked NPC.
+func _npc_tuning(id: int) -> RefCounted:
+	var bot := practice_npc(id)
+	if bot == null or bot.combat.eliminated:
+		return null
+	if not world.practice_tuning.has(id):
+		var tuning: RefCounted = PRACTICE_TUNING.new()
+		tuning.apply(bot, world.registry)
+		world.practice_tuning[id] = tuning
+	return world.practice_tuning[id]
+
+## Sets the NPC's health, current and full, until the panel changes it again.
+func practice_set_npc_health(id: int, health: float) -> void:
+	var tuning := _npc_tuning(id)
+	if tuning != null:
+		tuning.set_body("core", health)
+
+## Adds amount to the NPC's armour on every face, and refills it.
+func practice_add_npc_armour(id: int, amount: float) -> void:
+	var tuning := _npc_tuning(id)
+	if tuning == null:
+		return
+	for face: String in tuning.body_defaults.get("plates", {}):
+		tuning.set_body("plates", tuning.body_value("plates", face) + amount, face)
 
 func restart_practice() -> Error:
 	# Local training is the only mode allowed to repair on demand. This is not an RPC.

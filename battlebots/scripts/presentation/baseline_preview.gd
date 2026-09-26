@@ -53,8 +53,10 @@ var _reticle_seen := false
 ## clicks on the panel or its dropdowns never fire; _free_edges holds presses
 ## not yet sampled by the physics tick.
 var free_cursor := false: set = set_free_cursor
-## The panel whose area keeps presses away from gameplay.
+## The panels whose area keeps presses away from gameplay: cursor_panel and,
+## beside it, cursor_panels (the practice target card, #97).
 var cursor_panel: Control
+var cursor_panels: Array[Control] = []
 var _free_buttons: Dictionary = {}
 var _free_edges: Dictionary = {}
 
@@ -222,8 +224,7 @@ func _input(event: InputEvent) -> void:
 	# A free-cursor press outside the panel is gameplay (#94) and leaves the
 	# panel's text boxes. Presses in an open dropdown never reach _input.
 	elif event is InputEventMouseButton and free_cursor and controls_enabled \
-			and not (is_instance_valid(cursor_panel) and cursor_panel.is_visible_in_tree()
-				and cursor_panel.get_global_rect().has_point(event.position)):
+			and not _over_cursor_panel(event.position):
 		get_viewport().gui_release_focus()
 		_free_buttons[event.button_index] = true
 		_free_edges[event.button_index] = true
@@ -586,3 +587,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		rig.zoom(1.0)
 	elif event.is_action_pressed("camera_recenter"):
 		rig.recenter()
+
+## Whether position lies on a visible cursor panel (#94, #97).
+func _over_cursor_panel(position: Vector2) -> bool:
+	for panel: Control in [cursor_panel] + cursor_panels:
+		if is_instance_valid(panel) and panel.is_visible_in_tree() and panel.get_global_rect().has_point(position):
+			return true
+	return false

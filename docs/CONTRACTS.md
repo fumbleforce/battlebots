@@ -1041,6 +1041,16 @@ which do nothing outside a Practice Duel (`practice_tuning()` null). Spawn
 reach is `data/arena_spawns.json` `duel.spawn.reach`. No wire, `BotCommand` or
 build change.
 
+While the world panel shows, the NPC last under the view camera's centre
+(`MvpSession.practice_npc_at`) gets a target card to its left
+(`scripts/ui/practice_target_overlay.gd`): remove it, its own aggression, its
+health, +100 armour on every face, and chassis/drive/weapon/utility pickers.
+`practice_part_options` and `practice_set_part` take an optional NPC entity id
+(0, the default, is the player). NPC health and armour go through a
+`practice_tuning.gd` instance made for that NPC on first edit, so they hold
+through its respawns. `baseline_preview.cursor_panels` lists extra cards whose
+presses stay off the weapons.
+
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.
 A change to an existing field's meaning is a breaking change; coordinate it before

@@ -104,6 +104,58 @@ func run() -> void:
 	await frames()
 	check(not session.practice_npcs_aggressive() and world_panel.aggressive_toggle.text == "Friendly", "The NPCs calm down")
 
+	# Target panel: the NPC under the crosshair gets its own card.
+	var target_panel: Control = game.practice_target_overlay
+	if npc != null:
+		var id := npc.entity_id
+		check(session.practice_npc_at(npc.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == id, "A ray onto the NPC finds it")
+		check(session.practice_npc_at(player.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == 0, "The player is never a target")
+		game._practice_target = id
+		await frames()
+		check(target_panel.visible and target_panel.target == id, "Looking at an NPC shows its target card")
+		var target_card: Rect2 = target_panel.card.get_global_rect()
+		var world_card: Rect2 = world_panel.card.get_global_rect()
+		check(target_card.end.x <= world_card.position.x and target_card.size.x < 420, "The target card sits left of the world card (%s, %s)" % [target_card, world_card])
+		check(preview._over_cursor_panel(target_card.get_center()), "Clicks on the target card stay off the weapons")
+		for slot: String in ["chassis", "drive", "weapon", "utility"]:
+			check(target_panel.pickers.has(slot) and target_panel.pickers[slot].item_count > 0, "The target card has a %s picker" % slot)
+		# Behaviour: this NPC only.
+		target_panel.aggressive_toggle.button_pressed = true
+		await frames()
+		check(session.practice_npc_aggressive(id) and target_panel.aggressive_toggle.text == "Aggressive", "The target turns aggressive")
+		target_panel.aggressive_toggle.button_pressed = false
+		await frames()
+		check(not session.practice_npc_aggressive(id) and target_panel.aggressive_toggle.text == "Friendly", "The target turns friendly")
+		# Health and armour.
+		target_panel.health_spin.value = 777.0
+		await frames()
+		npc = session.world.bots[id]
+		check(is_equal_approx(npc.combat.core, 777.0), "Setting health sets the target's health (%s)" % npc.combat.core)
+		var plates: Dictionary = npc.combat.stats.plates.duplicate()
+		target_panel.armour_button.pressed.emit()
+		await frames()
+		npc = session.world.bots[id]
+		for face: String in plates:
+			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face]) + target_panel.ARMOUR_STEP),
+				"+armour adds to the %s face (%s -> %s)" % [face, plates[face], npc.combat.stats.plates[face]])
+		# Parts, through the same options as the Z panel.
+		for slot: String in ["chassis", "weapon"]:
+			var picker: OptionButton = target_panel.pickers[slot]
+			var before: String = session.world.bots[id].loadout.parts[slot]
+			var choice := -1
+			for index: int in picker.item_count:
+				if index != picker.selected and not picker.is_item_disabled(index):
+					choice = index
+					break
+			picker.item_selected.emit(choice)
+			await frames(6)
+			check(choice >= 0 and session.world.bots[id].loadout.parts[slot] != before,
+				"Choosing a %s fits it to the target (%s -> %s)" % [slot, before, session.world.bots[id].loadout.parts[slot]])
+		check(target_panel.visible and target_panel.target == id, "The target survives a part swap")
+		target_panel.remove_button.pressed.emit()
+		await frames()
+		check(not session.world.bots.has(id) and not target_panel.visible, "Remove takes the target out of the world")
+
 	await key(KEY_Z, true)
 	check(not world_panel.visible and not tuning_panel.visible and not preview.free_cursor,
 		"Shift+Z hides the world panel and recaptures the cursor")

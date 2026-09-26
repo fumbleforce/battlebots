@@ -23,9 +23,6 @@ var player_wreck_age := 0.0
 var player_respawns := 0
 ## Where the player spawns: its team edge (data/arena_spawns.json practice).
 var player_home := Transform3D.IDENTITY
-## Practice Duel world panel (#97): while true every NPC, fixtures and the
-## shuttle included, hunts the player with the pilot logic.
-var aggressive := false
 
 func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
@@ -192,19 +189,55 @@ func spawn_npc(id: int, point: Vector3, approach: Vector3) -> MvpBot:
 	records[records.size() - 1].home = bot.spawn_pose
 	return bot
 
-## Practice Duel world panel (#97): removes every NPC, leaving the player alone
-## in the arena. Their entity ids are not reused.
+## Practice Duel world and target panels (#97): the NPC's record, or {}.
+func npc_record(id: int) -> Dictionary:
+	for record: Dictionary in records + roamers:
+		if int(record.id) == id:
+			return record
+	return {}
+
+## An aggressive NPC (fixtures and the shuttle included) hunts the player with
+## the pilot logic; one that is not keeps its idle behaviour.
+func set_aggressive(id: int, on: bool) -> void:
+	var record := npc_record(id)
+	if not record.is_empty():
+		record.aggressive = on
+
+func set_all_aggressive(on: bool) -> void:
+	for record: Dictionary in records + roamers:
+		record.aggressive = on
+
+## Whether there are NPCs and every one of them is aggressive.
+func all_aggressive() -> bool:
+	var all := records + roamers
+	return not all.is_empty() and all.all(func(record: Dictionary) -> bool: return record.get("aggressive", false))
+
+## Removes one NPC from the world. Its entity id is not reused.
+func remove_npc(id: int) -> bool:
+	var record := npc_record(id)
+	if record.is_empty():
+		return false
+	records.erase(record)
+	roamers.erase(record)
+	_free(id)
+	return true
+
+## Removes every NPC, leaving the player alone in the arena.
 func clear_npcs() -> void:
 	for record: Dictionary in records + roamers:
-		var bot: MvpBot = world.bots.get(record.id)
-		world.bots.erase(record.id)
-		world.credited.erase(record.id)
-		if is_instance_valid(bot):
-			# Out of the physics space at once, not at the end of the frame.
-			world.remove_child(bot)
-			bot.queue_free()
+		_free(int(record.id))
 	records.clear()
 	roamers.clear()
+
+func _free(id: int) -> void:
+	var bot: MvpBot = world.bots.get(id)
+	world.bots.erase(id)
+	world.credited.erase(id)
+	world.practice_tuning.erase(id)
+	if is_instance_valid(bot):
+		# Out of the physics space at once, not at the end of the frame.
+		world.remove_child(bot)
+		bot.queue_free()
 
 func _add_roamers(next_id: int) -> int:
 	var tuning := NimbleBots.practice()
@@ -271,7 +304,7 @@ func step(delta: float) -> void:
 		var intent := BotCommand.new()
 		intent.sequence = bot.last_sequence + 1
 		intent.brake = true
-		if aggressive:
+		if record.get("aggressive", false):
 			if float(record.grace) <= 0.0 and not player.combat.eliminated: _pilot(bot, player, record, intent, true)
 		elif record.has("shuttle"):
 			if float(record.grace) <= 0.0: _shuttle(bot, record, intent)
