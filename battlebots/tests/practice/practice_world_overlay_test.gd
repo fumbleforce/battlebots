@@ -51,7 +51,9 @@ func run() -> void:
 	check(world_panel.visible and not tuning_panel.visible and preview.free_cursor,
 		"Shift+Z shows the world panel, not the tuning panel, and frees the cursor")
 	check(preview.cursor_panel == world_panel.card, "Clicks on the world card stay off the weapons")
-	for button: Button in [world_panel.clear_button, world_panel.spawn_button, world_panel.aggressive_button, world_panel.passive_button]:
+	var card: Rect2 = world_panel.card.get_global_rect()
+	check(card.size.x < 420 and card.end.x > 1800 and card.end.x <= 1920.5, "A narrow card on the right (%s)" % card)
+	for button: BaseButton in [world_panel.clear_button, world_panel.spawn_button, world_panel.aggressive_toggle]:
 		check(button.focus_mode == Control.FOCUS_NONE, "%s takes no keyboard focus" % button.name)
 	await key(KEY_Z)
 	check(tuning_panel.visible and not world_panel.visible, "Z swaps to the tuning panel")
@@ -64,7 +66,7 @@ func run() -> void:
 	await frames()
 	check(session.world.bots.size() == 1 and session.world.bots.has(session.local_entity),
 		"Clear leaves only the player (%d bots)" % session.world.bots.size())
-	check(world_panel.status.text.begins_with("0 NPCs"), "The panel counts no NPCs (%s)" % world_panel.status.text)
+	check(world_panel.status.text == "0 NPCs", "The panel counts no NPCs (%s)" % world_panel.status.text)
 
 	# Spawn where the camera looks: ahead of the camera, passive. Near-level,
 	# so the ray meets the arena well away from the player.
@@ -83,7 +85,7 @@ func run() -> void:
 		var offset: Vector3 = (npc.body.global_position - camera.global_position).slide(Vector3.UP)
 		check(offset.normalized().dot(look) > 0.9, "The NPC spawns where the camera looks")
 		check(npc.team != player.team, "The NPC is an opponent")
-	check(not session.practice_npcs_aggressive() and world_panel.passive_button.disabled,
+	check(not session.practice_npcs_aggressive() and not world_panel.aggressive_toggle.button_pressed and world_panel.aggressive_toggle.text == "Friendly",
 		"NPCs start not aggressive")
 	await frames(60)
 	if npc != null:
@@ -92,15 +94,15 @@ func run() -> void:
 		await frames(120)
 		check(flat_distance(npc.body.global_position, home) < 0.5, "A passive NPC stays put")
 		# Aggressive: it closes in on the player.
-		world_panel.aggressive_button.pressed.emit()
+		world_panel.aggressive_toggle.button_pressed = true
 		await frames()
-		check(session.practice_npcs_aggressive() and world_panel.aggressive_button.disabled, "The NPCs turn aggressive")
+		check(session.practice_npcs_aggressive() and world_panel.aggressive_toggle.text == "Aggressive", "The NPCs turn aggressive")
 		await frames(240)
 		check(flat_distance(npc.body.global_position, player.body.global_position) < start - 2.0,
 			"An aggressive NPC hunts the player (%.1f -> %.1f m)" % [start, flat_distance(npc.body.global_position, player.body.global_position)])
-	world_panel.passive_button.pressed.emit()
+	world_panel.aggressive_toggle.button_pressed = false
 	await frames()
-	check(not session.practice_npcs_aggressive() and world_panel.passive_button.disabled, "The NPCs calm down")
+	check(not session.practice_npcs_aggressive() and world_panel.aggressive_toggle.text == "Friendly", "The NPCs calm down")
 
 	await key(KEY_Z, true)
 	check(not world_panel.visible and not tuning_panel.visible and not preview.free_cursor,
