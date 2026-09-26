@@ -385,6 +385,21 @@ func run() -> void:
 	# The Scorpion only walks: every other drive is listed but greyed out.
 	check(session.practice_set_part("chassis", "scorpion_hex").has("part") and session.practice_part_options("drive").all(
 		func(o: Dictionary) -> bool: return o.fits == (o.part == "walker")), "The Scorpion greys out every drive but its legs")
+	# Only drives some body in the chassis dropdown can mount are listed; the
+	# sealed factory bots' own legs and wheels are not.
+	var listed: Array = session.practice_part_options("drive").map(func(o: Dictionary) -> String: return o.part)
+	var offered_chassis: Array = session.practice_part_options("chassis").map(func(o: Dictionary) -> String: return o.part)
+	for drive_id: String in session.registry.parts:
+		if session.registry.parts[drive_id].category != "drive":
+			continue
+		var mountable := offered_chassis.any(func(chassis: String) -> bool:
+			var draft: Dictionary = player.loadout.duplicate(true)
+			draft.parts.chassis = chassis
+			draft.parts.drive = drive_id
+			draft.parts.weapon = "lifter"
+			draft.parts.utility = MatchPickups.FALLBACK_UTILITY
+			return session.registry.validate(draft).valid)
+		check(listed.has(drive_id) == mountable, "Drive %s is listed only if a dropdown body mounts it (listed %s)" % [drive_id, listed.has(drive_id)])
 	check(session.practice_set_part("chassis", "balanced").get("part") == "balanced", "A wheeled body can be chosen again")
 	await frames(2)
 	player = session.local_source()

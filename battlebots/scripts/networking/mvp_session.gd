@@ -294,9 +294,25 @@ func practice_part_options(slot: String) -> Array[Dictionary]:
 	if bot == null:
 		return options
 	var current := str(bot.loadout.parts.get(slot, ""))
+	var bodies: Array[Dictionary] = []
+	if slot == "drive":
+		bodies = _offered_bodies(bot)
 	for part: String in _slot_parts(slot):
+		# Drives list only when a body in the chassis dropdown can mount them (#94).
+		if slot == "drive" and part != current and not bodies.any(func(body: Dictionary) -> bool:
+				return body.parts.get("drive") == part or not world.pickups.swapped(body, part).is_empty()):
+			continue
 		options.append({"part":part, "current":part == current, "fits":part == current or not _fitted(bot, part, slot).is_empty()})
 	return options
+
+## The local bot's loadout on each chassis the practice chassis dropdown can fit.
+func _offered_bodies(bot: MvpBot) -> Array[Dictionary]:
+	var bodies: Array[Dictionary] = []
+	for chassis: String in _slot_parts("chassis"):
+		var body: Dictionary = bot.loadout if bot.loadout.parts.get("chassis") == chassis else _fitted(bot, chassis, "chassis")
+		if not body.is_empty():
+			bodies.append(body)
+	return bodies
 
 ## Practice Duel tuning: fit part (from practice_part_options) to the local bot.
 ## Returns {"part": id} or {"refused": "unavailable" | "no_fit"}.
