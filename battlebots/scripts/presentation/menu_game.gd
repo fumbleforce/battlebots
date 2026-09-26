@@ -68,8 +68,6 @@ var _practice_world_open := false
 ## none) while the world panel shows, outlined in red.
 var practice_target_overlay: Control
 var _practice_target := 0
-## The NPC under the crosshair last frame: looking onto a new one selects it.
-var _practice_looked := 0
 var practice_target_outline: Node
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
@@ -137,6 +135,7 @@ func _ready() -> void:
 	tuning_layer.add_child(practice_world_overlay)
 	practice_world_overlay.hide()
 	practice_world_overlay.spawn_requested.connect(_spawn_practice_npc)
+	practice_world_overlay.player_options_requested.connect(_open_player_options)
 	practice_target_overlay = preload("res://scripts/ui/practice_target_overlay.gd").new()
 	tuning_layer.add_child(practice_target_overlay)
 	practice_target_overlay.hide()
@@ -910,6 +909,12 @@ func _update_practice_tuning_overlay() -> void:
 	_update_practice_target()
 	preview.cursor_panel = practice_world_overlay.card if _practice_world_open else practice_tuning_overlay.card
 
+## World panel Player options (#97): switches to the F1 tuning panel, as F1 does.
+func _open_player_options() -> void:
+	_practice_world_open = false
+	_practice_tuning_open = true
+	_update_practice_tuning_overlay()
+
 ## World panel (#97): spawns an NPC where the view camera's centre (the
 ## crosshair) points.
 func _spawn_practice_npc() -> void:
@@ -918,24 +923,16 @@ func _spawn_practice_npc() -> void:
 		session.practice_spawn_npc(camera.global_position, -camera.global_basis.z)
 
 ## Target panel (#97): while the world panel shows, the selected NPC gets the
-## target card, a red outline and the camera turning toward it. With nothing
-## selected, looking onto an NPC selects it; clicking an NPC selects it
-## (_pick_practice_target), and clicking it again clears the selection.
+## target card, a red outline and the camera turning toward it. Clicking an
+## NPC selects it (_pick_practice_target) and clicking it again clears the
+## selection; looking at one does nothing.
 ## Closing the world panel, removing the NPC or possessing it clears it too.
 func _update_practice_target() -> void:
 	if not practice_world_overlay.visible:
 		if not _practice_world_open:
 			_practice_target = 0
-			_practice_looked = 0
 		_show_practice_target(false)
 		return
-	var camera: Camera3D = preview.aim_camera()
-	if is_instance_valid(camera) and camera.is_inside_tree():
-		var looked: int = session.practice_npc_at(camera.global_position, -camera.global_basis.z)
-		# Only onto a new NPC, so a cleared selection is not taken back at once.
-		if _practice_target == 0 and looked != 0 and looked != _practice_looked:
-			_practice_target = looked
-		_practice_looked = looked
 	if session.practice_npc(_practice_target) == null:
 		_practice_target = 0
 	_show_practice_target(_practice_target != 0)
@@ -962,7 +959,6 @@ func _show_practice_target(shown: bool) -> void:
 func _possess_practice_target(entity: int) -> void:
 	if session.practice_possess(entity):
 		_practice_target = 0
-		_practice_looked = 0
 
 ## Target card Hitboxes switch (#97): shows or hides this NPC's hitboxes,
 ## whatever the world panel's switch says, until that switch changes.

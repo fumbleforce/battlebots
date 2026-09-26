@@ -15,16 +15,21 @@ const STATUS_FONT := 18
 ## Behaviour switch captions: red while aggressive, green while friendly.
 const AGGRESSIVE_COLOR := Color("ff5a4f")
 const FRIENDLY_COLOR := Color("62d26f")
+## The Player options button, green like the target card's Possess.
+const PLAYER_OPTIONS_COLOR := Color("2e8b45")
 const CAPTION_COLORS := [&"font_color", &"font_hover_color", &"font_pressed_color",
 	&"font_hover_pressed_color", &"font_focus_color", &"font_disabled_color"]
 ## Asks menu_game for the camera ray to spawn along.
 signal spawn_requested
+## Player options pressed: menu_game opens the F1 tuning panel.
+signal player_options_requested
 ## The Hitboxes switch changed: it overrides every NPC's own (#97).
 signal hitboxes_toggled(on: bool)
 var card: PanelContainer
 ## Moves the card when its background is dragged (#97).
 var drag: RefCounted
 var clear_button: Button
+var player_options_button: Button
 var spawn_button: Button
 var aggressive_toggle: CheckButton
 ## The other bots' debug hitboxes (#93), moved here from the F1 panel.
@@ -72,6 +77,7 @@ func _init() -> void:
 	status.add_theme_font_size_override("font_size", STATUS_FONT)
 	column.add_child(status)
 	column.add_child(HSeparator.new())
+	player_options_button = _button(column, "PlayerOptions", "Player options", player_options_requested.emit)
 	spawn_button = _button(column, "SpawnNpc", "Spawn NPC", spawn_requested.emit)
 	clear_button = _button(column, "ClearNpcs", "Clear NPCs", func() -> void:
 		if session != null: session.practice_clear_npcs())
@@ -103,6 +109,16 @@ static func caption_behaviour(toggle: CheckButton) -> void:
 	for key: StringName in CAPTION_COLORS:
 		toggle.add_theme_color_override(key, AGGRESSIVE_COLOR if aggressive else FRIENDLY_COLOR)
 
+## Fills a button's backgrounds with color, lighter when hovered and darker
+## when pressed; the theme's other styling is kept. The target card uses it too.
+static func tint(button: Button, color: Color) -> void:
+	for state: Array in [["normal", color], ["hover", color.lightened(0.15)], ["pressed", color.darkened(0.2)],
+			["disabled", color.darkened(0.5)]]:
+		var box := button.get_theme_stylebox(state[0])
+		var filled: StyleBoxFlat = box.duplicate() if box is StyleBoxFlat else StyleBoxFlat.new()
+		filled.bg_color = state[1]
+		button.add_theme_stylebox_override(state[0], filled)
+
 ## Mouse-only, like the tuning card (#94): Space must not press them again.
 func _button(parent: Control, id: String, text: String, action: Callable) -> Button:
 	var button := Button.new()
@@ -115,6 +131,7 @@ func _button(parent: Control, id: String, text: String, action: Callable) -> But
 	return button
 
 func _ready() -> void:
+	tint(player_options_button, PLAYER_OPTIONS_COLOR)
 	get_viewport().size_changed.connect(_resize)
 	_resize()
 

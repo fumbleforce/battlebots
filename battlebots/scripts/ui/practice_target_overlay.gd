@@ -137,16 +137,6 @@ func _button(parent: Control, id: String, text: String, action: Callable) -> But
 	parent.add_child(button)
 	return button
 
-## Fills a button's backgrounds with color, lighter when hovered and darker
-## when pressed; the theme's other styling is kept.
-func _tint(button: Button, color: Color) -> void:
-	for state: Array in [["normal", color], ["hover", color.lightened(0.15)], ["pressed", color.darkened(0.2)],
-			["disabled", color.darkened(0.5)]]:
-		var box := button.get_theme_stylebox(state[0])
-		var filled: StyleBoxFlat = box.duplicate() if box is StyleBoxFlat else StyleBoxFlat.new()
-		filled.bg_color = state[1]
-		button.add_theme_stylebox_override(state[0], filled)
-
 func _switch(parent: Control, id: String, changed: Callable) -> CheckButton:
 	var toggle := CheckButton.new()
 	toggle.name = id
@@ -158,8 +148,8 @@ func _switch(parent: Control, id: String, changed: Callable) -> CheckButton:
 	return toggle
 
 func _ready() -> void:
-	_tint(possess_button, POSSESS_COLOR)
-	_tint(remove_button, REMOVE_COLOR)
+	WORLD_OVERLAY.tint(possess_button, POSSESS_COLOR)
+	WORLD_OVERLAY.tint(remove_button, REMOVE_COLOR)
 	get_viewport().size_changed.connect(_resize)
 	_resize()
 

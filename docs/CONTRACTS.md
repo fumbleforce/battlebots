@@ -1044,9 +1044,10 @@ build change.
 While the world panel shows, a selected NPC gets a target card to its left
 (`scripts/ui/practice_target_overlay.gd`) and a red silhouette outline
 (`scripts/presentation/practice_target_outline.gd`, hidden while it is a wreck;
-wreck pieces skip meshes in `WreckPieces.SKIP_GROUP`). Looking onto an NPC
-(`MvpSession.practice_npc_at`) or clicking it (`baseline_preview.cursor_pick`)
-selects it; clicking it again or closing the panel clears it. The card removes
+wreck pieces skip meshes in `WreckPieces.SKIP_GROUP`). Clicking an NPC
+(`MvpSession.practice_npc_at` under the cursor, via `baseline_preview.cursor_pick`)
+selects it (looking at one does not); clicking it again, closing the panel or
+Possess clears it. The card removes
 it, sets its own behaviour and hitboxes (overriding the world switches for that
 NPC until they change), takes or gives 100 health and 100 armour on every face,
 and has chassis/drive/weapon/utility pickers. `practice_part_options` and

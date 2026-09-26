@@ -127,6 +127,8 @@ func run() -> void:
 		await frames()
 		check(target_panel.visible and target_panel.target == id, "The selected NPC shows its target card")
 		check(npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The target has a red outline")
+		# The camera has turned toward it since; click where it shows now.
+		on_screen = camera.unproject_position(npc.body.global_transform * (npc.collision_bounds().get_center() + Vector3.UP * npc.collision_bounds().size.y * 0.4))
 		check(game._pick_practice_target(on_screen) and game._practice_target == 0, "Clicking the target again clears it")
 		await frames()
 		check(not target_panel.visible and npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(),
@@ -147,6 +149,21 @@ func run() -> void:
 		await frames()
 		var own_at: Vector2 = preview.rig.camera.unproject_position(own.body.global_position + Vector3.UP * 0.3)
 		check(not game._pick_practice_target(own_at) and game._practice_target == 0, "Clicking the player's bot selects nothing")
+		# Looking at an NPC selects nothing; only a click does.
+		var look_cam: Camera3D = preview.aim_camera()
+		var looked_at: Vector3 = session.world.bots[id].body.global_position
+		preview.rig.yaw = atan2(-(looked_at - look_cam.global_position).x, -(looked_at - look_cam.global_position).z)
+		await frames(5)
+		check(game._practice_target == 0 and not target_panel.visible, "Looking at an NPC does not select it")
+		# Player options, green and on top of the world card, switches to the F1 panel.
+		check(world_panel.player_options_button.get_index() < world_panel.spawn_button.get_index()
+			and world_panel.player_options_button.get_theme_stylebox("normal").bg_color == world_panel.PLAYER_OPTIONS_COLOR,
+			"A green Player options button tops the world card")
+		world_panel.player_options_button.pressed.emit()
+		await frames()
+		check(tuning_panel.visible and not world_panel.visible and preview.free_cursor, "Player options opens the F1 panel")
+		await key(KEY_F2)
+		check(world_panel.visible and not tuning_panel.visible, "F2 comes back from it")
 		# Tabbing out keeps the panels up; focus back, driving resumes.
 		preview._on_focus_lost()
 		await frames()
