@@ -363,7 +363,8 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 	if wanted:
 		tank_sight.update_view(delta, source)
 
-## Practice Duel debug views (#93): the player's marks and the other bots' hitboxes.
+## Practice Duel debug views (#93): the player's marks, the other bots'
+## hitboxes and, with Player hitboxes on (#94), the player's own.
 func _render_practice_debug(delta: float) -> void:
 	var session: MvpSession = source.session if source is SessionBotSource and is_instance_valid(source.session) else null
 	var lab: RefCounted = session.practice_tuning() if session != null else null
@@ -372,7 +373,8 @@ func _render_practice_debug(delta: float) -> void:
 		for id: int in session.world.bots:
 			if id != session.local_entity:
 				others.append(session.world.bots[id])
-	practice_debug.render(lab, delta, others)
+	var player: MvpBot = session.world.bots.get(session.local_entity) if lab != null and lab.debug_player_hitboxes else null
+	practice_debug.render(lab, delta, others, player)
 
 ## Camera kick per own shot: the turret's (or the minigun's) default, or the
 ## Practice Duel Camera recoil override (#91).

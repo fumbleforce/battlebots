@@ -24,6 +24,7 @@ var jump_toggle: CheckButton
 var trajectory_toggle: CheckButton
 var impact_toggle: CheckButton
 var hitbox_toggle: CheckButton
+var player_hitbox_toggle: CheckButton
 var linger_spin: SpinBox
 ## Weapon slot ("primary"/"secondary") -> its "Allow auto fire" toggle.
 var auto_toggles: Dictionary = {}
@@ -87,7 +88,7 @@ func _init() -> void:
 ## long each mark stays.
 func _debug_section() -> void:
 	_label(self, "DEBUG", &"HeadingWide", 24)
-	# Wraps when the three toggles do not fit one line.
+	# Wraps when the toggles do not fit one line.
 	var toggles := HFlowContainer.new()
 	toggles.add_theme_constant_override("h_separation", 18)
 	add_child(toggles)
@@ -95,8 +96,11 @@ func _debug_section() -> void:
 		func(on: bool) -> void: tuning.debug_trajectories = on)
 	impact_toggle = _toggle(toggles, "ImpactToggle", "Impact areas",
 		func(on: bool) -> void: tuning.debug_impacts = on)
-	hitbox_toggle = _toggle(toggles, "HitboxToggle", "Armour hitboxes",
+	hitbox_toggle = _toggle(toggles, "HitboxToggle", "Hitboxes",
 		func(on: bool) -> void: tuning.debug_hitboxes = on)
+	# #94: the same hitboxes on the player's own bot.
+	player_hitbox_toggle = _toggle(toggles, "PlayerHitboxToggle", "Player hitboxes",
+		func(on: bool) -> void: tuning.debug_player_hitboxes = on)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	add_child(row)
@@ -149,6 +153,7 @@ func render(value: RefCounted, parts: Node = null) -> void:
 	trajectory_toggle.set_pressed_no_signal(tuning.debug_trajectories)
 	impact_toggle.set_pressed_no_signal(tuning.debug_impacts)
 	hitbox_toggle.set_pressed_no_signal(tuning.debug_hitboxes)
+	player_hitbox_toggle.set_pressed_no_signal(tuning.debug_player_hitboxes)
 	if not linger_spin.get_line_edit().has_focus():
 		linger_spin.set_value_no_signal(tuning.debug_linger)
 	for slot: String in auto_toggles:

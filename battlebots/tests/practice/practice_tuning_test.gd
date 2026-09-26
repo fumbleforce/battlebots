@@ -122,6 +122,11 @@ func run() -> void:
 	panel.hitbox_toggle.button_pressed = true
 	check(lab.debug_hitboxes, "The hitbox toggle reaches the tuning")
 	panel.hitbox_toggle.button_pressed = false
+	# #94: "Hitboxes" for the other bots, and a separate one for the player's own.
+	panel.player_hitbox_toggle.button_pressed = true
+	check(panel.hitbox_toggle.text == "Hitboxes" and panel.player_hitbox_toggle.text == "Player hitboxes"
+		and lab.debug_player_hitboxes and not lab.debug_hitboxes, "The Player hitboxes toggle reaches the tuning on its own")
+	panel.player_hitbox_toggle.button_pressed = false
 	panel.linger_spin.value = 12.0
 	check(lab.debug_trajectories and lab.debug_impacts and lab.debug_linger == 12.0, "Debug toggles and linger time reach the tuning")
 	lab.debug_linger = lab.DEFAULT_DEBUG_LINGER
@@ -288,6 +293,18 @@ func run() -> void:
 	lab.debug_hitboxes = false
 	draw.render(lab, 0.0, [target])
 	check(draw._hitboxes.is_empty(), "Turning hitboxes off removes them")
+	# #94: Player hitboxes draw the player's own bot, independently of the others'.
+	lab.debug_player_hitboxes = true
+	draw.render(lab, 0.0, [target], player)
+	check(draw._hitboxes.size() == 1 and draw._hitboxes.has(player.get_instance_id()), "Player hitboxes show only the player's bot")
+	lab.debug_hitboxes = true
+	draw.render(lab, 0.0, [target], player)
+	check(draw._hitboxes.size() == 2, "With both on, the player and the other bots show")
+	lab.debug_player_hitboxes = false
+	draw.render(lab, 0.0, [target], player)
+	check(draw._hitboxes.size() == 1 and not draw._hitboxes.has(player.get_instance_id()), "Player hitboxes off leaves the others'")
+	lab.debug_hitboxes = false
+	draw.render(lab, 0.0, [target], player)
 	draw.queue_free()
 	lab.debug_impacts = true
 	lab.debug_linger = lab.DEFAULT_DEBUG_LINGER

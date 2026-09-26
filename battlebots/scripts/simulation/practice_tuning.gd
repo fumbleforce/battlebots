@@ -49,6 +49,8 @@ var debug_impacts := false
 ## Wireframes of the other bots' collision shapes and armour zones (drawn from
 ## the live bots, nothing recorded).
 var debug_hitboxes := false
+## The same on the player's own bot (#94).
+var debug_player_hitboxes := false
 var debug_linger := DEFAULT_DEBUG_LINGER
 ## {type:"path", points:PackedVector3Array} or {type:"impact", position,
 ## radius}; radius 0 marks a weapon without an area of effect.

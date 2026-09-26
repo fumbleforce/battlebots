@@ -7,7 +7,8 @@ const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## damage), or small solid cubes for weapons without one. Each mark stays for the tuning's debug_linger seconds
 ## of unpaused play; turning a toggle off clears its marks.
 ##
-## With hitboxes on, every other bot shows its core in red: its real collision
+## With hitboxes on, every other bot (and, with Player hitboxes on, the
+## player's own, #94) shows its core in red: its real collision
 ## shapes. Over it, a see-through box per intact armour plate (blue) and per
 ## working component, the weapon strip and drive pods (amber), each covering
 ## the area of the collision bounds MvpBot.zone_at() assigns to it. Armour sits
@@ -94,13 +95,17 @@ func _init() -> void:
 	_armour_material.albedo_color = ARMOUR_COLOR
 	_component_material.albedo_color = COMPONENT_COLOR
 
-## Called every frame with the local player's tuning (null outside Practice)
-## and the other bots (MvpBot) whose hitboxes may show.
-func render(tuning: RefCounted, delta: float, others: Array = []) -> void:
+## Called every frame with the local player's tuning (null outside Practice),
+## the other bots (MvpBot) whose hitboxes may show and the player's own bot,
+## shown with Player hitboxes on (#94).
+func render(tuning: RefCounted, delta: float, others: Array = [], player: MvpBot = null) -> void:
 	if tuning == null:
 		clear()
 		return
-	_render_hitboxes(others if tuning.debug_hitboxes else [])
+	var bots: Array = others.duplicate() if tuning.debug_hitboxes else []
+	if tuning.debug_player_hitboxes and player != null:
+		bots.append(player)
+	_render_hitboxes(bots)
 	for mark: Dictionary in tuning.take_debug_marks():
 		_add(mark)
 	var keep: Array = []
