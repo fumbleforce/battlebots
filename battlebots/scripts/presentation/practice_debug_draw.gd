@@ -49,6 +49,8 @@ const LABEL_FONT := 20
 const LABEL_PIXEL := 0.022
 ## A thick black outline keeps the small text readable over any backdrop.
 const LABEL_OUTLINE := 10
+## Lowest label render priority (the farthest label's outline); boxes stay at 0.
+const LABEL_PRIORITY_BASE := 1
 ## Labels stand this far (m) off their box's face, so the box never hides them.
 const LABEL_LIFT := 0.05
 ## Armour and weapon labels stand this much (m) further out.
@@ -182,6 +184,29 @@ func _render_hitboxes(others: Array) -> void:
 		if not seen.has(key):
 			_hitboxes[key].rig.queue_free()
 			_hitboxes.erase(key)
+	_order_labels()
+
+## See-through labels write no depth and draw by render priority first, so
+## one shared outline/text pair would draw every outline before every text:
+## a label behind another would paint its text over the nearer one's outline
+## (#96). Each label gets its own pair instead, farthest first, so a nearer
+## label's outline and text both land over anything behind it.
+func _order_labels() -> void:
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if camera == null:
+		return
+	var from := camera.global_position
+	var labels: Array[Label3D] = []
+	for entry: Dictionary in _hitboxes.values():
+		labels.append(entry.core_label)
+		for label: Label3D in entry.labels.values():
+			labels.append(label)
+	labels.sort_custom(func(a: Label3D, b: Label3D) -> bool:
+		return a.global_position.distance_squared_to(from) > b.global_position.distance_squared_to(from))
+	for index: int in labels.size():
+		var outline := mini(LABEL_PRIORITY_BASE + index * 2, RenderingServer.MATERIAL_RENDER_PRIORITY_MAX - 1)
+		labels[index].outline_render_priority = outline
+		labels[index].render_priority = outline + 1
 
 ## Zones layered over the core: armour plates fitted and not yet broken, and
 ## components still working.
@@ -260,13 +285,10 @@ func _build_hitbox(bot: MvpBot, bounds: AABB, zones: Array[String]) -> Dictionar
 			label.position.x = c.x
 			label.position += normal * OUTER_LABEL_LIFT
 		# Text and its outline both draw after the see-through boxes (the outline
-		# just before the text), so no box tints over either. Those priorities
-		# order every label's outline before every label's text, so the labels
-		# also write depth (#96): a near label's outline then hides a label
-		# behind it instead of that label's text painting over the outline.
+		# just before the text), so no box tints over either; _order_labels()
+		# then stacks the labels far to near each frame.
 		label.render_priority = 2
 		label.outline_render_priority = 1
-		label.alpha_cut = Label3D.ALPHA_CUT_OPAQUE_PREPASS
 		rig.add_child(label)
 		labels[zone] = label
 	var core_label := Label3D.new()

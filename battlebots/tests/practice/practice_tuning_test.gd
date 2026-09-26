@@ -272,8 +272,24 @@ func run() -> void:
 		target.combat.zones[face] = 50.0
 	draw.render(lab, 0.0, [target])
 	var hitbox_labels: Dictionary = draw._hitboxes.values()[0].labels
-	check(hitbox_labels.values().all(func(l: Label3D) -> bool: return l.alpha_cut == Label3D.ALPHA_CUT_OPAQUE_PREPASS)
-		and draw._hitboxes.values()[0].core_label.alpha_cut == Label3D.ALPHA_CUT_DISABLED, "Zone labels write depth so one never paints over a nearer one's outline; the core label shows through")
+	# #96: labels draw far to near, each outline just before its own text, so a
+	# label behind never paints over a nearer label's outline.
+	var eye := Camera3D.new()
+	root.add_child(eye)
+	eye.current = true
+	eye.global_position = target.body.global_transform * (bounds.get_center() + Vector3(-6.0, 1.0, -2.0))
+	draw.render(lab, 0.0, [target])
+	var by_distance: Array = hitbox_labels.values().duplicate()
+	by_distance.append(draw._hitboxes.values()[0].core_label)
+	by_distance.sort_custom(func(a: Label3D, b: Label3D) -> bool:
+		return a.global_position.distance_to(eye.global_position) > b.global_position.distance_to(eye.global_position))
+	var stacked := true
+	for index: int in by_distance.size():
+		var label: Label3D = by_distance[index]
+		stacked = stacked and label.render_priority == label.outline_render_priority + 1 and label.outline_render_priority > 0 \
+			and (index == 0 or label.outline_render_priority > (by_distance[index - 1] as Label3D).render_priority)
+	check(stacked, "Labels stack far to near, each outline just under its own text and over every farther label")
+	eye.queue_free()
 	var side_gap: float = (hitbox_labels.left.position - hitbox_labels.drive_left.position).dot(Vector3.LEFT)
 	var front_gap: float = (hitbox_labels.front.position - hitbox_labels.weapon.position).dot(Vector3.FORWARD)
 	check(is_equal_approx(hitbox_labels.front.position.x, bounds.get_center().x) and side_gap > 0.0
