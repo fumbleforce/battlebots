@@ -79,6 +79,8 @@ var practice_director: PracticeBotDirector
 const PRACTICE_KINDS := ["full", "duel"]
 var practice_kind := "full"
 const PRACTICE_TUNING = preload("res://scripts/simulation/practice_tuning.gd")
+## Preloaded: a stale editor class cache must not break it (#65, #74).
+const ARENA_SPAWNS = preload("res://scripts/core/arena_spawns.gd")
 ## Practice tuning fields that belong to the player, not its body: they follow
 ## it on Possess (#97).
 const DEBUG_VIEWS := ["debug_trajectories", "debug_impacts", "debug_hitboxes", "debug_player_hitboxes", "debug_linger"]
@@ -377,7 +379,7 @@ func practice_clear_npcs() -> int:
 ## duel.spawn.reach metres, never stopped by the player's own bot.
 func _practice_ray(origin: Vector3, direction: Vector3) -> PhysicsRayQueryParameters3D:
 	var ray := PhysicsRayQueryParameters3D.create(origin,
-		origin + direction.normalized() * ArenaSpawns.settings().duel_spawn_reach,
+		origin + direction.normalized() * ARENA_SPAWNS.settings().duel_spawn_reach,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER)
 	var player: MvpBot = world.bots.get(local_entity)
 	if player != null:
