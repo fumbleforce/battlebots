@@ -262,6 +262,23 @@ func run() -> void:
 		var side_label: Label3D = draw._hitboxes.values()[0].labels.left
 		check(side_label.position.dot(Vector3.LEFT) > pod_label.position.dot(Vector3.LEFT)
 			and is_equal_approx(side_label.position.y, (rig.get_node("Layer_left") as Node3D).position.y), "Side armour labels stay centred, out past the drive pod's")
+	# The front label is centred, as far ahead of the weapon label as a side
+	# label stands out past its drive pod's.
+	# Fixture: front and left plates fitted for this check, then put back.
+	var plates_before: Dictionary = target.combat.stats.plates.duplicate()
+	var zones_before: Dictionary = target.combat.zones.duplicate()
+	for face: String in ["front", "left"]:
+		target.combat.stats.plates[face] = 50.0
+		target.combat.zones[face] = 50.0
+	draw.render(lab, 0.0, [target])
+	var hitbox_labels: Dictionary = draw._hitboxes.values()[0].labels
+	var side_gap: float = (hitbox_labels.left.position - hitbox_labels.drive_left.position).dot(Vector3.LEFT)
+	var front_gap: float = (hitbox_labels.front.position - hitbox_labels.weapon.position).dot(Vector3.FORWARD)
+	check(is_equal_approx(hitbox_labels.front.position.x, bounds.get_center().x) and side_gap > 0.0
+		and is_equal_approx(front_gap, side_gap), "Front label centred, ahead of the weapon label by the side-to-drive gap (%.3f vs %.3f)" % [front_gap, side_gap])
+	target.combat.stats.plates = plates_before
+	target.combat.zones = zones_before
+	draw.render(lab, 0.0, [target])
 	var plate: String = fitted[0]
 	var plate_left: float = target.combat.zones[plate]
 	target.combat.zones[plate] = 0.0

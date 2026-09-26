@@ -253,9 +253,12 @@ func _build_hitbox(bot: MvpBot, bounds: AABB, zones: Array[String]) -> Dictionar
 		# Armour and weapon labels stand further out, in front of the drive pods'.
 		if not component or zone == "weapon":
 			label.position += normal * OUTER_LABEL_LIFT
-		# The front label keeps beside the weapon strip, clear of the weapon's label.
+		# The front label stays centred and clears the weapon's label by standing
+		# as far ahead of it as the side labels stand out past the drive pods'
+		# (OUTER_LABEL_LIFT - LAYER_OFFSET): the weapon label's own lift again.
 		if zone == "front":
-			label.position.x = c.x + (weapon_x + h.x) * 0.5
+			label.position.x = c.x
+			label.position += normal * OUTER_LABEL_LIFT
 		# Text and its outline both draw after the see-through boxes (the outline
 		# just before the text), so no box tints over either.
 		label.render_priority = 2
