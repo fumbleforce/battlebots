@@ -1,6 +1,6 @@
 extends Control
-## Practice Duel HUD world panel (#97): Shift+Z shows it over the arena while
-## the player keeps driving, a narrow card against the right edge at the Z
+## Practice Duel HUD world panel (#97): F2 shows it over the arena while
+## the player keeps driving, a narrow card against the right edge at the F1
 ## tuning card's top (practice_tuning_overlay.gd); menu_game shows one of the
 ## two at a time. Presentation only: the controls call the offline authority
 ## through MvpSession's practice_* helpers. Only the card takes the mouse.
@@ -24,7 +24,7 @@ var card: PanelContainer
 var clear_button: Button
 var spawn_button: Button
 var aggressive_toggle: CheckButton
-## The other bots' debug hitboxes (#93), moved here from the Z panel.
+## The other bots' debug hitboxes (#93), moved here from the F1 panel.
 var hitbox_toggle: CheckButton
 var status: Label
 ## The session (MvpSession) the controls act on; null leaves them inert.

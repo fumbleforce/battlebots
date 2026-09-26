@@ -1,7 +1,7 @@
 extends Control
-## Practice Duel HUD target panel (#97): while the Shift+Z world panel shows,
+## Practice Duel HUD target panel (#97): while the F2 world panel shows,
 ## the selected NPC (clicked, or last looked at) gets this card to its left, a
-## one-column cut of the Z tuning card for that NPC: remove it, its behaviour,
+## one-column cut of the F1 tuning card for that NPC: remove it, its behaviour,
 ## its hitboxes, its health, more armour, and its chassis, drive and weapons.
 ## Presentation only: the controls call the offline authority through
 ## MvpSession's practice_* helpers.

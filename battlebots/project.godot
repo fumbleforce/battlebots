@@ -122,11 +122,11 @@ pause={
 }
 practice_panel={
 "deadzone": 0.2,
-"events": [Object(InputEventKey, "physical_keycode":90)]
+"events": [Object(InputEventKey, "physical_keycode":4194332)]
 }
 practice_world_panel={
 "deadzone": 0.2,
-"events": [Object(InputEventKey, "shift_pressed":true, "physical_keycode":90)]
+"events": [Object(InputEventKey, "physical_keycode":4194333)]
 }
 primary={
 "deadzone": 0.2,

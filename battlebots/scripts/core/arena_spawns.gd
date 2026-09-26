@@ -28,7 +28,7 @@ var duel_monowheel_side_by_arena: Dictionary = {}
 ## start and the throttle it drives at.
 var duel_shuttle_travel := 0.0
 var duel_shuttle_throttle := 0.0
-## Shift+Z world panel (#97, duel.spawn.reach): the furthest, in metres from
+## F2 world panel (#97, duel.spawn.reach): the furthest, in metres from
 ## the camera, it spawns an NPC.
 var duel_spawn_reach := 0.0
 

@@ -1,5 +1,5 @@
 extends SceneTree
-## Practice Duel HUD world panel (#97): Shift+Z toggles it (Z alone stays the
+## Practice Duel HUD world panel (#97): F2 toggles it (F1 stays the
 ## tuning panel and the two never show together); its buttons clear the NPCs,
 ## spawn a passive NPC where the camera looks, and make the NPCs aggressive
 ## or not.
@@ -41,24 +41,24 @@ func run() -> void:
 	var preview: Node3D = game.preview
 	var world_panel: Control = game.practice_world_overlay
 	var tuning_panel: Control = game.practice_tuning_overlay
-	await key(KEY_Z, true)
-	check(not world_panel.visible and not preview.free_cursor, "Shift+Z does nothing outside a Practice Duel")
+	await key(KEY_F2)
+	check(not world_panel.visible and not preview.free_cursor, "F2 does nothing outside a Practice Duel")
 	game.start_practice("", "duel")
 	await frames(30)
 	var session: Node = game.session
 	check(not world_panel.visible, "Practice starts with the world panel hidden")
-	await key(KEY_Z, true)
+	await key(KEY_F2)
 	check(world_panel.visible and not tuning_panel.visible and preview.free_cursor,
-		"Shift+Z shows the world panel, not the tuning panel, and frees the cursor")
+		"F2 shows the world panel, not the tuning panel, and frees the cursor")
 	check(preview.cursor_panel == world_panel.card, "Clicks on the world card stay off the weapons")
 	var card: Rect2 = world_panel.card.get_global_rect()
 	check(card.size.x < 420 and card.end.x > 1800 and card.end.x <= 1920.5, "A narrow card on the right (%s)" % card)
 	for button: BaseButton in [world_panel.clear_button, world_panel.spawn_button, world_panel.aggressive_toggle]:
 		check(button.focus_mode == Control.FOCUS_NONE, "%s takes no keyboard focus" % button.name)
-	await key(KEY_Z)
-	check(tuning_panel.visible and not world_panel.visible, "Z swaps to the tuning panel")
-	await key(KEY_Z, true)
-	check(world_panel.visible and not tuning_panel.visible, "Shift+Z swaps back to the world panel")
+	await key(KEY_F1)
+	check(tuning_panel.visible and not world_panel.visible, "F1 swaps to the tuning panel")
+	await key(KEY_F2)
+	check(world_panel.visible and not tuning_panel.visible, "F2 swaps back to the world panel")
 
 	# Clear: only the player is left.
 	check(session.world.bots.size() > 1, "The duel starts with NPCs")
@@ -104,7 +104,7 @@ func run() -> void:
 	await frames()
 	check(not session.practice_npcs_aggressive() and world_panel.aggressive_toggle.text == "Friendly", "The NPCs calm down")
 
-	# Hitboxes moved here from the Z panel.
+	# Hitboxes moved here from the F1 panel.
 	world_panel.hitbox_toggle.button_pressed = true
 	check(session.practice_tuning().debug_hitboxes, "The world panel's Hitboxes switch shows the other bots' hitboxes")
 	world_panel.hitbox_toggle.button_pressed = false
@@ -151,9 +151,9 @@ func run() -> void:
 		target_panel.hitbox_toggle.button_pressed = true
 		await frames()
 		check(preview.practice_hitbox_overrides.get(id) == true and preview.practice_debug._hitboxes.size() == 1, "The target's Hitboxes switch draws only the target's")
-		await key(KEY_Z, true)
+		await key(KEY_F2)
 		check(not target_panel.visible and preview.practice_debug._hitboxes.size() == 1, "Its hitboxes stay on with the panels closed")
-		await key(KEY_Z, true)
+		await key(KEY_F2)
 		game._practice_target = id
 		await frames()
 		check(target_panel.hitbox_toggle.button_pressed, "Reselected, its switch still reads on")
@@ -207,7 +207,7 @@ func run() -> void:
 		check(above != null and above.body.reset_pose is Transform3D and above.body.reset_pose.origin.y > npc.body.global_position.y + 0.5,
 			"A spawn onto an NPC starts above it")
 		if above != null: session.practice_remove_npc(stacked)
-		# Parts, through the same options as the Z panel.
+		# Parts, through the same options as the F1 panel.
 		for slot: String in ["chassis", "weapon"]:
 			var picker: OptionButton = target_panel.pickers[slot]
 			var before: String = session.world.bots[id].loadout.parts[slot]
@@ -237,9 +237,9 @@ func run() -> void:
 		await frames()
 		check(not session.world.bots.has(id) and not target_panel.visible, "Remove takes the target out of the world")
 
-	await key(KEY_Z, true)
+	await key(KEY_F2)
 	check(not world_panel.visible and not tuning_panel.visible and not preview.free_cursor,
-		"Shift+Z hides the world panel and recaptures the cursor")
+		"F2 hides the world panel and recaptures the cursor")
 	game.return_to_main()
 	await frames()
 	check(not world_panel.visible and not game._practice_world_open, "Leaving practice closes the world panel")

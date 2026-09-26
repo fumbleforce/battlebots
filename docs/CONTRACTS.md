@@ -1019,37 +1019,41 @@ Keyboard/mouse rebinding and hold/toggle primary are supplied by B's merged
 InputPreferences adapter. Controller remapping remains pending. New InputMap
 entries go through A's ownership.
 
-`practice_panel` (Z, #94, 26 September 2026) shows or hides the Practice Duel
-HUD tuning panel (`scripts/ui/practice_tuning_overlay.gd`, a copy of the Esc
-menu's tuning card). It is presentation-only, read in `menu_game`'s
+`practice_panel` (F1; Z until #97, 26 September 2026) shows or hides the
+Practice Duel HUD tuning panel (`scripts/ui/practice_tuning_overlay.gd`, a copy
+of the Esc menu's tuning card). It is presentation-only, read in `menu_game`'s
 `_unhandled_input`, and is not in `InputPreferences.ACTIONS` (not rebindable,
 no save-format change). While the panel is toggled on, `baseline_preview.free_cursor`
 keeps the cursor visible, stops mouse motion orbiting the camera and drives
 mouse-bound actions only from presses outside `cursor_panel`. No wire,
 `BotCommand` or build change.
 
-`practice_world_panel` (Shift+Z, #97, 26 September 2026) shows or hides the
-Practice Duel HUD world panel (`scripts/ui/practice_world_overlay.gd`): clear
-all NPCs, spawn an NPC where the view camera's centre points (not aggressive),
-and make the NPCs aggressive or not. Both panel actions are matched exactly in
-`menu_game._unhandled_input`, so Shift+Z never also toggles `practice_panel`;
-opening one panel closes the other, and `cursor_panel` follows the open card.
-Same presentation-only, not-rebindable terms as `practice_panel`. The buttons
-call the offline authority through `MvpSession.practice_clear_npcs`,
-`practice_spawn_npc(origin, direction)` and `practice_set_npcs_aggressive`,
+`practice_world_panel` (F2, #97, 26 September 2026) shows or hides the
+Practice Duel HUD world panel (`scripts/ui/practice_world_overlay.gd`): spawn
+an NPC where the view camera's centre points (friendly; onto any NPC already
+there), clear all NPCs, and switches for every NPC's behaviour and hitboxes
+(the Hitboxes switch moved here from the tuning panel). Both panel actions are
+matched exactly in `menu_game._unhandled_input`; opening one panel closes the
+other. Same presentation-only, not-rebindable terms as `practice_panel`. The
+buttons call the offline authority through `MvpSession.practice_*` helpers,
 which do nothing outside a Practice Duel (`practice_tuning()` null). Spawn
 reach is `data/arena_spawns.json` `duel.spawn.reach`. No wire, `BotCommand` or
 build change.
 
-While the world panel shows, the NPC last under the view camera's centre
-(`MvpSession.practice_npc_at`) gets a target card to its left
-(`scripts/ui/practice_target_overlay.gd`): remove it, its own aggression, its
-health, +100 armour on every face, and chassis/drive/weapon/utility pickers.
-`practice_part_options` and `practice_set_part` take an optional NPC entity id
-(0, the default, is the player). NPC health and armour go through a
-`practice_tuning.gd` instance made for that NPC on first edit, so they hold
-through its respawns. `baseline_preview.cursor_panels` lists extra cards whose
-presses stay off the weapons.
+While the world panel shows, a selected NPC gets a target card to its left
+(`scripts/ui/practice_target_overlay.gd`) and a red silhouette outline
+(`scripts/presentation/practice_target_outline.gd`, hidden while it is a wreck;
+wreck pieces skip meshes in `WreckPieces.SKIP_GROUP`). Looking onto an NPC
+(`MvpSession.practice_npc_at`) or clicking it (`baseline_preview.cursor_pick`)
+selects it; clicking it again or closing the panel clears it. The card removes
+it, sets its own behaviour and hitboxes (overriding the world switches for that
+NPC until they change), takes or gives 100 health and 100 armour on every face,
+and has chassis/drive/weapon/utility pickers. `practice_part_options` and
+`practice_set_part` take an optional NPC entity id (0, the default, is the
+player). NPC health and armour go through a `practice_tuning.gd` instance made
+for that NPC on first edit, so they hold through its respawns.
+`baseline_preview.cursor_panels` lists extra cards whose presses stay off the
+weapons.
 
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.

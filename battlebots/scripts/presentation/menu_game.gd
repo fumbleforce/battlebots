@@ -61,7 +61,7 @@ var game_menu_page: Control
 var practice_tuning_overlay: Control
 var _practice_tuning_open := false
 ## Practice Duel HUD world panel (#97), toggled by practice_world_panel
-## (Shift+Z). At most one of the two practice panels is open.
+## (F2). At most one of the two practice panels is open.
 var practice_world_overlay: Control
 var _practice_world_open := false
 ## Beside it, the target panel (#97) for the selected NPC (entity id, 0 for
@@ -1146,9 +1146,10 @@ func _input(event: InputEvent) -> void:
 		else:
 			resume_gameplay()
 
-## Z (practice_panel) shows or hides the HUD tuning panel (#94), Shift+Z
+## F1 (practice_panel) shows or hides the HUD tuning panel (#94), F2
 ## (practice_world_panel, #97) the world panel, while driving a Practice Duel;
-## opening one closes the other. Exact matches, so Shift+Z is not also Z.
+## opening one closes the other. Matched exactly, so a modifier held with the
+## key does not count.
 ## Unhandled only, so typing in the panel's boxes never toggles it.
 func _unhandled_input(event: InputEvent) -> void:
 	if _cli_handoff or event.is_echo():
