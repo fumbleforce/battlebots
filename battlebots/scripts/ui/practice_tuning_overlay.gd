@@ -13,12 +13,15 @@ const CARD_BOTTOM := 84
 const CARD_INSET := 40
 var card: PanelContainer
 var tuning_panel: VBoxContainer
+var _margin: MarginContainer
+var _dock := 0
 
 func _init() -> void:
 	name = "PracticeTuningOverlay"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	theme = preload("res://ui/menus/theme/menu_theme.tres")
 	var margin := MarginContainer.new()
+	_margin = margin
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -42,6 +45,16 @@ func _init() -> void:
 func _ready() -> void:
 	get_viewport().size_changed.connect(_resize)
 	_resize()
+
+## Moves the card offset design pixels left, same width: 0 on its own, the
+## world card's width plus a gap while it shows beside the F2 world panel
+## for the player's own bot (#97).
+func dock(offset: int) -> void:
+	if offset == _dock:
+		return
+	_dock = offset
+	_margin.add_theme_constant_override("margin_left", CARD_LEFT - offset)
+	_margin.add_theme_constant_override("margin_right", CARD_RIGHT + offset)
 
 func apply_text_scale(factor: float) -> void:
 	MenuTextScale.apply(self, factor)

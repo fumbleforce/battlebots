@@ -371,13 +371,14 @@ func practice_clear_npcs() -> int:
 	return count
 
 ## The ray a world-panel action casts from origin along direction: at most
-## duel.spawn.reach metres, never stopped by the player's own bot.
-func _practice_ray(origin: Vector3, direction: Vector3) -> PhysicsRayQueryParameters3D:
+## duel.spawn.reach metres, never stopped by the player's own bot unless
+## with_player.
+func _practice_ray(origin: Vector3, direction: Vector3, with_player := false) -> PhysicsRayQueryParameters3D:
 	var ray := PhysicsRayQueryParameters3D.create(origin,
 		origin + direction.normalized() * ArenaSpawns.settings().duel_spawn_reach,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER)
 	var player: MvpBot = world.bots.get(local_entity)
-	if player != null:
+	if player != null and not with_player:
 		ray.exclude = [player.body.get_rid()]
 	return ray
 
@@ -405,15 +406,17 @@ func practice_npcs_aggressive() -> bool:
 
 ## Target panel (#97): the NPC the ray from origin along direction meets
 ## first, or 0 when it meets the arena, nothing, or a bot that is no NPC.
-func practice_npc_at(origin: Vector3, direction: Vector3) -> int:
+## with_player: the player's own bot stops the ray too and answers its id
+## (local_entity), for clicks that select it.
+func practice_npc_at(origin: Vector3, direction: Vector3, with_player := false) -> int:
 	if practice_tuning() == null or practice_director == null or direction.is_zero_approx():
 		return 0
-	var hit := world.get_world_3d().direct_space_state.intersect_ray(_practice_ray(origin, direction))
+	var hit := world.get_world_3d().direct_space_state.intersect_ray(_practice_ray(origin, direction, with_player))
 	if hit.is_empty():
 		return 0
 	for id: int in world.bots:
 		if world.bots[id].body.get_instance_id() == hit.collider_id:
-			return id if practice_npc(id) != null else 0
+			return id if practice_npc(id) != null or (with_player and id == local_entity) else 0
 	return 0
 
 ## The NPC with this entity id in a Practice Duel, else null.

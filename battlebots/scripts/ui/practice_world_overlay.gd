@@ -9,7 +9,8 @@ const TUNING_OVERLAY = preload("res://scripts/ui/practice_tuning_overlay.gd")
 const CARD_WIDTH := 300
 const CARD_INSET := 24
 const HEADING_FONT := 24
-const BUTTON_FONT := 20
+## As the target card's rows.
+const BUTTON_FONT := 18
 const STATUS_FONT := 18
 ## Behaviour switch captions: red while aggressive, green while friendly.
 const AGGRESSIVE_COLOR := Color("ff5a4f")

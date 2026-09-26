@@ -1,13 +1,15 @@
 extends Node
-## Practice Duel target panel (#97): a red silhouette outline round the
-## targeted NPC. Each of the bot's meshes gets two child copies, drawn in the
-## transparent pass: an invisible mask that marks the bot's pixels in the
-## stencil buffer, then (later, by render priority) a red hull grown along the
-## normals that draws only where no mask was written. So only the rim outside
-## the whole bot's silhouette shows, never the seams between its parts.
+## Practice Duel target panel (#97): a silhouette outline round the selected
+## bot, red for an NPC and green for the player's own. Each of the bot's
+## meshes gets two child copies, drawn in the transparent pass: an invisible
+## mask that marks the bot's pixels in the stencil buffer, then (later, by
+## render priority) a hull grown along the normals, in the outline colour,
+## that draws only where no mask was written. So only the rim outside the
+## whole bot's silhouette shows, never the seams between its parts.
 ## Presentation only; the bot's own materials and overlays (the damage and
 ## wreck visuals use material_overlay) are left alone.
 const COLOR := Color(1.0, 0.12, 0.1)
+const PLAYER_COLOR := Color(0.2, 1.0, 0.3)
 ## Rim width in metres, whatever the mesh's scale.
 const WIDTH := 0.05
 ## Stencil value the masks write (any value no other effect uses).
@@ -57,9 +59,10 @@ static func _material(code: String, priority: int) -> ShaderMaterial:
 	material.render_priority = priority
 	return material
 
-## Outlines bot, or nothing for null. Called every frame: a part swap replaces
+## Outlines bot in color, or nothing for null. Called every frame: a part swap replaces
 ## the bot node and a damaged bot can gain or lose meshes, so it re-dresses.
-func show_on(bot: Node) -> void:
+func show_on(bot: Node, color := COLOR) -> void:
+	_rim.set_shader_parameter("outline_color", color)
 	if not is_instance_valid(bot):
 		clear()
 		return

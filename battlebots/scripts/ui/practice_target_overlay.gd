@@ -10,7 +10,8 @@ const WORLD_OVERLAY = preload("res://scripts/ui/practice_world_overlay.gd")
 ## Gap to the world card, whose width it shares.
 const CARD_GAP := 16
 const HEADING_FONT := 24
-const BUTTON_FONT := 20
+## The same size as the dropdown rows (ROW_FONT).
+const BUTTON_FONT := 18
 const ROW_FONT := 18
 ## Width of the captions left of the dropdowns.
 const CAPTION_WIDTH := 92

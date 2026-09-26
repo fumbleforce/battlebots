@@ -117,8 +117,12 @@ func run() -> void:
 		check(session.practice_npc_at(npc.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == id, "A ray onto the NPC finds it")
 		check(session.practice_npc_at(player.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == 0, "The player is never a target")
 		# Clicking the NPC selects it; clicking it again clears the selection.
+		# Off to one side first, clear of the player's own bot on screen.
+		session.practice_director._place(npc, Transform3D(npc.body.global_basis, player.body.global_position + Vector3(12.0, 0.0, 0.0)))
+		await frames(10)
 		game._practice_target = 0
-		var on_screen: Vector2 = camera.unproject_position(npc.body.global_position + Vector3.UP * 0.3)
+		# Its top, clear of the player's own bot in front of the camera.
+		var on_screen: Vector2 = camera.unproject_position(npc.body.global_transform * (npc.collision_bounds().get_center() + Vector3.UP * npc.collision_bounds().size.y * 0.4))
 		check(game._pick_practice_target(on_screen) and game._practice_target == id, "Clicking an NPC selects it")
 		await frames()
 		check(target_panel.visible and target_panel.target == id, "The selected NPC shows its target card")
@@ -128,6 +132,41 @@ func run() -> void:
 		check(not target_panel.visible and npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(),
 			"Clearing the target hides its card and outline")
 		check(not game._pick_practice_target(Vector2(5, 5)), "A click on no NPC stays a gameplay click")
+		# The camera turns toward the selected NPC.
+		game._practice_target = id
+		await frames(40)
+		var npc_at: Vector3 = session.world.bots[id].body.global_position
+		var facing_dir: Vector3 = (-preview.rig.camera.global_basis.z).slide(Vector3.UP).normalized()
+		var toward_npc: Vector3 = (npc_at - preview.rig.camera.global_position).slide(Vector3.UP).normalized()
+		check(preview.rig.look_target is Vector3 and facing_dir.dot(toward_npc) > 0.95, "The camera turns toward the target (%.2f)" % facing_dir.dot(toward_npc))
+		check(target_panel.remove_button.get_theme_font_size("font_size") == target_panel.ROW_FONT
+			and target_panel.aggressive_toggle.get_theme_font_size("font_size") == target_panel.ROW_FONT, "The card's buttons match its dropdown rows' size")
+		# Clicking the player's own bot selects it: green outline and the F1 card
+		# beside the world card instead of the target card.
+		var own: MvpBot = session.world.bots[session.local_entity]
+		game._practice_target = 0
+		await frames()
+		var own_at: Vector2 = preview.rig.camera.unproject_position(own.body.global_position + Vector3.UP * 0.3)
+		check(game._pick_practice_target(own_at) and game._practice_target == session.local_entity, "Clicking the player's bot selects it")
+		await frames()
+		var tuning_card: Rect2 = tuning_panel.card.get_global_rect()
+		check(tuning_panel.visible and not target_panel.visible and tuning_card.end.x <= world_panel.card.get_global_rect().position.x + 0.5,
+			"The F1 card shows left of the world card (%s)" % tuning_card)
+		check(preview._over_cursor_panel(tuning_card.get_center()), "Clicks on the docked F1 card stay off the weapons")
+		check(own.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0
+			and game.practice_target_outline._rim.get_shader_parameter("outline_color") == game.practice_target_outline.PLAYER_COLOR,
+			"The player's bot has a green outline")
+		check(preview.rig.look_target == null, "The camera does not turn toward the player's own bot")
+		check(game._pick_practice_target(own_at) and game._practice_target == 0, "Clicking the player's bot again clears it")
+		await frames()
+		check(not tuning_panel.visible and own.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(),
+			"Clearing it hides the F1 card and the outline")
+		await key(KEY_F1)
+		tuning_card = tuning_panel.card.get_global_rect()
+		check(tuning_panel.visible and not world_panel.visible and tuning_card.end.x > 1800, "F1 still shows its card at the right edge (%s)" % tuning_card)
+		await key(KEY_F2)
+		game._practice_target = id
+		await frames()
 		game._practice_target = id
 		await frames()
 		check(target_panel.title.text.begins_with("Name: "), "The target's name reads Name: (%s)" % target_panel.title.text)

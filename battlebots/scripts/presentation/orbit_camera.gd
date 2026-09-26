@@ -33,6 +33,11 @@ var _boom_scale := 1.0
 var _probe := SphereShape3D.new()
 var nitro_blend := 0.0
 var shake_trauma := 0.0
+## Practice Duel target panel (#97): a world point the view turns toward
+## (yaw only) while set, instead of recentring behind the bot; null when off.
+var look_target: Variant = null
+## How quickly it turns toward look_target (1/s, exponential).
+const LOOK_SPEED := 6.0
 ## Own-shot recoil kick (add_recoil), 0..1.6.
 var _recoil := 0.0
 var base_fov := 70.0
@@ -123,7 +128,13 @@ func update_camera(delta: float) -> void:
 		return
 	_sync_anchor_scale(anchor)
 	seconds_since_orbit += delta
-	if auto_recenter and driving and seconds_since_orbit >= 1.5:
+	if look_target is Vector3:
+		var toward: Vector3 = (look_target as Vector3) - anchor.global_position
+		toward.y = 0.0
+		if toward.length_squared() > 0.01:
+			yaw = lerp_angle(yaw, atan2(-toward.x, -toward.z), 1.0 - exp(-LOOK_SPEED * delta))
+		seconds_since_orbit = 0.0
+	elif auto_recenter and driving and seconds_since_orbit >= 1.5:
 		yaw = lerp_angle(yaw, _heading(), 1.0 - exp(-recenter_speed * delta))
 	# Inverted chassis markers can be below the floor. Correct only the camera pivot.
 	var pivot := anchor.global_position
