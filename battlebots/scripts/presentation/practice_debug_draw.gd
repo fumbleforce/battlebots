@@ -99,12 +99,15 @@ func _init() -> void:
 
 ## Called every frame with the local player's tuning (null outside Practice),
 ## the other bots (MvpBot) whose hitboxes may show and the player's own bot,
-## shown with Player hitboxes on (#94).
-func render(tuning: RefCounted, delta: float, others: Array = [], player: MvpBot = null) -> void:
+## shown with Player hitboxes on (#94), and the practice target (#97), whose
+## hitboxes show on their own with its target-card toggle.
+func render(tuning: RefCounted, delta: float, others: Array = [], player: MvpBot = null, target: MvpBot = null) -> void:
 	if tuning == null:
 		clear()
 		return
 	var bots: Array = others.duplicate() if tuning.debug_hitboxes else []
+	if target != null and not bots.has(target):
+		bots.append(target)
 	if tuning.debug_player_hitboxes and player != null:
 		bots.append(player)
 	_render_hitboxes(bots)

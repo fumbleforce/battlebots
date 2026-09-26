@@ -119,12 +119,10 @@ func run() -> void:
 		and panel.linger_spin.value == 5.0, "Debug views start off and marks linger 5 s")
 	panel.trajectory_toggle.button_pressed = true
 	panel.impact_toggle.button_pressed = true
-	panel.hitbox_toggle.button_pressed = true
-	check(lab.debug_hitboxes, "The hitbox toggle reaches the tuning")
-	panel.hitbox_toggle.button_pressed = false
-	# #94: "Hitboxes" for the other bots, and a separate one for the player's own.
+	# #94: Player hitboxes for the player's own bot; the other bots' Hitboxes
+	# toggle moved to the Shift+Z world panel (#97).
 	panel.player_hitbox_toggle.button_pressed = true
-	check(panel.hitbox_toggle.text == "Hitboxes" and panel.player_hitbox_toggle.text == "Player hitboxes"
+	check(panel.find_child("HitboxToggle", true, false) == null and panel.player_hitbox_toggle.text == "Player hitboxes"
 		and lab.debug_player_hitboxes and not lab.debug_hitboxes, "The Player hitboxes toggle reaches the tuning on its own")
 	panel.player_hitbox_toggle.button_pressed = false
 	panel.linger_spin.value = 12.0

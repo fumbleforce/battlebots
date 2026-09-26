@@ -445,11 +445,12 @@ func _npc_tuning(id: int) -> RefCounted:
 		world.practice_tuning[id] = tuning
 	return world.practice_tuning[id]
 
-## Sets the NPC's health, current and full, until the panel changes it again.
-func practice_set_npc_health(id: int, health: float) -> void:
+## Adds amount (negative to take) to the NPC's current health, never below 1;
+## the result is also its full health until the panel changes it again.
+func practice_add_npc_health(id: int, amount: float) -> void:
 	var tuning := _npc_tuning(id)
 	if tuning != null:
-		tuning.set_body("core", health)
+		tuning.set_body("core", maxf(1.0, roundf(practice_npc(id).combat.core + amount)))
 
 ## Adds amount to the NPC's armour on every face, and refills it.
 func practice_add_npc_armour(id: int, amount: float) -> void:

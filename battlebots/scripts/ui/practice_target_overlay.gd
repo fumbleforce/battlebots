@@ -1,29 +1,34 @@
 extends Control
 ## Practice Duel HUD target panel (#97): while the Shift+Z world panel shows,
-## the NPC the player last looked at gets this card to its left, a one-column
-## cut of the Z tuning card for that NPC: remove it, its behaviour, its health,
-## more armour, and its chassis, drive and weapons. Presentation only: the
-## controls call the offline authority through MvpSession's practice_* helpers.
+## the selected NPC (clicked, or last looked at) gets this card to its left, a
+## one-column cut of the Z tuning card for that NPC: remove it, its behaviour,
+## its hitboxes, its health, more armour, and its chassis, drive and weapons.
+## Presentation only: the controls call the offline authority through
+## MvpSession's practice_* helpers.
 const TUNING_OVERLAY = preload("res://scripts/ui/practice_tuning_overlay.gd")
 const WORLD_OVERLAY = preload("res://scripts/ui/practice_world_overlay.gd")
 ## Card width on the 1920x1080 design page and its gap to the world card.
-const CARD_WIDTH := 340
+const CARD_WIDTH := 360
 const CARD_GAP := 16
 const HEADING_FONT := 24
 const BUTTON_FONT := 20
 const ROW_FONT := 18
-const HINT_FONT := 15
-## Armour the "+ armour" button adds to every face.
+## Width of the captions left of the dropdowns.
+const CAPTION_WIDTH := 110
+## Health the -/+ buttons take or give, and armour "+ armour" adds to every face.
+const HEALTH_STEP := 100.0
 const ARMOUR_STEP := 100.0
-const HEALTH_MAX := 100000.0
-const SPIN_SIZE := Vector2(120, 30)
 ## Picker slot -> caption, in panel order.
 const PICKERS := [["chassis", "Chassis"], ["drive", "Drive"], ["weapon", "Weapon 1"], ["utility", "Weapon 2"]]
 var card: PanelContainer
 var title: Label
 var remove_button: Button
 var aggressive_toggle: CheckButton
-var health_spin: SpinBox
+## Draws this NPC's hitboxes alone (menu_game passes it to the preview).
+var hitbox_toggle: CheckButton
+var health_label: Label
+var health_down: Button
+var health_up: Button
 var armour_button: Button
 ## Slot -> OptionButton.
 var pickers: Dictionary = {}
@@ -67,35 +72,22 @@ func _init() -> void:
 	column.add_child(HSeparator.new())
 	remove_button = _button(column, "RemoveTarget", "Remove", func() -> void:
 		if session != null: session.practice_remove_npc(target))
-	aggressive_toggle = CheckButton.new()
-	aggressive_toggle.name = "TargetAggressive"
-	aggressive_toggle.focus_mode = Control.FOCUS_NONE
-	aggressive_toggle.add_theme_font_size_override("font_size", BUTTON_FONT)
-	aggressive_toggle.toggled.connect(func(on: bool) -> void:
+	aggressive_toggle = _switch(column, "TargetAggressive", func(on: bool) -> void:
 		if session != null: session.practice_set_npc_aggressive(target, on)
-		_caption())
-	column.add_child(aggressive_toggle)
-	_caption()
+		WORLD_OVERLAY.caption_behaviour(aggressive_toggle))
+	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
+	hitbox_toggle = _switch(column, "TargetHitboxes", Callable())
+	hitbox_toggle.text = "Hitboxes"
 	var health_row := HBoxContainer.new()
-	health_row.add_theme_constant_override("separation", 12)
+	health_row.add_theme_constant_override("separation", 8)
 	column.add_child(health_row)
-	var health_label := _label(health_row, "Health", &"Body", ROW_FONT)
+	health_label = _label(health_row, "", &"Body", ROW_FONT)
+	health_label.name = "TargetHealth"
 	health_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	health_spin = SpinBox.new()
-	health_spin.name = "TargetHealth"
-	health_spin.min_value = 1.0
-	health_spin.max_value = HEALTH_MAX
-	health_spin.step = 1.0
-	health_spin.custom_arrow_step = 10.0
-	health_spin.select_all_on_focus = true
-	health_spin.custom_minimum_size = SPIN_SIZE
-	health_spin.get_line_edit().add_theme_font_size_override("font_size", ROW_FONT)
-	# Applied on Enter or leaving the box, not per keystroke: each change refills.
-	health_spin.value_changed.connect(func(amount: float) -> void:
-		if session != null: session.practice_set_npc_health(target, amount))
-	health_spin.get_line_edit().text_submitted.connect(func(_text: String) -> void:
-		health_spin.get_line_edit().release_focus())
-	health_row.add_child(health_spin)
+	health_down = _button(health_row, "TargetHealthDown", "-%d" % HEALTH_STEP, func() -> void:
+		if session != null: session.practice_add_npc_health(target, -HEALTH_STEP))
+	health_up = _button(health_row, "TargetHealthUp", "+%d" % HEALTH_STEP, func() -> void:
+		if session != null: session.practice_add_npc_health(target, HEALTH_STEP))
 	armour_button = _button(column, "TargetArmour", "+%d armour" % ARMOUR_STEP, func() -> void:
 		if session != null: session.practice_add_npc_armour(target, ARMOUR_STEP))
 	column.add_child(HSeparator.new())
@@ -122,9 +114,15 @@ func _button(parent: Control, id: String, text: String, action: Callable) -> But
 	parent.add_child(button)
 	return button
 
-## The switch names the NPC's current behaviour.
-func _caption() -> void:
-	aggressive_toggle.text = "Aggressive" if aggressive_toggle.button_pressed else "Friendly"
+func _switch(parent: Control, id: String, changed: Callable) -> CheckButton:
+	var toggle := CheckButton.new()
+	toggle.name = id
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.add_theme_font_size_override("font_size", BUTTON_FONT)
+	if changed.is_valid():
+		toggle.toggled.connect(changed)
+	parent.add_child(toggle)
+	return toggle
 
 func _ready() -> void:
 	get_viewport().size_changed.connect(_resize)
@@ -149,15 +147,13 @@ func render(source: Node, entity: int) -> void:
 	if bot == null:
 		return
 	var parts: Dictionary = bot.loadout.parts
-	title.text = "%s  #%d" % [_part_name(str(parts.get("chassis", ""))), entity]
+	title.text = "Name: %s  #%d" % [_part_name(str(parts.get("chassis", ""))), entity]
 	aggressive_toggle.set_pressed_no_signal(source.practice_npc_aggressive(entity))
-	_caption()
+	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
 	var wrecked := bot.combat.eliminated
-	for control: BaseButton in [aggressive_toggle, armour_button]:
+	for control: BaseButton in [aggressive_toggle, health_down, health_up, armour_button]:
 		control.disabled = wrecked
-	health_spin.editable = not wrecked
-	if not health_spin.get_line_edit().has_focus():
-		health_spin.set_value_no_signal(roundf(bot.combat.core))
+	health_label.text = "Health %d" % roundi(bot.combat.core)
 	# Rebuilt only when the target or its parts change, so an open list stays open.
 	var layout := "%d;%s" % [entity, ",".join(PICKERS.map(func(pair: Array) -> String: return str(parts.get(pair[0], ""))))]
 	if layout != _layout:
@@ -173,13 +169,18 @@ func _rebuild_pickers() -> void:
 	pickers.clear()
 	for pair: Array in PICKERS:
 		var slot: String = pair[0]
-		_label(_picker_column, pair[1], &"Muted", HINT_FONT)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		_picker_column.add_child(row)
+		var caption := _label(row, pair[1], &"Body", ROW_FONT)
+		caption.custom_minimum_size.x = CAPTION_WIDTH
 		var picker := OptionButton.new()
 		picker.name = "TargetPicker_" + slot
 		picker.focus_mode = Control.FOCUS_NONE
 		picker.fit_to_longest_item = false
+		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		picker.add_theme_font_size_override("font_size", ROW_FONT)
-		_picker_column.add_child(picker)
+		row.add_child(picker)
 		var options: Array = session.practice_part_options(slot, target)
 		for option: Dictionary in options:
 			picker.add_item(_part_name(option.part))

@@ -23,7 +23,6 @@ var jump_toggle: CheckButton
 ## Debug views (#93).
 var trajectory_toggle: CheckButton
 var impact_toggle: CheckButton
-var hitbox_toggle: CheckButton
 var player_hitbox_toggle: CheckButton
 var linger_spin: SpinBox
 ## Weapon slot ("primary"/"secondary") -> its "Allow auto fire" toggle.
@@ -83,7 +82,7 @@ func _init() -> void:
 	content.add_theme_constant_override("separation", 18)
 	scroll.add_child(content)
 
-## Debug views (#93): shot paths, impact areas and the other bots' armour
+## Debug views (#93): shot paths, impact areas and the player's own armour
 ## hitboxes, drawn in the arena by the preview's PracticeDebugDraw, and how
 ## long each mark stays.
 func _debug_section() -> void:
@@ -96,9 +95,8 @@ func _debug_section() -> void:
 		func(on: bool) -> void: tuning.debug_trajectories = on)
 	impact_toggle = _toggle(toggles, "ImpactToggle", "Impact areas",
 		func(on: bool) -> void: tuning.debug_impacts = on)
-	hitbox_toggle = _toggle(toggles, "HitboxToggle", "Hitboxes",
-		func(on: bool) -> void: tuning.debug_hitboxes = on)
-	# #94: the same hitboxes on the player's own bot.
+	# #94: hitboxes on the player's own bot. The other bots' Hitboxes toggle is in
+	# the Shift+Z world panel (#97).
 	player_hitbox_toggle = _toggle(toggles, "PlayerHitboxToggle", "Player hitboxes",
 		func(on: bool) -> void: tuning.debug_player_hitboxes = on)
 	var row := HBoxContainer.new()
@@ -152,7 +150,6 @@ func render(value: RefCounted, parts: Node = null) -> void:
 	jump_toggle.set_pressed_no_signal(tuning.jump_cooldown_enabled)
 	trajectory_toggle.set_pressed_no_signal(tuning.debug_trajectories)
 	impact_toggle.set_pressed_no_signal(tuning.debug_impacts)
-	hitbox_toggle.set_pressed_no_signal(tuning.debug_hitboxes)
 	player_hitbox_toggle.set_pressed_no_signal(tuning.debug_player_hitboxes)
 	if not linger_spin.get_line_edit().has_focus():
 		linger_spin.set_value_no_signal(tuning.debug_linger)

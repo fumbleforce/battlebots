@@ -10,6 +10,9 @@ const PLAYER_RESPAWN_SECONDS := 3.0
 const RESET_GRACE := 1.0
 ## Practice Duel shuttle (#88): metres ahead on its line it steers toward.
 const SHUTTLE_LOOKAHEAD := 6.0
+## Practice Duel world panel (#97): metres of air under an NPC spawned onto
+## others, so it drops onto them rather than starting in contact.
+const STACK_GAP := 0.3
 var world: AuthorityWorld
 var player_id := 0
 var target_id := 0
@@ -165,29 +168,50 @@ func _add_fixture(id: int, build: Dictionary, label: String, pose: Transform3D) 
 ## Practice Duel world panel (#97): a starter-build NPC at point, stepped back
 ## along approach (the camera ray) by half its hull so it does not start inside
 ## what the ray met, dropped onto the floor and facing the player. A point that
-## crowds another bot (the orbit camera's centre often meets the ground just
-## ahead of the player) moves on along approach until it is clear. It stands
-## still until the NPCs are made aggressive, and respawns there like the other
-## fixtures.
+## crowds the player (the orbit camera's centre often meets the ground just
+## ahead of it) moves on along approach until clear of the player; one where
+## NPCs already stand drops the new NPC onto them from above. It stands still
+## until the NPCs are made aggressive, and respawns at the floor spot like the
+## other fixtures, once that is clear.
 func spawn_npc(id: int, point: Vector3, approach: Vector3) -> MvpBot:
 	var bot := _add_fixture(id, world.registry.starter(), "npc", Transform3D(Basis.IDENTITY, point))
 	var size := bot.collision_bounds().size
 	var ahead := approach.slide(Vector3.UP)
 	ahead = ahead.normalized() if ahead.length_squared() > 0.0001 else Vector3.ZERO
 	var origin := point - ahead * Vector2(size.x, size.z).length() * 0.5
-	for attempt: int in world.bots.size():
-		var spare := _clearance(bot, Transform3D(Basis.IDENTITY, origin))
-		if spare >= 0.0 or ahead == Vector3.ZERO:
-			break
-		origin += ahead * -spare
+	var player: MvpBot = world.bots.get(player_id)
+	if player != null and ahead != Vector3.ZERO:
+		for attempt: int in 4:
+			var spare := _gap(bot, origin, player, 1.0)
+			if spare >= 0.0:
+				break
+			origin += ahead * -spare
 	var facing := Basis.IDENTITY
-	if world.bots.has(player_id):
-		var toward: Vector3 = (world.bots[player_id].body.global_position - origin).slide(Vector3.UP)
+	if player != null:
+		var toward: Vector3 = (player.body.global_position - origin).slide(Vector3.UP)
 		if toward.length_squared() > 0.0001:
 			facing = _facing(toward.normalized())
 	_place(bot, Transform3D(facing, origin))
 	records[records.size() - 1].home = bot.spawn_pose
+	# Stack on whatever NPCs already stand here instead of inside them.
+	var top := -INF
+	for other: MvpBot in world.bots.values():
+		if other != bot and other != player and not other.combat.eliminated and _gap(bot, bot.spawn_pose.origin, other, 0.0) < 0.0:
+			top = maxf(top, other.body.global_position.y + other.collision_bounds().end.y)
+	if is_finite(top):
+		var raised := bot.spawn_pose
+		raised.origin.y = top - bot.collision_bounds().position.y + STACK_GAP
+		bot.body.reset_pose = raised
+		bot.previous_pose = raised
 	return bot
+
+## Spare horizontal room (m) between bot placed at origin and other, beyond
+## margin; negative when their hulls (as circles) come closer than that.
+func _gap(bot: MvpBot, origin: Vector3, other: MvpBot, margin: float) -> float:
+	var radius: float = Vector2(bot.combat.stats.size.x, bot.combat.stats.size.z).length() * 0.5
+	var other_radius: float = Vector2(other.combat.stats.size.x, other.combat.stats.size.z).length() * 0.5
+	var gap := Vector2(other.body.global_position.x - origin.x, other.body.global_position.z - origin.z)
+	return gap.length() - (radius + other_radius + margin)
 
 ## Practice Duel world and target panels (#97): the NPC's record, or {}.
 func npc_record(id: int) -> Dictionary:

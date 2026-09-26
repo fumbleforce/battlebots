@@ -57,6 +57,10 @@ var free_cursor := false: set = set_free_cursor
 ## beside it, cursor_panels (the practice target card, #97).
 var cursor_panel: Control
 var cursor_panels: Array[Control] = []
+## Practice Duel world panel (#97): offered each free-cursor left click outside
+## the panels (screen position -> bool); true takes the click, e.g. to pick an
+## NPC, so it never fires.
+var cursor_pick: Callable
 var _free_buttons: Dictionary = {}
 var _free_edges: Dictionary = {}
 
@@ -224,7 +228,8 @@ func _input(event: InputEvent) -> void:
 	# A free-cursor press outside the panel is gameplay (#94) and leaves the
 	# panel's text boxes. Presses in an open dropdown never reach _input.
 	elif event is InputEventMouseButton and free_cursor and controls_enabled \
-			and not _over_cursor_panel(event.position):
+			and not _over_cursor_panel(event.position) \
+			and not (event.button_index == MOUSE_BUTTON_LEFT and cursor_pick.is_valid() and cursor_pick.call(event.position)):
 		get_viewport().gui_release_focus()
 		_free_buttons[event.button_index] = true
 		_free_edges[event.button_index] = true
@@ -366,6 +371,9 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 
 ## Practice Duel debug views (#93): the player's marks, the other bots'
 ## hitboxes and, with Player hitboxes on (#94), the player's own.
+## Practice Duel target panel (#97): the NPC whose hitboxes show on their own.
+var practice_hitbox_target := 0
+
 func _render_practice_debug(delta: float) -> void:
 	var session: MvpSession = source.session if source is SessionBotSource and is_instance_valid(source.session) else null
 	var lab: RefCounted = session.practice_tuning() if session != null else null
@@ -375,7 +383,8 @@ func _render_practice_debug(delta: float) -> void:
 			if id != session.local_entity:
 				others.append(session.world.bots[id])
 	var player: MvpBot = session.world.bots.get(session.local_entity) if lab != null and lab.debug_player_hitboxes else null
-	practice_debug.render(lab, delta, others, player)
+	var target: MvpBot = session.world.bots.get(practice_hitbox_target) if lab != null and practice_hitbox_target != 0 else null
+	practice_debug.render(lab, delta, others, player, target)
 
 ## Camera kick per own shot: the turret's (or the minigun's) default, or the
 ## Practice Duel Camera recoil override (#91).

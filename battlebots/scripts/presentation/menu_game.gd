@@ -64,10 +64,13 @@ var _practice_tuning_open := false
 ## (Shift+Z). At most one of the two practice panels is open.
 var practice_world_overlay: Control
 var _practice_world_open := false
-## Beside it, the target panel (#97) for the NPC last looked at (entity id,
-## 0 for none) while the world panel shows.
+## Beside it, the target panel (#97) for the selected NPC (entity id, 0 for
+## none) while the world panel shows, outlined in red.
 var practice_target_overlay: Control
 var _practice_target := 0
+## The NPC under the crosshair last frame: looking onto a new one selects it.
+var _practice_looked := 0
+var practice_target_outline: Node
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
@@ -138,6 +141,9 @@ func _ready() -> void:
 	tuning_layer.add_child(practice_target_overlay)
 	practice_target_overlay.hide()
 	preview.cursor_panels.append(practice_target_overlay.card)
+	preview.cursor_pick = _pick_practice_target
+	practice_target_outline = preload("res://scripts/presentation/practice_target_outline.gd").new()
+	add_child(practice_target_outline)
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
 	add_child(results_layer)
@@ -906,25 +912,48 @@ func _spawn_practice_npc() -> void:
 	if is_instance_valid(camera) and camera.is_inside_tree():
 		session.practice_spawn_npc(camera.global_position, -camera.global_basis.z)
 
-## Target panel (#97): while the world panel shows, the NPC under the view
-## camera's centre becomes the target and stays it until another NPC is
-## looked at, it is removed, or the world panel closes.
+## Target panel (#97): while the world panel shows, the selected NPC gets the
+## target card and a red outline. Looking onto an NPC selects it; so does
+## clicking one (_pick_practice_target), and clicking it again clears the
+## selection. Closing the world panel or removing the NPC clears it too.
 func _update_practice_target() -> void:
 	if not practice_world_overlay.visible:
 		if not _practice_world_open:
 			_practice_target = 0
-		practice_target_overlay.hide()
+			_practice_looked = 0
+		_show_practice_target(false)
 		return
 	var camera: Camera3D = preview.aim_camera()
 	if is_instance_valid(camera) and camera.is_inside_tree():
 		var looked: int = session.practice_npc_at(camera.global_position, -camera.global_basis.z)
-		if looked != 0:
+		if looked != 0 and looked != _practice_looked:
 			_practice_target = looked
+		_practice_looked = looked
 	if session.practice_npc(_practice_target) == null:
 		_practice_target = 0
-	practice_target_overlay.visible = _practice_target != 0
-	if practice_target_overlay.visible:
+	_show_practice_target(_practice_target != 0)
+
+func _show_practice_target(shown: bool) -> void:
+	practice_target_overlay.visible = shown
+	if shown:
 		practice_target_overlay.render(session, _practice_target)
+	var hitboxes: bool = shown and practice_target_overlay.hitbox_toggle.button_pressed
+	preview.practice_hitbox_target = _practice_target if hitboxes else 0
+	practice_target_outline.show_on(session.practice_npc(_practice_target) if shown else null)
+
+## A free-cursor click on an NPC while the world panel shows selects it, or
+## clears the selection when it is already the target; true takes the click.
+func _pick_practice_target(position: Vector2) -> bool:
+	if not practice_world_overlay.visible:
+		return false
+	var camera: Camera3D = preview.aim_camera()
+	if not is_instance_valid(camera) or not camera.is_inside_tree():
+		return false
+	var picked: int = session.practice_npc_at(camera.project_ray_origin(position), camera.project_ray_normal(position))
+	if picked == 0:
+		return false
+	_practice_target = 0 if picked == _practice_target else picked
+	return true
 
 func _update_world_markers() -> void:
 	if not is_instance_valid(world_markers) or not is_instance_valid(session):

@@ -104,33 +104,65 @@ func run() -> void:
 	await frames()
 	check(not session.practice_npcs_aggressive() and world_panel.aggressive_toggle.text == "Friendly", "The NPCs calm down")
 
-	# Target panel: the NPC under the crosshair gets its own card.
+	# Hitboxes moved here from the Z panel.
+	world_panel.hitbox_toggle.button_pressed = true
+	check(session.practice_tuning().debug_hitboxes, "The world panel's Hitboxes switch shows the other bots' hitboxes")
+	world_panel.hitbox_toggle.button_pressed = false
+	check(world_panel.aggressive_toggle.get_theme_color("font_color") == world_panel.FRIENDLY_COLOR, "Friendly reads green")
+
+	# Target panel: the selected NPC gets its own card and a red outline.
 	var target_panel: Control = game.practice_target_overlay
 	if npc != null:
 		var id := npc.entity_id
 		check(session.practice_npc_at(npc.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == id, "A ray onto the NPC finds it")
 		check(session.practice_npc_at(player.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == 0, "The player is never a target")
+		# Clicking the NPC selects it; clicking it again clears the selection.
+		game._practice_target = 0
+		var on_screen: Vector2 = camera.unproject_position(npc.body.global_position + Vector3.UP * 0.3)
+		check(game._pick_practice_target(on_screen) and game._practice_target == id, "Clicking an NPC selects it")
+		await frames()
+		check(target_panel.visible and target_panel.target == id, "The selected NPC shows its target card")
+		check(npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The target has a red outline")
+		check(game._pick_practice_target(on_screen) and game._practice_target == 0, "Clicking the target again clears it")
+		await frames()
+		check(not target_panel.visible and npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(),
+			"Clearing the target hides its card and outline")
+		check(not game._pick_practice_target(Vector2(5, 5)), "A click on no NPC stays a gameplay click")
 		game._practice_target = id
 		await frames()
-		check(target_panel.visible and target_panel.target == id, "Looking at an NPC shows its target card")
+		check(target_panel.title.text.begins_with("Name: "), "The target's name reads Name: (%s)" % target_panel.title.text)
 		var target_card: Rect2 = target_panel.card.get_global_rect()
 		var world_card: Rect2 = world_panel.card.get_global_rect()
-		check(target_card.end.x <= world_card.position.x and target_card.size.x < 420, "The target card sits left of the world card (%s, %s)" % [target_card, world_card])
+		check(target_card.end.x <= world_card.position.x and target_card.size.x < 440, "The target card sits left of the world card (%s, %s)" % [target_card, world_card])
 		check(preview._over_cursor_panel(target_card.get_center()), "Clicks on the target card stay off the weapons")
 		for slot: String in ["chassis", "drive", "weapon", "utility"]:
-			check(target_panel.pickers.has(slot) and target_panel.pickers[slot].item_count > 0, "The target card has a %s picker" % slot)
-		# Behaviour: this NPC only.
+			var picker: OptionButton = target_panel.pickers.get(slot)
+			check(picker != null and picker.item_count > 0 and picker.get_parent() is HBoxContainer and picker.get_index() == 1,
+				"The target card has a %s picker right of its caption" % slot)
+		# Behaviour: this NPC only, red when aggressive.
 		target_panel.aggressive_toggle.button_pressed = true
 		await frames()
-		check(session.practice_npc_aggressive(id) and target_panel.aggressive_toggle.text == "Aggressive", "The target turns aggressive")
+		check(session.practice_npc_aggressive(id) and target_panel.aggressive_toggle.text == "Aggressive"
+			and target_panel.aggressive_toggle.get_theme_color("font_color") == world_panel.AGGRESSIVE_COLOR, "The target turns aggressive, in red")
 		target_panel.aggressive_toggle.button_pressed = false
 		await frames()
 		check(not session.practice_npc_aggressive(id) and target_panel.aggressive_toggle.text == "Friendly", "The target turns friendly")
-		# Health and armour.
-		target_panel.health_spin.value = 777.0
+		# Its hitboxes alone.
+		target_panel.hitbox_toggle.button_pressed = true
 		await frames()
+		check(preview.practice_hitbox_target == id and preview.practice_debug._hitboxes.size() == 1, "The target's Hitboxes switch draws only the target's")
+		target_panel.hitbox_toggle.button_pressed = false
+		await frames()
+		check(preview.practice_hitbox_target == 0, "Its hitboxes hide again")
+		# Health -/+ and armour.
+		var health: float = session.world.bots[id].combat.core
+		target_panel.health_up.pressed.emit()
+		await frames()
+		check(is_equal_approx(session.world.bots[id].combat.core, health + target_panel.HEALTH_STEP), "+100 adds health (%s -> %s)" % [health, session.world.bots[id].combat.core])
+		target_panel.health_down.pressed.emit()
+		await frames()
+		check(is_equal_approx(session.world.bots[id].combat.core, health), "-100 takes it again")
 		npc = session.world.bots[id]
-		check(is_equal_approx(npc.combat.core, 777.0), "Setting health sets the target's health (%s)" % npc.combat.core)
 		var plates: Dictionary = npc.combat.stats.plates.duplicate()
 		target_panel.armour_button.pressed.emit()
 		await frames()
@@ -138,6 +170,12 @@ func run() -> void:
 		for face: String in plates:
 			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face]) + target_panel.ARMOUR_STEP),
 				"+armour adds to the %s face (%s -> %s)" % [face, plates[face], npc.combat.stats.plates[face]])
+		# A spawn where an NPC already stands lands on top of it.
+		var stacked: int = session.practice_spawn_npc(npc.body.global_position + Vector3.UP * 6.0, Vector3.DOWN)
+		var above: MvpBot = session.world.bots.get(stacked)
+		check(above != null and above.body.reset_pose is Transform3D and above.body.reset_pose.origin.y > npc.body.global_position.y + 0.5,
+			"A spawn onto an NPC starts above it")
+		if above != null: session.practice_remove_npc(stacked)
 		# Parts, through the same options as the Z panel.
 		for slot: String in ["chassis", "weapon"]:
 			var picker: OptionButton = target_panel.pickers[slot]
@@ -152,6 +190,7 @@ func run() -> void:
 			check(choice >= 0 and session.world.bots[id].loadout.parts[slot] != before,
 				"Choosing a %s fits it to the target (%s -> %s)" % [slot, before, session.world.bots[id].loadout.parts[slot]])
 		check(target_panel.visible and target_panel.target == id, "The target survives a part swap")
+		check(session.world.bots[id].find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The outline follows the swapped bot")
 		target_panel.remove_button.pressed.emit()
 		await frames()
 		check(not session.world.bots.has(id) and not target_panel.visible, "Remove takes the target out of the world")

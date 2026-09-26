@@ -11,12 +11,19 @@ const CARD_INSET := 24
 const HEADING_FONT := 24
 const BUTTON_FONT := 20
 const STATUS_FONT := 18
+## Behaviour switch captions: red while aggressive, green while friendly.
+const AGGRESSIVE_COLOR := Color("ff5a4f")
+const FRIENDLY_COLOR := Color("62d26f")
+const CAPTION_COLORS := [&"font_color", &"font_hover_color", &"font_pressed_color",
+	&"font_hover_pressed_color", &"font_focus_color", &"font_disabled_color"]
 ## Asks menu_game for the camera ray to spawn along.
 signal spawn_requested
 var card: PanelContainer
 var clear_button: Button
 var spawn_button: Button
 var aggressive_toggle: CheckButton
+## The other bots' debug hitboxes (#93), moved here from the Z panel.
+var hitbox_toggle: CheckButton
 var status: Label
 ## The session (MvpSession) the controls act on; null leaves them inert.
 var session: Node
@@ -68,13 +75,26 @@ func _init() -> void:
 	aggressive_toggle.add_theme_font_size_override("font_size", BUTTON_FONT)
 	aggressive_toggle.toggled.connect(func(on: bool) -> void:
 		if session != null: session.practice_set_npcs_aggressive(on)
-		_caption())
+		caption_behaviour(aggressive_toggle))
 	column.add_child(aggressive_toggle)
-	_caption()
+	caption_behaviour(aggressive_toggle)
+	hitbox_toggle = CheckButton.new()
+	hitbox_toggle.name = "HitboxToggle"
+	hitbox_toggle.text = "Hitboxes"
+	hitbox_toggle.focus_mode = Control.FOCUS_NONE
+	hitbox_toggle.add_theme_font_size_override("font_size", BUTTON_FONT)
+	hitbox_toggle.toggled.connect(func(on: bool) -> void:
+		var tuning: RefCounted = session.practice_tuning() if session != null else null
+		if tuning != null: tuning.debug_hitboxes = on)
+	column.add_child(hitbox_toggle)
 
-## The toggle names the NPCs' current behaviour.
-func _caption() -> void:
-	aggressive_toggle.text = "Aggressive" if aggressive_toggle.button_pressed else "Friendly"
+## A behaviour switch names the current behaviour, in red or green; the
+## target card's switch (#97) uses it too.
+static func caption_behaviour(toggle: CheckButton) -> void:
+	var aggressive := toggle.button_pressed
+	toggle.text = "Aggressive" if aggressive else "Friendly"
+	for key: StringName in CAPTION_COLORS:
+		toggle.add_theme_color_override(key, AGGRESSIVE_COLOR if aggressive else FRIENDLY_COLOR)
 
 ## Mouse-only, like the tuning card (#94): Space must not press them again.
 func _button(parent: Control, id: String, text: String, action: Callable) -> Button:
@@ -109,4 +129,6 @@ func render(source: Node) -> void:
 		count = source.practice_director.records.size() + source.practice_director.roamers.size()
 	status.text = "%d NPC%s" % [count, "" if count == 1 else "s"]
 	aggressive_toggle.set_pressed_no_signal(source != null and source.practice_npcs_aggressive())
-	_caption()
+	caption_behaviour(aggressive_toggle)
+	var tuning: RefCounted = source.practice_tuning() if source != null else null
+	hitbox_toggle.set_pressed_no_signal(tuning != null and tuning.debug_hitboxes)
