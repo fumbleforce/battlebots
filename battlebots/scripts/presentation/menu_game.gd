@@ -61,7 +61,7 @@ var game_menu_page: Control
 var practice_tuning_overlay: Control
 var _practice_tuning_open := false
 ## Practice Duel HUD world panel (#97), toggled by practice_world_panel
-## (F2). At most one of the two practice panels is open.
+## (F1). At most one of the two practice panels is open.
 var practice_world_overlay: Control
 var _practice_world_open := false
 ## Beside it, the target panel (#97) for the selected NPC (entity id, 0 for
@@ -909,7 +909,7 @@ func _update_practice_tuning_overlay() -> void:
 	_update_practice_target()
 	preview.cursor_panel = practice_world_overlay.card if _practice_world_open else practice_tuning_overlay.card
 
-## World panel Player options (#97): switches to the F1 tuning panel, as F1 does.
+## World panel Player options (#97): switches to the F2 tuning panel, as F2 does.
 func _open_player_options() -> void:
 	_practice_world_open = false
 	_practice_tuning_open = true
@@ -1162,7 +1162,7 @@ func _input(event: InputEvent) -> void:
 		else:
 			resume_gameplay()
 
-## F1 (practice_panel) shows or hides the HUD tuning panel (#94), F2
+## F2 (practice_panel) shows or hides the HUD tuning panel (#94), F1
 ## (practice_world_panel, #97) the world panel, while driving a Practice Duel;
 ## opening one closes the other. Matched exactly, so a modifier held with the
 ## key does not count.

@@ -364,7 +364,7 @@ func practice_tuning() -> RefCounted:
 	return world.practice_tuning.get(local_entity)
 
 
-## Practice Duel world panel (#97, F2): offline authority only, like
+## Practice Duel world panel (#97, F1): offline authority only, like
 ## practice_tuning(). Removes every NPC; returns how many were removed.
 func practice_clear_npcs() -> int:
 	if practice_tuning() == null or practice_director == null:

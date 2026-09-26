@@ -34,7 +34,7 @@
 			"side_fraction_by_arena": {"woodland": 0.15}},
 		"shuttle": {"_comment": "#88: the centre Atlas stands back from the player, as far from the far wall as the monowheel block is from the left wall. A second Atlas stands the same distance from the right wall, facing along the player's forward axis, and drives forward and back travel metres either side of its start at throttle, reversing direction at each end without turning.",
 			"travel": 8.0, "throttle": 0.45},
-		"spawn": {"_comment": "#97: the F2 world panel spawns an NPC where the camera's centre ray meets the arena, at most reach metres from the camera; a ray that hits nothing within reach spawns at its end, dropped to the floor.",
+		"spawn": {"_comment": "#97: the F1 world panel spawns an NPC where the camera's centre ray meets the arena, at most reach metres from the camera; a ray that hits nothing within reach spawns at its end, dropped to the floor.",
 			"reach": 40.0}
 	}
 }

@@ -1019,7 +1019,7 @@ Keyboard/mouse rebinding and hold/toggle primary are supplied by B's merged
 InputPreferences adapter. Controller remapping remains pending. New InputMap
 entries go through A's ownership.
 
-`practice_panel` (F1; Z until #97, 26 September 2026) shows or hides the
+`practice_panel` (F2; Z, then briefly F1, until #97, 26 September 2026) shows or hides the
 Practice Duel HUD tuning panel (`scripts/ui/practice_tuning_overlay.gd`, a copy
 of the Esc menu's tuning card). It is presentation-only, read in `menu_game`'s
 `_unhandled_input`, and is not in `InputPreferences.ACTIONS` (not rebindable,
@@ -1028,7 +1028,7 @@ keeps the cursor visible, stops mouse motion orbiting the camera and drives
 mouse-bound actions only from presses outside `cursor_panel`. No wire,
 `BotCommand` or build change.
 
-`practice_world_panel` (F2, #97, 26 September 2026) shows or hides the
+`practice_world_panel` (F1, #97, 26 September 2026) shows or hides the
 Practice Duel HUD world panel (`scripts/ui/practice_world_overlay.gd`): spawn
 an NPC where the view camera's centre points (friendly; onto any NPC already
 there), clear all NPCs, and switches for every NPC's behaviour and hitboxes

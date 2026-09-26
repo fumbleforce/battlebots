@@ -1,6 +1,6 @@
 extends Control
-## Practice Duel HUD world panel (#97): F2 shows it over the arena while
-## the player keeps driving, a narrow card against the right edge at the F1
+## Practice Duel HUD world panel (#97): F1 shows it over the arena while
+## the player keeps driving, a narrow card against the right edge at the F2
 ## tuning card's top (practice_tuning_overlay.gd); menu_game shows one of the
 ## two at a time. Presentation only: the controls call the offline authority
 ## through MvpSession's practice_* helpers. Only the card takes the mouse.
@@ -21,7 +21,7 @@ const CAPTION_COLORS := [&"font_color", &"font_hover_color", &"font_pressed_colo
 	&"font_hover_pressed_color", &"font_focus_color", &"font_disabled_color"]
 ## Asks menu_game for the camera ray to spawn along.
 signal spawn_requested
-## Player options pressed: menu_game opens the F1 tuning panel.
+## Player options pressed: menu_game opens the F2 tuning panel.
 signal player_options_requested
 ## The Hitboxes switch changed: it overrides every NPC's own (#97).
 signal hitboxes_toggled(on: bool)
@@ -32,7 +32,7 @@ var clear_button: Button
 var player_options_button: Button
 var spawn_button: Button
 var aggressive_toggle: CheckButton
-## The other bots' debug hitboxes (#93), moved here from the F1 panel.
+## The other bots' debug hitboxes (#93), moved here from the F2 panel.
 var hitbox_toggle: CheckButton
 var status: Label
 ## The session (MvpSession) the controls act on; null leaves them inert.

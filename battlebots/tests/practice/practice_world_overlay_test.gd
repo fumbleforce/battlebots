@@ -1,5 +1,5 @@
 extends SceneTree
-## Practice Duel HUD world panel (#97): F2 toggles it (F1 stays the
+## Practice Duel HUD world panel (#97): F1 toggles it (F2 stays the
 ## tuning panel and the two never show together); its buttons clear the NPCs,
 ## spawn a passive NPC where the camera looks, and make the NPCs aggressive
 ## or not.
@@ -41,24 +41,24 @@ func run() -> void:
 	var preview: Node3D = game.preview
 	var world_panel: Control = game.practice_world_overlay
 	var tuning_panel: Control = game.practice_tuning_overlay
-	await key(KEY_F2)
-	check(not world_panel.visible and not preview.free_cursor, "F2 does nothing outside a Practice Duel")
+	await key(KEY_F1)
+	check(not world_panel.visible and not preview.free_cursor, "F1 does nothing outside a Practice Duel")
 	game.start_practice("", "duel")
 	await frames(30)
 	var session: Node = game.session
 	check(not world_panel.visible, "Practice starts with the world panel hidden")
-	await key(KEY_F2)
+	await key(KEY_F1)
 	check(world_panel.visible and not tuning_panel.visible and preview.free_cursor,
-		"F2 shows the world panel, not the tuning panel, and frees the cursor")
+		"F1 shows the world panel, not the tuning panel, and frees the cursor")
 	check(preview.cursor_panel == world_panel.card, "Clicks on the world card stay off the weapons")
 	var card: Rect2 = world_panel.card.get_global_rect()
 	check(card.size.x < 420 and card.end.x > 1800 and card.end.x <= 1920.5, "A narrow card on the right (%s)" % card)
 	for button: BaseButton in [world_panel.clear_button, world_panel.spawn_button, world_panel.aggressive_toggle]:
 		check(button.focus_mode == Control.FOCUS_NONE, "%s takes no keyboard focus" % button.name)
-	await key(KEY_F1)
-	check(tuning_panel.visible and not world_panel.visible, "F1 swaps to the tuning panel")
 	await key(KEY_F2)
-	check(world_panel.visible and not tuning_panel.visible, "F2 swaps back to the world panel")
+	check(tuning_panel.visible and not world_panel.visible, "F2 swaps to the tuning panel")
+	await key(KEY_F1)
+	check(world_panel.visible and not tuning_panel.visible, "F1 swaps back to the world panel")
 
 	# Clear: only the player is left.
 	check(session.world.bots.size() > 1, "The duel starts with NPCs")
@@ -104,7 +104,7 @@ func run() -> void:
 	await frames()
 	check(not session.practice_npcs_aggressive() and world_panel.aggressive_toggle.text == "Friendly", "The NPCs calm down")
 
-	# Hitboxes moved here from the F1 panel.
+	# Hitboxes moved here from the F2 panel.
 	world_panel.hitbox_toggle.button_pressed = true
 	check(session.practice_tuning().debug_hitboxes, "The world panel's Hitboxes switch shows the other bots' hitboxes")
 	world_panel.hitbox_toggle.button_pressed = false
@@ -155,15 +155,15 @@ func run() -> void:
 		preview.rig.yaw = atan2(-(looked_at - look_cam.global_position).x, -(looked_at - look_cam.global_position).z)
 		await frames(5)
 		check(game._practice_target == 0 and not target_panel.visible, "Looking at an NPC does not select it")
-		# Player options, green and on top of the world card, switches to the F1 panel.
+		# Player options, green and on top of the world card, switches to the F2 panel.
 		check(world_panel.player_options_button.get_index() < world_panel.spawn_button.get_index()
 			and world_panel.player_options_button.get_theme_stylebox("normal").bg_color == world_panel.PLAYER_OPTIONS_COLOR,
 			"A green Player options button tops the world card")
 		world_panel.player_options_button.pressed.emit()
 		await frames()
-		check(tuning_panel.visible and not world_panel.visible and preview.free_cursor, "Player options opens the F1 panel")
-		await key(KEY_F2)
-		check(world_panel.visible and not tuning_panel.visible, "F2 comes back from it")
+		check(tuning_panel.visible and not world_panel.visible and preview.free_cursor, "Player options opens the F2 panel")
+		await key(KEY_F1)
+		check(world_panel.visible and not tuning_panel.visible, "F1 comes back from it")
 		# Tabbing out keeps the panels up; focus back, driving resumes.
 		preview._on_focus_lost()
 		await frames()
@@ -221,9 +221,9 @@ func run() -> void:
 		target_panel.hitbox_toggle.button_pressed = true
 		await frames()
 		check(preview.practice_hitbox_overrides.get(id) == true and preview.practice_debug._hitboxes.size() == 1, "The target's Hitboxes switch draws only the target's")
-		await key(KEY_F2)
+		await key(KEY_F1)
 		check(not target_panel.visible and preview.practice_debug._hitboxes.size() == 1, "Its hitboxes stay on with the panels closed")
-		await key(KEY_F2)
+		await key(KEY_F1)
 		game._practice_target = id
 		await frames()
 		check(target_panel.hitbox_toggle.button_pressed, "Reselected, its switch still reads on")
@@ -277,7 +277,7 @@ func run() -> void:
 		check(above != null and above.body.reset_pose is Transform3D and above.body.reset_pose.origin.y > npc.body.global_position.y + 0.5,
 			"A spawn onto an NPC starts above it")
 		if above != null: session.practice_remove_npc(stacked)
-		# Parts, through the same options as the F1 panel.
+		# Parts, through the same options as the F2 panel.
 		for slot: String in ["chassis", "weapon"]:
 			var picker: OptionButton = target_panel.pickers[slot]
 			var before: String = session.world.bots[id].loadout.parts[slot]
@@ -317,8 +317,8 @@ func run() -> void:
 			"Possess tops the target card's options")
 		check(target_panel.possess_button.get_theme_stylebox("normal").bg_color == target_panel.POSSESS_COLOR
 			and target_panel.remove_button.get_theme_stylebox("normal").bg_color == target_panel.REMOVE_COLOR, "Possess is green and Remove red")
-		check(target_panel.hitbox_toggle.text == "Hitbox" and target_panel.armour_down.text == "-A" and target_panel.armour_up.text == "+A",
-			"The target card reads Hitbox, -A and +A")
+		check(target_panel.hitbox_toggle.text == "Hitbox" and target_panel.armour_down.text == "-100 A" and target_panel.armour_up.text == "+100 A",
+			"The target card reads Hitbox, -100 A and +100 A")
 		target_panel.possess_button.pressed.emit()
 		await frames(4)
 		check(session.local_entity == fresh_id and session.practice_npc(old_player) != null and session.practice_npc(fresh_id) == null,
@@ -333,17 +333,17 @@ func run() -> void:
 		await frames(10)
 		check(session.world.bots[fresh_id].last_sequence >= possessed_at, "The player's commands drive the possessed bot")
 
-	await key(KEY_F2)
+	await key(KEY_F1)
 	check(not world_panel.visible and not tuning_panel.visible and not preview.free_cursor,
-		"F2 hides the world panel and recaptures the cursor")
+		"F1 hides the world panel and recaptures the cursor")
 	# Escape closes the F1/F2 panels first; only then does it open the pause menu.
-	await key(KEY_F2)
-	check(world_panel.visible, "F2 opens the world panel again")
+	await key(KEY_F1)
+	check(world_panel.visible, "F1 opens the world panel again")
 	await key(KEY_ESCAPE)
 	check(not world_panel.visible and not preview.pause_menu.visible and preview.controls_enabled and not preview.free_cursor,
 		"Escape closes the world panel without the pause menu")
-	await key(KEY_F1)
-	check(tuning_panel.visible, "F1 opens the tuning panel")
+	await key(KEY_F2)
+	check(tuning_panel.visible, "F2 opens the tuning panel")
 	await key(KEY_ESCAPE)
 	check(not tuning_panel.visible and not preview.pause_menu.visible and preview.controls_enabled, "Escape closes the tuning panel without the pause menu")
 	await key(KEY_ESCAPE)

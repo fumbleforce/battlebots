@@ -1,5 +1,5 @@
 extends SceneTree
-## Practice Duel HUD tuning panel (#94): F1 (was Z, #97) toggles a copy of the Esc menu's
+## Practice Duel HUD tuning panel (#94): F2 (Z, then F1, until #97) toggles a copy of the Esc menu's
 ## tuning card while driving; the cursor is free for it, mouse motion does not
 ## orbit, clicks on the card stay off the weapons and clicks elsewhere fire.
 var failures: Array[String] = []
@@ -43,13 +43,13 @@ func run() -> void:
 	await frames()
 	var preview: Node3D = game.preview
 	var overlay: Control = game.practice_tuning_overlay
-	await key(KEY_F1)
-	check(not overlay.visible and not preview.free_cursor, "F1 does nothing outside a Practice Duel")
+	await key(KEY_F2)
+	check(not overlay.visible and not preview.free_cursor, "F2 does nothing outside a Practice Duel")
 	game.start_practice("", "duel")
 	await frames(30)
 	check(preview.controls_enabled and not overlay.visible, "Practice starts with the panel hidden")
-	await key(KEY_F1)
-	check(overlay.visible and preview.free_cursor, "F1 shows the panel and frees the cursor")
+	await key(KEY_F2)
+	check(overlay.visible and preview.free_cursor, "F2 shows the panel and frees the cursor")
 	var panel: VBoxContainer = overlay.tuning_panel
 	check(panel.pickers.has("weapon") and panel.pickers.has("chassis") and not panel._spins.is_empty(),
 		"The panel lists the same weapon and body tuning as the Esc menu")
@@ -108,13 +108,13 @@ func run() -> void:
 	game.resume_gameplay()
 	await frames()
 	check(overlay.visible and preview.free_cursor, "Resuming shows the HUD panel again")
-	await key(KEY_F1)
-	check(not overlay.visible and not preview.free_cursor, "F1 hides the panel and recaptures the cursor")
+	await key(KEY_F2)
+	check(not overlay.visible and not preview.free_cursor, "F2 hides the panel and recaptures the cursor")
 	motion.position = Vector2(300, 540)
 	root.push_input(motion)
 	await frames()
 	check(not is_equal_approx(preview.rig.yaw, yaw), "Mouse motion orbits again once the panel is hidden")
-	await key(KEY_F1)
+	await key(KEY_F2)
 	game.return_to_main()
 	await frames()
 	check(not overlay.visible and not preview.free_cursor and not game._practice_tuning_open, "Leaving practice closes the panel")

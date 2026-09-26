@@ -1,7 +1,7 @@
 extends Control
-## Practice Duel HUD target panel (#97): while the F2 world panel shows,
+## Practice Duel HUD target panel (#97): while the F1 world panel shows,
 ## the selected NPC (clicked, or last looked at) gets this card to its left, a
-## one-column cut of the F1 tuning card for that NPC: remove it, its behaviour,
+## one-column cut of the F2 tuning card for that NPC: remove it, its behaviour,
 ## its hitboxes, its health, more armour, and its chassis, drive and weapons.
 ## Presentation only: the controls call the offline authority through
 ## MvpSession's practice_* helpers.
@@ -99,9 +99,9 @@ func _init() -> void:
 	health_up = _button(health_row, "TargetHealthUp", "+%d HP" % HEALTH_STEP, func() -> void:
 		if session != null: session.practice_add_npc_health(target, HEALTH_STEP))
 	var armour_row := _row(column)
-	armour_down = _button(armour_row, "TargetArmourDown", "-A", func() -> void:
+	armour_down = _button(armour_row, "TargetArmourDown", "-%d A" % ARMOUR_STEP, func() -> void:
 		if session != null: session.practice_add_npc_armour(target, -ARMOUR_STEP))
-	armour_up = _button(armour_row, "TargetArmourUp", "+A", func() -> void:
+	armour_up = _button(armour_row, "TargetArmourUp", "+%d A" % ARMOUR_STEP, func() -> void:
 		if session != null: session.practice_add_npc_armour(target, ARMOUR_STEP))
 	column.add_child(HSeparator.new())
 	_picker_column = VBoxContainer.new()
