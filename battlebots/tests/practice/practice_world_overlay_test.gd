@@ -141,30 +141,44 @@ func run() -> void:
 		check(preview.rig.look_target is Vector3 and facing_dir.dot(toward_npc) > 0.95, "The camera turns toward the target (%.2f)" % facing_dir.dot(toward_npc))
 		check(target_panel.remove_button.get_theme_font_size("font_size") == target_panel.ROW_FONT
 			and target_panel.aggressive_toggle.get_theme_font_size("font_size") == target_panel.ROW_FONT, "The card's buttons match its dropdown rows' size")
-		# Clicking the player's own bot selects it: green outline and the F1 card
-		# beside the world card instead of the target card.
+		# The player's own bot can never be selected.
 		var own: MvpBot = session.world.bots[session.local_entity]
 		game._practice_target = 0
 		await frames()
 		var own_at: Vector2 = preview.rig.camera.unproject_position(own.body.global_position + Vector3.UP * 0.3)
-		check(game._pick_practice_target(own_at) and game._practice_target == session.local_entity, "Clicking the player's bot selects it")
+		check(not game._pick_practice_target(own_at) and game._practice_target == 0, "Clicking the player's bot selects nothing")
+		# Tabbing out keeps the panels up; focus back, driving resumes.
+		preview._on_focus_lost()
 		await frames()
-		var tuning_card: Rect2 = tuning_panel.card.get_global_rect()
-		check(tuning_panel.visible and not target_panel.visible and tuning_card.end.x <= world_panel.card.get_global_rect().position.x + 0.5,
-			"The F1 card shows left of the world card (%s)" % tuning_card)
-		check(preview._over_cursor_panel(tuning_card.get_center()), "Clicks on the docked F1 card stay off the weapons")
-		check(own.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0
-			and game.practice_target_outline._rim.get_shader_parameter("outline_color") == game.practice_target_outline.PLAYER_COLOR,
-			"The player's bot has a green outline")
-		check(preview.rig.look_target == null, "The camera does not turn toward the player's own bot")
-		check(game._pick_practice_target(own_at) and game._practice_target == 0, "Clicking the player's bot again clears it")
+		check(world_panel.visible and not preview.pause_menu.visible, "Losing window focus keeps the world panel up")
+		preview._on_focus_regained()
 		await frames()
-		check(not tuning_panel.visible and own.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(),
-			"Clearing it hides the F1 card and the outline")
-		await key(KEY_F1)
-		tuning_card = tuning_panel.card.get_global_rect()
-		check(tuning_panel.visible and not world_panel.visible and tuning_card.end.x > 1800, "F1 still shows its card at the right edge (%s)" % tuning_card)
-		await key(KEY_F2)
+		check(world_panel.visible and preview.controls_enabled, "Focus back, the panel is still up and driving resumes")
+		# The world card drags by its background, and stays on screen.
+		var before_drag: Rect2 = world_panel.card.get_global_rect()
+		var grab := before_drag.position + Vector2(before_drag.size.x * 0.5, 12.0)
+		var press := InputEventMouseButton.new()
+		press.button_index = MOUSE_BUTTON_LEFT
+		press.pressed = true
+		press.position = grab
+		press.global_position = grab
+		world_panel.drag._on_card_input(press)
+		var motion_drag := InputEventMouseMotion.new()
+		motion_drag.position = grab + Vector2(-200.0, 150.0)
+		motion_drag.global_position = grab + Vector2(-200.0, 150.0)
+		world_panel.drag._on_card_input(motion_drag)
+		press.pressed = false
+		world_panel.drag._on_card_input(press)
+		await frames()
+		var after_drag: Rect2 = world_panel.card.get_global_rect()
+		check(after_drag.position.distance_to(before_drag.position + Vector2(-200.0, 150.0)) < 2.0, "Dragging moves the world card (%s -> %s)" % [before_drag, after_drag])
+		world_panel.drag.offset = Vector2(5000.0, 5000.0)
+		world_panel._resize()
+		await frames()
+		after_drag = world_panel.card.get_global_rect()
+		check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(after_drag), "A dragged card stays on screen (%s)" % after_drag)
+		world_panel.drag.offset = Vector2.ZERO
+		world_panel._resize()
 		game._practice_target = id
 		await frames()
 		game._practice_target = id
@@ -275,6 +289,32 @@ func run() -> void:
 		target_panel.remove_button.pressed.emit()
 		await frames()
 		check(not session.world.bots.has(id) and not target_panel.visible, "Remove takes the target out of the world")
+		# Possess: the player takes over an NPC; its old body becomes a friendly NPC.
+		var cam_now: Camera3D = preview.aim_camera()
+		var fresh_id: int = session.practice_spawn_npc(cam_now.global_position, -cam_now.global_basis.z)
+		await frames(10)
+		var old_player: int = session.local_entity
+		game._practice_target = fresh_id
+		await frames()
+		check(target_panel.possess_button.get_index() < target_panel.remove_button.get_index() and target_panel.possess_button.text == "Possess",
+			"Possess tops the target card's options")
+		check(target_panel.possess_button.get_theme_stylebox("normal").bg_color == target_panel.POSSESS_COLOR
+			and target_panel.remove_button.get_theme_stylebox("normal").bg_color == target_panel.REMOVE_COLOR, "Possess is green and Remove red")
+		check(target_panel.hitbox_toggle.text == "Hitbox" and target_panel.armour_down.text == "-A" and target_panel.armour_up.text == "+A",
+			"The target card reads Hitbox, -A and +A")
+		target_panel.possess_button.pressed.emit()
+		await frames(4)
+		check(session.local_entity == fresh_id and session.practice_npc(old_player) != null and session.practice_npc(fresh_id) == null,
+			"Possess makes the target the player's bot and the old body an NPC")
+		check(session.world.bots[fresh_id].team == 0 and session.world.bots[old_player].team == 1 and not session.practice_npc_aggressive(old_player),
+			"The two swap sides; the old body is friendly")
+		check(game._practice_target == 0 and not target_panel.visible and preview.source.read_view().entity_id == fresh_id,
+			"The selection clears and the view follows the new bot")
+		# The player's commands now reach it: its command sequence follows the
+		# local client's, far past the few the director gave it.
+		var possessed_at: int = session._client_sequence
+		await frames(10)
+		check(session.world.bots[fresh_id].last_sequence >= possessed_at, "The player's commands drive the possessed bot")
 
 	await key(KEY_F2)
 	check(not world_panel.visible and not tuning_panel.visible and not preview.free_cursor,

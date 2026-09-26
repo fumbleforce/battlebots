@@ -18,10 +18,16 @@ const CAPTION_WIDTH := 92
 ## Health, and armour on every face, the -/+ buttons take or give.
 const HEALTH_STEP := 100.0
 const ARMOUR_STEP := 100.0
+## Possess is green, Remove red.
+const POSSESS_COLOR := Color("2e8b45")
+const REMOVE_COLOR := Color("b23a32")
 ## Picker slot -> caption, in panel order.
 const PICKERS := [["chassis", "Chassis"], ["drive", "Drive"], ["weapon", "Weapon 1"], ["utility", "Weapon 2"]]
 var card: PanelContainer
+## Moves the card when its background is dragged (#97).
+var drag: RefCounted
 var title: Label
+var possess_button: Button
 var remove_button: Button
 var aggressive_toggle: CheckButton
 ## Draws this NPC's hitboxes alone (menu_game passes it to the preview).
@@ -29,6 +35,8 @@ var hitbox_toggle: CheckButton
 ## Emitted when the switch changes; menu_game keeps the set of singled-out
 ## NPCs, whose hitboxes stay on after the panels close.
 signal hitboxes_toggled(entity: int, on: bool)
+## Possess pressed: menu_game hands the player this NPC.
+signal possess_requested(entity: int)
 var health_down: Button
 var health_up: Button
 var armour_down: Button
@@ -62,6 +70,7 @@ func _init() -> void:
 	card.size_flags_horizontal = Control.SIZE_SHRINK_END
 	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	margin.add_child(card)
+	drag = preload("res://scripts/ui/practice_card_drag.gd").new(self, card)
 	var inset := MarginContainer.new()
 	for side: String in ["left", "right", "top", "bottom"]:
 		inset.add_theme_constant_override("margin_" + side, WORLD_OVERLAY.CARD_INSET)
@@ -75,6 +84,7 @@ func _init() -> void:
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.custom_minimum_size.x = 1.0
 	column.add_child(HSeparator.new())
+	possess_button = _button(column, "PossessTarget", "Possess", func() -> void: possess_requested.emit(target))
 	remove_button = _button(column, "RemoveTarget", "Remove", func() -> void:
 		if session != null: session.practice_remove_npc(target))
 	aggressive_toggle = _switch(column, "TargetAggressive", func(on: bool) -> void:
@@ -82,16 +92,16 @@ func _init() -> void:
 		WORLD_OVERLAY.caption_behaviour(aggressive_toggle))
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
 	hitbox_toggle = _switch(column, "TargetHitboxes", func(on: bool) -> void: hitboxes_toggled.emit(target, on))
-	hitbox_toggle.text = "Hitboxes"
+	hitbox_toggle.text = "Hitbox"
 	var health_row := _row(column)
 	health_down = _button(health_row, "TargetHealthDown", "-%d HP" % HEALTH_STEP, func() -> void:
 		if session != null: session.practice_add_npc_health(target, -HEALTH_STEP))
 	health_up = _button(health_row, "TargetHealthUp", "+%d HP" % HEALTH_STEP, func() -> void:
 		if session != null: session.practice_add_npc_health(target, HEALTH_STEP))
 	var armour_row := _row(column)
-	armour_down = _button(armour_row, "TargetArmourDown", "-%d armour" % ARMOUR_STEP, func() -> void:
+	armour_down = _button(armour_row, "TargetArmourDown", "-A", func() -> void:
 		if session != null: session.practice_add_npc_armour(target, -ARMOUR_STEP))
-	armour_up = _button(armour_row, "TargetArmourUp", "+%d armour" % ARMOUR_STEP, func() -> void:
+	armour_up = _button(armour_row, "TargetArmourUp", "+A", func() -> void:
 		if session != null: session.practice_add_npc_armour(target, ARMOUR_STEP))
 	column.add_child(HSeparator.new())
 	_picker_column = VBoxContainer.new()
@@ -127,6 +137,16 @@ func _button(parent: Control, id: String, text: String, action: Callable) -> But
 	parent.add_child(button)
 	return button
 
+## Fills a button's backgrounds with color, lighter when hovered and darker
+## when pressed; the theme's other styling is kept.
+func _tint(button: Button, color: Color) -> void:
+	for state: Array in [["normal", color], ["hover", color.lightened(0.15)], ["pressed", color.darkened(0.2)],
+			["disabled", color.darkened(0.5)]]:
+		var box := button.get_theme_stylebox(state[0])
+		var filled: StyleBoxFlat = box.duplicate() if box is StyleBoxFlat else StyleBoxFlat.new()
+		filled.bg_color = state[1]
+		button.add_theme_stylebox_override(state[0], filled)
+
 func _switch(parent: Control, id: String, changed: Callable) -> CheckButton:
 	var toggle := CheckButton.new()
 	toggle.name = id
@@ -138,6 +158,8 @@ func _switch(parent: Control, id: String, changed: Callable) -> CheckButton:
 	return toggle
 
 func _ready() -> void:
+	_tint(possess_button, POSSESS_COLOR)
+	_tint(remove_button, REMOVE_COLOR)
 	get_viewport().size_changed.connect(_resize)
 	_resize()
 
@@ -150,7 +172,7 @@ func _resize() -> void:
 	var ratio := minf(extent.x / 1920.0, extent.y / 1080.0)
 	size = Vector2(1920, 1080)
 	scale = Vector2.ONE * ratio
-	position = Vector2(extent.x - size.x * ratio, (extent.y - size.y * ratio) * 0.5)
+	drag.place(Vector2(extent.x - size.x * ratio, (extent.y - size.y * ratio) * 0.5))
 
 ## Shows the NPC entity; menu_game hides the card when there is none.
 ## hitboxes: whether this NPC's hitboxes show.
@@ -166,7 +188,7 @@ func render(source: Node, entity: int, hitboxes := false) -> void:
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
 	var wrecked := bot.combat.eliminated
 	hitbox_toggle.set_pressed_no_signal(hitboxes)
-	for control: BaseButton in [aggressive_toggle, health_down, health_up, armour_down, armour_up]:
+	for control: BaseButton in [possess_button, aggressive_toggle, health_down, health_up, armour_down, armour_up]:
 		control.disabled = wrecked
 	# Rebuilt only when the target or its parts change, so an open list stays open.
 	var layout := "%d;%s" % [entity, ",".join(PICKERS.map(func(pair: Array) -> String: return str(parts.get(pair[0], ""))))]

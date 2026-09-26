@@ -97,7 +97,7 @@ func _debug_section() -> void:
 		func(on: bool) -> void: tuning.debug_impacts = on)
 	# #94: hitboxes on the player's own bot. The other bots' Hitboxes toggle is in
 	# the F2 world panel (#97).
-	player_hitbox_toggle = _toggle(toggles, "PlayerHitboxToggle", "Player hitboxes",
+	player_hitbox_toggle = _toggle(toggles, "PlayerHitboxToggle", "Hitbox",
 		func(on: bool) -> void: tuning.debug_player_hitboxes = on)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)

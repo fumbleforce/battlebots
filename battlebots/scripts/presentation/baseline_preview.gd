@@ -134,6 +134,11 @@ func _on_focus_lost() -> void:
 	release_controls(false)
 	pause_menu.hide()
 
+## Whether controls are only held while the window is out of focus (alt-tab),
+## to come back with it: the practice panels stay up meanwhile (#97).
+func focus_suspended() -> bool:
+	return _resume_on_focus and not controls_enabled
+
 ## Window focus for play: a practice HUD panel dropdown (#94) keeps it.
 func window_active() -> bool:
 	return get_window().has_focus() or (free_cursor and _embedded_popup_open())

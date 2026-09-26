@@ -71,9 +71,6 @@ var _practice_target := 0
 ## The NPC under the crosshair last frame: looking onto a new one selects it.
 var _practice_looked := 0
 var practice_target_outline: Node
-## How far left (design px) the tuning card moves to sit beside the world card.
-const PRACTICE_CARD_DOCK: int = preload("res://scripts/ui/practice_world_overlay.gd").CARD_WIDTH \
-	+ preload("res://scripts/ui/practice_target_overlay.gd").CARD_GAP
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
@@ -144,9 +141,9 @@ func _ready() -> void:
 	tuning_layer.add_child(practice_target_overlay)
 	practice_target_overlay.hide()
 	preview.cursor_panels.append(practice_target_overlay.card)
-	preview.cursor_panels.append(practice_tuning_overlay.card)
 	preview.cursor_pick = _pick_practice_target
 	practice_target_overlay.hitboxes_toggled.connect(_single_out_hitboxes)
+	practice_target_overlay.possess_requested.connect(_possess_practice_target)
 	# The world switch overrides every NPC's own (#97).
 	practice_world_overlay.hitboxes_toggled.connect(func(_on: bool) -> void: preview.practice_hitbox_overrides.clear())
 	practice_target_outline = preload("res://scripts/presentation/practice_target_outline.gd").new()
@@ -897,23 +894,20 @@ func _update_practice_tuning_overlay() -> void:
 		_practice_world_open = false
 	# Kept through the Esc menu so resuming frees the cursor at once.
 	preview.free_cursor = (_practice_tuning_open or _practice_world_open) and not _recovering
-	var shown: bool = preview.free_cursor and preview.controls_enabled \
+	# Tabbing out of the window keeps the panels up (#97); menus hide them.
+	var shown: bool = preview.free_cursor and (preview.controls_enabled or preview.focus_suspended()) \
 		and not menu_host.visible and not preview.pause_menu.visible and not results_panel.visible \
 		and not preview.settings_panel.visible and not _general_settings_open()
-	practice_world_overlay.visible = shown and _practice_world_open
-	if practice_world_overlay.visible:
-		practice_world_overlay.render(session)
-	_update_practice_target()
-	# The tuning card shows on F1, or (#97) beside the world card while the
-	# player's own bot is selected there.
-	var player_selected: bool = practice_world_overlay.visible and _practice_target == session.local_entity
-	var tuning_shown: bool = shown and (_practice_tuning_open or player_selected)
-	practice_tuning_overlay.dock(PRACTICE_CARD_DOCK if player_selected else 0)
+	var tuning_shown := shown and _practice_tuning_open
 	if practice_tuning_overlay.visible and not tuning_shown:
 		practice_tuning_overlay.release_card_focus()
 	practice_tuning_overlay.visible = tuning_shown
 	if tuning_shown:
 		practice_tuning_overlay.render(tuning, session)
+	practice_world_overlay.visible = shown and _practice_world_open
+	if practice_world_overlay.visible:
+		practice_world_overlay.render(session)
+	_update_practice_target()
 	preview.cursor_panel = practice_world_overlay.card if _practice_world_open else practice_tuning_overlay.card
 
 ## World panel (#97): spawns an NPC where the view camera's centre (the
@@ -923,14 +917,12 @@ func _spawn_practice_npc() -> void:
 	if is_instance_valid(camera) and camera.is_inside_tree():
 		session.practice_spawn_npc(camera.global_position, -camera.global_basis.z)
 
-## Selection (#97), while the world panel shows: an NPC gets the target card,
-## a red outline and the camera turning toward it; the player's own bot gets
-## a green outline and the tuning card. With nothing selected, looking onto an
-## NPC selects it; clicking an NPC or the player's bot selects it
-## (_pick_practice_target), and clicking the selection again clears it.
-## Closing the world panel or removing the NPC clears it too.
+## Target panel (#97): while the world panel shows, the selected NPC gets the
+## target card, a red outline and the camera turning toward it. With nothing
+## selected, looking onto an NPC selects it; clicking an NPC selects it
+## (_pick_practice_target), and clicking it again clears the selection.
+## Closing the world panel, removing the NPC or possessing it clears it too.
 func _update_practice_target() -> void:
-	var player := session.local_entity
 	if not practice_world_overlay.visible:
 		if not _practice_world_open:
 			_practice_target = 0
@@ -944,11 +936,11 @@ func _update_practice_target() -> void:
 		if _practice_target == 0 and looked != 0 and looked != _practice_looked:
 			_practice_target = looked
 		_practice_looked = looked
-	if _practice_target != player and session.practice_npc(_practice_target) == null:
+	if session.practice_npc(_practice_target) == null:
 		_practice_target = 0
-	_show_practice_target(_practice_target != 0 and _practice_target != player)
+	_show_practice_target(_practice_target != 0)
 
-## The NPC target's card, the camera turn and the selection's outline.
+## The target's card, the camera turn and the red outline.
 func _show_practice_target(shown: bool) -> void:
 	practice_target_overlay.visible = shown
 	var npc: MvpBot = session.practice_npc(_practice_target) if shown else null
@@ -956,18 +948,21 @@ func _show_practice_target(shown: bool) -> void:
 		var tuning := session.practice_tuning()
 		practice_target_overlay.render(session, _practice_target, bool(preview.practice_hitbox_overrides.get(
 			_practice_target, tuning != null and tuning.debug_hitboxes)))
-	# A target's own Hitboxes setting outlasts the panels, until the NPC goes.
+	# A target's own Hitbox setting outlasts the panels, until the NPC goes.
 	for id: int in preview.practice_hitbox_overrides.keys():
 		if session.practice_npc(id) == null:
 			preview.practice_hitbox_overrides.erase(id)
-	preview.rig.look_target = npc.body.global_position if npc != null and not npc.combat.eliminated else null
-	# No outline on a wreck; it returns when the bot respawns.
-	var player: MvpBot = session.world.bots.get(session.local_entity) \
-		if practice_world_overlay.visible and _practice_target == session.local_entity and is_instance_valid(session.world) else null
-	if player != null and not player.combat.eliminated:
-		practice_target_outline.show_on(player, practice_target_outline.PLAYER_COLOR)
-	else:
-		practice_target_outline.show_on(npc if npc != null and not npc.combat.eliminated else null)
+	var alive := npc != null and not npc.combat.eliminated
+	preview.rig.look_target = npc.body.global_position if alive else null
+	# No outline on a wreck; it returns when the NPC respawns.
+	practice_target_outline.show_on(npc if alive else null)
+
+## Target card Possess (#97): the player drives the target from now on; the
+## selection clears, as the target is the player's own bot now.
+func _possess_practice_target(entity: int) -> void:
+	if session.practice_possess(entity):
+		_practice_target = 0
+		_practice_looked = 0
 
 ## Target card Hitboxes switch (#97): shows or hides this NPC's hitboxes,
 ## whatever the world panel's switch says, until that switch changes.
@@ -975,16 +970,15 @@ func _single_out_hitboxes(entity: int, on: bool) -> void:
 	if entity != 0:
 		preview.practice_hitbox_overrides[entity] = on
 
-## A free-cursor click on an NPC or the player's own bot while the world panel
-## shows selects it, or clears the selection when it is already selected; true
-## takes the click.
+## A free-cursor click on an NPC while the world panel shows selects it, or
+## clears the selection when it is already the target; true takes the click.
 func _pick_practice_target(position: Vector2) -> bool:
 	if not practice_world_overlay.visible:
 		return false
 	var camera: Camera3D = preview.aim_camera()
 	if not is_instance_valid(camera) or not camera.is_inside_tree():
 		return false
-	var picked: int = session.practice_npc_at(camera.project_ray_origin(position), camera.project_ray_normal(position), true)
+	var picked: int = session.practice_npc_at(camera.project_ray_origin(position), camera.project_ray_normal(position))
 	if picked == 0:
 		return false
 	_practice_target = 0 if picked == _practice_target else picked

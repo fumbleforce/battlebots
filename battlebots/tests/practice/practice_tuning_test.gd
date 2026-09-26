@@ -122,7 +122,7 @@ func run() -> void:
 	# #94: Player hitboxes for the player's own bot; the other bots' Hitboxes
 	# toggle moved to the Shift+Z world panel (#97).
 	panel.player_hitbox_toggle.button_pressed = true
-	check(panel.find_child("HitboxToggle", true, false) == null and panel.player_hitbox_toggle.text == "Player hitboxes"
+	check(panel.find_child("HitboxToggle", true, false) == null and panel.player_hitbox_toggle.text == "Hitbox"
 		and lab.debug_player_hitboxes and not lab.debug_hitboxes, "The Player hitboxes toggle reaches the tuning on its own")
 	panel.player_hitbox_toggle.button_pressed = false
 	panel.linger_spin.value = 12.0

@@ -22,6 +22,8 @@ signal spawn_requested
 ## The Hitboxes switch changed: it overrides every NPC's own (#97).
 signal hitboxes_toggled(on: bool)
 var card: PanelContainer
+## Moves the card when its background is dragged (#97).
+var drag: RefCounted
 var clear_button: Button
 var spawn_button: Button
 var aggressive_toggle: CheckButton
@@ -51,6 +53,7 @@ func _init() -> void:
 	card.size_flags_horizontal = Control.SIZE_SHRINK_END
 	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	margin.add_child(card)
+	drag = preload("res://scripts/ui/practice_card_drag.gd").new(self, card)
 	var inset := MarginContainer.new()
 	for side: String in ["left", "right", "top", "bottom"]:
 		inset.add_theme_constant_override("margin_" + side, CARD_INSET)
@@ -124,7 +127,7 @@ func _resize() -> void:
 	var ratio := minf(extent.x / 1920.0, extent.y / 1080.0)
 	size = Vector2(1920, 1080)
 	scale = Vector2.ONE * ratio
-	position = Vector2(extent.x - size.x * ratio, (extent.y - size.y * ratio) * 0.5)
+	drag.place(Vector2(extent.x - size.x * ratio, (extent.y - size.y * ratio) * 0.5))
 
 func render(source: Node) -> void:
 	session = source

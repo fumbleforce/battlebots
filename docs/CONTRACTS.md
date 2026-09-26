@@ -1054,7 +1054,16 @@ and has chassis/drive/weapon/utility pickers. `practice_part_options` and
 player). NPC health and armour go through a `practice_tuning.gd` instance made
 for that NPC on first edit, so they hold through its respawns.
 `baseline_preview.cursor_panels` lists extra cards whose presses stay off the
-weapons.
+weapons. The player's own bot is never selectable; with a target selected the
+orbit camera turns toward it (`BotOrbitCamera.look_target`).
+
+Possess (`MvpSession.practice_possess`, offline Practice Duel only) moves
+`local_entity`, `peer_entities[1]`, the player's `players` entry and debug
+views to the NPC, and `PracticeBotDirector.possess` turns the old body into a
+friendly NPC homed on the player's spawn; the two bots swap `team`. The F1, F2
+and target cards stay up while the window is out of focus
+(`baseline_preview.focus_suspended`) and drag by their background
+(`scripts/ui/practice_card_drag.gd`, session-only offsets).
 
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.

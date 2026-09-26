@@ -79,6 +79,9 @@ var practice_director: PracticeBotDirector
 const PRACTICE_KINDS := ["full", "duel"]
 var practice_kind := "full"
 const PRACTICE_TUNING = preload("res://scripts/simulation/practice_tuning.gd")
+## Practice tuning fields that belong to the player, not its body: they follow
+## it on Possess (#97).
+const DEBUG_VIEWS := ["debug_trajectories", "debug_impacts", "debug_hitboxes", "debug_player_hitboxes", "debug_linger"]
 ## Slots the Practice Duel panel can swap: Weapon 1, the body and Weapon 2 (utility).
 const PRACTICE_PART_SLOTS := ["weapon", "chassis", "drive", "utility"]
 ## Offline Woodland practice only (#45): edge starts and the roaming giant.
@@ -371,14 +374,13 @@ func practice_clear_npcs() -> int:
 	return count
 
 ## The ray a world-panel action casts from origin along direction: at most
-## duel.spawn.reach metres, never stopped by the player's own bot unless
-## with_player.
-func _practice_ray(origin: Vector3, direction: Vector3, with_player := false) -> PhysicsRayQueryParameters3D:
+## duel.spawn.reach metres, never stopped by the player's own bot.
+func _practice_ray(origin: Vector3, direction: Vector3) -> PhysicsRayQueryParameters3D:
 	var ray := PhysicsRayQueryParameters3D.create(origin,
 		origin + direction.normalized() * ArenaSpawns.settings().duel_spawn_reach,
 		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER)
 	var player: MvpBot = world.bots.get(local_entity)
-	if player != null and not with_player:
+	if player != null:
 		ray.exclude = [player.body.get_rid()]
 	return ray
 
@@ -406,17 +408,15 @@ func practice_npcs_aggressive() -> bool:
 
 ## Target panel (#97): the NPC the ray from origin along direction meets
 ## first, or 0 when it meets the arena, nothing, or a bot that is no NPC.
-## with_player: the player's own bot stops the ray too and answers its id
-## (local_entity), for clicks that select it.
-func practice_npc_at(origin: Vector3, direction: Vector3, with_player := false) -> int:
+func practice_npc_at(origin: Vector3, direction: Vector3) -> int:
 	if practice_tuning() == null or practice_director == null or direction.is_zero_approx():
 		return 0
-	var hit := world.get_world_3d().direct_space_state.intersect_ray(_practice_ray(origin, direction, with_player))
+	var hit := world.get_world_3d().direct_space_state.intersect_ray(_practice_ray(origin, direction))
 	if hit.is_empty():
 		return 0
 	for id: int in world.bots:
 		if world.bots[id].body.get_instance_id() == hit.collider_id:
-			return id if practice_npc(id) != null or (with_player and id == local_entity) else 0
+			return id if practice_npc(id) != null else 0
 	return 0
 
 ## The NPC with this entity id in a Practice Duel, else null.
@@ -464,6 +464,38 @@ func practice_add_npc_armour(id: int, amount: float) -> void:
 	for face: String in tuning.body_defaults.get("plates", {}):
 		tuning.set_body("plates", maxf(0.0, tuning.body_value("plates", face) + amount), face)
 
+## Target card Possess (#97): the player drives NPC id from now on, and the
+## bot it drove becomes a friendly NPC (PracticeBotDirector.possess). The
+## player's debug views move with it; its tuned values stay with the old body.
+## Returns whether it took over; never a wreck.
+func practice_possess(id: int) -> bool:
+	var bot := practice_npc(id)
+	if bot == null or bot.combat.eliminated or not practice_director.possess(id):
+		return false
+	var old := local_entity
+	var old_bot: MvpBot = world.bots.get(old)
+	var tuning: RefCounted = world.practice_tuning.get(old)
+	var fresh: RefCounted = world.practice_tuning.get(id, PRACTICE_TUNING.new())
+	for key: String in DEBUG_VIEWS:
+		fresh.set(key, tuning.get(key))
+		tuning.set(key, PRACTICE_TUNING.new().get(key))
+	fresh.apply(bot, world.registry)
+	world.practice_tuning[id] = fresh
+	bot.owner_id = 1
+	if old_bot != null:
+		old_bot.owner_id = 0
+	players[id] = players[old]
+	players.erase(old)
+	peer_entities[1] = id
+	local_entity = id
+	_input_queue.erase(old)
+	_input_queue[id] = []
+	# Keep accepting the local command sequence on the new body.
+	_input_highwater[id] = _client_sequence - 1
+	_last_input_time[id] = _time
+	_input_budget.erase(id)
+	session_event.emit("practice_possessed", {"entity":id, "previous":old})
+	return true
 func restart_practice() -> Error:
 	# Local training is the only mode allowed to repair on demand. This is not an RPC.
 	if connection_state != "practice" or not _server or not is_instance_valid(world):

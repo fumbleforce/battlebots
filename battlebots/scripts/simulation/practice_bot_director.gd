@@ -235,6 +235,30 @@ func set_all_aggressive(on: bool) -> void:
 	for record: Dictionary in records + roamers:
 		record.aggressive = on
 
+## Practice Duel target card Possess (#97): the player takes over NPC id. The
+## body the player drove stays where it is as a friendly, stationary NPC
+## (its record takes over the NPC's place, homed on the player's spawn), and
+## the two swap teams, so each still fights the other side.
+func possess(id: int) -> bool:
+	var record := npc_record(id)
+	if record.is_empty() or not world.bots.has(player_id) or not world.bots.has(id):
+		return false
+	var old: MvpBot = world.bots[player_id]
+	var taken: MvpBot = world.bots[id]
+	records.erase(record)
+	roamers.erase(record)
+	old.set_meta("practice_fixture", true)
+	taken.remove_meta("practice_fixture")
+	records.append({"id":old.entity_id, "home":player_home, "index":0, "wreck_age":player_wreck_age,
+		"previous_primary":false, "patrol":0, "grace":RESET_GRACE, "aggressive":false})
+	var team := old.team
+	old.team = taken.team
+	taken.team = team
+	player_id = id
+	player_home = taken.spawn_pose
+	player_wreck_age = 0.0
+	return true
+
 ## Removes one NPC from the world. Its entity id is not reused.
 func remove_npc(id: int) -> bool:
 	var record := npc_record(id)
