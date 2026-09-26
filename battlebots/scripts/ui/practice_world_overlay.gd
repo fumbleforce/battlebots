@@ -18,6 +18,8 @@ const CAPTION_COLORS := [&"font_color", &"font_hover_color", &"font_pressed_colo
 	&"font_hover_pressed_color", &"font_focus_color", &"font_disabled_color"]
 ## Asks menu_game for the camera ray to spawn along.
 signal spawn_requested
+## The Hitboxes switch changed: it overrides every NPC's own (#97).
+signal hitboxes_toggled(on: bool)
 var card: PanelContainer
 var clear_button: Button
 var spawn_button: Button
@@ -85,7 +87,8 @@ func _init() -> void:
 	hitbox_toggle.add_theme_font_size_override("font_size", BUTTON_FONT)
 	hitbox_toggle.toggled.connect(func(on: bool) -> void:
 		var tuning: RefCounted = session.practice_tuning() if session != null else null
-		if tuning != null: tuning.debug_hitboxes = on)
+		if tuning != null: tuning.debug_hitboxes = on
+		hitboxes_toggled.emit(on))
 	column.add_child(hitbox_toggle)
 
 ## A behaviour switch names the current behaviour, in red or green; the

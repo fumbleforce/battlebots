@@ -133,7 +133,7 @@ func run() -> void:
 		check(target_panel.title.text.begins_with("Name: "), "The target's name reads Name: (%s)" % target_panel.title.text)
 		var target_card: Rect2 = target_panel.card.get_global_rect()
 		var world_card: Rect2 = world_panel.card.get_global_rect()
-		check(target_card.end.x <= world_card.position.x and target_card.size.x < 440, "The target card sits left of the world card (%s, %s)" % [target_card, world_card])
+		check(target_card.end.x <= world_card.position.x and absf(target_card.size.x - world_card.size.x) < 1.0, "The target card sits left of the world card (%s, %s)" % [target_card, world_card])
 		check(preview._over_cursor_panel(target_card.get_center()), "Clicks on the target card stay off the weapons")
 		for slot: String in ["chassis", "drive", "weapon", "utility"]:
 			var picker: OptionButton = target_panel.pickers.get(slot)
@@ -150,10 +150,23 @@ func run() -> void:
 		# Its hitboxes alone.
 		target_panel.hitbox_toggle.button_pressed = true
 		await frames()
-		check(preview.practice_hitbox_target == id and preview.practice_debug._hitboxes.size() == 1, "The target's Hitboxes switch draws only the target's")
-		target_panel.hitbox_toggle.button_pressed = false
+		check(preview.practice_hitbox_npcs == [id] and preview.practice_debug._hitboxes.size() == 1, "The target's Hitboxes switch draws only the target's")
+		await key(KEY_Z, true)
+		check(not target_panel.visible and preview.practice_debug._hitboxes.size() == 1, "Its hitboxes stay on with the panels closed")
+		await key(KEY_Z, true)
+		game._practice_target = id
 		await frames()
-		check(preview.practice_hitbox_target == 0, "Its hitboxes hide again")
+		check(target_panel.hitbox_toggle.button_pressed, "Reselected, its switch still reads on")
+		world_panel.hitbox_toggle.button_pressed = true
+		world_panel.hitbox_toggle.button_pressed = false
+		await frames()
+		check(preview.practice_hitbox_npcs.is_empty() and not target_panel.hitbox_toggle.button_pressed, "The world Hitboxes switch overrides the target's")
+		# World behaviour overrides the target's too.
+		target_panel.aggressive_toggle.button_pressed = true
+		world_panel.aggressive_toggle.button_pressed = true
+		world_panel.aggressive_toggle.button_pressed = false
+		await frames()
+		check(not session.practice_npc_aggressive(id), "The world behaviour switch overrides the target's")
 		# Health -/+ and armour.
 		var health: float = session.world.bots[id].combat.core
 		target_panel.health_up.pressed.emit()
@@ -164,13 +177,18 @@ func run() -> void:
 		check(is_equal_approx(session.world.bots[id].combat.core, health), "-100 takes it again")
 		npc = session.world.bots[id]
 		var plates: Dictionary = npc.combat.stats.plates.duplicate()
-		target_panel.armour_button.pressed.emit()
+		target_panel.armour_up.pressed.emit()
 		await frames()
 		npc = session.world.bots[id]
 		for face: String in plates:
 			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face]) + target_panel.ARMOUR_STEP),
 				"+armour adds to the %s face (%s -> %s)" % [face, plates[face], npc.combat.stats.plates[face]])
 		# A spawn where an NPC already stands lands on top of it.
+		target_panel.armour_down.pressed.emit()
+		await frames()
+		npc = session.world.bots[id]
+		for face: String in plates:
+			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face])), "-armour takes it again from the %s face" % face)
 		var stacked: int = session.practice_spawn_npc(npc.body.global_position + Vector3.UP * 6.0, Vector3.DOWN)
 		var above: MvpBot = session.world.bots.get(stacked)
 		check(above != null and above.body.reset_pose is Transform3D and above.body.reset_pose.origin.y > npc.body.global_position.y + 0.5,

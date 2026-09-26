@@ -7,15 +7,14 @@ extends Control
 ## MvpSession's practice_* helpers.
 const TUNING_OVERLAY = preload("res://scripts/ui/practice_tuning_overlay.gd")
 const WORLD_OVERLAY = preload("res://scripts/ui/practice_world_overlay.gd")
-## Card width on the 1920x1080 design page and its gap to the world card.
-const CARD_WIDTH := 360
+## Gap to the world card, whose width it shares.
 const CARD_GAP := 16
 const HEADING_FONT := 24
 const BUTTON_FONT := 20
 const ROW_FONT := 18
 ## Width of the captions left of the dropdowns.
-const CAPTION_WIDTH := 110
-## Health the -/+ buttons take or give, and armour "+ armour" adds to every face.
+const CAPTION_WIDTH := 92
+## Health, and armour on every face, the -/+ buttons take or give.
 const HEALTH_STEP := 100.0
 const ARMOUR_STEP := 100.0
 ## Picker slot -> caption, in panel order.
@@ -26,10 +25,13 @@ var remove_button: Button
 var aggressive_toggle: CheckButton
 ## Draws this NPC's hitboxes alone (menu_game passes it to the preview).
 var hitbox_toggle: CheckButton
-var health_label: Label
+## Emitted when the switch changes; menu_game keeps the set of singled-out
+## NPCs, whose hitboxes stay on after the panels close.
+signal hitboxes_toggled(entity: int, on: bool)
 var health_down: Button
 var health_up: Button
-var armour_button: Button
+var armour_down: Button
+var armour_up: Button
 ## Slot -> OptionButton.
 var pickers: Dictionary = {}
 var _picker_column: VBoxContainer
@@ -55,7 +57,7 @@ func _init() -> void:
 	card.name = "Card"
 	card.theme_type_variation = &"PanelGlass"
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.custom_minimum_size.x = CARD_WIDTH
+	card.custom_minimum_size.x = WORLD_OVERLAY.CARD_WIDTH
 	card.size_flags_horizontal = Control.SIZE_SHRINK_END
 	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	margin.add_child(card)
@@ -69,6 +71,8 @@ func _init() -> void:
 	_label(column, "TARGET", &"HeadingWide", HEADING_FONT)
 	title = _label(column, "", &"Body", ROW_FONT)
 	title.name = "TargetName"
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.custom_minimum_size.x = 1.0
 	column.add_child(HSeparator.new())
 	remove_button = _button(column, "RemoveTarget", "Remove", func() -> void:
 		if session != null: session.practice_remove_npc(target))
@@ -76,19 +80,17 @@ func _init() -> void:
 		if session != null: session.practice_set_npc_aggressive(target, on)
 		WORLD_OVERLAY.caption_behaviour(aggressive_toggle))
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
-	hitbox_toggle = _switch(column, "TargetHitboxes", Callable())
+	hitbox_toggle = _switch(column, "TargetHitboxes", func(on: bool) -> void: hitboxes_toggled.emit(target, on))
 	hitbox_toggle.text = "Hitboxes"
-	var health_row := HBoxContainer.new()
-	health_row.add_theme_constant_override("separation", 8)
-	column.add_child(health_row)
-	health_label = _label(health_row, "", &"Body", ROW_FONT)
-	health_label.name = "TargetHealth"
-	health_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	health_down = _button(health_row, "TargetHealthDown", "-%d" % HEALTH_STEP, func() -> void:
+	var health_row := _row(column)
+	health_down = _button(health_row, "TargetHealthDown", "-%d HP" % HEALTH_STEP, func() -> void:
 		if session != null: session.practice_add_npc_health(target, -HEALTH_STEP))
-	health_up = _button(health_row, "TargetHealthUp", "+%d" % HEALTH_STEP, func() -> void:
+	health_up = _button(health_row, "TargetHealthUp", "+%d HP" % HEALTH_STEP, func() -> void:
 		if session != null: session.practice_add_npc_health(target, HEALTH_STEP))
-	armour_button = _button(column, "TargetArmour", "+%d armour" % ARMOUR_STEP, func() -> void:
+	var armour_row := _row(column)
+	armour_down = _button(armour_row, "TargetArmourDown", "-%d armour" % ARMOUR_STEP, func() -> void:
+		if session != null: session.practice_add_npc_armour(target, -ARMOUR_STEP))
+	armour_up = _button(armour_row, "TargetArmourUp", "+%d armour" % ARMOUR_STEP, func() -> void:
 		if session != null: session.practice_add_npc_armour(target, ARMOUR_STEP))
 	column.add_child(HSeparator.new())
 	_picker_column = VBoxContainer.new()
@@ -103,6 +105,13 @@ func _label(parent: Node, text: String, variation: StringName, font_size: int) -
 	parent.add_child(label)
 	return label
 
+## Two buttons sharing a row equally.
+func _row(parent: Control) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+	return row
+
 ## Mouse-only, like the tuning card (#94): Space must not press them again.
 func _button(parent: Control, id: String, text: String, action: Callable) -> Button:
 	var button := Button.new()
@@ -110,6 +119,9 @@ func _button(parent: Control, id: String, text: String, action: Callable) -> But
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_size_override("font_size", BUTTON_FONT)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Held to the card's width: long captions clip instead of widening it.
+	button.clip_text = true
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button
@@ -140,7 +152,8 @@ func _resize() -> void:
 	position = Vector2(extent.x - size.x * ratio, (extent.y - size.y * ratio) * 0.5)
 
 ## Shows the NPC entity; menu_game hides the card when there is none.
-func render(source: Node, entity: int) -> void:
+## hitboxes: whether this NPC's hitboxes are singled out.
+func render(source: Node, entity: int, hitboxes := false) -> void:
 	session = source
 	target = entity
 	var bot: MvpBot = source.practice_npc(entity) if source != null else null
@@ -151,9 +164,9 @@ func render(source: Node, entity: int) -> void:
 	aggressive_toggle.set_pressed_no_signal(source.practice_npc_aggressive(entity))
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
 	var wrecked := bot.combat.eliminated
-	for control: BaseButton in [aggressive_toggle, health_down, health_up, armour_button]:
+	hitbox_toggle.set_pressed_no_signal(hitboxes)
+	for control: BaseButton in [aggressive_toggle, health_down, health_up, armour_down, armour_up]:
 		control.disabled = wrecked
-	health_label.text = "Health %d" % roundi(bot.combat.core)
 	# Rebuilt only when the target or its parts change, so an open list stays open.
 	var layout := "%d;%s" % [entity, ",".join(PICKERS.map(func(pair: Array) -> String: return str(parts.get(pair[0], ""))))]
 	if layout != _layout:
@@ -179,6 +192,7 @@ func _rebuild_pickers() -> void:
 		picker.focus_mode = Control.FOCUS_NONE
 		picker.fit_to_longest_item = false
 		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		picker.clip_text = true
 		picker.add_theme_font_size_override("font_size", ROW_FONT)
 		row.add_child(picker)
 		var options: Array = session.practice_part_options(slot, target)

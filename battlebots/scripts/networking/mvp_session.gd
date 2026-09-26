@@ -452,13 +452,14 @@ func practice_add_npc_health(id: int, amount: float) -> void:
 	if tuning != null:
 		tuning.set_body("core", maxf(1.0, roundf(practice_npc(id).combat.core + amount)))
 
-## Adds amount to the NPC's armour on every face, and refills it.
+## Adds amount (negative to take, never below 0) to the NPC's armour on every
+## face, and refills it.
 func practice_add_npc_armour(id: int, amount: float) -> void:
 	var tuning := _npc_tuning(id)
 	if tuning == null:
 		return
 	for face: String in tuning.body_defaults.get("plates", {}):
-		tuning.set_body("plates", tuning.body_value("plates", face) + amount, face)
+		tuning.set_body("plates", maxf(0.0, tuning.body_value("plates", face) + amount), face)
 
 func restart_practice() -> Error:
 	# Local training is the only mode allowed to repair on demand. This is not an RPC.
