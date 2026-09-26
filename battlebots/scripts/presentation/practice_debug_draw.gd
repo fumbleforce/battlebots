@@ -260,9 +260,13 @@ func _build_hitbox(bot: MvpBot, bounds: AABB, zones: Array[String]) -> Dictionar
 			label.position.x = c.x
 			label.position += normal * OUTER_LABEL_LIFT
 		# Text and its outline both draw after the see-through boxes (the outline
-		# just before the text), so no box tints over either.
+		# just before the text), so no box tints over either. Those priorities
+		# order every label's outline before every label's text, so the labels
+		# also write depth (#96): a near label's outline then hides a label
+		# behind it instead of that label's text painting over the outline.
 		label.render_priority = 2
 		label.outline_render_priority = 1
+		label.alpha_cut = Label3D.ALPHA_CUT_OPAQUE_PREPASS
 		rig.add_child(label)
 		labels[zone] = label
 	var core_label := Label3D.new()

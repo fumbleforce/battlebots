@@ -272,6 +272,8 @@ func run() -> void:
 		target.combat.zones[face] = 50.0
 	draw.render(lab, 0.0, [target])
 	var hitbox_labels: Dictionary = draw._hitboxes.values()[0].labels
+	check(hitbox_labels.values().all(func(l: Label3D) -> bool: return l.alpha_cut == Label3D.ALPHA_CUT_OPAQUE_PREPASS)
+		and draw._hitboxes.values()[0].core_label.alpha_cut == Label3D.ALPHA_CUT_DISABLED, "Zone labels write depth so one never paints over a nearer one's outline; the core label shows through")
 	var side_gap: float = (hitbox_labels.left.position - hitbox_labels.drive_left.position).dot(Vector3.LEFT)
 	var front_gap: float = (hitbox_labels.front.position - hitbox_labels.weapon.position).dot(Vector3.FORWARD)
 	check(is_equal_approx(hitbox_labels.front.position.x, bounds.get_center().x) and side_gap > 0.0
