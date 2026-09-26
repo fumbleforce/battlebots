@@ -23,6 +23,9 @@ var player_wreck_age := 0.0
 var player_respawns := 0
 ## Where the player spawns: its team edge (data/arena_spawns.json practice).
 var player_home := Transform3D.IDENTITY
+## Practice Duel world panel (#97): while true every NPC, fixtures and the
+## shuttle included, hunts the player with the pilot logic.
+var aggressive := false
 
 func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
@@ -162,6 +165,47 @@ func _add_fixture(id: int, build: Dictionary, label: String, pose: Transform3D) 
 		"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
 	return bot
 
+## Practice Duel world panel (#97): a starter-build NPC at point, stepped back
+## along approach (the camera ray) by half its hull so it does not start inside
+## what the ray met, dropped onto the floor and facing the player. A point that
+## crowds another bot (the orbit camera's centre often meets the ground just
+## ahead of the player) moves on along approach until it is clear. It stands
+## still until the NPCs are made aggressive, and respawns there like the other
+## fixtures.
+func spawn_npc(id: int, point: Vector3, approach: Vector3) -> MvpBot:
+	var bot := _add_fixture(id, world.registry.starter(), "npc", Transform3D(Basis.IDENTITY, point))
+	var size := bot.collision_bounds().size
+	var ahead := approach.slide(Vector3.UP)
+	ahead = ahead.normalized() if ahead.length_squared() > 0.0001 else Vector3.ZERO
+	var origin := point - ahead * Vector2(size.x, size.z).length() * 0.5
+	for attempt: int in world.bots.size():
+		var spare := _clearance(bot, Transform3D(Basis.IDENTITY, origin))
+		if spare >= 0.0 or ahead == Vector3.ZERO:
+			break
+		origin += ahead * -spare
+	var facing := Basis.IDENTITY
+	if world.bots.has(player_id):
+		var toward: Vector3 = (world.bots[player_id].body.global_position - origin).slide(Vector3.UP)
+		if toward.length_squared() > 0.0001:
+			facing = _facing(toward.normalized())
+	_place(bot, Transform3D(facing, origin))
+	records[records.size() - 1].home = bot.spawn_pose
+	return bot
+
+## Practice Duel world panel (#97): removes every NPC, leaving the player alone
+## in the arena. Their entity ids are not reused.
+func clear_npcs() -> void:
+	for record: Dictionary in records + roamers:
+		var bot: MvpBot = world.bots.get(record.id)
+		world.bots.erase(record.id)
+		world.credited.erase(record.id)
+		if is_instance_valid(bot):
+			# Out of the physics space at once, not at the end of the frame.
+			world.remove_child(bot)
+			bot.queue_free()
+	records.clear()
+	roamers.clear()
+
 func _add_roamers(next_id: int) -> int:
 	var tuning := NimbleBots.practice()
 	if world.arena_id not in tuning.arenas: return next_id
@@ -227,7 +271,9 @@ func step(delta: float) -> void:
 		var intent := BotCommand.new()
 		intent.sequence = bot.last_sequence + 1
 		intent.brake = true
-		if record.has("shuttle"):
+		if aggressive:
+			if float(record.grace) <= 0.0 and not player.combat.eliminated: _pilot(bot, player, record, intent, true)
+		elif record.has("shuttle"):
 			if float(record.grace) <= 0.0: _shuttle(bot, record, intent)
 		elif int(record.index) != 0 and float(record.grace) <= 0.0 and not player.combat.eliminated:
 			_pilot(bot, player, record, intent)
@@ -237,13 +283,14 @@ func step(delta: float) -> void:
 		record.previous_primary = intent.primary_held
 		bot.submit_command(intent)
 
-func _pilot(bot: MvpBot, player: MvpBot, record: Dictionary, intent: BotCommand) -> void:
+## hunting (#97): engage the player from any distance instead of patrolling.
+func _pilot(bot: MvpBot, player: MvpBot, record: Dictionary, intent: BotCommand, hunting := false) -> void:
 	var offset := player.body.global_position - bot.body.global_position
 	offset.y = 0.0
 	var distance := offset.length()
 	var roaming: bool = record.get("roamer", false)
 	var tuning := NimbleBots.practice()
-	var engaging := distance < (float(tuning.engage_distance) if roaming else (17.0 if record.index == 2 else 11.0))
+	var engaging := hunting or distance < (float(tuning.engage_distance) if roaming else (17.0 if record.index == 2 else 11.0))
 	var desired := player.body.global_position
 	if not engaging:
 		# Small loops keep both moving targets visible inside the playable octagon;

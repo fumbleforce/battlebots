@@ -1028,6 +1028,19 @@ keeps the cursor visible, stops mouse motion orbiting the camera and drives
 mouse-bound actions only from presses outside `cursor_panel`. No wire,
 `BotCommand` or build change.
 
+`practice_world_panel` (Shift+Z, #97, 26 September 2026) shows or hides the
+Practice Duel HUD world panel (`scripts/ui/practice_world_overlay.gd`): clear
+all NPCs, spawn an NPC where the view camera's centre points (not aggressive),
+and make the NPCs aggressive or not. Both panel actions are matched exactly in
+`menu_game._unhandled_input`, so Shift+Z never also toggles `practice_panel`;
+opening one panel closes the other, and `cursor_panel` follows the open card.
+Same presentation-only, not-rebindable terms as `practice_panel`. The buttons
+call the offline authority through `MvpSession.practice_clear_npcs`,
+`practice_spawn_npc(origin, direction)` and `practice_set_npcs_aggressive`,
+which do nothing outside a Practice Duel (`practice_tuning()` null). Spawn
+reach is `data/arena_spawns.json` `duel.spawn.reach`. No wire, `BotCommand` or
+build change.
+
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.
 A change to an existing field's meaning is a breaking change; coordinate it before

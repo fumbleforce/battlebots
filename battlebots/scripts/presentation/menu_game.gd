@@ -60,6 +60,10 @@ var game_menu_page: Control
 ## Practice Duel HUD tuning panel (#94), toggled by the practice_panel action.
 var practice_tuning_overlay: Control
 var _practice_tuning_open := false
+## Practice Duel HUD world panel (#97), toggled by practice_world_panel
+## (Shift+Z). At most one of the two practice panels is open.
+var practice_world_overlay: Control
+var _practice_world_open := false
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
@@ -122,6 +126,10 @@ func _ready() -> void:
 	tuning_layer.add_child(practice_tuning_overlay)
 	practice_tuning_overlay.hide()
 	preview.cursor_panel = practice_tuning_overlay.card
+	practice_world_overlay = preload("res://scripts/ui/practice_world_overlay.gd").new()
+	tuning_layer.add_child(practice_world_overlay)
+	practice_world_overlay.hide()
+	practice_world_overlay.spawn_requested.connect(_spawn_practice_npc)
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
 	add_child(results_layer)
@@ -646,7 +654,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	for entry: Button in [audio_settings_button, hud_settings_button]:
 		if is_instance_valid(entry):
 			MenuTextScale.apply(entry, _menu_text_scale)
-	for panel: Control in [screen, game_menu_page, practice_tuning_overlay, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
+	for panel: Control in [screen, game_menu_page, practice_tuning_overlay, practice_world_overlay, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
@@ -859,21 +867,35 @@ func _process(_delta: float) -> void:
 
 ## The HUD tuning panel (#94) shows while the player drives a Practice Duel with
 ## it toggled on; any menu, settings page or recovery hides it (the Esc menu
-## has its own copy). While it shows the cursor is free for it.
+## has its own copy). While it shows the cursor is free for it. The world panel
+## (#97) follows the same rules in the same place.
 func _update_practice_tuning_overlay() -> void:
 	var tuning := session.practice_tuning()
 	if tuning == null:
 		_practice_tuning_open = false
+		_practice_world_open = false
 	# Kept through the Esc menu so resuming frees the cursor at once.
-	preview.free_cursor = _practice_tuning_open and not _recovering
+	preview.free_cursor = (_practice_tuning_open or _practice_world_open) and not _recovering
 	var shown: bool = preview.free_cursor and preview.controls_enabled \
 		and not menu_host.visible and not preview.pause_menu.visible and not results_panel.visible \
 		and not preview.settings_panel.visible and not _general_settings_open()
-	if practice_tuning_overlay.visible and not shown:
+	var tuning_shown := shown and _practice_tuning_open
+	if practice_tuning_overlay.visible and not tuning_shown:
 		practice_tuning_overlay.release_card_focus()
-	practice_tuning_overlay.visible = shown
-	if shown:
+	practice_tuning_overlay.visible = tuning_shown
+	if tuning_shown:
 		practice_tuning_overlay.render(tuning, session)
+	practice_world_overlay.visible = shown and _practice_world_open
+	if practice_world_overlay.visible:
+		practice_world_overlay.render(session)
+	preview.cursor_panel = practice_world_overlay.card if _practice_world_open else practice_tuning_overlay.card
+
+## World panel (#97): spawns an NPC where the view camera's centre (the
+## crosshair) points.
+func _spawn_practice_npc() -> void:
+	var camera: Camera3D = preview.aim_camera()
+	if is_instance_valid(camera) and camera.is_inside_tree():
+		session.practice_spawn_npc(camera.global_position, -camera.global_basis.z)
 
 func _update_world_markers() -> void:
 	if not is_instance_valid(world_markers) or not is_instance_valid(session):
@@ -1051,15 +1073,26 @@ func _input(event: InputEvent) -> void:
 		else:
 			resume_gameplay()
 
-## Z (practice_panel) shows or hides the HUD tuning panel (#94) while driving a
-## Practice Duel. Unhandled only, so typing in the panel's boxes never toggles it.
+## Z (practice_panel) shows or hides the HUD tuning panel (#94), Shift+Z
+## (practice_world_panel, #97) the world panel, while driving a Practice Duel;
+## opening one closes the other. Exact matches, so Shift+Z is not also Z.
+## Unhandled only, so typing in the panel's boxes never toggles it.
 func _unhandled_input(event: InputEvent) -> void:
-	if _cli_handoff or not event.is_action_pressed(&"practice_panel") or event.is_echo():
+	if _cli_handoff or event.is_echo():
+		return
+	var tuning_key := event.is_action_pressed(&"practice_panel", false, true)
+	var world_key := event.is_action_pressed(&"practice_world_panel", false, true)
+	if not tuning_key and not world_key:
 		return
 	if session.practice_tuning() == null or not preview.controls_enabled or menu_host.visible:
 		return
 	get_viewport().set_input_as_handled()
-	_practice_tuning_open = not _practice_tuning_open
+	if tuning_key:
+		_practice_tuning_open = not _practice_tuning_open
+		_practice_world_open = false
+	else:
+		_practice_world_open = not _practice_world_open
+		_practice_tuning_open = false
 	_update_practice_tuning_overlay()
 
 func _session_event(kind: String, details: Dictionary) -> void:

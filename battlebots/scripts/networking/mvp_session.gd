@@ -348,6 +348,42 @@ func practice_tuning() -> RefCounted:
 		return null
 	return world.practice_tuning.get(local_entity)
 
+## Practice Duel world panel (#97, Shift+Z): offline authority only, like
+## practice_tuning(). Removes every NPC; returns how many were removed.
+func practice_clear_npcs() -> int:
+	if practice_tuning() == null or practice_director == null:
+		return 0
+	var count := practice_director.records.size() + practice_director.roamers.size()
+	practice_director.clear_npcs()
+	return count
+
+## Spawns a non-aggressive NPC where the ray from origin along direction first
+## meets the arena or a bot, at most duel.spawn.reach metres away (the ray's
+## end when it meets nothing). The player's own bot never stops the ray.
+## Returns the NPC's entity id, or 0 outside a Practice Duel.
+func practice_spawn_npc(origin: Vector3, direction: Vector3) -> int:
+	if practice_tuning() == null or practice_director == null or direction.is_zero_approx():
+		return 0
+	var ray := PhysicsRayQueryParameters3D.create(origin,
+		origin + direction.normalized() * ArenaSpawns.settings().duel_spawn_reach,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER)
+	var player: MvpBot = world.bots.get(local_entity)
+	if player != null:
+		ray.exclude = [player.body.get_rid()]
+	var hit := world.get_world_3d().direct_space_state.intersect_ray(ray)
+	var id := _next_entity
+	_next_entity += 1
+	practice_director.spawn_npc(id, hit.position if not hit.is_empty() else ray.to, direction)
+	return id
+
+## Whether every NPC hunts the player (true) or keeps its idle behaviour.
+func practice_set_npcs_aggressive(aggressive: bool) -> void:
+	if practice_tuning() != null and practice_director != null:
+		practice_director.aggressive = aggressive
+
+func practice_npcs_aggressive() -> bool:
+	return practice_tuning() != null and practice_director != null and practice_director.aggressive
+
 func restart_practice() -> Error:
 	# Local training is the only mode allowed to repair on demand. This is not an RPC.
 	if connection_state != "practice" or not _server or not is_instance_valid(world):

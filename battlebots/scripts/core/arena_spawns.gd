@@ -28,6 +28,9 @@ var duel_monowheel_side_by_arena: Dictionary = {}
 ## start and the throttle it drives at.
 var duel_shuttle_travel := 0.0
 var duel_shuttle_throttle := 0.0
+## Shift+Z world panel (#97, duel.spawn.reach): the furthest, in metres from
+## the camera, it spawns an NPC.
+var duel_spawn_reach := 0.0
 
 static func settings() -> ArenaSpawns:
 	if _loaded == null:
@@ -116,6 +119,11 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 		return null
 	result.duel_shuttle_travel = float(shuttle.travel)
 	result.duel_shuttle_throttle = float(shuttle.throttle)
+	var spawn: Variant = duel.get("spawn")
+	if not spawn is Dictionary or not _number(spawn.get("reach")) or float(spawn.reach) <= 0.0:
+		problems.append("duel.spawn needs a positive reach")
+		return null
+	result.duel_spawn_reach = float(spawn.reach)
 	return result
 
 ## Practice Duel monowheel block offset (fraction of the half-extent) on an arena.
