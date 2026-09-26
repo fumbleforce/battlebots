@@ -144,7 +144,7 @@ func _ready() -> void:
 	preview.cursor_pick = _pick_practice_target
 	practice_target_overlay.hitboxes_toggled.connect(_single_out_hitboxes)
 	# The world switch overrides every NPC's own (#97).
-	practice_world_overlay.hitboxes_toggled.connect(func(_on: bool) -> void: preview.practice_hitbox_npcs.clear())
+	practice_world_overlay.hitboxes_toggled.connect(func(_on: bool) -> void: preview.practice_hitbox_overrides.clear())
 	practice_target_outline = preload("res://scripts/presentation/practice_target_outline.gd").new()
 	add_child(practice_target_outline)
 	var results_layer := CanvasLayer.new()
@@ -939,19 +939,22 @@ func _update_practice_target() -> void:
 func _show_practice_target(shown: bool) -> void:
 	practice_target_overlay.visible = shown
 	if shown:
-		practice_target_overlay.render(session, _practice_target, preview.practice_hitbox_npcs.has(_practice_target))
-	# Singled-out hitboxes stay on with the panels closed, until the NPC goes.
-	for id: int in preview.practice_hitbox_npcs.duplicate():
+		var tuning := session.practice_tuning()
+		practice_target_overlay.render(session, _practice_target, bool(preview.practice_hitbox_overrides.get(
+			_practice_target, tuning != null and tuning.debug_hitboxes)))
+	# A target's own Hitboxes setting outlasts the panels, until the NPC goes.
+	for id: int in preview.practice_hitbox_overrides.keys():
 		if session.practice_npc(id) == null:
-			preview.practice_hitbox_npcs.erase(id)
-	practice_target_outline.show_on(session.practice_npc(_practice_target) if shown else null)
+			preview.practice_hitbox_overrides.erase(id)
+	# No outline on a wreck; it returns when the NPC respawns.
+	var outlined: MvpBot = session.practice_npc(_practice_target) if shown else null
+	practice_target_outline.show_on(outlined if outlined != null and not outlined.combat.eliminated else null)
 
-## Target card Hitboxes switch (#97): shows or hides this NPC's hitboxes on
-## their own.
+## Target card Hitboxes switch (#97): shows or hides this NPC's hitboxes,
+## whatever the world panel's switch says, until that switch changes.
 func _single_out_hitboxes(entity: int, on: bool) -> void:
-	preview.practice_hitbox_npcs.erase(entity)
-	if on and entity != 0:
-		preview.practice_hitbox_npcs.append(entity)
+	if entity != 0:
+		preview.practice_hitbox_overrides[entity] = on
 
 ## A free-cursor click on an NPC while the world panel shows selects it, or
 ## clears the selection when it is already the target; true takes the click.

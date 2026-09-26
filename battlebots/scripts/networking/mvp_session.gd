@@ -399,9 +399,9 @@ func practice_set_npcs_aggressive(aggressive: bool) -> void:
 	if practice_tuning() != null and practice_director != null:
 		practice_director.set_all_aggressive(aggressive)
 
-## Whether there are NPCs and all of them are aggressive.
+## The world panel's behaviour switch, as last set (#97).
 func practice_npcs_aggressive() -> bool:
-	return practice_tuning() != null and practice_director != null and practice_director.all_aggressive()
+	return practice_tuning() != null and practice_director != null and practice_director.world_aggressive
 
 ## Target panel (#97): the NPC the ray from origin along direction meets
 ## first, or 0 when it meets the arena, nothing, or a bot that is no NPC.

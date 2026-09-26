@@ -371,24 +371,21 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 
 ## Practice Duel debug views (#93): the player's marks, the other bots'
 ## hitboxes and, with Player hitboxes on (#94), the player's own.
-## Practice Duel target panel (#97): NPC entity ids whose hitboxes show on
-## their own, whatever the world panel's Hitboxes switch says.
-var practice_hitbox_npcs: Array[int] = []
+## Practice Duel target panel (#97): NPC entity id -> whether its hitboxes
+## show, set by its target card and overriding the world panel's Hitboxes
+## switch (lab.debug_hitboxes) for that NPC until that switch changes.
+var practice_hitbox_overrides: Dictionary = {}
 
 func _render_practice_debug(delta: float) -> void:
 	var session: MvpSession = source.session if source is SessionBotSource and is_instance_valid(source.session) else null
 	var lab: RefCounted = session.practice_tuning() if session != null else null
 	var others: Array = []
-	if lab != null and lab.debug_hitboxes:
+	if lab != null:
 		for id: int in session.world.bots:
-			if id != session.local_entity:
+			if id != session.local_entity and bool(practice_hitbox_overrides.get(id, lab.debug_hitboxes)):
 				others.append(session.world.bots[id])
 	var player: MvpBot = session.world.bots.get(session.local_entity) if lab != null and lab.debug_player_hitboxes else null
-	var singled: Array = []
-	if lab != null:
-		for id: int in practice_hitbox_npcs:
-			if session.world.bots.has(id): singled.append(session.world.bots[id])
-	practice_debug.render(lab, delta, others, player, singled)
+	practice_debug.render(lab, delta, [], player, others)
 
 ## Camera kick per own shot: the turret's (or the minigun's) default, or the
 ## Practice Duel Camera recoil override (#91).

@@ -26,6 +26,9 @@ var player_wreck_age := 0.0
 var player_respawns := 0
 ## Where the player spawns: its team edge (data/arena_spawns.json practice).
 var player_home := Transform3D.IDENTITY
+## Practice Duel world panel (#97): its behaviour switch as last set, which it
+## also gave every NPC; a target card's switch changes one NPC, not this.
+var world_aggressive := false
 
 func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
@@ -228,13 +231,9 @@ func set_aggressive(id: int, on: bool) -> void:
 		record.aggressive = on
 
 func set_all_aggressive(on: bool) -> void:
+	world_aggressive = on
 	for record: Dictionary in records + roamers:
 		record.aggressive = on
-
-## Whether there are NPCs and every one of them is aggressive.
-func all_aggressive() -> bool:
-	var all := records + roamers
-	return not all.is_empty() and all.all(func(record: Dictionary) -> bool: return record.get("aggressive", false))
 
 ## Removes one NPC from the world. Its entity id is not reused.
 func remove_npc(id: int) -> bool:

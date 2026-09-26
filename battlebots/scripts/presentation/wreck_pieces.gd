@@ -22,6 +22,9 @@ const SEED_TRIES := 8
 const MATERIAL_CACHE_MAX := 512
 
 static var _materials: Dictionary = {}
+## Meshes in this group are presentation dressing (the practice target's
+## outline, #97) and never become wreck pieces.
+const SKIP_GROUP := &"wreck_capture_skip"
 
 ## Visible meshes of a bot visual in the bot frame (frame = its world pose):
 ## [{source, mesh, transform, aabb}] with aabb also in the bot frame.
@@ -29,7 +32,7 @@ static func capture(visual_root: Node3D, frame: Transform3D, excluded: Array = [
 	var inverse := frame.affine_inverse()
 	var result: Array[Dictionary] = []
 	for mesh: MeshInstance3D in visual_root.find_children("*", "MeshInstance3D", true, false):
-		if mesh.mesh == null or not mesh.is_visible_in_tree() or mesh in excluded:
+		if mesh.mesh == null or not mesh.is_visible_in_tree() or mesh in excluded or mesh.is_in_group(SKIP_GROUP):
 			continue
 		var local := inverse * mesh.global_transform
 		result.append({"source":mesh, "mesh":mesh.mesh, "transform":local, "aabb":local * mesh.mesh.get_aabb()})

@@ -152,7 +152,7 @@ func _resize() -> void:
 	position = Vector2(extent.x - size.x * ratio, (extent.y - size.y * ratio) * 0.5)
 
 ## Shows the NPC entity; menu_game hides the card when there is none.
-## hitboxes: whether this NPC's hitboxes are singled out.
+## hitboxes: whether this NPC's hitboxes show.
 func render(source: Node, entity: int, hitboxes := false) -> void:
 	session = source
 	target = entity

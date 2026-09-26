@@ -150,23 +150,36 @@ func run() -> void:
 		# Its hitboxes alone.
 		target_panel.hitbox_toggle.button_pressed = true
 		await frames()
-		check(preview.practice_hitbox_npcs == [id] and preview.practice_debug._hitboxes.size() == 1, "The target's Hitboxes switch draws only the target's")
+		check(preview.practice_hitbox_overrides.get(id) == true and preview.practice_debug._hitboxes.size() == 1, "The target's Hitboxes switch draws only the target's")
 		await key(KEY_Z, true)
 		check(not target_panel.visible and preview.practice_debug._hitboxes.size() == 1, "Its hitboxes stay on with the panels closed")
 		await key(KEY_Z, true)
 		game._practice_target = id
 		await frames()
 		check(target_panel.hitbox_toggle.button_pressed, "Reselected, its switch still reads on")
+		# The world switch sets every NPC to its value, the target included.
 		world_panel.hitbox_toggle.button_pressed = true
+		await frames()
+		check(preview.practice_hitbox_overrides.is_empty() and target_panel.hitbox_toggle.button_pressed, "World Hitboxes on leaves the target's on")
+		target_panel.hitbox_toggle.button_pressed = false
+		await frames()
+		check(world_panel.hitbox_toggle.button_pressed and not target_panel.hitbox_toggle.button_pressed
+			and preview.practice_debug._hitboxes.size() == session.world.bots.size() - 2, "A target can hide its own under world Hitboxes, the world switch stays on")
 		world_panel.hitbox_toggle.button_pressed = false
 		await frames()
-		check(preview.practice_hitbox_npcs.is_empty() and not target_panel.hitbox_toggle.button_pressed, "The world Hitboxes switch overrides the target's")
-		# World behaviour overrides the target's too.
-		target_panel.aggressive_toggle.button_pressed = true
+		check(preview.practice_hitbox_overrides.is_empty() and not target_panel.hitbox_toggle.button_pressed
+			and preview.practice_debug._hitboxes.is_empty(), "World Hitboxes off turns every NPC's off")
+		# The world behaviour switch keeps its own setting and sets every NPC to it.
 		world_panel.aggressive_toggle.button_pressed = true
+		await frames()
+		check(session.practice_npc_aggressive(id) and target_panel.aggressive_toggle.button_pressed, "World Aggressive makes the target aggressive")
+		target_panel.aggressive_toggle.button_pressed = false
+		await frames()
+		check(not session.practice_npc_aggressive(id) and world_panel.aggressive_toggle.button_pressed
+			and world_panel.aggressive_toggle.text == "Aggressive", "A friendly target leaves the world switch on Aggressive")
 		world_panel.aggressive_toggle.button_pressed = false
 		await frames()
-		check(not session.practice_npc_aggressive(id), "The world behaviour switch overrides the target's")
+		check(not session.practice_npc_aggressive(id) and not world_panel.aggressive_toggle.button_pressed, "World Friendly makes every NPC friendly")
 		# Health -/+ and armour.
 		var health: float = session.world.bots[id].combat.core
 		target_panel.health_up.pressed.emit()
@@ -209,6 +222,17 @@ func run() -> void:
 				"Choosing a %s fits it to the target (%s -> %s)" % [slot, before, session.world.bots[id].loadout.parts[slot]])
 		check(target_panel.visible and target_panel.target == id, "The target survives a part swap")
 		check(session.world.bots[id].find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The outline follows the swapped bot")
+		# The outline never becomes wreck pieces, and a wreck has none.
+		var outlined: MvpBot = session.world.bots[id]
+		var captured: Array = preload("res://scripts/presentation/wreck_pieces.gd").capture(outlined, outlined.body.global_transform)
+		check(captured.all(func(entry: Dictionary) -> bool: return not str(entry.source.name).begins_with("PracticeTargetOutline")),
+			"Wreck pieces skip the outline")
+		outlined.combat.eliminated = true
+		await frames()
+		check(outlined.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(), "A wrecked target loses its outline")
+		outlined.combat.eliminated = false
+		await frames()
+		check(outlined.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The outline returns with the NPC")
 		target_panel.remove_button.pressed.emit()
 		await frames()
 		check(not session.world.bots.has(id) and not target_panel.visible, "Remove takes the target out of the world")

@@ -78,6 +78,7 @@ func show_on(bot: Node) -> void:
 				copy.skeleton = NodePath("../" + str(mesh.skeleton))
 			copy.material_override = layer[1]
 			copy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			copy.add_to_group(preload("res://scripts/presentation/wreck_pieces.gd").SKIP_GROUP)
 			mesh.add_child(copy)
 			_copies.append(copy)
 
