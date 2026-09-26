@@ -20,6 +20,11 @@ func run() -> void:
 		applied_values.append(value.copy())
 		return OK
 	panel.open_for(preferences, path)
+	check(panel.vsync_button.text == ("On" if panel.vsync_button.button_pressed else "Off"), "The V-Sync switch states its loaded value (#98)")
+	for key: String in panel.graphics_controls:
+		var control: Control = panel.graphics_controls[key]
+		if control is CheckButton:
+			check(control.text == ("On" if control.button_pressed else "Off"), "%s states its loaded value (#98)" % key)
 	panel.mode_choice.select(1)
 	panel.preview_changes()
 	check(panel.deadline_ms > 0 and panel.keep_button.visible, "Preview starts keep/revert confirmation")
@@ -51,6 +56,7 @@ func run() -> void:
 		return OK
 	panel.open_for(preferences, path)
 	panel.vsync_button.button_pressed = false
+	check(panel.vsync_button.text == "Off", "The V-Sync switch reads Off when off (#98)")
 	panel.preview_changes()
 	panel.cancel()
 	check(restored.size() == 1 and restored[0] == original_state, "Rollback adapter preserves physical mode, size, position, borderless flag and exact VSync enum")

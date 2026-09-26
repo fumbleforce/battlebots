@@ -120,6 +120,16 @@ static func page(panel: PanelContainer, title: String, description: String) -> D
 	column.add_child(footer)
 	return {"column":column,"tabs":tabs,"scroll":scroll,"content":content,"message":message,"footer":footer}
 
+## A settings switch's caption states its value, "On" or "Off" (#98); it used
+## to read "Enabled" either way. Presses update it; call caption() again after
+## set_pressed_no_signal.
+static func switch(toggle: CheckButton) -> void:
+	toggle.toggled.connect(func(_pressed: bool) -> void: caption(toggle))
+	caption(toggle)
+
+static func caption(toggle: CheckButton) -> void:
+	toggle.text = "On" if toggle.button_pressed else "Off"
+
 static func focus_cycle(controls: Array) -> void:
 	for index: int in range(controls.size()):
 		var control: Control = controls[index]

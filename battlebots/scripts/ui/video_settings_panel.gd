@@ -58,7 +58,7 @@ func _ready() -> void:
 	SettingsStyle.section(display,"Frame pacing")
 	var sync_row := SettingsStyle.row(display,"V-Sync","Synchronize frames to the display to prevent tearing.")
 	vsync_button = CheckButton.new()
-	vsync_button.text = "Enabled"
+	SettingsStyle.switch(vsync_button)
 	sync_row.add_child(vsync_button)
 	_graphics_option(display,"fps_limit","Frame rate limit","V-Sync may impose a lower limit than the selected cap.")
 	_graphics_option(display,"show_fps","Performance counter","Show frame rate and frame time while playing.")
@@ -145,7 +145,7 @@ func _graphics_option(parent: Node, key: String, caption: String, description: S
 			control = slider
 		else:
 			var toggle := CheckButton.new()
-			toggle.text = "Enabled"
+			SettingsStyle.switch(toggle)
 			toggle.custom_minimum_size.x = 180
 			toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			line.add_child(toggle)
@@ -171,7 +171,9 @@ func _fill_graphics(values: Dictionary) -> void:
 		elif control is HSlider:
 			control.set_value_no_signal(values[key])
 			control.get_meta("amount").text = "%d%%" % values[key]
-		else: control.set_pressed_no_signal(values[key])
+		else:
+			control.set_pressed_no_signal(values[key])
+			SettingsStyle.caption(control as CheckButton)
 	preset_choice.select(GraphicsOptions.preset_index(values))
 	_filling = false
 	_dependencies()
@@ -244,6 +246,7 @@ func _fill(preferences: VideoPreferences) -> void:
 	resolution_choice.select(index)
 	resolution_choice.disabled = preferences.mode != "windowed"
 	vsync_button.set_pressed_no_signal(preferences.vsync)
+	SettingsStyle.caption(vsync_button)
 	monitor_choice.select(clampi(preferences.screen + 1,0,monitor_choice.item_count-1))
 	_fill_graphics(preferences.graphics)
 

@@ -111,9 +111,9 @@ func _toggle(parent: Node, caption: String, description: String) -> CheckButton:
 	_caption(toggle)
 	return toggle
 
-## The caption states the current value; it used to read "Enabled" either way.
+## The caption states the current value (SettingsStyle.caption).
 func _caption(toggle: CheckButton) -> void:
-	toggle.text = "On" if toggle.button_pressed else "Off"
+	SettingsStyle.caption(toggle)
 
 func _set_toggles(preferences: RefCounted) -> void:
 	damage_numbers_toggle.set_pressed_no_signal(preferences.show_damage_numbers)

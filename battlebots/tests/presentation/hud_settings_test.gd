@@ -44,6 +44,7 @@ func run() -> void:
 	panel.palette_choice.select(1)
 	panel.palette_choice.item_selected.emit(1)
 	panel.contrast_toggle.button_pressed = true
+	check(panel.contrast_toggle.text == "On", "The contrast switch reads On when on (#98)")
 	check(previews.back().text_scale == 1.5 and previews.back().palette == "deuteranopia" and previews.back().high_contrast, "All real controls preview detached values")
 	await frames()
 	check(panel.sample_label.get_theme_font_size("font_size") == 30 and panel.sample_label.get_theme_color("font_color") == Color("ffce75"), "Sample previews actual HUD size and palette")

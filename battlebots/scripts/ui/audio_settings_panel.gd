@@ -41,7 +41,7 @@ func _ready() -> void:
 		slider.value_changed.connect(func(_value: float) -> void: _preview())
 	var mute_row := SettingsStyle.row(page.content,"Mute all audio","Silence every channel without changing your volume mix.")
 	mute_button = CheckButton.new()
-	mute_button.text = "Enabled"
+	SettingsStyle.switch(mute_button)
 	mute_button.toggled.connect(func(_value: bool) -> void: _preview())
 	mute_row.add_child(mute_button)
 	message = page.message
@@ -73,6 +73,7 @@ func _fill(preferences: AudioPreferences) -> void:
 		var value: float = preferences.get(key)
 		sliders[key].set_value_no_signal(clampf(value, 0, 1) if is_finite(value) else AudioPreferences.DEFAULTS[key])
 	mute_button.set_pressed_no_signal(preferences.muted)
+	SettingsStyle.caption(mute_button)
 	_refresh_labels()
 
 func _values() -> AudioPreferences:

@@ -30,7 +30,7 @@ func _ready() -> void:
 	row.add_child(palette_choice)
 	row = SettingsStyle.row(page.content,"High contrast HUD","Stronger panel backgrounds and borders during matches.")
 	contrast_toggle = CheckButton.new()
-	contrast_toggle.text = "Enabled"
+	SettingsStyle.switch(contrast_toggle)
 	row.add_child(contrast_toggle)
 	for control: Control in [text_scale_choice,palette_choice,contrast_toggle]:
 		control.custom_minimum_size = Vector2(390,48)
@@ -50,6 +50,7 @@ func _ready() -> void:
 		text_scale_choice.select(0)
 		palette_choice.select(0)
 		contrast_toggle.set_pressed_no_signal(false)
+		SettingsStyle.caption(contrast_toggle)
 		_preview())
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -68,6 +69,7 @@ func open_for(preferences: HudPreferences, path: String) -> void:
 	text_scale_choice.select(maxi(0, HudPreferences.TEXT_SCALES.find(preferences.text_scale)))
 	palette_choice.select(maxi(0, HudPreferences.PALETTES.find(preferences.palette)))
 	contrast_toggle.set_pressed_no_signal(preferences.high_contrast)
+	SettingsStyle.caption(contrast_toggle)
 	_update_sample(_values())
 	message.text = "Text size applies to general menus and the match HUD. Preview changes before saving." if preferences.load_error == OK else "Settings could not be loaded. Defaults are shown; Save replaces the file."
 	show()
