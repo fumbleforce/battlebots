@@ -516,7 +516,6 @@ func run() -> void:
 	var boss_id: int = session.woodland_boss.boss_id
 	var boss: MvpBot = session.practice_npc(boss_id)
 	check(boss != null and session.practice_npc_aggressive(boss_id), "The giant is a practice NPC that hunts")
-	check(not session.practice_can_possess(boss_id) and not session.practice_possess(boss_id), "The giant cannot be possessed")
 	check(session.practice_part_options("weapon", boss_id).is_empty(), "The giant's parts cannot be swapped")
 	var boss_speed: float = boss.body.top_speed
 	var boss_accel: float = boss.body.drive_acceleration
@@ -533,6 +532,24 @@ func run() -> void:
 	check(session.practice_remove_npc(boss_id) and session.practice_npc(boss_id) == null and not session.world.bots.has(boss_id),
 		"Remove takes the giant out")
 	await frames(2)
+	session.leave()
+	# Possessing the giant: the player drives it like any other NPC (#99).
+	check(session.practice(session.registry.starter(), "woodland") == OK, "Woodland practice starts again")
+	await frames(2)
+	boss_id = session.woodland_boss.boss_id
+	boss = session.practice_npc(boss_id)
+	var first_body: int = session.local_entity
+	boss_speed = boss.body.top_speed
+	check(session.practice_possess(boss_id) and session.local_entity == boss_id and session.practice_director.player_id == boss_id,
+		"The giant can be possessed")
+	check(not is_instance_valid(session.woodland_boss.boss) and session.practice_npc(first_body) != null,
+		"Its own script lets go, and the old body becomes an NPC")
+	await frames(2)
+	check(session.local_source() == boss and is_equal_approx(boss.body.top_speed, boss_speed), "The player drives it with its own handling")
+	check(session.practice_step_part("weapon", 1).has("refused") and session.practice_part_options("weapon").is_empty(),
+		"A possessed giant's parts still cannot be swapped")
+	check(session.practice_possess(first_body) and session.local_entity == first_body and session.practice_npc(boss_id) != null,
+		"Possessing the old body back leaves the giant a practice NPC")
 	session.leave()
 	# A hammer's area of effect blasts around where its head lands, hit or miss.
 	var hammer_build := session.registry.starter()

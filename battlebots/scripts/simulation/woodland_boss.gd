@@ -309,6 +309,15 @@ func _tidy_drop() -> void:
 			_remove_drop()
 			return
 
+## Practice target card Possess (#99): hands the giant's body over, e.g. to
+## the PracticeBotDirector; this script stops driving and rebuilding it.
+func release() -> MvpBot:
+	_remove_drop()
+	var bot := boss
+	boss = null
+	target_id = 0
+	return bot
+
 ## Practice world panel or target card Remove (#99): the giant leaves for
 ## good (until practice is left), taking its drop with it.
 func remove() -> void:

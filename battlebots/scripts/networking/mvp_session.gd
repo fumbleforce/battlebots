@@ -300,10 +300,9 @@ func _swap_part(entity: int, loadout: Dictionary) -> void:
 func _practice_bot(slot: String, entity: int) -> MvpBot:
 	if practice_tuning() == null or slot not in PRACTICE_PART_SLOTS:
 		return null
-	if entity == 0 or entity == local_entity:
-		return world.bots.get(local_entity)
-	# The Woodland giant's parts are scaled for it: no swaps (#99).
-	return practice_npc(entity) if not _is_practice_boss(entity) else null
+	var bot: MvpBot = world.bots.get(local_entity) if entity == 0 or entity == local_entity else practice_npc(entity)
+	# The Woodland giant's parts are scaled for it: no swaps, even possessed (#99).
+	return null if bot == null or bot.has_meta(&"woodland_boss") else bot
 
 ## Practice Duel tuning (#84): the weapon, chassis, drive (#94) or utility parts in the panel's
 ## dropdown, each {part, fits, current}. Empty outside Practice Duel.
@@ -349,7 +348,7 @@ func practice_set_part(slot: String, part: String, entity := 0) -> Dictionary:
 
 ## Practice Duel tuning: the next (1) or previous (-1) part that fits.
 func practice_step_part(slot: String, step: int) -> Dictionary:
-	if practice_tuning() == null or slot not in PRACTICE_PART_SLOTS:
+	if _practice_bot(slot, 0) == null:
 		return {"refused":"unavailable"}
 	return _cycle_part(slot, signi(step) if step != 0 else 1)
 
@@ -444,10 +443,6 @@ func practice_npc(id: int) -> MvpBot:
 func _is_practice_boss(id: int) -> bool:
 	return id != 0 and woodland_boss != null and is_instance_valid(woodland_boss.boss) and woodland_boss.boss_id == id
 
-## Target card Possess (#97) takes over director NPCs only, not the giant (#99).
-func practice_can_possess(id: int) -> bool:
-	return practice_npc(id) != null and not _is_practice_boss(id)
-
 func practice_remove_npc(id: int) -> bool:
 	if practice_npc(id) == null:
 		return false
@@ -517,7 +512,12 @@ func practice_add_npc_armour(id: int, amount: float) -> void:
 ## Returns whether it took over; never a wreck.
 func practice_possess(id: int) -> bool:
 	var bot := practice_npc(id)
-	if not practice_can_possess(id) or bot.combat.eliminated or not practice_director.possess(id):
+	if bot == null or bot.combat.eliminated:
+		return false
+	if _is_practice_boss(id):
+		# The giant's own script lets go; from here it is a director NPC (#99).
+		practice_director.adopt(woodland_boss.release())
+	if not practice_director.possess(id):
 		return false
 	var old := local_entity
 	var old_bot: MvpBot = world.bots.get(old)

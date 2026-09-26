@@ -260,6 +260,12 @@ func possess(id: int) -> bool:
 	player_wreck_age = 0.0
 	return true
 
+## Takes over a bot another script drove (the Woodland giant, #99) as a
+## stationary NPC homed where it stands, so it can be possessed like any other.
+func adopt(bot: MvpBot) -> void:
+	records.append({"id":bot.entity_id, "home":bot.spawn_pose, "index":0,
+		"wreck_age":0.0, "previous_primary":false, "patrol":0, "grace":RESET_GRACE})
+
 ## Removes one NPC from the world. Its entity id is not reused.
 func remove_npc(id: int) -> bool:
 	var record := npc_record(id)
