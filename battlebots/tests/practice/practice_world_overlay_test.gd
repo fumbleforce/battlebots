@@ -420,6 +420,11 @@ func run() -> void:
 	check(tuning_panel.visible and not world_panel.visible, "F2 shows the tuning panel in full practice")
 	await key(KEY_F2)
 	check(not tuning_panel.visible and not preview.free_cursor, "F2 hides it again in full practice")
+	await key(KEY_ESCAPE)
+	check(preview.pause_menu.visible and not game.game_menu_page.tuning_panel.visible,
+		"The full practice Esc menu keeps its summary, without the tuning copy")
+	game.resume_gameplay()
+	await frames()
 	game.return_to_main()
 	await frames()
 	game.queue_free()

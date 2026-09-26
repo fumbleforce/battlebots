@@ -804,7 +804,10 @@ func _process(_delta: float) -> void:
 			results_panel.hide()
 			results_panel.clear_record()
 	results_panel.render(session.match_view, session.local_entity, bot.read_view().team if bot != null else -1)
-	game_menu_page.render(session.match_view, session.connection_state == "practice", session.practice_tuning(), session)
+	# The Esc menu's tuning copy stays Practice Duel only; full Practice gets
+	# just the F1/F2 panels (#99).
+	var menu_tuning: RefCounted = session.practice_tuning() if session.practice_kind == "duel" else null
+	game_menu_page.render(session.match_view, session.connection_state == "practice", menu_tuning, session)
 	_update_practice_tuning_overlay()
 	var menu_open := menu_host.visible
 	var game_menu_open: bool = preview.pause_menu.visible or results_panel.visible or _general_settings_open()
