@@ -63,6 +63,7 @@ var body_defaults: Dictionary = {}
 var body: Dictionary = {}
 var _weapon_ids := ["", ""]
 var _chassis := ""
+var _drive := ""
 var _utility := ""
 var _state: RefCounted
 var _body_dirty := false
@@ -75,9 +76,12 @@ func apply(bot: MvpBot, registry: ContentRegistry) -> void:
 	var stats := state.stats
 	var ids := [str(stats.weapon), _secondary_id(bot)]
 	var chassis := str(bot.loadout.parts.get("chassis", ""))
-	if chassis != _chassis:
-		# A new body (a pickup) has its own plates and weight: start it untuned.
+	var drive := str(bot.loadout.parts.get("drive", ""))
+	if chassis != _chassis or drive != _drive:
+		# A new body or drive (a pickup, or the panel's pickers) has its own plates,
+		# weight and handling: start it untuned.
 		_chassis = chassis
+		_drive = drive
 		body_defaults.clear()
 		body.clear()
 		_weapon_ids = ["", ""]
@@ -357,6 +361,9 @@ func take_debug_marks() -> Array[Dictionary]:
 ## The tuned bot's chassis part id.
 func chassis() -> String:
 	return _chassis
+
+func drive() -> String:
+	return _drive
 
 ## Charged-jump take-off speed over its default (1 = untuned).
 func jump_scale() -> float:

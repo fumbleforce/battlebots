@@ -381,6 +381,32 @@ func run() -> void:
 	await frames(2)
 	player = session.local_source()
 	check(stepped.has("part") and player.loadout.parts.chassis == stepped.part and lab.chassis() == stepped.part, "Next steps to another chassis")
+	# #94: a drive picker sits under the chassis one; a new drive re-reads its handling untuned.
+	# The Scorpion only walks: every other drive is listed but greyed out.
+	check(session.practice_set_part("chassis", "scorpion_hex").has("part") and session.practice_part_options("drive").all(
+		func(o: Dictionary) -> bool: return o.fits == (o.part == "walker")), "The Scorpion greys out every drive but its legs")
+	check(session.practice_set_part("chassis", "balanced").get("part") == "balanced", "A wheeled body can be chosen again")
+	await frames(2)
+	player = session.local_source()
+	panel =preload("res://scripts/ui/practice_tuning_panel.gd").new()
+	root.add_child(panel)
+	panel.render(lab, session)
+	var chassis_row: Node = panel.pickers["chassis"].get_parent()
+	check(panel.pickers.has("drive") and panel.pickers["drive"].get_parent().get_parent() == chassis_row.get_parent()
+		and panel.pickers["drive"].get_parent().get_index() == chassis_row.get_index() + 1, "The drive dropdown sits under the chassis dropdown")
+	var drives := session.practice_part_options("drive").filter(func(o: Dictionary) -> bool: return o.fits and not o.current)
+	check(not drives.is_empty(), "Other drives fit this body (%s: %s)" % [player.loadout.parts.chassis, session.practice_part_options("drive")])
+	if not drives.is_empty():
+		lab.set_body("turn", 99.0)
+		var picker: OptionButton = panel.pickers["drive"]
+		for index: int in picker.item_count:
+			if str(picker.get_item_metadata(index)) == drives[0].part:
+				picker.select(index)
+				picker.item_selected.emit(index)
+		await frames(2)
+		player = session.local_source()
+		check(player.loadout.parts.drive == drives[0].part and lab.drive() == drives[0].part, "Choosing a drive in the panel fits it")
+		check(not lab.body.has("turn") and is_equal_approx(lab.body_value("turn"), player.body.turn_speed), "A new drive starts untuned with its own handling")
 	session.leave()
 	check(session.practice_part_options("weapon").is_empty() and session.practice_set_part("weapon", "saw").has("refused"), "Pickers do nothing outside Practice Duel")
 	check(session.practice_tuning() == null, "Leaving drops the tuning")

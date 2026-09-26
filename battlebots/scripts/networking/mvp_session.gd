@@ -80,7 +80,7 @@ const PRACTICE_KINDS := ["full", "duel"]
 var practice_kind := "full"
 const PRACTICE_TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## Slots the Practice Duel panel can swap: Weapon 1, the body and Weapon 2 (utility).
-const PRACTICE_PART_SLOTS := ["weapon", "chassis", "utility"]
+const PRACTICE_PART_SLOTS := ["weapon", "chassis", "drive", "utility"]
 ## Offline Woodland practice only (#45): edge starts and the roaming giant.
 var woodland_boss: WoodlandBoss
 ## Woodland LAN/online matches include the roaming giant as a neutral hazard (#79).
@@ -286,7 +286,7 @@ func _swap_local_part(loadout: Dictionary) -> void:
 	# Publish like a pickup so a local host's guests rebuild the same bot.
 	world.pickups.revision += 1
 
-## Practice Duel tuning (#84): the weapon, chassis or utility parts in the panel's
+## Practice Duel tuning (#84): the weapon, chassis, drive (#94) or utility parts in the panel's
 ## dropdown, each {part, fits, current}. Empty outside Practice Duel.
 func practice_part_options(slot: String) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []

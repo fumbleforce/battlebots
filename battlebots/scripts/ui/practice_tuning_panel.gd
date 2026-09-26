@@ -1,7 +1,7 @@
 extends VBoxContainer
 ## Practice Duel Esc-menu tuning (#84): live, session-only values for the
 ## player's weapons and body (scripts/simulation/practice_tuning.gd), plus
-## weapon and chassis pickers, under the debug views (#93). Nothing here is
+## weapon, chassis and drive (#94) pickers, under the debug views (#93). Nothing here is
 ## saved; leaving practice discards it. Presentation only: the offline
 ## authority applies the values on its next tick and swaps parts through
 ## MvpSession.practice_set_part().
@@ -160,7 +160,7 @@ func render(value: RefCounted, parts: Node = null) -> void:
 	mass_label.text = "Total mass %.0f kg" % tuning.total_mass()
 
 func _signature() -> String:
-	var parts: Array[String] = [tuning.chassis(), tuning.utility()]
+	var parts: Array[String] = [tuning.chassis(), tuning.drive(), tuning.utility()]
 	for slot: String in tuning.weapons:
 		parts.append("%s=%s" % [slot, tuning.weapons[slot].id])
 	parts.append(",".join(tuning.body_defaults.get("plates", {}).keys()))
@@ -196,6 +196,7 @@ func _rebuild() -> void:
 	_column = body_column
 	_label(_column, "BODY", &"HeadingItalic", HEADING_FONT)
 	_picker("chassis")
+	_picker("drive")
 	heat_toggle = _toggle(_column, "HeatToggle", "Heat", func(on: bool) -> void: tuning.heat_enabled = on)
 	jump_toggle = _toggle(_column, "JumpCooldownToggle", "Jump cooldown", func(on: bool) -> void: tuning.jump_cooldown_enabled = on)
 	# Max speed reads in km/h like the HUD speedometer; the tuning keeps m/s.
