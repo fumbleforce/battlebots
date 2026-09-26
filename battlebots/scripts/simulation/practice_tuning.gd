@@ -71,7 +71,9 @@ var _weapon_ids := ["", ""]
 var _chassis := ""
 var _drive := ""
 var _utility := ""
-var _state: RefCounted
+## The last CombatState applied to, by instance id: the state holds this
+## tuning, so a reference back would be a cycle that never frees (#99).
+var _state_id := 0
 var _body_dirty := false
 
 ## Keeps the tuned bot in step with the overrides. Called by AuthorityWorld
@@ -94,8 +96,8 @@ func apply(bot: MvpBot, registry: ContentRegistry) -> void:
 		weapons.clear()
 	if ids != _weapon_ids:
 		_configure(bot, registry, ids)
-	var fresh := state != _state
-	_state = state
+	var fresh := state.get_instance_id() != _state_id
+	_state_id = state.get_instance_id()
 	state.practice_tuning = self
 	_utility = str(bot.loadout.parts.get("utility", ""))
 	if not jump_cooldown_enabled:
