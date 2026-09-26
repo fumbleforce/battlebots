@@ -455,6 +455,18 @@ func practice_add_npc_health(id: int, amount: float) -> void:
 	if tuning != null:
 		tuning.set_body("core", maxf(1.0, roundf(practice_npc(id).combat.core + amount)))
 
+## Adds amount (negative to take, never below 0) to the NPC's current
+## durability in each of zones ("weapon", or "drive_left" and "drive_right");
+## the result is also what those parts start from until changed again.
+func practice_add_npc_durability(id: int, zones: Array, amount: float) -> void:
+	var tuning := _npc_tuning(id)
+	if tuning == null:
+		return
+	var bot := practice_npc(id)
+	for zone: String in zones:
+		if bot.combat.zones.has(zone):
+			tuning.set_component(zone, maxf(0.0, roundf(float(bot.combat.zones[zone]) + amount)))
+
 ## Adds amount (negative to take, never below 0) to the NPC's armour on every
 ## face, and refills it.
 func practice_add_npc_armour(id: int, amount: float) -> void:

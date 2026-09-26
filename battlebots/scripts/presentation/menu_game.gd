@@ -967,9 +967,11 @@ func _single_out_hitboxes(entity: int, on: bool) -> void:
 		preview.practice_hitbox_overrides[entity] = on
 
 ## A free-cursor click on an NPC while the world panel shows selects it, or
-## clears the selection when it is already the target; true takes the click.
+## clears the selection when it is already the target. While the tuning panel
+## shows instead, it closes that and opens the world panel with the NPC
+## selected. True takes the click.
 func _pick_practice_target(position: Vector2) -> bool:
-	if not practice_world_overlay.visible:
+	if not practice_world_overlay.visible and not practice_tuning_overlay.visible:
 		return false
 	var camera: Camera3D = preview.aim_camera()
 	if not is_instance_valid(camera) or not camera.is_inside_tree():
@@ -977,6 +979,12 @@ func _pick_practice_target(position: Vector2) -> bool:
 	var picked: int = session.practice_npc_at(camera.project_ray_origin(position), camera.project_ray_normal(position))
 	if picked == 0:
 		return false
+	if not practice_world_overlay.visible:
+		_practice_tuning_open = false
+		_practice_world_open = true
+		_practice_target = picked
+		_update_practice_tuning_overlay()
+		return true
 	_practice_target = 0 if picked == _practice_target else picked
 	return true
 

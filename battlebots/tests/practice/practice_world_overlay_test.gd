@@ -134,6 +134,17 @@ func run() -> void:
 		check(not target_panel.visible and npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(),
 			"Clearing the target hides its card and outline")
 		check(not game._pick_practice_target(Vector2(5, 5)), "A click on no NPC stays a gameplay click")
+		# A click on an NPC with the tuning panel up switches to the world panel
+		# with it selected.
+		game._practice_target = 0
+		await key(KEY_F2)
+		check(tuning_panel.visible and not world_panel.visible, "F2 shows the tuning panel")
+		var from_tuning: Vector2 = preview.aim_camera().unproject_position(session.world.bots[id].body.global_transform
+			* (session.world.bots[id].collision_bounds().get_center() + Vector3.UP * session.world.bots[id].collision_bounds().size.y * 0.4))
+		check(game._pick_practice_target(from_tuning), "A click on an NPC is taken with the tuning panel up")
+		await frames()
+		check(not tuning_panel.visible and world_panel.visible and target_panel.visible and game._practice_target == id,
+			"It closes the tuning panel and opens the world and target panels")
 		# The camera turns toward the selected NPC.
 		game._practice_target = id
 		await frames(40)
@@ -272,6 +283,25 @@ func run() -> void:
 		npc = session.world.bots[id]
 		for face: String in plates:
 			check(is_equal_approx(float(npc.combat.stats.plates[face]), float(plates[face])), "-armour takes it again from the %s face" % face)
+		# Weapon and drive durability, under the armour buttons.
+		check(target_panel.weapon_down.get_parent().get_index() > target_panel.armour_up.get_parent().get_index()
+			and target_panel.drive_down.get_parent().get_index() > target_panel.weapon_down.get_parent().get_index(),
+			"Weapon then drive durability rows sit under the armour row")
+		var zones: Dictionary = session.world.bots[id].combat.zones.duplicate()
+		target_panel.weapon_up.pressed.emit()
+		target_panel.drive_down.pressed.emit()
+		await frames()
+		var now: Dictionary = session.world.bots[id].combat.zones
+		check(is_equal_approx(now.weapon, zones.weapon + target_panel.DURABILITY_STEP)
+			and is_equal_approx(now.drive_left, maxf(0.0, zones.drive_left - target_panel.DURABILITY_STEP))
+			and is_equal_approx(now.drive_right, maxf(0.0, zones.drive_right - target_panel.DURABILITY_STEP)),
+			"+W adds weapon durability and -D takes both drives' (%s -> %s)" % [zones, now])
+		target_panel.weapon_down.pressed.emit()
+		target_panel.drive_up.pressed.emit()
+		await frames()
+		now = session.world.bots[id].combat.zones
+		check(is_equal_approx(now.weapon, zones.weapon) and now.drive_left > 0.0 and now.drive_right > 0.0, "-W and +D give them back")
+		check(target_panel.weapon_down.text == "-100 W" and target_panel.drive_up.text == "+100 D", "They read -100 W / +100 D")
 		var stacked: int = session.practice_spawn_npc(npc.body.global_position + Vector3.UP * 6.0, Vector3.DOWN)
 		var above: MvpBot = session.world.bots.get(stacked)
 		check(above != null and above.body.reset_pose is Transform3D and above.body.reset_pose.origin.y > npc.body.global_position.y + 0.5,

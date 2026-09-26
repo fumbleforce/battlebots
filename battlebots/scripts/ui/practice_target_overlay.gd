@@ -1,8 +1,9 @@
 extends Control
 ## Practice Duel HUD target panel (#97): while the F1 world panel shows,
-## the selected NPC (clicked, or last looked at) gets this card to its left, a
+## the NPC clicked on gets this card to its left, a
 ## one-column cut of the F2 tuning card for that NPC: remove it, its behaviour,
-## its hitboxes, its health, more armour, and its chassis, drive and weapons.
+## its hitboxes, its health, armour and weapon and drive durability, and its
+## chassis, drive and weapons.
 ## Presentation only: the controls call the offline authority through
 ## MvpSession's practice_* helpers.
 const TUNING_OVERLAY = preload("res://scripts/ui/practice_tuning_overlay.gd")
@@ -18,6 +19,9 @@ const CAPTION_WIDTH := 92
 ## Health, and armour on every face, the -/+ buttons take or give.
 const HEALTH_STEP := 100.0
 const ARMOUR_STEP := 100.0
+## Weapon and drive durability the -/+ buttons take or give.
+const DURABILITY_STEP := 100.0
+const DRIVE_ZONES := ["drive_left", "drive_right"]
 ## Possess is green, Remove red.
 const POSSESS_COLOR := Color("2e8b45")
 const REMOVE_COLOR := Color("b23a32")
@@ -41,6 +45,10 @@ var health_down: Button
 var health_up: Button
 var armour_down: Button
 var armour_up: Button
+var weapon_down: Button
+var weapon_up: Button
+var drive_down: Button
+var drive_up: Button
 ## Slot -> OptionButton.
 var pickers: Dictionary = {}
 var _picker_column: VBoxContainer
@@ -103,6 +111,16 @@ func _init() -> void:
 		if session != null: session.practice_add_npc_armour(target, -ARMOUR_STEP))
 	armour_up = _button(armour_row, "TargetArmourUp", "+%d A" % ARMOUR_STEP, func() -> void:
 		if session != null: session.practice_add_npc_armour(target, ARMOUR_STEP))
+	var weapon_row := _row(column)
+	weapon_down = _button(weapon_row, "TargetWeaponDown", "-%d W" % DURABILITY_STEP, func() -> void:
+		if session != null: session.practice_add_npc_durability(target, ["weapon"], -DURABILITY_STEP))
+	weapon_up = _button(weapon_row, "TargetWeaponUp", "+%d W" % DURABILITY_STEP, func() -> void:
+		if session != null: session.practice_add_npc_durability(target, ["weapon"], DURABILITY_STEP))
+	var drive_row := _row(column)
+	drive_down = _button(drive_row, "TargetDriveDown", "-%d D" % DURABILITY_STEP, func() -> void:
+		if session != null: session.practice_add_npc_durability(target, DRIVE_ZONES, -DURABILITY_STEP))
+	drive_up = _button(drive_row, "TargetDriveUp", "+%d D" % DURABILITY_STEP, func() -> void:
+		if session != null: session.practice_add_npc_durability(target, DRIVE_ZONES, DURABILITY_STEP))
 	column.add_child(HSeparator.new())
 	_picker_column = VBoxContainer.new()
 	_picker_column.add_theme_constant_override("separation", 6)
@@ -178,7 +196,8 @@ func render(source: Node, entity: int, hitboxes := false) -> void:
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
 	var wrecked := bot.combat.eliminated
 	hitbox_toggle.set_pressed_no_signal(hitboxes)
-	for control: BaseButton in [possess_button, aggressive_toggle, health_down, health_up, armour_down, armour_up]:
+	for control: BaseButton in [possess_button, aggressive_toggle, health_down, health_up, armour_down, armour_up,
+			weapon_down, weapon_up, drive_down, drive_up]:
 		control.disabled = wrecked
 	# Rebuilt only when the target or its parts change, so an open list stays open.
 	var layout := "%d;%s" % [entity, ",".join(PICKERS.map(func(pair: Array) -> String: return str(parts.get(pair[0], ""))))]
