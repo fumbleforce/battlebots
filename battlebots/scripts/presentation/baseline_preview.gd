@@ -120,9 +120,23 @@ func capture_controls() -> void:
 func _on_focus_lost() -> void:
 	if not controls_enabled:
 		return
+	# A dropdown on the practice HUD panel (#94) takes focus inside the game
+	# window; releasing here would hide the panel and close the dropdown.
+	if free_cursor and _embedded_popup_open():
+		return
 	_resume_on_focus = true
 	release_controls(false)
 	pause_menu.hide()
+
+## Window focus for play: a practice HUD panel dropdown (#94) keeps it.
+func window_active() -> bool:
+	return get_window().has_focus() or (free_cursor and _embedded_popup_open())
+
+func _embedded_popup_open() -> bool:
+	for window: Window in get_viewport().get_embedded_subwindows():
+		if window is Popup and window.visible:
+			return true
+	return false
 
 func _on_focus_regained() -> void:
 	if not _resume_on_focus:
@@ -258,7 +272,7 @@ func _physics_process(_delta: float) -> void:
 	}
 	_free_edges.clear()
 	var enabled := controls_enabled and not settings_panel.visible \
-		and not _leaving and get_window().has_focus()
+		and not _leaving and window_active()
 	# Clear toggle intent during A's countdown/elimination/lifecycle suppression too.
 	if source is SessionBotSource and source.input_allowed.is_valid():
 		enabled = enabled and bool(source.input_allowed.call())
@@ -464,7 +478,7 @@ func _action_strength(action: StringName) -> float:
 
 func _process(delta: float) -> void:
 	var stick := Input.get_vector("camera_look_left", "camera_look_right", "camera_look_up", "camera_look_down")
-	var movement := gamepad.look_delta(stick, delta, controls_enabled and not settings_panel.visible and not _leaving and get_window().has_focus())
+	var movement := gamepad.look_delta(stick, delta, controls_enabled and not settings_panel.visible and not _leaving and window_active())
 	if not movement.is_zero_approx():
 		rig.orbit(movement)
 		if tank_sight.active: rig.pitch = tank_sight.clamp_pitch(rig.pitch)

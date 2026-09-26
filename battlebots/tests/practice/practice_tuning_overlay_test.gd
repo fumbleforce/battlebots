@@ -1,4 +1,4 @@
-﻿extends SceneTree
+extends SceneTree
 ## Practice Duel HUD tuning panel (#94): Z toggles a copy of the Esc menu's
 ## tuning card while driving; the cursor is free for it, mouse motion does not
 ## orbit, clicks on the card stay off the weapons and clicks elsewhere fire.
@@ -56,6 +56,31 @@ func run() -> void:
 	var focusable := panel.find_children("*", "BaseButton", true, false).filter(
 		func(button: Node) -> bool: return (button as BaseButton).focus_mode != Control.FOCUS_NONE)
 	check(focusable.is_empty(), "HUD panel buttons take no keyboard focus")
+	# A dropdown opened by a real click stays open, and choosing a part fits it.
+	var picker: OptionButton = panel.pickers["weapon"]
+	var picker_at: Vector2 = picker.get_global_rect().get_center()
+	var popup := picker.get_popup()
+	mouse(picker_at, true)
+	mouse(picker_at, false)
+	await frames()
+	# The open list takes window focus; that must not count as leaving the game.
+	check(popup.visible and overlay.visible and preview.controls_enabled and preview.window_active(),
+		"Clicking a dropdown opens its list over the HUD panel")
+	var tuning: RefCounted = game.session.practice_tuning()
+	var before: String = tuning.weapons["primary"].id
+	var choice := -1
+	for index: int in picker.item_count:
+		if index != picker.selected and not picker.is_item_disabled(index):
+			choice = index
+			break
+	popup.index_pressed.emit(choice)
+	popup.hide()
+	await frames(8)
+	tuning = game.session.practice_tuning()
+	check(choice >= 0 and tuning.weapons.has("primary") and tuning.weapons["primary"].id != before,
+		"Choosing a weapon from the dropdown fits it (%s -> %s)" % [before, tuning.weapons.get("primary", {}).get("id") if tuning.weapons.has("primary") else "none"])
+	check(overlay.visible and preview.controls_enabled and preview.free_cursor, "The panel stays up after choosing")
+	panel = overlay.tuning_panel
 	var card: Rect2 = overlay.card.get_global_rect()
 	check(card.size.x > 0 and card.end.x <= 1920.5 and card.end.x > 1800 and card.position.x > 800, "The card sits on the right (%s)" % card)
 	# Mouse motion no longer orbits the camera.

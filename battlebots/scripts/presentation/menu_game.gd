@@ -702,7 +702,7 @@ func gameplay_input_allowed() -> bool:
 	var bot := session.local_source()
 	return not _cli_handoff and not _recovering and not menu_host.visible and preview.controls_enabled \
 		and not _general_settings_open() \
-		and not preview.settings_panel.visible and get_window().has_focus() \
+		and not preview.settings_panel.visible and preview.window_active() \
 		and bot != null and not bot.read_view().eliminated \
 		and session.match_view.get("phase") in ["active", "overtime"]
 
