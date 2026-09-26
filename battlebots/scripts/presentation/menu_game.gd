@@ -882,7 +882,7 @@ func _process(_delta: float) -> void:
 	_sync_pause_focus()
 	_sync_music()
 
-## The HUD tuning panel (#94) shows while the player drives a Practice Duel with
+## The HUD tuning panel (#94) shows while the player drives practice (#99) with
 ## it toggled on; any menu, settings page or recovery hides it (the Esc menu
 ## has its own copy). While it shows the cursor is free for it. The world panel
 ## (#97) follows the same rules in the same place.
@@ -1171,7 +1171,8 @@ func _input(event: InputEvent) -> void:
 			resume_gameplay()
 
 ## F2 (practice_panel) shows or hides the HUD tuning panel (#94), F1
-## (practice_world_panel, #97) the world panel, while driving a Practice Duel;
+## (practice_world_panel, #97) the world panel, while driving either practice
+## layout (#99);
 ## opening one closes the other. Matched exactly, so a modifier held with the
 ## key does not count.
 ## Unhandled only, so typing in the panel's boxes never toggles it.

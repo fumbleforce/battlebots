@@ -410,6 +410,18 @@ func run() -> void:
 	game.return_to_main()
 	await frames()
 	check(not world_panel.visible and not game._practice_world_open, "Leaving practice closes the world panel")
+	# Full Practice has the same panels (#99).
+	game.start_practice()
+	await frames(30)
+	check(session.practice_kind == "full" and preview.controls_enabled, "Full practice starts")
+	await key(KEY_F1)
+	check(world_panel.visible and not tuning_panel.visible and preview.free_cursor, "F1 shows the world panel in full practice")
+	await key(KEY_F2)
+	check(tuning_panel.visible and not world_panel.visible, "F2 shows the tuning panel in full practice")
+	await key(KEY_F2)
+	check(not tuning_panel.visible and not preview.free_cursor, "F2 hides it again in full practice")
+	game.return_to_main()
+	await frames()
 	game.queue_free()
 	await frames()
 	if failures.is_empty():

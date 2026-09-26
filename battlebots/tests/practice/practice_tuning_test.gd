@@ -490,7 +490,25 @@ func run() -> void:
 	check(lab.weapons.has("secondary") and lab.has_field("secondary", "aoe") and session.local_source().loadout.parts.utility == "turret_mortar",
 		"The mortar's area of effect is tunable")
 	session.leave()
-	check(session.practice(session.registry.starter(), "foundry") == OK and session.practice_tuning() == null, "Full practice has no tuning")
+	# Full practice has the same panels since #99; untouched, the player drives as before.
+	check(session.practice(session.registry.starter(), "foundry") == OK and session.practice_tuning() != null, "Full practice has tuning too")
+	var full_player: MvpBot = session.local_source()
+	var untuned_speed: float = full_player.body.top_speed
+	var untuned_turn: float = full_player.body.turn_speed
+	await frames(2)
+	check(is_equal_approx(full_player.body.top_speed, untuned_speed) and is_equal_approx(full_player.body.turn_speed, untuned_turn),
+		"Untouched tuning leaves the full practice player's handling alone")
+	var pilot_id: int = session.practice_director.records[1].id
+	check(session.practice_npc(pilot_id) != null, "Full practice pilots are NPCs for the world panel")
+	var pilot: MvpBot = session.practice_npc(pilot_id)
+	var pilot_record: Dictionary = session.practice_director.npc_record(pilot_id)
+	pilot_record.grace = 0.0
+	session.practice_director.step(1.0 / 60.0)
+	check(not is_zero_approx(pilot.command.throttle), "An untouched full practice pilot drives")
+	session.practice_set_npcs_aggressive(false)
+	session.practice_director.step(1.0 / 60.0)
+	check(is_zero_approx(pilot.command.throttle) and pilot.command.brake, "Friendly holds a full practice pilot still")
+	check(session.practice_clear_npcs() > 0 and session.practice_director.records.is_empty(), "Clear NPCs removes the pilots and roamers")
 	session.leave()
 	# A hammer's area of effect blasts around where its head lands, hit or miss.
 	var hammer_build := session.registry.starter()

@@ -224,7 +224,8 @@ func npc_record(id: int) -> Dictionary:
 	return {}
 
 ## An aggressive NPC (fixtures and the shuttle included) hunts the player with
-## the pilot logic; one that is not keeps its idle behaviour.
+## the pilot logic; one set friendly keeps its idle behaviour (a full Practice
+## pilot or roamer stands still, #99).
 func set_aggressive(id: int, on: bool) -> void:
 	var record := npc_record(id)
 	if not record.is_empty():
@@ -355,7 +356,9 @@ func step(delta: float) -> void:
 			if float(record.grace) <= 0.0 and not player.combat.eliminated: _pilot(bot, player, record, intent, true)
 		elif record.has("shuttle"):
 			if float(record.grace) <= 0.0: _shuttle(bot, record, intent)
-		elif int(record.index) != 0 and float(record.grace) <= 0.0 and not player.combat.eliminated:
+		elif int(record.index) != 0 and not record.has("aggressive") and float(record.grace) <= 0.0 and not player.combat.eliminated:
+			# Full Practice pilots and roamers patrol and engage until a
+			# behaviour switch sets them (#99); Friendly then holds them still.
 			_pilot(bot, player, record, intent)
 		# The calibration target never drives or attacks, but can recover after a flip.
 		intent.recovery_pressed = bot.body.global_basis.y.y < -0.25 and bot.combat.recovery_cooldown <= 0.0

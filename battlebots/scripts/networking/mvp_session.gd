@@ -224,9 +224,10 @@ func practice(draft: Dictionary = {}, selected_arena := "foundry", kind := "full
 	practice_director = PracticeBotDirector.new()
 	if kind == "duel":
 		_next_entity = practice_director.configure_duel(world, local_entity, _next_entity)
-		world.practice_tuning[local_entity] = PRACTICE_TUNING.new()
 	else:
 		_next_entity = practice_director.configure(world, local_entity, _next_entity)
+	# Both layouts get the F1/F2 practice panels (#99).
+	world.practice_tuning[local_entity] = PRACTICE_TUNING.new()
 	if arena_id == "woodland" and kind == "full":
 		woodland_boss = WoodlandBoss.new()
 		_next_entity = woodland_boss.configure(world, _next_entity)
@@ -358,10 +359,11 @@ func practice_target() -> BotSource:
 		return world.bots.get(practice_director.target_id)
 	return null
 
-## Practice Duel only (#84): the local player's live, session-only tuning
-## (scripts/simulation/practice_tuning.gd); null in every other mode.
+## Offline practice only (#84; either layout since #99): the local player's
+## live, session-only tuning (scripts/simulation/practice_tuning.gd); null in
+## every other mode.
 func practice_tuning() -> RefCounted:
-	if connection_state != "practice" or practice_kind != "duel" or not _server or not is_instance_valid(world):
+	if connection_state != "practice" or not _server or not is_instance_valid(world):
 		return null
 	return world.practice_tuning.get(local_entity)
 
