@@ -89,12 +89,22 @@ func clear() -> void:
 	_copies.clear()
 	_bot = null
 
+## The bot's own meshes: not the outline's copies, and nothing that has come
+## off it. Broken-off weapons and drives, wreck pieces and bursts fly under
+## top_level roots (bot_part_loss, bot_destruction_visual) parented to the bot.
 func _meshes(bot: Node) -> Array[MeshInstance3D]:
 	var meshes: Array[MeshInstance3D] = []
 	for node: Node in bot.find_children("*", "MeshInstance3D", true, false):
-		if not str(node.name).begins_with(COPY_NAME) and (node as MeshInstance3D).mesh != null:
+		if not str(node.name).begins_with(COPY_NAME) and (node as MeshInstance3D).mesh != null and not _detached(node, bot):
 			meshes.append(node)
 	return meshes
+
+static func _detached(node: Node, bot: Node) -> bool:
+	while node != null and node != bot:
+		if node is Node3D and (node as Node3D).top_level:
+			return true
+		node = node.get_parent()
+	return false
 
 func _exit_tree() -> void:
 	clear()

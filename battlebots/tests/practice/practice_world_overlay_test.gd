@@ -338,6 +338,19 @@ func run() -> void:
 		outlined.combat.eliminated = false
 		await frames()
 		check(outlined.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The outline returns with the NPC")
+		# A part that breaks off (flying under a top_level root on the bot, as
+		# bot_part_loss does) is not outlined; the bot still is.
+		var lost_root := Node3D.new()
+		lost_root.top_level = true
+		outlined.add_child(lost_root)
+		var lost_part := MeshInstance3D.new()
+		lost_part.mesh = BoxMesh.new()
+		lost_root.add_child(lost_part)
+		await frames()
+		check(lost_part.get_children().is_empty() and outlined.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0,
+			"A broken-off part is not outlined")
+		lost_root.queue_free()
+		await frames()
 		target_panel.remove_button.pressed.emit()
 		await frames()
 		check(not session.world.bots.has(id) and not target_panel.visible, "Remove takes the target out of the world")
