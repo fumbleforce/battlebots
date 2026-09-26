@@ -302,7 +302,8 @@ func _practice_bot(slot: String, entity: int) -> MvpBot:
 		return null
 	if entity == 0 or entity == local_entity:
 		return world.bots.get(local_entity)
-	return practice_npc(entity)
+	# The Woodland giant's parts are scaled for it: no swaps (#99).
+	return practice_npc(entity) if not _is_practice_boss(entity) else null
 
 ## Practice Duel tuning (#84): the weapon, chassis, drive (#94) or utility parts in the panel's
 ## dropdown, each {part, fits, current}. Empty outside Practice Duel.
@@ -375,6 +376,9 @@ func practice_clear_npcs() -> int:
 		return 0
 	var count := practice_director.records.size() + practice_director.roamers.size()
 	practice_director.clear_npcs()
+	if _is_practice_boss(woodland_boss.boss_id if woodland_boss != null else 0):
+		woodland_boss.remove()
+		count += 1
 	return count
 
 ## The ray a world-panel action casts from origin along direction: at most
@@ -405,6 +409,8 @@ func practice_spawn_npc(origin: Vector3, direction: Vector3) -> int:
 func practice_set_npcs_aggressive(aggressive: bool) -> void:
 	if practice_tuning() != null and practice_director != null:
 		practice_director.set_all_aggressive(aggressive)
+		if woodland_boss != null:
+			woodland_boss.friendly = not aggressive
 
 ## The world panel's behaviour switch, as last set (#97).
 func practice_npcs_aggressive() -> bool:
@@ -423,20 +429,45 @@ func practice_npc_at(origin: Vector3, direction: Vector3) -> int:
 			return id if practice_npc(id) != null else 0
 	return 0
 
-## The NPC with this entity id in a Practice Duel, else null.
+## The NPC with this entity id in practice (the Woodland giant too, #99),
+## else null.
 func practice_npc(id: int) -> MvpBot:
-	if practice_tuning() == null or practice_director == null or practice_director.npc_record(id).is_empty():
+	if practice_tuning() == null or practice_director == null:
+		return null
+	if _is_practice_boss(id):
+		return woodland_boss.boss
+	if practice_director.npc_record(id).is_empty():
 		return null
 	return world.bots.get(id)
 
-func practice_remove_npc(id: int) -> bool:
-	return practice_npc(id) != null and practice_director.remove_npc(id)
+## Whether id is the live Woodland giant of this practice.
+func _is_practice_boss(id: int) -> bool:
+	return id != 0 and woodland_boss != null and is_instance_valid(woodland_boss.boss) and woodland_boss.boss_id == id
 
+## Target card Possess (#97) takes over director NPCs only, not the giant (#99).
+func practice_can_possess(id: int) -> bool:
+	return practice_npc(id) != null and not _is_practice_boss(id)
+
+func practice_remove_npc(id: int) -> bool:
+	if practice_npc(id) == null:
+		return false
+	if _is_practice_boss(id):
+		woodland_boss.remove()
+		return true
+	return practice_director.remove_npc(id)
+
+## The giant hunts unless set Friendly; director NPCs as their record says.
 func practice_npc_aggressive(id: int) -> bool:
-	return practice_npc(id) != null and practice_director.npc_record(id).get("aggressive", false)
+	if practice_npc(id) == null:
+		return false
+	if _is_practice_boss(id):
+		return not woodland_boss.friendly
+	return practice_director.npc_record(id).get("aggressive", false)
 
 func practice_set_npc_aggressive(id: int, on: bool) -> void:
-	if practice_npc(id) != null:
+	if _is_practice_boss(id) and practice_npc(id) != null:
+		woodland_boss.friendly = not on
+	elif practice_npc(id) != null:
 		practice_director.set_aggressive(id, on)
 
 ## The NPC's session-only tuning (scripts/simulation/practice_tuning.gd),
@@ -486,7 +517,7 @@ func practice_add_npc_armour(id: int, amount: float) -> void:
 ## Returns whether it took over; never a wreck.
 func practice_possess(id: int) -> bool:
 	var bot := practice_npc(id)
-	if bot == null or bot.combat.eliminated or not practice_director.possess(id):
+	if not practice_can_possess(id) or bot.combat.eliminated or not practice_director.possess(id):
 		return false
 	var old := local_entity
 	var old_bot: MvpBot = world.bots.get(old)

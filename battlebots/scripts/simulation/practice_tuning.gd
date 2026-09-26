@@ -121,13 +121,15 @@ func apply(bot: MvpBot, registry: ContentRegistry) -> void:
 	# Acceleration and grip are shown as applied (after the BotPhysics multipliers):
 	# the tyres cap the drive force at grip, so raising acceleration past it needs grip too.
 	var physics := BotPhysics.settings()
-	bot.body.drive_acceleration = float(body.acceleration) / physics.acceleration_multiplier if body.has("acceleration") else DRIVE_FORCE / bot.body.mass
+	var own: Dictionary = bot.get_meta(&"drive_defaults", {})
+	bot.body.drive_acceleration = float(body.acceleration) / physics.acceleration_multiplier if body.has("acceleration") \
+		else float(own.get("acceleration", DRIVE_FORCE / bot.body.mass))
 	bot.body.grip_acceleration = float(body.get("grip", body_defaults.grip)) / physics.grip_multiplier
 	bot.body.turn_speed = float(body.get("turn", body_defaults.turn))
 	bot.body.nitro_boost_scale = float(body.get("nitro", body_defaults.nitro)) / physics.nitro_top_speed_multiplier
 	# Max speed is shown as driven too (after the motor multiplier), matching the HUD speedometer.
 	bot.body.top_speed = float(body.speed) / physics.top_speed_multiplier if body.has("speed") \
-		else float(stats.drive_speed) * physics.top_speed_factor(bot.body.mass)
+		else float(own.get("top_speed", float(stats.drive_speed) * physics.top_speed_factor(bot.body.mass)))
 
 ## Chassis, drive, armour and perks together; the weapons' own weight is separate.
 func total_mass() -> float:
@@ -163,8 +165,11 @@ func _configure(bot: MvpBot, registry: ContentRegistry, ids: Array) -> void:
 		var weapon_mass := 0.0
 		for slot: String in weapons:
 			weapon_mass += float(weapons[slot].defaults.weight)
+		# A bot with its own drive (the Woodland giant, #99) keeps it untuned.
+		var own: Dictionary = bot.get_meta(&"drive_defaults", {})
 		body_defaults = {"core":float(stats.core), "weight":float(stats.mass) - weapon_mass,
-			"speed":float(stats.speed) * BotPhysics.settings().top_speed_multiplier, "acceleration":DRIVE_FORCE / float(stats.mass) * BotPhysics.settings().acceleration_multiplier,
+			"speed":float(own.get("top_speed", stats.speed)) * BotPhysics.settings().top_speed_multiplier,
+			"acceleration":float(own.get("acceleration", DRIVE_FORCE / float(stats.mass))) * BotPhysics.settings().acceleration_multiplier,
 			"grip":bot.body.grip_acceleration * BotPhysics.settings().grip_multiplier, "turn":bot.body.turn_speed,
 			"jump":COMBAT_STATE.JUMP_MAX_SPEED, "nitro":BotPhysics.settings().nitro_top_speed_multiplier,
 			"plates":stats.plates.duplicate()}

@@ -198,6 +198,8 @@ func render(source: Node, entity: int, hitboxes := false) -> void:
 	for control: BaseButton in [possess_button, aggressive_toggle, health_down, health_up, armour_down, armour_up,
 			weapon_down, weapon_up, drive_down, drive_up]:
 		control.disabled = wrecked
+	# The Woodland giant cannot be possessed (#99).
+	possess_button.disabled = wrecked or not source.practice_can_possess(entity)
 	# Rebuilt only when the target or its parts change, so an open list stays open.
 	var layout := "%d;%s" % [entity, ",".join(PICKERS.map(func(pair: Array) -> String: return str(parts.get(pair[0], ""))))]
 	if layout != _layout:

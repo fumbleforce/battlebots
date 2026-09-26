@@ -40,6 +40,8 @@ var _stuck := 0.0
 var _reverse := 0.0
 var _clock := 0.0
 var _previous_primary := false
+## Practice world panel or target card (#99): Friendly holds the giant still.
+var friendly := false
 
 ## The giant's loadout: Atlas MX hull, traction, hammer and a quad cannon turret.
 static func build(registry: ContentRegistry) -> Dictionary:
@@ -89,6 +91,8 @@ static func replica(world: AuthorityWorld, id: int) -> MvpBot:
 	# A heavy machine needs a strong drive to move its mass at all.
 	bot.body.drive_acceleration = 4.2
 	bot.body.top_speed = 7.5
+	# Practice tuning (#99) starts from these rather than the usual drive.
+	bot.set_meta(&"drive_defaults", {"acceleration":bot.body.drive_acceleration, "top_speed":bot.body.top_speed})
 	# Gentle, heavy turning: a full-lock pivot rolls a hull this size over.
 	bot.body.turn_speed = 0.45
 	bot.body.yaw_acceleration_limit = 0.8
@@ -181,7 +185,7 @@ func step(delta: float) -> void:
 	var intent := BotCommand.new()
 	intent.sequence = boss.last_sequence + 1
 	intent.brake = true
-	if target_id != 0:
+	if target_id != 0 and not friendly:
 		_hunt(world.bots[target_id], intent, delta)
 	intent.recovery_pressed = boss.body.global_basis.y.y < -0.25 and boss.combat.recovery_cooldown <= 0.0
 	intent.primary_pressed = intent.primary_held and not _previous_primary
@@ -304,6 +308,19 @@ func _tidy_drop() -> void:
 		if item.id == drop_item_id and not item.available:
 			_remove_drop()
 			return
+
+## Practice world panel or target card Remove (#99): the giant leaves for
+## good (until practice is left), taking its drop with it.
+func remove() -> void:
+	_remove_drop()
+	world.bots.erase(boss_id)
+	world.credited.erase(boss_id)
+	world.practice_tuning.erase(boss_id)
+	if is_instance_valid(boss):
+		# Out of the physics space at once, like PracticeBotDirector._free.
+		world.remove_child(boss)
+		boss.queue_free()
+	boss = null
 
 func _remove_drop() -> void:
 	if drop_item_id < 0:

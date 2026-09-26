@@ -510,6 +510,30 @@ func run() -> void:
 	check(is_zero_approx(pilot.command.throttle) and pilot.command.brake, "Friendly holds a full practice pilot still")
 	check(session.practice_clear_npcs() > 0 and session.practice_director.records.is_empty(), "Clear NPCs removes the pilots and roamers")
 	session.leave()
+	# The Woodland giant is a practice NPC for the target card (#99).
+	check(session.practice(session.registry.starter(), "woodland") == OK, "Woodland practice starts")
+	await frames(2)
+	var boss_id: int = session.woodland_boss.boss_id
+	var boss: MvpBot = session.practice_npc(boss_id)
+	check(boss != null and session.practice_npc_aggressive(boss_id), "The giant is a practice NPC that hunts")
+	check(not session.practice_can_possess(boss_id) and not session.practice_possess(boss_id), "The giant cannot be possessed")
+	check(session.practice_part_options("weapon", boss_id).is_empty(), "The giant's parts cannot be swapped")
+	var boss_speed: float = boss.body.top_speed
+	var boss_accel: float = boss.body.drive_acceleration
+	var boss_core: float = boss.combat.core
+	session.practice_add_npc_health(boss_id, -100.0)
+	await frames(2)
+	check(is_equal_approx(boss.combat.core, roundf(boss_core - 100.0)), "The giant's health can be tuned")
+	check(is_equal_approx(boss.body.top_speed, boss_speed) and is_equal_approx(boss.body.drive_acceleration, boss_accel),
+		"Tuning keeps the giant's own drive")
+	session.practice_set_npc_aggressive(boss_id, false)
+	check(not session.practice_npc_aggressive(boss_id) and session.woodland_boss.friendly, "The giant can be set friendly")
+	session.woodland_boss.step(1.0 / 60.0)
+	check(is_zero_approx(boss.command.throttle) and boss.command.brake, "A friendly giant holds still")
+	check(session.practice_remove_npc(boss_id) and session.practice_npc(boss_id) == null and not session.world.bots.has(boss_id),
+		"Remove takes the giant out")
+	await frames(2)
+	session.leave()
 	# A hammer's area of effect blasts around where its head lands, hit or miss.
 	var hammer_build := session.registry.starter()
 	hammer_build.parts.weapon = "hammer"
