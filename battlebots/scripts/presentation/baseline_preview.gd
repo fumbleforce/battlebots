@@ -47,6 +47,25 @@ var _turret_aim_point := Vector3.ZERO
 var _reticle_point := Vector2.ZERO
 var _kick_sequence := -1
 var _reticle_seen := false
+## Practice HUD tuning panel (#94): while driving, the cursor is visible for a
+## panel and mouse motion no longer orbits. Mouse-bound actions then follow
+## only presses outside cursor_panel (_free_buttons, button index -> true), so
+## clicks on the panel or its dropdowns never fire; _free_edges holds presses
+## not yet sampled by the physics tick.
+var free_cursor := false: set = set_free_cursor
+## The panel whose area keeps presses away from gameplay.
+var cursor_panel: Control
+var _free_buttons: Dictionary = {}
+var _free_edges: Dictionary = {}
+
+func set_free_cursor(value: bool) -> void:
+	if free_cursor == value:
+		return
+	free_cursor = value
+	_free_buttons.clear()
+	_free_edges.clear()
+	if controls_enabled:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
 
 func _ready() -> void:
 	hud.set_context(fixture_title)
@@ -93,7 +112,7 @@ func capture_controls() -> void:
 	input_gate.require_release()
 	gamepad.require_release()
 	get_viewport().gui_release_focus()
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if free_cursor else Input.MOUSE_MODE_CAPTURED
 
 ## Losing window focus (a screenshot tool on Print Screen, alt-tab, overlays)
 ## still neutralises driving input and frees the mouse, but is not a request to
@@ -184,6 +203,16 @@ func _input(event: InputEvent) -> void:
 		_controller_device = -1
 	elif event is InputEventMouseMotion and not event.screen_relative.is_zero_approx():
 		_controller_device = -1
+	if event is InputEventMouseButton and not event.pressed:
+		_free_buttons.erase(event.button_index)
+	# A free-cursor press outside the panel is gameplay (#94) and leaves the
+	# panel's text boxes. Presses in an open dropdown never reach _input.
+	elif event is InputEventMouseButton and free_cursor and controls_enabled \
+			and not (is_instance_valid(cursor_panel) and cursor_panel.is_visible_in_tree()
+				and cursor_panel.get_global_rect().has_point(event.position)):
+		get_viewport().gui_release_focus()
+		_free_buttons[event.button_index] = true
+		_free_edges[event.button_index] = true
 	if settings_panel.visible and event.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
 		settings_panel.cancel()
@@ -223,10 +252,11 @@ func _physics_process(_delta: float) -> void:
 	for action: StringName in GameplayInputGate.ACTIONS:
 		strengths[action] = _action_strength(action)
 	var edges := {
-		&"primary": Input.is_action_just_pressed("primary"),
-		&"secondary": Input.is_action_just_pressed("secondary"),
-		&"recover": Input.is_action_just_pressed("recover"),
+		&"primary": _action_edge(&"primary"),
+		&"secondary": _action_edge(&"secondary"),
+		&"recover": _action_edge(&"recover"),
 	}
+	_free_edges.clear()
 	var enabled := controls_enabled and not settings_panel.visible \
 		and not _leaving and get_window().has_focus()
 	# Clear toggle intent during A's countdown/elimination/lifecycle suppression too.
@@ -381,14 +411,40 @@ func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	_reticle_seen = on_screen
 	turret_reticle.render(true, on_screen, _reticle_point, view.secondary_charge)
 
+## True when a free cursor (#94) decides this action's mouse buttons.
+func _free_mouse_action(action: StringName) -> bool:
+	if not free_cursor:
+		return false
+	for event: InputEvent in InputMap.action_get_events(action):
+		if event is InputEventMouseButton:
+			return true
+	return false
+
+## Just-pressed edge; with a free cursor a mouse button only counts when the
+## press reached gameplay, and the action map's edge only when no mouse button
+## of the action (which may have been taken by the GUI) is down.
+func _action_edge(action: StringName) -> bool:
+	if not _free_mouse_action(action):
+		return Input.is_action_just_pressed(action)
+	var mouse_down := false
+	for event: InputEvent in InputMap.action_get_events(action):
+		if event is InputEventMouseButton:
+			if _free_edges.has(event.button_index):
+				return true
+			mouse_down = mouse_down or Input.is_mouse_button_pressed(event.button_index)
+	return Input.is_action_just_pressed(action) and not mouse_down
+
 func _action_strength(action: StringName) -> float:
-	var strength := Input.get_action_strength(action)
+	var free_mouse := _free_mouse_action(action)
+	# A free cursor leaves mouse buttons to _free_buttons; keys and pads follow below.
+	var strength := 0.0 if free_mouse else Input.get_action_strength(action)
 	# Rebinding releases action state, but a physical key may still be held.
 	# Keep it blocked until real release rather than rearming on an artificial zero.
 	for event: InputEvent in InputMap.action_get_events(action):
 		if event is InputEventKey and Input.is_physical_key_pressed(event.physical_keycode):
 			strength = 1.0
-		elif event is InputEventMouseButton and Input.is_mouse_button_pressed(event.button_index):
+		elif event is InputEventMouseButton and (_free_buttons.has(event.button_index) if free_mouse
+				else Input.is_mouse_button_pressed(event.button_index)):
 			strength = 1.0
 		elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
 			var devices := Input.get_connected_joypads()
@@ -501,6 +557,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not controls_enabled:
 		return
 	if event is InputEventMouseMotion:
+		if free_cursor:
+			return
 		# Captured mouse sensitivity uses screen pixels, independent of viewport stretch.
 		rig.orbit(event.screen_relative)
 		# The sight's look range is narrower than the orbit's; never bank

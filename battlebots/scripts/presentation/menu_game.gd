@@ -57,6 +57,9 @@ var _practice_loading := false
 ## True once the heavy bot models are loaded and held (#70).
 var _models_warm := true
 var game_menu_page: Control
+## Practice Duel HUD tuning panel (#94), toggled by the practice_panel action.
+var practice_tuning_overlay: Control
+var _practice_tuning_open := false
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
@@ -111,6 +114,14 @@ func _ready() -> void:
 	game_menu_page = preload("res://scripts/ui/game_menu_page.gd").new()
 	game_menu_page.configure(preview.pause_menu)
 	_default_return_text = preview.return_button.text
+	var tuning_layer := CanvasLayer.new()
+	tuning_layer.name = "PracticeTuningLayer"
+	tuning_layer.layer = 5
+	add_child(tuning_layer)
+	practice_tuning_overlay = preload("res://scripts/ui/practice_tuning_overlay.gd").new()
+	tuning_layer.add_child(practice_tuning_overlay)
+	practice_tuning_overlay.hide()
+	preview.cursor_panel = practice_tuning_overlay.card
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
 	add_child(results_layer)
@@ -635,7 +646,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	for entry: Button in [audio_settings_button, hud_settings_button]:
 		if is_instance_valid(entry):
 			MenuTextScale.apply(entry, _menu_text_scale)
-	for panel: Control in [screen, game_menu_page, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
+	for panel: Control in [screen, game_menu_page, practice_tuning_overlay, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
@@ -739,6 +750,7 @@ func _process(_delta: float) -> void:
 		preview.get_node("DiagnosticsLayer").hide()
 		preview.network_diagnostics.hide()
 		_audio_caption.hide()
+		_update_practice_tuning_overlay()
 		reconnect_panel.render(session.can_reconnect(), session.is_reconnecting(), session.reconnect_seconds_remaining(), _reconnect_message)
 		return
 	gameplay_audio.observe_match(session.match_view, session.connection_state == "practice")
@@ -768,6 +780,7 @@ func _process(_delta: float) -> void:
 			results_panel.clear_record()
 	results_panel.render(session.match_view, session.local_entity, bot.read_view().team if bot != null else -1)
 	game_menu_page.render(session.match_view, session.connection_state == "practice", session.practice_tuning(), session)
+	_update_practice_tuning_overlay()
 	var menu_open := menu_host.visible
 	var game_menu_open: bool = preview.pause_menu.visible or results_panel.visible or _general_settings_open()
 	preview.get_node("CanvasLayer").visible = not menu_open and not preview.settings_panel.visible
@@ -843,6 +856,24 @@ func _process(_delta: float) -> void:
 	_rematch.text = "Rematch requested" if _rematch.disabled else "Request rematch"
 	_sync_pause_focus()
 	_sync_music()
+
+## The HUD tuning panel (#94) shows while the player drives a Practice Duel with
+## it toggled on; any menu, settings page or recovery hides it (the Esc menu
+## has its own copy). While it shows the cursor is free for it.
+func _update_practice_tuning_overlay() -> void:
+	var tuning := session.practice_tuning()
+	if tuning == null:
+		_practice_tuning_open = false
+	# Kept through the Esc menu so resuming frees the cursor at once.
+	preview.free_cursor = _practice_tuning_open and not _recovering
+	var shown: bool = preview.free_cursor and preview.controls_enabled \
+		and not menu_host.visible and not preview.pause_menu.visible and not results_panel.visible \
+		and not preview.settings_panel.visible and not _general_settings_open()
+	if practice_tuning_overlay.visible and not shown:
+		practice_tuning_overlay.release_card_focus()
+	practice_tuning_overlay.visible = shown
+	if shown:
+		practice_tuning_overlay.render(tuning, session)
 
 func _update_world_markers() -> void:
 	if not is_instance_valid(world_markers) or not is_instance_valid(session):
@@ -1019,6 +1050,17 @@ func _input(event: InputEvent) -> void:
 			preview.release_controls()
 		else:
 			resume_gameplay()
+
+## Z (practice_panel) shows or hides the HUD tuning panel (#94) while driving a
+## Practice Duel. Unhandled only, so typing in the panel's boxes never toggles it.
+func _unhandled_input(event: InputEvent) -> void:
+	if _cli_handoff or not event.is_action_pressed(&"practice_panel") or event.is_echo():
+		return
+	if session.practice_tuning() == null or not preview.controls_enabled or menu_host.visible:
+		return
+	get_viewport().set_input_as_handled()
+	_practice_tuning_open = not _practice_tuning_open
+	_update_practice_tuning_overlay()
 
 func _session_event(kind: String, details: Dictionary) -> void:
 	if kind in ["left", "hosted", "joined"]:

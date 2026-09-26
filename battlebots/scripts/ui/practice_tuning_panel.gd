@@ -37,6 +37,22 @@ var pickers: Dictionary = {}
 var _layout := ""
 ## [SpinBox, getter Callable] pairs refreshed while their box is not focused.
 var _spins: Array = []
+## The HUD copy (#94) is used with the mouse while the bot drives: its buttons
+## take no keyboard focus (Space would press them again) and a number box lets
+## go of the keyboard once its value is submitted.
+var pointer_only := false
+
+func use_pointer_only() -> void:
+	pointer_only = true
+	_unfocus_buttons(self)
+
+func _unfocus_buttons(node: Node) -> void:
+	if not pointer_only:
+		return
+	if node is BaseButton:
+		(node as BaseButton).focus_mode = Control.FOCUS_NONE
+	for child: Node in node.get_children():
+		_unfocus_buttons(child)
 
 func _init() -> void:
 	name = "PracticeTuning"
@@ -95,8 +111,10 @@ func _debug_section() -> void:
 	linger_spin.custom_minimum_size = SPIN_SIZE
 	linger_spin.get_line_edit().add_theme_font_size_override("font_size", ROW_FONT)
 	linger_spin.value = TUNING.DEFAULT_DEBUG_LINGER
-	linger_spin.value_changed.connect(func(seconds: float) -> void:
-		if tuning != null: tuning.debug_linger = seconds)
+	var set_linger := func(seconds: float) -> void:
+		if tuning != null: tuning.debug_linger = seconds
+	linger_spin.value_changed.connect(set_linger)
+	_live(linger_spin, set_linger)
 	row.add_child(linger_spin)
 	var default := Button.new()
 	default.text = "DEFAULT"
@@ -196,6 +214,7 @@ func _rebuild() -> void:
 		var spin := _spin(func() -> float: return tuning.body_value("plates", face),
 			func(amount: float) -> void: tuning.set_body("plates", amount, face), SPIN_MAX)
 		_row(armour, face.capitalize(), spin, func() -> void: tuning.clear_body("plates", face), "")
+	_unfocus_buttons(content)
 
 ## Body values: [key, label, unit, optional display scale] rows editing tuning.body.
 func _body_rows(fields: Array) -> void:
@@ -303,8 +322,21 @@ func _spin(getter: Callable, setter: Callable, maximum: float, minimum := 0.0) -
 	spin.get_line_edit().add_theme_font_size_override("font_size", ROW_FONT)
 	spin.set_value_no_signal(getter.call())
 	spin.value_changed.connect(setter)
+	_live(spin, setter)
 	_spins.append([spin, getter])
 	return spin
+
+## Applies a number as it is typed (#94), without waiting for Enter or focus
+## loss; the box's own commit then sets the same value. The typed text is left
+## alone so partial entries such as "1." keep editing.
+func _live(spin: SpinBox, setter: Callable) -> void:
+	var line := spin.get_line_edit()
+	line.text_changed.connect(func(text: String) -> void:
+		var typed := text.strip_edges()
+		if typed.is_valid_float():
+			setter.call(clampf(typed.to_float(), spin.min_value, spin.max_value)))
+	line.text_submitted.connect(func(_text: String) -> void:
+		if pointer_only: line.release_focus())
 
 ## One value: its name, its editor and a DEFAULT button that restores it.
 ## A value the weapon does not have by default shows a dash and no button.

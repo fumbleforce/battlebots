@@ -1019,6 +1019,15 @@ Keyboard/mouse rebinding and hold/toggle primary are supplied by B's merged
 InputPreferences adapter. Controller remapping remains pending. New InputMap
 entries go through A's ownership.
 
+`practice_panel` (Z, #94, 26 September 2026) shows or hides the Practice Duel
+HUD tuning panel (`scripts/ui/practice_tuning_overlay.gd`, a copy of the Esc
+menu's tuning card). It is presentation-only, read in `menu_game`'s
+`_unhandled_input`, and is not in `InputPreferences.ACTIONS` (not rebindable,
+no save-format change). While the panel is toggled on, `baseline_preview.free_cursor`
+keeps the cursor visible, stops mouse motion orbiting the camera and drives
+mouse-bound actions only from presses outside `cursor_panel`. No wire,
+`BotCommand` or build change.
+
 ## Extension policy
 Update typed definition, mock, consumer, contract notes and checks together.
 A change to an existing field's meaning is a breaking change; coordinate it before

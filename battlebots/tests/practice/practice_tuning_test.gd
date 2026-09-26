@@ -90,6 +90,14 @@ func run() -> void:
 	check(spins.size() >= 10, "Panel has an editor per value (%d)" % spins.size())
 	damage_spin.value = 9.0
 	check(lab.value("primary", "damage") == 9.0, "Editing the damage box tunes the weapon")
+	# #94: typed numbers apply at once, without Enter; junk text changes nothing.
+	damage_spin.get_line_edit().text_changed.emit("12.5")
+	check(lab.value("primary", "damage") == 12.5, "Typing in the damage box tunes the weapon before Enter")
+	damage_spin.get_line_edit().text_changed.emit("12.5x")
+	check(lab.value("primary", "damage") == 12.5, "Text that is not a number leaves the value alone")
+	panel.linger_spin.get_line_edit().text_changed.emit("0.2")
+	check(lab.debug_linger == panel.linger_spin.min_value, "Typed values clamp to the box's range")
+	panel.linger_spin.get_line_edit().text_changed.emit("5")
 	var defaults := panel.find_children("*", "Button", true, false).filter(func(b: Node) -> bool: return (b as Button).text == "DEFAULT")
 	check(defaults.size() == spins.size(), "Every editable value has a DEFAULT button")
 	damage_default.pressed.emit()
