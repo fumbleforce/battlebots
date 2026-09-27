@@ -11,7 +11,7 @@ var mode: CheckButton
 var message: Label
 var save_button: Button
 var _path: String
-const GROUPS := [[&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake"], [&"nitro", &"jump"], [&"primary", &"secondary", &"recover", &"ping"], [&"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"scoreboard"], [&"dev_weapon", &"dev_body", &"dev_drive"], []]
+const GROUPS := [[&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake"], [&"nitro", &"jump"], [&"primary", &"secondary", &"recover", &"ping"], [&"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"free_camera", &"scoreboard"], [&"dev_weapon", &"dev_body", &"dev_drive"], []]
 var page_buttons: Array[Button] = []
 var controller_guide: GridContainer
 var help_text: Label

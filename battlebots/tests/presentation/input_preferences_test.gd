@@ -34,22 +34,23 @@ func run() -> void:
 	wheel.button_index = MOUSE_BUTTON_WHEEL_LEFT
 	check(not prefs.try_bind(&"primary", wheel).is_empty(), "Wheel held action rejected")
 	check(prefs.try_bind(&"camera_zoom_in", wheel).is_empty(), "Wheel zoom accepted")
-	check(prefs.try_bind(&"primary", key(KEY_F)).is_empty(), "Physical key accepted")
+	check(not prefs.try_bind(&"primary", key(KEY_F)).is_empty(), "F belongs to the free camera")
+	check(prefs.try_bind(&"primary", key(KEY_G)).is_empty(), "Physical key accepted")
 	var copied := prefs.clone()
-	copied.bindings[&"primary"].physical_keycode = KEY_G
-	check(prefs.bindings[&"primary"].physical_keycode == KEY_F, "Clone detached")
+	copied.bindings[&"primary"].physical_keycode = KEY_H
+	check(prefs.bindings[&"primary"].physical_keycode == KEY_G, "Clone detached")
 	prefs.toggle_primary = true
 	check(prefs.save_file(PATH) == OK, "Save succeeds")
 	var loaded := InputPreferences.load_file(PATH)
 	check(loaded.load_error == OK and loaded.toggle_primary, "Roundtrip mode")
-	check(loaded.bindings[&"primary"].physical_keycode == KEY_F, "Roundtrip binding")
+	check(loaded.bindings[&"primary"].physical_keycode == KEY_G, "Roundtrip binding")
 	var saved_text := FileAccess.get_file_as_string(PATH)
 	var legacy: Dictionary = JSON.parse_string(saved_text)
 	legacy.version = 1
 	legacy.bindings.erase("nitro")
 	legacy.bindings.erase("jump")
 	# Version-1 files predate the part shortcuts and had camera on C.
-	for action: String in ["dev_weapon", "dev_body", "dev_drive"]: legacy.bindings.erase(action)
+	for action: String in ["dev_weapon", "dev_body", "dev_drive", "free_camera"]: legacy.bindings.erase(action)
 	legacy.bindings.camera_toggle = {"kind":"key", "code":KEY_C}
 	legacy.bindings.brake = {"kind":"key", "code":KEY_SPACE}
 	var file := FileAccess.open(PATH, FileAccess.WRITE)
@@ -73,7 +74,7 @@ func run() -> void:
 	# local part shortcuts take V/B/C; a customised key keeps its action.
 	var v2: Dictionary = JSON.parse_string(saved_text)
 	v2.version = 2
-	for action: String in ["dev_weapon", "dev_body", "dev_drive"]: v2.bindings.erase(action)
+	for action: String in ["dev_weapon", "dev_body", "dev_drive", "free_camera"]: v2.bindings.erase(action)
 	v2.bindings.brake = {"kind":"key", "code":KEY_B}
 	v2.bindings.camera_toggle = {"kind":"key", "code":KEY_C}
 	file = FileAccess.open(PATH, FileAccess.WRITE)
@@ -94,6 +95,24 @@ func run() -> void:
 	check(loaded.load_error == OK and loaded.bindings[&"recover"].physical_keycode == KEY_V
 		and loaded.bindings[&"dev_weapon"].physical_keycode == KEY_N, "A customised V keeps its action; the weapon shortcut takes a spare key")
 	check(InputPreferences.new().try_bind(&"dev_body", _key(KEY_G)) == "" , "Part shortcuts are rebindable")
+	# Version 3 (#102): the free camera arrives on F, or on a spare key when a
+	# saved binding already uses F.
+	var v3: Dictionary = JSON.parse_string(saved_text)
+	v3.version = 3
+	v3.bindings.erase("free_camera")
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(v3))
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error == OK and loaded.bindings[&"free_camera"].physical_keycode == KEY_F
+		and loaded.bindings[&"primary"].physical_keycode == KEY_G, "Version-3 controls gain the free camera on F")
+	v3.bindings.recover = {"kind":"key", "code":KEY_F}
+	file = FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(v3))
+	file.close()
+	loaded = InputPreferences.load_file(PATH)
+	check(loaded.load_error == OK and loaded.bindings[&"recover"].physical_keycode == KEY_F
+		and loaded.bindings[&"free_camera"].physical_keycode == KEY_N, "A customised F keeps its action; the free camera takes a spare key")
 	var malformed: Dictionary = JSON.parse_string(saved_text)
 	malformed.bindings.drive_forward = malformed.bindings.drive_reverse.duplicate()
 	file = FileAccess.open(PATH, FileAccess.WRITE)
@@ -124,7 +143,7 @@ func run() -> void:
 	prefs.apply_to_input_map()
 	check(InputMap.action_has_event(&"primary", pad), "Controller preserved")
 	check(InputMap.action_get_events(&"ui_accept") == ui_events and InputMap.action_get_events(&"pause") == pause_events, "Menu input unchanged")
-	var press := key(KEY_F)
+	var press := key(KEY_G)
 	press.pressed = true
 	Input.parse_input_event(press)
 	Input.flush_buffered_events()

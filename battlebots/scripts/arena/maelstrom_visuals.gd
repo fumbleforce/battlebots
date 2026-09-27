@@ -64,7 +64,6 @@ func _build() -> void:
 	_lighting(arena)
 	_ice_sheet()
 	_obstacles()
-	_slabs()
 	_rubble()
 	_ground_wreckage()
 	_eye()
@@ -199,65 +198,6 @@ func prop_parts(name: String) -> Array:
 			index += 1
 		_parts[key] = parts
 	return _parts[key]
-## Frozen waves: along each ramp's crest a breaking lip curls out over the drop,
-## tapering away at the ends, hung with icicles (visual only; the ramp itself is
-## terrain).
-func _slabs() -> void:
-	var cfg: RefCounted = GROUND.settings()
-	var tool := SurfaceTool.new()
-	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	tool.set_smooth_group(-1)
-	var profile := [Vector2(-1.2, -0.25), Vector2(-0.2, 0.3), Vector2(0.8, 0.55), Vector2(1.7, 0.25), Vector2(2.1, -0.45), Vector2(1.6, -1.1)]
-	var teeth: Array[Transform3D] = []
-	for slab: Dictionary in cfg.slabs:
-		for sign: float in [1.0, -1.0]:
-			var at := Vector2(float(slab.at[0]), float(slab.at[1])) * sign
-			var yaw := float(slab.yaw) + (PI if sign < 0.0 else 0.0)
-			var rise := Vector2(cos(yaw), sin(yaw))
-			var across := Vector2(-rise.y, rise.x)
-			var half := float(slab.width) * 0.5
-			var steps := 24
-			var rows: Array = []
-			for s: int in steps + 1:
-				var v := lerpf(-half, half, float(s) / steps)
-				var taper := 1.0 - smoothstep(half * 0.45, half, absf(v))
-				var crest := at + rise * (float(slab.length) * 0.5 - 0.3) + across * v
-				var top := GROUND.height_at(crest.x, crest.y)
-				var row: Array = []
-				for point: Vector2 in profile:
-					var q := crest + rise * point.x * (0.4 + 0.6 * taper) * (float(slab.height) / 3.0)
-					row.append(Vector3(q.x, top + point.y * taper * (float(slab.height) / 3.0), q.y))
-				rows.append(row)
-				if taper > 0.3 and s % 2 == 0:
-					var lip: Vector3 = row[4]
-					teeth.append(Transform3D(Basis.IDENTITY.scaled(Vector3(0.12, _rng.randf_range(0.08, 0.2) * taper, 0.12)), lip))
-			for s: int in steps:
-				for k: int in profile.size() - 1:
-					var a: Vector3 = rows[s][k]
-					var b: Vector3 = rows[s + 1][k]
-					var c: Vector3 = rows[s + 1][k + 1]
-					var d: Vector3 = rows[s][k + 1]
-					tool.add_vertex(a); tool.add_vertex(b); tool.add_vertex(c)
-					tool.add_vertex(a); tool.add_vertex(c); tool.add_vertex(d)
-	tool.generate_normals()
-	var crests := MeshInstance3D.new()
-	crests.name = "WaveCrests"
-	crests.mesh = tool.commit()
-	crests.material_override = _material("ice", 0)
-	add_child(crests)
-	# Icicle teeth hanging from each lip (the kit's icicle clump, squashed thin).
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.mesh = _kit["icicle_cluster"]
-	multi.instance_count = teeth.size()
-	for i: int in teeth.size():
-		var pose: Transform3D = teeth[i]
-		multi.set_instance_transform(i, Transform3D(pose.basis.scaled(Vector3(1, -1, 1)) * Basis(Vector3.UP, _rng.randf() * TAU), pose.origin))
-	var view := MultiMeshInstance3D.new()
-	view.name = "WaveIcicles"
-	view.multimesh = multi
-	view.material_override = _material("ice", 0)
-	add_child(view)
 ## Loose chunks of broken ice strewn over the sheet: small enough for any bot to
 ## roll over, never on a start pad.
 func _rubble() -> void:

@@ -41,6 +41,10 @@ const LOOK_SPEED := 6.0
 ## Own-shot recoil kick (add_recoil), 0..1.6.
 var _recoil := 0.0
 var base_fov := 70.0
+## Free camera (the free_camera key): detached from the bot and flown with
+## fly(); orbit() then turns it in place. Presentation only.
+var free_flight := false
+var free_position := Vector3.ZERO
 var _shake_time := 0.0
 var _speed_lines: ColorRect
 @onready var camera: Camera3D = $Camera
@@ -66,6 +70,7 @@ func _ready() -> void:
 	layer.add_child(_speed_lines)
 
 func bind_source(value: BotSource) -> void:
+	free_flight = false
 	source = value
 	if is_instance_valid(source): _sync_anchor_scale(source.camera_anchor())
 	_initialized = false
@@ -99,7 +104,7 @@ func orbit(relative: Vector2) -> void:
 	yaw = wrapf(yaw - relative.x * sensitivity_x, -PI, PI)
 	var direction := -1.0 if invert_y else 1.0
 	pitch = clampf(pitch + relative.y * sensitivity_y * direction,
-		deg_to_rad(-15.0), deg_to_rad(70.0))
+		deg_to_rad(-85.0 if free_flight else -15.0), deg_to_rad(85.0 if free_flight else 70.0))
 	seconds_since_orbit = 0.0
 
 func zoom(steps: float) -> void:
@@ -118,7 +123,29 @@ func _heading() -> float:
 func _process(delta: float) -> void:
 	update_camera(delta)
 
+## Detach from (on) or return to (off) the bound bot. Leaving free flight
+## recentres behind the bot.
+func set_free_flight(on: bool) -> void:
+	if on == free_flight:
+		return
+	free_flight = on
+	if on:
+		free_position = camera.global_position
+	else:
+		_initialized = false
+		recenter()
+
+## Move the free camera by local velocity (x right, y up, -z ahead) for delta s.
+func fly(velocity: Vector3, delta: float) -> void:
+	if free_flight:
+		free_position += Basis.from_euler(Vector3(-pitch, yaw, 0.0)) * velocity * delta
+
 func update_camera(delta: float) -> void:
+	if free_flight:
+		global_transform = Transform3D(Basis.from_euler(Vector3(-pitch, yaw, 0.0)), free_position)
+		_apply_speed_feel(delta, false)
+		camera.position = Vector3.ZERO
+		return
 	if not is_instance_valid(source):
 		_apply_speed_feel(delta, false)
 		return

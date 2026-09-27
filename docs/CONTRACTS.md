@@ -1638,3 +1638,13 @@ catalogue are unchanged; the build bump rejects stale peers.
   `prop_parts(name) -> Array[Mesh]` (model-frame parts); `ArenaPropVisual`
   then throws those parts instead of copies. Shatter props' pieces sink away
   after 4 s.
+## Free camera input — presentation only (#102)
+
+New `project.godot` input action `free_camera` (F), rebindable through
+`InputPreferences` (saved controls version 4; older saves gain it on F, or the
+first spare key when F is taken; F is no longer a spare). In play it detaches
+the orbit rig (`BotOrbitCamera.set_free_flight` / `fly`) and flies it with the
+drive, jump and crouch keys (nitro boosts; the mouse wheel sets flight speed
+instead of zoom); the bot receives neutral braking commands meanwhile and the
+tank sight stands down. F again returns to the same bot. No gameplay or wire
+change. The Maelstrom's frozen-wave crest lips were removed (visual only).

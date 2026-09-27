@@ -35,6 +35,15 @@ var _diagnostics_initial_samples := 0.0
 var _diagnostics_fresh := false
 ## Turret aim: the camera crosshair ray, re-aimed from the turret trunnion.
 const TURRET_AIM_DISTANCE := 220.0
+## Free camera flight speed (m/s) to start with, its limits and the step per
+## scroll-wheel notch (the wheel sets speed instead of zoom in free flight),
+## and the multiplier while nitro is held.
+const FREE_CAMERA_SPEED := 20.0
+const FREE_CAMERA_SPEED_MIN := 2.0
+const FREE_CAMERA_SPEED_MAX := 200.0
+const FREE_CAMERA_SPEED_STEP := 1.25
+const FREE_CAMERA_BOOST := 3.0
+var free_camera_speed := FREE_CAMERA_SPEED
 var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
 var mortar_aim := MORTAR_AIM_VISUAL.new()
@@ -282,8 +291,9 @@ func _physics_process(_delta: float) -> void:
 		&"recover": _action_edge(&"recover"),
 	}
 	_free_edges.clear()
+	# Free camera: the drive keys fly the camera; the bot holds its brakes.
 	var enabled := controls_enabled and not settings_panel.visible \
-		and not _leaving and window_active()
+		and not _leaving and window_active() and not rig.free_flight
 	# Clear toggle intent during A's countdown/elimination/lifecycle suppression too.
 	if source is SessionBotSource and source.input_allowed.is_valid():
 		enabled = enabled and bool(source.input_allowed.call())
@@ -356,7 +366,7 @@ func _apply_mortar_aim(command: BotCommand, view: BotView, size: Vector3, target
 	command.aim_pitch = clampf(elevation, -PI * 0.5, PI * 0.5)
 
 func _update_tank_sight(view: BotView, delta: float) -> void:
-	var wanted := view != null and view.turret_kind != "" and is_instance_valid(source)
+	var wanted := view != null and view.turret_kind != "" and is_instance_valid(source) and not rig.free_flight
 	var artillery := wanted and view.turret_kind == "mortar"
 	if wanted != tank_sight.active or artillery != tank_sight.artillery:
 		tank_sight.reset()
@@ -500,6 +510,7 @@ func _process(delta: float) -> void:
 	if not movement.is_zero_approx():
 		rig.orbit(movement)
 		if tank_sight.active: rig.pitch = tank_sight.clamp_pitch(rig.pitch)
+	_fly_free_camera(delta)
 	var view := _source_view()
 	hud.show_view(view)
 	_update_tank_sight(view, delta)
@@ -523,7 +534,14 @@ func _process(delta: float) -> void:
 		hint.text = "%s  Primary weapon  |  %s  Minigun  |  Mouse  Orbit  |  Esc  Menu" % [
 			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary")]
 
-	if _controller_device >= 0:
+	if controls_enabled and rig.free_flight:
+		hint.text = ("FREE CAMERA  %d m/s  |  %s%s%s%s  Fly  |  %s / %s  Up / down  |  Wheel  Speed  |  %s  Boost  |  %s  Back to bot" % [
+			roundi(free_camera_speed),
+			input_preferences.label_for(&"drive_forward"), input_preferences.label_for(&"steer_left"),
+			input_preferences.label_for(&"drive_reverse"), input_preferences.label_for(&"steer_right"),
+			input_preferences.label_for(&"jump"), "Ctrl",
+			input_preferences.label_for(&"nitro"), input_preferences.label_for(&"free_camera")])
+	elif _controller_device >= 0:
 		hint.text = "Left stick  Drive  |  Right stick  Orbit  |  RB  Nitro  |  A  Jump  |  Start  Menu" \
 			if controls_enabled else "D-pad  Select  |  A  Confirm  |  B  Back  |  Start  Resume"
 		if controls_enabled and view != null and view.turret_kind != "":
@@ -597,11 +615,32 @@ func _unhandled_input(event: InputEvent) -> void:
 		# mouse travel beyond it.
 		if tank_sight.active: rig.pitch = tank_sight.clamp_pitch(rig.pitch)
 	elif event.is_action_pressed("camera_zoom_in"):
-		rig.zoom(-1.0)
+		if rig.free_flight: free_camera_speed = minf(free_camera_speed * FREE_CAMERA_SPEED_STEP, FREE_CAMERA_SPEED_MAX)
+		else: rig.zoom(-1.0)
 	elif event.is_action_pressed("camera_zoom_out"):
-		rig.zoom(1.0)
+		if rig.free_flight: free_camera_speed = maxf(free_camera_speed / FREE_CAMERA_SPEED_STEP, FREE_CAMERA_SPEED_MIN)
+		else: rig.zoom(1.0)
 	elif event.is_action_pressed("camera_recenter"):
 		rig.recenter()
+	elif event.is_action_pressed(&"free_camera", false, true) and not event.is_echo():
+		get_viewport().set_input_as_handled()
+		toggle_free_camera()
+
+## Free camera (#102): detach the view from the bot and fly it with the drive,
+## jump and crouch keys (nitro for speed); pressed again it returns to the same
+## bot. Presentation only: the bot brakes meanwhile and no command leaves it.
+func toggle_free_camera() -> void:
+	rig.set_free_flight(not rig.free_flight)
+	input_gate.require_release()
+
+func _fly_free_camera(delta: float) -> void:
+	if not rig.free_flight or not controls_enabled or settings_panel.visible or not window_active():
+		return
+	var move := Vector3(_action_strength(&"steer_right") - _action_strength(&"steer_left"),
+		_action_strength(&"jump") - _action_strength(&"crouch"),
+		_action_strength(&"drive_reverse") - _action_strength(&"drive_forward"))
+	var speed := free_camera_speed * (FREE_CAMERA_BOOST if _action_strength(&"nitro") > 0.5 else 1.0)
+	rig.fly(move.limit_length(1.0) * speed, delta)
 
 ## Whether position lies on a visible cursor panel (#94, #97).
 func _over_cursor_panel(position: Vector2) -> bool:

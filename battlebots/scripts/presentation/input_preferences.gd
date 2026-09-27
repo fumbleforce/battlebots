@@ -3,16 +3,17 @@ extends RefCounted
 ## Local keyboard/mouse preferences. Never writes project settings or controller bindings.
 
 const DEFAULT_PATH := "user://presentation_input.cfg"
-const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover", &"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"ping", &"scoreboard", &"dev_weapon", &"dev_body", &"dev_drive"]
+const ACTIONS: Array[StringName] = [&"drive_forward", &"drive_reverse", &"steer_left", &"steer_right", &"brake", &"nitro", &"jump", &"primary", &"secondary", &"recover", &"camera_recenter", &"camera_zoom_in", &"camera_zoom_out", &"camera_toggle", &"free_camera", &"ping", &"scoreboard", &"dev_weapon", &"dev_body", &"dev_drive"]
 ## Local-game development shortcuts (#64): cycle the fitted weapon, body or
 ## drive. Only a process that runs its own match honours them.
 const DEV_ACTIONS: Array[StringName] = [&"dev_weapon", &"dev_body", &"dev_drive"]
-const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"nitro": "Nitro", &"jump": "Charge jump", &"primary": "Primary weapon", &"secondary": "Lower / auxiliary gun", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard", &"dev_weapon": "Next weapon (local games)", &"dev_body": "Next body (local games)", &"dev_drive": "Next drive (local games)"}
-const KEYS := {&"drive_forward": KEY_W, &"drive_reverse": KEY_S, &"steer_left": KEY_A, &"steer_right": KEY_D, &"brake": KEY_X, &"nitro": KEY_SHIFT, &"jump": KEY_SPACE, &"recover": KEY_R, &"camera_toggle": KEY_T, &"ping": KEY_Q, &"scoreboard": KEY_TAB, &"dev_weapon": KEY_V, &"dev_body": KEY_B, &"dev_drive": KEY_C}
+const LABELS := {&"drive_forward": "Drive forward", &"drive_reverse": "Drive reverse", &"steer_left": "Steer left", &"steer_right": "Steer right", &"brake": "Brake", &"nitro": "Nitro", &"jump": "Charge jump", &"primary": "Primary weapon", &"secondary": "Lower / auxiliary gun", &"recover": "Recover", &"camera_recenter": "Recenter camera", &"camera_zoom_in": "Zoom in", &"camera_zoom_out": "Zoom out", &"camera_toggle": "Camera view (planned)", &"free_camera": "Free camera", &"ping": "Ping (planned)", &"scoreboard": "Scoreboard", &"dev_weapon": "Next weapon (local games)", &"dev_body": "Next body (local games)", &"dev_drive": "Next drive (local games)"}
+const KEYS := {&"drive_forward": KEY_W, &"drive_reverse": KEY_S, &"steer_left": KEY_A, &"steer_right": KEY_D, &"brake": KEY_X, &"nitro": KEY_SHIFT, &"jump": KEY_SPACE, &"recover": KEY_R, &"camera_toggle": KEY_T, &"free_camera": KEY_F, &"ping": KEY_Q, &"scoreboard": KEY_TAB, &"dev_weapon": KEY_V, &"dev_body": KEY_B, &"dev_drive": KEY_C}
 ## Version-3 defaults gave V/B/C to the local part shortcuts; saves still on the
 ## old brake B and camera C defaults move those to X and T when free.
 const V2_MOVES := {&"brake": [KEY_B, KEY_X], &"camera_toggle": [KEY_C, KEY_T]}
-const SPARE_KEYS := [KEY_N, KEY_M, KEY_F, KEY_G, KEY_H, KEY_J, KEY_K, KEY_L, KEY_O, KEY_P, KEY_U, KEY_Y, KEY_Z, KEY_I, KEY_E,
+## F is the free camera's default, so it is no spare.
+const SPARE_KEYS := [KEY_N, KEY_M, KEY_G, KEY_H, KEY_J, KEY_K, KEY_L, KEY_O, KEY_P, KEY_U, KEY_Y, KEY_Z, KEY_I, KEY_E,
 	KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 const MOUSE := {&"primary": MOUSE_BUTTON_LEFT, &"secondary": MOUSE_BUTTON_RIGHT, &"camera_recenter": MOUSE_BUTTON_MIDDLE, &"camera_zoom_in": MOUSE_BUTTON_WHEEL_UP, &"camera_zoom_out": MOUSE_BUTTON_WHEEL_DOWN}
 var bindings: Dictionary = {}
@@ -107,7 +108,7 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 		return result
 	var data: Variant = parser.data
 	var version: Variant = data.get("version") if data is Dictionary else null
-	if not data is Dictionary or not (version is float or version is int) or int(version) not in [1, 2, 3] or float(version) != float(int(version)) or not data.get("toggle_primary") is bool or not data.get("bindings") is Dictionary:
+	if not data is Dictionary or not (version is float or version is int) or int(version) not in [1, 2, 3, 4] or float(version) != float(int(version)) or not data.get("toggle_primary") is bool or not data.get("bindings") is Dictionary:
 		result.load_error = ERR_FILE_UNRECOGNIZED
 		return result
 	var saved: Dictionary = data.bindings
@@ -117,7 +118,7 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 			var old_binding: Variant = saved[old_action]
 			if old_binding is Dictionary and old_binding.get("kind") == "key" and old_binding.get("code") == KEY_SPACE:
 				var replacement := 0
-				for candidate: int in [KEY_B, KEY_V, KEY_N, KEY_M, KEY_F, KEY_G]:
+				for candidate: int in [KEY_B, KEY_V, KEY_N, KEY_M, KEY_G]:
 					var used := false
 					for existing: Variant in saved.values():
 						if existing is Dictionary and existing.get("kind") == "key" and existing.get("code") == candidate:
@@ -133,6 +134,9 @@ static func load_file(path: String = DEFAULT_PATH) -> InputPreferences:
 		saved["nitro"] = {"kind":"key", "code":KEY_SHIFT}
 		saved["jump"] = {"kind":"key", "code":KEY_SPACE}
 	if int(version) < 3 and not _migrate_dev_actions(saved):
+		result.load_error = ERR_INVALID_DATA
+		return result
+	if int(version) < 4 and not _migrate_free_camera(saved):
 		result.load_error = ERR_INVALID_DATA
 		return result
 	if saved.size() != ACTIONS.size():
@@ -189,10 +193,25 @@ static func _migrate_dev_actions(saved: Dictionary) -> bool:
 		saved[String(action)] = {"kind":"key", "code":choice}
 	return true
 
+## Version 3 -> 4: add the free camera on F, or the first spare key when a
+## saved binding already uses F; every other binding is kept.
+static func _migrate_free_camera(saved: Dictionary) -> bool:
+	if saved.has("free_camera"):
+		return true
+	for candidate: int in [KEYS[&"free_camera"]] + SPARE_KEYS:
+		var taken := false
+		for binding: Variant in saved.values():
+			if binding is Dictionary and binding.get("kind") == "key" and binding.get("code") == candidate:
+				taken = true
+		if not taken:
+			saved["free_camera"] = {"kind":"key", "code":candidate}
+			return true
+	return false
+
 func save_file(path: String = DEFAULT_PATH) -> Error:
 	if path.is_empty():
 		return ERR_UNCONFIGURED
-	var data := {"version": 3, "toggle_primary": toggle_primary, "bindings": {}}
+	var data := {"version": 4, "toggle_primary": toggle_primary, "bindings": {}}
 	var identities := {}
 	if bindings.size() != ACTIONS.size():
 		return ERR_INVALID_DATA

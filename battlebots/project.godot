@@ -96,6 +96,10 @@ camera_toggle={
 "deadzone": 0.2,
 "events": [Object(InputEventKey, "physical_keycode":84)]
 }
+free_camera={
+"deadzone": 0.2,
+"events": [Object(InputEventKey, "physical_keycode":70)]
+}
 dev_weapon={
 "deadzone": 0.2,
 "events": [Object(InputEventKey, "physical_keycode":86)]
