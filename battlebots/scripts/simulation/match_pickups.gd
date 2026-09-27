@@ -165,7 +165,7 @@ func swapped(loadout: Dictionary, part: String) -> Dictionary:
 	if loadout.parts.get(slot) == part:
 		return {}
 	# Sealed factory builds (#61) take perks only; their parts are fixed.
-	if NimbleBots.enabled(loadout) and slot not in PERK_SLOTS:
+	if (NimbleBots.enabled(loadout) or AtlasGeometry.bracken_enabled(loadout)) and slot not in PERK_SLOTS:
 		return {}
 	var next: Dictionary = loadout.duplicate(true)
 	next.parts[slot] = part

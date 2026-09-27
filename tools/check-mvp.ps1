@@ -86,6 +86,7 @@ if ($Part -ne 'net') {
     Invoke-MvpTest 'res://tests/simulation/atlas_grounded_modules.tscn' 'ATLAS GROUNDED MODULES PASS' -Scene
     Invoke-MvpTest 'res://tests/simulation/atlas_launcher_physics.tscn' 'ATLAS LAUNCHER PHYSICS PASS' -Scene
     Invoke-MvpTest 'res://tests/simulation/atlas_turret_physics.tscn' 'ATLAS TURRET PHYSICS PASS' -Scene
+    Invoke-MvpTest 'res://tests/simulation/bracken_physics.tscn' 'BRACKEN PHYSICS PASS' -Scene
     Invoke-MvpTest 'res://tests/network/duel_lobby_rules.tscn' 'DUEL LOBBY RULES PASS' -Scene -RealTime
 }
 if ($Part -ne 'sim') {

@@ -5,6 +5,9 @@ extends RefCounted
 ## RTX 3080 machine, measured 24 September 2026), because leaving a match freed
 ## the last reference. Presentation only; servers never run the menus.
 const PATHS := [
+	"res://assets/models/bracken_runtime/bracken.glb",
+	"res://assets/models/bracken_runtime/bracken_turret.glb",
+	"res://assets/models/bracken_runtime/bracken_lifter.glb",
 	"res://assets/models/atlas_runtime/atlas_mx.glb",
 	"res://assets/models/atlas_runtime/atlas_drives.glb",
 	"res://assets/models/atlas_runtime/atlas_turret.glb",

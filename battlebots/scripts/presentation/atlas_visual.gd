@@ -7,6 +7,11 @@ const TURRET_HARPOON_EFFECTS = preload("res://scripts/presentation/turret_harpoo
 const MODEL := "res://assets/models/atlas_runtime/atlas_mx.glb"
 const LIFTER := "res://assets/models/atlas_runtime/atlas_lifter.glb"
 const TURRET := "res://assets/models/atlas_runtime/atlas_turret.glb"
+const BRACKEN_MODEL := "res://assets/models/bracken_runtime/bracken.glb"
+const BRACKEN_LIFTER := "res://assets/models/bracken_runtime/bracken_lifter.glb"
+const BRACKEN_TURRET := "res://assets/models/bracken_runtime/bracken_turret.glb"
+var is_bracken := false
+var _hydraulics: Array[Dictionary] = []
 ## Alternative running gear on the approved sponsons (tools/build-atlas-drives.py).
 const DRIVES := "res://assets/models/atlas_runtime/atlas_drives.glb"
 ## atlas_drives.glb group per running gear; the others are freed on assembly.
@@ -50,8 +55,9 @@ var _since_sample := 0.0
 
 func assemble(draft: Dictionary, size: Vector3) -> void:
 	_size = size
+	is_bracken = AtlasGeometry.bracken_enabled(draft)
 	scale = Vector3.ONE * BotScale.from_size(size)
-	model = load(MODEL).instantiate()
+	model = load(BRACKEN_MODEL if is_bracken else MODEL).instantiate()
 	add_child(model)
 	for node: Node in model.find_children("*", "Node3D", true, false):
 		nodes[str(node.name)] = node
@@ -70,7 +76,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	primary = _weapon(draft.parts.weapon)
 	if draft.parts.weapon == "lifter" and ResourceLoader.exists(LIFTER):
 		for child: Node in primary.mechanism.get_children(): child.free()
-		var attachment: Node3D = load(LIFTER).instantiate()
+		var attachment: Node3D = load(BRACKEN_LIFTER if is_bracken else LIFTER).instantiate()
 		attachment.name = "AtlasLifterAttachment"
 		primary.mechanism.add_child(attachment)
 	if draft.parts.weapon == "minigun":
@@ -91,6 +97,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	if not turret_kind.is_empty() and ResourceLoader.exists(TURRET):
 		_assemble_turret()
 	_apply_paint(draft.cosmetics.get("sawblade", AtlasGeometry.paint_defaults()))
+	if is_bracken: _assemble_hydraulics()
 
 ## The approved tracks, sprockets and rollers give way to the chosen gear. Its
 ## GLB carries the same sponsons (hood, corner sockets, skirts, axle bosses)
@@ -123,7 +130,7 @@ func _assemble_drives(size: Vector3) -> void:
 		legs.attach(size, found)
 
 func _assemble_turret() -> void:
-	turret = load(TURRET).instantiate()
+	turret = load(BRACKEN_TURRET if is_bracken else TURRET).instantiate()
 	turret.name = "AtlasTurretModule"
 	add_child(turret)
 	var found := {}
@@ -147,7 +154,7 @@ func _assemble_turret() -> void:
 		if nodes.has(label): nodes[label].visible = false
 	var muzzles: Array[Node3D] = []
 	var recoils: Array[Node3D] = []
-	var barrels: int = AtlasGeometry.TURRET_BARRELS.get(turret_model, [[0, 0]]).size()
+	var barrels: int = AtlasGeometry.turret_barrels(turret_model).size()
 	for index: int in barrels:
 		var tag := "" if suffix.is_empty() else "%s_%d" % [suffix, index]
 		muzzles.append(found.get("Muzzle" + family + tag))
@@ -214,6 +221,7 @@ func _weapon(kind: String) -> MvpWeaponVisual:
 	return visual
 
 func _assemble_tool_adapter() -> void:
+	if is_bracken: return # Bracken exports fitted clevises and its through hinge.
 	# The quick-release coupler is at z=-1.08; existing weapon sweeps are centered
 	# on the canonical front edge z=-1.30. Two rails physically join those frames.
 	var material := StandardMaterial3D.new()
@@ -241,7 +249,7 @@ func _apply_modules(config: Dictionary) -> void:
 
 func _apply_paint(config: Dictionary) -> void:
 	var shared := {}
-	var defaults := AtlasGeometry.paint_defaults()
+	var defaults := AtlasGeometry.bracken_paint_defaults() if is_bracken else AtlasGeometry.paint_defaults()
 	for mesh: MeshInstance3D in find_children("*", "MeshInstance3D", true, false):
 		var armor := _is_armor(mesh)
 		for index: int in mesh.mesh.get_surface_count():
@@ -342,6 +350,7 @@ func show_state(view: BotView, delta: float) -> void:
 		auxiliary.gun_effects.show_state(view, delta, false)
 	if turret != null:
 		_show_turret(view, delta)
+	if is_bracken: _show_hydraulics()
 	if legs != null:
 		legs.observe_state(view)
 		legs.set_process(not view.eliminated)
@@ -351,7 +360,8 @@ func show_state(view: BotView, delta: float) -> void:
 			var forward := displacement.dot(-view.pose.basis.z.normalized()) / scale.z
 			var turn := _previous_pose.basis.get_rotation_quaternion().angle_to(view.pose.basis.get_rotation_quaternion())
 			var direction := signf(_previous_pose.basis.z.cross(view.pose.basis.z).y)
-			advance_drive(forward - turn * direction * 0.94, forward + turn * direction * 0.94)
+			var track_x: float = AtlasGeometry.bracken_geometry().track_center_x if is_bracken else 0.94
+			advance_drive(forward - turn * direction * track_x, forward + turn * direction * track_x)
 	_previous_pose = view.pose
 	_have_pose = true
 
@@ -383,3 +393,22 @@ func reset_observation() -> void:
 	if tool != null: tool.clear_effects()
 	_turret_shown = false
 	if legs != null: legs.reset_feet()
+
+## Each rigid cylinder and rod aims at the opposing eye. The rod slides into
+## the cylinder as the pitch anchor moves; textures and bore diameter never scale.
+func _assemble_hydraulics() -> void:
+	for side: String in ["L", "R"]:
+		var cylinder := turret.find_child("ElevationBarrel" + side, true, false) as Node3D
+		var rod := turret.find_child("ElevationRod" + side, true, false) as Node3D
+		assert(cylinder != null and rod != null)
+		for pair: Array in [[cylinder, rod], [rod, cylinder]]:
+			var node: Node3D = pair[0]
+			var other: Node3D = pair[1]
+			var direction: Vector3 = node.get_parent().to_local(other.global_position) - node.position
+			_hydraulics.append({"node":node, "other":other, "axis":direction.normalized(), "basis":node.basis})
+
+func _show_hydraulics() -> void:
+	for ram: Dictionary in _hydraulics:
+		var node: Node3D = ram.node
+		var direction: Vector3 = node.get_parent().to_local(ram.other.global_position) - node.position
+		node.basis = Basis(Quaternion(ram.axis, direction.normalized())) * ram.basis

@@ -21,6 +21,7 @@ func models() -> Array[Dictionary]:
 	list.append({"label":"sawblade", "draft":SawbladeConfig.starter(registry)})
 	list.append({"label":"scorpion", "draft":registry.scorpion()})
 	list.append({"label":"atlas", "draft":registry.atlas()})
+	list.append({"label":"bracken", "draft":registry.bracken()})
 	for preset: Dictionary in registry.atlas_showcase():
 		if preset.name.ends_with("RAIL") or preset.name.ends_with("SHREDDER") or preset.name.ends_with("INFERNO"):
 			list.append({"label":preset.name, "draft":preset})

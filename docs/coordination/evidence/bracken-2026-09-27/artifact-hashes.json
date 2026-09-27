@@ -1,0 +1,30 @@
+{
+  "description": "Final slimmer hydraulic revision; source renders, no new native launch requested.",
+  "build": "mvp-ab-54",
+  "protocol": 17,
+  "blender": "5.2.2 LTS",
+  "godot": "4.7.2 stable",
+  "bake_device": "CPU",
+  "sha256": {
+    "battlebots/assets/models/bracken_runtime/bracken.glb": "e7e2282a7266b3cc8d0f847b1b5595217b19e724b9180b6e3cb88bf28b3993e6",
+    "battlebots/assets/models/bracken_runtime/bracken_lifter.glb": "cdf4300d95dbd8ff3141faaa58f1b07cc50c6f2dc34f48e68f26e4d3026cab52",
+    "battlebots/assets/models/bracken_runtime/bracken_turret.glb": "66272d465f96c1cfe92f94fd36b2728ee9e41c4ce079963edb6202eeee6d2f39",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceHardware_base.png": "1e475ccda482ec8c933ebd0dfd6b51a5bcc2c63f97e3c5a5f766c2c04a871a4e",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceHardware_normal.png": "c04c76622c7293d9617f23d92d07700051b7ee2be8de9a874fd8dcd947256b33",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceHardware_orm.png": "6fefafa36b53e08c4763c3ad05c16dd601f7f25204afcb471c44160823aa4814",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfacePrimary_base.png": "7a70773dfbd571b731fdfb9e3081190abc577e3eab4a0e2f8788e47fc28f93ed",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfacePrimary_coverage.png": "21a9046b64cf384070045b6ebc9f284cfff3c998e38005bdd1cbda6b9b664528",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfacePrimary_normal.png": "24ca5d22bb39daf2926c620ff0413c7878822ca6885a9de74b4d9ec32b302670",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfacePrimary_orm.png": "8be9eb0612b67b349ac86c3c69a6f596f01ade45a3e2184e5d58412f1626860c",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceSecondary_base.png": "48bfd01be645c6c53a0953011522639d1e36d7f08ef7ec86b44f0d973ebd7f4b",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceSecondary_coverage.png": "78fa7c92af42d57c49251f783d12711c7374abd068e73d0387a2862eeb5e0a4a",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceSecondary_normal.png": "0dfe8a0c932abc7d1103264adeb8dd0c1410511a6eeae7c99e658e7c09dc4cd4",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceSecondary_orm.png": "9553c86d32a961c3679f3a15e14dce3194c97030f03be51e7da06be3ddf71255",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceTrack_base.png": "235178efedc01a60f1ca86a619893f2eef9d86e21791cd40248194ceea08ef41",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceTrack_normal.png": "1b0a62c46ba45866bb0ba4be193c5486f0957d6186844d7aec443ec900f16153",
+    "battlebots/assets/models/bracken_runtime/Bracken_SurfaceTrack_orm.png": "958571f77825379bce8b437e3b07e23689b6fe2bb493d67fd56e021f95455999",
+    "art_source/bracken/bracken.blend": "e19c918c17c3dbd546e1ecaace70fd8e614ea91831036b3fc2245eefb7deb15a",
+    "art_source/bracken/bracken_complete.glb": "14603ef92eb32a9c03bd0db211e3f8fc2f515c4f135a068343dade888d68db22",
+    "battlebots/data/bracken_geometry.json": "6a2aa5ae64eb0390853655e5a0c8c93aa0f4534ad45f9580ac3b5761214e557c"
+  }
+}

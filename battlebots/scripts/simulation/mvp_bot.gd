@@ -82,7 +82,7 @@ func _ready() -> void:
 	shape.size = stats.size
 	$Body/Collision.shape = shape
 	if AtlasGeometry.enabled(loadout):
-		shape.size = AtlasGeometry.COLLISION_SIZE * body.geometry_scale
+		shape.size = AtlasGeometry.collision_size(loadout) * body.geometry_scale
 		$Body/Collision.position.y = AtlasGeometry.COLLISION_CENTER_Y * body.geometry_scale
 		body.probe_depth = AtlasGeometry.GROUND_DEPTH * body.geometry_scale + 0.07
 		if AtlasGeometry.drive_gear(loadout) == "legs":
@@ -406,7 +406,7 @@ func reset_round() -> void:
 ## Canonical size retains the shared weapon/scale frame for older authored bots.
 func collision_bounds() -> AABB:
 	if AtlasGeometry.enabled(loadout):
-		var size := AtlasGeometry.COLLISION_SIZE * body.geometry_scale
+		var size := AtlasGeometry.collision_size(loadout) * body.geometry_scale
 		return AABB(-size * 0.5 + Vector3.UP * AtlasGeometry.COLLISION_CENTER_Y * body.geometry_scale, size)
 	return AABB(-combat.stats.size * 0.5, combat.stats.size)
 

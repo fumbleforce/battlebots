@@ -119,7 +119,38 @@ static func grinder_drum(size: Vector3, raise: float) -> Vector3:
 const DRIVE_GEAR := {"traction":"tracks", "standard_wheels":"wheels", "walker":"legs"}
 
 static func enabled(draft: Dictionary) -> bool:
-	return draft.get("parts", {}).get("chassis") == "atlas_mx"
+	return draft.get("parts", {}).get("chassis") in ["atlas_mx", "bracken"]
+
+## Bracken uses the shared articulation frame with its own narrower body/bores.
+static func bracken_enabled(draft: Dictionary) -> bool:
+	return draft.get("parts", {}).get("chassis") == "bracken"
+
+static var _bracken_geometry: Dictionary = {}
+
+static func bracken_geometry() -> Dictionary:
+	if _bracken_geometry.is_empty():
+		_bracken_geometry = JSON.parse_string(FileAccess.get_file_as_string("res://data/bracken_geometry.json"))
+		assert(_bracken_geometry.collision_size.size() == 3 and _bracken_geometry.barrels.size() == 4)
+	return _bracken_geometry
+
+static func collision_size(draft: Dictionary) -> Vector3:
+	if not bracken_enabled(draft): return COLLISION_SIZE
+	var v: Array = bracken_geometry().collision_size
+	return Vector3(v[0], v[1], v[2])
+
+static func turret_barrels(model: String) -> Array:
+	return bracken_geometry().barrels if model == "cannon_bracken" else TURRET_BARRELS.get(model, [])
+
+static func bracken_paint_defaults() -> Dictionary:
+	var config := SawbladeConfig.defaults()
+	var colors := {"paint_primary":Color(0.40, 0.405, 0.275),
+		"paint_secondary":Color(0.56, 0.245, 0.15), "paint_metal":Color(0.46, 0.445, 0.38),
+		"paint_rubber":Color(0.12, 0.125, 0.10)}
+	for channel: String in colors:
+		var color: Color = colors[channel].srgb_to_linear()
+		config[channel] = [color.r, color.g, color.b, 1.0]
+	config.paint_armor = config.paint_primary.duplicate()
+	return config
 
 static func gun_offset(draft: Dictionary, size: Vector3) -> Vector3:
 	if NimbleBots.enabled(draft): return NimbleBots.gun_offset(draft, size)
@@ -172,6 +203,7 @@ static func track_distance(at: Vector3) -> float:
 
 ## Attachment model ("cannon", "plasma_quad", ...) or empty.
 static func turret_model(draft: Dictionary) -> String:
+	if bracken_enabled(draft): return "cannon_bracken"
 	return TURRET_PARTS.get(draft.get("parts", {}).get("utility", ""), "") if enabled(draft) else ""
 
 ## Weapon family ("cannon" / "plasma") or empty.
@@ -183,7 +215,8 @@ static func family(model: String) -> String:
 
 ## Barrel offset (x, y) in the elevating frame, source metres, for a shot.
 static func turret_barrel(model: String, shot_sequence: int) -> Vector2:
-	var barrels: Array = TURRET_BARRELS.get(model, [[0.0, 0.0]])
+	var barrels: Array = turret_barrels(model)
+	if barrels.is_empty(): return Vector2.ZERO
 	var entry: Array = barrels[posmod(shot_sequence - 1, barrels.size())]
 	return Vector2(entry[0], entry[1])
 
@@ -205,7 +238,7 @@ static func turret_muzzle(size: Vector3, kind: String, yaw: float, pitch: float,
 ## Lowest clear elevation at a bearing: the stricter of the two surrounding
 ## audit samples, matching the audit's own verification rule.
 static func turret_pitch_min(kind: String, yaw: float) -> float:
-	var table: Array = TURRET_DEPRESSION.get(kind, TURRET_DEPRESSION.get(family(kind), TURRET_DEPRESSION.cannon))
+	var table: Array = TURRET_DEPRESSION.get("cannon_quad" if kind == "cannon_bracken" else kind, TURRET_DEPRESSION.get(family(kind), TURRET_DEPRESSION.cannon))
 	var index := int(fposmod(rad_to_deg(yaw), 360.0) / TURRET_DEPRESSION_STEP) % table.size()
 	return deg_to_rad(maxf(float(table[index]), float(table[(index + 1) % table.size()])))
 

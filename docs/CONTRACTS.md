@@ -1,5 +1,31 @@
 # Shared contracts — local records and current MVP session API
 
+## Bracken reference tank — build mvp-ab-54, catalogue 19 (#100)
+
+`ContentRegistry.bracken()` adds a separate `bracken` chassis preset with the
+existing traction drive, lifter and quad cannon. `AtlasGeometry.enabled()` now
+means the shared physical/attachment family (Atlas MX or Bracken).
+Bracken has its own hull, turret and lifter GLBs; `AtlasVisual` selects them from
+the chassis ID. `data/bracken_geometry.json`, read by `AtlasGeometry`, supplies
+its narrower 1.98 × 1.11 × 2.60 source-meter collider, ±0.77 track centers and
+four bores at X ±0.40, Y ±0.0957 relative to the shared pitch pivot. Catalogue
+size is 5.82 × 1.5 × 7.8; the existing factor-three authoring conversion applies.
+The derived turret model is `cannon_bracken`; its utility remains
+`turret_cannon_quad`. Producer and consumers use `turret_model()` and
+`turret_barrels()` so both visible bores and authoritative shots use that spacing.
+The closed tread loop, turret pivot positions, conservative quad depression
+limits, firing rules, recoil and damage authority are unchanged. Cylinder/rod
+pivots solve against the actual moving elevation anchors in presentation only.
+Separate armor, ramp slats, drive and gun assemblies enter the existing generic
+part-loss and wreck pipeline with their baked materials.
+
+The complete factory assembly fixes drive/weapon/utility and armor/exhaust
+choices. `PlayerProfile.sealed()` protects it in Customize, and match pickups
+leave its assembly intact while allowing perks. It is appended after existing
+presets, retaining their order. Existing catalogue-18 saves migrate with parts
+and cosmetics preserved. No loadout schema or wire field changes; protocol
+remains 17 and peers still require the new matching build/content hash.
+
 ## Armour paint layer — build mvp-ab-53, protocol 17 (#92)
 
 Loadout validation change; wire records, gameplay and catalogue hash unchanged.

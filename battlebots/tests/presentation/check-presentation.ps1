@@ -113,6 +113,7 @@ Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--
 Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot,
     'res://tests/presentation/all_body_weapons_test.tscn', '--quit-after', '10000') -Marker 'ALL BODY WEAPONS PASS'
 foreach ($check in @(@('atlas_assembly_test.tscn', 'ATLAS ASSEMBLY PASS'),
+    @('bracken_model_test.tscn', 'BRACKEN MODEL PASS'),
     @('atlas_drives_test.tscn', 'ATLAS DRIVES PASS'),
     @('atlas_turret_visual_test.tscn', 'ATLAS TURRET VISUAL PASS'))) {
     Invoke-PresentationCheck -EngineArgs @('--headless', '--path', $projectRoot, '--fixed-fps', '60',

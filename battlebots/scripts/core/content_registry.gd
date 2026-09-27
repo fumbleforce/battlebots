@@ -90,6 +90,15 @@ func atlas_turret() -> Dictionary:
 	draft.parts.utility = "turret_cannon"
 	return draft
 
+## Reference tank: sealed authored assembly, using the existing quad cannon and lifter.
+func bracken() -> Dictionary:
+	var draft := atlas()
+	draft.name = "BRACKEN"
+	draft.parts.chassis = "bracken"
+	draft.parts.utility = "turret_cannon_quad"
+	draft.cosmetics.sawblade = AtlasGeometry.bracken_paint_defaults()
+	return draft
+
 ## Showcase turret presets: quad-cannon fortress, close-quarters flamethrower
 ## brawler with a saw, a long-range railgun, a harpoon whaler that drags
 ## enemies onto its lifter, a mortar artillery piece, and the front tools: a
@@ -163,10 +172,23 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		result.reasons.append("Atlas MX drives on tracks, large wheels or hydraulic legs")
 	# The four nimble bots (#61) are sealed factory builds for now.
 	result.reasons.append_array(NimbleBots.reasons(draft))
+	if AtlasGeometry.bracken_enabled(draft):
+		if selected.get("drive") != "traction" or selected.get("weapon") != "lifter" or selected.get("utility") != "turret_cannon_quad":
+			result.reasons.append("Bracken keeps its linked tracks, ramp and quad cannon")
+		var appearance: Variant = draft.get("cosmetics")
+		var config: Variant = appearance.get("sawblade") if appearance is Dictionary else null
+		if not SawbladeConfig.valid(config):
+			result.reasons.append("Bracken requires its authored appearance")
+		else:
+			var factory := AtlasGeometry.bracken_paint_defaults()
+			for option: String in SawbladeConfig.OPTIONS:
+				if config[option] != factory[option]:
+					result.reasons.append("Bracken keeps its authored armor and exhaust")
+					break
 	if selected.get("weapon") in AtlasGeometry.TOOL_PARTS and selected.get("chassis") != "atlas_mx":
 		result.reasons.append("Ram, spear and grinder tools mount on the Atlas MX front coupler")
 	if selected.get("utility") in AtlasGeometry.TURRET_PARTS:
-		if selected.get("chassis") != "atlas_mx":
+		if not AtlasGeometry.enabled(draft):
 			result.reasons.append("Turret modules require the Atlas MX roof traverse race")
 		elif selected.get("weapon") == "minigun":
 			result.reasons.append("The turret occupies the Atlas roof gun mount; select another primary weapon")
@@ -196,8 +218,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		"plates": plates, "armor_total": armor_total,
 		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.family(AtlasGeometry.TURRET_PARTS.get(selected.utility,
 			"minigun" if selected.utility == "minigun_pod" else "")),
-		"turret_model": AtlasGeometry.TURRET_PARTS.get(selected.utility, ""),
-		"turret_barrels": AtlasGeometry.TURRET_BARRELS.get(AtlasGeometry.TURRET_PARTS.get(selected.utility, ""), []).size(),
+		"turret_model": AtlasGeometry.turret_model(draft),
+		"turret_barrels": AtlasGeometry.turret_barrels(AtlasGeometry.turret_model(draft)).size(),
 		"cooling": 15.0 if selected.utility == "cooling_pack" else 12.0,
 		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0,
 		"nitro": selected.nitro == "nitro_boost", "charged_jump": selected.suspension == "charged_jump"}

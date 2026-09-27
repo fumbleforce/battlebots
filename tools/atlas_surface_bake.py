@@ -483,11 +483,13 @@ def _wire_final(material, maps, family, coverage_name):
 
 
 def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False,
-                         prefix="Atlas_Surface", families=FAMILIES, sizes=None, face_wear=0.70, primary_color=None):
+                         prefix="Atlas_Surface", families=FAMILIES, sizes=None, face_wear=0.70, primary_color=None, surface_graph=None):
     """Bake unique UV1 atlases and return JSON-serializable export metadata.
 
     Additional Atlas assets (the turret) pass their own map prefix, the subset
     of families they actually use and their resolutions. Defaults are the hull.
+    surface_graph optionally supplies another asset's material graph while
+    preserving this baker's UV, occlusion, map packing and export contracts.
     """
     output = Path(runtime_path)
     output.mkdir(parents=True, exist_ok=True)
@@ -552,7 +554,7 @@ def bake_surface_atlases(root, lifter, optional, runtime_path, quick=False,
         if primary_color is None:
             primary_color = tuple(primary.diffuse_color) if primary else _linear((.86, .51, .055))
         edges = {family: _geometry_edge_image(representatives, family, sizes[family]) for family in ("Primary", "Secondary") if family in families}
-        graphs = {material: _procedural(material, family, images[family]["ao"], primary_color, edges.get(family), face_wear)
+        graphs = {material: (surface_graph or _procedural)(material, family, images[family]["ao"], primary_color, edges.get(family), face_wear)
                   for material, family in active_materials.items()}
         metadata["material_references"] = {material.name: {"linear_color": list(graph["original_color"]),
             "metallic": graph["metallic"], "roughness": graph["roughness"]} for material, graph in graphs.items()}

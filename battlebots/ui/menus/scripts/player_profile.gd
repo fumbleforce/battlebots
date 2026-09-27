@@ -10,7 +10,7 @@ var wallet := CreditWallet.new()
 var credits: int:
 	get: return wallet.balance
 var active_bot := 0
-const PRESET_COUNT := 18
+const PRESET_COUNT := 19
 var bots: Array = []
 var registry := ContentRegistry.new()
 var save_path := "user://loadouts.json"
@@ -49,6 +49,7 @@ func reload() -> void:
 	loadouts.append_array(registry.atlas_showcase())
 	# Four quick bots with their own gaits (#61): drivable, not yet customisable.
 	loadouts.append_array(registry.nimble())
+	loadouts.append(registry.bracken())
 	assert(loadouts.size() == PRESET_COUNT, "PRESET_COUNT must match the built-in presets")
 	_save_indices.clear()
 	for index: int in PRESET_COUNT: _save_indices.append(-1)
@@ -130,7 +131,8 @@ func restore_reviewed_backup(token: Dictionary) -> Dictionary:
 ## not edited, renamed or saved over in Customize yet.
 func sealed(index := -1) -> bool:
 	var at := active_bot if index < 0 else index
-	return at >= 0 and at < loadouts.size() and loadouts[at] is Dictionary and NimbleBots.enabled(loadouts[at])
+	return at >= 0 and at < loadouts.size() and loadouts[at] is Dictionary \
+		and (NimbleBots.enabled(loadouts[at]) or AtlasGeometry.bracken_enabled(loadouts[at]))
 
 func active_loadout() -> Dictionary:
 	if active_bot < 0 or active_bot >= loadouts.size(): return {}

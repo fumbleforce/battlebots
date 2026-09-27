@@ -111,6 +111,7 @@ func _valid_status() -> void:
 	_update_camera()
 	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
 	if atlas_visual != null: assembly = "ATLAS MX · modular platform on " + ATLAS_GEAR_NAMES.get(atlas_visual.drive_gear, "tracks")
+	if atlas_visual != null and atlas_visual.is_bracken: assembly = "BRACKEN · quad cannon and lifter ramp"
 	if scorpion_visual != null: assembly = "SCORPION HX-6 · equipped modules"
 	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
 	status.visible = not _compact

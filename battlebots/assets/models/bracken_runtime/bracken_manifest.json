@@ -1,0 +1,192 @@
+{
+  "generator": "tools/build-bracken.py",
+  "triangles": 198240,
+  "shoes_per_side": 52,
+  "source_coordinates": "Godot metres; X right Y up -Z forward; runtime scale 3",
+  "turret_yaw": [
+    0.0,
+    0.5199999809265137,
+    -0.14000000059604645
+  ],
+  "turret_pitch": [
+    0.0,
+    0.7734500169754028,
+    -0.5460000038146973
+  ],
+  "barrels": [
+    [
+      -0.4,
+      0.0957
+    ],
+    [
+      -0.4,
+      -0.0957
+    ],
+    [
+      0.4,
+      0.0957
+    ],
+    [
+      0.4,
+      -0.0957
+    ]
+  ],
+  "muzzle_distance": 1.37025,
+  "surface_atlases": {
+    "version": 1,
+    "uv": "TEXCOORD_0",
+    "unique_meshes": 45,
+    "mesh_instances": 148,
+    "families": {
+      "Primary": {
+        "resolution": 2048,
+        "faces": 6761,
+        "images": {
+          "base": "Bracken_SurfacePrimary_base.png",
+          "orm": "Bracken_SurfacePrimary_orm.png",
+          "normal": "Bracken_SurfacePrimary_normal.png",
+          "coverage": "Bracken_SurfacePrimary_coverage.png"
+        },
+        "occupied_fraction": 0.6919,
+        "ao_min": 0.0,
+        "ao_mean": 0.73763,
+        "roughness_min": 0.74965,
+        "roughness_max": 0.83016
+      },
+      "Secondary": {
+        "resolution": 2048,
+        "faces": 1114,
+        "images": {
+          "base": "Bracken_SurfaceSecondary_base.png",
+          "orm": "Bracken_SurfaceSecondary_orm.png",
+          "normal": "Bracken_SurfaceSecondary_normal.png",
+          "coverage": "Bracken_SurfaceSecondary_coverage.png"
+        },
+        "occupied_fraction": 0.66186,
+        "ao_min": 0.0,
+        "ao_mean": 0.50926,
+        "roughness_min": 0.75124,
+        "roughness_max": 0.83068
+      },
+      "Track": {
+        "resolution": 1024,
+        "faces": 200,
+        "images": {
+          "base": "Bracken_SurfaceTrack_base.png",
+          "orm": "Bracken_SurfaceTrack_orm.png",
+          "normal": "Bracken_SurfaceTrack_normal.png"
+        },
+        "occupied_fraction": 0.82443,
+        "ao_min": 0.0,
+        "ao_mean": 0.67596,
+        "roughness_min": 0.78,
+        "roughness_max": 0.78
+      },
+      "Hardware": {
+        "resolution": 2048,
+        "faces": 39106,
+        "images": {
+          "base": "Bracken_SurfaceHardware_base.png",
+          "orm": "Bracken_SurfaceHardware_orm.png",
+          "normal": "Bracken_SurfaceHardware_normal.png"
+        },
+        "occupied_fraction": 0.72773,
+        "ao_min": 0.0,
+        "ao_mean": 0.72817,
+        "roughness_min": 0.63,
+        "roughness_max": 0.89
+      }
+    },
+    "paint_coverage": {
+      "Primary": "Bracken_SurfacePrimary_coverage.png",
+      "Secondary": "Bracken_SurfaceSecondary_coverage.png"
+    },
+    "occlusion": {
+      "method": "ray_traced_local_assembly",
+      "distance_metres": 0.06
+    },
+    "material_references": {
+      "Bracken_OxidizedMetal": {
+        "linear_color": [
+          0.05290079116821289,
+          0.04143557697534561,
+          0.02451501414179802,
+          1.0
+        ],
+        "metallic": 0.6499999761581421,
+        "roughness": 0.6899999976158142
+      },
+      "Bracken_PaintPrimary": {
+        "linear_color": [
+          0.13286831974983215,
+          0.1363995373249054,
+          0.061464954167604446,
+          1.0
+        ],
+        "metallic": 0.029999999329447746,
+        "roughness": 0.8199999928474426
+      },
+      "Bracken_Recess": {
+        "linear_color": [
+          0.009264310821890831,
+          0.010336018167436123,
+          0.008260390721261501,
+          1.0
+        ],
+        "metallic": 0.3499999940395355,
+        "roughness": 0.800000011920929
+      },
+      "Bracken_TrackSteel": {
+        "linear_color": [
+          0.08353512734174728,
+          0.09178023040294647,
+          0.07323895394802094,
+          1.0
+        ],
+        "metallic": 0.2800000011920929,
+        "roughness": 0.7799999713897705
+      },
+      "Bracken_PaintSecondary": {
+        "linear_color": [
+          0.27383843064308167,
+          0.04889732599258423,
+          0.01960664801299572,
+          1.0
+        ],
+        "metallic": 0.019999999552965164,
+        "roughness": 0.8299999833106995
+      },
+      "Bracken_PaintPrimaryEdge": {
+        "linear_color": [
+          0.13286831974983215,
+          0.1363995373249054,
+          0.061464954167604446,
+          1.0
+        ],
+        "metallic": 0.029999999329447746,
+        "roughness": 0.8199999928474426
+      },
+      "Bracken_Rubber": {
+        "linear_color": [
+          0.0134117491543293,
+          0.014349875040352345,
+          0.010022825561463833,
+          1.0
+        ],
+        "metallic": 0.0,
+        "roughness": 0.8899999856948853
+      },
+      "Bracken_Metal": {
+        "linear_color": [
+          0.17886750400066376,
+          0.16661807894706726,
+          0.11928018927574158,
+          1.0
+        ],
+        "metallic": 0.3499999940395355,
+        "roughness": 0.6299999952316284
+      }
+    }
+  },
+  "visual_acceptance": "Pending user review; studio source renders only"
+}

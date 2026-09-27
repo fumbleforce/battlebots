@@ -1,0 +1,6 @@
+{
+  "scope": "Saved Blender source. Turret vs hull at 72 bearings and 3 elevations each; track links vs all fixed hull/drive parts at authored phase. Excludes intentional coaxial joints, transient lifter sweep and native rendering.",
+  "turret_contacts": [],
+  "track_contacts": [],
+  "packed_images": 14
+}

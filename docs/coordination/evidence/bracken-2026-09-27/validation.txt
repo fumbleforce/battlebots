@@ -1,0 +1,89 @@
+bracken-final-model.log
+BRACKEN MODEL PASS
+
+bracken-final-physics.log
+BRACKEN PHYSICS PASS
+
+bracken-final-destruction.log
+bracken: weapon 3, drive 6, panel clusters 6, configure 2.3 ms | saw 2 pieces 154 meshes (12 cut) 1.4 ms | railgun 2 pieces 156 meshes (36 cut) 1.2 ms | mortar 5 pieces 270 meshes (203 cut) 3.7 ms
+DESTRUCTION MODELS PASS
+
+bracken-final-baseline.log
+BASELINE PASS
+
+bracken-atlas-catalogue.log
+ATLAS CATALOGUE PASS
+
+bracken-atlas-visual.log
+ATLAS TURRET VISUAL PASS
+
+bracken-atlas-physics.log
+ATLAS TURRET PHYSICS PASS
+
+bracken-stale-cache.log
+MENU FLOW PASS
+STALE CLASS CACHE STARTUP PASS (HeatRelief, CoolingZoneVisuals, SpreeBanner, FrontToolTuning, AtlasToolVisual, TurretHarpoonEffects, MortarAimVisual, GamepadInput, ArenaSpawns, PracticeLoadingOverlay, HudSpeedGauge)
+
+bracken-content.log
+CONTENT PASS
+
+bracken-pickups.log
+MATCH PICKUPS PASS
+
+bracken-scorpion.log
+SCORPION GARAGE PASS
+
+bracken-nimble.log
+PASS Every nimble bot is a built-in preset
+PASS STRIDER • 09 is valid and sealed
+PASS STRIDER • 09 is faster than Atlas MX on paper
+PASS HELLWHEEL • 07 is valid and sealed
+PASS HELLWHEEL • 07 is faster than Atlas MX on paper
+PASS POGO • 03 is valid and sealed
+PASS POGO • 03 is faster than Atlas MX on paper
+PASS SKATER • 12 is valid and sealed
+PASS SKATER • 12 is faster than Atlas MX on paper
+PASS Garage disables Customize for a factory build
+PASS A factory build can be the active (playable) build
+PASS Profile edits leave a factory build unchanged
+PASS A factory build cannot be saved over
+PASS Other builds stay customisable
+PASS Customize does not offer balanced
+PASS Customize does not offer scorpion_hex
+PASS Customize does not offer atlas_mx
+PASS Customize does not offer agile
+PASS Customize does not offer standard_wheels
+PASS Customize does not offer traction
+PASS Customize does not offer walker
+PASS Customize does not offer vertical_spinner
+PASS Customize does not offer horizontal_spinner
+PASS Customize does not offer hammer
+PASS Customize does not offer saw
+PASS Customize does not offer lifter
+PASS Customize does not offer minigun
+PASS Customize does not offer battering_ram
+PASS Customize does not offer spear_fork
+PASS Customize does not offer grinder_drum
+PASS Customize does not offer recovery_assist
+PASS Customize does not offer cooling_pack
+PASS Customize does not offer minigun_pod
+PASS Customize does not offer turret_cannon
+PASS Customize does not offer turret_plasma
+PASS Customize does not offer turret_cannon_dual
+PASS Customize does not offer turret_cannon_quad
+PASS Customize does not offer turret_plasma_dual
+PASS Customize does not offer turret_plasma_quad
+PASS Customize does not offer turret_flamer
+PASS Customize does not offer turret_tesla
+PASS Customize does not offer turret_railgun
+PASS Customize does not offer turret_harpoon
+PASS Customize does not offer turret_mortar
+PASS Customize does not offer nitro_off
+PASS Customize does not offer nitro_boost
+PASS Customize does not offer jump_off
+PASS Customize does not offer charged_jump
+PASS Pickups never drop nimble parts
+PASS A nimble bot refuses part pickups
+PASS Perk choices stay free on a nimble bot
+PASS Revision-16 saves migrate to catalogue 17 unchanged
+NIMBLE GARAGE PASS
