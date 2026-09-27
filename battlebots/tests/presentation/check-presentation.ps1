@@ -99,6 +99,7 @@ $checks = @(
     @('atlas_turret_input_test.gd', 'ATLAS TURRET INPUT PASS'),
     @('woodland_arena_test.gd', 'WOODLAND PASS'),
     @('sunreach_arena_test.gd', 'SUNREACH PASS'),
+    @('maelstrom_arena_test.gd', 'MAELSTROM PASS'),
     @('moon_arena_test.gd', 'MOON ARENA PASS'),
     @('arena_selection_test.gd', 'ARENA SELECTION PASS'),
     @('import_guard_test.gd', 'IMPORT GUARD PASS')

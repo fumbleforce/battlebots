@@ -9,6 +9,7 @@ extends RefCounted
 ## collections).
 const CACHES := {
 	"res://scripts/arena/sunreach_ground.gd": ["_layout", "_hulls"],
+	"res://scripts/arena/maelstrom_ground.gd": ["_layout", "_heights", "_pads", "_obstacles", "_hulls"],
 	"res://scripts/core/bot_physics.gd": ["_loaded"],
 	"res://scripts/core/front_tool_tuning.gd": ["_loaded"],
 	"res://scripts/core/arena_spawns.gd": ["_loaded"],

@@ -81,24 +81,27 @@ func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int
 	var player: MvpBot = world.bots[player_id]
 	var spawns := ARENA_SPAWNS.settings()
 	var lane := spawns.team_start(world.arena_id, 0, spawns.practice_player_lane)
-	_place(player, Transform3D(lane.basis, Vector3.ZERO))
+	# The middle of the room, or the arena's own duel centre (#102: the Frozen
+	# Maelstrom's middle is its bottomless eye).
+	var origin := spawns.duel_centre_for(world.arena_id)
+	_place(player, Transform3D(lane.basis, origin))
 	player_home = player.spawn_pose
 	var forward := (-player.spawn_pose.basis.z).slide(Vector3.UP).normalized()
 	var left := Vector3.UP.cross(forward).normalized()
 	var facing_player := _facing(-forward)
-	var atlas := _add_fixture(first_id, world.registry.atlas(), "atlas", Transform3D(facing_player, Vector3.ZERO))
+	var atlas := _add_fixture(first_id, world.registry.atlas(), "atlas", Transform3D(facing_player, origin))
 	var next_id := _add_monowheel_row(player, first_id + 1)
 	var reach := _monowheel_reach(left)
 	# Back from the player: the Atlas's rear sits as far from the far wall as the
 	# block's outer row does from the left wall.
 	var depth := maxf(0.0, reach - atlas.collision_bounds().size.z * 0.5)
-	_place(atlas, Transform3D(facing_player, forward * depth))
+	_place(atlas, Transform3D(facing_player, origin + forward * depth))
 	records[0].home = atlas.spawn_pose
 	# On the right, a quarter turn from facing the middle: it faces along the
 	# player's forward axis, its side toward the right wall.
-	var shuttle := _add_fixture(next_id, world.registry.atlas(), "atlas_shuttle", Transform3D(_facing(forward), -left * reach))
+	var shuttle := _add_fixture(next_id, world.registry.atlas(), "atlas_shuttle", Transform3D(_facing(forward), origin - left * reach))
 	var inset := maxf(0.0, reach - shuttle.collision_bounds().size.x * 0.5)
-	_place(shuttle, Transform3D(_facing(forward), -left * inset))
+	_place(shuttle, Transform3D(_facing(forward), origin - left * inset))
 	records[records.size() - 1].home = shuttle.spawn_pose
 	records[records.size() - 1].shuttle = 1.0
 	return next_id + 1
@@ -107,13 +110,14 @@ func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int
 static func _facing(direction: Vector3) -> Basis:
 	return Basis(Vector3.UP, atan2(-direction.x, -direction.z))
 
-## How far from the centre, toward the left wall, the monowheel block's outer
+## How far from the duel centre, toward the left wall, the monowheel block's outer
 ## hull edge reaches; the configured block offset when there are none.
 func _monowheel_reach(left: Vector3) -> float:
 	var reach := -INF
+	var origin := ARENA_SPAWNS.settings().duel_centre_for(world.arena_id)
 	for bot: MvpBot in world.bots.values():
 		if bot.has_meta("practice_fixture") and NimbleBots.enabled(bot.loadout):
-			reach = maxf(reach, bot.spawn_pose.origin.dot(left) + bot.collision_bounds().size.z * 0.5)
+			reach = maxf(reach, (bot.spawn_pose.origin - origin).dot(left) + bot.collision_bounds().size.z * 0.5)
 	if is_finite(reach):
 		return reach
 	return ArenaBounds.half_extent(world.arena_id) * ARENA_SPAWNS.settings().duel_monowheel_side_for(world.arena_id)
@@ -127,7 +131,7 @@ func _add_monowheel_row(player: MvpBot, next_id: int) -> int:
 		return next_id
 	var forward := (-player.spawn_pose.basis.z).slide(Vector3.UP).normalized()
 	var left := Vector3.UP.cross(forward).normalized()
-	var centre := left * ArenaBounds.half_extent(world.arena_id) * spawns.duel_monowheel_side_for(world.arena_id)
+	var centre := spawns.duel_centre_for(world.arena_id) + left * ArenaBounds.half_extent(world.arena_id) * spawns.duel_monowheel_side_for(world.arena_id)
 	# Facing into the room: each hull's forward points away from the left wall.
 	var facing := Basis(Vector3.UP, atan2(left.x, left.z))
 	# Rows one behind the other: the front row nearest the room, the rest

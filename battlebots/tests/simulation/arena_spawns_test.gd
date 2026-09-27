@@ -73,9 +73,10 @@ func check_practice(arena_id: String) -> void:
 		# Bots are created at the origin and teleported on their first physics
 		# step; the centre pickup must not go to a bot still waiting there (#80).
 		var centres := session.world.pickups.items.filter(func(item: Dictionary) -> bool: return item.point.is_zero_approx())
-		# Woodland's giant starts on the centre, so that point is never stocked there.
+		# Woodland's giant starts on the centre, so that point is never stocked there;
+		# the Frozen Maelstrom's centre is its bottomless eye (#102).
 		if centres.is_empty():
-			check(arena_id == "woodland", "%s practice stocks its centre pickup" % arena_id)
+			check(arena_id in ["woodland", "maelstrom"], "%s practice stocks its centre pickup" % arena_id)
 			break
 		var centre: Dictionary = centres.front()
 		centre.merge({"kind":"credits", "part":"", "amount":50, "available":true}, true)

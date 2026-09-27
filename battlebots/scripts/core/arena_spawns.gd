@@ -24,6 +24,9 @@ var duel_monowheel_gap := 0.0
 var duel_monowheel_side := 0.0
 ## Arena id -> side fraction overriding duel_monowheel_side there.
 var duel_monowheel_side_by_arena: Dictionary = {}
+## Arena id -> floor point (Vector2 x, z) the Practice Duel is laid out around
+## instead of the arena centre (duel.centre_by_arena).
+var duel_centre_by_arena: Dictionary = {}
 ## Practice Duel shuttling Atlas (duel.shuttle): metres either side of its
 ## start and the throttle it drives at.
 var duel_shuttle_travel := 0.0
@@ -112,6 +115,18 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 			problems.append("duel.monowheels.side_fraction_by_arena.%s needs a known arena and a non-negative fraction" % arena_id)
 			return null
 		result.duel_monowheel_side_by_arena[arena_id] = float(by_arena[arena_id])
+	var centres: Variant = duel.get("centre_by_arena", {})
+	if not centres is Dictionary:
+		problems.append("duel.centre_by_arena must be an object")
+		return null
+	for arena_id: String in centres:
+		if arena_id.begins_with("_"):
+			continue
+		var point: Variant = centres[arena_id]
+		if arena_id not in ArenaBounds.IDS or not point is Array or point.size() != 2 or not _number(point[0]) or not _number(point[1]):
+			problems.append("duel.centre_by_arena.%s needs a known arena and an [x, z] point" % arena_id)
+			return null
+		result.duel_centre_by_arena[arena_id] = Vector2(float(point[0]), float(point[1]))
 	var shuttle: Variant = duel.get("shuttle")
 	if not shuttle is Dictionary or not _number(shuttle.get("travel")) or float(shuttle.travel) <= 0.0 \
 			or not _number(shuttle.get("throttle")) or float(shuttle.throttle) <= 0.0 or float(shuttle.throttle) > 1.0:
@@ -129,6 +144,11 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 ## Practice Duel monowheel block offset (fraction of the half-extent) on an arena.
 func duel_monowheel_side_for(arena_id: String) -> float:
 	return float(duel_monowheel_side_by_arena.get(arena_id, duel_monowheel_side))
+
+## Floor point the Practice Duel is laid out around on an arena.
+func duel_centre_for(arena_id: String) -> Vector3:
+	var point: Vector2 = duel_centre_by_arena.get(arena_id, Vector2.ZERO)
+	return Vector3(point.x, 0.0, point.y)
 
 static func _number(value: Variant) -> bool:
 	return (value is float or value is int) and is_finite(float(value))

@@ -1566,3 +1566,29 @@ no gameplay bodies. Streams are shallow traversable terrain, without a new
 hazard/damage rule. Ruins are static cover; robot destruction remains generic.
 Practice Duel's side positions use the arena-specific 0.2 fraction and level
 pads, avoiding the river crossings and cover.
+
+## Frozen Maelstrom arena and lethal edges — build mvp-ab-56 (#102)
+
+`maelstrom` joins the arena ID list for Practice, Practice Duel and private LAN
+sessions; clients need `arena_rules >= 4` (`ARENA_RULES` 4). Protocol 17 and the
+catalogue are unchanged; the build bump rejects stale peers.
+
+- Ground: `scripts/arena/maelstrom_ground.gd` builds a 1 m height map and the
+  obstacle hulls from `data/maelstrom_arena.json` and `data/maelstrom_hulls.json`
+  (exported by `art_source/maelstrom/build_kit.py` from the art's own vertices).
+  The ice is a ring from the eye (~2 Atlas MX lengths) to the rim, point-mirrored
+  with the fleets swapped. Headless servers load no art.
+- Open edges: the shell's walls and catch slab are disabled on this arena.
+  `AuthorityWorld.step` sets `MvpBot.lethal_fall_y` / `sink_floor_y` from the
+  arena each tick (`-INF` elsewhere). A bot whose origin drops below
+  `lethal_fall_y` (and has no pending `reset_pose`) is eliminated with reason
+  `"maelstrom"` instead of being put back on its last floor. Its wreck leaves the
+  bots' layer but keeps `WORLD_LAYER` in its mask, so it lands on the frozen sea
+  (or falls down the eye until `sink_floor_y`, then freezes). Other arenas keep
+  the out-of-bounds reset. Kills are credited to the last attacker as usual.
+- `AuthorityWorld.ground_height(x, z)` / `_surface()` replace the per-arena
+  surface branches; pickups skip the centre on this arena (the eye).
+- `data/arena_spawns.json`: team lanes mirror across the eye; new
+  `duel.centre_by_arena` (read by `ArenaSpawns.duel_centre_for`) lays the
+  Practice Duel out around [0, 76] instead of the arena centre. The Sunreach
+  bake fingerprint of this file was refreshed; its Sunreach inputs are unchanged.

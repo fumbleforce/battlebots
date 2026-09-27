@@ -49,6 +49,8 @@ func _build_arena() -> void:
 		scene = preload("res://scenes/arenas/woodland_arena.tscn")
 	elif arena_id == "sunreach":
 		scene = preload("res://scenes/arenas/sunreach_arena.tscn")
+	elif arena_id == "maelstrom":
+		scene = preload("res://scenes/arenas/maelstrom_arena.tscn")
 	arena = scene.instantiate()
 	arena.name = "Arena"
 	ARENA_SPAWNS.settings().place_markers(arena, arena_id)
@@ -133,13 +135,7 @@ func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 	# Terrain arenas: the physical height map is a linear interpolation of these
 	# vertices. Include every cell beneath the hull, so no corner starts in a
 	# slope even when the authored centre lies on a smaller flattened pad.
-	var surface: Script = null
-	if arena_id == "moon":
-		surface = preload("res://scripts/arena/moon_surface.gd")
-	elif arena_id == "woodland":
-		surface = preload("res://scripts/arena/woodland_ground.gd")
-	elif arena_id == "sunreach":
-		surface = preload("res://scripts/arena/sunreach_ground.gd")
+	var surface := _surface()
 	if surface != null:
 		var step: float = surface.get("STEP")
 		var low_x := floori((pose.origin.x - extent_x + arena_half) / step)
@@ -148,7 +144,7 @@ func clear_spawn_pose(bot: MvpBot, authored: Transform3D) -> Transform3D:
 		var high_z := ceili((pose.origin.z + extent_z + arena_half) / step)
 		for x: int in range(low_x, high_x + 1):
 			for z: int in range(low_z, high_z + 1):
-				floor_y = maxf(floor_y, (surface.support_height(x * step - arena_half, z * step - arena_half) if arena_id == "sunreach" else surface.height_at(x * step - arena_half, z * step - arena_half)))
+				floor_y = maxf(floor_y, ground_height(x * step - arena_half, z * step - arena_half))
 	# B publishes actual support clearance; tall modular hulls retain the common
 	# authoring scale height in stats. See coordination/B_ATLAS_MX.md.
 	var clearance := bot.ground_clearance()
@@ -170,7 +166,15 @@ func step(delta: float, active: bool, round_index: int) -> void:
 		if bots.has(id):
 			practice_tuning[id].apply(bots[id], registry)
 	_mark_cooling_zones()
+	var lethal := -INF
+	var sink := -INF
+	if arena_id == "maelstrom":
+		var layout: RefCounted = preload("res://scripts/arena/maelstrom_ground.gd").settings()
+		lethal = layout.kill_y
+		sink = layout.kill_y - layout.sink_depth
 	for id: int in bots:
+		bots[id].lethal_fall_y = lethal
+		bots[id].sink_floor_y = sink
 		bots[id].server_tick = tick
 		bots[id].step(delta, active)
 	if active:
@@ -181,8 +185,8 @@ func step(delta: float, active: bool, round_index: int) -> void:
 			continue
 		credited[id] = true
 		bot.body.collision_layer = 0
-		bot.body.collision_mask = 0
-		bot.body.freeze = true
+		bot.body.collision_mask = BaselineConfig.WORLD_LAYER if bot.sinking() else 0
+		bot.body.freeze = not bot.sinking()
 		var latest := -1.0
 		var killer := 0
 		for source_id: int in bot.combat.recent_attackers:
@@ -224,21 +228,12 @@ func clear_bots() -> void:
 func pickup_points() -> Array[Vector3]:
 	var half := ArenaBounds.half_extent(arena_id)
 	var points: Array[Vector3] = []
-	if centre_pickup_enabled:
+	# The Frozen Maelstrom's centre is its bottomless eye.
+	if centre_pickup_enabled and arena_id != "maelstrom":
 		points.append(Vector3.ZERO)
 	for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
 		points.append(Vector3(cos(angle), 0.0, sin(angle)) * half * 0.5)
-	var surface: Script = null
-	if arena_id == "moon":
-		surface = preload("res://scripts/arena/moon_surface.gd")
-	elif arena_id == "woodland":
-		surface = preload("res://scripts/arena/woodland_ground.gd")
-	elif arena_id == "sunreach":
-		surface = preload("res://scripts/arena/sunreach_ground.gd")
-	if surface != null:
-		for index: int in points.size():
-			points[index].y = (surface.support_height(points[index].x, points[index].z) if arena_id == "sunreach" else surface.height_at(points[index].x, points[index].z))
-	return points
+	return _on_surface(points)
 
 ## Stocks every point that is clear of the bots' spawn poses, so nobody collects
 ## an item on the first frame (Practice places the player beside the centre).
@@ -265,17 +260,26 @@ func coolant_points() -> Array[Vector3]:
 	return _on_surface(points)
 
 func _on_surface(points: Array[Vector3]) -> Array[Vector3]:
-	var surface: Script = null
-	if arena_id == "moon":
-		surface = preload("res://scripts/arena/moon_surface.gd")
-	elif arena_id == "woodland":
-		surface = preload("res://scripts/arena/woodland_ground.gd")
-	elif arena_id == "sunreach":
-		surface = preload("res://scripts/arena/sunreach_ground.gd")
-	if surface != null:
+	if _surface() != null:
 		for index: int in points.size():
-			points[index].y = (surface.support_height(points[index].x, points[index].z) if arena_id == "sunreach" else surface.height_at(points[index].x, points[index].z))
+			points[index].y = ground_height(points[index].x, points[index].z)
 	return points
+
+## The terrain script of this arena, or null for a flat floor.
+func _surface() -> Script:
+	match arena_id:
+		"moon": return preload("res://scripts/arena/moon_surface.gd")
+		"woodland": return preload("res://scripts/arena/woodland_ground.gd")
+		"sunreach": return preload("res://scripts/arena/sunreach_ground.gd")
+		"maelstrom": return preload("res://scripts/arena/maelstrom_ground.gd")
+	return null
+
+## Standing height at a floor point (Sunreach includes its bridge decks).
+func ground_height(x: float, z: float) -> float:
+	var surface := _surface()
+	if surface == null:
+		return 0.0
+	return surface.support_height(x, z) if arena_id == "sunreach" else surface.height_at(x, z)
 
 func _mark_cooling_zones() -> void:
 	var relief := HEAT_RELIEF.settings()

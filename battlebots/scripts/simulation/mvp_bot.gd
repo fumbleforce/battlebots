@@ -19,6 +19,13 @@ var last_floor := Vector3.ZERO
 var spawn_pose := Transform3D.IDENTITY
 var body: DriveBody
 var arena_half_extent := ArenaBounds.FOUNDRY_HALF
+## Open-edged arenas (the Frozen Maelstrom, #102; set by AuthorityWorld): below
+## lethal_fall_y a bot is eliminated instead of being put back on its last
+## floor. Its wreck leaves the bots' layer but still lands on the ground below
+## (the sea ice), or falls on down the eye until sink_floor_y.
+var lethal_fall_y := -INF
+var sink_floor_y := -INF
+const FALL_REASON := "maelstrom"
 var remote_state: Dictionary = {}
 var simulated := true
 var presentation: Node3D
@@ -377,13 +384,22 @@ func step(delta: float, active: bool) -> void:
 	var at := body.global_position
 	if body.grounded and ArenaBounds.contains(at, arena_half_extent, safe_radius):
 		last_floor = body.global_position
-	if not ArenaBounds.contains(at, arena_half_extent + 2.0) or at.y < -2:
+	if is_finite(lethal_fall_y):
+		# A pending reset (respawn, new round) has not moved the body up yet.
+		if at.y < lethal_fall_y and not combat.eliminated and body.reset_pose == null:
+			combat.eliminate(FALL_REASON)
+	elif not ArenaBounds.contains(at, arena_half_extent + 2.0) or at.y < -2:
 		body.reset_pose = Transform3D(Basis.IDENTITY, last_floor + Vector3.UP * 0.2)
 		body.sleeping = false
 	if combat.eliminated:
 		body.collision_layer = 0
-		body.collision_mask = 0
-		body.freeze = true
+		body.collision_mask = BaselineConfig.WORLD_LAYER if combat.elimination_reason == FALL_REASON else 0
+		body.freeze = not sinking()
+
+## A wreck the maelstrom took that is still falling (or lying on the sea ice)
+## and has not yet sunk out of sight down the eye.
+func sinking() -> bool:
+	return combat.eliminated and combat.elimination_reason == FALL_REASON and body.global_position.y > sink_floor_y
 
 func reset_round() -> void:
 	if destruction_visual != null: destruction_visual.reset_observation()

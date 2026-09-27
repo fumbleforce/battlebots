@@ -32,8 +32,10 @@ func run() -> void:
 		check(session.practice_director.roamers.is_empty() and session.practice_director.records.size() == 2 + wheels_count, "No pilots or roamers")
 		var target := session.practice_target() as MvpBot
 		var player: MvpBot = session.local_source()
+		# The room's middle, or the arena's own duel centre (#102: the Maelstrom's eye).
+		var centre := ArenaSpawns.settings().duel_centre_for(arena)
 		# #90: the player starts in the middle of the room, with no pickup there.
-		check(Vector2(player.spawn_pose.origin.x, player.spawn_pose.origin.z).length() < 0.5, "%s duel player starts in the middle" % arena)
+		check(Vector2(player.spawn_pose.origin.x - centre.x, player.spawn_pose.origin.z - centre.z).length() < 0.5, "%s duel player starts in the middle" % arena)
 		check(not session.world.pickups.items.any(func(item: Dictionary) -> bool:
 			return item.kind != "coolant" and Vector2(item.point.x, item.point.z).length() < 1.0), "%s duel has no centre pickup" % arena)
 		check(target != null and AtlasGeometry.enabled(target.loadout), "%s duel target is an Atlas MX" % arena)
@@ -50,8 +52,8 @@ func run() -> void:
 		# Rows by depth toward the left wall: front row nearest the room.
 		var depths: Array[float] = []
 		for a: MvpBot in wheels:
-			check(a.spawn_pose.origin.dot(left) > 5.0, "%s monowheel stands on the player's left" % arena)
-			var depth := snappedf(a.spawn_pose.origin.dot(left), 0.01)
+			check((a.spawn_pose.origin - centre).dot(left) > 5.0, "%s monowheel stands on the player's left" % arena)
+			var depth := snappedf((a.spawn_pose.origin - centre).dot(left), 0.01)
 			if not depths.any(func(d: float) -> bool: return absf(d - depth) < 0.05): depths.append(depth)
 		var rows := ArenaSpawns.settings().duel_monowheel_rows
 		check(depths.size() == rows, "%s monowheels stand in %d rows (depths %s)" % [arena, rows, str(depths)])
@@ -76,16 +78,16 @@ func run() -> void:
 		# half_extent out on each axis).
 		var half := ArenaBounds.half_extent(arena)
 		var wheel_reach := -INF
-		for w: MvpBot in wheels: wheel_reach = maxf(wheel_reach, w.spawn_pose.origin.dot(left) + hull.z * 0.5)
+		for w: MvpBot in wheels: wheel_reach = maxf(wheel_reach, (w.spawn_pose.origin - centre).dot(left) + hull.z * 0.5)
 		var atlas_hull := target.collision_bounds().size
-		var far_gap := half - (target.spawn_pose.origin.dot(forward) + atlas_hull.z * 0.5)
-		check(absf(far_gap - (half - wheel_reach)) < 0.3 and absf(target.spawn_pose.origin.dot(left)) < 0.3,
+		var far_gap := half - ((target.spawn_pose.origin - centre).dot(forward) + atlas_hull.z * 0.5)
+		check(absf(far_gap - (half - wheel_reach)) < 0.3 and absf((target.spawn_pose.origin - centre).dot(left)) < 0.3,
 			"%s far Atlas stands straight ahead, %.2f m from its wall like the monowheels (%.2f m)" % [arena, far_gap, half - wheel_reach])
 		check((-target.spawn_pose.basis.z).dot(-forward) > 0.99, "%s far Atlas faces the player" % arena)
 		var atlases := session.world.bots.values().filter(func(b: MvpBot) -> bool: return AtlasGeometry.enabled(b.loadout) and b != target)
 		check(atlases.size() == 1, "%s duel has one shuttling Atlas" % arena)
 		var shuttle: MvpBot = atlases[0]
-		var right_gap := half - (-shuttle.spawn_pose.origin.dot(left) + atlas_hull.x * 0.5)
+		var right_gap := half - (-(shuttle.spawn_pose.origin - centre).dot(left) + atlas_hull.x * 0.5)
 		check(absf(right_gap - (half - wheel_reach)) < 0.3 and shuttle.has_meta("practice_fixture"),
 			"%s shuttle stands on the right, %.2f m from its wall like the monowheels (%.2f m)" % [arena, right_gap, half - wheel_reach])
 		var shuttle_axis := (-shuttle.spawn_pose.basis.z).slide(Vector3.UP).normalized()

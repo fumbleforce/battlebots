@@ -71,8 +71,7 @@ func _run() -> void:
 		session.world.bots[bot.entity_id] = bot
 		var angle := TAU * index / count
 		var at := Vector3(cos(angle), 0, sin(angle)) * 55.0
-		var ground: Script = load("res://scripts/arena/sunreach_ground.gd" if arena_id == "sunreach" else "res://scripts/arena/woodland_ground.gd")
-		at.y = ground.height_at(at.x, at.z) + bot.ground_clearance() + 0.3
+		at.y = session.world.ground_height(at.x, at.z) + bot.ground_clearance() + 0.3
 		var pose := Transform3D(Basis(Vector3.UP, -angle - PI * 0.5), at)
 		bot.spawn_pose = pose
 		bot.body.reset_pose = pose
