@@ -119,11 +119,13 @@ static func grinder_drum(size: Vector3, raise: float) -> Vector3:
 const DRIVE_GEAR := {"traction":"tracks", "standard_wheels":"wheels", "walker":"legs"}
 
 static func enabled(draft: Dictionary) -> bool:
-	return draft.get("parts", {}).get("chassis") in ["atlas_mx", "bracken"]
+	var parts: Variant = draft.get("parts")
+	return parts is Dictionary and parts.get("chassis") in ["atlas_mx", "bracken"]
 
 ## Bracken uses the shared articulation frame with its own narrower body/bores.
 static func bracken_enabled(draft: Dictionary) -> bool:
-	return draft.get("parts", {}).get("chassis") == "bracken"
+	var parts: Variant = draft.get("parts")
+	return parts is Dictionary and parts.get("chassis") == "bracken"
 
 static var _bracken_geometry: Dictionary = {}
 

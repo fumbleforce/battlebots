@@ -87,3 +87,7 @@ PASS A nimble bot refuses part pickups
 PASS Perk choices stay free on a nimble bot
 PASS Revision-16 saves migrate to catalogue 17 unchanged
 NIMBLE GARAGE PASS
+
+Malformed-save CI follow-up:
+MENU PROFILE PASS
+BRACKEN MODEL PASS

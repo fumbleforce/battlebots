@@ -42,6 +42,10 @@ contacts in the sampled audit.
 - `baseline_smoke.gd`, `atlas_catalogue.gd`, `atlas_turret_physics.tscn`,
   `atlas_turret_visual_test.tscn`, and the complete stale-class-cache startup
   check pass. The latter includes its real headless menu-flow launch.
+- CI exposed a malformed-save case in `menu_profile_test.gd`; Atlas/Bracken
+  classification now checks that `parts` is a dictionary before looking up the
+  chassis. The existing malformed-save test and Bracken model check pass after
+  the fix. This changes no valid loadout or wire/gameplay rule.
 - Source BVH sweep checks 72 turret bearings at the published lower limit,
   neutral and +30 degrees. Track clearance covers all fixed hull and drive
   parts at the authored phase. Geometry corrections removed bearing overlap,
