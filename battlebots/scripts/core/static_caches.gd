@@ -8,6 +8,7 @@ extends RefCounted
 ## Script path -> static members to release (null for objects, clear() for
 ## collections).
 const CACHES := {
+	"res://scripts/arena/sunreach_ground.gd": ["_layout", "_hulls"],
 	"res://scripts/core/bot_physics.gd": ["_loaded"],
 	"res://scripts/core/front_tool_tuning.gd": ["_loaded"],
 	"res://scripts/core/arena_spawns.gd": ["_loaded"],

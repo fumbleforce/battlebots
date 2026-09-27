@@ -16,7 +16,7 @@ func frames(count: int) -> void:
 		await process_frame
 
 func run() -> void:
-	for arena: String in ["foundry", "woodland", "moon"]:
+	for arena: String in ArenaBounds.IDS:
 		var session := MvpSession.new()
 		root.add_child(session)
 		check(session.practice(session.registry.starter(), arena, "nonsense") == ERR_INVALID_PARAMETER, "Unknown practice kinds are refused")

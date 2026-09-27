@@ -12,11 +12,14 @@ func apply_text_scale(factor: float) -> void:
 	%DetailName.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	%Eyebrow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Layout/Header/Row/TitleBox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	$Layout/Body/Row/Details/Col/ArtBox.custom_minimum_size.y = 180 if factor > 1.0 else 300
+	$Layout/Body/Row/Details/Col/ArtBox.custom_minimum_size.y = 100 if factor > 1.0 else 300
 	for tile: Control in %Tiles.get_children():
 		if not tile.has_meta("base_tile_height"):
 			tile.set_meta("base_tile_height", tile.custom_minimum_size.y)
 		tile.custom_minimum_size.y = maxf(float(tile.get_meta("base_tile_height")), 340 * factor)
+		tile.get_node("Inner/Col/ArtBox").custom_minimum_size.y = 150 if factor > 1.0 else 230
+		tile.get_node("Inner/Col/Text").add_theme_constant_override("margin_left", 12)
+		tile.get_node("Inner/Col/Text").add_theme_constant_override("margin_right", 12)
 
 
 func _ready() -> void:

@@ -17,8 +17,8 @@ const MAX_CONTROL_STATE_BYTES := 131072 # Ten players, up to five detailed round
 # Arena content this client understands. Older clients cannot build newer arenas,
 # so a host rejects them with a visible update message rather than a bad world.
 # 1 = Moon, 2 = Woodland.
-const ARENA_RULES := 2
-const ARENA_MIN_RULES := {"moon":1, "woodland":2}
+const ARENA_RULES := 3
+const ARENA_MIN_RULES := {"moon":1, "woodland":2, "sunreach":3}
 
 var registry := ContentRegistry.new()
 var match_state := MatchState.new()

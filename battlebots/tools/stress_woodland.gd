@@ -18,6 +18,7 @@ var fighters: Array[MvpBot]:
 				out.append(session.world.bots[id])
 		return out
 var _clock := 0.0
+var arena_id := "woodland"
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -44,6 +45,8 @@ func _run() -> void:
 		if arg.begins_with("--size="):
 			var parts := arg.substr(7).split("x")
 			root.size = Vector2i(int(parts[0]), int(parts[1]))
+		elif arg.begins_with("--arena="):
+			arena_id = arg.substr(8)
 		elif arg.begins_with("--bots="):
 			count = int(arg.substr(7))
 		elif arg.begins_with("--seconds="):
@@ -53,7 +56,7 @@ func _run() -> void:
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	session = MvpSession.new()
 	root.add_child(session)
-	session.practice({}, "woodland")
+	session.practice({}, arena_id)
 	var registry := ContentRegistry.new()
 	registry.enforce_budget = false
 	var next := 100
@@ -64,11 +67,12 @@ func _run() -> void:
 			print("SKIP invalid build ", draft.parts)
 			continue
 		session.world.add_child(bot)
-		bot.arena_half_extent = ArenaBounds.half_extent("woodland")
+		bot.arena_half_extent = ArenaBounds.half_extent(arena_id)
 		session.world.bots[bot.entity_id] = bot
 		var angle := TAU * index / count
 		var at := Vector3(cos(angle), 0, sin(angle)) * 55.0
-		at.y = preload("res://scripts/arena/woodland_ground.gd").height_at(at.x, at.z) + bot.ground_clearance() + 0.3
+		var ground: Script = load("res://scripts/arena/sunreach_ground.gd" if arena_id == "sunreach" else "res://scripts/arena/woodland_ground.gd")
+		at.y = ground.height_at(at.x, at.z) + bot.ground_clearance() + 0.3
 		var pose := Transform3D(Basis(Vector3.UP, -angle - PI * 0.5), at)
 		bot.spawn_pose = pose
 		bot.body.reset_pose = pose
@@ -136,11 +140,19 @@ func _run() -> void:
 	for list: Array[float] in [frames, gpu, cpu, physics_ms]:
 		list.sort()
 	var pct := func(list: Array[float], q: float) -> float: return snappedf(list[mini(list.size() - 1, int(list.size() * q))], 0.1)
-	print("STRESS %dx%d bots=%d(+giant+3 practice) seconds=%d frames=%d" % [root.size.x, root.size.y, fighters.size(), seconds, frames.size()])
+	print("STRESS arena=" + arena_id + " %dx%d bots=%d(+practice) seconds=%d frames=%d" % [root.size.x, root.size.y, fighters.size(), seconds, frames.size()])
 	print("STRESS frame median=", pct.call(frames, 0.5), " p95=", pct.call(frames, 0.95), " p99=", pct.call(frames, 0.99), " max=", snappedf(frames[-1], 0.1))
 	print("STRESS gpu median=", pct.call(gpu, 0.5), " p95=", pct.call(gpu, 0.95), " | cpu render median=", pct.call(cpu, 0.5),
 		" | physics median=", pct.call(physics_ms, 0.5), " p95=", pct.call(physics_ms, 0.95))
 	print("STRESS peaks ", peak, " turret shots=", shots, " eliminated=", eliminated)
+	if arena_id == "sunreach":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://exports/sunreach-review/battle.png")
+		session.leave()
+		session.queue_free()
+		await process_frame
+		quit()
+		return
 	# Paired attribution while the fight continues (minimum GPU ms, on/off/on).
 	var env: Environment = (session.world.arena.get_node("WorldEnvironment") as WorldEnvironment).environment
 	var sun: DirectionalLight3D = session.world.arena.get_node("Sun")

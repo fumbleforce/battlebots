@@ -1547,3 +1547,22 @@ Build `mvp-ab-46`, protocol 15 (new baseline field). Every Woodland match
   Woodland and never over a player id, then apply snapshots as for remote bots.
 - Its drop is the Practice one: a single-use top-tier part pickup (id
   9000 + giant id) through the replicated `MatchPickups`.
+
+## Sunreach Ruins arena — build mvp-ab-55 (#101)
+
+`sunreach` joins the arena ID list for Practice and private LAN sessions. The
+server chooses the scene; clients require `arena_rules >= 3`. Protocol 17 and
+catalogue 19 remain unchanged. Existing arena IDs and their rules are retained.
+The 240 m octagonal boundary, shared baked 1 m terrain, bridge decks, rock hulls,
+ruins and trunks load identically on headless servers and clients. The build
+bump rejects stale content. Export presets include the nested terrain bake data.
+
+`data/sunreach/layout.json` and the arena spawn table are the source inputs;
+`art_source/sunreach/build_arena.py` exports visual geometry and collision from
+the same vertices. `sunreach_ground.gd` loads the shared data and samples terrain
+triangles; `support_height` also includes bridge decks for spawn/pickup placement.
+Terrain bake fingerprints are checked by the arena test. Presentation creates
+no gameplay bodies. Streams are shallow traversable terrain, without a new
+hazard/damage rule. Ruins are static cover; robot destruction remains generic.
+Practice Duel's side positions use the arena-specific 0.2 fraction and level
+pads, avoiding the river crossings and cover.
