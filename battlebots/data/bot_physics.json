@@ -21,7 +21,7 @@
 		"_comment": "Multipliers over catalogue drive values. rolling_resistance_multiplier scales the released-throttle coast deceleration (motor controllers brake hard) so knocked hulls stop instead of sliding; brakes stay stronger than coasting.",
 		"acceleration_multiplier": 2.6,
 		"top_speed_multiplier": 1.5,
-		"grip_multiplier": 3.0,
+		"grip_multiplier": 3.75,
 		"yaw_acceleration_multiplier": 2.2,
 		"yaw_torque_grip_fraction": 0.9,
 		"rolling_resistance_multiplier": 13.0,

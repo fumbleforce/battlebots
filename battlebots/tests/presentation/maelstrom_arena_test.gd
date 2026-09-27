@@ -52,7 +52,21 @@ func _run() -> void:
 	var obstacles := arena.get_node("MaelstromObstacles")
 	check(obstacles.get_child_count() == items.size(), "Obstacle bodies differ from the list")
 	for body: StaticBody3D in obstacles.get_children():
-		check(body.collision_layer == 1 and body.collision_mask == 2, "Obstacle layers differ from the arena shell")
+		check(body.collision_layer & ~BaselineConfig.PROP_LAYER == 1 and body.collision_mask == 2, "Obstacle layers differ from the arena shell")
+	# Breakables: mirrored, registered as ArenaProps with their prefixes, off the pads.
+	var breakables := GROUND.breakables()
+	check(breakables.size() >= 20 and arena.get_node("MaelstromBreakables").get_child_count() == breakables.size(), "Breakable props missing")
+	var seracs := items.filter(func(item: Dictionary) -> bool: return String(item.model).begins_with("ice_shards"))
+	check(world.props.props.size() == breakables.size() + seracs.size(), "Every serac, icicle, barrel and crate registers as a prop (%d)" % world.props.props.size())
+	for item: Dictionary in breakables:
+		check(breakables.any(func(o: Dictionary) -> bool: return o.kind == item.kind and o.at.distance_to(Vector3(-item.at.x, item.at.y, -item.at.z)) < 0.01), "Breakable lacks its mirror: %s" % item.name)
+		check(GROUND.on_ice(item.at.x, item.at.z), "Breakable %s stands off the ice" % item.name)
+	for kind: String in ["barrel", "serac"]:
+		var target: String = world.props.props.keys().filter(func(n: String) -> bool: return world.props.props[n].kind == kind)[0]
+		var body: StaticBody3D = world.props.props[target].body
+		check(world.props.damage(target, 5000.0, "cannon", body.global_position, Vector3.FORWARD) >= 0.0 and body.collision_layer == 0,
+			"A %s breaks and stops colliding" % kind)
+	world.props.reset_round()
 	# Gentle ice: nothing between the rim and the eye is steep enough to slide on,
 	# except the authored slab ramps and their drop edges.
 	var steep := 0
@@ -83,7 +97,11 @@ func _run() -> void:
 	for offset: Vector3 in [Vector3.ZERO, Vector3(0, 0, -reach), Vector3(-reach, 0, 0), Vector3(reach, 0, 0)]:
 		clear_points.append(duel + offset)
 	var others: Array[Vector3] = world.pickup_points() + world.cooling_zones() + world.coolant_points()
+	var starts := clear_points.size()
+	var index := 0
 	for point: Vector3 in clear_points + others:
+		var is_start := index < starts
+		index += 1
 		check(GROUND.on_ice(point.x, point.z) and Vector2(point.x, point.z).length() > cfg.eye_radius + 8.0, "%s is not on the ice" % str(point))
 		var clearance := SphereShape3D.new()
 		clearance.radius = 7.0
@@ -91,11 +109,14 @@ func _run() -> void:
 		query.shape = clearance
 		query.collision_mask = 1
 		query.transform.origin = Vector3(point.x, GROUND.height_at(point.x, point.z) + 7.3, point.z)
-		var hits := space.intersect_shape(query).filter(func(hit: Dictionary) -> bool: return hit.collider.name != "MaelstromIce")
+		# Starts must be clear of everything; pickups and cooling points may sit
+		# beside a breakable barrel or icicle.
+		var hits := space.intersect_shape(query).filter(func(hit: Dictionary) -> bool: return _crowds(hit, is_start))
 		check(hits.is_empty(), "Obstacle crowds %s: %s" % [str(point), str(hits.map(func(hit: Dictionary) -> String: return String(hit.collider.name)))])
 	for point: Vector3 in clear_points:
-		for dx: float in [-8.0, 0.0, 8.0]:
-			for dz: float in [-8.0, 0.0, 8.0]:
+		for dx: float in [-5.0, 0.0, 5.0]:
+			for dz: float in [-5.0, 0.0, 5.0]:
+				# Terraces cut into the tilt: level where the bots park.
 				check(absf(GROUND.height_at(point.x + dx, point.z + dz) - GROUND.height_at(point.x, point.z)) < 0.05, "Pad is not level at %s" % str(point))
 	# The two teams start on opposite sides of the eye.
 	var first: Vector3 = arena.get_node("SpawnPoints/Team1_3").position
@@ -121,10 +142,13 @@ func _run() -> void:
 	print("MAELSTROM PASS" if failures == 0 else "MAELSTROM FAIL")
 	quit(0 if failures == 0 else 1)
 
+func _crowds(hit: Dictionary, is_start: bool) -> bool:
+	return hit.collider.name != "MaelstromIce" and (is_start or hit.collider.collision_layer & BaselineConfig.PROP_LAYER == 0)
+
 func _on_slab(p: Vector2, cfg: RefCounted) -> bool:
 	for slab: Dictionary in cfg.slabs:
 		for sign: float in [1.0, -1.0]:
-			if p.distance_to(Vector2(float(slab.at[0]), float(slab.at[1])) * sign) < Vector2(float(slab.length), float(slab.width)).length() * 0.5 + 1.5:
+			if p.distance_to(Vector2(float(slab.at[0]), float(slab.at[1])) * sign) < Vector2(float(slab.length), float(slab.width)).length() * 0.5 + 4.0:
 				return true
 	return false
 
@@ -158,7 +182,7 @@ func _capture(world: AuthorityWorld) -> void:
 		["stern", Vector3(-48, 6.0, -2), Vector3(-66, 6.0, -24)],
 		["deck", Vector3(-68, 5.0, -36), Vector3(-80, 3.0, -58)],
 		["keel", Vector3(-28, 4.0, 46), Vector3(-46, 4.0, 30)],
-		["rim", Vector3(-88, 10.0, -76), Vector3(-150, -14.0, -110)],
+		["rim", Vector3(-92, 16.0, -70), Vector3(-150, 6.0, -100)],
 		["spire", Vector3(-70, 6.0, 30), Vector3(-104, 14.0, 16)],
 		["banner", Vector3(-72, 6.0, 30), Vector3(-66, 14.0, 44)],
 		# Arena-select card (ui/menus/art/arena_maelstrom.jpg): across the eye toward the wrecks.

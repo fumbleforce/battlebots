@@ -9,6 +9,9 @@ const SCRIPT := "res://scripts/simulation/arena_props.gd"
 const PATH := "res://data/arena_props.json"
 const GROUND := preload("res://scripts/arena/woodland_ground.gd")
 const OBSTACLE_META := &"woodland_obstacle"
+## Any other arena marks a breakable body with this meta: {kind, name, at,
+## radius} (the Frozen Maelstrom's seracs, icicles, barrels and crates, #102).
+const PROP_META := &"arena_prop"
 ## Body-frame bounds on a replicated break record (m).
 const RECORD_POINT_MAX := 400.0
 const RECORD_KIND_MAX := 24
@@ -103,15 +106,16 @@ func configure(arena: Node) -> void:
 		return
 	var kinds: Dictionary = settings().kinds
 	for body: Node in arena.find_children("*", "StaticBody3D", true, false):
-		if not body.has_meta(OBSTACLE_META) or props.size() >= MAX_PROPS:
+		if props.size() >= MAX_PROPS or not (body.has_meta(OBSTACLE_META) or body.has_meta(PROP_META)):
 			continue
-		var item: Dictionary = body.get_meta(OBSTACLE_META)
+		var woodland := body.has_meta(OBSTACLE_META)
+		var item: Dictionary = body.get_meta(OBSTACLE_META if woodland else PROP_META)
 		var rule: Dictionary = kinds.get(item.get("kind", ""), {})
 		if rule.is_empty() or not rule.names.any(func(prefix: String) -> bool: return str(item.name).begins_with(prefix)):
 			continue
 		body.collision_layer |= BaselineConfig.PROP_LAYER
 		props[item.name] = {"body":body, "kind":item.kind, "hp":rule.hp, "max":rule.hp, "at":item.at,
-			"radius":GROUND.footprint(item), "layer":body.collision_layer, "mask":body.collision_mask}
+			"radius":GROUND.footprint(item) if woodland else float(item.radius), "layer":body.collision_layer, "mask":body.collision_mask}
 		_names[body.get_instance_id()] = item.name
 
 ## Prop name for a physics collider id, or "" when it is not a live prop.

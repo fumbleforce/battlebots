@@ -392,49 +392,74 @@ def rigging(m, a, b, sag=.6):
 
 # --- Crew ------------------------------------------------------------------
 
-def figure(m, xf, pose='stand', scale=1.0):
-    """A frozen soldier: iron limbs, fleet tabard, iron helm; shields and
-    pennons carry the fleet's emblem."""
-    s = scale
+# Final moments before the cold took them: nobody is fighting any more.
+POSES = {
+    # Sitting, knees drawn up, arms locked round the shins, face on the knees.
+    'huddle': {'hip': (0, .28, .05), 'knee_l': (-.16, .72, -.33), 'knee_r': (.16, .72, -.33), 'foot_l': (-.16, .06, -.46),
+               'foot_r': (.16, .06, -.46), 'chest': (0, .82, -.12), 'head': (0, .98, -.36), 'elbow_l': (-.36, .66, -.36),
+               'elbow_r': (.36, .66, -.36), 'hand_l': (.1, .58, -.52), 'hand_r': (-.1, .6, -.5)},
+    # Kneeling, folded forward, head hanging, arms dropped to the ice.
+    'slump': {'hip': (0, .56, .12), 'knee_l': (-.15, .12, -.24), 'knee_r': (.15, .12, -.24), 'foot_l': (-.15, .05, .3),
+              'foot_r': (.15, .05, .3), 'chest': (0, .98, -.3), 'head': (0, .92, -.62), 'elbow_l': (-.32, .6, -.36),
+              'elbow_r': (.32, .6, -.36), 'hand_l': (-.26, .18, -.46), 'hand_r': (.27, .2, -.44)},
+    # Standing against the rail or mast, arms clamped across the chest, head down.
+    'lean': {'hip': (0, .92, .05), 'knee_l': (-.14, .48, -.06), 'knee_r': (.14, .48, -.03), 'foot_l': (-.15, 0, 0),
+             'foot_r': (.15, 0, .02), 'chest': (0, 1.5, .1), 'head': (0, 1.66, -.1), 'elbow_l': (-.3, 1.18, -.16),
+             'elbow_r': (.3, 1.2, -.16), 'hand_l': (.14, 1.38, -.2), 'hand_r': (-.14, 1.36, -.2)},
+    # Kneeling upright, hands pressed together at the face, head bowed.
+    'prayer': {'hip': (0, .56, .15), 'knee_l': (-.15, .1, -.2), 'knee_r': (.15, .1, -.2), 'foot_l': (-.15, .05, .32),
+               'foot_r': (.15, .05, .32), 'chest': (0, 1.14, .04), 'head': (0, 1.28, -.14), 'elbow_l': (-.24, .94, -.2),
+               'elbow_r': (.24, .94, -.2), 'hand_l': (-.03, 1.16, -.3), 'hand_r': (.03, 1.16, -.3)},
+}
+POSE_ALIASES = {'stand': 'lean', 'kneel': 'slump', 'reach': 'prayer', 'fallen': 'curl'}
 
-    def P(x, y, z):
-        return xf @ V(x * s, y * s, z * s)
-    if pose == 'fallen':
-        body = rot(0, -math.pi / 2 + .1, R.uniform(-.3, .3), (0, .2, 0))
-        xf = xf @ body
-    if pose == 'kneel':
-        m.beam('iron', P(-.15, .0, .1), P(-.15, .5, -.3), .1, sides=4)
-        m.beam('iron', P(-.15, .5, -.3), P(-.15, .55, .15), .1, sides=4)
-        m.beam('iron', P(.15, 0, -.35), P(.15, .55, -.3), .1, sides=4)
-        m.beam('iron', P(.15, .55, -.3), P(.15, .6, .1), .1, sides=4)
-        hip = .62
-    else:
-        for x in (-.14, .14):
-            m.beam('iron', P(x, 0, 0), P(x, .9, 0), .1, .12, sides=4)
-        hip = .92
-    torso = [P(x, hip + y, z) for x in (-.26, .26) for y in (0, .62) for z in (-.14, .14)]
-    m.solid('cloth', torso + [P(0, hip - .25, -.16), P(0, hip - .25, .16)])  # tabard
-    m.solid('iron', [P(x, hip + y, z) for x in (-.3, .3) for y in (.55, .72) for z in (-.17, .17)])  # pauldrons
-    head = V(0, hip + .9, 0)
-    m.solid('skin', [P(x, head.y + y, z) for x in (-.11, .11) for y in (-.12, .12) for z in (-.12, .1)])
-    m.solid('iron', [P(x, head.y + y, z) for x in (-.14, .14) for y in (.04, .18) for z in (-.15, .14)] + [P(0, head.y + .32, 0)])  # peaked helm
-    sh = hip + .6
-    if pose in ('stand', 'fallen'):
-        m.beam('iron', P(-.3, sh, 0), P(-.36, sh - .6, -.15), .07, sides=4)
-        m.beam('iron', P(.3, sh, 0), P(.45, sh - .3, -.35), .07, sides=4)
-        m.beam('wood', P(.46, -.1 if pose == 'stand' else .1, -.4), P(.46, 2.4, -.4), .03, sides=3)  # spear
-        m.spike('iron', P(.46, 2.4, -.4), P(.46, 2.75, -.4), .06, sides=3)
-    elif pose == 'reach':
-        m.beam('iron', P(-.3, sh, 0), P(-.4, sh + .6, -.3), .07, sides=4)
-        m.beam('iron', P(.3, sh, 0), P(.35, sh + .7, -.2), .07, sides=4)
-    else:  # kneel behind a shield
-        m.beam('iron', P(-.3, sh, 0), P(-.2, sh - .2, -.4), .07, sides=4)
-        m.beam('iron', P(.3, sh, 0), P(.35, sh - .5, -.3), .07, sides=4)
-        c = V(0, hip + .1, -.45)
-        m.sheet('banner', lambda u, v: P(c.x + (u - .5) * .9, c.y + (.5 - v) * 1.1, c.z - .08 * math.sin(math.pi * u)), 4, 4)
-    for x in (-.2, .2):  # frost beard
-        m.spike('ice', P(x, sh - .05, -.15), P(x, sh - .4, -.18), .04, sides=3)
 
+def figure(m, xf, pose='lean', scale=1.0):
+    """A soldier frozen where they gave up: iron limbs, fleet tabard, iron helm,
+    rimed with ice. A dropped shield beside some carries the fleet's emblem."""
+    pose = POSE_ALIASES.get(pose, pose)
+    curl = pose == 'curl'
+    if curl:
+        # Lying on the side, curled tight, one arm over the head.
+        pose = 'huddle'
+        xf = xf @ rot(0, 0, math.pi / 2 * R.choice([-1, 1]), (0, .3, 0))
+    J = {k: V(v) * scale for k, v in POSES[pose].items()}
+    if curl:
+        J['hand_r'] = V(.15, 1.08, -.18) * scale
+        J['elbow_r'] = V(.3, .98, -.12) * scale
+    J = {k: v + V(R.uniform(-.03, .03), 0, R.uniform(-.03, .03)) for k, v in J.items()}
+
+    def P(v):
+        return xf @ v
+    side = V(1, 0, 0)
+    up = (J['chest'] - J['hip']).normalized()
+    fwd = side.cross(up).normalized()
+    for s in ('l', 'r'):
+        hip = J['hip'] + side * (-.13 if s == 'l' else .13)
+        m.beam('iron', P(hip), P(J['knee_' + s]), .11, .1, sides=5)
+        m.beam('iron', P(J['knee_' + s]), P(J['foot_' + s]), .1, .08, sides=5)
+        m.solid('iron', [P(J['foot_' + s] + V(x, y, z)) for x in (-.07, .07) for y in (-.04, .06) for z in (-.16, .08)])
+    torso = [J['hip'] + side * x + fwd * z for x in (-.2, .2) for z in (-.14, .14)]
+    torso += [J['chest'] + side * x + fwd * z for x in (-.26, .26) for z in (-.15, .15)]
+    torso += [J['hip'] - up * .22 + fwd * z for z in (-.16, .16)]
+    m.solid('cloth', [P(p) for p in torso])  # tabard
+    m.solid('iron', [P(J['chest'] + side * x + up * y + fwd * z) for x in (-.3, .3) for y in (-.08, .08) for z in (-.17, .17)])  # pauldrons
+    h = J['head']
+    m.solid('skin', [P(h + V(x, y, z)) for x in (-.11, .11) for y in (-.12, .12) for z in (-.12, .1)])
+    m.solid('iron', [P(h + V(x, y, z)) for x in (-.14, .14) for y in (.04, .18) for z in (-.15, .14)] + [P(h + V(0, .3, 0))])  # helm
+    for s in ('l', 'r'):
+        shoulder = J['chest'] + side * (-.3 if s == 'l' else .3)
+        m.beam('iron', P(shoulder), P(J['elbow_' + s]), .075, .07, sides=5)
+        m.beam('iron', P(J['elbow_' + s]), P(J['hand_' + s]), .07, .06, sides=5)
+        # Ice drips off forearms and chin.
+        l = R.uniform(.1, .35)
+        m.spike('ice', P(J['elbow_' + s]), P(J['elbow_' + s] - V(0, l, 0)), .035, sides=3)
+    m.spike('ice', P(h + V(0, -.12, -.1)), P(h + V(0, -.42, -.12)), .045, sides=3)
+    if R.random() < .45:
+        # A dropped shield lying on the ice beside them.
+        c = V(R.choice([-.7, .7]), .03, R.uniform(-.4, .2)) * scale
+        tilt = rot(R.random() * math.tau, -math.pi / 2 + R.uniform(-.2, .2), 0, tuple(c))
+        m.sheet('banner', lambda u, v: xf @ tilt @ V((u - .5) * .9, (.5 - v) * 1.1, .06 * math.sin(math.pi * u)), 4, 4)
 
 def crew_on(m, xf, spots):
     for (x, y, z, yaw, pose) in spots:
@@ -467,12 +492,9 @@ def debris_field(m, xf, count, radius, y=0.0):
     for i in range(count):
         a = R.random() * math.tau; r = R.uniform(.3, 1) * radius
         at = xf @ rot(R.random() * math.tau, 0, 0, (math.cos(a) * r, y, math.sin(a) * r))
-        kind = R.random()
-        if kind < .3:
-            barrel(m, at, R.random() < .5)
-        elif kind < .5:
-            m.box('wood', at @ rot(0, 0, R.uniform(-.3, .3)), (1, .8, .8), (0, .3, 0))
-        elif kind < .8:  # broken planks, jutting out of the ice
+        # Barrels and crates are separate breakable props (maelstrom_ground.gd).
+        kind = R.uniform(.5, 1.0)
+        if kind < .8:  # broken planks, jutting out of the ice
             l = R.uniform(2, 5)
             m.box('deck', at @ rot(0, R.uniform(-.9, -.2), 0), (.35, .1, l), (0, 0, l * .4))
         else:
@@ -884,11 +906,51 @@ def eye_vortex():
         for t in (0, .5, 1):
             aa = a + sweep * t
             rr = r0 - t * t * R.uniform(2, 5)
-            y = -2.5 + h * math.sin(t * math.pi * .7)
+            y = -1.0 - h * .8 * t * t
             for w in (-1, 1):
                 pts.append(V(math.cos(aa + w * .025) * rr, y + w * .3, math.sin(aa + w * .025) * rr))
-        pts.append(V(math.cos(a + sweep * 1.2) * (r0 - 6), -1 + h * .3, math.sin(a + sweep * 1.2) * (r0 - 6)))
+        pts.append(V(math.cos(a + sweep * 1.2) * (r0 - 6), -1.5 - h, math.sin(a + sweep * 1.2) * (r0 - 6)))
         m.solid('ice', pts, tint=R.random())
+    return m
+
+
+@model
+def icicle_cluster():
+    """A breakable clump of great icicles grown up out of the sheet, where spray
+    froze as it fell."""
+    m = Model('icicle_cluster')
+    pts = []
+    for i in range(6):
+        a = R.random() * math.tau; r = R.uniform(0, 1.3)
+        base = V(math.cos(a) * r, -.4, math.sin(a) * r)
+        h = R.uniform(1.8, 5.2) * (1.0 if i else 1.2)
+        tip = base + V(math.cos(a) * R.uniform(.2, .9), h, math.sin(a) * R.uniform(.2, .9))
+        pts += m.spike('ice', base, tip, R.uniform(.35, .7), sides=5)
+    m.hulls.append(pts)
+    return m
+
+
+@model
+def barrel_prop():
+    m = Model('barrel')
+    barrel(m, Matrix(), False)
+    m.hulls.append([V(math.cos(j * math.tau / 8) * .47, y, math.sin(j * math.tau / 8) * .47) for j in range(8) for y in (0, .9)])
+    return m
+
+
+@model
+def crate():
+    m = Model('crate')
+    size = 1.3
+    for y in range(4):
+        for z in (-1, 1):
+            m.box('wood', Matrix(), (size, .3, .08), (0, .18 + y * .32, z * size / 2))
+            m.box('wood', Matrix(), (.08, .3, size), (z * size / 2, .18 + y * .32, 0))
+    m.box('deck', Matrix(), (size, .08, size), (0, 1.3, 0))
+    for x in (-1, 1):
+        for z in (-1, 1):
+            m.box('iron', Matrix(), (.12, 1.34, .12), (x * size / 2, .67, z * size / 2))
+    m.hulls.append([V(x * size * .52, y, z * size * .52) for x in (-1, 1) for y in (0, 1.36) for z in (-1, 1)])
     return m
 
 

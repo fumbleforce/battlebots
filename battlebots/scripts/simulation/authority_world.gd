@@ -177,6 +177,8 @@ func step(delta: float, active: bool, round_index: int) -> void:
 		bots[id].sink_floor_y = sink
 		bots[id].server_tick = tick
 		bots[id].step(delta, active)
+	if arena_id == "maelstrom":
+		_break_through_sea_ice()
 	if active:
 		weapons.step(delta, bots, tick, round_index)
 	for id: int in bots:
@@ -185,7 +187,7 @@ func step(delta: float, active: bool, round_index: int) -> void:
 			continue
 		credited[id] = true
 		bot.body.collision_layer = 0
-		bot.body.collision_mask = BaselineConfig.WORLD_LAYER if bot.sinking() else 0
+		bot.body.collision_mask = 0
 		bot.body.freeze = not bot.sinking()
 		var latest := -1.0
 		var killer := 0
@@ -206,6 +208,16 @@ func step(delta: float, active: bool, round_index: int) -> void:
 				bots[source_id].combat.assists += 1
 	if active:
 		_collect_pickups(delta)
+
+## Frozen Maelstrom (#102): the sea around the ring is thin ice. A bot whose
+## centre leaves the ring goes through it (MvpBot.FALL_REASON) and sinks.
+func _break_through_sea_ice() -> void:
+	var ground: Script = _surface()
+	for id: int in bots:
+		var bot: MvpBot = bots[id]
+		var at := bot.body.global_position
+		if not bot.combat.eliminated and bot.body.reset_pose == null and ground.outside_ring(at.x, at.z):
+			bot.combat.eliminate(MvpBot.FALL_REASON)
 
 func combatants() -> Dictionary:
 	var result := {}

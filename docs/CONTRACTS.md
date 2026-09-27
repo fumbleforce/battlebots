@@ -1592,3 +1592,20 @@ catalogue are unchanged; the build bump rejects stale peers.
   `duel.centre_by_arena` (read by `ArenaSpawns.duel_centre_for`) lays the
   Practice Duel out around [0, 76] instead of the arena centre. The Sunreach
   bake fingerprint of this file was refreshed; its Sunreach inputs are unchanged.
+## Frozen Maelstrom rework, breakable props anywhere, more grip — build mvp-ab-57 (#102)
+
+- `ARENA_RULES` 5 (`maelstrom` needs 5). The ring now tilts down toward the eye
+  (`bowl.tilt`, eased to `lane_share` along the team lanes' Z axis) and ends at
+  a low rim 0.5 m above the frozen sea. Leaving the ring is fatal horizontally:
+  `AuthorityWorld` eliminates (reason `"maelstrom"`) a bot whose centre is more
+  than `bowl.exit_margin` beyond the rim (`maelstrom_ground.outside_ring`);
+  below `kill_y` still eliminates. Wrecks drop out of collision and sink.
+  Start pads are level terraces; pads whose blends overlap share one height.
+- `motor.grip_multiplier` 3.0 -> 3.75 in `data/bot_physics.json` (all arenas):
+  less sliding on slopes and in turns.
+- `ArenaProps` accepts any arena's bodies carrying meta `arena_prop`
+  `{kind, name, at, radius}` besides Woodland's `woodland_obstacle`. New kinds in
+  `data/arena_props.json`: `serac` (IceShards*), `icicle`, `barrel`, `crate`.
+  `ArenaPropVisual` bursts these (and boulders) into smaller copies of the
+  broken mesh (`CHUNKS`); presentation must expose `prop_instances(name)`.
+- Practice Duel on the Maelstrom uses side fraction 0.15 (centre [0, 76]).

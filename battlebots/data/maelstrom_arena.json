@@ -1,5 +1,5 @@
 {
-	"_comment": "Frozen Maelstrom arena (#102), read by scripts/arena/maelstrom_ground.gd. Game metres, Y up, arena centre at the origin. Gameplay values: changing any of them is a gameplay change (bump WireCodec.BUILD). The playable ice is a ring between the eye and the jagged rim, a rolling plateau that sags into a funnel toward the eye and rises to a lip at the rim (bowl), ringed by rim cliffs down to the frozen sea (sea_level) and falling into the bottomless eye (eye_depth). A bot whose origin drops below kill_y is eliminated (reason 'maelstrom') instead of being put back on its last floor; its wreck keeps falling onto the sea ice, or sinks sink_depth below kill_y in the eye. Obstacles are authored for one half and mirrored through the centre, with the fleets swapped, so both teams face identical ground. Model hulls come from data/maelstrom_hulls.json (art_source/maelstrom/build_kit.py).",
+	"_comment": "Frozen Maelstrom arena (#102), read by scripts/arena/maelstrom_ground.gd. Game metres, Y up, arena centre at the origin. Gameplay values: changing any of them is a gameplay change (bump WireCodec.BUILD). The playable ice is a ring between the eye and the jagged rim, tilting down toward the bottomless eye (eye_depth) and ending at a low rim over the thin frozen sea. A bot whose origin drops below kill_y, or whose centre leaves the ring onto the sea, is eliminated (reason 'maelstrom') instead of being put back on its last floor; its wreck breaks through and sinks until sink_depth below kill_y. Obstacles are authored for one half and mirrored through the centre, with the fleets swapped, so both teams face identical ground. Model hulls come from data/maelstrom_hulls.json (art_source/maelstrom/build_kit.py).",
 	"half": 144.0,
 	"grid_step": 1.0,
 	"rim_radius": 125.0,
@@ -8,23 +8,22 @@
 	"eye_radius": 16.0,
 	"eye_jag": 1.2,
 	"eye_teeth": 20,
-	"sea_level": -16.0,
 	"eye_depth": -60.0,
 	"kill_y": -6.0,
 	"sink_depth": 40.0,
 	"pad_radius": 13.0,
-	"pad_blend": 13.0,
+	"pad_blend": 22.0,
 	"bowl": {
-		"_comment": "The frozen whirlpool's profile: the ice sags funnel_depth metres into the eye, easing out to the level plateau at funnel_outer metres from the centre, and rises lip_height metres from lip_start to the rim. Start pads are level at the plateau height (0).",
-		"funnel_depth": 3.0, "funnel_outer": 44.0, "lip_start": 106.0, "lip_height": 3.0
+		"_comment": "The frozen whirlpool's profile: the ice climbs tilt metres from the eye lip to the rim on the flanks (X axis), lane_share of that along the team lanes (Z axis), with an extra funnel_depth metres of sag easing out by funnel_outer metres from the centre. The frozen sea lies sea_below_rim metres under the rim; it is thin ice, so a bot whose centre leaves the ring by more than exit_margin metres is eliminated too.",
+		"tilt": 10.0, "lane_share": 0.35, "funnel_depth": 1.5, "funnel_outer": 36.0, "sea_below_rim": 0.5, "exit_margin": 1.0
 	},
 	"swell": {
 		"_comment": "Broad frozen swells following the spin: sin(2 * spiral phase) times height metres, fading near the eye and the rim.",
-		"height": 1.8
+		"height": 1.2
 	},
 	"ridge": {
 		"_comment": "Two frozen spiral pressure ridges (log spirals r = eye_radius * exp(twist * angle), 180 degrees apart): a sharp tent profile height metres tall and half_width metres to each side of the crest, fading out near the eye and the rim.",
-		"height": 1.4, "half_width": 7.5, "twist": 0.3, "phase": 0.9
+		"height": 1.1, "half_width": 7.5, "twist": 0.3, "phase": 0.9
 	},
 	"slabs": [
 		{"_comment": "Upthrust ice slabs: rise along yaw from the ice to height over length, then drop sharply. Makeshift jump ramps.", "at": [-102.0, -26.0], "yaw": 2.55, "length": 18.0, "width": 11.0, "height": 3.6},

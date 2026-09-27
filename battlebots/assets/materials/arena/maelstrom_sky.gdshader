@@ -3,10 +3,10 @@ shader_type sky;
 // slowly with the whirlpool below; the moon is only a pale smear behind it and
 // the horizon drowns in freezing haze. No colour to speak of.
 #include "res://assets/materials/arena/maelstrom_common.gdshaderinc"
-uniform vec3 zenith : source_color = vec3(0.09, 0.11, 0.14);
+uniform vec3 zenith : source_color = vec3(0.17, 0.2, 0.24);
 uniform vec3 horizon : source_color = vec3(0.36, 0.43, 0.5);
-uniform vec3 cloud_dark : source_color = vec3(0.14, 0.17, 0.21);
-uniform vec3 cloud_light : source_color = vec3(0.3, 0.36, 0.42);
+uniform vec3 cloud_dark : source_color = vec3(0.21, 0.25, 0.29);
+uniform vec3 cloud_light : source_color = vec3(0.36, 0.42, 0.48);
 uniform vec3 moon_glow : source_color = vec3(0.55, 0.64, 0.76);
 
 void sky() {

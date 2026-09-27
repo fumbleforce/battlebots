@@ -28,6 +28,8 @@ const SECTORS := 16
 @export var arena_path: NodePath = NodePath("..")
 var _kit: Dictionary = {}
 var _materials: Dictionary = {}
+## Breakable props (#71, #102): prop name -> [[MultiMeshInstance3D, index]].
+var _owned: Dictionary = {}
 var _snow: GPUParticles3D
 var _rng := RandomNumberGenerator.new()
 
@@ -131,8 +133,44 @@ func _obstacles() -> void:
 	var root := Node3D.new()
 	root.name = "Wrecks"
 	add_child(root)
+	var breakable: Array[Dictionary] = []
 	for item: Dictionary in GROUND.obstacles():
-		_kit_instance(item.model, GROUND.obstacle_transform(item), maxi(int(item.faction), 0), root)
+		if String(item.model).begins_with("ice_shards"):
+			breakable.append(item)
+		else:
+			_kit_instance(item.model, GROUND.obstacle_transform(item), maxi(int(item.faction), 0), root)
+	breakable.append_array(GROUND.breakables())
+	_batch_props(breakable)
+
+## Seracs, icicles, barrels and crates, batched per model so ArenaPropVisual
+## can hide a broken one and burst it into smaller copies.
+func _batch_props(items: Array[Dictionary]) -> void:
+	var groups: Dictionary = {}
+	for item: Dictionary in items:
+		if not groups.has(item.model):
+			groups[item.model] = []
+		groups[item.model].append(item)
+	for model: String in groups:
+		var mesh := (_kit[model] as Mesh).duplicate() as Mesh
+		for surface: int in mesh.get_surface_count():
+			var source := mesh.surface_get_material(surface)
+			mesh.surface_set_material(surface, _material(source.resource_name.trim_prefix("Maelstrom_") if source else "wood", 0))
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = mesh
+		multi.instance_count = groups[model].size()
+		var view := MultiMeshInstance3D.new()
+		view.name = "Props_" + model
+		view.multimesh = multi
+		add_child(view)
+		for i: int in groups[model].size():
+			var item: Dictionary = groups[model][i]
+			multi.set_instance_transform(i, GROUND.obstacle_transform(item))
+			_owned[item.name] = [[view, i]]
+
+## The batched instances drawing a breakable prop, for ArenaPropVisual.
+func prop_instances(name: String) -> Array:
+	return _owned.get(name, [])
 
 ## Broken plates set into the faces of the upthrust slabs, below their driving
 ## surface, so the ramps read as fractured ice rather than boxes.
@@ -168,7 +206,7 @@ func _slabs() -> void:
 					var out := Vector3(normal.x, 0, normal.y)
 					var stand := Basis(out.cross(Vector3.UP).normalized(), -PI * 0.5 + _rng.randf_range(-0.25, 0.25))
 					var basis := (stand * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3(s, s * 1.4, s))
-					poses.append(Transform3D(basis, Vector3(p.x, GROUND.bowl_at(p.length()) + top * 0.5, p.y)))
+					poses.append(Transform3D(basis, Vector3(p.x, GROUND.height_at(p.x, p.y) - top * 0.5, p.y)))
 	var plates := MultiMesh.new()
 	plates.transform_format = MultiMesh.TRANSFORM_3D
 	plates.mesh = _kit["ice_floe"]
@@ -291,7 +329,7 @@ func _cliffs(parent: Node, sector: int, per: int, mat: Material) -> void:
 	tool.set_smooth_group(-1)
 	var steps := [0.0, 0.05, 0.14, 0.27, 0.42, 0.58, 0.74, 0.88, 1.0]
 	for side: int in 2:
-		var bottom: float = cfg.sea_level - 3.0 if side == 0 else -34.0
+		var bottom: float = GROUND.sea_level() - 1.2 if side == 0 else -34.0
 		for i: int in per:
 			var ring: Array = []
 			for k: int in 2:
@@ -338,10 +376,17 @@ func _eye() -> void:
 	deep.set_shader_parameter("abyss_top", -2.0)
 	deep.set_shader_parameter("abyss_bottom", -22.0)
 	vortex.material_override = deep
+	# Sunk just under the lip, so the eye reads as a hole in the ice.
+	vortex.position.y = GROUND.bowl_at(GROUND.settings().eye_radius) - 0.4
 
 ## Pack ice: the frozen sea around the maelstrom, rafted and ridged, relief
 ## only for the eye (collision is the flat sea_level plane under it).
 func _sea_relief(x: float, z: float) -> float:
+	# Flat by the rim (just under the ring), rafted and ridged further out.
+	var r := Vector2(x, z).length()
+	return smoothstep(GROUND.settings().rim_radius + 4.0, GROUND.settings().rim_radius + 60.0, r) * _pack_ice(x, z)
+
+func _pack_ice(x: float, z: float) -> float:
 	return 0.9 * absf(sin(x * 0.045 + z * 0.021)) + 0.6 * absf(sin(z * 0.061 - x * 0.033)) \
 		+ 0.35 * absf(sin(x * 0.13 + z * 0.17)) + 1.6 * maxf(0.0, sin(x * 0.011 - z * 0.017) - 0.7) * 3.0
 
@@ -365,7 +410,7 @@ func _sea() -> void:
 		for rr: float in radii:
 			var x := cos(angle) * rr
 			var z := sin(angle) * rr
-			var y: float = cfg.sea_level + _sea_relief(x, z)
+			var y: float = GROUND.sea_level() + _sea_relief(x, z) - 0.5
 			verts.append(Vector3(x, y, z))
 			var gx := _sea_relief(x + 0.5, z) - _sea_relief(x, z)
 			var gz := _sea_relief(x, z + 0.5) - _sea_relief(x, z)
@@ -388,10 +433,10 @@ func _sea() -> void:
 		var angle := _rng.randf() * TAU
 		var foot := i < 180
 		var radius: float = GROUND.rim_at(angle) + (_rng.randf_range(1.0, 14.0) if foot else _rng.randf_range(20.0, 420.0))
-		var s := _rng.randf_range(0.5, 1.6) if foot else _rng.randf_range(0.8, 2.6)
+		var s := _rng.randf_range(0.2, 0.55) if foot else _rng.randf_range(0.6, 2.4)
 		var tip := Basis(Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized(), _rng.randf_range(0.3, 1.2) if foot else _rng.randf_range(0.15, 0.7))
 		var at := Vector3(cos(angle) * radius, 0, sin(angle) * radius)
-		at.y = cfg.sea_level + _sea_relief(at.x, at.z) - 0.4
+		at.y = GROUND.sea_level() + _sea_relief(at.x, at.z) - 0.9
 		plates.set_instance_transform(i, Transform3D((tip * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3(s, s, s)), at))
 	var plate_view := MultiMeshInstance3D.new()
 	plate_view.name = "PackIce"
@@ -408,7 +453,7 @@ func _sea() -> void:
 		var s := _rng.randf_range(3.0, 7.0)
 		var tilt := Basis(Vector3(cos(angle), 0, sin(angle)).cross(Vector3.UP).normalized(), _rng.randf_range(-0.3, 0.15))
 		var visual := _kit_instance("ice_shards_a" if i % 2 == 0 else "ice_shards_b", Transform3D((tilt * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3.ONE * s),
-			Vector3(cos(angle) * radius, cfg.sea_level - s * 0.8, sin(angle) * radius)), 0, bergs)
+			Vector3(cos(angle) * radius, GROUND.sea_level() - s * 0.8, sin(angle) * radius)), 0, bergs)
 		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# Black crags breaking through the pack ice.
 	for i: int in 14:
@@ -417,7 +462,7 @@ func _sea() -> void:
 		var s := _rng.randf_range(2.5, 5.5)
 		var model: String = ["rock_spire_a", "rock_spire_b", "rock_crag"][i % 3]
 		var visual := _kit_instance(model, Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * s),
-			Vector3(cos(angle) * radius, cfg.sea_level - 2.0, sin(angle) * radius)), 0, bergs)
+			Vector3(cos(angle) * radius, GROUND.sea_level() - 2.0, sin(angle) * radius)), 0, bergs)
 		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_ice_walls()
 
@@ -441,7 +486,7 @@ func _ice_walls() -> void:
 		for row: int in rows + 1:
 			var f := float(row) / rows
 			var bulge := 22.0 * sin(f * PI * 1.6 + angle * 9.0) * (1.0 - f) + float(hash(Vector2i(i % segments, row)) % 1000) / 1000.0 * 9.0
-			column.append(dir * (base - bulge + f * 60.0) + Vector3(0, cfg.sea_level - 4.0 + crest * f, 0))
+			column.append(dir * (base - bulge + f * 60.0) + Vector3(0, GROUND.sea_level() - 4.0 + crest * f, 0))
 		grid.append(column)
 	for i: int in segments:
 		for row: int in rows:

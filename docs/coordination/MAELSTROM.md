@@ -5,11 +5,13 @@ Woodland template (deterministic GDScript ground and mirrored obstacle list,
 Blender-built models with material slots, a dedicated visuals script).
 
 A whirlpool frozen mid-spin in a frozen sea, where two fleets fought and died.
-The playable ice is a ring about Woodland's area (~49,000 m²): a rolling
-plateau with broad frozen swells and two spiral pressure ridges, sagging 3 m
-into a funnel toward the eye and rising to a lip at the rim, which drops ~19 m
-in ice cliffs to pack ice. Falling into the eye or off the rim eliminates the
-bot. Everything beyond the ring is shaded darker. Obstacles: fractured basalt
+The playable ice is a ring about Woodland's area (~49,000 m²) tilting down
+toward the eye (steepest on the flanks, gentler along the team lanes), with broad
+frozen swells, two spiral pressure ridges and slab ramps. The rim stands 0.5 m
+over the thin ice of the frozen sea: leaving the ring or falling into the eye
+eliminates the bot. Seracs, icicle clusters, barrels and crates break when shot
+or rammed. The frozen crew sit in final-moment poses (huddled, slumped,
+curled, praying, leaning). Everything beyond the ring is shaded darker. Obstacles: fractured basalt
 crags, seracs, and wrecks of the Ember Crown (oxblood, tarnished brass, black
 sunburst) and the Jade Covenant (dark verdigris, pewter, bone trident): a
 rising bow, a listing stern castle, a deck-ramp platform, a capsized keel

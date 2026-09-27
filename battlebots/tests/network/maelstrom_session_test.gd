@@ -9,7 +9,7 @@ func run() -> void:
 	check(server.host(port, false, 2, "teams", "*", "maelstrom") == OK, "Maelstrom host binds")
 	var old := make_session("Legacy")
 	old.join("127.0.0.1", port)
-	old._hello_data["arena_rules"] = 3
+	old._hello_data["arena_rules"] = 4
 	check(await until(func() -> bool: return old.connection_state == "offline", 300), "Pre-Maelstrom peer rejected")
 	check(server.players.is_empty(), "Rejected peer occupies no slot")
 	for i: int in range(2):

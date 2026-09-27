@@ -1,11 +1,12 @@
 extends Node3D
 ## Deterministic Frozen Maelstrom battlefield (#102): a ring of ice frozen
-## mid-spin around a bottomless eye: a bowl rising to sheer rim cliffs over the
-## frozen sea, with broad frozen swells, spiral pressure ridges, upthrust ice
+## mid-spin around a bottomless eye, tilting down toward it from a low rim over
+## the thin ice of the frozen sea, with broad frozen swells, spiral pressure ridges, upthrust ice
 ## slabs, basalt crags, seracs and the wrecks of two fleets. Everything that collides derives from data/maelstrom_arena.json and
 ## the model hulls in data/maelstrom_hulls.json (art_source/maelstrom/), so the
 ## server and every client build the same world without loading any art. There
-## are no walls: a bot that drops below kill_y is eliminated (mvp_bot.gd).
+## are no walls: a bot that drops below kill_y (mvp_bot.gd) or leaves the ring
+## (AuthorityWorld, outside_ring) is eliminated.
 ## Everything is mirrored through the centre, so both teams face identical ground.
 
 const CONFIG := "res://data/maelstrom_arena.json"
@@ -23,7 +24,6 @@ class Layout extends RefCounted:
 	var eye_radius: float
 	var eye_jag: float
 	var eye_teeth: int
-	var sea_level: float
 	var eye_depth: float
 	var kill_y: float
 	var sink_depth: float
@@ -39,8 +39,17 @@ class Layout extends RefCounted:
 static var _layout: Layout
 static var _heights := PackedFloat32Array()
 static var _pads := PackedVector2Array()
+static var _pad_heights := PackedFloat32Array()
 static var _obstacles: Array[Dictionary] = []
 static var _hulls: Dictionary = {}
+static var _breakables: Array[Dictionary] = []
+## Breakable props (ArenaProps, #102) register with this meta: {kind, name, at, radius}.
+const PROP_META := &"arena_prop"
+## Keep-out radius (m) around each obstacle model when scattering breakables.
+const CLEAR := {"rock_spire_a":13.0, "rock_spire_b":11.0, "rock_crag":14.0, "ice_shards_a":7.5, "ice_shards_b":8.5,
+	"wreck_bow":16.0, "wreck_stern":15.0, "wreck_deck":15.0, "wreck_keel":16.0, "wreck_mast":6.0}
+## Breakable prop kinds: model, collision radius (m).
+const BREAKABLE := {"icicle":["icicle_cluster", 1.8], "barrel":["barrel", 0.5], "crate":["crate", 0.9]}
 
 static func settings() -> Layout:
 	if _layout == null:
@@ -48,7 +57,7 @@ static func settings() -> Layout:
 		assert(data is Dictionary, "Invalid Frozen Maelstrom configuration: " + CONFIG)
 		var parsed := Layout.new()
 		for key: String in ["half", "rim_radius", "rim_jag", "eye_radius", "eye_jag",
-				"sea_level", "eye_depth", "kill_y", "sink_depth", "pad_radius", "pad_blend"]:
+				"eye_depth", "kill_y", "sink_depth", "pad_radius", "pad_blend"]:
 			parsed.set(key, float(data[key]))
 		parsed.rim_teeth = int(data.rim_teeth)
 		parsed.eye_teeth = int(data.eye_teeth)
@@ -61,7 +70,7 @@ static func settings() -> Layout:
 		# Even tooth counts keep the jagged edges point-symmetric.
 		assert(parsed.rim_teeth % 2 == 0 and parsed.eye_teeth % 2 == 0, "Maelstrom edge teeth must be even")
 		assert(parsed.eye_radius > 0.0 and parsed.rim_radius + parsed.rim_jag < parsed.half - 2.0, "Maelstrom ring must fit its grid")
-		assert(parsed.kill_y < 0.0 and parsed.kill_y > parsed.sea_level and parsed.kill_y > parsed.eye_depth, "Maelstrom kill height lies between the ice and the sea")
+		assert(parsed.kill_y < -float(parsed.bowl.funnel_depth) and parsed.kill_y > parsed.eye_depth, "Maelstrom kill height lies between the eye lip and the eye's depth")
 		_layout = parsed
 	return _layout
 
@@ -109,7 +118,31 @@ static func pads() -> PackedVector2Array:
 			points.append(centre + offset)
 			points.append(-(centre + offset))
 		_pads = points
+		_pad_heights = _group_heights(points)
 	return _pads
+
+## Terrace height per pad: pads whose blends overlap (chained) share the mean
+## of the tilt's heights at their centres, so no step runs between them.
+static func _group_heights(points: PackedVector2Array) -> PackedFloat32Array:
+	var group := range(points.size())
+	var changed := true
+	while changed:
+		changed = false
+		for i: int in points.size():
+			for j: int in points.size():
+				if points[i].distance_to(points[j]) < 2.0 * (settings().pad_radius + settings().pad_blend) and group[j] < group[i]:
+					group[i] = group[j]
+					changed = true
+	var heights := PackedFloat32Array()
+	for i: int in points.size():
+		var sum := 0.0
+		var count := 0
+		for j: int in points.size():
+			if group[j] == group[i]:
+				sum += bowl_at(points[j].length(), points[j].angle())
+				count += 1
+		heights.append(sum / count)
+	return heights
 
 ## Distance across the nearest of the two spiral ridge crests at (r, angle).
 static func _ridge_distance(r: float, angle: float) -> float:
@@ -131,12 +164,25 @@ static func _slab(p: Vector2, slab: Dictionary, sign: float) -> float:
 		return 0.0
 	return float(slab.height) * (u + length * 0.5) / length
 
-## The whirlpool's smooth profile at a radius: a funnel sagging into the eye,
-## the level plateau, and the lip rising to the rim.
-static func bowl_at(r: float) -> float:
-	var bowl := settings().bowl
-	var funnel := float(bowl.funnel_depth) * (1.0 - smoothstep(settings().eye_radius, float(bowl.funnel_outer), r))
-	return float(bowl.lip_height) * smoothstep(float(bowl.lip_start), settings().rim_radius, r) - funnel
+## The whirlpool's smooth profile: the ice tilts down toward the eye and sags a
+## little further into it. The tilt is full on the flanks (the X axis) and eases
+## toward the team lanes on the Z axis (cos² of the angle is unchanged by the
+## mirror's half turn), so the start terraces stay gentle.
+static func bowl_at(r: float, angle: float = 0.0) -> float:
+	var cfg := settings()
+	var t := clampf((r - cfg.eye_radius) / (cfg.rim_radius - cfg.eye_radius), 0.0, 1.0)
+	var funnel := float(cfg.bowl.funnel_depth) * (1.0 - smoothstep(cfg.eye_radius, float(cfg.bowl.funnel_outer), r))
+	var share := float(cfg.bowl.lane_share) + (1.0 - float(cfg.bowl.lane_share)) * pow(cos(angle), 2.0)
+	return float(cfg.bowl.tilt) * share * t - funnel
+
+## Height of the thin sea ice around the maelstrom, just under the rim.
+static func sea_level() -> float:
+	# The rim is lowest on the lanes' axis; the sea lies just under that.
+	return bowl_at(settings().rim_radius, PI * 0.5) - float(settings().bowl.sea_below_rim)
+
+## True once a point has left the ring over the frozen sea (beyond the margin).
+static func outside_ring(x: float, z: float) -> bool:
+	return Vector2(x, z).length() > rim_at(atan2(z, x)) + float(settings().bowl.exit_margin)
 
 static func height_at(x: float, z: float) -> float:
 	var cfg := settings()
@@ -146,7 +192,7 @@ static func height_at(x: float, z: float) -> float:
 	var eye := eye_at(angle)
 	var rim := rim_at(angle)
 	if r > rim:
-		return cfg.sea_level
+		return sea_level()
 	if r < eye:
 		return cfg.eye_depth
 	# Creased ice facets: absolute waves are even in p, so mirrors match.
@@ -162,17 +208,34 @@ static func height_at(x: float, z: float) -> float:
 	# unchanged by the mirror's half turn).
 	var phase := angle - log(maxf(r, 0.001) / cfg.eye_radius) / float(cfg.ridge.twist)
 	h += float(cfg.swell.height) * sin(phase * 2.0) * smoothstep(eye + 8.0, eye + 38.0, r) * (1.0 - smoothstep(rim - 34.0, rim - 6.0, r))
-	# Start pads are level at the plateau height.
-	var weight := 0.0
-	for pad: Vector2 in pads():
-		weight = maxf(weight, 1.0 - smoothstep(cfg.pad_radius, cfg.pad_radius + cfg.pad_blend, p.distance_to(pad)))
-	var base := bowl_at(r)
-	h = lerpf(base + h, 0.0, weight)
+	# Start pads are level terraces cut into the tilt, each at the tilt's height
+	# at its centre. Where two pads overlap, each keeps its own level up to a
+	# gentle step across the line halfway between them (6 m on the pads, wider
+	# out in the blend).
+	var near := INF
+	var second := INF
+	var near_height := 0.0
+	var second_height := 0.0
+	var all := pads()
+	for i: int in all.size():
+		var d := p.distance_to(all[i])
+		if d < near:
+			second = near
+			second_height = near_height
+			near = d
+			near_height = _pad_heights[i]
+		elif d < second:
+			second = d
+			second_height = _pad_heights[i]
+	var weight := 1.0 - smoothstep(cfg.pad_radius, cfg.pad_radius + cfg.pad_blend, near)
+	var target := lerpf(near_height, second_height, 0.5 * (1.0 - smoothstep(0.0, 6.0 + maxf(0.0, near - cfg.pad_radius) * 1.5, second - near)))
+	var base := bowl_at(r, angle)
+	h = lerpf(base + h, target, weight)
 	for slab: Dictionary in cfg.slabs:
 		for sign: float in [1.0, -1.0]:
 			var rise := _slab(p, slab, sign)
-			if rise > 0.0:
-				h = maxf(h, base + rise)
+			# Raised from the ice around it, so the low end meets it flush.
+			h += rise
 	return h
 
 ## The authoritative height grid, computed once per process.
@@ -234,6 +297,62 @@ static func obstacles() -> Array[Dictionary]:
 		_obstacles = out
 	return _obstacles
 
+## Small breakable props, authored for one half and mirrored: icicle clusters
+## strewn over the ice and barrels and crates spilled around each wreck. None
+## sits on a start pad or inside another obstacle.
+static func breakables() -> Array[Dictionary]:
+	if not _breakables.is_empty():
+		return _breakables
+	var cfg := settings()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 102
+	var candidates: Array = []
+	for entry: Dictionary in cfg.obstacles:
+		if String(entry.model).begins_with("wreck_"):
+			var centre := Vector2(float(entry.at[0]), float(entry.at[1]))
+			for n: int in 5:
+				var a := rng.randf() * TAU
+				var d := float(CLEAR[entry.model]) + rng.randf_range(1.0, 6.0)
+				candidates.append(["barrel" if n % 2 == 0 else "crate", centre + Vector2(cos(a), sin(a)) * d])
+	for n: int in 40:
+		var a := rng.randf() * TAU
+		candidates.append(["icicle", Vector2(cos(a), sin(a)) * rng.randf_range(cfg.eye_radius + 10.0, cfg.rim_radius - 8.0)])
+	var out: Array[Dictionary] = []
+	var placed: Array[Vector2] = []
+	for candidate: Array in candidates:
+		var p: Vector2 = candidate[1]
+		if not _clear_for_prop(p, placed):
+			continue
+		var yaw := rng.randf() * TAU
+		for sign: float in [1.0, -1.0]:
+			var at := p * sign
+			placed.append(at)
+			var spec: Array = BREAKABLE[candidate[0]]
+			out.append({"kind":candidate[0], "model":spec[0], "radius":spec[1], "yaw":yaw + (PI if sign < 0.0 else 0.0),
+				"name":"%s%d" % [String(candidate[0]).capitalize(), out.size()], "at":Vector3(at.x, height_at(at.x, at.y), at.y)})
+	_breakables = out
+	return out
+
+static func _clear_for_prop(p: Vector2, placed: Array[Vector2]) -> bool:
+	var cfg := settings()
+	var r := p.length()
+	if r < cfg.eye_radius + 8.0 or r > cfg.rim_radius - 6.0:
+		return false
+	for pad: Vector2 in pads():
+		if p.distance_to(pad) < cfg.pad_radius + 4.0:
+			return false
+	for item: Dictionary in obstacles():
+		if p.distance_to(Vector2(item.at.x, item.at.z)) < float(CLEAR[item.model]):
+			return false
+	for slab: Dictionary in cfg.slabs:
+		for sign: float in [1.0, -1.0]:
+			if p.distance_to(Vector2(float(slab.at[0]), float(slab.at[1])) * sign) < float(slab.length) * 0.6:
+				return false
+	for other: Vector2 in placed:
+		if p.distance_to(other) < 4.0 or p.distance_to(-other) < 4.0:
+			return false
+	return p.distance_to(-p) > 8.0
+
 static func obstacle_transform(item: Dictionary) -> Transform3D:
 	return Transform3D(Basis(Vector3.UP, float(item.yaw)), item.at)
 
@@ -283,4 +402,27 @@ func _ready() -> void:
 			collision.shape = hull
 			body.add_child(collision)
 		body.set_meta(&"maelstrom_obstacle", item)
+		if String(item.model).begins_with("ice_shards"):
+			# Seracs are breakable (ArenaProps kind serac, name prefix IceShards).
+			body.set_meta(PROP_META, {"kind":"serac", "name":item.name, "at":item.at, "radius":6.0})
 		root.add_child(body)
+	var breaks := Node3D.new()
+	breaks.name = "MaelstromBreakables"
+	add_child(breaks)
+	for item: Dictionary in breakables():
+		var body := StaticBody3D.new()
+		body.name = item.name
+		body.collision_layer = 1
+		body.collision_mask = 2
+		body.transform = obstacle_transform(item)
+		for points: Array in hulls(item.model):
+			var hull := ConvexPolygonShape3D.new()
+			var packed := PackedVector3Array()
+			for point: Array in points:
+				packed.append(Vector3(float(point[0]), float(point[1]), float(point[2])))
+			hull.points = packed
+			var collision := CollisionShape3D.new()
+			collision.shape = hull
+			body.add_child(collision)
+		body.set_meta(PROP_META, item)
+		breaks.add_child(body)

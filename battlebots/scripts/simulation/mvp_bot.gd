@@ -21,8 +21,9 @@ var body: DriveBody
 var arena_half_extent := ArenaBounds.FOUNDRY_HALF
 ## Open-edged arenas (the Frozen Maelstrom, #102; set by AuthorityWorld): below
 ## lethal_fall_y a bot is eliminated instead of being put back on its last
-## floor. Its wreck leaves the bots' layer but still lands on the ground below
-## (the sea ice), or falls on down the eye until sink_floor_y.
+## floor; AuthorityWorld also eliminates one that leaves the ring. The wreck
+## drops out of collision (through the eye, or through the thin sea ice) and
+## sinks until sink_floor_y.
 var lethal_fall_y := -INF
 var sink_floor_y := -INF
 const FALL_REASON := "maelstrom"
@@ -393,11 +394,10 @@ func step(delta: float, active: bool) -> void:
 		body.sleeping = false
 	if combat.eliminated:
 		body.collision_layer = 0
-		body.collision_mask = BaselineConfig.WORLD_LAYER if combat.elimination_reason == FALL_REASON else 0
+		body.collision_mask = 0
 		body.freeze = not sinking()
 
-## A wreck the maelstrom took that is still falling (or lying on the sea ice)
-## and has not yet sunk out of sight down the eye.
+## A wreck the maelstrom took that has not yet sunk out of sight.
 func sinking() -> bool:
 	return combat.eliminated and combat.elimination_reason == FALL_REASON and body.global_position.y > sink_floor_y
 

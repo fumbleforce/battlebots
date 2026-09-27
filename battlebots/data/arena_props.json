@@ -3,7 +3,12 @@
 	"kinds": {
 		"tree": {"hp": 60.0, "names": ["Trunk"]},
 		"barricade": {"hp": 150.0, "names": ["Barricade"]},
-		"boulder": {"hp": 320.0, "names": ["Boulder"]}
+		"boulder": {"hp": 320.0, "names": ["Boulder"]},
+		"_maelstrom": "Frozen Maelstrom (#102): seracs (the big ice obstacles), icicle clusters, barrels and crates.",
+		"serac": {"hp": 220.0, "names": ["IceShards"]},
+		"icicle": {"hp": 45.0, "names": ["Icicle"]},
+		"barrel": {"hp": 18.0, "names": ["Barrel"]},
+		"crate": {"hp": 24.0, "names": ["Crate"]}
 	},
 	"multipliers": {
 		"_comment": "Weapon kind -> prop kind -> damage multiplier (unlisted = 1). Saws and grinders fell timber; guns barely chip granite.",
@@ -12,7 +17,7 @@
 		"mortar": {"tree": 1.6, "barricade": 1.6, "boulder": 1.3},
 		"cannon": {"tree": 1.2, "barricade": 1.2, "boulder": 1.2},
 		"railgun": {"tree": 1.5, "barricade": 1.2, "boulder": 0.9},
-		"flamer": {"tree": 2.5, "barricade": 2.5, "boulder": 0.0},
+		"flamer": {"tree": 2.5, "barricade": 2.5, "boulder": 0.0, "serac": 1.5, "icicle": 2.0},
 		"minigun": {"tree": 0.6, "barricade": 0.6, "boulder": 0.15},
 		"plasma": {"tree": 0.8, "barricade": 0.8, "boulder": 0.4},
 		"hammer": {"tree": 1.2, "barricade": 1.8, "boulder": 0.8},

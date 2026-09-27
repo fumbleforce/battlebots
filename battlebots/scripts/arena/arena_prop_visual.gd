@@ -17,6 +17,9 @@ const TREE_MASS := 900.0
 ## Boulders split into this many chunks at this share of the rock's size.
 const ROCK_CHUNKS := 4
 const ROCK_SCALE := 0.55
+## Other solid props burst the same way: kind -> [chunks, share of size]
+## (the Frozen Maelstrom's seracs, icicles, barrels and crates, #102).
+const CHUNKS := {"boulder":[ROCK_CHUNKS, ROCK_SCALE], "serac":[6, 0.42], "icicle":[5, 0.45], "barrel":[4, 0.5], "crate":[5, 0.45]}
 ## Launch speeds (m/s) for barricade timber and rock chunks.
 const TIMBER_SPEED := 6.0
 const ROCK_SPEED := 4.5
@@ -128,10 +131,12 @@ func _scatter(name: String, prop: Dictionary, blow: Dictionary, moving: bool, re
 		if not moving:
 			continue
 		var world := batch.global_transform * pose
-		if prop.kind == "boulder":
-			for chunk: int in ROCK_CHUNKS:
+		if CHUNKS.has(prop.kind):
+			var split: Array = CHUNKS[prop.kind]
+			for chunk: int in int(split[0]):
 				var offset := Vector3(random.randf_range(-1, 1), random.randf_range(0.1, 0.9), random.randf_range(-1, 1)) * world.basis.get_scale() * 0.35
-				var local := Transform3D(world.basis.scaled(Vector3.ONE * ROCK_SCALE).rotated(Vector3.UP, random.randf() * TAU), world.origin + offset)
+				var local := Transform3D(world.basis.scaled(Vector3.ONE * float(split[1]) * random.randf_range(0.8, 1.15)).rotated(Vector3.UP, random.randf() * TAU)
+					.rotated(Vector3.RIGHT, random.randf_range(-0.8, 0.8)), world.origin + offset)
 				record.pieces.append(_debris(batch, local, (local.origin - blow.point).normalized() * ROCK_SPEED + Vector3.UP * ROCK_SPEED * 0.6, random))
 		else:
 			var away: Vector3 = (world.origin - blow.point).normalized() + blow.axis.normalized() * 0.5
