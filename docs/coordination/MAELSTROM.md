@@ -10,9 +10,11 @@ inverted cone: a straight 24 m fall from the rim to the eye, steepening over the
 last stretch into the eye's throat, with broad frozen swells, two spiral pressure
 ridges, slab ramps and small level start landings. The rim stands 0.5 m
 over the thin ice of the frozen sea: leaving the ring or falling into the eye
-eliminates the bot. Seracs, icicle clusters, barrels, crates and the keel's ribs
-never block a bot: they shatter as it reaches them, or when shot. The frozen
-crew are all down: huddled, slumped, curled or kneeling in prayer. Everything beyond the ring is shaded darker. Obstacles: fractured basalt
+eliminates the bot. Seracs, standing masts, icicle clusters, barrels, crates and each side of the
+keel's ribs never block a bot: they shatter into their real parts as it reaches
+them (or when shot), and the pieces sink away after a few seconds. Frozen waves
+act as one-way ramps. The crew withered where they lay: curled, face down, on
+their backs or folded onto the ice. Everything beyond the ring is shaded darker. Obstacles: fractured basalt
 crags, seracs, and wrecks of the Ember Crown (oxblood, tarnished brass, black
 sunburst) and the Jade Covenant (dark verdigris, pewter, bone trident): a
 rising bow, a listing stern castle, a deck-ramp platform, a capsized keel

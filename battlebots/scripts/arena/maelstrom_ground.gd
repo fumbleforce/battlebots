@@ -53,8 +53,10 @@ const CLEAR := {"rock_spire_a":13.0, "rock_spire_b":11.0, "rock_crag":14.0, "ice
 	"wreck_bow":16.0, "wreck_stern":15.0, "wreck_deck":15.0, "wreck_keel":16.0, "wreck_mast":6.0}
 ## Breakable prop kinds: model, collision radius (m).
 const BREAKABLE := {"icicle":["icicle_cluster", 1.8], "barrel":["barrel", 0.5], "crate":["crate", 0.9]}
-## Each frame of a capsized keel is its own breakable rib (radius m).
-const RIB_RADIUS := 6.0
+## Each side of each frame of a capsized keel is its own breakable rib (radius m).
+const RIB_RADIUS := 4.0
+## Breakable obstacles: model prefix -> [ArenaProps kind, radius m].
+const OBSTACLE_PROPS := {"ice_shards":["serac", 6.0], "wreck_mast":["mast", 3.0]}
 
 static func settings() -> Layout:
 	if _layout == null:
@@ -157,6 +159,8 @@ static func _ridge_distance(r: float, angle: float) -> float:
 	var off := wrapf(angle - along, -PI * 0.5, PI * 0.5)
 	return absf(off) * r / sqrt(1.0 + twist * twist)
 
+## A frozen wave: rises along yaw over its length to a sheer crest (a one-way
+## ramp), its sides tapering smoothly into the ice so no wall stands beside it.
 static func _slab(p: Vector2, slab: Dictionary, sign: float) -> float:
 	var at := Vector2(float(slab.at[0]), float(slab.at[1])) * sign
 	var yaw := float(slab.yaw) + (PI if sign < 0.0 else 0.0)
@@ -165,9 +169,12 @@ static func _slab(p: Vector2, slab: Dictionary, sign: float) -> float:
 	var u := q.dot(rise)
 	var v := q.dot(Vector2(-rise.y, rise.x))
 	var length := float(slab.length)
-	if absf(u) > length * 0.5 or absf(v) > float(slab.width) * 0.5:
+	var half_width := float(slab.width) * 0.5
+	if absf(u) > length * 0.5 or absf(v) > half_width:
 		return 0.0
-	return float(slab.height) * (u + length * 0.5) / length
+	var climb := pow((u + length * 0.5) / length, 1.4)
+	var taper := 1.0 - smoothstep(half_width * 0.45, half_width, absf(v))
+	return float(slab.height) * climb * taper
 
 ## The whirlpool's profile: an inverted cone, one straight slope from the rim
 ## down to the eye (tilt metres over the ring), dropping away more steeply over
@@ -340,10 +347,14 @@ static func breakables() -> Array[Dictionary]:
 			continue
 		var offsets: Array = hulls("_keel_ribs")
 		for i: int in offsets.size():
-			var at: Vector3 = item.at + Basis(Vector3.UP, float(item.yaw)) * Vector3(0, 0, float(offsets[i]))
-			at.y = item.at.y
-			out.append({"kind":"rib", "model":"keel_rib_%d" % i, "radius":RIB_RADIUS, "yaw":item.yaw,
-				"name":"Rib%d" % out.size(), "at":at})
+			for side: String in ["l", "r"]:
+				var model := "keel_rib_%d_%s" % [i, side]
+				if hulls(model).is_empty():
+					continue # a frame already broken on that side
+				var at: Vector3 = item.at + Basis(Vector3.UP, float(item.yaw)) * Vector3(0, 0, float(offsets[i]))
+				at.y = item.at.y
+				out.append({"kind":"rib", "model":model, "radius":RIB_RADIUS, "yaw":item.yaw,
+					"name":"Rib%d" % out.size(), "at":at})
 	_breakables = out
 	return out
 
@@ -360,7 +371,7 @@ static func _clear_for_prop(p: Vector2, placed: Array[Vector2]) -> bool:
 			return false
 	for slab: Dictionary in cfg.slabs:
 		for sign: float in [1.0, -1.0]:
-			if p.distance_to(Vector2(float(slab.at[0]), float(slab.at[1])) * sign) < float(slab.length) * 0.6:
+			if p.distance_to(Vector2(float(slab.at[0]), float(slab.at[1])) * sign) < maxf(float(slab.length), float(slab.width)) * 0.6:
 				return false
 	for other: Vector2 in placed:
 		if p.distance_to(other) < 4.0 or p.distance_to(-other) < 4.0:
@@ -416,9 +427,11 @@ func _ready() -> void:
 			collision.shape = hull
 			body.add_child(collision)
 		body.set_meta(&"maelstrom_obstacle", item)
-		if String(item.model).begins_with("ice_shards"):
-			# Seracs are breakable (ArenaProps kind serac, name prefix IceShards).
-			body.set_meta(PROP_META, {"kind":"serac", "name":item.name, "at":item.at, "radius":6.0})
+		for prefix: String in OBSTACLE_PROPS:
+			if String(item.model).begins_with(prefix):
+				# Seracs and standing masts break (ArenaProps kinds serac, mast).
+				var spec: Array = OBSTACLE_PROPS[prefix]
+				body.set_meta(PROP_META, {"kind":spec[0], "name":item.name, "at":item.at, "radius":spec[1]})
 		root.add_child(body)
 	var breaks := Node3D.new()
 	breaks.name = "MaelstromBreakables"

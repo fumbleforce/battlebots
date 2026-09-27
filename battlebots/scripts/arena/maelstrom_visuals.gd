@@ -30,6 +30,9 @@ var _kit: Dictionary = {}
 var _materials: Dictionary = {}
 ## Breakable props (#71, #102): prop name -> [[MultiMeshInstance3D, index]].
 var _owned: Dictionary = {}
+## Breakable prop name -> [kit model, fleet]; kit model|fleet -> part meshes.
+var _prop_models: Dictionary = {}
+var _parts: Dictionary = {}
 var _snow: GPUParticles3D
 var _rng := RandomNumberGenerator.new()
 
@@ -136,90 +139,125 @@ func _obstacles() -> void:
 	add_child(root)
 	var breakable: Array[Dictionary] = []
 	for item: Dictionary in GROUND.obstacles():
-		if String(item.model).begins_with("ice_shards"):
+		if GROUND.OBSTACLE_PROPS.keys().any(func(prefix: String) -> bool: return String(item.model).begins_with(prefix)):
 			breakable.append(item)
 		else:
 			_kit_instance(item.model, GROUND.obstacle_transform(item), maxi(int(item.faction), 0), root)
 	breakable.append_array(GROUND.breakables())
 	_batch_props(breakable)
 
-## Seracs, icicles, barrels and crates, batched per model so ArenaPropVisual
-## can hide a broken one and burst it into smaller copies.
+## Every breakable (seracs, masts, ribs, icicles, barrels, crates), batched per
+## model and fleet so ArenaPropVisual can hide a broken one and throw its parts.
 func _batch_props(items: Array[Dictionary]) -> void:
 	var groups: Dictionary = {}
 	for item: Dictionary in items:
-		if not groups.has(item.model):
-			groups[item.model] = []
-		groups[item.model].append(item)
-	for model: String in groups:
-		var mesh := (_kit[model] as Mesh).duplicate() as Mesh
-		for surface: int in mesh.get_surface_count():
-			var source := mesh.surface_get_material(surface)
-			mesh.surface_set_material(surface, _material(source.resource_name.trim_prefix("Maelstrom_") if source else "wood", 0))
+		var key := "%s|%d" % [item.model, maxi(int(item.get("faction", 0)), 0)]
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(item)
+	for key: String in groups:
+		var model: String = key.get_slice("|", 0)
+		var fleet := int(key.get_slice("|", 1))
 		var multi := MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
-		multi.mesh = mesh
-		multi.instance_count = groups[model].size()
+		multi.mesh = _dressed(_kit[model], fleet)
+		multi.instance_count = groups[key].size()
 		var view := MultiMeshInstance3D.new()
-		view.name = "Props_" + model
+		view.name = "Props_%s_%d" % [model, fleet]
 		view.multimesh = multi
 		add_child(view)
-		for i: int in groups[model].size():
-			var item: Dictionary = groups[model][i]
+		for i: int in groups[key].size():
+			var item: Dictionary = groups[key][i]
 			multi.set_instance_transform(i, GROUND.obstacle_transform(item))
 			_owned[item.name] = [[view, i]]
+			_prop_models[item.name] = [model, fleet]
+
+## A copy of a kit mesh wearing the game's materials for a fleet.
+func _dressed(source: Mesh, fleet: int) -> Mesh:
+	var mesh := source.duplicate() as Mesh
+	for surface: int in mesh.get_surface_count():
+		var material := mesh.surface_get_material(surface)
+		mesh.surface_set_material(surface, _material(material.resource_name.trim_prefix("Maelstrom_") if material else "wood", fleet))
+	return mesh
 
 ## The batched instances drawing a breakable prop, for ArenaPropVisual.
 func prop_instances(name: String) -> Array:
 	return _owned.get(name, [])
 
-## Broken plates set into the faces of the upthrust slabs, below their driving
-## surface, so the ramps read as fractured ice rather than boxes.
+## The real parts a breakable prop comes apart into (kit meshes <model>__pN,
+## in the model's frame), or [] to let it break whole.
+func prop_parts(name: String) -> Array:
+	if not _prop_models.has(name):
+		return []
+	var model: String = _prop_models[name][0]
+	var key := "%s|%d" % _prop_models[name]
+	if not _parts.has(key):
+		var parts: Array = []
+		var index := 0
+		while _kit.has("%s__p%d" % [model, index]):
+			parts.append(_dressed(_kit["%s__p%d" % [model, index]], _prop_models[name][1]))
+			index += 1
+		_parts[key] = parts
+	return _parts[key]
+## Frozen waves: along each ramp's crest a breaking lip curls out over the drop,
+## tapering away at the ends, hung with icicles (visual only; the ramp itself is
+## terrain).
 func _slabs() -> void:
 	var cfg: RefCounted = GROUND.settings()
-	var poses: Array[Transform3D] = []
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	tool.set_smooth_group(-1)
+	var profile := [Vector2(-1.2, -0.25), Vector2(-0.2, 0.3), Vector2(0.8, 0.55), Vector2(1.7, 0.25), Vector2(2.1, -0.45), Vector2(1.6, -1.1)]
+	var teeth: Array[Transform3D] = []
 	for slab: Dictionary in cfg.slabs:
 		for sign: float in [1.0, -1.0]:
 			var at := Vector2(float(slab.at[0]), float(slab.at[1])) * sign
 			var yaw := float(slab.yaw) + (PI if sign < 0.0 else 0.0)
 			var rise := Vector2(cos(yaw), sin(yaw))
 			var across := Vector2(-rise.y, rise.x)
-			var length := float(slab.length)
-			var width := float(slab.width)
-			var height := float(slab.height)
-			var faces: Array = [[rise, across, width, length * 0.5, 1.0]]
-			for side: float in [-1.0, 1.0]:
-				faces.append([across * side, rise, length, width * 0.5, 0.0])
-			for face: Array in faces:
-				var normal: Vector2 = face[0]
-				var along: Vector2 = face[1]
-				var span: float = face[2]
-				var count := int(span / 2.2)
-				for n: int in count:
-					var offset := (float(n) + 0.5) / count - 0.5
-					var p := at + normal * (float(face[3]) - 0.45) + along * offset * span * 0.92
-					# Local slab height at this point of the face.
-					var u := (p - at).dot(rise)
-					var top := height * (u + length * 0.5) / length - 0.25
-					if top < 0.6:
-						continue
-					var s := minf(top / 3.4, 1.0) * _rng.randf_range(0.28, 0.4)
-					var out := Vector3(normal.x, 0, normal.y)
-					var stand := Basis(out.cross(Vector3.UP).normalized(), -PI * 0.5 + _rng.randf_range(-0.25, 0.25))
-					var basis := (stand * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3(s, s * 1.4, s))
-					poses.append(Transform3D(basis, Vector3(p.x, GROUND.height_at(p.x, p.y) - top * 0.5, p.y)))
-	var plates := MultiMesh.new()
-	plates.transform_format = MultiMesh.TRANSFORM_3D
-	plates.mesh = _kit["ice_floe"]
-	plates.instance_count = poses.size()
-	for i: int in poses.size():
-		plates.set_instance_transform(i, poses[i])
+			var half := float(slab.width) * 0.5
+			var steps := 24
+			var rows: Array = []
+			for s: int in steps + 1:
+				var v := lerpf(-half, half, float(s) / steps)
+				var taper := 1.0 - smoothstep(half * 0.45, half, absf(v))
+				var crest := at + rise * (float(slab.length) * 0.5 - 0.3) + across * v
+				var top := GROUND.height_at(crest.x, crest.y)
+				var row: Array = []
+				for point: Vector2 in profile:
+					var q := crest + rise * point.x * (0.4 + 0.6 * taper) * (float(slab.height) / 3.0)
+					row.append(Vector3(q.x, top + point.y * taper * (float(slab.height) / 3.0), q.y))
+				rows.append(row)
+				if taper > 0.3 and s % 2 == 0:
+					var lip: Vector3 = row[4]
+					teeth.append(Transform3D(Basis.IDENTITY.scaled(Vector3(0.12, _rng.randf_range(0.08, 0.2) * taper, 0.12)), lip))
+			for s: int in steps:
+				for k: int in profile.size() - 1:
+					var a: Vector3 = rows[s][k]
+					var b: Vector3 = rows[s + 1][k]
+					var c: Vector3 = rows[s + 1][k + 1]
+					var d: Vector3 = rows[s][k + 1]
+					tool.add_vertex(a); tool.add_vertex(b); tool.add_vertex(c)
+					tool.add_vertex(a); tool.add_vertex(c); tool.add_vertex(d)
+	tool.generate_normals()
+	var crests := MeshInstance3D.new()
+	crests.name = "WaveCrests"
+	crests.mesh = tool.commit()
+	crests.material_override = _material("ice", 0)
+	add_child(crests)
+	# Icicle teeth hanging from each lip (the kit's icicle clump, squashed thin).
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.mesh = _kit["icicle_cluster"]
+	multi.instance_count = teeth.size()
+	for i: int in teeth.size():
+		var pose: Transform3D = teeth[i]
+		multi.set_instance_transform(i, Transform3D(pose.basis.scaled(Vector3(1, -1, 1)) * Basis(Vector3.UP, _rng.randf() * TAU), pose.origin))
 	var view := MultiMeshInstance3D.new()
-	view.name = "SlabPlates"
-	view.multimesh = plates
+	view.name = "WaveIcicles"
+	view.multimesh = multi
 	view.material_override = _material("ice", 0)
 	add_child(view)
-
 ## Loose chunks of broken ice strewn over the sheet: small enough for any bot to
 ## roll over, never on a start pad.
 func _rubble() -> void:
@@ -415,7 +453,7 @@ func _eye() -> void:
 ## the terrain where it lies (visual only).
 func _ground_wreckage() -> void:
 	var cfg: RefCounted = GROUND.settings()
-	var crew := ["crew_huddle_0", "crew_huddle_1", "crew_slump_0", "crew_slump_1", "crew_curl_0", "crew_curl_1", "crew_prayer_0", "crew_prayer_1"]
+	var crew := ["crew_curl_0", "crew_curl_1", "crew_prone_0", "crew_prone_1", "crew_supine_0", "crew_supine_1", "crew_fold_0", "crew_fold_1"]
 	var debris := ["debris_plank", "debris_plank", "debris_beam", "debris_barrel"]
 	var root := Node3D.new()
 	root.name = "GroundWreckage"

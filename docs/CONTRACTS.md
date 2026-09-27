@@ -1626,3 +1626,15 @@ catalogue are unchanged; the build bump rejects stale peers.
   can still be shot. Maelstrom seracs, icicles, barrels, crates and each rib of
   the capsized keel (`keel_rib_N`, kind `rib`, offsets in
   `maelstrom_hulls.json` `_keel_ribs`) shatter; a rib snaps off whole.
+## Frozen Maelstrom waves, masts, split ribs — build mvp-ab-59 (#102)
+
+- `ARENA_RULES` 7. `slabs` are frozen waves: the rise follows
+  `((u + L/2) / L)^1.4`, the sides taper smoothly across `width`, the crest
+  drops sheer (one-way ramps); five authored, mirrored.
+- Standing masts (`wreck_mast`, ArenaProps kind `mast`, prefix `WreckMast`) and
+  each side of each keel frame (`keel_rib_N_l` / `_r`) are separate shatter
+  props (`maelstrom_ground.OBSTACLE_PROPS`, `RIB_RADIUS`).
+- Presentation: a breakable's presentation may expose
+  `prop_parts(name) -> Array[Mesh]` (model-frame parts); `ArenaPropVisual`
+  then throws those parts instead of copies. Shatter props' pieces sink away
+  after 4 s.

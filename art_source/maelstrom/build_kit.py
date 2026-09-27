@@ -96,8 +96,11 @@ def convex(points):
 class Model:
     def __init__(self, name):
         self.name = name
-        self.geo = defaultdict(lambda: {'v': [], 'f': [], 'uv': [], 'c': []})
+        self.geo = defaultdict(lambda: {'v': [], 'f': [], 'uv': [], 'c': [], 'p': []})
         self.hulls = []
+        # Breakable models: faces carry a part id; each part is also exported as
+        # its own mesh (<model>__p<id>) so the game can break it into those parts.
+        self.part = None
 
     def add(self, slot, verts, faces, uvs=None, tint=None, frost=0.0, color=None):
         g = self.geo[slot]
@@ -108,6 +111,7 @@ class Model:
             g['f'].append(tuple(off + k for k in f))
             g['uv'].append(uvs[i] if uvs is not None else None)
             g['c'].append(color or (t, 1.0, frost))
+            g['p'].append(self.part)
 
     def solid(self, slot, points, tint=None, frost=0.0, hull=False):
         verts, faces = convex(points)
@@ -342,20 +346,28 @@ def cloth(m, slot, top_l, top_r, height, bulge=.8, tear=.25, notch=0.0, wind=V(0
             p = fn(i / nu, extent[i])
             m.spike('ice', p + V(0, .15, 0), p - V(0, R.uniform(.5, 1.6), 0), .07, sides=4)
 
-def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, nest=True, broken=True):
-    """A broken mast with a yard, torn sail, crow's nest and pennant."""
+def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, nest=True, broken=True, parts=False):
+    """A broken mast with a yard, torn sail, crow's nest and pennant. With parts,
+    it breaks apart as: 0 the stump, 1 the upper mast with nest and pennant,
+    2 the yard with its sail."""
     base = V(base)
     top = base + V(lean[0] * height, height, lean[1] * height)
     axis = (top - base).normalized()
-    m.beam('wood', xf @ base, xf @ top, .62, .42, sides=8)
+    split = base.lerp(top, .35)
+    if parts: m.part = 0
+    m.beam('wood', xf @ base, xf @ split, .62, .55, sides=8)
+    if parts: m.part = 1
+    m.beam('wood', xf @ split, xf @ top, .55, .42, sides=8)
     if broken:
         for j in range(5):  # splintered top
             a = j * math.tau / 5
             p = top + V(math.cos(a) * .3, 0, math.sin(a) * .3)
             m.spike('wood', xf @ (p - axis * .3), xf @ (p + axis * R.uniform(.6, 1.8) + V(R.uniform(-.2, .2), 0, R.uniform(-.2, .2))), .16, sides=3)
     for y in (.25, .5, .85):  # iron hoops
+        if parts: m.part = 0 if y < .35 else 1
         c = base.lerp(top, y)
         m.beam('iron', xf @ (c - axis * .1), xf @ (c + axis * .1), .68 - y * .2, sides=8)
+    if parts: m.part = 2
     yard_c = base.lerp(top, yard_at)
     span = 9.5 * R.uniform(.85, 1.1)
     tilt = R.uniform(-.25, .25)
@@ -365,6 +377,7 @@ def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, n
     if sail:
         cloth(m, 'sail', xf @ (yl + V(.4, -.3, .3)), xf @ (yr + V(-.4, -.3, .3)), height * yard_at * .62, bulge=1.3, tear=.45,
               wind=xf.to_3x3() @ V(0, 0, 1.2), nu=12, nv=12)
+    if parts: m.part = 1
     if nest:
         c = base.lerp(top, min(yard_at + .14, .95))
         ring = [xf @ (c + V(math.cos(a) * 1.7, dy, math.sin(a) * 1.7)) for a in [j * math.tau / 8 for j in range(8)] for dy in (-.15, .15)]
@@ -378,6 +391,7 @@ def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, n
         pole = head + V(0, 0, 0)
         cloth(m, 'banner', xf @ pole, xf @ (pole + V(0, 0, 1.6)), 7.5, bulge=.25, tear=.2, notch=.28,
               wind=xf.to_3x3() @ V(3.5, 1.2, 0), nu=6, nv=18)
+    if parts: m.part = None
     return [xf @ (base + V(x, 0, z)) for x in (-.7, .7) for z in (-.7, .7)] + [xf @ (top + V(x, 0, z)) for x in (-.5, .5) for z in (-.5, .5)]
 
 
@@ -392,39 +406,50 @@ def rigging(m, a, b, sag=.6):
 
 # --- Crew ------------------------------------------------------------------
 
-# Final moments before the cold took them: nobody is fighting any more.
+# They starved and froze over days: nobody is upright any more. Every pose lies
+# on the ice: curled on the side, face down reaching out, on the back, or
+# folded forward onto the knees with the face pressed to the ice.
 POSES = {
-    # Sitting, knees drawn up, arms locked round the shins, face on the knees.
+    # Knees drawn up, arms locked round the shins, face on the knees (lain on its side: 'curl').
     'huddle': {'hip': (0, .28, .05), 'knee_l': (-.16, .72, -.33), 'knee_r': (.16, .72, -.33), 'foot_l': (-.16, .06, -.46),
                'foot_r': (.16, .06, -.46), 'chest': (0, .82, -.12), 'head': (0, .98, -.36), 'elbow_l': (-.36, .66, -.36),
                'elbow_r': (.36, .66, -.36), 'hand_l': (.1, .58, -.52), 'hand_r': (-.1, .6, -.5)},
-    # Kneeling, folded forward, head hanging, arms dropped to the ice.
-    'slump': {'hip': (0, .56, .12), 'knee_l': (-.15, .12, -.24), 'knee_r': (.15, .12, -.24), 'foot_l': (-.15, .05, .3),
-              'foot_r': (.15, .05, .3), 'chest': (0, .98, -.3), 'head': (0, .92, -.62), 'elbow_l': (-.32, .6, -.36),
-              'elbow_r': (.32, .6, -.36), 'hand_l': (-.26, .18, -.46), 'hand_r': (.27, .2, -.44)},
-    # Kneeling upright, hands pressed together at the face, head bowed.
-    'prayer': {'hip': (0, .56, .15), 'knee_l': (-.15, .1, -.2), 'knee_r': (.15, .1, -.2), 'foot_l': (-.15, .05, .32),
-               'foot_r': (.15, .05, .32), 'chest': (0, 1.14, .04), 'head': (0, 1.28, -.14), 'elbow_l': (-.24, .94, -.2),
-               'elbow_r': (.24, .94, -.2), 'hand_l': (-.03, 1.16, -.3), 'hand_r': (.03, 1.16, -.3)},
+    # Folded forward on the knees, face and forearms flat on the ice.
+    'fold': {'hip': (0, .5, .32), 'knee_l': (-.16, .1, -.08), 'knee_r': (.16, .1, -.08), 'foot_l': (-.15, .06, .5),
+             'foot_r': (.15, .06, .5), 'chest': (0, .38, -.34), 'head': (0, .16, -.66), 'elbow_l': (-.3, .1, -.62),
+             'elbow_r': (.3, .1, -.64), 'hand_l': (-.28, .05, -.96), 'hand_r': (.26, .05, -.98)},
+    # Stretched out, arms along the sides (laid on the back: 'supine').
+    'lie': {'hip': (0, .92, 0), 'knee_l': (-.14, .48, .03), 'knee_r': (.15, .48, .02), 'foot_l': (-.18, 0, 0),
+            'foot_r': (.18, 0, 0), 'chest': (0, 1.48, 0), 'head': (0, 1.68, -.03), 'elbow_l': (-.34, 1.2, .06),
+            'elbow_r': (.34, 1.2, .06), 'hand_l': (-.38, .94, .04), 'hand_r': (.38, .94, .04)},
+    # Arms reaching on past the head (laid face down: 'prone').
+    'reach': {'hip': (0, .92, 0), 'knee_l': (-.15, .48, .03), 'knee_r': (.13, .5, .04), 'foot_l': (-.2, 0, 0),
+              'foot_r': (.16, 0, .02), 'chest': (0, 1.48, 0), 'head': (0, 1.66, -.04), 'elbow_l': (-.32, 1.78, -.05),
+              'elbow_r': (.3, 1.74, -.02), 'hand_l': (-.3, 2.04, -.06), 'hand_r': (.24, 2.0, -.02)},
 }
-# Nobody is left standing.
-POSE_ALIASES = {'stand': 'huddle', 'lean': 'slump', 'kneel': 'slump', 'reach': 'prayer', 'fallen': 'curl'}
+POSE_ALIASES = {'stand': 'prone', 'lean': 'fold', 'kneel': 'fold', 'slump': 'fold', 'prayer': 'fold', 'reach': 'curl',
+                'fallen': 'supine', 'huddle': 'curl'}
 
 
-def figure(m, xf, pose='lean', scale=1.0):
-    """A soldier frozen where they gave up: iron limbs, fleet tabard, iron helm,
-    rimed with ice. A dropped shield beside some carries the fleet's emblem."""
+def figure(m, xf, pose='curl', scale=1.0):
+    """A soldier who withered where they lay: thin iron-clad limbs, fleet
+    tabard, iron helm, rimed with ice. A dropped shield beside some carries the
+    fleet's emblem."""
     pose = POSE_ALIASES.get(pose, pose)
-    curl = pose == 'curl'
-    if curl:
-        # Lying on the side, curled tight, one arm over the head.
-        pose = 'huddle'
+    base = {'curl': 'huddle', 'prone': 'reach', 'supine': 'lie'}.get(pose, pose)
+    ground = xf  # the ice under them, before the body is laid down
+    if pose == 'curl':
         xf = xf @ rot(0, 0, math.pi / 2 * R.choice([-1, 1]), (0, .3, 0))
-    J = {k: V(v) * scale for k, v in POSES[pose].items()}
-    if curl:
+    elif pose == 'prone':
+        xf = xf @ rot(0, -math.pi / 2, R.uniform(-.1, .1), (0, .2, .9))
+    elif pose == 'supine':
+        xf = xf @ rot(0, math.pi / 2, R.uniform(-.1, .1), (0, .2, -.9))
+    J = {k: V(v) * scale for k, v in POSES[base].items()}
+    if pose == 'curl':
         J['hand_r'] = V(.15, 1.08, -.18) * scale
         J['elbow_r'] = V(.3, .98, -.12) * scale
     J = {k: v + V(R.uniform(-.03, .03), 0, R.uniform(-.03, .03)) for k, v in J.items()}
+    thin = .75  # wasted limbs
 
     def P(v):
         return xf @ v
@@ -432,31 +457,30 @@ def figure(m, xf, pose='lean', scale=1.0):
     up = (J['chest'] - J['hip']).normalized()
     fwd = side.cross(up).normalized()
     for s in ('l', 'r'):
-        hip = J['hip'] + side * (-.13 if s == 'l' else .13)
-        m.beam('iron', P(hip), P(J['knee_' + s]), .11, .1, sides=5)
-        m.beam('iron', P(J['knee_' + s]), P(J['foot_' + s]), .1, .08, sides=5)
-        m.solid('iron', [P(J['foot_' + s] + V(x, y, z)) for x in (-.07, .07) for y in (-.04, .06) for z in (-.16, .08)])
-    torso = [J['hip'] + side * x + fwd * z for x in (-.2, .2) for z in (-.14, .14)]
-    torso += [J['chest'] + side * x + fwd * z for x in (-.26, .26) for z in (-.15, .15)]
-    torso += [J['hip'] - up * .22 + fwd * z for z in (-.16, .16)]
+        hip = J['hip'] + side * (-.12 if s == 'l' else .12)
+        m.beam('iron', P(hip), P(J['knee_' + s]), .1 * thin, .09 * thin, sides=5)
+        m.beam('iron', P(J['knee_' + s]), P(J['foot_' + s]), .09 * thin, .07 * thin, sides=5)
+        m.solid('iron', [P(J['foot_' + s] + V(x, y, z)) for x in (-.06, .06) for y in (-.04, .06) for z in (-.15, .08)])
+    torso = [J['hip'] + side * x + fwd * z for x in (-.18, .18) for z in (-.12, .12)]
+    torso += [J['chest'] + side * x + fwd * z for x in (-.23, .23) for z in (-.13, .13)]
+    torso += [J['hip'] - up * .22 + fwd * z for z in (-.14, .14)]
     m.solid('cloth', [P(p) for p in torso])  # tabard
-    m.solid('iron', [P(J['chest'] + side * x + up * y + fwd * z) for x in (-.3, .3) for y in (-.08, .08) for z in (-.17, .17)])  # pauldrons
+    m.solid('iron', [P(J['chest'] + side * x + up * y + fwd * z) for x in (-.28, .28) for y in (-.07, .07) for z in (-.15, .15)])  # pauldrons
     h = J['head']
-    m.solid('skin', [P(h + V(x, y, z)) for x in (-.11, .11) for y in (-.12, .12) for z in (-.12, .1)])
-    m.solid('iron', [P(h + V(x, y, z)) for x in (-.14, .14) for y in (.04, .18) for z in (-.15, .14)] + [P(h + V(0, .3, 0))])  # helm
+    m.solid('skin', [P(h + V(x, y, z)) for x in (-.1, .1) for y in (-.12, .12) for z in (-.11, .09)])
+    m.solid('iron', [P(h + V(x, y, z)) for x in (-.13, .13) for y in (.04, .18) for z in (-.14, .13)] + [P(h + V(0, .28, 0))])  # helm
     for s in ('l', 'r'):
-        shoulder = J['chest'] + side * (-.3 if s == 'l' else .3)
-        m.beam('iron', P(shoulder), P(J['elbow_' + s]), .075, .07, sides=5)
-        m.beam('iron', P(J['elbow_' + s]), P(J['hand_' + s]), .07, .06, sides=5)
-        # Ice drips off forearms and chin.
-        l = R.uniform(.1, .35)
-        m.spike('ice', P(J['elbow_' + s]), P(J['elbow_' + s] - V(0, l, 0)), .035, sides=3)
-    m.spike('ice', P(h + V(0, -.12, -.1)), P(h + V(0, -.42, -.12)), .045, sides=3)
+        shoulder = J['chest'] + side * (-.27 if s == 'l' else .27)
+        m.beam('iron', P(shoulder), P(J['elbow_' + s]), .07 * thin, .06 * thin, sides=5)
+        m.beam('iron', P(J['elbow_' + s]), P(J['hand_' + s]), .06 * thin, .05 * thin, sides=5)
+        # Ice drips from the elbows, straight down whatever the pose.
+        l = R.uniform(.08, .25)
+        m.spike('ice', P(J['elbow_' + s]), P(J['elbow_' + s]) - V(0, l, 0), .03, sides=3)
     if R.random() < .45:
-        # A dropped shield lying on the ice beside them.
-        c = V(R.choice([-.7, .7]), .03, R.uniform(-.4, .2)) * scale
-        tilt = rot(R.random() * math.tau, -math.pi / 2 + R.uniform(-.2, .2), 0, tuple(c))
-        m.sheet('banner', lambda u, v: xf @ tilt @ V((u - .5) * .9, (.5 - v) * 1.1, .06 * math.sin(math.pi * u)), 4, 4)
+        # A dropped shield lying flat on the ice beside them.
+        c = V(R.choice([-.9, .9]), .03, R.uniform(-.4, .4)) * scale
+        flat = rot(0, -math.pi / 2, 0, tuple(c))
+        m.sheet('banner', lambda u, v: ground @ flat @ V((u - .5) * .9, (.5 - v) * 1.1, .05 * math.sin(math.pi * u)), 4, 4)
 
 def crew_on(m, xf, spots):
     for (x, y, z, yaw, pose) in spots:
@@ -598,6 +622,7 @@ def shard_cluster(m, count, spread, hmin, hmax, fan=None):
     """Seracs: broken slabs of glacier ice thrust up through the sheet, leaning,
     their tops snapped into steps; icicles drip from the overhanging side."""
     for i in range(count):
+        m.part = i
         a = (fan + R.uniform(-.6, .6)) if fan is not None else R.random() * math.tau
         r = R.uniform(0, spread)
         base = V(math.cos(a) * r, -1.5, math.sin(a) * r)
@@ -627,6 +652,8 @@ def shard_cluster(m, count, spread, hmin, hmax, fan=None):
                     l = R.uniform(.8, 3.0)
                     m.spike('ice', p, p - V(0, l, 0), .12 + l * .05, sides=4)
         m.hulls.append(envelope)
+    m.part = None
+
 
 @model
 def ice_shards_a():
@@ -783,8 +810,8 @@ KEEL_RIBS = []  # Frame offsets along the keel (m), exported with the hulls.
 @model
 def wreck_keel():
     """A capsized hull stripped to its keel and frames: a ribcage arching out of
-    the ice. Each frame is its own breakable model (keel_rib_N, centred on its
-    frame); the keel rides high above."""
+    the ice. Each side of each frame is its own breakable model
+    (keel_rib_N_l / _r, centred on its frame); the keel rides high above."""
     m = Model('wreck_keel')
     length = 30.0
     keel_h = 8.2
@@ -794,13 +821,14 @@ def wreck_keel():
         t = i / (frames - 1)
         z = (t - .5) * length
         KEEL_RIBS.append(round(z, 3))
-        rib = Model('keel_rib_%d' % i)
         arch = keel_h - 2.6 * (2 * t - 1) ** 2
         half = 6.0 * (1 - .45 * (2 * t - 1) ** 2)
         broken = R.random() < .25
         for side in (-1, 1):
             if broken and side > 0:
                 continue
+            # Each side of a frame breaks off on its own.
+            rib = Model('keel_rib_%d_%s' % (i, 'l' if side < 0 else 'r'))
             pts = []
             prev = None
             cut = R.uniform(.65, 1.0) if R.random() < .4 else 1.0
@@ -817,7 +845,7 @@ def wreck_keel():
             if R.random() < .5:
                 icicles(rib, V(0, arch - .9, 0), V(side * half * .5, arch * .7, 0), 4, 1.4)
             rib.hulls.append([V(p.x, max(p.y, -1.2), p.z) for p in pts])
-        ribs.append(rib)
+            ribs.append(rib)
     # Keel and keelson, snapped at one end.
     spine = [V(0, keel_h - 2.6 * (2 * t - 1) ** 2 - .2, (t - .5) * length) for t in [i / 10 for i in range(11)]]
     for a, b in zip(spine, spine[1:]):
@@ -834,7 +862,7 @@ def ground_props():
     """Frozen crew and wreckage lying on the ice, one model each; the game seats
     them on the terrain around the wrecks."""
     out = []
-    for pose in ('huddle', 'slump', 'curl', 'prayer'):
+    for pose in ('curl', 'prone', 'supine', 'fold'):
         for variant in range(2):
             m = Model('crew_%s_%d' % (pose, variant))
             figure(m, Matrix(), pose)
@@ -854,16 +882,21 @@ def ground_props():
 def wreck_mast():
     m = Model('wreck_mast')
     xf = rot(0, math.radians(-7), math.radians(4))
-    mp = mast(m, xf, V(0, -4, 0), 30, lean=(0, 0), yard_at=.62)
+    # Breakable: it comes apart as stump, upper mast, yard and sail, topsail yard
+    # and the ice collar round its foot. (Lines to the ice are gone: on the cone
+    # they could not reach the ground everywhere.)
+    mp = mast(m, xf, V(0, -4, 0), 30, lean=(0, 0), yard_at=.62, parts=True)
     # A second, snapped topsail yard hangs by its lines.
+    m.part = 3
     top = xf @ V(0, 22, 0)
     m.beam('wood', top + V(-5, -1, .6), top + V(4, -6, .6), .22, sides=6)
     cloth(m, 'sail', top + V(-4.6, -1.4, .9), top + V(-.5, -3.2, .9), 6, bulge=.6, tear=.55, nu=8, nv=8)
-    for a in (0, 2.1, 4.2):
-        rigging(m, xf @ V(0, 21, 0), V(math.cos(a) * 11, -.2, math.sin(a) * 11), 1.4)
+    m.part = 1
     crew_on(m, xf, [(0.6, 18.6 + .1, -.4, 1.0, 'reach')])
+    m.part = 4
     base = [xf @ V(x, 0, z) for x in (-.8, .8) for z in (-.8, .8)]
     ice_collar(m, Matrix(), base, 12, height=2.2, hull=mp)
+    m.part = None
     m.hulls.append(mp)
     return m
 
@@ -875,11 +908,13 @@ def icicle_cluster():
     m = Model('icicle_cluster')
     pts = []
     for i in range(6):
+        m.part = i
         a = R.random() * math.tau; r = R.uniform(0, 1.3)
         base = V(math.cos(a) * r, -.4, math.sin(a) * r)
         h = R.uniform(1.8, 5.2) * (1.0 if i else 1.2)
         tip = base + V(math.cos(a) * R.uniform(.2, .9), h, math.sin(a) * R.uniform(.2, .9))
         pts += m.spike('ice', base, tip, R.uniform(.35, .7), sides=5)
+    m.part = None
     m.hulls.append(pts)
     return m
 
@@ -887,7 +922,21 @@ def icicle_cluster():
 @model
 def barrel_prop():
     m = Model('barrel')
-    barrel(m, Matrix(), False)
+    for j in range(8):
+        m.part = j // 2
+        a0 = j * math.tau / 8; a1 = (j + .92) * math.tau / 8
+        stave = []
+        for a in (a0, a1):
+            for y, r in ((0, .38), (.45, .46), (.9, .38)):
+                for d in (0, -.05):
+                    stave.append(V(math.cos(a) * (r + d), y, math.sin(a) * (r + d)))
+        m.solid('wood', stave)
+    for k, y in enumerate((.12, .78)):
+        m.part = 4 + k
+        m.beam('iron', V(0, y - .03, 0), V(0, y + .03, 0), .45, sides=8)
+    m.part = 6
+    m.beam('wood', V(0, .84, 0), V(0, .87, 0), .4, sides=8)
+    m.part = None
     m.hulls.append([V(math.cos(j * math.tau / 8) * .47, y, math.sin(j * math.tau / 8) * .47) for j in range(8) for y in (0, .9)])
     return m
 
@@ -897,13 +946,17 @@ def crate():
     m = Model('crate')
     size = 1.3
     for y in range(4):
-        for z in (-1, 1):
+        for k, z in enumerate((-1, 1)):
+            m.part = k
             m.box('wood', Matrix(), (size, .3, .08), (0, .18 + y * .32, z * size / 2))
+            m.part = 2 + k
             m.box('wood', Matrix(), (.08, .3, size), (z * size / 2, .18 + y * .32, 0))
+    m.part = 4
     m.box('deck', Matrix(), (size, .08, size), (0, 1.3, 0))
-    for x in (-1, 1):
-        for z in (-1, 1):
-            m.box('iron', Matrix(), (.12, 1.34, .12), (x * size / 2, .67, z * size / 2))
+    for k, (x, z) in enumerate(((-1, -1), (-1, 1), (1, -1), (1, 1))):
+        m.part = 5 + k
+        m.box('iron', Matrix(), (.12, 1.34, .12), (x * size / 2, .67, z * size / 2))
+    m.part = None
     m.hulls.append([V(x * size * .52, y, z * size * .52) for x in (-1, 1) for y in (0, 1.36) for z in (-1, 1)])
     return m
 
@@ -952,13 +1005,14 @@ def build():
         result = fn()
         built += result if isinstance(result, list) else [result]
     for m in built:
-        verts = []; faces = []; face_slots = []; uvs = []; cols = []
+        verts = []; faces = []; face_slots = []; uvs = []; cols = []; parts = []
         slots = sorted(m.geo)
         for si, slot in enumerate(slots):
             g = m.geo[slot]
             off = len(verts)
             verts.extend(g['v'])
-            for f, uv, c in zip(g['f'], g['uv'], g['c']):
+            for f, uv, c, part in zip(g['f'], g['uv'], g['c'], g['p']):
+                parts.append(part)
                 faces.append(tuple(off + k for k in f))
                 face_slots.append(si)
                 uvs.append(uv if uv is not None else box_uv(verts, faces[-1]))
@@ -975,8 +1029,8 @@ def build():
             bverts = [bm.verts.new((x, -z, y)) for x, y, z in verts]
             uv_layer = bm.loops.layers.uv.new('UVMap')
             color = bm.loops.layers.color.new('Col')
-            for f, si, uv, c in zip(faces, face_slots, uvs, cols):
-                if not include(slots[si]) or len(set(f)) < 3:
+            for f, si, uv, c, part in zip(faces, face_slots, uvs, cols, parts):
+                if not include(slots[si], part) or len(set(f)) < 3:
                     continue
                 try:
                     face = bm.faces.new([bverts[i] for i in f])
@@ -997,10 +1051,15 @@ def build():
             for slot in slots:
                 mesh.materials.append(materials[slot])
             return mesh
-        mesh = build_mesh(m.name, lambda slot: slot not in rough)
-        if rough:
-            raw = build_mesh(m.name + '_raw', lambda slot: slot in rough)
-            carved = bpy.data.objects.new(m.name + '_raw', raw)
+        def assemble(name, keep):
+            mesh = build_mesh(name, lambda slot, part: keep(part) and slot not in rough)
+            if rough:
+                carve(mesh, build_mesh(name + '_raw', lambda slot, part: keep(part) and slot in rough))
+            mesh.update()
+            return mesh
+
+        def carve(mesh, raw):
+            carved = bpy.data.objects.new(raw.name, raw)
             bpy.context.scene.collection.objects.link(carved)
             sub = carved.modifiers.new('detail', 'SUBSURF')
             sub.subdivision_type = 'SIMPLE'
@@ -1029,9 +1088,13 @@ def build():
             bm.free()
             mesh.use_auto_smooth = True
             mesh.auto_smooth_angle = math.radians(38)
-        mesh.update()
+        mesh = assemble(m.name, lambda part: True)
         ob = bpy.data.objects.new(m.name, mesh)
         bpy.context.scene.collection.objects.link(ob)
+        # Breakable models also ship each part on its own (<model>__p<id>).
+        for part in sorted({p for p in parts if p is not None}):
+            piece = assemble('%s__p%d' % (m.name, part), lambda p, part=part: p == part)
+            bpy.context.scene.collection.objects.link(bpy.data.objects.new(piece.name, piece))
         if m.hulls:
             out = []
             for pts in m.hulls:

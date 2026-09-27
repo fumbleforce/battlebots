@@ -52,14 +52,15 @@ func _run() -> void:
 	var obstacles := arena.get_node("MaelstromObstacles")
 	check(obstacles.get_child_count() == items.size(), "Obstacle bodies differ from the list")
 	for body: StaticBody3D in obstacles.get_children():
-		# Seracs shatter on contact: on the prop layer only, so no bot collides with them.
-		var shatter := String(body.get_meta(&"maelstrom_obstacle").model).begins_with("ice_shards")
+		# Seracs and masts shatter on contact: on the prop layer only, so no bot collides with them.
+		var model := String(body.get_meta(&"maelstrom_obstacle").model)
+		var shatter := model.begins_with("ice_shards") or model.begins_with("wreck_mast")
 		check(body.collision_layer == (BaselineConfig.PROP_LAYER if shatter else 1) and body.collision_mask == 2, "Obstacle layers differ from the arena shell: %s" % body.name)
 	# Breakables: mirrored, registered as ArenaProps with their prefixes, off the pads.
 	var breakables := GROUND.breakables()
 	check(breakables.size() >= 20 and arena.get_node("MaelstromBreakables").get_child_count() == breakables.size(), "Breakable props missing")
-	var seracs := items.filter(func(item: Dictionary) -> bool: return String(item.model).begins_with("ice_shards"))
-	check(world.props.props.size() == breakables.size() + seracs.size(), "Every serac, icicle, barrel and crate registers as a prop (%d)" % world.props.props.size())
+	var seracs := items.filter(func(item: Dictionary) -> bool: return String(item.model).begins_with("ice_shards") or String(item.model).begins_with("wreck_mast"))
+	check(world.props.props.size() == breakables.size() + seracs.size(), "Every serac, mast, rib, icicle, barrel and crate registers as a prop (%d)" % world.props.props.size())
 	for item: Dictionary in breakables:
 		check(breakables.any(func(o: Dictionary) -> bool: return o.kind == item.kind and o.at.distance_to(Vector3(-item.at.x, item.at.y, -item.at.z)) < 0.01), "Breakable lacks its mirror: %s" % item.name)
 		check(GROUND.on_ice(item.at.x, item.at.z), "Breakable %s stands off the ice" % item.name)
@@ -188,6 +189,9 @@ func _capture(world: AuthorityWorld) -> void:
 		["rim", Vector3(-92, 16.0, -70), Vector3(-150, 6.0, -100)],
 		["spire", Vector3(-70, 6.0, 30), Vector3(-104, 14.0, 16)],
 		["banner", Vector3(-72, 6.0, 30), Vector3(-66, 14.0, 44)],
+		["wave", Vector3(-30, 5.0, 34), Vector3(-50, 1.5, 50)],
+		# Breaks a serac, a mast and an icicle clump in front of the camera.
+		["break", Vector3(-24, 12.0, 0), Vector3(-40, 4.0, -12)],
 		# Arena-select card (ui/menus/art/arena_maelstrom.jpg): across the eye toward the wrecks.
 		["card", Vector3(46, 40.0, 112), Vector3(-18, 2.0, -4)],
 	]
@@ -202,9 +206,20 @@ func _capture(world: AuthorityWorld) -> void:
 	for view: Array in views:
 		if only != "" and view[0] != only:
 			continue
-		camera.position = view[1]
-		camera.look_at(view[2])
-		for frame: int in range(45):
+		# View heights are metres above the ice under each point (the ring is a cone).
+		var eye: Vector3 = view[1]
+		var aim: Vector3 = view[2]
+		camera.position = eye + Vector3(0, GROUND.height_at(eye.x, eye.z), 0)
+		camera.look_at(aim + Vector3(0, GROUND.height_at(aim.x, aim.z), 0))
+		if view[0] == "break":
+			for kind: String in ["serac", "mast", "icicle"]:
+				var nearest := ""
+				for n: String in world.props.props:
+					if world.props.props[n].kind == kind and (nearest == "" or (world.props.props[n].at as Vector3).distance_to(view[2]) < (world.props.props[nearest].at as Vector3).distance_to(view[2])):
+						nearest = n
+				if nearest != "":
+					world.props.damage(nearest, 1.0e6, "cannon", world.props.props[nearest].at + Vector3(4, 2, 0), Vector3.LEFT)
+		for frame: int in range(25 if view[0] == "break" else 45):
 			await process_frame
 			await RenderingServer.frame_post_draw
 		var path: String = output + "/maelstrom-" + view[0] + ".png"

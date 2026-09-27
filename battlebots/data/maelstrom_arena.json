@@ -26,9 +26,11 @@
 		"height": 1.1, "half_width": 7.5, "twist": 0.3, "phase": 0.9
 	},
 	"slabs": [
-		{"_comment": "Upthrust ice slabs: rise along yaw from the ice to height over length, then drop sharply. Makeshift jump ramps.", "at": [-102.0, -26.0], "yaw": 2.55, "length": 18.0, "width": 11.0, "height": 3.6},
-		{"at": [-34.0, -44.0], "yaw": -0.5, "length": 16.0, "width": 10.0, "height": 3.0},
-		{"at": [-88.0, 52.0], "yaw": 1.2, "length": 14.0, "width": 9.0, "height": 2.6}
+		{"_comment": "Frozen waves (one-way ramps): each rises along yaw over length to height with a curling crest and a sheer drop beyond it; its sides taper into the ice across width. Authored for one half and mirrored.", "at": [-102.0, -26.0], "yaw": 2.55, "length": 18.0, "width": 24.0, "height": 3.6},
+		{"at": [-34.0, -44.0], "yaw": -0.5, "length": 16.0, "width": 22.0, "height": 3.0},
+		{"at": [-88.0, 52.0], "yaw": 1.2, "length": 14.0, "width": 20.0, "height": 2.6},
+		{"at": [-45.0, 55.0], "yaw": 3.83, "length": 15.0, "width": 20.0, "height": 3.0},
+		{"at": [-55.0, -50.0], "yaw": -0.83, "length": 15.0, "width": 18.0, "height": 3.2}
 	],
 	"obstacles": [
 		{"model": "rock_spire_a", "at": [-104.0, 16.0], "yaw": 0.4},

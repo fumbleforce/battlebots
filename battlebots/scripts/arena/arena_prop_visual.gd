@@ -19,7 +19,13 @@ const ROCK_CHUNKS := 4
 const ROCK_SCALE := 0.55
 ## Other solid props burst the same way: kind -> [chunks, share of size]
 ## (the Frozen Maelstrom's seracs, icicles, barrels and crates, #102).
-const CHUNKS := {"boulder":[ROCK_CHUNKS, ROCK_SCALE], "serac":[6, 0.42], "icicle":[5, 0.45], "barrel":[4, 0.5], "crate":[5, 0.45]}
+const CHUNKS := {"boulder":[ROCK_CHUNKS, ROCK_SCALE]}
+## Props whose presentation ships their real parts (prop_parts) come apart into
+## those instead: a serac into its shards, an icicle clump into its spikes.
+const PART_SPEED := 4.0
+## Pieces of shatter props (#102) sink away after this many seconds.
+const SHATTER_DEBRIS_SECONDS := 4.0
+const SHATTER_SINK_SECONDS := 1.5
 ## Launch speeds (m/s) for barricade timber and rock chunks.
 const TIMBER_SPEED := 6.0
 const ROCK_SPEED := 4.5
@@ -61,6 +67,9 @@ func _break(name: String, blow: Dictionary, moving: bool) -> void:
 	match prop.kind:
 		"tree": _fell(name, prop, blow, moving, record)
 		_: _scatter(name, prop, blow, moving, record)
+	if bool(_props.settings().kinds.get(prop.kind, {}).get("shatter", false)):
+		for piece: Node in record.pieces:
+			_despawn_later(piece)
 	var tuning: RefCounted = TUNING.settings()
 	PIECE.enforce_budget(get_tree(), int(tuning.value("debris", "max_pieces")), tuning.value("debris", "sink_seconds"))
 
@@ -122,6 +131,7 @@ func _scatter(name: String, prop: Dictionary, blow: Dictionary, moving: bool, re
 	var random := RandomNumberGenerator.new()
 	random.seed = hash(name)
 	var centre: Vector3 = prop.at
+	var parts: Array = owner.prop_parts(name) if owner.has_method("prop_parts") else []
 	for piece: Array in owner.prop_instances(name):
 		var batch: MultiMeshInstance3D = piece[0]
 		var index: int = piece[1]
@@ -131,7 +141,10 @@ func _scatter(name: String, prop: Dictionary, blow: Dictionary, moving: bool, re
 		if not moving:
 			continue
 		var world := batch.global_transform * pose
-		if CHUNKS.has(prop.kind):
+		if not parts.is_empty():
+			for part: Mesh in parts:
+				record.pieces.append(_part_debris(part, world, blow, random))
+		elif CHUNKS.has(prop.kind):
 			var split: Array = CHUNKS[prop.kind]
 			for chunk: int in int(split[0]):
 				var offset := Vector3(random.randf_range(-1, 1), random.randf_range(0.1, 0.9), random.randf_range(-1, 1)) * world.basis.get_scale() * 0.35
@@ -141,6 +154,34 @@ func _scatter(name: String, prop: Dictionary, blow: Dictionary, moving: bool, re
 		else:
 			var away: Vector3 = (world.origin - blow.point).normalized() + blow.axis.normalized() * 0.5
 			record.pieces.append(_debris(batch, world, away.normalized() * TIMBER_SPEED * random.randf_range(0.6, 1.2) + Vector3.UP * TIMBER_SPEED * 0.5, random))
+
+## One real part of a broken prop: a world-only physics piece at its place in
+## the prop (model transform world), thrown out from the blow.
+func _part_debris(mesh: Mesh, world: Transform3D, blow: Dictionary, random: RandomNumberGenerator) -> RigidBody3D:
+	var body: RigidBody3D = PIECE.new()
+	body.name = "PropPart"
+	var box := mesh.get_aabb()
+	var centre := box.get_center()
+	var copy := MeshInstance3D.new()
+	copy.mesh = mesh
+	copy.transform = Transform3D(world.basis, -(world.basis * centre))
+	body.add_child(copy)
+	var points := PackedVector3Array()
+	for corner: int in 8:
+		points.append(copy.transform * box.get_endpoint(corner))
+	var shape := CollisionShape3D.new()
+	var hull := ConvexPolygonShape3D.new()
+	hull.points = points
+	shape.shape = hull
+	body.add_child(shape)
+	var scale := world.basis.get_scale()
+	body.mass = maxf(box.size.x * box.size.y * box.size.z * scale.x * scale.y * scale.z * 600.0, 1.0)
+	add_child(body)
+	body.global_position = world * centre
+	var away: Vector3 = (body.global_position - blow.point).slide(Vector3.UP).normalized() + Vector3(blow.axis).normalized() * 0.5
+	body.linear_velocity = away.normalized() * PART_SPEED * random.randf_range(0.5, 1.2) + Vector3.UP * PART_SPEED * random.randf_range(0.2, 0.7)
+	body.angular_velocity = Vector3(random.randf_range(-2, 2), random.randf_range(-2, 2), random.randf_range(-2, 2))
+	return body
 
 ## A world-only physics piece drawing one batched instance's mesh.
 func _debris(batch: MultiMeshInstance3D, pose: Transform3D, velocity: Vector3, random: RandomNumberGenerator) -> RigidBody3D:
@@ -166,6 +207,12 @@ func _debris(batch: MultiMeshInstance3D, pose: Transform3D, velocity: Vector3, r
 	body.linear_velocity = velocity
 	body.angular_velocity = Vector3(random.randf_range(-3, 3), random.randf_range(-3, 3), random.randf_range(-3, 3))
 	return body
+
+## Shatter props leave nothing lying about: each piece sinks away shortly.
+func _despawn_later(piece: Node) -> void:
+	get_tree().create_timer(SHATTER_DEBRIS_SECONDS).timeout.connect(func() -> void:
+		if is_instance_valid(piece) and piece.has_method("sink") and not piece.sinking:
+			piece.sink(SHATTER_SINK_SECONDS, piece.depth_hint()))
 
 func _visuals_with_instances() -> Node:
 	for child: Node in _arena.find_children("*", "Node3D", true, false):
