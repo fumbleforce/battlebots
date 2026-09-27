@@ -40,6 +40,9 @@ static var _layout: Layout
 static var _heights := PackedFloat32Array()
 static var _pads := PackedVector2Array()
 static var _pad_heights := PackedFloat32Array()
+## Metres over which neighbouring landings' heights blend (soft minimum) at a
+## landing's edge; it widens by a metre per metre out into the blend.
+const PAD_SOFTNESS := 1.2
 static var _obstacles: Array[Dictionary] = []
 static var _hulls: Dictionary = {}
 static var _breakables: Array[Dictionary] = []
@@ -50,6 +53,8 @@ const CLEAR := {"rock_spire_a":13.0, "rock_spire_b":11.0, "rock_crag":14.0, "ice
 	"wreck_bow":16.0, "wreck_stern":15.0, "wreck_deck":15.0, "wreck_keel":16.0, "wreck_mast":6.0}
 ## Breakable prop kinds: model, collision radius (m).
 const BREAKABLE := {"icicle":["icicle_cluster", 1.8], "barrel":["barrel", 0.5], "crate":["crate", 0.9]}
+## Each frame of a capsized keel is its own breakable rib (radius m).
+const RIB_RADIUS := 6.0
 
 static func settings() -> Layout:
 	if _layout == null:
@@ -113,7 +118,7 @@ static func pads() -> PackedVector2Array:
 		var c3 := spawns.duel_centre_for("maelstrom")
 		var centre := Vector2(c3.x, c3.z)
 		var reach := ArenaBounds.half_extent("maelstrom") * spawns.duel_monowheel_side_for("maelstrom")
-		for offset: Vector2 in [Vector2.ZERO, Vector2(0, -reach), Vector2(-reach, 0), Vector2(reach, -spawns.duel_shuttle_travel),
+		for offset: Vector2 in [Vector2.ZERO, Vector2(0, -reach), Vector2(-reach, 0), Vector2(reach, 0), Vector2(reach, -spawns.duel_shuttle_travel),
 				Vector2(reach, spawns.duel_shuttle_travel)]:
 			points.append(centre + offset)
 			points.append(-(centre + offset))
@@ -121,8 +126,8 @@ static func pads() -> PackedVector2Array:
 		_pad_heights = _group_heights(points)
 	return _pads
 
-## Terrace height per pad: pads whose blends overlap (chained) share the mean
-## of the tilt's heights at their centres, so no step runs between them.
+## Landing height per pad: the cone's height at its centre; pads whose level
+## cores overlap (chained) share their mean, so no step runs through a core.
 static func _group_heights(points: PackedVector2Array) -> PackedFloat32Array:
 	var group := range(points.size())
 	var changed := true
@@ -130,7 +135,7 @@ static func _group_heights(points: PackedVector2Array) -> PackedFloat32Array:
 		changed = false
 		for i: int in points.size():
 			for j: int in points.size():
-				if points[i].distance_to(points[j]) < 2.0 * (settings().pad_radius + settings().pad_blend) and group[j] < group[i]:
+				if points[i].distance_to(points[j]) < 2.0 * settings().pad_radius and group[j] < group[i]:
 					group[i] = group[j]
 					changed = true
 	var heights := PackedFloat32Array()
@@ -139,7 +144,7 @@ static func _group_heights(points: PackedVector2Array) -> PackedFloat32Array:
 		var count := 0
 		for j: int in points.size():
 			if group[j] == group[i]:
-				sum += bowl_at(points[j].length(), points[j].angle())
+				sum += bowl_at(points[j].length())
 				count += 1
 		heights.append(sum / count)
 	return heights
@@ -164,21 +169,25 @@ static func _slab(p: Vector2, slab: Dictionary, sign: float) -> float:
 		return 0.0
 	return float(slab.height) * (u + length * 0.5) / length
 
-## The whirlpool's smooth profile: the ice tilts down toward the eye and sags a
-## little further into it. The tilt is full on the flanks (the X axis) and eases
-## toward the team lanes on the Z axis (cos² of the angle is unchanged by the
-## mirror's half turn), so the start terraces stay gentle.
-static func bowl_at(r: float, angle: float = 0.0) -> float:
+## The whirlpool's profile: an inverted cone, one straight slope from the rim
+## down to the eye (tilt metres over the ring), dropping away more steeply over
+## the last stretch into the eye (funnel_depth metres by funnel_outer).
+static func bowl_at(r: float, _angle: float = 0.0) -> float:
 	var cfg := settings()
 	var t := clampf((r - cfg.eye_radius) / (cfg.rim_radius - cfg.eye_radius), 0.0, 1.0)
-	var funnel := float(cfg.bowl.funnel_depth) * (1.0 - smoothstep(cfg.eye_radius, float(cfg.bowl.funnel_outer), r))
-	var share := float(cfg.bowl.lane_share) + (1.0 - float(cfg.bowl.lane_share)) * pow(cos(angle), 2.0)
-	return float(cfg.bowl.tilt) * share * t - funnel
+	var near := 1.0 - clampf((r - cfg.eye_radius) / (float(cfg.bowl.funnel_outer) - cfg.eye_radius), 0.0, 1.0)
+	return float(cfg.bowl.tilt) * t - float(cfg.bowl.funnel_depth) * near * near
 
-## Height of the thin sea ice around the maelstrom, just under the rim.
-static func sea_level() -> float:
-	# The rim is lowest on the lanes' axis; the sea lies just under that.
-	return bowl_at(settings().rim_radius, PI * 0.5) - float(settings().bowl.sea_below_rim)
+## Height of the thin sea ice around the maelstrom: just under the rim at every
+## angle (the frozen sea keeps the whirlpool's warp), easing far out to the
+## level between the lanes' low rim and the flanks' high rim (sea_far).
+static func sea_level(angle: float, r: float = 0.0) -> float:
+	var cfg := settings()
+	var under_rim := bowl_at(cfg.rim_radius, angle) - float(cfg.bowl.sea_below_rim)
+	return lerpf(under_rim, sea_far(), smoothstep(cfg.rim_radius + 20.0, cfg.rim_radius + 240.0, r))
+
+static func sea_far() -> float:
+	return bowl_at(settings().rim_radius, PI * 0.25) - float(settings().bowl.sea_below_rim)
 
 ## True once a point has left the ring over the frozen sea (beyond the margin).
 static func outside_ring(x: float, z: float) -> bool:
@@ -192,7 +201,7 @@ static func height_at(x: float, z: float) -> float:
 	var eye := eye_at(angle)
 	var rim := rim_at(angle)
 	if r > rim:
-		return sea_level()
+		return sea_level(angle, r)
 	if r < eye:
 		return cfg.eye_depth
 	# Creased ice facets: absolute waves are even in p, so mirrors match.
@@ -208,27 +217,23 @@ static func height_at(x: float, z: float) -> float:
 	# unchanged by the mirror's half turn).
 	var phase := angle - log(maxf(r, 0.001) / cfg.eye_radius) / float(cfg.ridge.twist)
 	h += float(cfg.swell.height) * sin(phase * 2.0) * smoothstep(eye + 8.0, eye + 38.0, r) * (1.0 - smoothstep(rim - 34.0, rim - 6.0, r))
-	# Start pads are level terraces cut into the tilt, each at the tilt's height
-	# at its centre. Where two pads overlap, each keeps its own level up to a
-	# gentle step across the line halfway between them (6 m on the pads, wider
-	# out in the blend).
-	var near := INF
-	var second := INF
-	var near_height := 0.0
-	var second_height := 0.0
+	# Start pads are small level landings cut into the cone, each at the cone's height
+	# at its centre.
+	# Soft minimum over the pads: continuous everywhere, and inside a landing its
+	# own height (others are metres further away, so their share vanishes).
 	var all := pads()
+	var near := INF
+	for pad: Vector2 in all:
+		near = minf(near, p.distance_to(pad))
+	var share := 0.0
+	var sum := 0.0
+	var softness := PAD_SOFTNESS + maxf(0.0, near - cfg.pad_radius)
 	for i: int in all.size():
-		var d := p.distance_to(all[i])
-		if d < near:
-			second = near
-			second_height = near_height
-			near = d
-			near_height = _pad_heights[i]
-		elif d < second:
-			second = d
-			second_height = _pad_heights[i]
+		var w := exp(-(p.distance_to(all[i]) - near) / softness)
+		share += w
+		sum += w * _pad_heights[i]
+	var target := sum / share
 	var weight := 1.0 - smoothstep(cfg.pad_radius, cfg.pad_radius + cfg.pad_blend, near)
-	var target := lerpf(near_height, second_height, 0.5 * (1.0 - smoothstep(0.0, 6.0 + maxf(0.0, near - cfg.pad_radius) * 1.5, second - near)))
 	var base := bowl_at(r, angle)
 	h = lerpf(base + h, target, weight)
 	for slab: Dictionary in cfg.slabs:
@@ -298,8 +303,8 @@ static func obstacles() -> Array[Dictionary]:
 	return _obstacles
 
 ## Small breakable props, authored for one half and mirrored: icicle clusters
-## strewn over the ice and barrels and crates spilled around each wreck. None
-## sits on a start pad or inside another obstacle.
+## strewn over the ice and barrels and crates spilled around each wreck (none on
+## a start pad or inside another obstacle), and every rib of each capsized keel.
 static func breakables() -> Array[Dictionary]:
 	if not _breakables.is_empty():
 		return _breakables
@@ -330,6 +335,15 @@ static func breakables() -> Array[Dictionary]:
 			var spec: Array = BREAKABLE[candidate[0]]
 			out.append({"kind":candidate[0], "model":spec[0], "radius":spec[1], "yaw":yaw + (PI if sign < 0.0 else 0.0),
 				"name":"%s%d" % [String(candidate[0]).capitalize(), out.size()], "at":Vector3(at.x, height_at(at.x, at.y), at.y)})
+	for item: Dictionary in obstacles():
+		if item.model != "wreck_keel":
+			continue
+		var offsets: Array = hulls("_keel_ribs")
+		for i: int in offsets.size():
+			var at: Vector3 = item.at + Basis(Vector3.UP, float(item.yaw)) * Vector3(0, 0, float(offsets[i]))
+			at.y = item.at.y
+			out.append({"kind":"rib", "model":"keel_rib_%d" % i, "radius":RIB_RADIUS, "yaw":item.yaw,
+				"name":"Rib%d" % out.size(), "at":at})
 	_breakables = out
 	return out
 

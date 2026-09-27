@@ -63,6 +63,7 @@ func _build() -> void:
 	_obstacles()
 	_slabs()
 	_rubble()
+	_ground_wreckage()
 	_eye()
 	_sea()
 	_snowfall()
@@ -323,18 +324,18 @@ func _add_mesh(parent: Node, label: String, verts: PackedVector3Array, normals: 
 ## Sheer ice cliffs from the rim down to the frozen sea, and down the eye into
 ## the dark: stepped, jutting and striated, seeded per column so neighbours meet.
 func _cliffs(parent: Node, sector: int, per: int, mat: Material) -> void:
-	var cfg: RefCounted = GROUND.settings()
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	tool.set_smooth_group(-1)
 	var steps := [0.0, 0.05, 0.14, 0.27, 0.42, 0.58, 0.74, 0.88, 1.0]
-	for side: int in 2:
-		var bottom: float = GROUND.sea_level() - 1.2 if side == 0 else -34.0
+	# Rim cliffs only: the eye's funnel starts right at the lip (_eye).
+	for side: int in 1:
 		for i: int in per:
 			var ring: Array = []
 			for k: int in 2:
 				var column_id := sector * per + i + k
 				var angle := TAU * float(column_id) / SHEET_SEGMENTS
+				var bottom: float = GROUND.sea_level(angle) - 1.2
 				var dir := Vector2(cos(angle), sin(angle))
 				var edge: float = (GROUND.rim_at(angle) - 0.02) if side == 0 else (GROUND.eye_at(angle) + 0.02)
 				var top := _sheet_height(dir.x * edge, dir.y * edge, true)
@@ -368,17 +369,70 @@ func _cliffs(parent: Node, sector: int, per: int, mat: Material) -> void:
 
 # --- Eye, frozen sea and horizon ---------------------------------------------
 
+## The eye: a throat of ice screwing down into the dark, built from the lip's
+## own outline so it meets the sheet with no gap, serrated along the spin.
 func _eye() -> void:
-	var vortex := _kit_instance("eye_vortex", Transform3D.IDENTITY, 0)
-	vortex.name = "EyeVortex"
+	var segments := 480
+	var rows := 34
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	tool.set_smooth_group(-1)
+	var grid: Array = []
+	for i: int in segments + 1:
+		var angle := TAU * float(i % segments) / segments
+		var dir := Vector2(cos(angle), sin(angle))
+		var lip: float = GROUND.eye_at(angle) + 0.02
+		var top := _sheet_height(dir.x * lip, dir.y * lip, true)
+		var column: Array = []
+		for k: int in rows + 1:
+			var f := float(k) / rows
+			var teeth := absf(fposmod(angle / TAU * 20.0 - f * 4.0, 1.0) * 2.0 - 1.0) if k > 0 else 0.0
+			var r := lerpf(lip, 1.5, pow(f, 0.6)) + 1.1 * teeth * (1.0 - f)
+			var y := lerpf(top, -48.0, pow(f, 0.85)) - 0.8 * teeth * f
+			column.append(Vector3(dir.x * r, y, dir.y * r))
+		grid.append(column)
+	for i: int in segments:
+		for k: int in rows:
+			var a: Vector3 = grid[i][k]
+			var b: Vector3 = grid[i + 1][k]
+			var c: Vector3 = grid[i + 1][k + 1]
+			var d: Vector3 = grid[i][k + 1]
+			tool.add_vertex(a); tool.add_vertex(c); tool.add_vertex(b)
+			tool.add_vertex(a); tool.add_vertex(d); tool.add_vertex(c)
+	tool.generate_normals()
+	var throat := MeshInstance3D.new()
+	throat.name = "EyeThroat"
+	throat.mesh = tool.commit()
 	var deep := _material("ice", 0).duplicate() as ShaderMaterial
-	deep.set_shader_parameter("snow_amount", 0.4)
-	deep.set_shader_parameter("abyss_top", -2.0)
-	deep.set_shader_parameter("abyss_bottom", -22.0)
-	vortex.material_override = deep
-	# Sunk just under the lip, so the eye reads as a hole in the ice.
-	vortex.position.y = GROUND.bowl_at(GROUND.settings().eye_radius) - 0.4
+	deep.set_shader_parameter("snow_amount", 0.35)
+	deep.set_shader_parameter("abyss_top", GROUND.bowl_at(GROUND.settings().eye_radius) - 1.0)
+	deep.set_shader_parameter("abyss_bottom", -24.0)
+	throat.material_override = deep
+	throat.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(throat)
 
+## Frozen crew and wreckage lying on the ice around each wreck, each seated on
+## the terrain where it lies (visual only).
+func _ground_wreckage() -> void:
+	var cfg: RefCounted = GROUND.settings()
+	var crew := ["crew_huddle_0", "crew_huddle_1", "crew_slump_0", "crew_slump_1", "crew_curl_0", "crew_curl_1", "crew_prayer_0", "crew_prayer_1"]
+	var debris := ["debris_plank", "debris_plank", "debris_beam", "debris_barrel"]
+	var root := Node3D.new()
+	root.name = "GroundWreckage"
+	add_child(root)
+	for item: Dictionary in GROUND.obstacles():
+		if not String(item.model).begins_with("wreck_"):
+			continue
+		var reach: float = GROUND.CLEAR[item.model]
+		for n: int in 16:
+			var angle := _rng.randf() * TAU
+			var d := _rng.randf_range(reach * 0.55, reach + 3.0)
+			var p := Vector2(item.at.x, item.at.z) + Vector2(cos(angle), sin(angle)) * d
+			if not GROUND.on_ice(p.x, p.y) or _near_pad(p, cfg.pad_radius):
+				continue
+			var model: String = crew[_rng.randi() % crew.size()] if n < 4 else debris[_rng.randi() % debris.size()]
+			var y := GROUND.surface_at(p.x, p.y) - 0.05
+			_kit_instance(model, Transform3D(Basis(Vector3.UP, _rng.randf() * TAU), Vector3(p.x, y, p.y)), maxi(int(item.faction), 0), root)
 ## Pack ice: the frozen sea around the maelstrom, rafted and ridged, relief
 ## only for the eye (collision is the flat sea_level plane under it).
 func _sea_relief(x: float, z: float) -> float:
@@ -407,10 +461,13 @@ func _sea() -> void:
 	var indices := PackedInt32Array()
 	for i: int in segments:
 		var angle := TAU * float(i) / segments
-		for rr: float in radii:
+		var rim: float = GROUND.rim_at(angle) - 0.3
+		for ring: float in radii:
+			# Never inside the ring: inner rings fold onto the rim line.
+			var rr := maxf(ring, rim)
 			var x := cos(angle) * rr
 			var z := sin(angle) * rr
-			var y: float = GROUND.sea_level() + _sea_relief(x, z) - 0.5
+			var y: float = GROUND.sea_level(angle, rr) + _sea_relief(x, z) - 0.5
 			verts.append(Vector3(x, y, z))
 			var gx := _sea_relief(x + 0.5, z) - _sea_relief(x, z)
 			var gz := _sea_relief(x, z + 0.5) - _sea_relief(x, z)
@@ -436,7 +493,7 @@ func _sea() -> void:
 		var s := _rng.randf_range(0.2, 0.55) if foot else _rng.randf_range(0.6, 2.4)
 		var tip := Basis(Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized(), _rng.randf_range(0.3, 1.2) if foot else _rng.randf_range(0.15, 0.7))
 		var at := Vector3(cos(angle) * radius, 0, sin(angle) * radius)
-		at.y = GROUND.sea_level() + _sea_relief(at.x, at.z) - 0.9
+		at.y = GROUND.sea_level(angle, radius) + _sea_relief(at.x, at.z) - 0.9
 		plates.set_instance_transform(i, Transform3D((tip * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3(s, s, s)), at))
 	var plate_view := MultiMeshInstance3D.new()
 	plate_view.name = "PackIce"
@@ -453,7 +510,7 @@ func _sea() -> void:
 		var s := _rng.randf_range(3.0, 7.0)
 		var tilt := Basis(Vector3(cos(angle), 0, sin(angle)).cross(Vector3.UP).normalized(), _rng.randf_range(-0.3, 0.15))
 		var visual := _kit_instance("ice_shards_a" if i % 2 == 0 else "ice_shards_b", Transform3D((tilt * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3.ONE * s),
-			Vector3(cos(angle) * radius, GROUND.sea_level() - s * 0.8, sin(angle) * radius)), 0, bergs)
+			Vector3(cos(angle) * radius, GROUND.sea_level(angle, radius) - s * 0.8, sin(angle) * radius)), 0, bergs)
 		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# Black crags breaking through the pack ice.
 	for i: int in 14:
@@ -462,7 +519,7 @@ func _sea() -> void:
 		var s := _rng.randf_range(2.5, 5.5)
 		var model: String = ["rock_spire_a", "rock_spire_b", "rock_crag"][i % 3]
 		var visual := _kit_instance(model, Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * s),
-			Vector3(cos(angle) * radius, GROUND.sea_level() - 2.0, sin(angle) * radius)), 0, bergs)
+			Vector3(cos(angle) * radius, GROUND.sea_level(angle, radius) - 2.0, sin(angle) * radius)), 0, bergs)
 		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_ice_walls()
 
@@ -486,7 +543,7 @@ func _ice_walls() -> void:
 		for row: int in rows + 1:
 			var f := float(row) / rows
 			var bulge := 22.0 * sin(f * PI * 1.6 + angle * 9.0) * (1.0 - f) + float(hash(Vector2i(i % segments, row)) % 1000) / 1000.0 * 9.0
-			column.append(dir * (base - bulge + f * 60.0) + Vector3(0, GROUND.sea_level() - 4.0 + crest * f, 0))
+			column.append(dir * (base - bulge + f * 60.0) + Vector3(0, GROUND.sea_far() - 4.0 + crest * f, 0))
 		grid.append(column)
 	for i: int in segments:
 		for row: int in rows:

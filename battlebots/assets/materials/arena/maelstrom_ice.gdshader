@@ -26,12 +26,15 @@ void fragment() {
 	float drift = mael_fbm(bent * 0.018) * 0.65 + mael_fbm(bent * 0.07) * 0.35;
 	vec3 snow = mix(packed_color, snow_color, smoothstep(0.3, 0.7, drift));
 	// Wind-scoured windows onto the ice, their edges broken up by grain.
-	float grain = mael_noise(world.xz * 3.1) * 0.5 + mael_noise(world.xz * 9.7) * 0.3 + mael_noise(world.xz * 23.0) * 0.2;
+	float grain = mael_soft(world.xz * 3.1) * 0.5 + mael_soft(world.xz * 9.7) * 0.3 + mael_soft(world.xz * 23.0) * 0.2;
 	float scour = mael_fbm(bent * 0.022 + 5.0) + sin(spiral * 2.0) * 0.08 + (grain - 0.5) * 0.08;
 	float bare = smoothstep(0.6, 0.66, scour);
-	vec3 ice = mix(grey_ice, dark_ice, smoothstep(0.4, 0.8, mael_fbm(world.xz * 0.05 + 3.0)));
-	// Snow dust lying in the ice's hollows.
-	ice = mix(ice, packed_color * 0.9, smoothstep(0.45, 0.75, mael_noise(world.xz * 0.9)) * 0.45);
+	// Glacier ice: slow tonal drift, darker streaks along the frozen flow and
+	// fine scratches; no hard-thresholded noise, which shows its lattice.
+	vec3 ice = mix(grey_ice, dark_ice, mael_fbm(world.xz * 0.04 + 3.0) * 0.8);
+	float streaks = pow(abs(sin(spiral * 23.0 + mael_fbm(world.xz * 0.05) * 4.0)), 8.0);
+	ice *= 1.0 - streaks * 0.18;
+	ice = mix(ice, packed_color * 0.85, mael_fbm(world.xz * 0.35) * 0.25);
 	vec3 albedo = mix(snow, ice, bare);
 	// Sastrugi: wind ribs across the spin (70 per turn: seamless in angle).
 	float rib = fract(spiral * 70.0 / TAU + mael_fbm(world.xz * 0.3) * 3.0);
@@ -46,6 +49,6 @@ void fragment() {
 	ROUGHNESS = mix(0.85, 0.35, bare);
 	SPECULAR = mix(0.35, 0.55, bare);
 	// Snow grain and wind ribs in the normals; ice is smoother.
-	vec2 tilt = vec2((grain - 0.5) * 0.22 + ribs * 0.12, (mael_noise(world.zx * 5.3) - 0.5) * 0.2) * (1.0 - bare * 0.6);
+	vec2 tilt = vec2((grain - 0.5) * 0.22 + ribs * 0.12, (mael_soft(world.zx * 5.3) - 0.5) * 0.2) * (1.0 - bare * 0.6);
 	NORMAL_MAP = normalize(vec3(0.5 + tilt.x, 0.5 + tilt.y, 1.0));
 }

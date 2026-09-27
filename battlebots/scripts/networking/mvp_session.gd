@@ -16,9 +16,9 @@ signal pickup_refused(event: Dictionary)
 const MAX_CONTROL_STATE_BYTES := 131072 # Ten players, up to five detailed round results.
 # Arena content this client understands. Older clients cannot build newer arenas,
 # so a host rejects them with a visible update message rather than a bad world.
-# 1 = Moon, 2 = Woodland, 3 = Sunreach, 4 = Frozen Maelstrom, 5 = its tilted ice and breakables.
-const ARENA_RULES := 5
-const ARENA_MIN_RULES := {"moon":1, "woodland":2, "sunreach":3, "maelstrom":5}
+# 1 = Moon, 2 = Woodland, 3 = Sunreach, 4 = Frozen Maelstrom, 5 = its tilted ice and breakables, 6 = the cone and shatter props.
+const ARENA_RULES := 6
+const ARENA_MIN_RULES := {"moon":1, "woodland":2, "sunreach":3, "maelstrom":6}
 
 var registry := ContentRegistry.new()
 var match_state := MatchState.new()

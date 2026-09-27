@@ -38,7 +38,20 @@ func run() -> void:
 	await tick(world, 180)
 	check(not bot.combat.eliminated and bot.body.global_position.distance_to(bot.spawn_pose.origin) < 1.0,
 		"A bot on its start pad stays put and alive (at %s)" % str(bot.body.global_position))
-	# Parked on the gentle sag right beside the eye's lip, it does not slide in.
+	# Driving through a barrel shatters it without slowing or deflecting the bot.
+	var barrel: String = world.props.props.keys().filter(func(n: String) -> bool: return world.props.props[n].kind == "barrel")[0]
+	var target: Vector3 = world.props.props[barrel].at
+	var approach := Vector3(target.x, 0, target.z).normalized()
+	var start := target - approach * 14.0
+	var facing := Basis(Vector3.UP, atan2(-approach.x, -approach.z))
+	bot.body.reset_pose = Transform3D(facing, Vector3(start.x, GROUND.height_at(start.x, start.z) + bot.ground_clearance() + 0.3, start.z))
+	await tick(world, 20)
+	await tick(world, 180, bot)
+	var past := (bot.body.global_position - target).dot(approach)
+	check(world.props.destroyed.has(barrel) and past > 2.0, "Driving through a barrel shatters it and carries on (%.1f m past, broken %s)" % [past, world.props.destroyed.has(barrel)])
+	world.props.reset_round()
+	world.reset_round()
+	await tick(world, 5)	# Parked on the gentle sag right beside the eye's lip, it does not slide in.
 	var lip := Vector3(0, 0, cfg.eye_radius + 4.0)
 	drop(bot, lip + Vector3(0, GROUND.height_at(lip.x, lip.z) + bot.ground_clearance() + 0.3, 0))
 	await tick(world, 180)

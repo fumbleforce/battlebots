@@ -644,7 +644,7 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 	# Trace from the trunnion, inside the casting, so a barrel pushed through a
 	# wall cannot fire from its far side. Allies block without taking damage.
 	var query := PhysicsRayQueryParameters3D.create(origin, end,
-		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid()])
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER | BaselineConfig.PROP_LAYER, [attacker.body.get_rid()])
 	query.hit_from_inside = true
 	var result := space.intersect_ray(query)
 	state.last_shot_from = from
@@ -895,7 +895,7 @@ static func mortar_trace(space: PhysicsDirectSpaceState3D, from: Vector3, direct
 	while travelled < tuning.value("mortar", "range") and flight < 10.0:
 		var next := at + velocity * step + gravity * (0.5 * step * step)
 		var query := PhysicsRayQueryParameters3D.create(at, next,
-			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, exclude)
+			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER | BaselineConfig.PROP_LAYER, exclude)
 		var result := space.intersect_ray(query)
 		if not result.is_empty():
 			flight += step * at.distance_to(result.position) / maxf(at.distance_to(next), 0.0001)
@@ -997,7 +997,7 @@ func _railgun_path(attacker: MvpBot, bots: Dictionary, result: Dictionary, end: 
 		if passes > int(tuning.value("railgun", "max_penetrations")) or energy <= 0.0:
 			return
 		var query := PhysicsRayQueryParameters3D.create(at + direction * 0.05, end,
-			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, exclude)
+			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER | BaselineConfig.PROP_LAYER, exclude)
 		query.hit_from_inside = true
 		result = attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
 		attacker.combat.last_shot_to = end if result.is_empty() else result.position
@@ -1205,7 +1205,7 @@ func _minigun_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: i
 	# Start at the breech so a protruding barrel cannot shoot through a wall.
 	# The first body always occludes: allies block fire without receiving damage.
 	var query := PhysicsRayQueryParameters3D.create(origin, end,
-		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid()])
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER | BaselineConfig.PROP_LAYER, [attacker.body.get_rid()])
 	query.hit_from_inside = true
 	var result := attacker.body.get_world_3d().direct_space_state.intersect_ray(query)
 	state.last_shot_from = from

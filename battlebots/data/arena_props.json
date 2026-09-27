@@ -4,11 +4,12 @@
 		"tree": {"hp": 60.0, "names": ["Trunk"]},
 		"barricade": {"hp": 150.0, "names": ["Barricade"]},
 		"boulder": {"hp": 320.0, "names": ["Boulder"]},
-		"_maelstrom": "Frozen Maelstrom (#102): seracs (the big ice obstacles), icicle clusters, barrels and crates.",
-		"serac": {"hp": 220.0, "names": ["IceShards"]},
-		"icicle": {"hp": 45.0, "names": ["Icicle"]},
-		"barrel": {"hp": 18.0, "names": ["Barrel"]},
-		"crate": {"hp": 24.0, "names": ["Crate"]}
+		"_maelstrom": "Frozen Maelstrom (#102): seracs (the big ice obstacles), icicle clusters, barrels, crates and the capsized keel's ribs. shatter: bots never collide with them; they break the moment a bot reaches them (and still take weapon damage).",
+		"serac": {"hp": 220.0, "names": ["IceShards"], "shatter": true},
+		"icicle": {"hp": 45.0, "names": ["Icicle"], "shatter": true},
+		"barrel": {"hp": 18.0, "names": ["Barrel"], "shatter": true},
+		"crate": {"hp": 24.0, "names": ["Crate"], "shatter": true},
+		"rib": {"hp": 80.0, "names": ["Rib"], "shatter": true}
 	},
 	"multipliers": {
 		"_comment": "Weapon kind -> prop kind -> damage multiplier (unlisted = 1). Saws and grinders fell timber; guns barely chip granite.",

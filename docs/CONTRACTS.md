@@ -1609,3 +1609,20 @@ catalogue are unchanged; the build bump rejects stale peers.
   `ArenaPropVisual` bursts these (and boulders) into smaller copies of the
   broken mesh (`CHUNKS`); presentation must expose `prop_instances(name)`.
 - Practice Duel on the Maelstrom uses side fraction 0.15 (centre [0, 76]).
+## Frozen Maelstrom cone, shatter props — build mvp-ab-58 (#102)
+
+- `ARENA_RULES` 6. The ring is an inverted cone: one straight slope
+  (`bowl.tilt` 24 m) from the rim down to the eye, dropping a further
+  `funnel_depth` quadratically near the lip. The frozen sea stays 0.5 m under
+  the rim all round. Start pads are 8 m level landings at the cone's height
+  (pads whose cores overlap share a mean height; a soft minimum blends
+  neighbours). The Practice Duel on this arena centres on [0, 86] with side
+  fraction 0.15, its shuttle's run one level strip.
+- `data/arena_props.json` kinds may set `shatter`. `ArenaProps.configure` puts
+  such bodies on `PROP_LAYER` only (no bot collides with them), and
+  `AuthorityWorld._shatter_props` breaks any a bot is about to reach (hull box
+  + 1 m, stretched 0.12 s along its velocity) before the physics step. Turret,
+  mortar, railgun and minigun rays now include `PROP_LAYER`, so shatter props
+  can still be shot. Maelstrom seracs, icicles, barrels, crates and each rib of
+  the capsized keel (`keel_rib_N`, kind `rib`, offsets in
+  `maelstrom_hulls.json` `_keel_ribs`) shatter; a rib snaps off whole.

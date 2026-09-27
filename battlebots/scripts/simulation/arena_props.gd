@@ -51,7 +51,8 @@ static func from_json(source: String, problems: Array[String] = []) -> Dictionar
 		if not entry is Dictionary or not _positive(entry.get("hp")) or not entry.get("names") is Array or entry.names.is_empty():
 			problems.append("kinds.%s needs positive hp and a names list" % kind)
 			return {}
-		result.kinds[kind] = {"hp":float(entry.hp), "names":entry.names.duplicate()}
+		# shatter: bots never collide with it; it breaks the moment one reaches it.
+		result.kinds[kind] = {"hp":float(entry.hp), "names":entry.names.duplicate(), "shatter":bool(entry.get("shatter", false))}
 	if not data.get("multipliers") is Dictionary:
 		problems.append("needs a multipliers object")
 		return {}
@@ -96,6 +97,27 @@ static func _number(value: Variant) -> bool:
 static func _positive(value: Variant) -> bool:
 	return _number(value) and float(value) > 0.0
 
+## Shatter-on-contact props (kinds with shatter) whose collider a bot at pose,
+## with half extents half and velocity, is about to reach: queried with the
+## bot's box grown by margin and stretched along its motion for lead seconds.
+## The caller breaks them before the physics step, so they never push back.
+func shatter_contacts(space: PhysicsDirectSpaceState3D, pose: Transform3D, half: Vector3, velocity: Vector3, margin: float, lead: float) -> Array[String]:
+	var found: Array[String] = []
+	if props.is_empty():
+		return found
+	var box := BoxShape3D.new()
+	var local := pose.basis.inverse() * velocity * lead
+	box.size = (half + Vector3.ONE * margin) * 2.0 + local.abs()
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = box
+	query.transform = Transform3D(pose.basis, pose.origin + velocity * lead * 0.5)
+	query.collision_mask = BaselineConfig.PROP_LAYER
+	for hit: Dictionary in space.intersect_shape(query, 16):
+		var name := prop_at(hit.collider_id)
+		if not name.is_empty() and settings().kinds.get(props[name].kind, {}).get("shatter", false) and not found.has(name):
+			found.append(name)
+	return found
+
 ## Registers every destructible obstacle of a freshly built arena.
 func configure(arena: Node) -> void:
 	props.clear()
@@ -114,6 +136,10 @@ func configure(arena: Node) -> void:
 		if rule.is_empty() or not rule.names.any(func(prefix: String) -> bool: return str(item.name).begins_with(prefix)):
 			continue
 		body.collision_layer |= BaselineConfig.PROP_LAYER
+		if rule.get("shatter", false):
+			# Off the world layer: no bot ever collides with it (weapons and the
+			# shatter query still find it on the prop layer).
+			body.collision_layer = BaselineConfig.PROP_LAYER
 		props[item.name] = {"body":body, "kind":item.kind, "hp":rule.hp, "max":rule.hp, "at":item.at,
 			"radius":GROUND.footprint(item) if woodland else float(item.radius), "layer":body.collision_layer, "mask":body.collision_mask}
 		_names[body.get_instance_id()] = item.name

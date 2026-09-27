@@ -11,11 +11,11 @@
 	"eye_depth": -60.0,
 	"kill_y": -6.0,
 	"sink_depth": 40.0,
-	"pad_radius": 13.0,
-	"pad_blend": 22.0,
+	"pad_radius": 8.0,
+	"pad_blend": 10.0,
 	"bowl": {
-		"_comment": "The frozen whirlpool's profile: the ice climbs tilt metres from the eye lip to the rim on the flanks (X axis), lane_share of that along the team lanes (Z axis), with an extra funnel_depth metres of sag easing out by funnel_outer metres from the centre. The frozen sea lies sea_below_rim metres under the rim; it is thin ice, so a bot whose centre leaves the ring by more than exit_margin metres is eliminated too.",
-		"tilt": 10.0, "lane_share": 0.35, "funnel_depth": 1.5, "funnel_outer": 36.0, "sea_below_rim": 0.5, "exit_margin": 1.0
+		"_comment": "The frozen whirlpool's profile is an inverted cone: the ice falls tilt metres in one straight slope from the rim to the eye lip, and a further funnel_depth metres (quadratically, steepest at the lip) over the last stretch inside funnel_outer metres from the centre. The frozen sea lies sea_below_rim metres under the rim all the way round; it is thin ice, so a bot whose centre leaves the ring by more than exit_margin metres is eliminated too.",
+		"tilt": 24.0, "funnel_depth": 4.0, "funnel_outer": 40.0, "sea_below_rim": 0.5, "exit_margin": 1.0
 	},
 	"swell": {
 		"_comment": "Broad frozen swells following the spin: sin(2 * spiral phase) times height metres, fading near the eye and the rim.",

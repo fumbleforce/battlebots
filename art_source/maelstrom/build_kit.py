@@ -402,16 +402,13 @@ POSES = {
     'slump': {'hip': (0, .56, .12), 'knee_l': (-.15, .12, -.24), 'knee_r': (.15, .12, -.24), 'foot_l': (-.15, .05, .3),
               'foot_r': (.15, .05, .3), 'chest': (0, .98, -.3), 'head': (0, .92, -.62), 'elbow_l': (-.32, .6, -.36),
               'elbow_r': (.32, .6, -.36), 'hand_l': (-.26, .18, -.46), 'hand_r': (.27, .2, -.44)},
-    # Standing against the rail or mast, arms clamped across the chest, head down.
-    'lean': {'hip': (0, .92, .05), 'knee_l': (-.14, .48, -.06), 'knee_r': (.14, .48, -.03), 'foot_l': (-.15, 0, 0),
-             'foot_r': (.15, 0, .02), 'chest': (0, 1.5, .1), 'head': (0, 1.66, -.1), 'elbow_l': (-.3, 1.18, -.16),
-             'elbow_r': (.3, 1.2, -.16), 'hand_l': (.14, 1.38, -.2), 'hand_r': (-.14, 1.36, -.2)},
     # Kneeling upright, hands pressed together at the face, head bowed.
     'prayer': {'hip': (0, .56, .15), 'knee_l': (-.15, .1, -.2), 'knee_r': (.15, .1, -.2), 'foot_l': (-.15, .05, .32),
                'foot_r': (.15, .05, .32), 'chest': (0, 1.14, .04), 'head': (0, 1.28, -.14), 'elbow_l': (-.24, .94, -.2),
                'elbow_r': (.24, .94, -.2), 'hand_l': (-.03, 1.16, -.3), 'hand_r': (.03, 1.16, -.3)},
 }
-POSE_ALIASES = {'stand': 'lean', 'kneel': 'slump', 'reach': 'prayer', 'fallen': 'curl'}
+# Nobody is left standing.
+POSE_ALIASES = {'stand': 'huddle', 'lean': 'slump', 'kneel': 'slump', 'reach': 'prayer', 'fallen': 'curl'}
 
 
 def figure(m, xf, pose='lean', scale=1.0):
@@ -486,19 +483,6 @@ def cannon(m, xf):
     for z in (-.55, .55):
         for x in (-.6, .6):
             m.beam('wood', xf @ V(x, .25, z), xf @ V(x + .12 * (1 if x > 0 else -1), .25, z), .25, sides=6)
-
-
-def debris_field(m, xf, count, radius, y=0.0):
-    for i in range(count):
-        a = R.random() * math.tau; r = R.uniform(.3, 1) * radius
-        at = xf @ rot(R.random() * math.tau, 0, 0, (math.cos(a) * r, y, math.sin(a) * r))
-        # Barrels and crates are separate breakable props (maelstrom_ground.gd).
-        kind = R.uniform(.5, 1.0)
-        if kind < .8:  # broken planks, jutting out of the ice
-            l = R.uniform(2, 5)
-            m.box('deck', at @ rot(0, R.uniform(-.9, -.2), 0), (.35, .1, l), (0, 0, l * .4))
-        else:
-            m.beam('wood', at @ V(0, 0, 0), at @ V(R.uniform(-1, 1), R.uniform(.5, 2.5), R.uniform(-2, 2)), .15, .06, sides=4)
 
 
 def ice_collar(m, xf, points, count, height=1.6, hull=None):
@@ -685,8 +669,6 @@ def wreck_bow():
     ice_collar(m, Matrix(), [p for p in pts if p.y < 1.5] or pts, 22, hull=pts)
     m.hulls.append(pts)
     m.hulls.append(mp)
-    debris_field(m, rot(0, 0, 0, (0, 0, 12)), 14, 9)
-    crew_on(m, Matrix(), [(5, 0, 10, 2.0, 'fallen'), (-6, 0, 13, .5, 'kneel')])
     return m
 
 
@@ -753,7 +735,6 @@ def wreck_stern():
     ice_collar(m, Matrix(), [p for p in pts if p.y < 1.5] or pts, 22, hull=pts)
     m.hulls.append(pts)
     m.hulls.append(mp)
-    debris_field(m, rot(0, 0, 0, (0, 0, -16)), 12, 8)
     return m
 
 
@@ -793,21 +774,27 @@ def wreck_deck():
     cloth(m, 'banner', stump + V(4.8, 3.0, .4), stump + V(4.8, 3.0, 2.2), 4.2, bulge=.2, tear=.3, notch=.3, nu=4, nv=8)
     outline = [xf @ V(x * beam_at(s) * 1.02, 0, (.5 - s) * L_SHIP) for s in (s0, .4, .5, s1) for x in (-1, 1)]
     ice_collar(m, Matrix(), [p for p in outline if p.y < 2.5] or outline, 16)
-    debris_field(m, rot(0, 0, 0, (0, 0, 16)), 10, 7)
     return m
+
+
+KEEL_RIBS = []  # Frame offsets along the keel (m), exported with the hulls.
 
 
 @model
 def wreck_keel():
     """A capsized hull stripped to its keel and frames: a ribcage arching out of
-    the ice. Each frame collides on its own; the keel rides high above."""
+    the ice. Each frame is its own breakable model (keel_rib_N, centred on its
+    frame); the keel rides high above."""
     m = Model('wreck_keel')
     length = 30.0
     keel_h = 8.2
     frames = 11
+    ribs = []
     for i in range(frames):
         t = i / (frames - 1)
         z = (t - .5) * length
+        KEEL_RIBS.append(round(z, 3))
+        rib = Model('keel_rib_%d' % i)
         arch = keel_h - 2.6 * (2 * t - 1) ** 2
         half = 6.0 * (1 - .45 * (2 * t - 1) ** 2)
         broken = R.random() < .25
@@ -821,39 +808,47 @@ def wreck_keel():
                 a = k / 7 * cut
                 x = side * half * math.sin(a * math.pi / 2) ** .7
                 y = arch * math.cos(a * math.pi / 2) - 1.0 * a
-                p = V(x, y - .6, z + R.uniform(-.05, .05))
+                p = V(x, y - .6, R.uniform(-.05, .05))
                 if prev is not None:
-                    pts += m.beam('wood', prev, p, .32, .3, sides=4)
+                    pts += rib.beam('wood', prev, p, .32, .3, sides=4)
                 prev = p
             if cut == 1.0:
-                m.spike('wood', prev, prev + V(side * R.uniform(.2, .8), -1.6, 0), .3, sides=4)
-            m.hulls.append([V(p.x, max(p.y, -1.2), p.z) for p in pts])
+                rib.spike('wood', prev, prev + V(side * R.uniform(.2, .8), -1.6, 0), .3, sides=4)
+            if R.random() < .5:
+                icicles(rib, V(0, arch - .9, 0), V(side * half * .5, arch * .7, 0), 4, 1.4)
+            rib.hulls.append([V(p.x, max(p.y, -1.2), p.z) for p in pts])
+        ribs.append(rib)
     # Keel and keelson, snapped at one end.
     spine = [V(0, keel_h - 2.6 * (2 * t - 1) ** 2 - .2, (t - .5) * length) for t in [i / 10 for i in range(11)]]
     for a, b in zip(spine, spine[1:]):
         m.beam('wood', a, b, .55, sides=4)
     m.hulls.append([p + V(dx, dy, 0) for p in spine[3:8] for dx in (-.6, .6) for dy in (-.6, .6)])
-    # A few planks still clinging to the frames, painted in the fleet's colours.
-    for side in (-1, 1):
-        for k in range(3):
-            a = .35 + k * .12
-            zs = [(t - .5) * length for t in (R.uniform(.1, .3), R.uniform(.6, .85))]
-            pts = []
-            for z in zs:
-                t = z / length + .5
-                arch = keel_h - 2.6 * (2 * t - 1) ** 2
-                half = 6.0 * (1 - .45 * (2 * t - 1) ** 2)
-                for da in (0, .1):
-                    aa = a + da
-                    pts.append(V(side * (half * math.sin(aa * math.pi / 2) ** .7 + .3), arch * math.cos(aa * math.pi / 2) - aa - .6, z))
-            m.solid('paint' if k == 0 else 'wood', pts + [p + V(side * .08, 0, 0) for p in pts])
     cloth(m, 'banner', V(-.2, keel_h - .6, -3), V(-.2, keel_h - .6, 1), 5.5, bulge=.3, tear=.3, notch=.25, nu=6, nv=10)
     icicles(m, spine[2], spine[8], 18, 2.2)
-    crew_on(m, Matrix(), [(2.2, 0, 4, 2.6, 'kneel'), (-1.5, 0, -6, .3, 'fallen'), (0.5, 0, 9, 3.4, 'stand')])
     ice_collar(m, Matrix(), [V(s * 6 * (1 - .45 * (2 * t - 1) ** 2), 0, (t - .5) * length) for t in (0, .25, .5, .75, 1) for s in (-1, 1)], 14)
-    debris_field(m, Matrix(), 12, 10)
-    return m
+    return [m] + ribs
 
+
+@model
+def ground_props():
+    """Frozen crew and wreckage lying on the ice, one model each; the game seats
+    them on the terrain around the wrecks."""
+    out = []
+    for pose in ('huddle', 'slump', 'curl', 'prayer'):
+        for variant in range(2):
+            m = Model('crew_%s_%d' % (pose, variant))
+            figure(m, Matrix(), pose)
+            out.append(m)
+    m = Model('debris_plank')
+    m.box('deck', rot(0, -.45, .1), (.35, .1, 3.6), (0, 0, 1.3))
+    out.append(m)
+    m = Model('debris_beam')
+    m.beam('wood', V(0, -.4, 0), V(.5, 2.0, 1.1), .16, .07, sides=5)
+    out.append(m)
+    m = Model('debris_barrel')
+    barrel(m, Matrix(), True)
+    out.append(m)
+    return out
 
 @model
 def wreck_mast():
@@ -867,50 +862,9 @@ def wreck_mast():
     for a in (0, 2.1, 4.2):
         rigging(m, xf @ V(0, 21, 0), V(math.cos(a) * 11, -.2, math.sin(a) * 11), 1.4)
     crew_on(m, xf, [(0.6, 18.6 + .1, -.4, 1.0, 'reach')])
-    crew_on(m, Matrix(), [(3, 0, 2, 3.8, 'fallen'), (-2.5, 0, -2.5, .7, 'kneel')])
     base = [xf @ V(x, 0, z) for x in (-.8, .8) for z in (-.8, .8)]
     ice_collar(m, Matrix(), base, 12, height=2.2, hull=mp)
     m.hulls.append(mp)
-    debris_field(m, Matrix(), 8, 7)
-    return m
-
-
-@model
-def eye_vortex():
-    """The eye, frozen mid-spin: serrated spiral terraces screwing down into the
-    dark, and blades of frozen spray curling in over the drop."""
-    m = Model('eye_vortex')
-    nu, nv = 144, 26
-    lip = 13.0
-
-    def fn(u, v):
-        a = u * math.tau
-        depth = v
-        teeth = abs(((a / math.tau * 20 - depth * 5) % 1) * 2 - 1)
-        r = lip * (1 - depth) ** .62 + 1.0 + 1.0 * teeth * (1 - depth * .6)
-        y = -.6 - depth * 44 - 1.4 * teeth * depth
-        return V(math.cos(a) * r, y, math.sin(a) * r)
-    verts = [fn(i / nu, j / nv) for j in range(nv + 1) for i in range(nu)]
-    faces = []
-    for j in range(nv):
-        for i in range(nu):
-            a = j * nu + i; b = j * nu + (i + 1) % nu
-            faces.append((a, a + nu, b + nu, b))
-    m.add('ice', verts, faces, tint=.2)
-    for i in range(26):
-        a = i * math.tau / 34 + R.uniform(-.05, .05)
-        r0 = R.uniform(12.5, 14.5)
-        h = R.uniform(1.2, 4.0)
-        sweep = R.uniform(.25, .5)
-        pts = []
-        for t in (0, .5, 1):
-            aa = a + sweep * t
-            rr = r0 - t * t * R.uniform(2, 5)
-            y = -1.0 - h * .8 * t * t
-            for w in (-1, 1):
-                pts.append(V(math.cos(aa + w * .025) * rr, y + w * .3, math.sin(aa + w * .025) * rr))
-        pts.append(V(math.cos(a + sweep * 1.2) * (r0 - 6), -1.5 - h, math.sin(a + sweep * 1.2) * (r0 - 6)))
-        m.solid('ice', pts, tint=R.random())
     return m
 
 
@@ -993,8 +947,11 @@ def build():
         mat.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = .8
         materials[slot] = mat
     hulls = {}
+    built = []
     for fn in MODELS:
-        m = fn()
+        result = fn()
+        built += result if isinstance(result, list) else [result]
+    for m in built:
         verts = []; faces = []; face_slots = []; uvs = []; cols = []
         slots = sorted(m.geo)
         for si, slot in enumerate(slots):
@@ -1083,6 +1040,7 @@ def build():
             hulls[m.name] = out
         print('built', m.name, len(verts), 'verts', len(faces), 'faces', len(m.hulls), 'hulls', flush=True)
     GLB.parent.mkdir(parents=True, exist_ok=True)
+    hulls['_keel_ribs'] = KEEL_RIBS
     HULLS.write_text(json.dumps(hulls, separators=(',', ':')) + '\n')
     bpy.ops.wm.save_as_mainfile(filepath=str(BLEND), compress=True)
     bpy.ops.export_scene.gltf(filepath=str(GLB), export_format='GLB', export_yup=True, export_texcoords=True,

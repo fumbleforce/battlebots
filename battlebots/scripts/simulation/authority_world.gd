@@ -26,6 +26,11 @@ var centre_pickup_enabled := true
 ## Practice Duel tuning (#84): entity id -> practice_tuning.gd overrides.
 ## Only the offline Practice Duel session fills it.
 var practice_tuning: Dictionary = {}
+## Shatter props break this far (m) around a bot's hull, stretched along its
+## motion for SHATTER_LEAD seconds, so they are gone before contact.
+const SHATTER_MARGIN := 1.0
+const SHATTER_LEAD := 0.12
+const SHATTER_DAMAGE := 1.0e6
 
 func _ready() -> void:
 	_build_arena()
@@ -179,6 +184,7 @@ func step(delta: float, active: bool, round_index: int) -> void:
 		bots[id].step(delta, active)
 	if arena_id == "maelstrom":
 		_break_through_sea_ice()
+	_shatter_props()
 	if active:
 		weapons.step(delta, bots, tick, round_index)
 	for id: int in bots:
@@ -208,6 +214,23 @@ func step(delta: float, active: bool, round_index: int) -> void:
 				bots[source_id].combat.assists += 1
 	if active:
 		_collect_pickups(delta)
+
+## Shatter-on-contact props (#102): break any a bot is about to touch, before
+## the physics step, so driving through one never slows or deflects the bot.
+func _shatter_props() -> void:
+	if props.props.is_empty():
+		return
+	var space := get_world_3d().direct_space_state
+	for bot: MvpBot in bots.values():
+		if bot.combat.eliminated or bot.body.freeze:
+			continue
+		var bounds: AABB = bot.collision_bounds()
+		var pose := bot.body.global_transform
+		pose.origin += pose.basis * bounds.get_center()
+		var velocity := bot.body.linear_velocity
+		var axis := velocity.normalized() if velocity.length_squared() > 0.01 else -pose.basis.z
+		for name: String in props.shatter_contacts(space, pose, bounds.size * 0.5, velocity, SHATTER_MARGIN, SHATTER_LEAD):
+			props.damage(name, SHATTER_DAMAGE, "ram", props.props[name].body.global_position, axis)
 
 ## Frozen Maelstrom (#102): the sea around the ring is thin ice. A bot whose
 ## centre leaves the ring goes through it (MvpBot.FALL_REASON) and sinks.

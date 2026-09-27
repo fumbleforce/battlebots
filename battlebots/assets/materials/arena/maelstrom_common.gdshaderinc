@@ -23,8 +23,19 @@ float mael_noise(vec2 p) {
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(mael_hash(i), mael_hash(i + vec2(1, 0)), f.x), mix(mael_hash(i + vec2(0, 1)), mael_hash(i + vec2(1, 1)), f.x), f.y);
 }
+// Each octave is rotated so the value-noise lattice never lines up into squares.
 float mael_fbm(vec2 p) {
-	return mael_noise(p) * 0.5 + mael_noise(p * 2.07 + 13.1) * 0.3 + mael_noise(p * 4.3 - 7.7) * 0.2;
+	const mat2 turn = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
+	vec2 q = turn * p;
+	float v = mael_noise(q) * 0.5;
+	q = turn * q * 2.07 + 13.1;
+	v += mael_noise(q) * 0.3;
+	q = turn * q * 2.08 - 7.7;
+	return v + mael_noise(q) * 0.2;
+}
+// Smooth single-scale noise without lattice squares (two rotated samples).
+float mael_soft(vec2 p) {
+	return 0.5 * (mael_noise(p) + mael_noise(mat2(vec2(0.6, -0.8), vec2(0.8, 0.6)) * p + 5.3));
 }
 // Voronoi: x = distance to the nearest site, y = gap to the second (cracks at y ~ 0).
 vec2 mael_cells(vec2 p) {

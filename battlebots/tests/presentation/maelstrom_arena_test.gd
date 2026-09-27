@@ -52,7 +52,9 @@ func _run() -> void:
 	var obstacles := arena.get_node("MaelstromObstacles")
 	check(obstacles.get_child_count() == items.size(), "Obstacle bodies differ from the list")
 	for body: StaticBody3D in obstacles.get_children():
-		check(body.collision_layer & ~BaselineConfig.PROP_LAYER == 1 and body.collision_mask == 2, "Obstacle layers differ from the arena shell")
+		# Seracs shatter on contact: on the prop layer only, so no bot collides with them.
+		var shatter := String(body.get_meta(&"maelstrom_obstacle").model).begins_with("ice_shards")
+		check(body.collision_layer == (BaselineConfig.PROP_LAYER if shatter else 1) and body.collision_mask == 2, "Obstacle layers differ from the arena shell: %s" % body.name)
 	# Breakables: mirrored, registered as ArenaProps with their prefixes, off the pads.
 	var breakables := GROUND.breakables()
 	check(breakables.size() >= 20 and arena.get_node("MaelstromBreakables").get_child_count() == breakables.size(), "Breakable props missing")
@@ -67,8 +69,8 @@ func _run() -> void:
 		check(world.props.damage(target, 5000.0, "cannon", body.global_position, Vector3.FORWARD) >= 0.0 and body.collision_layer == 0,
 			"A %s breaks and stops colliding" % kind)
 	world.props.reset_round()
-	# Gentle ice: nothing between the rim and the eye is steep enough to slide on,
-	# except the authored slab ramps and their drop edges.
+	# An inverted cone, steepest into the eye (up to 34 degrees there) and at
+	# the banks of the start landings (40), all climbable with the drive grip. Slab ramps excepted.
 	var steep := 0
 	var samples := 0
 	for i: int in 6000:
@@ -81,11 +83,12 @@ func _run() -> void:
 		var gx := GROUND.height_at(p.x + 0.5, p.y) - h
 		var gz := GROUND.height_at(p.x, p.y + 0.5) - h
 		samples += 1
-		if Vector2(gx, gz).length() / 0.5 > tan(deg_to_rad(20.0)):
+		var limit := 34.0 if r < 45.0 else 40.0
+		if Vector2(gx, gz).length() / 0.5 > tan(deg_to_rad(limit)):
 			steep += 1
 			if steep <= 5:
 				print("STEEP at ", p, " r=", p.length(), " slope=", Vector2(gx, gz).length() / 0.5)
-	check(samples > 4000 and steep == 0, "%d of %d ice samples are steeper than 20 degrees" % [steep, samples])
+	check(samples > 4000 and steep == 0, "%d of %d ice samples are steeper than allowed (34 degrees by the eye, 40 elsewhere)" % [steep, samples])
 	var space := arena.get_world_3d().direct_space_state
 	# Starts, Practice Duel places, pickups and cooling points: on level ice, clear.
 	var clear_points: Array[Vector3] = []
@@ -186,7 +189,7 @@ func _capture(world: AuthorityWorld) -> void:
 		["spire", Vector3(-70, 6.0, 30), Vector3(-104, 14.0, 16)],
 		["banner", Vector3(-72, 6.0, 30), Vector3(-66, 14.0, 44)],
 		# Arena-select card (ui/menus/art/arena_maelstrom.jpg): across the eye toward the wrecks.
-		["card", Vector3(30, 20.0, 104), Vector3(-24, 3.0, 4)],
+		["card", Vector3(46, 40.0, 112), Vector3(-18, 2.0, -4)],
 	]
 	var only := ""
 	for arg: String in OS.get_cmdline_user_args():
