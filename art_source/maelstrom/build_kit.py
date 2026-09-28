@@ -132,15 +132,17 @@ class Model:
         pts = [xf @ V(cx + a * sx, cy + b * sy, cz + c * sz) for a in (-1, 1) for b in (-1, 1) for c in (-1, 1)]
         return self.solid(slot, pts, tint=tint, hull=hull)
 
-    def beam(self, slot, a, b, r0, r1=None, sides=6, tint=None, hull=False, spin=0.0, v0=0.0):
+    def beam(self, slot, a, b, r0, r1=None, sides=6, tint=None, hull=False, spin=0.0, v0=0.0, legacy=False):
         """Faceted tapered prism from a to b (already placed), grain along its
-        axis; chain segments with v0 = the run's length so far."""
+        axis; chain segments with v0 = the run's length so far. Steep beams
+        take their facets' frame from x, so posts and masts all turn alike
+        (legacy keeps the old frame where the vertices feed a collision hull)."""
         a = V(a); b = V(b); r1 = r0 if r1 is None else r1
         d = (b - a)
         if d.length < 1e-4:
             return []
         d.normalize()
-        side = d.cross(V(0, 1, 0))
+        side = d.cross(V(1, 0, 0) if abs(d.y) > .7 and not legacy else V(0, 1, 0))
         if side.length < .01:
             side = d.cross(V(1, 0, 0))
         side.normalize(); up = d.cross(side).normalized()
@@ -203,14 +205,64 @@ def grain_uvs(verts, faces, grain, origin, v0):
     return out
 
 
-def rail(m, slot, points, size, tint=None, lift=0.0, flat=True):
-    """A continuous square-section rail through points (flat top when flat),
-    raised by lift so it rests on what it follows; grain runs unbroken."""
-    run = 0.0
-    for a, b in zip(points, points[1:]):
-        m.beam(slot, a + V(0, lift, 0), b + V(0, lift, 0), size * .7071, sides=4, tint=tint,
-               spin=math.pi / 4 if flat else 0.0, v0=run)
-        run += (b - a).length
+def sweep(m, slot, points, w, h, tint=None, across=None, up=V(0, 1, 0), closed=False):
+    """One continuous w x h rectangular section swept through points: every
+    station is a shared ring (no blocks, no joints), the grain runs the whole
+    length. The section's w axis is across (kept square to the path) or else
+    horizontal, square to the path, with h toward up."""
+    pts = [V(p) for p in points]
+    n = len(pts)
+    if n < 2:
+        return
+    rings = []; runs = []; run = 0.0
+    for i, p in enumerate(pts):
+        prev = pts[i - 1] if (i > 0 or closed) else p
+        nxt = pts[(i + 1) % n] if (i < n - 1 or closed) else p
+        t = (nxt - prev).normalized()
+        if across is not None:
+            a = V(across) - t * V(across).dot(t)
+        else:
+            a = V(up).cross(t)
+            if a.length < 1e-6:
+                a = V(1, 0, 0) - t * t.x
+        a.normalize(); b = t.cross(a).normalized()
+        if b.dot(V(up)) < 0 and across is None:
+            a, b = -a, -b
+        rings.append([p + a * x + b * y for x, y in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))])
+        if i:
+            run += (p - pts[i - 1]).length
+        runs.append(run)
+    perim = [0.0, w, w + h, 2 * w + h, 2 * w + 2 * h]
+    verts = []; faces = []; uvs = []
+
+    def quad(corners, uv, outward):
+        nrm = (corners[1] - corners[0]).cross(corners[2] - corners[0])
+        if nrm.dot(outward) < 0:  # wind it to face out
+            corners = corners[::-1]; uv = uv[::-1]
+        faces.append(tuple(range(len(verts), len(verts) + 4))); verts.extend(corners); uvs.append(uv)
+    segs = list(range(n if closed else n - 1))
+    for i in segs:
+        j = (i + 1) % n
+        ra, rb = rings[i], rings[j]
+        va = runs[i] * PLANK_V; vb = (runs[i] + (pts[j] - pts[i]).length) * PLANK_V
+        mid = (pts[i] + pts[j]) / 2
+        for k in range(4):
+            k2 = (k + 1) % 4
+            corners = [ra[k], ra[k2], rb[k2], rb[k]]
+            u0, u1 = perim[k] * GRAIN_U, perim[k + 1] * GRAIN_U
+            face_c = sum(corners, V(0, 0, 0)) / 4
+            quad(corners, [(u0, va), (u1, va), (u1, vb), (u0, vb)], face_c - mid)
+    if not closed:
+        for ring, i, sign in ((rings[0], 0, -1), (rings[-1], n - 1, 1)):
+            t = (pts[min(i + 1, n - 1)] - pts[max(i - 1, 0)]).normalized() * sign
+            quad(list(ring), [(0, 0), (w * GRAIN_U, 0), (w * GRAIN_U, h * GRAIN_U), (0, h * GRAIN_U)], t)
+    m.add(slot, verts, faces, uvs, tint=tint)
+
+
+def rail(m, slot, points, size, tint=None, lift=0.0, across=None, up=V(0, 1, 0)):
+    """A continuous square-section rail through points, raised by lift so it
+    rests on what it follows."""
+    sweep(m, slot, [V(p) + V(up) * lift for p in points], size, size, tint=tint, across=across, up=up)
 
 
 def rot(yaw=0.0, pitch=0.0, roll=0.0, at=(0, 0, 0)):
@@ -352,15 +404,16 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
     # stem post up to the bulwark: both close the seam where the sides meet.
     tint = R.random()
     keel, _ = stations(s0, s1, s0, s1)
-    rail(m, 'wood', [xf @ hull_point(s, 0, 0) for s in keel], .5, tint=tint, flat=False)
-    if s1 >= 1.0 and not broken_hi:
-        rail(m, 'wood', [xf @ hull_point(1.0, top_q * i / 12, 0) for i in range(13)], .5, tint=tint, flat=False)
+    athwart = xf.to_3x3() @ V(1, 0, 0); up = xf.to_3x3() @ V(0, 1, 0)
+    stem = [hull_point(1.0, top_q * i / 12, 0) for i in range(1, 13)] if s1 >= 1.0 and not broken_hi else []
+    # Keel and stem are one timber: it runs aft to fore and turns up the bow.
+    rail(m, 'wood', [xf @ hull_point(s, 0, 0) for s in keel] + [xf @ p for p in stem], .5, tint=tint, across=athwart)
     # The wale: a heavy rubbing strake standing proud of the skin.
     q_wale = 1 - 4.0 / STRAKES
     for side in (-1, 1):
         lo = s0 + (.04 if broken_lo else 0); hi = s1 - (.05 if broken_hi else 0)
         run, _ = stations(lo, hi, lo, hi)
-        rail(m, 'wood', [xf @ hull_point(s, q_wale, side, sheer, .09) for s in run], .18, tint=.9)
+        rail(m, 'wood', [xf @ hull_point(s, q_wale, side, sheer, .09) for s in run], .18, tint=.9, up=xf.to_3x3() @ V(0, 1, 0))
     # Gunwale caps: one continuous rail seated flat on the bulwark's top edge.
     # (It was straight 2.5 m segments; their random draws are kept so the rest
     # of the kit is unchanged.)
@@ -374,7 +427,7 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
             tints.append(R.random())
             if R.random() < .5:
                 icicles(m, xf @ hull_point(a, top_q - .01, side, sheer, .2), xf @ hull_point(b, top_q - .01, side, sheer, .2), 3, 1.4)
-        rail(m, 'wood', [xf @ hull_point(s, top_q, side, sheer) for s in run], .24, tint=tints[0], lift=.1)
+        rail(m, 'wood', [xf @ hull_point(s, top_q, side, sheer) for s in run], .24, tint=tints[0], lift=.12, up=xf.to_3x3() @ V(0, 1, 0))
     # Deck: planks along the ship, laid on the hull's stations so they follow
     # its sheer and fill out to the walls as the beam swells and narrows; the
     # ragged runs are only at the breaks. (The random draws are the ones the
@@ -431,33 +484,51 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
 
 
 def cloth(m, slot, top_l, top_r, height, bulge=.8, tear=.25, notch=0.0, wind=V(0, 0, 0), nu=16, nv=16, droop=0.0):
-    """A torn sail or banner hanging from top_l..top_r, frozen stiff: a jagged
-    sawtooth hem, a swallowtail notch and triangular rips."""
+    """Heavy canvas hanging from top_l..top_r, frozen where it hung: a full
+    belly, deep vertical folds from its own weight, the clews sagging and the
+    foot gathered in, roped edges, and a worn (not shredded) hem with the odd
+    rip. The random draws are the ones the old torn-paper version made, so
+    the rest of the kit is unchanged."""
     top_l = V(top_l); top_r = V(top_r)
     across = top_r - top_l
     normal = across.cross(V(0, -1, 0)).normalized()
+    raw = []
+    for i in range(nu + 1):
+        wear = R.uniform(0, tear)
+        rip = R.uniform(.2, .45) if R.random() < tear * .5 else 0.0
+        raw.append(wear * .35 + rip * .5)
+    # The hem wears smoothly (neighbours averaged), no sawtooth.
     extent = []
     for i in range(nu + 1):
         u = i / nu
-        hem = 1 - R.uniform(0, tear) - (tear * .5 if i % 2 else 0) - (R.uniform(.2, .45) if R.random() < tear * .5 else 0)
-        extent.append(max(.2, hem - notch * (1 - abs(2 * u - 1))))
-    holes = {(R.randrange(1, nu - 1), R.randrange(1, nv - 1), R.randrange(2)) for _ in range(int(nu * nv * tear * .3))}
+        near = raw[max(i - 1, 0):i + 2]
+        extent.append(max(.35, 1 - sum(near) / len(near) - notch * (1 - abs(2 * u - 1))))
+    # (Draws kept from the old pin-prick holes; heavy canvas splits, it does not riddle.)
+    {(R.randrange(1, nu - 1), R.randrange(1, nv - 1), R.randrange(2)) for _ in range(int(nu * nv * tear * .3))}
     slash = (R.uniform(.25, .75), R.uniform(-.8, .8))
+    folds = max(2, round(across.length / 2.2))
+    fold_depth = min(.22, across.length * .07)
 
     def fn(u, v):
         p = top_l + across * u + V(0, -height * v, 0)
         p += normal * bulge * math.sin(math.pi * u) * math.sin(math.pi * min(v, 1) * .9)
+        p += normal * fold_depth * min(v, 1) * math.sin(u * math.pi * folds * 2)  # weight folds
+        p += across * (.5 - u) * .08 * v * v  # the foot gathers in
+        p += V(0, -.08 * height * v * v * abs(2 * u - 1), 0)  # the clews hang lowest
         p += wind * v * v + V(0, -droop * math.sin(math.pi * u) * v, 0)
         return p
 
     def keep(i, j, k):
         u = (i + .5) / nu; v = (j + .5) / nv
-        if (i, j, k) in holes:
-            return False
-        if tear > .3 and v > .25 and abs((u - slash[0]) - slash[1] * (v - .5) * .5) < .045:
+        # One long split in a badly worn sail, never a riddle of holes.
+        if tear > .4 and v > .45 and abs((u - slash[0]) - slash[1] * (v - .5) * .3) < .03:
             return False
         return True
     m.sheet(slot, fn, nu, nv, keep, extent=extent)
+    # Bolt ropes down both edges and along the head carry the weight.
+    for u in (0.0, 1.0):
+        sweep(m, 'rope', [fn(u, extent[int(u * nu)] * j / 8) for j in range(9)], .09, .09, tint=.5)
+    sweep(m, 'rope', [fn(i / nu, 0) for i in range(nu + 1)], .1, .1, tint=.5)
     # Ice weighs down the hem.
     for i in range(0, nu + 1, 2):
         if R.random() < .45:
@@ -500,15 +571,20 @@ def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, n
         c = base.lerp(top, min(yard_at + .14, .95))
         ring = [xf @ (c + V(math.cos(a) * 1.7, dy, math.sin(a) * 1.7)) for a in [j * math.tau / 8 for j in range(8)] for dy in (-.15, .15)]
         m.solid('wood', ring)
+        # Posts stand square to the rim along the mast, capped by one rail.
+        posts = []
         for j in range(8):
             a = j * math.tau / 8
-            m.beam('wood', xf @ (c + V(math.cos(a) * 1.7, 0, math.sin(a) * 1.7)), xf @ (c + V(math.cos(a) * 1.75, 1.0, math.sin(a) * 1.75)), .07, sides=4)
+            foot = c + V(math.cos(a) * 1.6, .1, math.sin(a) * 1.6)
+            posts.append(foot + axis * 1.0)
+            sweep(m, 'wood', [xf @ foot, xf @ (foot + axis * 1.0)], .14, .14, across=xf.to_3x3() @ V(math.cos(a), 0, math.sin(a)))
+        sweep(m, 'wood', [xf @ p for p in posts], .16, .12, tint=.5, up=xf.to_3x3() @ axis, closed=True)
         icicles(m, xf @ (c + V(-1.7, -.2, 0)), xf @ (c + V(1.7, -.2, 0)), 6, 1.2)
     if banner:
         head = top - axis * .5
         pole = head + V(0, 0, 0)
         cloth(m, 'banner', xf @ pole, xf @ (pole + V(0, 0, 1.6)), 7.5, bulge=.25, tear=.2, notch=.28,
-              wind=xf.to_3x3() @ V(3.5, 1.2, 0), nu=6, nv=18)
+              wind=xf.to_3x3() @ V(2.0, -.3, 0), nu=6, nv=18)
     if parts: m.part = None
     return [xf @ (base + V(x, 0, z)) for x in (-.7, .7) for z in (-.7, .7)] + [xf @ (top + V(x, 0, z)) for x in (-.5, .5) for z in (-.5, .5)]
 
@@ -961,7 +1037,7 @@ def wreck_stern():
     staff_top = staff_base + V(0, 9, 1.2)
     m.beam('wood', xf @ staff_base, xf @ staff_top, .18, .1, sides=6)
     cloth(m, 'banner', xf @ (staff_top - V(0, .3, 0)), xf @ (staff_top + V(0, -.3, 4.8)), 6.5, bulge=.4, tear=.25, notch=.2,
-          wind=xf.to_3x3() @ V(1.5, .5, 1.5), nu=8, nv=10)
+          wind=xf.to_3x3() @ V(1.0, -.2, 1.0), nu=8, nv=10)
     mp = mast(m, xf, hull_point(.3, 1, 0), 21, lean=(-.04, .02), yard_at=.66)
     for side in (-1, 1):
         rigging(m, xf @ hull_point(.22, 1.14, side, True, .1), xf @ (hull_point(.3, 1, 0) + V(0, 20, 0)), .7)
@@ -1049,7 +1125,7 @@ def wreck_keel():
                 y = arch * math.cos(a * math.pi / 2) - 1.0 * a
                 p = V(x, y - .6, R.uniform(-.05, .05))
                 if prev is not None:
-                    pts += rib.beam('wood', prev, p, .32, .3, sides=4)
+                    pts += rib.beam('wood', prev, p, .32, .3, sides=4, legacy=True)
                 prev = p
             if cut == 1.0:
                 rib.spike('wood', prev, prev + V(side * R.uniform(.2, .8), -1.6, 0), .3, sides=4)
