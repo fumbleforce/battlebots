@@ -120,11 +120,27 @@ func run() -> void:
 		check(outline._rim.get_shader_parameter("outline_color") == outline.ITEM_COLOR
 			and token.get_node("Frame").find_children("PracticeItemOutline*", "MeshInstance3D", false, false).size() == 2
 			and token.get_node("Core").get_child_count() == 0, "The item outline is yellow, round the cage, not the token inside")
-		# A box's rim is one larger box, not faces grown apart along their normals.
+		# Hard edges stay closed: every vertex at a box corner grows the same way,
+		# (±1, ±1, ±1), so the rim is a box WIDTH larger all round, not faces
+		# grown apart along their own normals.
 		var cage_rim: MeshInstance3D = token.get_node("Frame").get_node_or_null("PracticeItemOutlineRim")
-		check(cage_rim != null and cage_rim.mesh is BoxMesh
-			and is_equal_approx((cage_rim.mesh as BoxMesh).size.x, (token.get_node("Frame").mesh as BoxMesh).size.x + 2.0 * outline.WIDTH)
-			and cage_rim.material_override.get_shader_parameter("width") == 0.0, "A box's rim is a closed box WIDTH larger all round")
+		var corners_closed := cage_rim != null
+		if cage_rim != null:
+			var rim_arrays: Array = cage_rim.mesh.surface_get_arrays(0)
+			var rim_vertices: PackedVector3Array = rim_arrays[Mesh.ARRAY_VERTEX]
+			var rim_custom: PackedFloat32Array = rim_arrays[Mesh.ARRAY_CUSTOM0]
+			for index: int in rim_vertices.size():
+				var grow := Vector3(rim_custom[index * 3], rim_custom[index * 3 + 1], rim_custom[index * 3 + 2])
+				corners_closed = corners_closed and grow.distance_to(rim_vertices[index].sign()) < 0.001
+		check(corners_closed, "A box's rim grows every corner diagonally, so its faces stay joined")
+		# A sharp tip (a saw tooth) reaches at most MAX_CORNER_REACH widths out.
+		var tooth := PrismMesh.new()
+		var tooth_arrays: Array = outline._rim_mesh(tooth).surface_get_arrays(0)
+		var tooth_custom: PackedFloat32Array = tooth_arrays[Mesh.ARRAY_CUSTOM0]
+		var longest := 0.0
+		for index: int in tooth_custom.size() / 3:
+			longest = maxf(longest, Vector3(tooth_custom[index * 3], tooth_custom[index * 3 + 1], tooth_custom[index * 3 + 2]).length())
+		check(longest > 1.0 and longest <= outline.MAX_CORNER_REACH + 0.001, "Sharp tips reach out, within bounds (%.2f)" % longest)
 		check(item_panel.picker.get_parent() == item_panel.remove_button.get_parent()
 			and not item_panel.card.find_children("*", "Label", true, false).any(func(label: Label) -> bool: return label.text == "Item"),
 			"The dropdown fills the card's row, with no Item caption")
