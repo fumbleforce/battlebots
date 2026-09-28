@@ -88,6 +88,7 @@ void fragment() {
 	// Rime: a pale blue-white bloom, heaviest low down where the spray froze.
 	float rime = frost * clamp(0.3 + 0.4 * mael_fbm(world.xz * 0.7 + world.y) + 0.35 * smoothstep(3.0, 0.0, world.y), 0.0, 0.9);
 	if (kind == 9 || kind == 10) rime *= 0.15;
+	if (kind <= 2) rime *= 0.55; // timber stays brown under the frost
 	albedo = mix(albedo, vec3(0.5, 0.57, 0.63) * (albedo * 0.6 + 0.5), rime * 0.6);
 	float snow = mael_snow(world, n, frost);
 	albedo = mix(albedo, vec3(0.62, 0.68, 0.74), snow);

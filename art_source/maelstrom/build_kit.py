@@ -28,6 +28,7 @@ UV_SLOTS = {'banner', 'sail'}
 # Model name prefix -> slots given a displaced, weathered surface.
 DISPLACE = {'rock_': {'rock'}, 'ice_shards': {'ice'}}
 SMOOTH_SLOTS = {'sail', 'banner'}
+GRAIN_SLOTS = {'wood', 'deck', 'paint'}  # Box UVs follow the board's length.
 # Preview colours only; the game assigns its own shaders by slot name.
 PREVIEW = {'wood': (.16, .10, .06), 'deck': (.33, .24, .15), 'paint': (.55, .06, .05), 'trim': (.85, .62, .18),
            'iron': (.12, .12, .13), 'sail': (.78, .72, .6), 'banner': (.6, .05, .05), 'rope': (.3, .24, .15),
@@ -230,6 +231,13 @@ def plank_point(s, q, side, sheer=True, out=0.0):
 
 
 PLANK_LAP = .35 / STRAKES  # How far each strake runs up under the next one.
+# Strake UVs (the wood scan's planks run along v): each strake shows the inside
+# of one of the scan's nine planks (seams at these pixels of its 1024 tile, the
+# game samples it at 0.45 per UV unit), so every strake is one broad plank with
+# its grain fore and aft and the only seams are the strakes' own laps.
+SCAN_SEAMS = [62, 172, 286, 403, 516, 631, 746, 861, 973, 1086]
+PLANK_V = .6  # Stretches the grain along the plank.
+PLANK_STEP = .5  # Metres between samples along a strake (the bow curves fast).
 
 
 def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo=True, ribs_hi=True, hull_q=1.0):
@@ -251,30 +259,46 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
                 hi -= R.uniform(.05, .12)  # a missing plank run near the break
             if hi - lo < .02:
                 continue
-            n = max(2, int((hi - lo) * L_SHIP / 1.3) + 1)
+            n = max(2, int((hi - lo) * L_SHIP / 1.3) + 1)  # collision outline samples
+            fine = max(n, int((hi - lo) * L_SHIP / PLANK_STEP) + 1)
             # Splintered ends: the upper edge runs a little past the lower edge.
             lo_u = lo - (R.uniform(0, .02) if broken_lo else 0); hi_u = hi + (R.uniform(0, .025) if broken_hi else 0)
             clinker = .09 if wale else .05
             # The upper edge laps under the next strake's lip so no light shows
             # between them; the collision hull keeps the unlapped outline.
             q1_lap = q1 if q1 >= top_q else min(q1 + PLANK_LAP, top_q)
-            verts = []; outline = []
-            for i in range(n + 1):
-                t = i / n
+            verts = []; outline = []; uv = []
+            j = (k * 4 + (side > 0) * 2) % 9
+            u0 = (SCAN_SEAMS[j] + 12) / 1024 / .45; u_top = (SCAN_SEAMS[j + 1] - 12) / 1024 / .45
+            u1 = u0 + (u_top - u0) * (q1_lap - q0) / (q1 - q0)
+            for i in range(fine + 1):
+                t = i / fine
                 s_lo = lo + (hi - lo) * t; s_hi = lo_u + (hi_u - lo_u) * t
                 verts.append(xf @ plank_point(s_lo, q0, side, sheer, clinker))
                 verts.append(xf @ plank_point(s_hi, q1_lap, side, sheer, .0))
-                outline.append(xf @ hull_point(s_lo, q0, side, sheer, clinker))
-                outline.append(xf @ hull_point(s_hi, q1, side, sheer, .0))
+                uv += [(u0, (s_lo * L_SHIP + k * 7.3) * PLANK_V), (u1, (s_hi * L_SHIP + k * 7.3) * PLANK_V)]
+            for i in range(n + 1):
+                t = i / n
+                outline.append(xf @ hull_point(lo + (hi - lo) * t, q0, side, sheer, clinker))
+                outline.append(xf @ hull_point(lo_u + (hi_u - lo_u) * t, q1, side, sheer, .0))
             faces = []
-            for i in range(n):
+            for i in range(fine):
                 a = i * 2
                 faces.append((a, a + 2, a + 3, a + 1) if side > 0 else (a, a + 1, a + 3, a + 2))
-            m.add(slot, verts, faces, tint=R.random() * .6 + (.4 if wale else 0))
+            m.add(slot, verts, faces, [[uv[j] for j in f] for f in faces], tint=R.random() * .6 + (.4 if wale else 0))
             if q1 <= hull_q + 1e-6:
                 hull_pts += outline[::2] + outline[1::2]
-    # Keel and gunwale caps.
-    m.beam('wood', xf @ hull_point(s0, 0, 0), xf @ hull_point(s1, 0, 0), .35, sides=4)
+    # Keel, following the hull's rising forefoot, and at an unbroken bow the
+    # stem post up to the bulwark: both close the seam where the sides meet.
+    tint = R.random()
+    keel = [s0 + (s1 - s0) * i / 24 for i in range(25)]
+    for a, b in zip(keel, keel[1:]):
+        m.beam('wood', xf @ hull_point(a, 0, 0), xf @ hull_point(b, 0, 0), .35, sides=4, tint=tint)
+    if s1 >= 1.0 and not broken_hi:
+        stem = [top_q * i / 12 for i in range(13)]
+        for a, b in zip(stem, stem[1:]):
+            m.beam('wood', xf @ hull_point(1.0, a, 0), xf @ hull_point(1.0, b, 0), .35, sides=4, tint=tint)
+    # Gunwale caps.
     for side in (-1, 1):
         n = max(2, int((s1 - s0) * L_SHIP / 2.5))
         lo = s0 + (.06 if broken_lo else 0); hi = s1 - (.05 if broken_hi else 0)
@@ -529,7 +553,10 @@ def cannon(m, xf):
             m.beam('wood', xf @ V(x, .25, z), xf @ V(x + .12 * (1 if x > 0 else -1), .25, z), .25, sides=6)
 
 
-def ice_collar(m, xf, points, count, height=1.6, hull=None):
+ICE_ROOT = 7.0  # Metres an ice slab's root reaches down (the cone falls ~0.4 m/m).
+
+
+def ice_collar(m, xf, points, count, height=1.6, hull=None, root=True):
     """Upthrust ice slabs where a wreck broke through the sheet."""
     pts = [V(p) for p in points]
     for i in range(count):
@@ -545,6 +572,11 @@ def ice_collar(m, xf, points, count, height=1.6, hull=None):
         verts = m.solid('ice', slab)
         if hull is not None:
             hull.extend(verts)
+        # The wreck sits level on a sloping cone: a root (drawn, not collided)
+        # carries each slab down into the ice so none hangs over the downhill side.
+        foot = [slab[i] for i in (0, 1, 4, 5)]  # the slab's lower edge
+        if root:
+            m.solid('ice', foot + [v - V(0, ICE_ROOT, 0) for v in foot], tint=.5)
 
 
 # --- Models ----------------------------------------------------------------
@@ -972,7 +1004,7 @@ def wreck_mast():
     crew_on(m, xf, [(0.6, 18.6 + .1, -.4, 1.0, 'reach')])
     m.part = 4
     base = [xf @ V(x, 0, z) for x in (-.8, .8) for z in (-.8, .8)]
-    ice_collar(m, Matrix(), base, 12, height=2.2, hull=mp)
+    ice_collar(m, Matrix(), base, 12, height=2.2, hull=mp, root=False)  # masts break apart
     m.part = None
     m.hulls.append(mp)
     return m
@@ -1052,18 +1084,19 @@ def ice_floe():
 
 # --- Build and export -------------------------------------------------------
 
-def box_uv(verts, face):
+def box_uv(verts, face, grain=False):
+    """Metre box UVs. With grain (plank slots) v runs along the face's longer
+    extent, so the wood scan's planks follow a board, wall or deck lengthwise."""
     p = [Vector(verts[i]) for i in face]
     n = Vector((0, 0, 0))
     for i in range(len(p)):
         a = p[i]; b = p[(i + 1) % len(p)]
         n += Vector(((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y)))
     ax = max(range(3), key=lambda k: abs(n[k]))
-    if ax == 0:
-        return [(q.z, q.y) for q in p]
-    if ax == 1:
-        return [(q.z, q.x) for q in p]
-    return [(q.x, q.y) for q in p]
+    a, b = [(2, 1), (2, 0), (0, 1)][ax]
+    if grain and max(q[a] for q in p) - min(q[a] for q in p) > max(q[b] for q in p) - min(q[b] for q in p):
+        a, b = b, a
+    return [(q[a], q[b]) for q in p]
 
 
 def build():
@@ -1092,7 +1125,7 @@ def build():
                 parts.append(part)
                 faces.append(tuple(off + k for k in f))
                 face_slots.append(si)
-                uvs.append(uv if uv is not None else box_uv(verts, faces[-1]))
+                uvs.append(uv if uv is not None else box_uv(verts, faces[-1], slot in GRAIN_SLOTS))
                 cols.append(c)
         # Realistic crags and seracs: their rock/ice faces are subdivided and
         # displaced with crisp noise (sharp macro form, weathered surface);

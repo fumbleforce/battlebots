@@ -106,12 +106,15 @@ func _material(slot: String, fleet: int) -> Material:
 		_:
 			mat.shader = SURFACE
 			var kinds := {"wood":0, "deck":1, "paint":2, "trim":3, "iron":4, "rope":5, "skin":6, "cloth":7, "rock":8, "glass":9, "lantern":10}
-			var base := {"wood":Color(0.12, 0.09, 0.07), "deck":Color(0.22, 0.19, 0.16), "paint":colours.paint, "trim":colours.trim,
+			var base := {"wood":Color(0.3, 0.2, 0.12), "deck":Color(0.3, 0.23, 0.16), "paint":colours.paint, "trim":colours.trim,
 				"iron":Color(0.13, 0.13, 0.14), "rope":Color(0.2, 0.18, 0.15), "skin":Color(0.36, 0.41, 0.46), "cloth":colours.field,
 				"rock":Color(0.075, 0.08, 0.09), "glass":Color.BLACK, "lantern":Color.BLACK}
 			mat.set_shader_parameter("kind", kinds.get(slot, 0))
 			mat.set_shader_parameter("base_color", base.get(slot, Color.GRAY))
-			var texture := "rock_face" if slot == "rock" else ("metal_plate" if slot in ["iron", "trim"] else ("weathered_planks" if slot == "deck" else "medieval_wood"))
+			# Planking (hull, decks, fleet paint) and the gilded carving use the
+			# plain board scan (the studded medieval_wood read as riveted metal);
+			# iron is plain rusted metal, no modern tread plate.
+			var texture := "rock_face" if slot == "rock" else ("rusty_metal_02" if slot == "iron" else ("weathered_planks" if slot in ["wood", "deck", "paint", "trim"] else "medieval_wood"))
 			var size := "2k" if texture == "rock_face" else "1k"
 			mat.set_shader_parameter("detail", scan(texture, "diff", size))
 			mat.set_shader_parameter("detail_normal", scan(texture, "nor", size))
