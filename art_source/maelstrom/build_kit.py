@@ -1109,6 +1109,43 @@ def lantern(m, xf, at, size=1.0):
     icicles(m, xf @ (at + V(-r, -.1, 0)), xf @ (at + V(r, -.1, 0)), 3, .5 * size)
 
 
+def castle_planking(m, xf, s_a, s_b, side, y0, y1, thick, seed, slot='paint'):
+    """A castle wall or breastwork planked like the hull it stands on: bands
+    that follow the sheer (hull_point at the deck edge, raised by y), each one
+    scan plank seam to seam, with v by station as on the strakes below, so the
+    wood runs on up from the hull. thick is measured inboard."""
+    bands = max(1, round((y1 - y0) / .8))
+    run, _ = stations(s_a, s_b, s_a, s_b)
+    inboard = V(-side * thick, 0, 0)
+    quads = []
+    for i in range(bands):
+        ya = y0 + (y1 - y0) * i / bands; yb = y0 + (y1 - y0) * (i + 1) / bands
+        u0, u1 = scan_plank(seed + i * 4)
+        for sa, sb in zip(run, run[1:]):
+            pa, pb = hull_point(sa, 1.0, side), hull_point(sb, 1.0, side)
+            va, vb = sa * L_SHIP * PLANK_V, sb * L_SHIP * PLANK_V
+            outer = [pa + V(0, ya, 0), pb + V(0, ya, 0), pb + V(0, yb, 0), pa + V(0, yb, 0)]
+            quads.append((outer, [(u0, va), (u0, vb), (u1, vb), (u1, va)], V(side, 0, 0)))
+            quads.append(([c + inboard for c in outer], [(u0, va), (u0, vb), (u1, vb), (u1, va)], V(-side, 0, 0)))
+    for sa, sb in zip(run, run[1:]):  # the wall's top edge
+        pa, pb = hull_point(sa, 1.0, side) + V(0, y1, 0), hull_point(sb, 1.0, side) + V(0, y1, 0)
+        va, vb = sa * L_SHIP * PLANK_V, sb * L_SHIP * PLANK_V
+        quads.append(([pa, pb, pb + inboard, pa + inboard], [(0, va), (0, vb), (thick * GRAIN_U, vb), (thick * GRAIN_U, va)], V(0, 1, 0)))
+    for s_end, sign in ((s_a, 1), (s_b, -1)):  # its ends (toward the stern is +z)
+        p0 = hull_point(s_end, 1.0, side)
+        end = [p0 + V(0, y0, 0), p0 + V(0, y1, 0), p0 + inboard + V(0, y1, 0), p0 + inboard + V(0, y0, 0)]
+        quads.append((end, [(0, 0), (0, (y1 - y0) * GRAIN_U), (thick * GRAIN_U, (y1 - y0) * GRAIN_U), (thick * GRAIN_U, 0)], V(0, 0, sign)))
+    verts = []; faces = []; uvs = []
+    rot3 = xf.to_3x3()
+    for corners, uv, outward in quads:
+        nrm = (corners[1] - corners[0]).cross(corners[2] - corners[0])
+        if nrm.dot(outward) < 0:
+            corners = corners[::-1]; uv = uv[::-1]
+        faces.append(tuple(range(len(verts), len(verts) + 4)))
+        verts.extend(xf @ c for c in corners); uvs.append(uv)
+    m.add(slot, verts, faces, uvs, tint=.35)
+
+
 @model
 def wreck_stern():
     m = Model('wreck_stern')
@@ -1129,8 +1166,8 @@ def wreck_stern():
                     for inset in (0.0, wall):
                         for h in (base, top):
                             box.append(xf @ (p + V(-side * inset, h, 0)))
-                # Planks run along the ship across all six panels and both tiers.
-                pts += m.solid('paint', box, tint=.35, grain=xf.to_3x3() @ V(0, 0, 1), origin=xf @ V(0, 0, 0))
+                # Collision keeps the six panels; the wall is drawn as planking.
+                pts += m.solid('paint', box, tint=.35, draw=False)
                 if i % 2 == 1:
                     # A flat glazed window set into the wall, framed like a port.
                     # Clear of the gunwale rail below and the tier's own top.
@@ -1139,6 +1176,8 @@ def wreck_stern():
                     wall_along = (hull_point(b, 1.0, side) - hull_point(a, 1.0, side)).normalized()
                     framed_window(m, xf @ c, (rot3 @ wall_along).normalized(), (rot3 @ V(0, 1, 0)).normalized(),
                                   (rot3 @ V(side, 0, 0)).normalized(), .55, .62, frame=.16)
+        for side in (-1, 1):
+            castle_planking(m, xf, lo, hi, side, base, top, wall, 3 if base == 0.0 else 7)
         # Decks and bulkheads follow the sheer, as the walls do (level ones left
         # the forward bulkhead and deck standing clear of the walls: holes).
         w_lo = beam_at(lo) * .92 - wall; w_hi = beam_at(hi) * .92 - wall
@@ -1169,12 +1208,8 @@ def wreck_stern():
         # across its forward edge, capped by the rail: open railing showed
         # through. (The old posts' draws are kept.)
         open_lo = .1 if base == 0.0 else lo
-        grain = xf.to_3x3() @ V(0, 0, 1); origin = xf @ V(0, 0, 0)
         for side in (-1, 1):
-            run = [open_lo + (hi - open_lo) * i / 4 for i in range(5)]
-            for a, b in zip(run, run[1:]):
-                m.solid('paint', [xf @ (hull_point(s_, 1.0, side) + V(-side * inset, top + h, 0)) for s_ in (a, b) for inset in (0.0, wall * .6) for h in (0.0, .95)],
-                        tint=.35, grain=grain, origin=origin)
+            castle_planking(m, xf, open_lo, hi, side, top, top + .95, wall * .6, 5 if base == 0.0 else 1)
             m.beam('trim', xf @ (hull_point(open_lo, 1, side) + V(-side * wall * .3, top + 1.0, 0)), xf @ (hull_point(hi, 1, side) + V(-side * wall * .3, top + 1.0, 0)), .1, sides=4)
             for s_ in (open_lo + (hi - open_lo) * t for t in (.1, .5, .9)):
                 p = hull_point(s_, 1, side) + V(-side * wall * .5, 0, 0)
