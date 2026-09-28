@@ -1683,3 +1683,12 @@ change. The Maelstrom's frozen-wave crest lips were removed (visual only).
 - Presentation: rib parts snap into shorter pieces; a piece born buried in the
   ice is dropped and one caught in it stays put, instead of being lifted out.
   Depth-fog blizzard seals the horizon.
+
+## Maelstrom stern transom — build mvp-ab-62 (#102)
+
+- `ARENA_RULES` 10. Kit: the stern wreck's transom is a solid plate cut to the
+  hull's own section (flush with the planking and the castle walls), so the
+  stern's collision hull changes.
+- Presentation: the ice shader keeps drifted snow over the start pads
+  (`pads`, `pad_count`, `pad_reach`, `pad_fade` uniforms from
+  `maelstrom_ground.pads()`), and loose ice grit lies on them too.

@@ -208,8 +208,8 @@ func prop_parts(name: String) -> Array:
 			index += 1
 		_parts[key] = parts
 	return _parts[key]
-## Loose chunks of broken ice strewn over the sheet: small enough for any bot to
-## roll over, never on a start pad.
+## Loose chunks of broken ice strewn over the sheet (start pads too, so they
+## match the ice around them): visual only, small enough to read as grit.
 func _rubble() -> void:
 	var cfg: RefCounted = GROUND.settings()
 	var poses: Array[Transform3D] = []
@@ -219,7 +219,7 @@ func _rubble() -> void:
 		var angle := _rng.randf() * TAU
 		var radius := sqrt(_rng.randf_range(pow(cfg.eye_radius + 3.0, 2.0), pow(cfg.rim_radius - 2.0, 2.0)))
 		var p := Vector2(cos(angle), sin(angle)) * radius
-		if not GROUND.on_ice(p.x, p.y) or _near_pad(p, cfg.pad_radius):
+		if not GROUND.on_ice(p.x, p.y):
 			continue
 		var s := _rng.randf_range(0.04, 0.13)
 		var tip := Basis(Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized(), _rng.randf_range(0.1, 1.0))
@@ -259,6 +259,12 @@ func _ice_sheet() -> void:
 	_set_ring(mat)
 	mat.set_shader_parameter("twist", float(cfg.ridge.twist))
 	_set_abyss(mat)
+	var pads: PackedVector2Array = GROUND.pads()
+	assert(pads.size() <= 64, "maelstrom_ice.gdshader holds at most 64 pads")
+	mat.set_shader_parameter("pads", pads)
+	mat.set_shader_parameter("pad_count", pads.size())
+	mat.set_shader_parameter("pad_reach", cfg.pad_radius)
+	mat.set_shader_parameter("pad_fade", cfg.pad_blend)
 	var root := Node3D.new()
 	root.name = "IceSheet"
 	add_child(root)

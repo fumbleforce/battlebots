@@ -189,6 +189,8 @@ func _capture(world: AuthorityWorld) -> void:
 		["stern", Vector3(-48, 6.0, -2), Vector3(-66, 6.0, -24)],
 		# From the broken midships into the stern castle's forward bulkheads.
 		["castle", Vector3(-58, 9.0, -27), Vector3(-80, 8.0, -20)],
+		# Astern of the stern wreck, onto its transom.
+		["transom", Vector3(-100, 9.0, -14), Vector3(-83, 7.0, -19)],
 		["deck", Vector3(-68, 5.0, -36), Vector3(-80, 3.0, -58)],
 		["keel", Vector3(-28, 4.0, 46), Vector3(-46, 4.0, 30)],
 		["rim", Vector3(-88, 8.0, -66), Vector3(-160, 2.0, -110)],

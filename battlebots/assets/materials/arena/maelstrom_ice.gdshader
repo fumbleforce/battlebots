@@ -15,6 +15,12 @@ uniform float bare_override = 0.0;
 // Walls fade to black between these heights (the chasm and the eye).
 uniform float abyss_top = -6.0;
 uniform float abyss_bottom = -40.0;
+// Start pads (maelstrom_ground.pads): drifted snow lies over them, easing out
+// across pad_fade metres past pad_reach, so no start sits on bare ice.
+uniform vec2 pads[64];
+uniform int pad_count = 0;
+uniform float pad_reach = 8.0;
+uniform float pad_fade = 10.0;
 varying vec3 world;
 varying vec3 normal_world;
 
@@ -39,6 +45,11 @@ void fragment() {
 	float current = smoothstep(0.5, 0.95, flow) * smoothstep(0.25, 0.65, mael_fbm(bent * 0.03 + 21.0));
 	scour += current * 0.16;
 	snow = mix(snow, packed_color * 0.9, current * 0.55);
+	float near_pad = 1e6;
+	for (int i = 0; i < pad_count; i++) {
+		near_pad = min(near_pad, distance(world.xz, pads[i]));
+	}
+	scour -= (1.0 - smoothstep(pad_reach, pad_reach + pad_fade, near_pad + (grain - 0.5) * 3.0)) * 0.4;
 	float bare = max(smoothstep(0.6, 0.66, scour), bare_override);
 	// Glacier ice: slow tonal drift, darker streaks along the frozen flow and
 	// fine scratches; no hard-thresholded noise, which shows its lattice.

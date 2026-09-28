@@ -770,25 +770,38 @@ def wreck_stern():
                 p = hull_point(s_, 1, side) + V(-side * wall * .5, 0, 0)
                 m.beam('wood', xf @ (p + V(0, top, 0)), xf @ (p + V(0, top + .9, 0)), .08, sides=4)
             icicles(m, xf @ (hull_point(lo, 1, side) + V(side * .2, top, 0)), xf @ (hull_point(hi, 1, side) + V(side * .2, top, 0)), 8, 1.8)
-    transom_z = .5 * L_SHIP + .02
-    tw = beam_at(0) * .95
-    y0 = keel_at(0) + 2.5; y1 = deck_at(0) + 6.0
+    # The transom closes the stern flush with the planking and the castle: a
+    # solid plate stacked in strips, each as wide as the hull's own section at
+    # its height (the castle walls' outer face above the deck).
+    transom_z = .5 * L_SHIP
+    y0 = keel_at(0) + .3; y1 = deck_at(0) + 6.0
 
-    def transom(u, v):
-        return xf @ V((u - .5) * 2 * tw * (0.8 + .2 * v), y0 + (y1 - y0) * v, transom_z + .6 * v)
-    m.sheet('paint', transom, 8, 8, uv=False)
+    def transom_half(y):
+        k = keel_at(0); d = deck_at(0)
+        if y >= d:
+            return abs(hull_point(0, 1.0, 1).x)
+        return abs(hull_point(0, max((y - k) / (d - k), .03), 1, True, .05).x)
+    tw = transom_half(y1)
+    strips = 14
+    for i in range(strips):
+        ya = y0 + (y1 - y0) * i / strips; yb = y0 + (y1 - y0) * (i + 1) / strips
+        wa = transom_half(ya); wb = transom_half(yb)
+        pts += m.solid('paint', [xf @ V(x * w, y, transom_z + dz) for x in (-1, 1) for y, w in ((ya, wa), (yb, wb)) for dz in (-.3, .12)],
+                       tint=.3 + .08 * (i % 3))
+    face = transom_z + .12
     for row, y in enumerate((deck_at(0) + 1.4, deck_at(0) + 4.4)):
         for j in range(5):
             x = (j - 2) * tw * .38
-            c = V(x, y, transom_z + .6 * (y - y0) / (y1 - y0) + .08)
+            c = V(x, y, face)
             m.solid('glass', [xf @ (c + V(dx, dy, dz)) for dx in (-.55, .55) for dy in (-.7, .7) for dz in (0, .05)])
             m.solid('trim', [xf @ (c + V(dx, dy, dz)) for dx in (-.7, .7) for dy in (.75, .95) for dz in (0, .25)])
-        m.beam('trim', xf @ V(-tw, y - 1.1, transom_z + .5), xf @ V(tw, y - 1.1, transom_z + .5), .18, sides=4)
+        w = transom_half(y - 1.1)
+        m.beam('trim', xf @ V(-w, y - 1.1, face + .1), xf @ V(w, y - 1.1, face + .1), .18, sides=4)
     # The fleet's crest, carved and painted on the transom (banner UVs).
-    c = V(0, deck_at(0) + 2.9, transom_z + .6 * (deck_at(0) + 2.9 - y0) / (y1 - y0) + .15)
+    c = V(0, deck_at(0) + 2.9, face + .08)
     m.sheet('banner', lambda u, v: xf @ (c + V((u - .5) * 3.2, (.5 - v) * 2.6, .1 * math.sin(math.pi * u))), 6, 6)
     for x in (-1.9, 1.9):  # stern lanterns on iron brackets, long gone dark
-        lantern(m, xf, V(x * tw / 3, y1 + .2, transom_z + .9))
+        lantern(m, xf, V(x * tw / 3, y1 + .2, face + .8))
     # Ensign staff with the fleet's great banner.
     staff_base = V(0, y1, transom_z - .5)
     staff_top = staff_base + V(0, 9, 1.2)
