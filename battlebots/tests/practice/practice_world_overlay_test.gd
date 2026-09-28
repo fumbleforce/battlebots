@@ -120,6 +120,11 @@ func run() -> void:
 		check(outline._rim.get_shader_parameter("outline_color") == outline.ITEM_COLOR
 			and token.get_node("Frame").find_children("PracticeItemOutline*", "MeshInstance3D", false, false).size() == 2
 			and token.get_node("Core").get_child_count() == 0, "The item outline is yellow, round the cage, not the token inside")
+		# A box's rim is one larger box, not faces grown apart along their normals.
+		var cage_rim: MeshInstance3D = token.get_node("Frame").get_node_or_null("PracticeItemOutlineRim")
+		check(cage_rim != null and cage_rim.mesh is BoxMesh
+			and is_equal_approx((cage_rim.mesh as BoxMesh).size.x, (token.get_node("Frame").mesh as BoxMesh).size.x + 2.0 * outline.WIDTH)
+			and cage_rim.material_override.get_shader_parameter("width") == 0.0, "A box's rim is a closed box WIDTH larger all round")
 		check(item_panel.picker.get_parent() == item_panel.remove_button.get_parent()
 			and not item_panel.card.find_children("*", "Label", true, false).any(func(label: Label) -> bool: return label.text == "Item"),
 			"The dropdown fills the card's row, with no Item caption")

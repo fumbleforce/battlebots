@@ -45,6 +45,10 @@ var _bot: Node
 var _copies: Array[MeshInstance3D] = []
 var _mask: ShaderMaterial
 var _rim: ShaderMaterial
+## A box's faces have their own normals, so grown along them they part at
+## the edges and the rim breaks up (the item cage, #105): a box's rim is a
+## box WIDTH larger on every side instead, drawn with this unscaled material.
+var _box_rim: ShaderMaterial
 ## Its copies' name prefix; also the node's name.
 var copy_name := COPY_NAME
 ## Meshes by these names are left out (the token inside an item's glass cage).
@@ -57,6 +61,9 @@ func _init(color := COLOR, stencil := STENCIL, prefix := COPY_NAME) -> void:
 	_rim = _material(RIM_SHADER % stencil, 1)
 	_rim.set_shader_parameter("outline_color", color)
 	_rim.set_shader_parameter("width", WIDTH)
+	_box_rim = _material(RIM_SHADER % stencil, 1)
+	_box_rim.set_shader_parameter("outline_color", color)
+	_box_rim.set_shader_parameter("width", 0.0)
 
 static func _material(code: String, priority: int) -> ShaderMaterial:
 	var shader := Shader.new()
@@ -75,7 +82,7 @@ func show_on(bot: Node) -> void:
 	var meshes := _meshes(bot)
 	# A changed mesh (an item's new contents) re-dresses too.
 	if bot == _bot and meshes.size() * 2 == _copies.size() and _copies.all(func(copy: MeshInstance3D) -> bool:
-			return is_instance_valid(copy) and copy.mesh == (copy.get_parent() as MeshInstance3D).mesh):
+			return is_instance_valid(copy) and copy.get_meta(&"source") == (copy.get_parent() as MeshInstance3D).mesh):
 		return
 	clear()
 	_bot = bot
@@ -84,10 +91,18 @@ func show_on(bot: Node) -> void:
 			var copy := MeshInstance3D.new()
 			copy.name = copy_name + str(layer[0])
 			copy.mesh = mesh.mesh
+			copy.set_meta(&"source", mesh.mesh)
 			copy.skin = mesh.skin
 			if not mesh.skeleton.is_empty():
 				copy.skeleton = NodePath("../" + str(mesh.skeleton))
 			copy.material_override = layer[1]
+			if layer[1] == _rim and mesh.mesh is BoxMesh:
+				var box: BoxMesh = mesh.mesh.duplicate()
+				var scale := mesh.global_basis.get_scale() if mesh.is_inside_tree() else Vector3.ONE
+				box.size += Vector3(2.0 * WIDTH / maxf(scale.x, 0.0001), 2.0 * WIDTH / maxf(scale.y, 0.0001),
+					2.0 * WIDTH / maxf(scale.z, 0.0001))
+				copy.mesh = box
+				copy.material_override = _box_rim
 			copy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			copy.add_to_group(preload("res://scripts/presentation/wreck_pieces.gd").SKIP_GROUP)
 			mesh.add_child(copy)
