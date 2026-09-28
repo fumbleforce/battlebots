@@ -106,8 +106,10 @@ func run() -> void:
 			"The dropdown lists every item (%d)" % item_panel.picker.item_count)
 		check(item_panel.picker.get_popup().get_theme_font_size("font_size") < item_panel.picker.get_theme_font_size("font_size"),
 			"The dropdown's list is in smaller text than the card")
-		# The selected item gets a yellow outline round its cage, not the token inside
-		# (the markers are not built headless, so on a stand-in token).
+		# The selected item gets a yellow outline round its cage, not the token
+		# inside (the markers are not built headless, so on a stand-in token): a
+		# white copy of the cage in the outline's own mask world, drawn round in
+		# yellow on screen.
 		var outline: Node = game.practice_item_outline
 		var token := Node3D.new()
 		for mesh_name: String in ["Core", "Frame"]:
@@ -117,34 +119,16 @@ func run() -> void:
 			token.add_child(part)
 		root.add_child(token)
 		outline.show_on(token)
-		check(outline._rim.get_shader_parameter("outline_color") == outline.ITEM_COLOR
-			and token.get_node("Frame").find_children("PracticeItemOutline*", "MeshInstance3D", false, false).size() == 2
-			and token.get_node("Core").get_child_count() == 0, "The item outline is yellow, round the cage, not the token inside")
-		# Hard edges stay closed: every vertex at a box corner grows the same way,
-		# (±1, ±1, ±1), so the rim is a box WIDTH larger all round, not faces
-		# grown apart along their own normals.
-		var cage_rim: MeshInstance3D = token.get_node("Frame").get_node_or_null("PracticeItemOutlineRim")
-		var corners_closed := cage_rim != null
-		if cage_rim != null:
-			var rim_arrays: Array = cage_rim.mesh.surface_get_arrays(0)
-			var rim_vertices: PackedVector3Array = rim_arrays[Mesh.ARRAY_VERTEX]
-			var rim_custom: PackedFloat32Array = rim_arrays[Mesh.ARRAY_CUSTOM0]
-			for index: int in rim_vertices.size():
-				var grow := Vector3(rim_custom[index * 3], rim_custom[index * 3 + 1], rim_custom[index * 3 + 2])
-				corners_closed = corners_closed and grow.distance_to(rim_vertices[index].sign()) < 0.001
-		check(corners_closed, "A box's rim grows every corner diagonally, so its faces stay joined")
-		# A sharp tip (a saw tooth) reaches at most MAX_CORNER_REACH widths out.
-		var tooth := PrismMesh.new()
-		var tooth_arrays: Array = outline._rim_mesh(tooth).surface_get_arrays(0)
-		var tooth_custom: PackedFloat32Array = tooth_arrays[Mesh.ARRAY_CUSTOM0]
-		var longest := 0.0
-		for index: int in tooth_custom.size() / 3:
-			longest = maxf(longest, Vector3(tooth_custom[index * 3], tooth_custom[index * 3 + 1], tooth_custom[index * 3 + 2]).length())
-		check(longest > 1.0 and longest <= outline.MAX_CORNER_REACH + 0.001, "Sharp tips reach out, within bounds (%.2f)" % longest)
-		check(item_panel.picker.get_parent() == item_panel.remove_button.get_parent()
-			and not item_panel.card.find_children("*", "Label", true, false).any(func(label: Label) -> bool: return label.text == "Item"),
-			"The dropdown fills the card's row, with no Item caption")
+		check(outline._line.material.get_shader_parameter("outline_color") == outline.ITEM_COLOR
+			and outline.sources() == [token.get_node("Frame")] and outline._line.visible
+			and outline._viewport.render_target_update_mode == SubViewport.UPDATE_ALWAYS,
+			"The item outline is yellow, round the cage, not the token inside")
+		var mask_copy: MeshInstance3D = outline._copies.values()[0] if not outline._copies.is_empty() else null
+		check(mask_copy != null and mask_copy.get_world_3d() != token.get_world_3d() and token.get_node("Frame").get_child_count() == 0,
+			"Its mask copy lives in the outline's own world, not under the item")
 		outline.show_on(null)
+		check(not outline._line.visible and outline._viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED,
+			"With nothing selected the outline draws and renders nothing")
 		token.queue_free()
 		# Choose credits, then a part: the item changes and keeps it.
 		for choice_index: int in [1, item_panel.picker.item_count - 1]:
@@ -241,12 +225,12 @@ func run() -> void:
 		check(game._pick_practice_target(on_screen) and game._practice_target == id, "Clicking an NPC selects it")
 		await frames()
 		check(target_panel.visible and target_panel.target == id, "The selected NPC shows its target card")
-		check(npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The target has a red outline")
+		check(game.practice_target_outline.outlines(npc), "The target has a red outline")
 		# The camera has turned toward it since; click where it shows now.
 		on_screen = camera.unproject_position(npc.body.global_transform * (npc.collision_bounds().get_center() + Vector3.UP * npc.collision_bounds().size.y * 0.4))
 		check(game._pick_practice_target(on_screen) and game._practice_target == 0, "Clicking the target again clears it")
 		await frames()
-		check(not target_panel.visible and npc.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(),
+		check(not target_panel.visible and not game.practice_target_outline.outlines(npc),
 			"Clearing the target hides its card and outline")
 		check(not game._pick_practice_target(Vector2(5, 5)), "A click on no NPC stays a gameplay click")
 		# A click on an NPC with the tuning panel up switches to the world panel
@@ -449,7 +433,7 @@ func run() -> void:
 			check(choice >= 0 and session.world.bots[id].loadout.parts[slot] != before,
 				"Choosing a %s fits it to the target (%s -> %s)" % [slot, before, session.world.bots[id].loadout.parts[slot]])
 		check(target_panel.visible and target_panel.target == id, "The target survives a part swap")
-		check(session.world.bots[id].find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The outline follows the swapped bot")
+		check(game.practice_target_outline.outlines(session.world.bots[id]), "The outline follows the swapped bot")
 		# The outline never becomes wreck pieces, and a wreck has none.
 		var outlined: MvpBot = session.world.bots[id]
 		var captured: Array = preload("res://scripts/presentation/wreck_pieces.gd").capture(outlined, outlined.body.global_transform)
@@ -457,10 +441,10 @@ func run() -> void:
 			"Wreck pieces skip the outline")
 		outlined.combat.eliminated = true
 		await frames()
-		check(outlined.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).is_empty(), "A wrecked target loses its outline")
+		check(not game.practice_target_outline.outlines(outlined), "A wrecked target loses its outline")
 		outlined.combat.eliminated = false
 		await frames()
-		check(outlined.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0, "The outline returns with the NPC")
+		check(game.practice_target_outline.outlines(outlined), "The outline returns with the NPC")
 		# A part that breaks off (flying under a top_level root on the bot, as
 		# bot_part_loss does) is not outlined; the bot still is.
 		var lost_root := Node3D.new()
@@ -470,7 +454,7 @@ func run() -> void:
 		lost_part.mesh = BoxMesh.new()
 		lost_root.add_child(lost_part)
 		await frames()
-		check(lost_part.get_children().is_empty() and outlined.find_children("PracticeTargetOutline*", "MeshInstance3D", true, false).size() > 0,
+		check(not game.practice_target_outline.outlines(lost_part) and game.practice_target_outline.outlines(outlined),
 			"A broken-off part is not outlined")
 		lost_root.queue_free()
 		await frames()

@@ -161,7 +161,7 @@ func _ready() -> void:
 	add_child(practice_target_outline)
 	# Round a token's glass cage, not the token inside it; an item with a
 	# model has no cage and the model is outlined (#105).
-	practice_item_outline = OUTLINE.new(OUTLINE.ITEM_COLOR, OUTLINE.ITEM_STENCIL, OUTLINE.ITEM_COPY_NAME)
+	practice_item_outline = OUTLINE.new(OUTLINE.ITEM_COLOR, OUTLINE.ITEM_COPY_NAME)
 	practice_item_outline.skip_names.assign(["Core"])
 	add_child(practice_item_outline)
 	var results_layer := CanvasLayer.new()
