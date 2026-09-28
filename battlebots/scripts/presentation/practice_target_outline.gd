@@ -47,7 +47,7 @@ var _mask: ShaderMaterial
 var _rim: ShaderMaterial
 ## Its copies' name prefix; also the node's name.
 var copy_name := COPY_NAME
-## Meshes by these names are left out (the item token's glass cage).
+## Meshes by these names are left out (the token inside an item's glass cage).
 var skip_names: Array[String] = []
 
 func _init(color := COLOR, stencil := STENCIL, prefix := COPY_NAME) -> void:

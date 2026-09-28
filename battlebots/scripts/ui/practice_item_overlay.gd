@@ -56,10 +56,6 @@ func _init() -> void:
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.custom_minimum_size.x = 1.0
 	column.add_child(HSeparator.new())
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	column.add_child(row)
-	_label(row, "Item", &"Body", TARGET_OVERLAY.ROW_FONT).custom_minimum_size.x = TARGET_OVERLAY.CAPTION_WIDTH
 	picker = OptionButton.new()
 	picker.name = "ItemPicker"
 	picker.focus_mode = Control.FOCUS_NONE
@@ -73,7 +69,8 @@ func _init() -> void:
 	picker.item_selected.connect(func(index: int) -> void:
 		if session != null and index >= 0 and index < _choices.size():
 			session.practice_set_pickup(item_id, _choices[index]))
-	row.add_child(picker)
+	# The card's full width, with no caption.
+	column.add_child(picker)
 	remove_button = Button.new()
 	remove_button.name = "RemoveItem"
 	remove_button.text = "Remove"

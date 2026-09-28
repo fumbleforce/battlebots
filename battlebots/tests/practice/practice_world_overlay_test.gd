@@ -106,7 +106,7 @@ func run() -> void:
 			"The dropdown lists every item (%d)" % item_panel.picker.item_count)
 		check(item_panel.picker.get_popup().get_theme_font_size("font_size") < item_panel.picker.get_theme_font_size("font_size"),
 			"The dropdown's list is in smaller text than the card")
-		# The selected item gets a yellow outline round the item, not its cage
+		# The selected item gets a yellow outline round its cage, not the token inside
 		# (the markers are not built headless, so on a stand-in token).
 		var outline: Node = game.practice_item_outline
 		var token := Node3D.new()
@@ -118,8 +118,11 @@ func run() -> void:
 		root.add_child(token)
 		outline.show_on(token)
 		check(outline._rim.get_shader_parameter("outline_color") == outline.ITEM_COLOR
-			and token.get_node("Core").find_children("PracticeItemOutline*", "MeshInstance3D", false, false).size() == 2
-			and token.get_node("Frame").get_child_count() == 0, "The item outline is yellow and skips the cage")
+			and token.get_node("Frame").find_children("PracticeItemOutline*", "MeshInstance3D", false, false).size() == 2
+			and token.get_node("Core").get_child_count() == 0, "The item outline is yellow, round the cage, not the token inside")
+		check(item_panel.picker.get_parent() == item_panel.remove_button.get_parent()
+			and not item_panel.card.find_children("*", "Label", true, false).any(func(label: Label) -> bool: return label.text == "Item"),
+			"The dropdown fills the card's row, with no Item caption")
 		outline.show_on(null)
 		token.queue_free()
 		# Choose credits, then a part: the item changes and keeps it.
