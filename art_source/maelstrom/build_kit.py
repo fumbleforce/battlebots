@@ -163,40 +163,43 @@ class Model:
         pts = [tip] + [base + (side * math.cos(a0 + j * math.tau / sides) + up * math.sin(a0 + j * math.tau / sides)) * r * R.uniform(.7, 1.1) for j in range(sides)]
         return self.solid(slot, pts, tint=tint, hull=hull)
 
-    def sheet(self, slot, fn, nu, nv, keep=lambda i, j, k: True, tint=None, uv=True, extent=None, split=None):
+    def sheet(self, slot, fn, nu, nv, keep=lambda i, j, k: True, tint=None, uv=True, extent=None, rips=()):
         """Grid surface fn(u, v) -> point, as triangles. extent[i] shortens
-        vertex column i (a torn, jagged hem); triangles failing keep are torn
-        out. split = (column, first row, offset(side, row)) rips the sheet
-        along that vertex column from that row down: the column's vertices are
-        doubled and each flap moved by offset(-1 | 1, row)."""
+        vertex column i (a worn hem); triangles failing keep are torn out.
+        Each rip ('col' | 'row', index, ks, offset) parts the sheet along that
+        vertex column (rows ks) or row (columns ks): those vertices are
+        doubled and the two flaps moved by offset(-1 | 1, k); the flap right
+        of a column rip, or below a row rip, is +1."""
         extent = extent or [1.0] * (nu + 1)
-        verts = [fn(i / nu, j / nv * extent[i]) for j in range(nv + 1) for i in range(nu + 1)]
-        right = {}
-        if split:
-            col, j0, offset = split
-            for j in range(j0 + 1, nv + 1):
-                a = j * (nu + 1) + col
-                right[a] = len(verts)
-                verts.append(Vector(verts[a]) + offset(1, j))
-                verts[a] = Vector(verts[a]) + offset(-1, j)
+        verts = [Vector(fn(i / nu, j / nv * extent[i])) for j in range(nv + 1) for i in range(nu + 1)]
         # Cloth UVs are metres from the top-left corner; the size rides in the
         # vertex colour (size / 10 m) so shader-drawn emblems keep proportion.
         w = (Vector(fn(1, 0)) - Vector(fn(0, 0))).length
         h = (Vector(fn(0, 1)) - Vector(fn(0, 0))).length
         tex = [(i / nu * w, j / nv * extent[i] * h) for j in range(nv + 1) for i in range(nu + 1)]
-        tex += [tex[a] for a in right]
+        remaps = []
+        for kind, index, ks, offset in rips:
+            copies = {}
+            for kk in ks:
+                a = kk * (nu + 1) + index if kind == 'col' else index * (nu + 1) + kk
+                copies[a] = len(verts)
+                verts.append(verts[a] + offset(1, kk)); tex.append(tex[a])
+                verts[a] = verts[a] + offset(-1, kk)
+            remaps.append((kind, index, copies))
         faces = []; uvs = []
         for j in range(nv):
             for i in range(nu):
                 a = j * (nu + 1) + i
-                quad = (a, a + 1, a + nu + 2, a + nu + 1)
-                if split and i == split[0]:  # the right flap takes the doubled column
-                    quad = tuple(right.get(q, q) if q % (nu + 1) == i else q for q in quad)
+                quad = [a, a + 1, a + nu + 2, a + nu + 1]
+                for kind, index, copies in remaps:
+                    if (kind == 'col' and i == index) or (kind == 'row' and j == index):
+                        quad = [copies.get(q, q) for q in quad]
                 for k, tri in enumerate(((quad[0], quad[1], quad[2]), (quad[0], quad[2], quad[3]))):
                     if keep(i, j, k):
                         faces.append(tri)
                         uvs.append([tex[q] for q in tri])
         self.add(slot, verts, faces, uvs if uv else None, tint=tint, color=(min(w / 10, 1), min(h / 10, 1), 0.0) if uv else None)
+
 
 GRAIN_U = .31  # UV per metre across the grain: one scan plank ~0.8 m, as on the hull.
 
@@ -242,7 +245,20 @@ def sweep(m, slot, points, w, h, tint=None, across=None, up=V(0, 1, 0), closed=F
         a.normalize(); b = t.cross(a).normalized()
         if b.dot(V(up)) < 0 and across is None:
             a, b = -a, -b
-        rings.append([p + a * x + b * y for x, y in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))])
+        # Mitre: at a bend the section widens across the turn by 1 / cos(half
+        # the turn), so the faces of both legs meet edge to edge at the corner.
+        t_in = (p - prev).normalized() if (p - prev).length > 1e-9 else t
+        t_out = (nxt - p).normalized() if (nxt - p).length > 1e-9 else t
+        turn = t_out - t_in
+        stretch = 1 / max(.35, t.dot(t_out))
+        k = turn.normalized() if turn.length > 1e-6 else None
+        ring = []
+        for x, y in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)):
+            o = a * x + b * y
+            if k is not None:
+                o = o + k * o.dot(k) * (stretch - 1)
+            ring.append(p + o)
+        rings.append(ring)
         if i:
             run += (p - pts[i - 1]).length
         runs.append(run)
@@ -277,6 +293,18 @@ def rail(m, slot, points, size, tint=None, lift=0.0, across=None, up=V(0, 1, 0))
     """A continuous square-section rail through points, raised by lift so it
     rests on what it follows."""
     sweep(m, slot, [V(p) + V(up) * lift for p in points], size, size, tint=tint, across=across, up=up)
+
+
+def framed_window(m, centre, along, up, out, half_w, half_h, frame=.14, depth=.11, glass_tint=None, frame_tint=None):
+    """A glazed opening: the pane fills the opening exactly and the frame is one
+    closed, mitred moulding round it (grain following the frame), standing
+    depth proud of the surface. along/up span the surface, out leaves it."""
+    c = V(centre)
+    ring = [c + along * x + up * y for x, y in ((-half_w, -half_h), (half_w, -half_h), (half_w, half_h), (-half_w, half_h))]
+    inner_w, inner_h = half_w - frame / 2, half_h - frame / 2
+    m.solid('glass', [c + along * x + up * y + out * d for x in (-inner_w, inner_w) for y in (-inner_h, inner_h) for d in (-.03, .02)],
+            tint=glass_tint)
+    sweep(m, 'trim', [p + out * (depth / 2 - .02) for p in ring], depth, frame, tint=frame_tint, across=out, closed=True)
 
 
 def rot(yaw=0.0, pitch=0.0, roll=0.0, at=(0, 0, 0)):
@@ -468,9 +496,11 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
             for side in (-1, 1):
                 if R.random() < .2:
                     continue
+                # One continuous frame timber following the hull's section.
                 qs = [q / 8 * top for q in range(9)]
-                for qa, qb in zip(qs, qs[1:]):
-                    m.beam('wood', xf @ hull_point(s, qa, side, True, -.12), xf @ hull_point(s, qb, side, True, -.12), .22, .2, sides=4)
+                sweep(m, 'wood', [xf @ hull_point(s, q, side, True, -.12) for q in qs], .36, .4, across=xf.to_3x3() @ V(0, 0, 1))
+                for _ in range(7):  # (it was eight segments, eight tints)
+                    R.random()
             m.beam('wood', xf @ hull_point(s, .98, -1, True, -.25), xf @ hull_point(s, .98, 1, True, -.25), .2, sides=4)
     # Gun ports: dark openings with fleet-trim frames.
     if ports:
@@ -489,37 +519,44 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
                     if fr.x * side < 0:
                         fr = -fr
                     up = fr.cross(along).normalized() * (1 if up.y > 0 else -1)
-                    at = lambda dy, dz, dd: xf @ (c + up * dy + along * dz + fr * dd)
-                    m.solid('glass', [at(dy, dz, dd) for dy in (-.45, .45) for dz in (-.5, .5) for dd in (-.03, .03)])
-                    for dy, dz, sy, sz in ((-.55, 0, .12, 1.2), (.55, 0, .12, 1.2), (0, -.6, 1.1, .12), (0, .6, 1.1, .12)):
-                        m.solid('trim', [at(dy + a * sy * .5, dz + b * sz * .5, dd) for a in (-1, 1) for b in (-1, 1) for dd in (-.02, .09)])
+                    rot3 = xf.to_3x3()
+                    framed_window(m, xf @ c, (rot3 @ along).normalized(), (rot3 @ up).normalized(), (rot3 @ fr).normalized(), .6, .55)
+                    for _ in range(3):  # (the old frame's four bars drew four tints)
+                        R.random()
             s += 3.4 / L_SHIP
     return hull_pts
+
+
+CLOTH_COUNT = [0]  # Sails and flags made so far: picks each one's damage.
 
 
 def cloth(m, slot, top_l, top_r, height, bulge=.8, tear=.25, notch=0.0, wind=V(0, 0, 0), nu=16, nv=16, droop=0.0):
     """Heavy canvas hanging from top_l..top_r, frozen where it hung: a full
     belly, deep vertical folds from its own weight, the clews sagging and the
-    foot gathered in, roped edges, and a worn (not shredded) hem with the odd
-    rip. The random draws are the ones the old torn-paper version made, so
-    the rest of the kit is unchanged."""
+    foot gathered in, roped edges and a worn hem. Each sail and flag carries
+    its own damage (splits from the hem, tears in from an edge, slits, a clew
+    torn away), placed by its own draws. The random draws are the ones the
+    old torn-paper version made, so the rest of the kit is unchanged."""
     top_l = V(top_l); top_r = V(top_r)
     across = top_r - top_l
     normal = across.cross(V(0, -1, 0)).normalized()
+    side_of = across.normalized()
     raw = []
     for i in range(nu + 1):
         wear = R.uniform(0, tear)
         rip = R.uniform(.2, .45) if R.random() < tear * .5 else 0.0
         raw.append(wear * .35 + rip * .5)
-    # The hem wears smoothly (neighbours averaged), no sawtooth.
-    extent = []
-    for i in range(nu + 1):
-        u = i / nu
-        near = raw[max(i - 1, 0):i + 2]
-        extent.append(max(.35, 1 - sum(near) / len(near) - notch * (1 - abs(2 * u - 1))))
-    # (Draws kept from the old pin-prick holes; heavy canvas splits, it does not riddle.)
+    # (Draws kept from the old pin-prick holes.)
     {(R.randrange(1, nu - 1), R.randrange(1, nv - 1), R.randrange(2)) for _ in range(int(nu * nv * tear * .3))}
-    slash = (R.uniform(.25, .75), R.uniform(-.8, .8))
+    a, b = R.uniform(.25, .75), R.uniform(-.8, .8)
+    index = CLOTH_COUNT[0]; CLOTH_COUNT[0] += 1
+    # Twice the draw grid, so cuts and flaps are fine enough to read as cloth.
+    gu, gv = nu * 2, nv * 2
+    extent = []
+    for i in range(gu + 1):
+        near = raw[max(i // 2 - 1, 0):i // 2 + 2]
+        u = i / gu
+        extent.append(max(.35, 1 - sum(near) / len(near) - notch * (1 - abs(2 * u - 1))))
     folds = max(2, round(across.length / 2.2))
     fold_depth = min(.22, across.length * .07)
 
@@ -532,32 +569,98 @@ def cloth(m, slot, top_l, top_r, height, bulge=.8, tear=.25, notch=0.0, wind=V(0
         p += wind * v * v + V(0, -droop * math.sin(math.pi * u) * v, 0)
         return p
 
-    # A badly worn sail is ripped once: the canvas parts along a ragged line
-    # from partway down to the hem, the flaps pulling apart and curling in
-    # opposite directions, wider toward the foot.
-    split = None
-    if tear > .4:
-        col = min(nu - 2, max(2, round(slash[0] * nu)))
-        j0 = round(nv * (.35 + .15 * abs(slash[1])))
-        side_of = across.normalized()
+    def jag(k, amp):
+        return amp * (math.sin(k * 2.3 + b * 7) + .5 * math.sin(k * 5.1 + a * 11))
 
-        def offset(flap, j):
-            t = (j - j0) / max(nv - j0, 1)
-            jag = .12 * math.sin(j * 2.7 + slash[1] * 5)  # a ragged, wandering edge
-            return side_of * (flap * .55 * t ** 1.3 + jag * t) + normal * (flap * .35 * t * t)
-        split = (col, j0, offset)
-    m.sheet(slot, fn, nu, nv, extent=extent, split=split)
+    rips = []; corners = []
+    scale = min(1.0, across.length / 8)  # a pennant's rips are smaller than a mainsail's
+
+    def split(u, v0, v1=1.0, width=.5):
+        """A split down the canvas from v0: to the hem when v1 is 1, else a slit."""
+        c = min(gu - 2, max(2, round(u * gu)))
+        j0, j1 = round(v0 * gv), round(v1 * gv)
+        hem = v1 >= 1.0
+        ks = range(j0 + 1, j1 + 1 if hem else j1)
+
+        def offset(flap, kk):
+            t = (kk - j0) / max(j1 - j0, 1)
+            gape = t ** 1.3 if hem else math.sin(math.pi * t)
+            return side_of * (flap * width * scale * gape + jag(kk, .07 * scale) * gape) + normal * (flap * .3 * scale * gape * gape)
+        rips.append(('col', c, ks, offset))
+        return c if hem else None
+
+    def edge_tear(v, depth, right=True, width=.8):
+        """A tear running in from a leech: the lower flap sags and curls out."""
+        r = min(gv - 2, max(2, round(v * gv)))
+        c0 = round((1 - depth) * gu) if right else round(depth * gu)
+        ks = range(c0 + 1, gu + 1) if right else range(0, c0)
+
+        def offset(flap, kk):
+            t = (kk - c0) / max(gu - c0, 1) if right else (c0 - kk) / max(c0, 1)
+            gape = t ** 1.2
+            if flap < 0:
+                return V(0, .05 * scale * gape, 0) - normal * .12 * scale * gape
+            return V(0, -(width * scale * gape + jag(kk, .08 * scale) * gape), 0) + normal * .6 * scale * gape
+        rips.append(('row', r, ks, offset))
+
+    def clew(right, size):
+        corners.append((1.0 if right else 0.0, size))
+
+    hem_rips = []
+    if tear > .4:  # a sail
+        pattern = index % 5
+        if pattern == 0:
+            hem_rips.append(split(a, .38 + .15 * abs(b)))
+        elif pattern == 1:
+            edge_tear(.5 + .12 * b, .3 + .2 * a, right=b > 0)
+            clew(b <= 0, .24)
+        elif pattern == 2:
+            hem_rips.append(split(.15 + .25 * a, .5 + .1 * b, width=.35))
+            hem_rips.append(split(.6 + .25 * a, .62 - .1 * b, width=.45))
+        elif pattern == 3:
+            split(a, .18, .62, width=.3)
+            clew(b > 0, .3)
+        else:
+            edge_tear(.35 + .1 * a, .25 + .15 * abs(b), right=False)
+            hem_rips.append(split(.62 + .2 * a, .66, width=.32))
+    elif tear >= .2:  # a flag
+        pattern = index % 3
+        if pattern == 0:
+            hem_rips.append(split(.35 + .3 * a, .6, width=.25))
+        elif pattern == 1:
+            clew(b > 0, .3)
+        else:
+            edge_tear(.45 + .15 * b, .35, right=b > 0, width=.3)
+
+    def cut_v(u):
+        """How far down the canvas reaches at u, where a clew is torn away."""
+        v = 1.0
+        for cu, size in corners:
+            d = abs(u - cu)
+            if d < size:
+                v = min(v, 1 - (size - d) * 1.1)
+        return v
+
+    def keep(i, j, k):
+        u = (i + (.66 if k == 0 else .33)) / gu; v = (j + (.33 if k == 0 else .66)) / gv
+        cv = cut_v(u)
+        return cv >= 1.0 or v < cv + .03 * math.sin(i * 1.9 + j * 2.7)
+    m.sheet(slot, fn, gu, gv, keep, extent=extent, rips=rips)
     # Bolt ropes down both edges and along the head carry the weight.
     for u in (0.0, 1.0):
-        sweep(m, 'rope', [fn(u, extent[int(u * nu)] * j / 8) for j in range(9)], .09, .09, tint=.5)
-    sweep(m, 'rope', [fn(i / nu, 0) for i in range(nu + 1)], .1, .1, tint=.5)
-    # Ice weighs down the hem.
+        reach = extent[int(u * gu)] * min(1.0, cut_v(u) + .02)
+        sweep(m, 'rope', [fn(u, reach * j / 8) for j in range(9)], .09, .09, tint=.5)
+    sweep(m, 'rope', [fn(i / gu, 0) for i in range(gu + 1)], .1, .1, tint=.5)
+    # Ice weighs down the hem (on the canvas that is left, clear of the rips).
     for i in range(0, nu + 1, 2):
         if R.random() < .45:
-            p = fn(i / nu, extent[i])
-            if split and i == split[0]:
-                p = p + split[2](-1, nv)  # on the left flap, not in the rip
+            u = i / nu; g = i * 2
+            p = fn(u, min(extent[g], cut_v(u)))
+            for c in hem_rips:
+                if c is not None and abs(c - g) <= 1:
+                    p = fn((g - 2 if g >= c else g + 2) / gu, extent[g])
             m.spike('ice', p + V(0, .15, 0), p - V(0, R.uniform(.5, 1.6), 0), .07, sides=4)
+
 
 def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, nest=True, broken=True, parts=False):
     """A broken mast with a yard, torn sail, crow's nest and pennant. With parts,
@@ -971,12 +1074,10 @@ def wreck_stern():
                 if i % 2 == 1:
                     # A flat glazed window set into the wall, framed like a port.
                     c = hull_point((a + b) / 2, 1.0, side) + V(0, base + (top - base) * .55, 0)
-                    m.solid('glass', [xf @ (c + V(side * dd, dy, dz)) for dy in (-.6, .6) for dz in (-.45, .45) for dd in (-.02, .04)])
-                    frame_tint = None
-                    for dy, dz, sy, sz in ((-.7, 0, .16, 1.1), (.7, 0, .16, 1.1), (0, -.55, 1.56, .16), (0, .55, 1.56, .16)):
-                        m.solid('trim', [xf @ (c + V(side * dd, dy + u * sy * .5, dz + w * sz * .5)) for u in (-1, 1) for w in (-1, 1) for dd in (-.02, .1)],
-                                tint=frame_tint)
-                        frame_tint = .6
+                    rot3 = xf.to_3x3()
+                    wall_along = (hull_point(b, 1.0, side) - hull_point(a, 1.0, side)).normalized()
+                    framed_window(m, xf @ c, (rot3 @ wall_along).normalized(), (rot3 @ V(0, 1, 0)).normalized(),
+                                  (rot3 @ V(side, 0, 0)).normalized(), .55, .72, frame=.16)
         deck_y = deck_at(0) + top
         w_lo = beam_at(lo) * .92 - wall; w_hi = beam_at(hi) * .92 - wall
         m.solid('deck', [xf @ V(x * w, deck_y - .15 + dy, (.5 - s_) * L_SHIP) for x in (-1, 1) for s_, w in ((lo, w_lo), (hi, w_hi)) for dy in (0, .15)],
