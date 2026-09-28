@@ -114,11 +114,15 @@ class Model:
             g['c'].append(color or (t, 1.0, frost))
             g['p'].append(self.part)
 
-    def solid(self, slot, points, tint=None, frost=0.0, hull=False, grain=None, origin=None, v0=0.0):
+    def solid(self, slot, points, tint=None, frost=0.0, hull=False, grain=None, origin=None, v0=0.0, draw=True):
         """Convex solid. With grain (a direction) its faces get UVs projected
         along it from origin, so solids sharing a grain and origin (a wall's
         panels, a beam's segments with running v0) carry the wood unbroken."""
         verts, faces = convex(points)
+        if not draw:  # collision only: the tint draw is still taken
+            if tint is None:
+                R.random()
+            return [Vector(v) for v in verts]
         uvs = grain_uvs(verts, faces, grain, origin or V(0, 0, 0), v0) if grain is not None else None
         self.add(slot, verts, faces, uvs, tint=tint, frost=frost)
         verts = [Vector(v) for v in verts]
@@ -132,7 +136,7 @@ class Model:
         pts = [xf @ V(cx + a * sx, cy + b * sy, cz + c * sz) for a in (-1, 1) for b in (-1, 1) for c in (-1, 1)]
         return self.solid(slot, pts, tint=tint, hull=hull)
 
-    def beam(self, slot, a, b, r0, r1=None, sides=6, tint=None, hull=False, spin=0.0, v0=0.0, legacy=False):
+    def beam(self, slot, a, b, r0, r1=None, sides=6, tint=None, hull=False, spin=0.0, v0=0.0, legacy=False, draw=True):
         """Faceted tapered prism from a to b (already placed), grain along its
         axis; chain segments with v0 = the run's length so far. Steep beams
         take their facets' frame from x, so posts and masts all turn alike
@@ -151,7 +155,7 @@ class Model:
             for j in range(sides):
                 ang = spin + j * math.tau / sides
                 pts.append(end + (side * math.cos(ang) + up * math.sin(ang)) * r)
-        return self.solid(slot, pts, tint=tint, hull=hull, grain=d, origin=a, v0=v0)
+        return self.solid(slot, pts, tint=tint, hull=hull, grain=d, origin=a, v0=v0, draw=draw)
 
     def spike(self, slot, base, tip, r, sides=5, tint=None, hull=False):
         base = V(base); tip = V(tip); d = (tip - base).normalized()
@@ -720,12 +724,11 @@ def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, n
 
 
 def rigging(m, a, b, sag=.6):
-    a = V(a); b = V(b); prev = a
-    for i in range(1, 7):
-        t = i / 6
-        p = a.lerp(b, t) - V(0, sag * math.sin(math.pi * t), 0)
-        m.beam('rope', prev, p, .05, sides=3)
-        prev = p
+    a = V(a); b = V(b)
+    line = [a.lerp(b, i / 12) - V(0, sag * math.sin(math.pi * i / 12), 0) for i in range(13)]
+    sweep(m, 'rope', line, .08, .08)  # one continuous line
+    for _ in range(5):  # (it was six segments, six tints)
+        R.random()
 
 
 # --- Crew ------------------------------------------------------------------
@@ -1151,8 +1154,9 @@ def wreck_stern():
         for j in range(5):
             x = (j - 2) * tw * .38
             c = V(x, y, face)
-            m.solid('glass', [xf @ (c + V(dx, dy, dz)) for dx in (-.55, .55) for dy in (-.7, .7) for dz in (0, .05)])
-            m.solid('trim', [xf @ (c + V(dx, dy, dz)) for dx in (-.7, .7) for dy in (.75, .95) for dz in (0, .25)])
+            rot3 = xf.to_3x3()  # a framed stern light, flush on the transom
+            framed_window(m, xf @ c, (rot3 @ V(1, 0, 0)).normalized(), (rot3 @ V(0, 1, 0)).normalized(),
+                          (rot3 @ V(0, 0, 1)).normalized(), .65, .82, frame=.16)
         w = transom_half(y - 1.1)
         m.beam('trim', xf @ V(-w, y - 1.1, face + .1), xf @ V(w, y - 1.1, face + .1), .18, sides=4)
     # The fleet's crest, carved and painted on the transom (banner UVs).
@@ -1244,7 +1248,7 @@ def wreck_keel():
                 continue
             # Each side of a frame breaks off on its own.
             rib = Model('keel_rib_%d_%s' % (i, 'l' if side < 0 else 'r'))
-            pts = []
+            pts = []; path = []
             prev = None
             cut = R.uniform(.65, 1.0) if R.random() < .4 else 1.0
             for k in range(8):
@@ -1252,9 +1256,12 @@ def wreck_keel():
                 x = side * half * math.sin(a * math.pi / 2) ** .7
                 y = arch * math.cos(a * math.pi / 2) - 1.0 * a
                 p = V(x, y - .6, R.uniform(-.05, .05))
-                if prev is not None:
-                    pts += rib.beam('wood', prev, p, .32, .3, sides=4, legacy=True)
+                if prev is not None:  # collision keeps the old segment prisms
+                    pts += rib.beam('wood', prev, p, .32, .3, sides=4, legacy=True, draw=False)
                 prev = p
+                path.append(p)
+            # Drawn as one continuous frame timber, flat to the frame's plane.
+            sweep(rib, 'wood', path, .42, .44, tint=.5, across=V(0, 0, 1))
             if cut == 1.0:
                 rib.spike('wood', prev, prev + V(side * R.uniform(.2, .8), -1.6, 0), .3, sides=4)
             if R.random() < .5:
@@ -1263,8 +1270,9 @@ def wreck_keel():
             ribs.append(rib)
     # Keel and keelson, snapped at one end.
     spine = [V(0, keel_h - 2.6 * (2 * t - 1) ** 2 - .2, (t - .5) * length) for t in [i / 10 for i in range(11)]]
-    for a, b in zip(spine, spine[1:]):
-        m.beam('wood', a, b, .55, sides=4)
+    sweep(m, 'wood', spine, .78, .78, across=V(1, 0, 0))  # one timber, end to end
+    for _ in range(len(spine) - 2):  # (it was ten segments, ten tints)
+        R.random()
     m.hulls.append([p + V(dx, dy, 0) for p in spine[3:8] for dx in (-.6, .6) for dy in (-.6, .6)])
     cloth(m, 'banner', V(-.2, keel_h - .6, -3), V(-.2, keel_h - .6, 1), 5.5, bulge=.3, tear=.3, notch=.25, nu=6, nv=10)
     icicles(m, spine[2], spine[8], 18, 2.2)
@@ -1339,7 +1347,7 @@ def barrel_prop():
     m = Model('barrel')
     for j in range(8):
         m.part = j // 2
-        a0 = j * math.tau / 8; a1 = (j + .92) * math.tau / 8
+        a0 = j * math.tau / 8; a1 = (j + 1) * math.tau / 8  # staves meet edge to edge
         stave = []
         for a in (a0, a1):
             for y, r in ((0, .38), (.45, .46), (.9, .38)):
