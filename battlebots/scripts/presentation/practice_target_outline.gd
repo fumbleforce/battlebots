@@ -48,7 +48,11 @@ void fragment() {
 const MAX_CORNER_REACH := 3.0
 ## Rim meshes kept before the cache starts over.
 const RIM_CACHE_SIZE := 256
+## Seconds between full re-scans of the outlined node's meshes; a replaced or
+## changed mesh re-dresses at once.
+const RESCAN_SECONDS := 0.25
 var _bot: Node
+var _rescan_at := 0
 var _copies: Array[MeshInstance3D] = []
 var _mask: ShaderMaterial
 var _rim: ShaderMaterial
@@ -84,10 +88,17 @@ func show_on(bot: Node) -> void:
 	if not is_instance_valid(bot):
 		clear()
 		return
+	# A changed mesh (an item's new contents) re-dresses at once; the full scan
+	# for added, removed, shown or hidden meshes runs every RESCAN_SECONDS.
+	var intact := bot == _bot and _copies.all(func(copy: MeshInstance3D) -> bool:
+		return is_instance_valid(copy) and copy.get_meta(&"source") == (copy.get_parent() as MeshInstance3D).mesh)
+	var now := Time.get_ticks_msec()
+	if intact and now < _rescan_at:
+		return
+	_rescan_at = now + int(RESCAN_SECONDS * 1000.0)
 	var meshes := _meshes(bot)
-	# A changed mesh (an item's new contents) re-dresses too.
-	if bot == _bot and meshes.size() * 2 == _copies.size() and _copies.all(func(copy: MeshInstance3D) -> bool:
-			return is_instance_valid(copy) and copy.get_meta(&"source") == (copy.get_parent() as MeshInstance3D).mesh):
+	if intact and meshes.size() * 2 == _copies.size() and meshes.all(func(mesh: MeshInstance3D) -> bool:
+			return mesh.has_node(NodePath(copy_name + "Mask"))):
 		return
 	clear()
 	_bot = bot
@@ -131,7 +142,14 @@ func _rim_mesh(source: Mesh) -> Mesh:
 			var key := Vector3i((vertices[index] * 10000.0).round())
 			var normal := normals[index] if index < normals.size() else Vector3.ZERO
 			var seen: Array = faces.get_or_add(key, [])
-			if not normal.is_zero_approx() and not seen.any(func(other: Vector3) -> bool: return other.dot(normal) > 0.999):
+			if normal.is_zero_approx():
+				continue
+			var fresh := true
+			for other: Vector3 in seen:
+				if other.dot(normal) > 0.999:
+					fresh = false
+					break
+			if fresh:
 				seen.append(normal)
 		var directions: Dictionary = {}
 		for key: Vector3i in faces:
@@ -171,13 +189,14 @@ func clear() -> void:
 	_copies.clear()
 	_bot = null
 
-## The bot's own meshes: not the outline's copies, and nothing that has come
-## off it. Broken-off weapons and drives, wreck pieces and bursts fly under
+## The bot's own shown meshes: not the outline's copies, not hidden ones (an
+## item model hides every module of the bot it is cut from but its own), and
+## nothing that has come off it. Broken-off weapons and drives, wreck pieces and bursts fly under
 ## top_level roots (bot_part_loss, bot_destruction_visual) parented to the bot.
 func _meshes(bot: Node) -> Array[MeshInstance3D]:
 	var meshes: Array[MeshInstance3D] = []
 	for node: Node in bot.find_children("*", "MeshInstance3D", true, false):
-		if not str(node.name).begins_with(copy_name) and str(node.name) not in skip_names and (node as MeshInstance3D).mesh != null and not _detached(node, bot):
+		if not str(node.name).begins_with(copy_name) and str(node.name) not in skip_names and (node as MeshInstance3D).mesh != null and (node as MeshInstance3D).is_visible_in_tree() and not _detached(node, bot):
 			meshes.append(node)
 	return meshes
 
