@@ -73,6 +73,8 @@ var practice_target_outline: Node
 ## pickup (its id, -1 for none); an NPC and an item are never both selected.
 var practice_item_overlay: Control
 var _practice_item := -1
+## The selected item's yellow outline, like the target's red one.
+var practice_item_outline: Node
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
@@ -154,8 +156,13 @@ func _ready() -> void:
 	practice_target_overlay.possess_requested.connect(_possess_practice_target)
 	# The world switch overrides every NPC's own (#97).
 	practice_world_overlay.hitboxes_toggled.connect(func(_on: bool) -> void: preview.practice_hitbox_overrides.clear())
-	practice_target_outline = preload("res://scripts/presentation/practice_target_outline.gd").new()
+	const OUTLINE = preload("res://scripts/presentation/practice_target_outline.gd")
+	practice_target_outline = OUTLINE.new()
 	add_child(practice_target_outline)
+	# Round the item alone, not its glass cage (#105).
+	practice_item_outline = OUTLINE.new(OUTLINE.ITEM_COLOR, OUTLINE.ITEM_STENCIL, OUTLINE.ITEM_COPY_NAME)
+	practice_item_outline.skip_names.assign(["Frame"])
+	add_child(practice_item_outline)
 	var results_layer := CanvasLayer.new()
 	results_layer.layer = 6
 	add_child(results_layer)
@@ -985,6 +992,8 @@ func _show_practice_target(shown: bool) -> void:
 	preview.rig.look_target = npc.body.global_position if alive else (item.point if not item.is_empty() else null)
 	# No outline on a wreck; it returns when the NPC respawns.
 	practice_target_outline.show_on(npc if alive else null)
+	practice_item_outline.show_on(pickup_visuals.item_node(_practice_item)
+		if not item.is_empty() and is_instance_valid(pickup_visuals) else null)
 
 ## Target card Possess (#97): the player drives the target from now on; the
 ## selection clears, as the target is the player's own bot now.

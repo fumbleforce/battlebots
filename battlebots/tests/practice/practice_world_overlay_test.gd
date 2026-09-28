@@ -91,7 +91,10 @@ func run() -> void:
 		check(session.world.pickups.find(item_id).get("available", false), "The spawned item waits to be picked up")
 		check(not item_panel.visible, "No item card before a click")
 		var item_screen: Vector2 = preview.aim_camera().unproject_position(spawned.point + Vector3.UP * 2.6)
-		check(game._pick_practice_target(item_screen) and game._practice_item == item_id and game._practice_target == 0, "Clicking an item selects it")
+		var pick_camera: Camera3D = preview.aim_camera()
+		check(game._pick_practice_target(item_screen) and game._practice_item == item_id and game._practice_target == 0,
+			"Clicking an item selects it (arena %s, item %s, screen %s, ray finds %d)" % [session.arena_id, spawned.point, item_screen,
+			session.practice_pickup_at(pick_camera.project_ray_origin(item_screen), pick_camera.project_ray_normal(item_screen))])
 		await frames()
 		check(item_panel.visible and item_panel.item_id == item_id and not game.practice_target_overlay.visible, "The selected item shows its item card")
 		var item_card: Rect2 = item_panel.card.get_global_rect()
@@ -100,6 +103,24 @@ func run() -> void:
 		check(item_panel.remove_button.get_theme_stylebox("normal").bg_color == game.practice_target_overlay.REMOVE_COLOR, "Remove is red")
 		check(item_panel.picker.item_count == session.practice_pickup_choices().size() and item_panel.picker.item_count > 4,
 			"The dropdown lists every item (%d)" % item_panel.picker.item_count)
+		check(item_panel.picker.get_popup().get_theme_font_size("font_size") < item_panel.picker.get_theme_font_size("font_size"),
+			"The dropdown's list is in smaller text than the card")
+		# The selected item gets a yellow outline round the item, not its cage
+		# (the markers are not built headless, so on a stand-in token).
+		var outline: Node = game.practice_item_outline
+		var token := Node3D.new()
+		for mesh_name: String in ["Core", "Frame"]:
+			var part := MeshInstance3D.new()
+			part.name = mesh_name
+			part.mesh = BoxMesh.new()
+			token.add_child(part)
+		root.add_child(token)
+		outline.show_on(token)
+		check(outline._rim.get_shader_parameter("outline_color") == outline.ITEM_COLOR
+			and token.get_node("Core").find_children("PracticeItemOutline*", "MeshInstance3D", false, false).size() == 2
+			and token.get_node("Frame").get_child_count() == 0, "The item outline is yellow and skips the cage")
+		outline.show_on(null)
+		token.queue_free()
 		# Choose credits, then a part: the item changes and keeps it.
 		for choice_index: int in [1, item_panel.picker.item_count - 1]:
 			var choice: Dictionary = session.practice_pickup_choices()[choice_index]

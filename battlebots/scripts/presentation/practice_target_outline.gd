@@ -6,13 +6,17 @@ extends Node
 ## normals that draws only where no mask was written. So only the rim outside
 ## the whole bot's silhouette shows, never the seams between its parts.
 ## Presentation only; the bot's own materials and overlays (the damage and
-## wreck visuals use material_overlay) are left alone.
+## wreck visuals use material_overlay) are left alone. The item card (#105)
+## outlines the selected item pickup in yellow with a second one (ITEM_*).
 const COLOR := Color(1.0, 0.12, 0.1)
+const ITEM_COLOR := Color(1.0, 0.85, 0.1)
 ## Rim width in metres, whatever the mesh's scale.
 const WIDTH := 0.05
 ## Stencil value the masks write (any value no other effect uses).
 const STENCIL := 97
+const ITEM_STENCIL := 105
 const COPY_NAME := "PracticeTargetOutline"
+const ITEM_COPY_NAME := "PracticeItemOutline"
 const MASK_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
@@ -41,12 +45,17 @@ var _bot: Node
 var _copies: Array[MeshInstance3D] = []
 var _mask: ShaderMaterial
 var _rim: ShaderMaterial
+## Its copies' name prefix; also the node's name.
+var copy_name := COPY_NAME
+## Meshes by these names are left out (the item token's glass cage).
+var skip_names: Array[String] = []
 
-func _init() -> void:
-	name = "PracticeTargetOutline"
-	_mask = _material(MASK_SHADER % STENCIL, 0)
-	_rim = _material(RIM_SHADER % STENCIL, 1)
-	_rim.set_shader_parameter("outline_color", COLOR)
+func _init(color := COLOR, stencil := STENCIL, prefix := COPY_NAME) -> void:
+	copy_name = prefix
+	name = prefix
+	_mask = _material(MASK_SHADER % stencil, 0)
+	_rim = _material(RIM_SHADER % stencil, 1)
+	_rim.set_shader_parameter("outline_color", color)
 	_rim.set_shader_parameter("width", WIDTH)
 
 static func _material(code: String, priority: int) -> ShaderMaterial:
@@ -64,14 +73,16 @@ func show_on(bot: Node) -> void:
 		clear()
 		return
 	var meshes := _meshes(bot)
-	if bot == _bot and meshes.size() * 2 == _copies.size() and _copies.all(func(copy: MeshInstance3D) -> bool: return is_instance_valid(copy)):
+	# A changed mesh (an item's new contents) re-dresses too.
+	if bot == _bot and meshes.size() * 2 == _copies.size() and _copies.all(func(copy: MeshInstance3D) -> bool:
+			return is_instance_valid(copy) and copy.mesh == (copy.get_parent() as MeshInstance3D).mesh):
 		return
 	clear()
 	_bot = bot
 	for mesh: MeshInstance3D in meshes:
 		for layer: Array in [["Mask", _mask], ["Rim", _rim]]:
 			var copy := MeshInstance3D.new()
-			copy.name = COPY_NAME + str(layer[0])
+			copy.name = copy_name + str(layer[0])
 			copy.mesh = mesh.mesh
 			copy.skin = mesh.skin
 			if not mesh.skeleton.is_empty():
@@ -95,7 +106,7 @@ func clear() -> void:
 func _meshes(bot: Node) -> Array[MeshInstance3D]:
 	var meshes: Array[MeshInstance3D] = []
 	for node: Node in bot.find_children("*", "MeshInstance3D", true, false):
-		if not str(node.name).begins_with(COPY_NAME) and (node as MeshInstance3D).mesh != null and not _detached(node, bot):
+		if not str(node.name).begins_with(copy_name) and str(node.name) not in skip_names and (node as MeshInstance3D).mesh != null and not _detached(node, bot):
 			meshes.append(node)
 	return meshes
 

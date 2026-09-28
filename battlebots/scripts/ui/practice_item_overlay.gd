@@ -7,6 +7,9 @@ extends Control
 const TUNING_OVERLAY = preload("res://scripts/ui/practice_tuning_overlay.gd")
 const WORLD_OVERLAY = preload("res://scripts/ui/practice_world_overlay.gd")
 const TARGET_OVERLAY = preload("res://scripts/ui/practice_target_overlay.gd")
+## The dropdown list's text size and row spacing.
+const LIST_FONT := 13
+const LIST_SPACING := 2
 var card: PanelContainer
 ## Moves the card when its background is dragged.
 var drag: RefCounted
@@ -64,6 +67,9 @@ func _init() -> void:
 	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker.clip_text = true
 	picker.add_theme_font_size_override("font_size", TARGET_OVERLAY.ROW_FONT)
+	# The list holds every item: small, tight rows keep it on screen.
+	picker.get_popup().add_theme_font_size_override("font_size", LIST_FONT)
+	picker.get_popup().add_theme_constant_override("v_separation", LIST_SPACING)
 	picker.item_selected.connect(func(index: int) -> void:
 		if session != null and index >= 0 and index < _choices.size():
 			session.practice_set_pickup(item_id, _choices[index]))

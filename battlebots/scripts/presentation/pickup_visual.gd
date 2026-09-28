@@ -40,6 +40,12 @@ func _process(delta: float) -> void:
 			markers[id].queue_free()
 			markers.erase(id)
 
+## The floating item of the shown pickup with this id (its model or token),
+## for the practice item card's outline (#105); null when it is not shown.
+func item_node(id: int) -> Node3D:
+	var marker: Node3D = markers.get(id)
+	return marker.get_node("Token") if marker != null and marker.visible else null
+
 func _show(marker: Node3D, item: Dictionary) -> void:
 	marker.visible = bool(item.get("available", false))
 	marker.position = item.point

@@ -382,10 +382,11 @@ func practice_clear_npcs() -> int:
 
 ## The ray a world-panel action casts from origin along direction: at most
 ## duel.spawn.reach metres, never stopped by the player's own bot.
+## reaches: the ray's length in duel.spawn.reach lengths.
 func _practice_ray(origin: Vector3, direction: Vector3,
-		mask := BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER) -> PhysicsRayQueryParameters3D:
+		mask := BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, reaches := 1.0) -> PhysicsRayQueryParameters3D:
 	var ray := PhysicsRayQueryParameters3D.create(origin,
-		origin + direction.normalized() * ARENA_SPAWNS.settings().duel_spawn_reach, mask)
+		origin + direction.normalized() * ARENA_SPAWNS.settings().duel_spawn_reach * reaches, mask)
 	var player: MvpBot = world.bots.get(local_entity)
 	if player != null:
 		ray.exclude = [player.body.get_rid()]
@@ -433,10 +434,12 @@ func practice_clear_pickups() -> int:
 ## Item card (#105): the available item whose light column the ray from origin
 ## along direction passes within duel.spawn.item_pick_radius of, before the
 ## ray meets the arena or a bot; the nearest such. -1 when there is none.
+## It looks two reaches out: an item dropped below a spawn ray's end lies at
+## most a reach below it.
 func practice_pickup_at(origin: Vector3, direction: Vector3) -> int:
 	if practice_tuning() == null or direction.is_zero_approx():
 		return -1
-	var ray := _practice_ray(origin, direction)
+	var ray := _practice_ray(origin, direction, BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, 2.0)
 	var hit := world.get_world_3d().direct_space_state.intersect_ray(ray)
 	var limit := origin.distance_to(ray.to if hit.is_empty() else hit.position)
 	var along := direction.normalized()
