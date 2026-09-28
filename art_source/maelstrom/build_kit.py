@@ -157,7 +157,7 @@ class Model:
                 pts.append(end + (side * math.cos(ang) + up * math.sin(ang)) * r)
         return self.solid(slot, pts, tint=tint, hull=hull, grain=d, origin=a, v0=v0, draw=draw)
 
-    def spike(self, slot, base, tip, r, sides=5, tint=None, hull=False):
+    def spike(self, slot, base, tip, r, sides=5, tint=None, hull=False, draw=True):
         base = V(base); tip = V(tip); d = (tip - base).normalized()
         side = d.cross(V(0, 1, 0))
         if side.length < .01:
@@ -165,7 +165,7 @@ class Model:
         side.normalize(); up = d.cross(side).normalized()
         a0 = R.random() * math.tau
         pts = [tip] + [base + (side * math.cos(a0 + j * math.tau / sides) + up * math.sin(a0 + j * math.tau / sides)) * r * R.uniform(.7, 1.1) for j in range(sides)]
-        return self.solid(slot, pts, tint=tint, hull=hull)
+        return self.solid(slot, pts, tint=tint, hull=hull, draw=draw)
 
     def sheet(self, slot, fn, nu, nv, keep=lambda i, j, k: True, tint=None, uv=True, extent=None, rips=()):
         """Grid surface fn(u, v) -> point, as triangles. extent[i] shortens
@@ -872,8 +872,12 @@ def model(fn):
 
 
 def spire(m, base, height, radius, lean, sides=7, bury=3.0, hull=True, squash=1.0, yaw=0.0):
-    """A fractured basalt crag: a stack of jostled, faceted blocks with ledges,
-    icicles hanging under each ledge. Collision is the crag's convex envelope."""
+    """A fractured basalt crag: one continuous faceted column, its vertical
+    ridges running the full height (columnar jointing), tapering to a broken
+    top. Where it narrows sharply it steps in to a bench that catches snow,
+    but it never overhangs (stacked, overhanging tiers read as a stone tree).
+    Collision is the crag's convex envelope. The random draws are the ones
+    the old stacked-block version made, so the rest of the kit is unchanged."""
     base = V(base)
 
     def centre(t):
@@ -894,26 +898,76 @@ def spire(m, base, height, radius, lean, sides=7, bury=3.0, hull=True, squash=1.
             envelope.append(centre(t) + offset(a, radius_at(t) * R.uniform(.75, 1.1)))
     if hull:
         m.hulls.append(envelope)
+    # The old block draws, in their order: each block's jostle, ring noise,
+    # top, tint and ledge icicles. Their values now shape the column.
     blocks = max(3, int((height + bury) / 3.4))
+    n = sides + 2
+    rings = []
+    tint = None; peak = 0.0; phase = 0.0
     for k in range(blocks):
-        t0 = k / blocks; t1 = min(1.0, (k + 1.25) / blocks)
+        t0 = k / blocks
         shift = V(R.uniform(-1, 1), 0, R.uniform(-1, 1)) * radius_at(t0) * .08
-        pts = []
         a0 = R.random() * math.tau
-        for t, ring, spread in ((t0, sides + 2, (.78, 1.0)), (t1, sides, (.55, .95))):
-            for j in range(ring):
-                a = a0 + j * math.tau / ring + R.uniform(-.2, .2)
-                pts.append(centre(t) + shift + offset(a, radius_at(t) * R.uniform(*spread)) + V(0, R.uniform(-.25, .25) * radius_at(t), 0))
-        if t1 >= 1.0:
-            pts.append(centre(1.0) + V(0, R.uniform(.5, 2.0), 0))
-        m.solid('rock', pts, tint=R.random())
-        # Icicles under the block's ledge.
+        if k == 0:
+            phase = a0
+        ring = [(R.uniform(-.2, .2), R.uniform(.78, 1.0), R.uniform(-.25, .25)) for _ in range(n)]
+        for _ in range(sides):
+            R.uniform(-.2, .2); R.uniform(.55, .95); R.uniform(-.25, .25)
+        if (k + 1.25) / blocks >= 1.0:
+            peak = R.uniform(.5, 2.0)
+        block_tint = R.random()
+        tint = block_tint if tint is None else tint
         if 0 < k and centre(t0).y > 1.0:
-            for j in range(R.randrange(2, 6)):
-                a = R.random() * math.tau
-                p = centre(t0) + shift + offset(a, radius_at(t0) * .98)
-                l = R.uniform(.6, 2.8)
-                m.spike('ice', p, p - V(0, l, 0), .12 + l * .05, sides=4)
+            for _ in range(R.randrange(2, 6)):
+                R.random(); l = R.uniform(.6, 2.8)
+                R.random(); [R.uniform(.7, 1.1) for _ in range(4)]; R.random()  # (an icicle's own draws)
+        rings.append((t0, shift, ring))
+    # Ridges: each facet keeps its depth all the way up (from the base ring's
+    # draws); every ring only nudges it, and the taper never widens upward.
+    ridge = [.7 + .3 * (r[1] - .78) / .22 - (.07 if j % 2 else 0) for j, r in enumerate(rings[0][2])]
+    verts = []
+    previous = None
+    top_t = .9  # the column stops short of the envelope's tip: a broken top
+    rings = [(t * top_t, shift, ring) for t, shift, ring in rings]
+    for k, (t, shift, ring) in enumerate(rings):
+        scale = radius_at(t)
+        bench = .84 if k and ring[0][2] > .08 else 1.0  # a step in, not out
+        row = []
+        for j, (da, rf, dy) in enumerate(ring):
+            r = scale * ridge[j] * (.93 + .07 * (rf - .78) / .22) * bench
+            if previous is not None:
+                r = min(r, previous[j] * (scale / radius_at(rings[k - 1][0])) * 1.01)
+            row.append(r)
+        previous = row
+        c = centre(t) + shift * .5
+        verts.append([c + offset(phase + j * math.tau / n + da * .12, row[j]) for j in range(n)])
+    # A root ring well below the base, so a column set on a massif or a slope
+    # always reaches into what it stands on (drawn only; collision unchanged).
+    verts.insert(0, [v - V(0, 5.0, 0) for v in verts[0]])
+    apex = centre(top_t) + V(0, .15 * peak, 0)  # a low, lopsided broken crown
+    faces = []; flat = []
+    for k in range(len(verts) - 1):
+        for j in range(n):
+            j2 = (j + 1) % n
+            flat.append([verts[k][j], verts[k][j2], verts[k + 1][j2], verts[k + 1][j]])
+    # The last ring rises unevenly (its own dy draws) before the crown, so the
+    # top reads as snapped rock, not a point.
+    crown = [v + V(0, abs(rings[-1][2][j][2]) * 4.0 * radius_at(rings[-1][0]), 0) for j, v in enumerate(verts[-1])]
+    for j in range(n):
+        j2 = (j + 1) % n
+        flat.append([verts[-1][j], verts[-1][j2], crown[j2], crown[j]])
+        flat.append([crown[j], crown[j2], apex])
+    out_v = []
+    for poly in flat:
+        mid = sum(poly, V(0, 0, 0)) / len(poly)
+        axis = centre(max(0.0, min(1.0, (mid.y - base.y + bury) / (height + bury))))
+        nrm = (poly[1] - poly[0]).cross(poly[2] - poly[0])
+        outward = V(mid.x - axis.x, 0, mid.z - axis.z) if len(poly) == 4 else mid - axis
+        if nrm.dot(outward) < 0:
+            poly = poly[::-1]
+        faces.append(tuple(range(len(out_v), len(out_v) + len(poly))))
+        out_v.extend(poly)
+    m.add('rock', out_v, faces, tint=tint)
     return envelope
 
 @model
@@ -1079,38 +1133,43 @@ def wreck_stern():
                 pts += m.solid('paint', box, tint=.35, grain=xf.to_3x3() @ V(0, 0, 1), origin=xf @ V(0, 0, 0))
                 if i % 2 == 1:
                     # A flat glazed window set into the wall, framed like a port.
-                    c = hull_point((a + b) / 2, 1.0, side) + V(0, base + (top - base) * .55, 0)
+                    # Clear of the gunwale rail below and the tier's own top.
+                    c = hull_point((a + b) / 2, 1.0, side) + V(0, base + (2.25 if base == 0.0 else (top - base) * .5), 0)
                     rot3 = xf.to_3x3()
                     wall_along = (hull_point(b, 1.0, side) - hull_point(a, 1.0, side)).normalized()
                     framed_window(m, xf @ c, (rot3 @ wall_along).normalized(), (rot3 @ V(0, 1, 0)).normalized(),
-                                  (rot3 @ V(side, 0, 0)).normalized(), .55, .72, frame=.16)
+                                  (rot3 @ V(side, 0, 0)).normalized(), .55, .62, frame=.16)
         deck_y = deck_at(0) + top
         w_lo = beam_at(lo) * .92 - wall; w_hi = beam_at(hi) * .92 - wall
         m.solid('deck', [xf @ V(x * w, deck_y - .15 + dy, (.5 - s_) * L_SHIP) for x in (-1, 1) for s_, w in ((lo, w_lo), (hi, w_hi)) for dy in (0, .15)],
                 grain=xf.to_3x3() @ V(0, 0, 1), origin=xf @ V(0, 0, 0))
-        # Forward bulkhead: vertical boards across the beam from the tier below
-        # up to this deck, a doorway in the middle, a few boards split short.
+        # Forward bulkhead: vertical boards edge to edge across the beam from the
+        # tier below up to this deck, a doorway in the middle. (Split-short
+        # boards left holes; their draws are kept.)
         z = (.5 - hi) * L_SHIP
         y_lo = deck_at(0) + base; y_hi = deck_y
         width = beam_at(hi) * .92
         boards = 12
         for k in range(boards):
-            x0 = -width + 2 * width * k / boards; x1 = x0 + 2 * width / boards - .04
+            x0 = -width + 2 * width * k / boards; x1 = x0 + 2 * width / boards
             if abs((x0 + x1) / 2) < .8 and base == 0.0:
                 m.box('wood', xf, (x1 - x0, .5, .2), ((x0 + x1) / 2, y_hi - .25, z))  # lintel over the door
                 continue
             cut = R.uniform(.55, .85) if R.random() < .2 else 1.0
-            m.solid('wood', [xf @ V(x, y, z + dz) for x in (x0, x1) for y in (y_lo, y_lo + (y_hi - y_lo) * cut) for dz in (-.1, .1)], tint=R.random(),
+            m.solid('wood', [xf @ V(x, y, z + dz) for x in (x0, x1) for y in (y_lo, y_hi) for dz in (-.1, .1)], tint=R.random(),
                     grain=xf.to_3x3() @ V(0, 1, 0), origin=xf @ V(0, 0, 0))
             if cut < 1.0:  # the split board's jagged top
-                m.spike('wood', xf @ V((x0 + x1) / 2, y_lo + (y_hi - y_lo) * cut - .05, z), xf @ V((x0 + x1) / 2 + R.uniform(-.1, .1), y_lo + (y_hi - y_lo) * cut + R.uniform(.3, .7), z), .16, sides=4)
+                m.spike('wood', xf @ V((x0 + x1) / 2, y_lo + (y_hi - y_lo) * cut - .05, z), xf @ V((x0 + x1) / 2 + R.uniform(-.1, .1), y_lo + (y_hi - y_lo) * cut + R.uniform(.3, .7), z), .16, sides=4, draw=False)
         m.beam('trim', xf @ V(-width, y_hi + .05, z), xf @ V(width, y_hi + .05, z), .14, sides=4)
+        # The tier's rail runs only where its deck is open: forward of the tier
+        # above (it ran through that tier's wall and windows).
+        open_lo = .1 if base == 0.0 else lo
         for side in (-1, 1):
-            m.beam('trim', xf @ (hull_point(lo, 1, side) + V(-side * wall * .5, top + .9, 0)), xf @ (hull_point(hi, 1, side) + V(-side * wall * .5, top + .9, 0)), .1, sides=4)
-            for s_ in (lo + (hi - lo) * t for t in (.1, .5, .9)):
+            m.beam('trim', xf @ (hull_point(open_lo, 1, side) + V(-side * wall * .5, top + .9, 0)), xf @ (hull_point(hi, 1, side) + V(-side * wall * .5, top + .9, 0)), .1, sides=4)
+            for s_ in (open_lo + (hi - open_lo) * t for t in (.1, .5, .9)):
                 p = hull_point(s_, 1, side) + V(-side * wall * .5, 0, 0)
                 m.beam('wood', xf @ (p + V(0, top, 0)), xf @ (p + V(0, top + .9, 0)), .08, sides=4)
-            icicles(m, xf @ (hull_point(lo, 1, side) + V(side * .2, top, 0)), xf @ (hull_point(hi, 1, side) + V(side * .2, top, 0)), 8, 1.8)
+            icicles(m, xf @ (hull_point(open_lo, 1, side) + V(side * .2, top, 0)), xf @ (hull_point(hi, 1, side) + V(side * .2, top, 0)), 8, 1.8)
     # The transom closes the stern flush with the planking and the castle: a
     # solid plate stacked in strips, each as wide as the hull's own section at
     # its height (the castle walls' outer face above the deck).
