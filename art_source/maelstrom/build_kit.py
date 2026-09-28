@@ -243,6 +243,33 @@ def stations(lo, hi, lo_u, hi_u):
     return [lo] + mid + [hi], [lo_u] + mid + [hi_u]
 
 
+def deck_board(m, xf, lo, hi, x0, x1, sheer, plank, tint):
+    """One deck board from lo to hi across x0..x1 (fractions of the half
+    width inside the hull), 12 cm thick, one scan plank wide."""
+    run, _ = stations(lo, hi, lo, hi)
+    u0, u1 = scan_plank(plank)
+    top = []
+    for s in run:
+        w = max(beam_at(s) * .92 - .02, 0.0)
+        y = deck_at(s, sheer) - .06 + .12
+        z = (.5 - s) * L_SHIP
+        top.append((V(x0 * w, y, z), V(x1 * w, y, z), z * PLANK_V))
+    down = V(0, -.12, 0)
+    quads = []
+    for (l0, r0, v0), (l1, r1, v1) in zip(top, top[1:]):
+        if (r0 - l0).length < .03 and (r1 - l1).length < .03:
+            continue
+        quads.append(([l0, r0, r1, l1], [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]))
+        quads.append(([r0, r0 + down, r1 + down, r1], [(u1, v0), (u1, v0 + .05), (u1, v1 + .05), (u1, v1)]))
+        quads.append(([l1, l1 + down, l0 + down, l0], [(u0, v1), (u0, v1 + .05), (u0, v0 + .05), (u0, v0)]))
+    for (l, r, v), flip in ((top[0], False), (top[-1], True)):  # end grain
+        q = [l, l + down, r + down, r]
+        uv = [(u0, v), (u0, v + .05), (u1, v + .05), (u1, v)]
+        quads.append((q[::-1], uv[::-1]) if flip else (q, uv))
+    for corners, uv in quads:
+        m.add('deck', [xf @ c for c in corners], [(0, 1, 2, 3)], [uv], tint=tint)
+
+
 def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo=True, ribs_hi=True, hull_q=1.0):
     """Planked section between s0 (sternward) and s1 (bowward). Broken ends are
     ragged, plank by plank, with the frames standing out of the break.
@@ -311,25 +338,22 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
             m.beam('trim' if i % 3 == 0 else 'wood', xf @ hull_point(a, top_q, side, sheer, .08), xf @ hull_point(b, top_q, side, sheer, .08), .14, sides=4)
             if R.random() < .5:
                 icicles(m, xf @ hull_point(a, top_q - .01, side, sheer, .2), xf @ hull_point(b, top_q - .01, side, sheer, .2), 3, 1.4)
-    # Deck: planks along the ship, ragged and holed near the breaks.
+    # Deck: planks along the ship, laid on the hull's stations so they follow
+    # its sheer and fill out to the walls as the beam swells and narrows; the
+    # ragged runs are only at the breaks. (The random draws are the ones the
+    # old straight boards made, so everything after them is unchanged.)
     boards = 16
     for b in range(boards):
         u = (b + .5) / boards * 2 - 1
         lo = s0 + (R.uniform(.01, .09) if broken_lo else .01); hi = s1 - (R.uniform(.01, .1) if broken_hi else .01)
-        if R.random() < .12:
-            continue
-        pts = []
-        for s in (lo, hi):
-            w = beam_at(s) * .93
-            if w < .6:
-                continue
-            y = deck_at(s, sheer) - .06
-            for du in (-.5, .5):
-                x = (u + du * 2 / boards) * w
-                for dy in (0, .12):
-                    pts.append(xf @ V(x, y + dy, (.5 - s) * L_SHIP))
-        if len(pts) == 8:
-            m.solid('deck', pts)
+        short = R.random() < .12
+        tint = R.random() if not short and beam_at(lo) * .93 >= .6 and beam_at(hi) * .93 >= .6 else .5
+        if short:
+            if broken_hi:
+                hi -= .07 + .03 * (b % 3)  # a board torn short at the break
+            elif broken_lo:
+                lo += .07 + .03 * (b % 3)
+        deck_board(m, xf, lo, hi, u - 1 / boards, u + 1 / boards, sheer, b * 5 + 3, tint)
     # Deck beams at the break and frames (ribs) standing out of it.
     for end, active, sign in ((s0, broken_lo and ribs_lo, 1), (s1, broken_hi and ribs_hi, -1)):
         if not active:
