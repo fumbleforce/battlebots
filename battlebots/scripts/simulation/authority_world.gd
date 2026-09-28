@@ -230,7 +230,10 @@ func _shatter_props() -> void:
 		var velocity := bot.body.linear_velocity
 		var axis := velocity.normalized() if velocity.length_squared() > 0.01 else -pose.basis.z
 		for name: String in props.shatter_contacts(space, pose, bounds.size * 0.5, velocity, SHATTER_MARGIN, SHATTER_LEAD):
-			props.damage(name, SHATTER_DAMAGE, "ram", props.props[name].body.global_position, axis)
+			var at: Vector3 = props.props[name].body.global_position
+			var closing := velocity.dot((at - pose.origin).slide(Vector3.UP).normalized())
+			if props.breaks_on_impact(name, bot.body.mass, closing):
+				props.damage(name, SHATTER_DAMAGE, "ram", at, axis)
 
 ## Frozen Maelstrom (#102): the sea around the ring is thin ice. A bot whose
 ## centre leaves the ring goes through it (MvpBot.FALL_REASON) and sinks.

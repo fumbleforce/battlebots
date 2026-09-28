@@ -33,6 +33,12 @@ void fragment() {
 	// Wind-scoured windows onto the ice, their edges broken up by grain.
 	float grain = mael_soft(world.xz * 3.1) * 0.5 + mael_soft(world.xz * 9.7) * 0.3 + mael_soft(world.xz * 23.0) * 0.2;
 	float scour = mael_fbm(bent * 0.022 + 5.0) + sin(spiral * 2.0) * 0.08 + (grain - 0.5) * 0.08;
+	// The whirlpool's flow, frozen: broad bands of scoured ice and packed snow
+	// sweeping round the eye along the spin, broken up so they read as currents.
+	float flow = sin(spiral * 6.0 + mael_fbm(bent * 0.012) * 3.0);
+	float current = smoothstep(0.5, 0.95, flow) * smoothstep(0.25, 0.65, mael_fbm(bent * 0.03 + 21.0));
+	scour += current * 0.16;
+	snow = mix(snow, packed_color * 0.9, current * 0.55);
 	float bare = max(smoothstep(0.6, 0.66, scour), bare_override);
 	// Glacier ice: slow tonal drift, darker streaks along the frozen flow and
 	// fine scratches; no hard-thresholded noise, which shows its lattice.

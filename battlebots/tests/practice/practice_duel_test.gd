@@ -23,7 +23,7 @@ func run() -> void:
 		check(session.practice(session.registry.starter(), arena, "duel") == OK, "%s duel practice starts" % arena)
 		check(session.practice_kind == "duel", "Session reports the duel layout")
 		await frames(5)
-		var wheels_count := ArenaSpawns.settings().duel_monowheel_count
+		var wheels_count := ArenaSpawns.settings().duel_monowheel_count_for(arena)
 		check(session.world.bots.size() == 3 + wheels_count, "%s duel has the player, two Atlases and %d monowheels" % [arena, wheels_count])
 		check(session.woodland_boss == null, "%s duel has no roaming giant" % arena)
 		check(session.world.cooling_zones().is_empty(), "%s duel has no cooling zones" % arena)
@@ -55,30 +55,34 @@ func run() -> void:
 			check((a.spawn_pose.origin - centre).dot(left) > 5.0, "%s monowheel stands on the player's left" % arena)
 			var depth := snappedf((a.spawn_pose.origin - centre).dot(left), 0.01)
 			if not depths.any(func(d: float) -> bool: return absf(d - depth) < 0.05): depths.append(depth)
-		var rows := ArenaSpawns.settings().duel_monowheel_rows
-		check(depths.size() == rows, "%s monowheels stand in %d rows (depths %s)" % [arena, rows, str(depths)])
-		# Hull-to-hull gaps: side by side within a row, front to back between rows.
-		var hull := wheels[0].collision_bounds().size
-		var side_gaps: Array[float] = []
-		var row_gaps: Array[float] = []
-		for a: MvpBot in wheels:
-			var beside := INF
-			var behind := INF
-			for b: MvpBot in wheels:
-				if a == b: continue
-				var offset := b.spawn_pose.origin - a.spawn_pose.origin
-				if absf(offset.dot(left)) < 0.05: beside = minf(beside, absf(offset.dot(forward)))
-				elif absf(offset.dot(forward)) < 0.05: behind = minf(behind, absf(offset.dot(left)))
-			side_gaps.append(beside - hull.x)
-			row_gaps.append(behind - hull.z)
-		check(side_gaps.all(func(g: float) -> bool: return g > 0.0 and g < 1.0) and row_gaps.all(func(g: float) -> bool: return g > 0.0 and g < 1.0),
-			"%s monowheels are tightly packed without overlapping (side %s, rows %s)" % [arena, str(side_gaps), str(row_gaps)])
+		# Arenas with a monowheel block (none on the Maelstrom, #102).
+		if wheels_count > 0:
+			var rows := ArenaSpawns.settings().duel_monowheel_rows
+			check(depths.size() == rows, "%s monowheels stand in %d rows (depths %s)" % [arena, rows, str(depths)])
+			# Hull-to-hull gaps: side by side within a row, front to back between rows.
+			var hull := wheels[0].collision_bounds().size
+			var side_gaps: Array[float] = []
+			var row_gaps: Array[float] = []
+			for a: MvpBot in wheels:
+				var beside := INF
+				var behind := INF
+				for b: MvpBot in wheels:
+					if a == b: continue
+					var offset := b.spawn_pose.origin - a.spawn_pose.origin
+					if absf(offset.dot(left)) < 0.05: beside = minf(beside, absf(offset.dot(forward)))
+					elif absf(offset.dot(forward)) < 0.05: behind = minf(behind, absf(offset.dot(left)))
+				side_gaps.append(beside - hull.x)
+				row_gaps.append(behind - hull.z)
+			check(side_gaps.all(func(g: float) -> bool: return g > 0.0 and g < 1.0) and row_gaps.all(func(g: float) -> bool: return g > 0.0 and g < 1.0),
+				"%s monowheels are tightly packed without overlapping (side %s, rows %s)" % [arena, str(side_gaps), str(row_gaps)])
 		# #88: the far Atlas and the shuttle stand as far from their walls as the
 		# monowheel block's outer row does from the left wall (octagon walls sit
 		# half_extent out on each axis).
 		var half := ArenaBounds.half_extent(arena)
 		var wheel_reach := -INF
-		for w: MvpBot in wheels: wheel_reach = maxf(wheel_reach, (w.spawn_pose.origin - centre).dot(left) + hull.z * 0.5)
+		for w: MvpBot in wheels: wheel_reach = maxf(wheel_reach, (w.spawn_pose.origin - centre).dot(left) + w.collision_bounds().size.z * 0.5)
+		if wheels.is_empty():
+			wheel_reach = half * ArenaSpawns.settings().duel_monowheel_side_for(arena)
 		var atlas_hull := target.collision_bounds().size
 		var far_gap := half - ((target.spawn_pose.origin - centre).dot(forward) + atlas_hull.z * 0.5)
 		check(absf(far_gap - (half - wheel_reach)) < 0.3 and absf((target.spawn_pose.origin - centre).dot(left)) < 0.3,
@@ -113,7 +117,9 @@ func run() -> void:
 			check(reach_ahead > travel - 0.5 and reach_back < -(travel - 0.5) and reach_ahead < travel + 3.0 and reach_back > -(travel + 3.0),
 				"Foundry shuttle runs to both ends of its %.0f m travel (%.1f, %.1f)" % [travel, reach_ahead, reach_back])
 		check(drift < 1.0 and tilt > 0.7, "%s shuttle holds its line upright (drift %.2f m, up %.2f)" % [arena, drift, tilt])
-		check(target.body.global_position.distance_to(start) < 0.3, "%s Atlas stays put" % arena)
+		# Horizontally: on a sloped start (#102) the Atlas first settles onto the ice.
+		var moved := target.body.global_position - start
+		check(Vector2(moved.x, moved.z).length() < 0.3, "%s Atlas stays put" % arena)
 		for index: int in wheels.size():
 			check(wheels[index].body.global_position.distance_to(wheel_starts[index]) < 0.5 and wheels[index].body.global_basis.y.y > 0.7,
 				"%s monowheel %d stays put and upright (moved %.2f m, up %.2f, at %s)" % [arena, index,

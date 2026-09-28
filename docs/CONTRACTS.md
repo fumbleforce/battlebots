@@ -1660,3 +1660,26 @@ change. The Maelstrom's frozen-wave crest lips were removed (visual only).
   shelf. No open water remains; the eye throat uses the ice shader.
 - Presentation: shattered prop pieces are lifted clear of the ground on spawn;
   the snow crust glints.
+
+## Maelstrom playtest 6: forceful breaks, wider eye, sloped starts — build mvp-ab-61 (#102)
+
+- `arena_props.json` kinds may set `break_speed` (m/s): such a shatter prop
+  stays solid on the world layer and only breaks when a bot rams it with
+  closing speed x mass / `ram.reference_mass` >= `break_speed`
+  (`ArenaProps.breaks_on_impact`, checked in `AuthorityWorld._shatter_props`);
+  gentler bots hit it like a wall. Seracs 9, masts 7, ribs 5; weapons still
+  break them by hp.
+- Maelstrom (`ARENA_RULES` 9): `eye_radius` 24 (about three Atlas lengths),
+  `funnel_outer` 48, four spiral ridges (`ridge.arms`, even). Starts are no
+  longer level terraces: they lie on the cone, with ridges and swells calmed by
+  `pad_calm` around them (the 50° slope hold keeps a parked bot in place).
+  `sink_depth` 26: a fallen wreck rests just above the new visual floors of the
+  chasm and the eye.
+- `arena_spawns.json` `duel.monowheels.count_by_arena` (`ArenaSpawns.duel_monowheel_count_for`):
+  the Maelstrom's Practice Duel has no monowheel block (its starts lie on the
+  slope). No drive or movement change; the Sunreach bake fingerprint is updated.
+- Kit: the stern castle is rebuilt as closed tiers with forward bulkheads (its
+  collision hull changes), stern lanterns are proper lanterns.
+- Presentation: rib parts snap into shorter pieces; a piece born buried in the
+  ice is dropped and one caught in it stays put, instead of being lifted out.
+  Depth-fog blizzard seals the horizon.

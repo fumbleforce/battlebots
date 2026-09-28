@@ -28,11 +28,11 @@ func _run() -> void:
 	# About Woodland's playable area (the 240 m octagon, ~47,700 m^2).
 	var area: float = PI * (cfg.rim_radius * cfg.rim_radius - cfg.eye_radius * cfg.eye_radius)
 	check(area > 42000.0 and area < 56000.0, "Ice ring area %.0f m^2 is not Woodland-sized" % area)
-	# The eye spans about two Atlas MX lengths.
+	# The eye spans about three Atlas MX lengths.
 	var atlas := MvpBot.create(900, 0, world.registry.atlas(), world.registry)
 	root.add_child(atlas)
 	var atlas_length := atlas.collision_bounds().size.z
-	check(absf(cfg.eye_radius - 2.0 * atlas_length) < atlas_length * 0.25, "Eye radius %.1f m is not ~2 Atlas lengths (%.1f m)" % [cfg.eye_radius, atlas_length])
+	check(absf(cfg.eye_radius - 3.0 * atlas_length) < atlas_length * 0.35, "Eye radius %.1f m is not ~3 Atlas lengths (%.1f m)" % [cfg.eye_radius, atlas_length])
 	atlas.free()
 	# Point symmetry: heights and obstacles match their mirrors.
 	for i: int in 400:
@@ -52,10 +52,10 @@ func _run() -> void:
 	var obstacles := arena.get_node("MaelstromObstacles")
 	check(obstacles.get_child_count() == items.size(), "Obstacle bodies differ from the list")
 	for body: StaticBody3D in obstacles.get_children():
-		# Seracs and masts shatter on contact: on the prop layer only, so no bot collides with them.
+		# Seracs and masts break when rammed hard enough (or shot): solid, and on the prop layer.
 		var model := String(body.get_meta(&"maelstrom_obstacle").model)
-		var shatter := model.begins_with("ice_shards") or model.begins_with("wreck_mast")
-		check(body.collision_layer == (BaselineConfig.PROP_LAYER if shatter else 1) and body.collision_mask == 2, "Obstacle layers differ from the arena shell: %s" % body.name)
+		var breaks := model.begins_with("ice_shards") or model.begins_with("wreck_mast")
+		check(body.collision_layer == (1 | BaselineConfig.PROP_LAYER if breaks else 1) and body.collision_mask == 2, "Obstacle layers differ from the arena shell: %s" % body.name)
 	# Breakables: mirrored, registered as ArenaProps with their prefixes, off the pads.
 	var breakables := GROUND.breakables()
 	check(breakables.size() >= 20 and arena.get_node("MaelstromBreakables").get_child_count() == breakables.size(), "Breakable props missing")
@@ -118,10 +118,13 @@ func _run() -> void:
 		var hits := space.intersect_shape(query).filter(func(hit: Dictionary) -> bool: return _crowds(hit, is_start))
 		check(hits.is_empty(), "Obstacle crowds %s: %s" % [str(point), str(hits.map(func(hit: Dictionary) -> String: return String(hit.collider.name)))])
 	for point: Vector3 in clear_points:
+		# Starts lie on the cone itself, well inside what the tracks hold.
 		for dx: float in [-5.0, 0.0, 5.0]:
 			for dz: float in [-5.0, 0.0, 5.0]:
-				# Terraces cut into the tilt: level where the bots park.
-				check(absf(GROUND.height_at(point.x + dx, point.z + dz) - GROUND.height_at(point.x, point.z)) < 0.05, "Pad is not level at %s" % str(point))
+				var h := GROUND.height_at(point.x + dx, point.z + dz)
+				var gx := GROUND.height_at(point.x + dx + 0.5, point.z + dz) - h
+				var gz := GROUND.height_at(point.x + dx, point.z + dz + 0.5) - h
+				check(Vector2(gx, gz).length() / 0.5 < tan(deg_to_rad(30.0)), "Start ground is too steep at %s" % str(point))
 	# The two teams start on opposite sides of the eye.
 	var first: Vector3 = arena.get_node("SpawnPoints/Team1_3").position
 	var second: Vector3 = arena.get_node("SpawnPoints/Team2_3").position
@@ -184,6 +187,8 @@ func _capture(world: AuthorityWorld) -> void:
 		["eye", Vector3(28, 14.0, 30), Vector3(0, -14.0, 0)],
 		["bow", Vector3(-40, 6.0, 70), Vector3(-66, 7.0, 48)],
 		["stern", Vector3(-48, 6.0, -2), Vector3(-66, 6.0, -24)],
+		# From the broken midships into the stern castle's forward bulkheads.
+		["castle", Vector3(-58, 9.0, -27), Vector3(-80, 8.0, -20)],
 		["deck", Vector3(-68, 5.0, -36), Vector3(-80, 3.0, -58)],
 		["keel", Vector3(-28, 4.0, 46), Vector3(-46, 4.0, 30)],
 		["rim", Vector3(-88, 8.0, -66), Vector3(-160, 2.0, -110)],
@@ -191,7 +196,9 @@ func _capture(world: AuthorityWorld) -> void:
 		["banner", Vector3(-72, 6.0, 30), Vector3(-66, 14.0, 44)],
 		["wave", Vector3(-30, 5.0, 34), Vector3(-50, 1.5, 50)],
 		# Breaks a serac, a mast and an icicle clump in front of the camera.
-		["break", Vector3(-24, 12.0, 0), Vector3(-40, 4.0, -12)],
+		["break", Vector3(-24, 12.0, 0), Vector3(-40, 4.0, -12), ["serac", "mast", "icicle"]],
+		# Snaps the keel rib nearest the aim point into its bones.
+		["ribs", Vector3(-30, 5.0, 44), Vector3(-44, 2.0, 32), ["rib"]],
 		# Arena-select card (ui/menus/art/arena_maelstrom.jpg): across the eye toward the wrecks.
 		["card", Vector3(46, 40.0, 112), Vector3(-18, 2.0, -4)],
 	]
@@ -211,15 +218,16 @@ func _capture(world: AuthorityWorld) -> void:
 		var aim: Vector3 = view[2]
 		camera.position = eye + Vector3(0, _view_ground(eye), 0)
 		camera.look_at(aim + Vector3(0, _view_ground(aim), 0))
-		if view[0] == "break":
-			for kind: String in ["serac", "mast", "icicle"]:
+		var breaks: Array = view[3] if view.size() > 3 else []
+		if not breaks.is_empty():
+			for kind: String in breaks:
 				var nearest := ""
 				for n: String in world.props.props:
 					if world.props.props[n].kind == kind and (nearest == "" or (world.props.props[n].at as Vector3).distance_to(view[2]) < (world.props.props[nearest].at as Vector3).distance_to(view[2])):
 						nearest = n
 				if nearest != "":
 					world.props.damage(nearest, 1.0e6, "cannon", world.props.props[nearest].at + Vector3(4, 2, 0), Vector3.LEFT)
-		for frame: int in range(25 if view[0] == "break" else 45):
+		for frame: int in range(25 if not breaks.is_empty() else 45):
 			await process_frame
 			await RenderingServer.frame_post_draw
 		var path: String = output + "/maelstrom-" + view[0] + ".png"

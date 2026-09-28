@@ -51,8 +51,14 @@ static func from_json(source: String, problems: Array[String] = []) -> Dictionar
 		if not entry is Dictionary or not _positive(entry.get("hp")) or not entry.get("names") is Array or entry.names.is_empty():
 			problems.append("kinds.%s needs positive hp and a names list" % kind)
 			return {}
-		# shatter: bots never collide with it; it breaks the moment one reaches it.
-		result.kinds[kind] = {"hp":float(entry.hp), "names":entry.names.duplicate(), "shatter":bool(entry.get("shatter", false))}
+		# shatter: it breaks the moment a bot reaches it. break_speed (m/s closing
+		# speed at the ram reference mass): only a hard enough ram breaks it; slower
+		# bots collide with it like any obstacle.
+		if entry.has("break_speed") and not _number(entry.break_speed):
+			problems.append("kinds.%s.break_speed must be a non-negative number" % kind)
+			return {}
+		result.kinds[kind] = {"hp":float(entry.hp), "names":entry.names.duplicate(), "shatter":bool(entry.get("shatter", false)),
+			"break_speed":float(entry.get("break_speed", 0.0))}
 	if not data.get("multipliers") is Dictionary:
 		problems.append("needs a multipliers object")
 		return {}
@@ -119,6 +125,11 @@ func shatter_contacts(space: PhysicsDirectSpaceState3D, pose: Transform3D, half:
 	return found
 
 ## Registers every destructible obstacle of a freshly built arena.
+## Whether a bot of mass closing on a shatter prop at closing (m/s) breaks it.
+func breaks_on_impact(name: String, mass: float, closing: float) -> bool:
+	var need := float(settings().kinds.get(props[name].kind, {}).get("break_speed", 0.0))
+	return need <= 0.0 or closing * mass / maxf(float(settings().ram.reference_mass), 1.0) >= need
+
 func configure(arena: Node) -> void:
 	props.clear()
 	destroyed.clear()
@@ -136,9 +147,10 @@ func configure(arena: Node) -> void:
 		if rule.is_empty() or not rule.names.any(func(prefix: String) -> bool: return str(item.name).begins_with(prefix)):
 			continue
 		body.collision_layer |= BaselineConfig.PROP_LAYER
-		if rule.get("shatter", false):
+		if rule.get("shatter", false) and rule.get("break_speed", 0.0) <= 0.0:
 			# Off the world layer: no bot ever collides with it (weapons and the
-			# shatter query still find it on the prop layer).
+			# shatter query still find it on the prop layer). One with a
+			# break_speed stays solid for bots that hit it too gently.
 			body.collision_layer = BaselineConfig.PROP_LAYER
 		props[item.name] = {"body":body, "kind":item.kind, "hp":rule.hp, "max":rule.hp, "at":item.at,
 			"radius":GROUND.footprint(item) if woodland else float(item.radius), "layer":body.collision_layer, "mask":body.collision_mask}

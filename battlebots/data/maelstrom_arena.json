@@ -5,25 +5,27 @@
 	"rim_radius": 125.0,
 	"rim_jag": 2.6,
 	"rim_teeth": 96,
-	"eye_radius": 16.0,
+	"eye_radius": 24.0,
 	"eye_jag": 1.2,
 	"eye_teeth": 20,
 	"eye_depth": -60.0,
 	"kill_y": -6.0,
-	"sink_depth": 40.0,
+	"sink_depth": 26.0,
 	"pad_radius": 8.0,
 	"pad_blend": 10.0,
+	"_pad_comment": "Start pads lie on the cone (the tracks hold any slope under bot_physics slope_hold_max_degrees). Within pad_radius (easing out over pad_blend metres) the ridges and swells are calmed by pad_calm (share), so no start sits astride a crest.",
+	"pad_calm": 0.7,
 	"bowl": {
 		"_comment": "The frozen whirlpool's profile is an inverted cone: the ice falls tilt metres in one straight slope from the rim to the eye lip, and a further funnel_depth metres (quadratically, steepest at the lip) over the last stretch inside funnel_outer metres from the centre. A bottomless chasm rings the platform (the frozen sea's ice shelf lies beyond it, sea_below_rim metres under the rim): a bot whose centre leaves the ring by more than exit_margin metres is eliminated too.",
-		"tilt": 40.0, "funnel_depth": 5.0, "funnel_outer": 40.0, "sea_below_rim": 0.5, "exit_margin": 1.0
+		"tilt": 40.0, "funnel_depth": 5.0, "funnel_outer": 48.0, "sea_below_rim": 0.5, "exit_margin": 1.0
 	},
 	"swell": {
 		"_comment": "Broad frozen swells following the spin: sin(2 * spiral phase) times height metres, fading near the eye and the rim.",
 		"height": 1.2
 	},
 	"ridge": {
-		"_comment": "Two frozen spiral pressure ridges (log spirals r = eye_radius * exp(twist * angle), 180 degrees apart): a sharp tent profile height metres tall and half_width metres to each side of the crest, fading out near the eye and the rim.",
-		"height": 1.1, "half_width": 7.5, "twist": 0.3, "phase": 0.9
+		"_comment": "Frozen spiral pressure ridges, arms of them (even, for point symmetry; log spirals r = eye_radius * exp(twist * angle), evenly spaced): a sharp tent profile height metres tall and half_width metres to each side of the crest, fading out near the eye and the rim.",
+		"height": 1.1, "half_width": 7.5, "twist": 0.3, "phase": 0.9, "arms": 4
 	},
 	"slabs": [
 		{"_comment": "Frozen waves (one-way ramps): each rises along yaw over length to height with a curling crest and a sheer drop beyond it; its sides taper into the ice across width. Authored for one half and mirrored.", "at": [-102.0, -26.0], "yaw": 2.55, "length": 18.0, "width": 24.0, "height": 3.6},
@@ -53,6 +55,6 @@
 		"sun_energy": 1.2,
 		"chasm_width": 16.0,
 		"ambient_energy": 0.9,
-		"fog_density": 0.0034
+		"_fog_comment": "Blizzard: depth fog clear to fog_begin metres from the camera, thickening to fog_density (0..1 opacity) by fog_end.", "fog_density": 0.96, "fog_begin": 110.0, "fog_end": 420.0
 	}
 }

@@ -25,8 +25,11 @@ const FLEET_SLOTS := ["paint", "trim", "sail", "banner", "cloth"]
 const SHEET_RINGS := 110
 const SHEET_SEGMENTS := 960
 const SECTORS := 16
-## Depth (m) the chasm's walls fall to before fading into the dark.
-const CHASM_FLOOR := -45.0
+## Depth (m) of the floors at the bottom of the chasm and of the eye (just
+## under where a fallen wreck comes to rest, kill_y - sink_depth).
+const ABYSS_FLOOR := -34.0
+## The cliffs below their top edge use one column per CLIFF_STRIDE edge vertices.
+const CLIFF_STRIDE := 4
 @export var arena_path: NodePath = NodePath("..")
 var _kit: Dictionary = {}
 var _materials: Dictionary = {}
@@ -120,6 +123,11 @@ func _material(slot: String, fleet: int) -> Material:
 func _set_ring(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("maelstrom_rim", GROUND.settings().rim_radius)
 	mat.set_shader_parameter("maelstrom_eye", GROUND.settings().eye_radius)
+
+## Cliffs darken as they fall toward the abyss floors, without going black.
+func _set_abyss(mat: ShaderMaterial) -> void:
+	mat.set_shader_parameter("abyss_top", -8.0)
+	mat.set_shader_parameter("abyss_bottom", ABYSS_FLOOR * 2.2)
 
 func _kit_instance(model: String, xform: Transform3D, fleet: int, parent: Node = self) -> MeshInstance3D:
 	var mesh: Mesh = _kit[model]
@@ -250,6 +258,7 @@ func _ice_sheet() -> void:
 	mat.shader = ICE
 	_set_ring(mat)
 	mat.set_shader_parameter("twist", float(cfg.ridge.twist))
+	_set_abyss(mat)
 	var root := Node3D.new()
 	root.name = "IceSheet"
 	add_child(root)
@@ -301,51 +310,65 @@ func _add_mesh(parent: Node, label: String, verts: PackedVector3Array, normals: 
 	parent.add_child(visual)
 	return visual
 
-## Sheer ice cliffs from the rim down to the frozen sea, and down the eye into
-## the dark: stepped, jutting and striated, seeded per column so neighbours meet.
+## Sheer ice cliffs from the rim down into the chasm: the top follows every
+## vertex of the sheet's jagged edge, the face below it only every
+## CLIFF_STRIDE-th, bulging and hollowed, seeded per column so sectors meet.
 func _cliffs(parent: Node, sector: int, per: int, mat: Material) -> void:
+	var top: Array[Vector3] = []
+	var columns: Array = []
+	for i: int in per + 1:
+		var column_id := sector * per + i
+		var angle := TAU * float(column_id) / SHEET_SEGMENTS
+		var dir := Vector2(cos(angle), sin(angle))
+		var edge: float = GROUND.rim_at(angle) - 0.02
+		top.append(Vector3(dir.x * edge, _sheet_height(dir.x * edge, dir.y * edge, true), dir.y * edge))
+		if i % CLIFF_STRIDE == 0:
+			columns.append(_cliff_column(dir, edge, top[i].y, column_id % SHEET_SEGMENTS, 1.0, [0.12, 0.35, 0.65, 1.0]))
+	var visual := MeshInstance3D.new()
+	visual.name = "Cliffs%d" % sector
+	visual.mesh = _wall(top, columns, false)
+	visual.material_override = mat
+	parent.add_child(visual)
+
+## One coarse cliff column below an edge point: rows at the given depth
+## fractions down to the abyss floor, jutting out (sign) or back by up to ~1.4 m.
+func _cliff_column(dir: Vector2, edge: float, top_y: float, seed_id: int, sign: float, steps: Array) -> Array:
+	var column: Array = []
+	for row: int in steps.size():
+		var f: float = steps[row]
+		var h := float(hash(Vector2i(seed_id, row)) % 1000) / 1000.0
+		var r := edge + (h - 0.4) * 2.4 * sign * minf(f * 4.0, 1.0)
+		column.append(Vector3(dir.x * r, lerpf(top_y, ABYSS_FLOOR - 2.0, f), dir.y * r))
+	return column
+
+## A cliff face: the fine top edge fanned onto coarse columns (one per
+## CLIFF_STRIDE edge points), then quads between the coarse rows. flip turns the
+## faces for walls seen from the outside of the ring.
+func _wall(top: Array[Vector3], columns: Array, flip: bool) -> ArrayMesh:
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	tool.set_smooth_group(-1)
-	var steps := [0.0, 0.05, 0.14, 0.27, 0.42, 0.58, 0.74, 0.88, 1.0]
-	# Rim cliffs only: the eye's funnel starts right at the lip (_eye).
-	for side: int in 1:
-		for i: int in per:
-			var ring: Array = []
-			for k: int in 2:
-				var column_id := sector * per + i + k
-				var angle := TAU * float(column_id) / SHEET_SEGMENTS
-				var bottom := CHASM_FLOOR
-				var dir := Vector2(cos(angle), sin(angle))
-				var edge: float = (GROUND.rim_at(angle) - 0.02) if side == 0 else (GROUND.eye_at(angle) + 0.02)
-				var top := _sheet_height(dir.x * edge, dir.y * edge, true)
-				var column: Array = []
-				for row: int in steps.size():
-					var f: float = steps[row]
-					var h := hash(Vector3i(column_id, row, side)) % 1000 / 1000.0
-					# Bulging ice and hanging curtains; the eye's walls lean inward.
-					var jut := 0.0 if row == 0 else (h - 0.4) * 2.2 * (1.0 if side == 0 else -1.0)
-					var lean := 0.0 if side == 0 else -f * 3.0
-					var r := edge + jut + lean
-					column.append(Vector3(dir.x * r, lerpf(top, bottom, f), dir.y * r))
-				ring.append(column)
-			for row: int in steps.size() - 1:
-				var a: Vector3 = ring[0][row]
-				var b: Vector3 = ring[1][row]
-				var c: Vector3 = ring[1][row + 1]
-				var d: Vector3 = ring[0][row + 1]
-				if side == 0:
-					tool.add_vertex(a); tool.add_vertex(b); tool.add_vertex(c)
-					tool.add_vertex(a); tool.add_vertex(c); tool.add_vertex(d)
-				else:
-					tool.add_vertex(a); tool.add_vertex(c); tool.add_vertex(b)
-					tool.add_vertex(a); tool.add_vertex(d); tool.add_vertex(c)
+	var tri := func(a: Vector3, b: Vector3, c: Vector3) -> void:
+		tool.add_vertex(a)
+		tool.add_vertex(c if flip else b)
+		tool.add_vertex(b if flip else c)
+	var half := CLIFF_STRIDE / 2
+	for k: int in columns.size() - 1:
+		var left: Vector3 = columns[k][0]
+		var right: Vector3 = columns[k + 1][0]
+		var j := k * CLIFF_STRIDE
+		for m: int in CLIFF_STRIDE:
+			tri.call(top[j + m], top[j + m + 1], left if m < half else right)
+		tri.call(top[j + half], right, left)
+		for row: int in columns[k].size() - 1:
+			var a: Vector3 = columns[k][row]
+			var b: Vector3 = columns[k + 1][row]
+			var c: Vector3 = columns[k + 1][row + 1]
+			var d: Vector3 = columns[k][row + 1]
+			tri.call(a, b, c)
+			tri.call(a, c, d)
 	tool.generate_normals()
-	var visual := MeshInstance3D.new()
-	visual.name = "Cliffs%d" % sector
-	visual.mesh = tool.commit()
-	visual.material_override = mat
-	parent.add_child(visual)
+	return tool.commit()
 
 # --- Eye, frozen sea and horizon ---------------------------------------------
 
@@ -353,7 +376,7 @@ func _cliffs(parent: Node, sector: int, per: int, mat: Material) -> void:
 ## own outline so it meets the sheet with no gap, serrated along the spin.
 func _eye() -> void:
 	var segments := 480
-	var rows := 34
+	var rows := 16
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	tool.set_smooth_group(-1)
@@ -367,8 +390,8 @@ func _eye() -> void:
 		for k: int in rows + 1:
 			var f := float(k) / rows
 			var teeth := absf(fposmod(angle / TAU * 20.0 - f * 4.0, 1.0) * 2.0 - 1.0) if k > 0 else 0.0
-			var r := lerpf(lip, 1.5, pow(f, 0.6)) + 1.1 * teeth * (1.0 - f)
-			var y := lerpf(top, -48.0, pow(f, 0.85)) - 0.8 * teeth * f
+			var r := lerpf(lip, lip * 0.62, pow(f, 0.7)) + 1.1 * teeth * (1.0 - f)
+			var y := lerpf(top, ABYSS_FLOOR - 2.0, pow(f, 0.85)) - 0.8 * teeth * f
 			column.append(Vector3(dir.x * r, y, dir.y * r))
 		grid.append(column)
 	for i: int in segments:
@@ -390,10 +413,11 @@ func _eye() -> void:
 	deep.set_shader_parameter("twist", float(GROUND.settings().ridge.twist))
 	deep.set_shader_parameter("bare_override", 1.0)
 	deep.set_shader_parameter("abyss_top", GROUND.bowl_at(GROUND.settings().eye_radius) - 1.0)
-	deep.set_shader_parameter("abyss_bottom", -30.0)
+	deep.set_shader_parameter("abyss_bottom", ABYSS_FLOOR - 30.0)
 	throat.material_override = deep
 	throat.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(throat)
+	_abyss_floor("EyeFloor", 0.0, GROUND.settings().eye_radius * 0.62 + 4.0, 70)
 
 ## Frozen crew and wreckage lying on the ice around each wreck, each seated on
 ## the terrain where it lies (visual only).
@@ -434,6 +458,7 @@ func _sea() -> void:
 	ice.shader = ICE
 	_set_ring(ice)
 	ice.set_shader_parameter("twist", float(cfg.ridge.twist))
+	_set_abyss(ice)
 	var radii: Array[float] = []
 	var r: float = cfg.rim_radius - 8.0
 	while r < 5000.0:
@@ -462,7 +487,7 @@ func _sea() -> void:
 		for j: int in count - 1:
 			var a := i * count + j
 			var b := n * count + j
-			indices.append_array([a, b, a + 1, a + 1, b, b + 1])
+			indices.append_array([a, a + 1, b, b, a + 1, b + 1])
 	var sea := _add_mesh(self, "FrozenSea", verts, normals, indices, ice)
 	sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_shelf_cliff(ice)
@@ -514,41 +539,96 @@ func _shelf_edge(angle: float) -> float:
 	var jag := 2.5 * sin(angle * 14.0 + 1.3) + 1.5 * sin(angle * 38.0)
 	return GROUND.rim_at(angle) + float(GROUND.settings().art.chasm_width) + jag
 
-## The shelf's own broken face dropping into the chasm.
+## The shelf's own broken face dropping into the chasm, meeting the shelf's
+## first ring exactly, then the chasm floor between the two cliffs.
 func _shelf_cliff(mat: Material) -> void:
-	var tool := SurfaceTool.new()
-	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	tool.set_smooth_group(-1)
 	var segments := 480
-	var steps := [0.0, 0.06, 0.18, 0.35, 0.6, 1.0]
-	var grid: Array = []
+	var top: Array[Vector3] = []
+	var columns: Array = []
 	for i: int in segments + 1:
 		var angle := TAU * float(i % segments) / segments
 		var dir := Vector2(cos(angle), sin(angle))
 		var edge := _shelf_edge(angle)
-		var top := GROUND.sea_level(angle, edge) - 0.5
-		var column: Array = []
-		for row: int in steps.size():
-			var f: float = steps[row]
-			var jut := 0.0 if row == 0 else (float(hash(Vector2i(i % segments, row)) % 1000) / 1000.0 - 0.5) * 2.4
-			var r := edge + jut
-			column.append(Vector3(dir.x * r, lerpf(top, CHASM_FLOOR, f), dir.y * r))
-		grid.append(column)
-	for i: int in segments:
-		for row: int in steps.size() - 1:
-			var a: Vector3 = grid[i][row]
-			var b: Vector3 = grid[i + 1][row]
-			var c: Vector3 = grid[i + 1][row + 1]
-			var d: Vector3 = grid[i][row + 1]
-			tool.add_vertex(a); tool.add_vertex(c); tool.add_vertex(b)
-			tool.add_vertex(a); tool.add_vertex(d); tool.add_vertex(c)
-	tool.generate_normals()
+		var x := dir.x * edge
+		var z := dir.y * edge
+		top.append(Vector3(x, GROUND.sea_level(angle, edge) + _sea_relief(x, z) - 0.5, z))
+		if i % CLIFF_STRIDE == 0:
+			columns.append(_cliff_column(dir, edge, top[i].y, 7000 + i % segments, -1.0, [0.12, 0.4, 1.0]))
 	var cliff := MeshInstance3D.new()
 	cliff.name = "ShelfCliff"
-	cliff.mesh = tool.commit()
+	cliff.mesh = _wall(top, columns, true)
 	cliff.material_override = mat
 	cliff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(cliff)
+	var cfg: RefCounted = GROUND.settings()
+	_abyss_floor("ChasmFloor", cfg.rim_radius - cfg.rim_jag - 8.0, cfg.rim_radius + float(cfg.art.chasm_width) + 12.0, 260)
+
+## The bottom of the chasm or the eye: a floor of old black ice heaped with
+## the broken floes, shards and timbers that fell in before it all froze
+## (visual only; nothing collides down there).
+func _abyss_floor(label: String, inner: float, outer: float, chunks: int) -> void:
+	var segments := 240
+	var rings := 10
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var indices := PackedInt32Array()
+	for i: int in segments:
+		var angle := TAU * float(i) / segments
+		for j: int in rings + 1:
+			var r := lerpf(inner, outer, float(j) / rings)
+			var x := cos(angle) * r
+			var z := sin(angle) * r
+			verts.append(Vector3(x, ABYSS_FLOOR + _heap(x, z), z))
+			var gx := _heap(x + 0.5, z) - _heap(x, z)
+			var gz := _heap(x, z + 0.5) - _heap(x, z)
+			normals.append(Vector3(-gx * 2.0, 1.0, -gz * 2.0).normalized())
+	for i: int in segments:
+		var n := (i + 1) % segments
+		for j: int in rings:
+			var a := i * (rings + 1) + j
+			var b := n * (rings + 1) + j
+			indices.append_array([a, a + 1, b, b, a + 1, b + 1])
+	var mat := ShaderMaterial.new()
+	mat.shader = ICE
+	_set_ring(mat)
+	mat.set_shader_parameter("twist", float(GROUND.settings().ridge.twist))
+	mat.set_shader_parameter("bare_override", 0.75)
+	mat.set_shader_parameter("abyss_top", ABYSS_FLOOR - 40.0)
+	mat.set_shader_parameter("abyss_bottom", ABYSS_FLOOR - 80.0)
+	var floor_view := _add_mesh(self, label, verts, normals, indices, mat)
+	floor_view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var heap := MultiMesh.new()
+	heap.transform_format = MultiMesh.TRANSFORM_3D
+	heap.mesh = _kit["ice_floe"]
+	heap.instance_count = chunks
+	for c: int in chunks:
+		var angle := _rng.randf() * TAU
+		var r := sqrt(_rng.randf_range(inner * inner, outer * outer))
+		var at := Vector3(cos(angle) * r, 0, sin(angle) * r)
+		var size := _rng.randf_range(0.3, 1.6)
+		at.y = ABYSS_FLOOR + _heap(at.x, at.z) - size * 0.2
+		var tip := Basis(Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized(), _rng.randf_range(0.2, 1.3))
+		heap.set_instance_transform(c, Transform3D((tip * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3(size, size * 1.4, size)), at))
+	var heap_view := MultiMeshInstance3D.new()
+	heap_view.name = label + "Rubble"
+	heap_view.multimesh = heap
+	heap_view.material_override = _material("ice", 0)
+	heap_view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(heap_view)
+	# Timbers and icicles that went over the edge.
+	for c: int in chunks / 12:
+		var angle := _rng.randf() * TAU
+		var r := _rng.randf_range(inner, outer)
+		var at := Vector3(cos(angle) * r, 0, sin(angle) * r)
+		at.y = ABYSS_FLOOR + _heap(at.x, at.z) - 0.2
+		var model: String = ["debris_plank", "debris_beam", "debris_plank", "icicle_cluster"][c % 4]
+		var tip := Basis(Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized(), _rng.randf_range(0.1, 0.6))
+		var visual := _kit_instance(model, Transform3D(tip * Basis(Vector3.UP, _rng.randf() * TAU), at), c % 2, self)
+		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+## Heaped, broken ice on the abyss floors (m above ABYSS_FLOOR).
+func _heap(x: float, z: float) -> float:
+	return 1.4 * absf(sin(x * 0.21 + z * 0.13)) + 0.9 * absf(sin(z * 0.27 - x * 0.19)) + 0.5 * absf(sin(x * 0.61 + z * 0.47))
 
 func _ice_walls() -> void:
 	var cfg: RefCounted = GROUND.settings()
@@ -593,20 +673,21 @@ func _ice_walls() -> void:
 func _snowfall() -> void:
 	_snow = GPUParticles3D.new()
 	_snow.name = "Snowfall"
-	_snow.amount = 8000
+	_snow.amount = 16000
 	_snow.lifetime = 7.0
 	_snow.preprocess = 7.0
-	_snow.visibility_aabb = AABB(Vector3(-90, -40, -90), Vector3(180, 80, 180))
+	_snow.visibility_aabb = AABB(Vector3(-110, -40, -110), Vector3(220, 80, 220))
 	var process := ParticleProcessMaterial.new()
 	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	process.emission_box_extents = Vector3(70, 20, 70)
-	process.direction = Vector3(1, -0.3, 0.4)
-	process.spread = 20.0
-	process.initial_velocity_min = 4.0
-	process.initial_velocity_max = 9.0
-	process.gravity = Vector3(2.0, -2.2, 1.0)
+	# Driven near-level by the wind: a blizzard, not a snowfall.
+	process.emission_box_extents = Vector3(85, 20, 85)
+	process.direction = Vector3(1, -0.12, 0.45)
+	process.spread = 14.0
+	process.initial_velocity_min = 9.0
+	process.initial_velocity_max = 17.0
+	process.gravity = Vector3(3.0, -1.6, 1.4)
 	process.turbulence_enabled = true
-	process.turbulence_noise_strength = 2.0
+	process.turbulence_noise_strength = 3.5
 	process.scale_min = 0.5
 	process.scale_max = 1.4
 	_snow.process_material = process
@@ -663,21 +744,29 @@ func _lighting(arena: Node) -> void:
 	env.adjustment_contrast = 1.12
 	env.adjustment_saturation = 0.7
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.3, 0.38, 0.47)
+	env.fog_light_color = Color(0.36, 0.42, 0.5)
 	env.fog_light_energy = 1.0
 	env.fog_sun_scatter = 0.12
+	# A blizzard walls in the horizon: clear across the maelstrom, thickening
+	# past fog_begin until nothing shows beyond fog_end.
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_depth_begin = float(cfg.fog_begin)
+	env.fog_depth_end = float(cfg.fog_end)
+	env.fog_depth_curve = 1.3
 	env.fog_density = float(cfg.fog_density)
-	env.fog_aerial_perspective = 0.4
-	env.fog_sky_affect = 0.6
-	env.fog_height = 1.5
-	env.fog_height_density = 0.06
+	env.fog_aerial_perspective = 0.0
+	env.fog_sky_affect = 1.0
+	# A thin mist lies in the chasm and the eye, over their floors.
+	env.fog_height = -12.0
+	env.fog_height_density = 0.02
 	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.008
 	env.volumetric_fog_albedo = Color(0.7, 0.78, 0.86)
 	env.volumetric_fog_anisotropy = 0.4
 	env.volumetric_fog_length = 140.0
 	env.volumetric_fog_ambient_inject = 0.35
-	env.volumetric_fog_sky_affect = 0.0
+	# The haze lies over the sky too, so nothing out there shows as a silhouette.
+	env.volumetric_fog_sky_affect = 1.0
 	world.environment = env
 	var moon := arena.get_node("Sun") as DirectionalLight3D
 	var elevation := deg_to_rad(34.0)

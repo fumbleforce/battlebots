@@ -29,6 +29,7 @@ class Layout extends RefCounted:
 	var sink_depth: float
 	var pad_radius: float
 	var pad_blend: float
+	var pad_calm: float
 	var bowl: Dictionary
 	var swell: Dictionary
 	var ridge: Dictionary
@@ -39,10 +40,6 @@ class Layout extends RefCounted:
 static var _layout: Layout
 static var _heights := PackedFloat32Array()
 static var _pads := PackedVector2Array()
-static var _pad_heights := PackedFloat32Array()
-## Metres over which neighbouring landings' heights blend (soft minimum) at a
-## landing's edge; it widens by a metre per metre out into the blend.
-const PAD_SOFTNESS := 1.2
 static var _obstacles: Array[Dictionary] = []
 static var _hulls: Dictionary = {}
 static var _breakables: Array[Dictionary] = []
@@ -64,7 +61,7 @@ static func settings() -> Layout:
 		assert(data is Dictionary, "Invalid Frozen Maelstrom configuration: " + CONFIG)
 		var parsed := Layout.new()
 		for key: String in ["half", "rim_radius", "rim_jag", "eye_radius", "eye_jag",
-				"eye_depth", "kill_y", "sink_depth", "pad_radius", "pad_blend"]:
+				"eye_depth", "kill_y", "sink_depth", "pad_radius", "pad_blend", "pad_calm"]:
 			parsed.set(key, float(data[key]))
 		parsed.rim_teeth = int(data.rim_teeth)
 		parsed.eye_teeth = int(data.eye_teeth)
@@ -75,7 +72,7 @@ static func settings() -> Layout:
 		parsed.obstacles = data.obstacles
 		parsed.art = data.art
 		# Even tooth counts keep the jagged edges point-symmetric.
-		assert(parsed.rim_teeth % 2 == 0 and parsed.eye_teeth % 2 == 0, "Maelstrom edge teeth must be even")
+		assert(parsed.rim_teeth % 2 == 0 and parsed.eye_teeth % 2 == 0 and int(parsed.ridge.get("arms", 2)) % 2 == 0, "Maelstrom edge teeth and ridge arms must be even")
 		assert(parsed.eye_radius > 0.0 and parsed.rim_radius + parsed.rim_jag < parsed.half - 2.0, "Maelstrom ring must fit its grid")
 		assert(parsed.kill_y < -float(parsed.bowl.funnel_depth) and parsed.kill_y > parsed.eye_depth, "Maelstrom kill height lies between the eye lip and the eye's depth")
 		_layout = parsed
@@ -111,7 +108,7 @@ static func on_ice(x: float, z: float) -> bool:
 	var angle := atan2(z, x)
 	return r <= rim_at(angle) and r >= eye_at(angle)
 
-## Level pads: every team and free-for-all start, and the Practice Duel places
+## Start pads: every team and free-for-all start, and the Practice Duel places
 ## (player, far Atlas, the monowheel block and the shuttle's run), mirrored.
 static func pads() -> PackedVector2Array:
 	if _pads.is_empty():
@@ -125,38 +122,15 @@ static func pads() -> PackedVector2Array:
 			points.append(centre + offset)
 			points.append(-(centre + offset))
 		_pads = points
-		_pad_heights = _group_heights(points)
 	return _pads
 
-## Landing height per pad: the cone's height at its centre; pads whose level
-## cores overlap (chained) share their mean, so no step runs through a core.
-static func _group_heights(points: PackedVector2Array) -> PackedFloat32Array:
-	var group := range(points.size())
-	var changed := true
-	while changed:
-		changed = false
-		for i: int in points.size():
-			for j: int in points.size():
-				if points[i].distance_to(points[j]) < 2.0 * settings().pad_radius and group[j] < group[i]:
-					group[i] = group[j]
-					changed = true
-	var heights := PackedFloat32Array()
-	for i: int in points.size():
-		var sum := 0.0
-		var count := 0
-		for j: int in points.size():
-			if group[j] == group[i]:
-				sum += bowl_at(points[j].length())
-				count += 1
-		heights.append(sum / count)
-	return heights
-
-## Distance across the nearest of the two spiral ridge crests at (r, angle).
+## Distance across the nearest of the spiral ridge crests (ridge.arms, even) at (r, angle).
 static func _ridge_distance(r: float, angle: float) -> float:
 	var cfg := settings()
 	var twist := float(cfg.ridge.twist)
 	var along := log(maxf(r, 0.001) / cfg.eye_radius) / twist + float(cfg.ridge.phase)
-	var off := wrapf(angle - along, -PI * 0.5, PI * 0.5)
+	var arms := int(cfg.ridge.get("arms", 2))
+	var off := wrapf(angle - along, -PI / arms, PI / arms)
 	return absf(off) * r / sqrt(1.0 + twist * twist)
 
 ## A frozen wave: rises along yaw over its length to a sheer crest (a one-way
@@ -213,8 +187,9 @@ static func height_at(x: float, z: float) -> float:
 	if r < eye:
 		return cfg.eye_depth
 	# Creased ice facets: absolute waves are even in p, so mirrors match.
-	var h := 0.16 * absf(sin(x * 0.071 + z * 0.043)) + 0.12 * absf(sin(z * 0.089 - x * 0.052)) \
+	var facets := 0.16 * absf(sin(x * 0.071 + z * 0.043)) + 0.12 * absf(sin(z * 0.089 - x * 0.052)) \
 		+ 0.07 * absf(sin(x * 0.19 + z * 0.23))
+	var h := facets
 	var ridge := float(cfg.ridge.height) * maxf(0.0, 1.0 - _ridge_distance(r, angle) / float(cfg.ridge.half_width))
 	# Serrated crests with breaks every ~37 m: lanes through the ridges.
 	var lane := fposmod(r / 37.0, 1.0)
@@ -225,25 +200,14 @@ static func height_at(x: float, z: float) -> float:
 	# unchanged by the mirror's half turn).
 	var phase := angle - log(maxf(r, 0.001) / cfg.eye_radius) / float(cfg.ridge.twist)
 	h += float(cfg.swell.height) * sin(phase * 2.0) * smoothstep(eye + 8.0, eye + 38.0, r) * (1.0 - smoothstep(rim - 34.0, rim - 6.0, r))
-	# Start pads are small level landings cut into the cone, each at the cone's height
-	# at its centre.
-	# Soft minimum over the pads: continuous everywhere, and inside a landing its
-	# own height (others are metres further away, so their share vanishes).
-	var all := pads()
+	# Start pads lie on the cone itself (the tracks hold any slope under
+	# slope_hold_max_degrees): only the ridges and swells ease off around them,
+	# so a bot never starts astride a crest, and the ice there looks like the rest.
 	var near := INF
-	for pad: Vector2 in all:
+	for pad: Vector2 in pads():
 		near = minf(near, p.distance_to(pad))
-	var share := 0.0
-	var sum := 0.0
-	var softness := PAD_SOFTNESS + maxf(0.0, near - cfg.pad_radius)
-	for i: int in all.size():
-		var w := exp(-(p.distance_to(all[i]) - near) / softness)
-		share += w
-		sum += w * _pad_heights[i]
-	var target := sum / share
-	var weight := 1.0 - smoothstep(cfg.pad_radius, cfg.pad_radius + cfg.pad_blend, near)
-	var base := bowl_at(r, angle)
-	h = lerpf(base + h, target, weight)
+	var calm := cfg.pad_calm * (1.0 - smoothstep(cfg.pad_radius, cfg.pad_radius + cfg.pad_blend, near))
+	h = bowl_at(r, angle) + facets + (h - facets) * (1.0 - calm)
 	for slab: Dictionary in cfg.slabs:
 		for sign: float in [1.0, -1.0]:
 			var rise := _slab(p, slab, sign)

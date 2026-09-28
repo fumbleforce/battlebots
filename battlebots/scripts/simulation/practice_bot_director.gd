@@ -126,7 +126,7 @@ func _monowheel_reach(left: Vector3) -> float:
 ## start, facing into the room (data/arena_spawns.json duel.monowheels).
 func _add_monowheel_row(player: MvpBot, next_id: int) -> int:
 	var spawns := ARENA_SPAWNS.settings()
-	var count := spawns.duel_monowheel_count
+	var count := spawns.duel_monowheel_count_for(world.arena_id)
 	if count <= 0:
 		return next_id
 	var forward := (-player.spawn_pose.basis.z).slide(Vector3.UP).normalized()

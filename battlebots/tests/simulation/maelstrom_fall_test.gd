@@ -36,24 +36,30 @@ func run() -> void:
 	await physics_frame
 	var bot := world.spawn(1, 0, 0, world.registry.starter(true), 1)
 	await tick(world, 180)
-	check(not bot.combat.eliminated and bot.body.global_position.distance_to(bot.spawn_pose.origin) < 1.0,
-		"A bot on its start pad stays put and alive (at %s)" % str(bot.body.global_position))
-	# Driving through a barrel shatters it without slowing or deflecting the bot.
-	var barrel: String = world.props.props.keys().filter(func(n: String) -> bool: return world.props.props[n].kind == "barrel")[0]
+	# Starts lie on the cone's slope: the bot settles onto it and holds there.
+	var settled := bot.body.global_position
+	await tick(world, 180)
+	check(not bot.combat.eliminated and Vector2(settled.x - bot.spawn_pose.origin.x, settled.z - bot.spawn_pose.origin.z).length() < 0.6
+		and bot.body.global_position.distance_to(settled) < 0.3,
+		"A bot on its start pad settles and stays put, alive (from %s to %s)" % [str(settled), str(bot.body.global_position)])
+	# Driving through a small breakable shatters it without slowing or deflecting the bot.
+	# (one with a clear run: ribs and masts stay solid for a slow bot)
+	var barrel: String = world.props.props.keys().filter(func(n: String) -> bool: return world.props.props[n].kind in ["barrel", "crate", "icicle"] and _clear_run(world, n))[0]
 	var target: Vector3 = world.props.props[barrel].at
 	var approach := Vector3(target.x, 0, target.z).normalized()
 	var start := target - approach * 14.0
 	var facing := Basis(Vector3.UP, atan2(-approach.x, -approach.z))
-	bot.body.reset_pose = Transform3D(facing, Vector3(start.x, GROUND.height_at(start.x, start.z) + bot.ground_clearance() + 0.3, start.z))
+	bot.body.reset_pose = Transform3D(facing, Vector3(start.x, _highest(start, 4.0) + bot.ground_clearance() + 0.3, start.z))
 	await tick(world, 20)
 	await tick(world, 180, bot)
 	var past := (bot.body.global_position - target).dot(approach)
-	check(world.props.destroyed.has(barrel) and past > 2.0, "Driving through a barrel shatters it and carries on (%.1f m past, broken %s)" % [past, world.props.destroyed.has(barrel)])
+	check(world.props.destroyed.has(barrel) and past > 2.0, "Driving through a small breakable shatters it and carries on (%.1f m past, broken %s)" % [past, world.props.destroyed.has(barrel)])
 	world.props.reset_round()
 	world.reset_round()
-	await tick(world, 5)	# Parked on the gentle sag right beside the eye's lip, it does not slide in.
+	await tick(world, 5)
+	# Parked on the gentle sag right beside the eye's lip, it does not slide in.
 	var lip := Vector3(0, 0, cfg.eye_radius + 4.0)
-	drop(bot, lip + Vector3(0, GROUND.height_at(lip.x, lip.z) + bot.ground_clearance() + 0.3, 0))
+	drop(bot, lip + Vector3(0, _highest(lip, 4.0) + bot.ground_clearance() + 0.3, 0))
 	await tick(world, 180)
 	check(not bot.combat.eliminated and Vector2(bot.body.global_position.x, bot.body.global_position.z).length() > cfg.eye_radius + 2.0,
 		"A bot parked by the lip does not slide into the eye (at %s)" % str(bot.body.global_position))
@@ -78,7 +84,7 @@ func run() -> void:
 	world.reset_round()
 	await tick(world, 5)
 	var edge := Vector3(0, 0, cfg.rim_radius - 14.0)
-	var outward := Transform3D(Basis(Vector3.UP, PI), edge + Vector3(0, GROUND.height_at(edge.x, edge.z) + bot.ground_clearance() + 0.3, 0))
+	var outward := Transform3D(Basis(Vector3.UP, PI), edge + Vector3(0, _highest(edge, 4.0) + bot.ground_clearance() + 0.3, 0))
 	bot.body.reset_pose = outward
 	await tick(world, 600, bot)
 	check(bot.combat.eliminated and bot.combat.elimination_reason == GROUND.FALL_REASON,
@@ -121,3 +127,30 @@ func run() -> void:
 		push_error(failure)
 	print("MAELSTROM FALL PASS" if failures.is_empty() else "MAELSTROM FALL FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+## Highest ice within reach of a point (a hull placed on the slope clears it).
+func _highest(at: Vector3, reach: float) -> float:
+	var top := -INF
+	for dx: float in [-reach, 0.0, reach]:
+		for dz: float in [-reach, 0.0, reach]:
+			top = maxf(top, GROUND.height_at(at.x + dx, at.z + dz))
+	return top
+
+## No other obstacle or prop within 9 m of the straight run from 14 m before a
+## prop (on the eye side) to 10 m past it.
+func _clear_run(world: AuthorityWorld, name: String) -> bool:
+	var at: Vector3 = world.props.props[name].at
+	var flat := Vector2(at.x, at.z)
+	var dir := flat.normalized()
+	var blockers: Array[Vector2] = []
+	for item: Dictionary in GROUND.obstacles():
+		blockers.append(Vector2(item.at.x, item.at.z))
+	for other: String in world.props.props:
+		if other != name:
+			blockers.append(Vector2(world.props.props[other].at.x, world.props.props[other].at.z))
+	for step: int in range(-14, 11):
+		var p := flat + dir * step
+		for blocker: Vector2 in blockers:
+			if p.distance_to(blocker) < 9.0:
+				return false
+	return true

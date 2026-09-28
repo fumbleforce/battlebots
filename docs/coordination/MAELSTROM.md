@@ -6,13 +6,14 @@ Blender-built models with material slots, a dedicated visuals script).
 
 A whirlpool frozen mid-spin in a frozen sea, where two fleets fought and died.
 The playable ice is a ring about Woodland's area (~49,000 m²) shaped as an
-inverted cone: a straight 40 m fall from the rim to the eye, steepening over the
-last stretch into the eye's throat, with broad frozen swells, two spiral pressure
-ridges, slab ramps and small level start landings. A bottomless chasm about
+inverted cone: a straight 40 m fall from the rim to the eye (radius 24 m), steepening over the
+last stretch into the eye's throat, with broad frozen swells, four spiral pressure
+ridges, slab ramps, and starts on the slope itself (ridges calmed around them). A bottomless chasm about
 16 m wide rings the rim, then the frozen sea shelf (scenery): leaving the ring or falling into the eye
-eliminates the bot. Seracs, standing masts, icicle clusters, barrels, crates and each side of the
-keel's ribs never block a bot: they shatter into their real parts as it reaches
-them (or when shot), and the pieces sink away after a few seconds. Frozen waves
+eliminates the bot. Icicle clusters, barrels and crates never block a bot: they shatter into their
+real parts as it reaches them (or when shot). Seracs, standing masts and each
+side of the keel's ribs do the same only when rammed hard enough; slower bots
+hit them like walls, and the pieces sink away after a few seconds. Frozen waves
 act as one-way ramps. The crew withered where they lay: curled, face down, on
 their backs or folded onto the ice. Everything beyond the ring is shaded darker. Obstacles: fractured basalt
 crags, seracs, and wrecks of the Ember Crown (oxblood, tarnished brass, black

@@ -24,6 +24,8 @@ var duel_monowheel_gap := 0.0
 var duel_monowheel_side := 0.0
 ## Arena id -> side fraction overriding duel_monowheel_side there.
 var duel_monowheel_side_by_arena: Dictionary = {}
+## Arena id -> monowheel count overriding duel_monowheel_count there.
+var duel_monowheel_count_by_arena: Dictionary = {}
 ## Arena id -> floor point (Vector2 x, z) the Practice Duel is laid out around
 ## instead of the arena centre (duel.centre_by_arena).
 var duel_centre_by_arena: Dictionary = {}
@@ -115,6 +117,15 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 			problems.append("duel.monowheels.side_fraction_by_arena.%s needs a known arena and a non-negative fraction" % arena_id)
 			return null
 		result.duel_monowheel_side_by_arena[arena_id] = float(by_arena[arena_id])
+	var counts: Variant = row.get("count_by_arena", {})
+	if not counts is Dictionary:
+		problems.append("duel.monowheels.count_by_arena must be an object")
+		return null
+	for arena_id: String in counts:
+		if arena_id not in ArenaBounds.IDS or not _number(counts[arena_id]) or int(counts[arena_id]) < 0:
+			problems.append("duel.monowheels.count_by_arena.%s needs a known arena and a non-negative count" % arena_id)
+			return null
+		result.duel_monowheel_count_by_arena[arena_id] = int(counts[arena_id])
 	var centres: Variant = duel.get("centre_by_arena", {})
 	if not centres is Dictionary:
 		problems.append("duel.centre_by_arena must be an object")
@@ -140,6 +151,10 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 		return null
 	result.duel_spawn_reach = float(spawn.reach)
 	return result
+
+## Practice Duel monowheel count on an arena.
+func duel_monowheel_count_for(arena_id: String) -> int:
+	return int(duel_monowheel_count_by_arena.get(arena_id, duel_monowheel_count))
 
 ## Practice Duel monowheel block offset (fraction of the half-extent) on an arena.
 func duel_monowheel_side_for(arena_id: String) -> float:

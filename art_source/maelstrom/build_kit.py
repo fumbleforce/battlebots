@@ -699,29 +699,76 @@ def wreck_bow():
     return m
 
 
+def lantern(m, xf, at, size=1.0):
+    """A ship's stern lantern on an iron bracket: a six-sided cage of iron posts
+    round dark, frosted glass, a stepped base, a domed cap and a hanging ring."""
+    at = V(at); r = .42 * size; h = 1.1 * size
+    m.beam('iron', xf @ (at - V(0, 1.1 * size, .5 * size)), xf @ (at - V(0, .1 * size, 0)), .06, sides=4)
+    m.beam('iron', xf @ (at - V(0, .15 * size, 0)), xf @ at, r * 1.05, r * .9, sides=6, spin=math.pi / 6)
+    m.beam('glass', xf @ at, xf @ (at + V(0, h, 0)), r * .86, r * .96, sides=6, spin=math.pi / 6)
+    for j in range(6):
+        ang = math.pi / 6 + j * math.tau / 6
+        d = V(math.cos(ang), 0, math.sin(ang))
+        m.beam('iron', xf @ (at + d * r * .9), xf @ (at + d * r + V(0, h, 0)), .04 * size, sides=4)
+    m.beam('iron', xf @ (at + V(0, h, 0)), xf @ (at + V(0, h + .12 * size, 0)), r * 1.12, r * 1.12, sides=6, spin=math.pi / 6)
+    m.beam('trim', xf @ (at + V(0, h + .12 * size, 0)), xf @ (at + V(0, h + .5 * size, 0)), r * .95, r * .15, sides=6, spin=math.pi / 6)
+    m.beam('trim', xf @ (at + V(0, h + .5 * size, 0)), xf @ (at + V(0, h + .7 * size, 0)), .05 * size, .05 * size, sides=4)
+    for k in range(6):
+        a0 = k * math.tau / 6; a1 = (k + 1) * math.tau / 6
+        c = at + V(0, h + .82 * size, 0)
+        m.beam('iron', xf @ (c + V(math.cos(a0), math.sin(a0), 0) * .12 * size), xf @ (c + V(math.cos(a1), math.sin(a1), 0) * .12 * size), .025 * size, sides=4)
+    icicles(m, xf @ (at + V(-r, -.1, 0)), xf @ (at + V(r, -.1, 0)), 3, .5 * size)
+
+
 @model
 def wreck_stern():
     m = Model('wreck_stern')
     xf = rot(0, math.radians(-5), math.radians(-11), (0, -3.4, -5))
     pts = galleon(m, xf, 0.0, .42, False, True)
-    # Stern castle: two raised decks and a gilded, windowed transom.
-    for lo, hi, top in ((0, .2, 3.2), (0, .1, 6.0)):
+    # Stern castle: two raised decks and a gilded, windowed transom. Each tier
+    # is a closed box: thick planked side walls standing on the tier below, a
+    # deck laid into them and a bulkhead across its forward end with a doorway.
+    wall = .28
+    for lo, hi, base, top in ((0, .2, 0.0, 3.2), (0, .1, 3.2, 6.0)):
         for side in (-1, 1):
             n = 6
             for i in range(n):
                 a = lo + (hi - lo) * i / n; b = lo + (hi - lo) * (i + 1) / n
-                quad = [hull_point(a, 1.0, side), hull_point(b, 1.0, side), hull_point(b, 1.0, side) + V(0, top, 0), hull_point(a, 1.0, side) + V(0, top, 0)]
-                verts = [xf @ (q + V(side * .02, 0, 0)) for q in quad]
-                m.add('paint', verts, [(0, 1, 2, 3) if side < 0 else (0, 3, 2, 1)])
-                pts += verts
+                box = []
+                for s_ in (a, b):
+                    p = hull_point(s_, 1.0, side)
+                    for inset in (0.0, wall):
+                        for h in (base, top):
+                            box.append(xf @ (p + V(-side * inset, h, 0)))
+                pts += m.solid('paint', box, tint=.3 + .1 * (i % 2))
                 if i % 2 == 1:
-                    c = hull_point((a + b) / 2, 1.0, side) + V(side * .1, top * .55, 0)
+                    c = hull_point((a + b) / 2, 1.0, side) + V(side * .1, base + (top - base) * .55, 0)
                     m.solid('glass', [xf @ (c + V(0, dy, dz)) for dy in (-.6, .6) for dz in (-.45, .45)] + [xf @ (c + V(side * .08, 0, 0))])
                     m.solid('trim', [xf @ (c + V(side * .05, dy, dz)) for dy in (-.8, .8) for dz in (-.6, .6)] + [xf @ (c + V(side * .15, .9, 0))])
         deck_y = deck_at(0) + top
-        m.solid('deck', [xf @ V(x * beam_at(s) * .9, deck_y + dy, (.5 - s) * L_SHIP) for x in (-1, 1) for s in (lo, hi) for dy in (0, .15)])
+        w_lo = beam_at(lo) * .92 - wall; w_hi = beam_at(hi) * .92 - wall
+        m.solid('deck', [xf @ V(x * w, deck_y - .15 + dy, (.5 - s_) * L_SHIP) for x in (-1, 1) for s_, w in ((lo, w_lo), (hi, w_hi)) for dy in (0, .15)])
+        # Forward bulkhead: vertical boards across the beam from the tier below
+        # up to this deck, a doorway in the middle, a few boards split short.
+        z = (.5 - hi) * L_SHIP
+        y_lo = deck_at(0) + base; y_hi = deck_y
+        width = beam_at(hi) * .92
+        boards = 12
+        for k in range(boards):
+            x0 = -width + 2 * width * k / boards; x1 = x0 + 2 * width / boards - .04
+            if abs((x0 + x1) / 2) < .8 and base == 0.0:
+                m.box('wood', xf, (x1 - x0, .5, .2), ((x0 + x1) / 2, y_hi - .25, z))  # lintel over the door
+                continue
+            cut = R.uniform(.55, .85) if R.random() < .2 else 1.0
+            m.solid('wood', [xf @ V(x, y, z + dz) for x in (x0, x1) for y in (y_lo, y_lo + (y_hi - y_lo) * cut) for dz in (-.1, .1)], tint=R.random())
+            if cut < 1.0:  # the split board's jagged top
+                m.spike('wood', xf @ V((x0 + x1) / 2, y_lo + (y_hi - y_lo) * cut - .05, z), xf @ V((x0 + x1) / 2 + R.uniform(-.1, .1), y_lo + (y_hi - y_lo) * cut + R.uniform(.3, .7), z), .16, sides=4)
+        m.beam('trim', xf @ V(-width, y_hi + .05, z), xf @ V(width, y_hi + .05, z), .14, sides=4)
         for side in (-1, 1):
-            m.beam('trim', xf @ (hull_point(lo, 1, side) + V(0, top + .9, 0)), xf @ (hull_point(hi, 1, side) + V(0, top + .9, 0)), .1, sides=4)
+            m.beam('trim', xf @ (hull_point(lo, 1, side) + V(-side * wall * .5, top + .9, 0)), xf @ (hull_point(hi, 1, side) + V(-side * wall * .5, top + .9, 0)), .1, sides=4)
+            for s_ in (lo + (hi - lo) * t for t in (.1, .5, .9)):
+                p = hull_point(s_, 1, side) + V(-side * wall * .5, 0, 0)
+                m.beam('wood', xf @ (p + V(0, top, 0)), xf @ (p + V(0, top + .9, 0)), .08, sides=4)
             icicles(m, xf @ (hull_point(lo, 1, side) + V(side * .2, top, 0)), xf @ (hull_point(hi, 1, side) + V(side * .2, top, 0)), 8, 1.8)
     transom_z = .5 * L_SHIP + .02
     tw = beam_at(0) * .95
@@ -740,11 +787,8 @@ def wreck_stern():
     # The fleet's crest, carved and painted on the transom (banner UVs).
     c = V(0, deck_at(0) + 2.9, transom_z + .6 * (deck_at(0) + 2.9 - y0) / (y1 - y0) + .15)
     m.sheet('banner', lambda u, v: xf @ (c + V((u - .5) * 3.2, (.5 - v) * 2.6, .1 * math.sin(math.pi * u))), 6, 6)
-    for x in (-1.9, 1.9):  # lanterns on iron brackets, long gone dark
-        l = V(x * tw / 3, y1 + .2, transom_z + .9)
-        m.beam('iron', xf @ (l - V(0, 1.2, .4)), xf @ l, .06, sides=4)
-        m.solid('lantern', [xf @ (l + V(dx, dy, dz)) for dx in (-.35, .35) for dy in (0, 1.1) for dz in (-.35, .35)] + [xf @ (l + V(0, 1.5, 0))])
-        m.beam('trim', xf @ (l + V(0, 1.1, 0)), xf @ (l + V(0, 1.6, 0)), .38, .05, sides=6)
+    for x in (-1.9, 1.9):  # stern lanterns on iron brackets, long gone dark
+        lantern(m, xf, V(x * tw / 3, y1 + .2, transom_z + .9))
     # Ensign staff with the fleet's great banner.
     staff_base = V(0, y1, transom_z - .5)
     staff_top = staff_base + V(0, 9, 1.2)

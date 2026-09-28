@@ -53,6 +53,14 @@ func run() -> void:
 		check(prop.body.collision_layer == prop.layer and is_equal_approx(prop.hp, prop.max), "Reset restores %s" % name)
 	var problems: Array[String] = []
 	check(PROPS.from_json("{}", problems).is_empty() and not problems.is_empty(), "Missing prop tuning is rejected")
+	# Big shatter props (#102) need a hard enough ram; small ones break at a touch.
+	var impact := PROPS.new()
+	var reference := float(PROPS.settings().ram.reference_mass)
+	var need := float(PROPS.settings().kinds.serac.break_speed)
+	impact.props = {"Serac":{"kind":"serac"}, "Barrel":{"kind":"barrel"}}
+	check(need > 0.0 and not impact.breaks_on_impact("Serac", reference, need * 0.8) and impact.breaks_on_impact("Serac", reference, need * 1.05)
+		and impact.breaks_on_impact("Serac", reference * 2.0, need * 0.6) and impact.breaks_on_impact("Barrel", reference, 0.1),
+		"Seracs break only when rammed hard enough (mass times speed); barrels at a touch")
 	for failure: String in failures:
 		push_error(failure)
 	print("ARENA PROPS PASS" if failures.is_empty() else "ARENA PROPS FAIL")

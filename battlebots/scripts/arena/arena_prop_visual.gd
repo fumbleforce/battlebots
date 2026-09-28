@@ -26,8 +26,17 @@ const PART_SPEED := 4.0
 ## Pieces of shatter props (#102) sink away after this many seconds.
 const SHATTER_DEBRIS_SECONDS := 4.0
 const SHATTER_SINK_SECONDS := 1.5
-## Gap (m) left under a new piece's lowest corner.
-const GROUND_CLEARANCE := 0.05
+## A new piece whose centre lies under the ground is dropped at once; one whose
+## lowest corner dips more than this (m) into it stays put as a stub (frozen)
+## until it sinks away, instead of being shoved out of the ice.
+const GROUND_TOLERANCE := 0.05
+## How far (m) below a new piece's centre the ground may lie.
+const SETTLE_REACH := 60.0
+## Kinds whose parts snap again into shorter lengths (a rib into a few bones):
+## pieces about this long (m), at most SPLIT_MAX of them.
+const SPLIT_KINDS := ["rib"]
+const SPLIT_LENGTH := 2.0
+const SPLIT_MAX := 4
 ## Launch speeds (m/s) for barricade timber and rock chunks.
 const TIMBER_SPEED := 6.0
 const ROCK_SPEED := 4.5
@@ -145,20 +154,22 @@ func _scatter(name: String, prop: Dictionary, blow: Dictionary, moving: bool, re
 		var world := batch.global_transform * pose
 		if not parts.is_empty():
 			for part: Mesh in parts:
-				record.pieces.append(_part_debris(part, world, blow, random))
+				for bit: Mesh in (_split(part) if prop.kind in SPLIT_KINDS else [part]):
+					_keep(record, _part_debris(bit, world, blow, random))
 		elif CHUNKS.has(prop.kind):
 			var split: Array = CHUNKS[prop.kind]
 			for chunk: int in int(split[0]):
 				var offset := Vector3(random.randf_range(-1, 1), random.randf_range(0.1, 0.9), random.randf_range(-1, 1)) * world.basis.get_scale() * 0.35
 				var local := Transform3D(world.basis.scaled(Vector3.ONE * float(split[1]) * random.randf_range(0.8, 1.15)).rotated(Vector3.UP, random.randf() * TAU)
 					.rotated(Vector3.RIGHT, random.randf_range(-0.8, 0.8)), world.origin + offset)
-				record.pieces.append(_debris(batch, local, (local.origin - blow.point).normalized() * ROCK_SPEED + Vector3.UP * ROCK_SPEED * 0.6, random))
+				_keep(record, _debris(batch, local, (local.origin - blow.point).normalized() * ROCK_SPEED + Vector3.UP * ROCK_SPEED * 0.6, random))
 		else:
 			var away: Vector3 = (world.origin - blow.point).normalized() + blow.axis.normalized() * 0.5
-			record.pieces.append(_debris(batch, world, away.normalized() * TIMBER_SPEED * random.randf_range(0.6, 1.2) + Vector3.UP * TIMBER_SPEED * 0.5, random))
+			_keep(record, _debris(batch, world, away.normalized() * TIMBER_SPEED * random.randf_range(0.6, 1.2) + Vector3.UP * TIMBER_SPEED * 0.5, random))
 
 ## One real part of a broken prop: a world-only physics piece at its place in
 ## the prop (model transform world), thrown out from the blow.
+## Null when the piece lies buried in the ice.
 func _part_debris(mesh: Mesh, world: Transform3D, blow: Dictionary, random: RandomNumberGenerator) -> RigidBody3D:
 	var body: RigidBody3D = PIECE.new()
 	body.name = "PropPart"
@@ -180,7 +191,10 @@ func _part_debris(mesh: Mesh, world: Transform3D, blow: Dictionary, random: Rand
 	body.mass = maxf(box.size.x * box.size.y * box.size.z * scale.x * scale.y * scale.z * 600.0, 1.0)
 	add_child(body)
 	body.global_position = world * centre
-	_clear_ground(body, points)
+	if not _settle(body, points):
+		return null
+	if body.freeze:
+		return body
 	var away: Vector3 = (body.global_position - blow.point).slide(Vector3.UP).normalized() + Vector3(blow.axis).normalized() * 0.5
 	body.linear_velocity = away.normalized() * PART_SPEED * random.randf_range(0.5, 1.2) + Vector3.UP * PART_SPEED * random.randf_range(0.2, 0.7)
 	body.angular_velocity = Vector3(random.randf_range(-2, 2), random.randf_range(-2, 2), random.randf_range(-2, 2))
@@ -207,7 +221,10 @@ func _debris(batch: MultiMeshInstance3D, pose: Transform3D, velocity: Vector3, r
 	body.mass = maxf(box.size.x * box.size.y * box.size.z * 600.0, 1.0)
 	add_child(body)
 	body.global_position = pose.origin
-	_clear_ground(body, points)
+	if not _settle(body, points):
+		return null
+	if body.freeze:
+		return body
 	body.linear_velocity = velocity
 	body.angular_velocity = Vector3(random.randf_range(-3, 3), random.randf_range(-3, 3), random.randf_range(-3, 3))
 	return body
@@ -218,18 +235,75 @@ func _despawn_later(piece: Node) -> void:
 		if is_instance_valid(piece) and piece.has_method("sink") and not piece.sinking:
 			piece.sink(SHATTER_SINK_SECONDS, piece.depth_hint()))
 
-## Lift a new piece so no corner starts below the ground under it: a piece born
-## inside the terrain (a rib's foot, a serac's buried base) would otherwise be
-## pushed out of it every step and shake in place.
-func _clear_ground(body: RigidBody3D, points: PackedVector3Array) -> void:
+func _keep(record: Dictionary, piece: Node) -> void:
+	if piece:
+		record.pieces.append(piece)
+
+## Seats a new piece against what lies under it. Returns false (and frees the
+## piece) when its centre is buried (nothing solid below it: the ray starts
+## under the ground's surface); a piece caught in the ice or a wreck is frozen
+## where it is; anything else stays free to fall.
+func _settle(body: RigidBody3D, points: PackedVector3Array) -> bool:
+	var from := body.global_position
+	var ray := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * SETTLE_REACH, BaselineConfig.WORLD_LAYER, [body.get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(ray)
+	if hit.is_empty():
+		body.queue_free()
+		return false
 	var lowest := INF
 	for point: Vector3 in points:
 		lowest = minf(lowest, (body.global_transform * point).y)
-	var from := body.global_position + Vector3.UP * 20.0
-	var ray := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 80.0, BaselineConfig.WORLD_LAYER)
-	var hit := get_world_3d().direct_space_state.intersect_ray(ray)
-	if not hit.is_empty() and lowest < hit.position.y + GROUND_CLEARANCE:
-		body.global_position.y += hit.position.y + GROUND_CLEARANCE - lowest
+	if lowest < hit.position.y - GROUND_TOLERANCE:
+		body.freeze = true
+	return true
+
+## A long part snapped into up to SPLIT_MAX shorter pieces along its longest
+## axis (triangles grouped by where their centres fall).
+func _split(mesh: Mesh) -> Array[Mesh]:
+	var box := mesh.get_aabb()
+	var axis := box.get_longest_axis_index()
+	var length := box.size[axis]
+	var count := clampi(roundi(length / SPLIT_LENGTH), 1, SPLIT_MAX)
+	var out: Array[Mesh] = []
+	if count < 2:
+		out.append(mesh)
+		return out
+	var tools: Array[SurfaceTool] = []
+	var used: Array[bool] = []
+	for piece: int in count:
+		tools.append(null)
+		used.append(false)
+	var meshes: Array[ArrayMesh] = []
+	for piece: int in count:
+		meshes.append(ArrayMesh.new())
+	for surface: int in mesh.get_surface_count():
+		var arrays := mesh.surface_get_arrays(surface)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		var uvs: Variant = arrays[Mesh.ARRAY_TEX_UV]
+		var index: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array(range(verts.size()))
+		for piece: int in count:
+			tools[piece] = SurfaceTool.new()
+			tools[piece].begin(Mesh.PRIMITIVE_TRIANGLES)
+			used[piece] = false
+		for t: int in range(0, index.size(), 3):
+			var centre := (verts[index[t]] + verts[index[t + 1]] + verts[index[t + 2]]) / 3.0
+			var piece := clampi(int((centre[axis] - box.position[axis]) / length * count), 0, count - 1)
+			used[piece] = true
+			for k: int in 3:
+				var v := index[t + k]
+				tools[piece].set_normal(normals[v])
+				if uvs != null:
+					tools[piece].set_uv(uvs[v])
+				tools[piece].add_vertex(verts[v])
+		for piece: int in count:
+			if used[piece]:
+				tools[piece].set_material(mesh.surface_get_material(surface))
+				tools[piece].commit(meshes[piece])
+	for piece: ArrayMesh in meshes:
+		if piece.get_surface_count() > 0:
+			out.append(piece)
+	return out
 
 func _visuals_with_instances() -> Node:
 	for child: Node in _arena.find_children("*", "Node3D", true, false):
