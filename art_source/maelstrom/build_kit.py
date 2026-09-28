@@ -641,21 +641,24 @@ def cloth(m, slot, top_l, top_r, height, bulge=.8, tear=.25, notch=0.0, wind=V(0
                 v = min(v, 1 - (size - d) * 1.1)
         return v
 
-    def keep(i, j, k):
-        u = (i + (.66 if k == 0 else .33)) / gu; v = (j + (.33 if k == 0 else .66)) / gv
-        cv = cut_v(u)
-        return cv >= 1.0 or v < cv + .03 * math.sin(i * 1.9 + j * 2.7)
-    m.sheet(slot, fn, gu, gv, keep, extent=extent, rips=rips)
+    # A torn-away clew shortens the canvas along a ragged diagonal: the hem
+    # itself moves up (every column ends on the tear), nothing is cut out of
+    # the grid, so the edge never steps with the triangles.
+    for i in range(gu + 1):
+        cv = cut_v(i / gu)
+        if cv < 1.0:
+            extent[i] = min(extent[i], max(.3, cv + .025 * math.sin(i * 1.9 + b * 5)))
+    m.sheet(slot, fn, gu, gv, extent=extent, rips=rips)
     # Bolt ropes down both edges and along the head carry the weight.
     for u in (0.0, 1.0):
-        reach = extent[int(u * gu)] * min(1.0, cut_v(u) + .02)
+        reach = extent[int(u * gu)]
         sweep(m, 'rope', [fn(u, reach * j / 8) for j in range(9)], .09, .09, tint=.5)
     sweep(m, 'rope', [fn(i / gu, 0) for i in range(gu + 1)], .1, .1, tint=.5)
     # Ice weighs down the hem (on the canvas that is left, clear of the rips).
     for i in range(0, nu + 1, 2):
         if R.random() < .45:
             u = i / nu; g = i * 2
-            p = fn(u, min(extent[g], cut_v(u)))
+            p = fn(u, extent[g])
             for c in hem_rips:
                 if c is not None and abs(c - g) <= 1:
                     p = fn((g - 2 if g >= c else g + 2) / gu, extent[g])
