@@ -350,12 +350,21 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
         while s < s1 - .05:
             if beam_at(s) > 3:
                 for side in (-1, 1):
-                    c = hull_point(s, .8, side, sheer, .08)
-                    fr = V(side, 0, 0)
-                    port = [xf @ (c + V(0, dy, dz) + fr * dd) for dy in (-.45, .45) for dz in (-.5, .5) for dd in (0, .04)]
-                    m.solid('glass', port)
+                    # Laid in the hull's own frame (along the planks, up the
+                    # side, out of the skin) so the port sits flush wherever
+                    # the hull flares or curves toward the ends.
+                    c = hull_point(s, .8, side, sheer)
+                    e = .004
+                    along = (hull_point(s - e, .8, side, sheer) - hull_point(s + e, .8, side, sheer)).normalized()
+                    up = (hull_point(s, .8 + e, side, sheer) - hull_point(s, .8 - e, side, sheer)).normalized()
+                    fr = along.cross(up).normalized()
+                    if fr.x * side < 0:
+                        fr = -fr
+                    up = fr.cross(along).normalized() * (1 if up.y > 0 else -1)
+                    at = lambda dy, dz, dd: xf @ (c + up * dy + along * dz + fr * dd)
+                    m.solid('glass', [at(dy, dz, dd) for dy in (-.45, .45) for dz in (-.5, .5) for dd in (-.03, .03)])
                     for dy, dz, sy, sz in ((-.55, 0, .12, 1.2), (.55, 0, .12, 1.2), (0, -.6, 1.1, .12), (0, .6, 1.1, .12)):
-                        m.solid('trim', [xf @ (c + V(0, dy + a * sy * .5, dz + b * sz * .5) + fr * dd) for a in (-1, 1) for b in (-1, 1) for dd in (0, .1)])
+                        m.solid('trim', [at(dy + a * sy * .5, dz + b * sz * .5, dd) for a in (-1, 1) for b in (-1, 1) for dd in (-.02, .09)])
             s += 3.4 / L_SHIP
     return hull_pts
 
