@@ -382,11 +382,12 @@ func practice_clear_npcs() -> int:
 
 ## The ray a world-panel action casts from origin along direction: at most
 ## duel.spawn.reach metres, never stopped by the player's own bot.
-## reaches: the ray's length in duel.spawn.reach lengths.
+## A pick (#105) reaches duel.spawn.pick_reach metres instead.
 func _practice_ray(origin: Vector3, direction: Vector3,
-		mask := BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, reaches := 1.0) -> PhysicsRayQueryParameters3D:
+		mask := BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, pick := false) -> PhysicsRayQueryParameters3D:
+	var settings := ARENA_SPAWNS.settings()
 	var ray := PhysicsRayQueryParameters3D.create(origin,
-		origin + direction.normalized() * ARENA_SPAWNS.settings().duel_spawn_reach * reaches, mask)
+		origin + direction.normalized() * (settings.duel_pick_reach if pick else settings.duel_spawn_reach), mask)
 	var player: MvpBot = world.bots.get(local_entity)
 	if player != null:
 		ray.exclude = [player.body.get_rid()]
@@ -433,13 +434,12 @@ func practice_clear_pickups() -> int:
 
 ## Item card (#105): the available item whose light column the ray from origin
 ## along direction passes within duel.spawn.item_pick_radius of, before the
-## ray meets the arena or a bot; the nearest such. -1 when there is none.
-## It looks two reaches out: an item dropped below a spawn ray's end lies at
-## most a reach below it.
+## ray meets the arena or a bot, within duel.spawn.pick_reach; the nearest
+## such. -1 when there is none.
 func practice_pickup_at(origin: Vector3, direction: Vector3) -> int:
 	if practice_tuning() == null or direction.is_zero_approx():
 		return -1
-	var ray := _practice_ray(origin, direction, BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, 2.0)
+	var ray := _practice_ray(origin, direction, BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, true)
 	var hit := world.get_world_3d().direct_space_state.intersect_ray(ray)
 	var limit := origin.distance_to(ray.to if hit.is_empty() else hit.position)
 	var along := direction.normalized()
@@ -487,12 +487,14 @@ func practice_set_npcs_aggressive(aggressive: bool) -> void:
 func practice_npcs_aggressive() -> bool:
 	return practice_tuning() != null and practice_director != null and practice_director.world_aggressive
 
-## Target panel (#97): the NPC the ray from origin along direction meets
-## first, or 0 when it meets the arena, nothing, or a bot that is no NPC.
+## Target panel (#97): the NPC the ray from origin along direction meets,
+## within duel.spawn.pick_reach, first; 0 when it meets the arena, nothing,
+## or a bot that is no NPC.
 func practice_npc_at(origin: Vector3, direction: Vector3) -> int:
 	if practice_tuning() == null or practice_director == null or direction.is_zero_approx():
 		return 0
-	var hit := world.get_world_3d().direct_space_state.intersect_ray(_practice_ray(origin, direction))
+	var hit := world.get_world_3d().direct_space_state.intersect_ray(_practice_ray(origin, direction,
+		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, true))
 	if hit.is_empty():
 		return 0
 	for id: int in world.bots:

@@ -90,6 +90,7 @@ func run() -> void:
 		await frames(10)
 		check(session.world.pickups.find(item_id).get("available", false), "The spawned item waits to be picked up")
 		check(not item_panel.visible, "No item card before a click")
+		check(session.practice_pickup_at(spawned.point + Vector3(0.5, 300.0, 0.0), Vector3.DOWN) == item_id, "An item is picked from across the map (300 m)")
 		var item_screen: Vector2 = preview.aim_camera().unproject_position(spawned.point + Vector3.UP * 2.6)
 		var pick_camera: Camera3D = preview.aim_camera()
 		check(game._pick_practice_target(item_screen) and game._practice_item == item_id and game._practice_target == 0,
@@ -205,6 +206,7 @@ func run() -> void:
 		var id := npc.entity_id
 		check(session.practice_npc_at(npc.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == id, "A ray onto the NPC finds it")
 		check(session.practice_npc_at(player.body.global_position + Vector3.UP * 4.0, Vector3.DOWN) == 0, "The player is never a target")
+		check(session.practice_npc_at(npc.body.global_position + Vector3.UP * 300.0, Vector3.DOWN) == id, "An NPC is picked from across the map (300 m)")
 		# Clicking the NPC selects it; clicking it again clears the selection.
 		# Off to one side first, clear of the player's own bot on screen.
 		session.practice_director._place(npc, Transform3D(npc.body.global_basis, player.body.global_position + Vector3(12.0, 0.0, 0.0)))
