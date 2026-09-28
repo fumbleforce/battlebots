@@ -163,21 +163,35 @@ class Model:
         pts = [tip] + [base + (side * math.cos(a0 + j * math.tau / sides) + up * math.sin(a0 + j * math.tau / sides)) * r * R.uniform(.7, 1.1) for j in range(sides)]
         return self.solid(slot, pts, tint=tint, hull=hull)
 
-    def sheet(self, slot, fn, nu, nv, keep=lambda i, j, k: True, tint=None, uv=True, extent=None):
+    def sheet(self, slot, fn, nu, nv, keep=lambda i, j, k: True, tint=None, uv=True, extent=None, split=None):
         """Grid surface fn(u, v) -> point, as triangles. extent[i] shortens
-        vertex column i (a torn, jagged hem); triangles failing keep are torn out."""
+        vertex column i (a torn, jagged hem); triangles failing keep are torn
+        out. split = (column, first row, offset(side, row)) rips the sheet
+        along that vertex column from that row down: the column's vertices are
+        doubled and each flap moved by offset(-1 | 1, row)."""
         extent = extent or [1.0] * (nu + 1)
         verts = [fn(i / nu, j / nv * extent[i]) for j in range(nv + 1) for i in range(nu + 1)]
+        right = {}
+        if split:
+            col, j0, offset = split
+            for j in range(j0 + 1, nv + 1):
+                a = j * (nu + 1) + col
+                right[a] = len(verts)
+                verts.append(Vector(verts[a]) + offset(1, j))
+                verts[a] = Vector(verts[a]) + offset(-1, j)
         # Cloth UVs are metres from the top-left corner; the size rides in the
         # vertex colour (size / 10 m) so shader-drawn emblems keep proportion.
         w = (Vector(fn(1, 0)) - Vector(fn(0, 0))).length
         h = (Vector(fn(0, 1)) - Vector(fn(0, 0))).length
         tex = [(i / nu * w, j / nv * extent[i] * h) for j in range(nv + 1) for i in range(nu + 1)]
+        tex += [tex[a] for a in right]
         faces = []; uvs = []
         for j in range(nv):
             for i in range(nu):
                 a = j * (nu + 1) + i
                 quad = (a, a + 1, a + nu + 2, a + nu + 1)
+                if split and i == split[0]:  # the right flap takes the doubled column
+                    quad = tuple(right.get(q, q) if q % (nu + 1) == i else q for q in quad)
                 for k, tri in enumerate(((quad[0], quad[1], quad[2]), (quad[0], quad[2], quad[3]))):
                     if keep(i, j, k):
                         faces.append(tri)
@@ -518,13 +532,21 @@ def cloth(m, slot, top_l, top_r, height, bulge=.8, tear=.25, notch=0.0, wind=V(0
         p += wind * v * v + V(0, -droop * math.sin(math.pi * u) * v, 0)
         return p
 
-    def keep(i, j, k):
-        u = (i + .5) / nu; v = (j + .5) / nv
-        # One long split in a badly worn sail, never a riddle of holes.
-        if tear > .4 and v > .45 and abs((u - slash[0]) - slash[1] * (v - .5) * .3) < .03:
-            return False
-        return True
-    m.sheet(slot, fn, nu, nv, keep, extent=extent)
+    # A badly worn sail is ripped once: the canvas parts along a ragged line
+    # from partway down to the hem, the flaps pulling apart and curling in
+    # opposite directions, wider toward the foot.
+    split = None
+    if tear > .4:
+        col = min(nu - 2, max(2, round(slash[0] * nu)))
+        j0 = round(nv * (.35 + .15 * abs(slash[1])))
+        side_of = across.normalized()
+
+        def offset(flap, j):
+            t = (j - j0) / max(nv - j0, 1)
+            jag = .12 * math.sin(j * 2.7 + slash[1] * 5)  # a ragged, wandering edge
+            return side_of * (flap * .55 * t ** 1.3 + jag * t) + normal * (flap * .35 * t * t)
+        split = (col, j0, offset)
+    m.sheet(slot, fn, nu, nv, extent=extent, split=split)
     # Bolt ropes down both edges and along the head carry the weight.
     for u in (0.0, 1.0):
         sweep(m, 'rope', [fn(u, extent[int(u * nu)] * j / 8) for j in range(9)], .09, .09, tint=.5)
@@ -533,6 +555,8 @@ def cloth(m, slot, top_l, top_r, height, bulge=.8, tear=.25, notch=0.0, wind=V(0
     for i in range(0, nu + 1, 2):
         if R.random() < .45:
             p = fn(i / nu, extent[i])
+            if split and i == split[0]:
+                p = p + split[2](-1, nv)  # on the left flap, not in the rip
             m.spike('ice', p + V(0, .15, 0), p - V(0, R.uniform(.5, 1.6), 0), .07, sides=4)
 
 def mast(m, xf, base, height, lean=(0, 0), yard_at=.7, sail=True, banner=True, nest=True, broken=True, parts=False):
