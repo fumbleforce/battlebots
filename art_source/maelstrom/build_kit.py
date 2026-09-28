@@ -114,9 +114,13 @@ class Model:
             g['c'].append(color or (t, 1.0, frost))
             g['p'].append(self.part)
 
-    def solid(self, slot, points, tint=None, frost=0.0, hull=False):
+    def solid(self, slot, points, tint=None, frost=0.0, hull=False, grain=None, origin=None, v0=0.0):
+        """Convex solid. With grain (a direction) its faces get UVs projected
+        along it from origin, so solids sharing a grain and origin (a wall's
+        panels, a beam's segments with running v0) carry the wood unbroken."""
         verts, faces = convex(points)
-        self.add(slot, verts, faces, tint=tint, frost=frost)
+        uvs = grain_uvs(verts, faces, grain, origin or V(0, 0, 0), v0) if grain is not None else None
+        self.add(slot, verts, faces, uvs, tint=tint, frost=frost)
         verts = [Vector(v) for v in verts]
         if hull:
             self.hulls.append(verts)
@@ -128,8 +132,9 @@ class Model:
         pts = [xf @ V(cx + a * sx, cy + b * sy, cz + c * sz) for a in (-1, 1) for b in (-1, 1) for c in (-1, 1)]
         return self.solid(slot, pts, tint=tint, hull=hull)
 
-    def beam(self, slot, a, b, r0, r1=None, sides=6, tint=None, hull=False, spin=0.0):
-        """Faceted tapered prism from a to b (already placed)."""
+    def beam(self, slot, a, b, r0, r1=None, sides=6, tint=None, hull=False, spin=0.0, v0=0.0):
+        """Faceted tapered prism from a to b (already placed), grain along its
+        axis; chain segments with v0 = the run's length so far."""
         a = V(a); b = V(b); r1 = r0 if r1 is None else r1
         d = (b - a)
         if d.length < 1e-4:
@@ -144,7 +149,7 @@ class Model:
             for j in range(sides):
                 ang = spin + j * math.tau / sides
                 pts.append(end + (side * math.cos(ang) + up * math.sin(ang)) * r)
-        return self.solid(slot, pts, tint=tint, hull=hull)
+        return self.solid(slot, pts, tint=tint, hull=hull, grain=d, origin=a, v0=v0)
 
     def spike(self, slot, base, tip, r, sides=5, tint=None, hull=False):
         base = V(base); tip = V(tip); d = (tip - base).normalized()
@@ -176,6 +181,37 @@ class Model:
                         faces.append(tri)
                         uvs.append([tex[q] for q in tri])
         self.add(slot, verts, faces, uvs if uv else None, tint=tint, color=(min(w / 10, 1), min(h / 10, 1), 0.0) if uv else None)
+
+GRAIN_U = .31  # UV per metre across the grain: one scan plank ~0.8 m, as on the hull.
+
+
+def grain_uvs(verts, faces, grain, origin, v0):
+    """Per-face UVs with the scan's planks along grain (v) and u across it in
+    the face's plane; None for a face the grain runs into (box_uv covers it)."""
+    out = []
+    for f in faces:
+        p = [Vector(verts[i]) for i in f]
+        n = (p[1] - p[0]).cross(p[2] - p[0])
+        g = Vector(grain).normalized()
+        if n.length < 1e-9 or abs(n.normalized().dot(g)) > .7:
+            out.append(None)
+            continue
+        n.normalize()
+        g = (g - n * g.dot(n)).normalized()
+        across = n.cross(g)
+        out.append([((q - origin).dot(across) * GRAIN_U, (v0 + (q - origin).dot(g)) * PLANK_V) for q in p])
+    return out
+
+
+def rail(m, slot, points, size, tint=None, lift=0.0, flat=True):
+    """A continuous square-section rail through points (flat top when flat),
+    raised by lift so it rests on what it follows; grain runs unbroken."""
+    run = 0.0
+    for a, b in zip(points, points[1:]):
+        m.beam(slot, a + V(0, lift, 0), b + V(0, lift, 0), size * .7071, sides=4, tint=tint,
+               spin=math.pi / 4 if flat else 0.0, v0=run)
+        run += (b - a).length
+
 
 def rot(yaw=0.0, pitch=0.0, roll=0.0, at=(0, 0, 0)):
     """Godot-frame transform: yaw about Y, pitch about X, roll about Z."""
@@ -315,29 +351,30 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
     # Keel, following the hull's rising forefoot, and at an unbroken bow the
     # stem post up to the bulwark: both close the seam where the sides meet.
     tint = R.random()
-    keel = [s0 + (s1 - s0) * i / 24 for i in range(25)]
-    for a, b in zip(keel, keel[1:]):
-        m.beam('wood', xf @ hull_point(a, 0, 0), xf @ hull_point(b, 0, 0), .35, sides=4, tint=tint)
+    keel, _ = stations(s0, s1, s0, s1)
+    rail(m, 'wood', [xf @ hull_point(s, 0, 0) for s in keel], .5, tint=tint, flat=False)
     if s1 >= 1.0 and not broken_hi:
-        stem = [top_q * i / 12 for i in range(13)]
-        for a, b in zip(stem, stem[1:]):
-            m.beam('wood', xf @ hull_point(1.0, a, 0), xf @ hull_point(1.0, b, 0), .35, sides=4, tint=tint)
+        rail(m, 'wood', [xf @ hull_point(1.0, top_q * i / 12, 0) for i in range(13)], .5, tint=tint, flat=False)
     # The wale: a heavy rubbing strake standing proud of the skin.
     q_wale = 1 - 4.0 / STRAKES
     for side in (-1, 1):
         lo = s0 + (.04 if broken_lo else 0); hi = s1 - (.05 if broken_hi else 0)
         run, _ = stations(lo, hi, lo, hi)
-        for a, b in zip(run, run[1:]):
-            m.beam('wood', xf @ hull_point(a, q_wale, side, sheer, .08), xf @ hull_point(b, q_wale, side, sheer, .08), .13, sides=4, tint=.9)
-    # Gunwale caps.
+        rail(m, 'wood', [xf @ hull_point(s, q_wale, side, sheer, .09) for s in run], .18, tint=.9)
+    # Gunwale caps: one continuous rail seated flat on the bulwark's top edge.
+    # (It was straight 2.5 m segments; their random draws are kept so the rest
+    # of the kit is unchanged.)
     for side in (-1, 1):
         n = max(2, int((s1 - s0) * L_SHIP / 2.5))
         lo = s0 + (.06 if broken_lo else 0); hi = s1 - (.05 if broken_hi else 0)
+        run, _ = stations(lo, hi, lo, hi)
+        tints = []
         for i in range(n):
             a = lo + (hi - lo) * i / n; b = lo + (hi - lo) * (i + 1) / n
-            m.beam('trim' if i % 3 == 0 else 'wood', xf @ hull_point(a, top_q, side, sheer, .08), xf @ hull_point(b, top_q, side, sheer, .08), .14, sides=4)
+            tints.append(R.random())
             if R.random() < .5:
                 icicles(m, xf @ hull_point(a, top_q - .01, side, sheer, .2), xf @ hull_point(b, top_q - .01, side, sheer, .2), 3, 1.4)
+        rail(m, 'wood', [xf @ hull_point(s, top_q, side, sheer) for s in run], .24, tint=tints[0], lift=.1)
     # Deck: planks along the ship, laid on the hull's stations so they follow
     # its sheer and fill out to the walls as the beam swells and narrows; the
     # ragged runs are only at the breaks. (The random draws are the ones the
@@ -829,14 +866,21 @@ def wreck_stern():
                     for inset in (0.0, wall):
                         for h in (base, top):
                             box.append(xf @ (p + V(-side * inset, h, 0)))
-                pts += m.solid('paint', box, tint=.3 + .1 * (i % 2))
+                # Planks run along the ship across all six panels and both tiers.
+                pts += m.solid('paint', box, tint=.35, grain=xf.to_3x3() @ V(0, 0, 1), origin=xf @ V(0, 0, 0))
                 if i % 2 == 1:
-                    c = hull_point((a + b) / 2, 1.0, side) + V(side * .1, base + (top - base) * .55, 0)
-                    m.solid('glass', [xf @ (c + V(0, dy, dz)) for dy in (-.6, .6) for dz in (-.45, .45)] + [xf @ (c + V(side * .08, 0, 0))])
-                    m.solid('trim', [xf @ (c + V(side * .05, dy, dz)) for dy in (-.8, .8) for dz in (-.6, .6)] + [xf @ (c + V(side * .15, .9, 0))])
+                    # A flat glazed window set into the wall, framed like a port.
+                    c = hull_point((a + b) / 2, 1.0, side) + V(0, base + (top - base) * .55, 0)
+                    m.solid('glass', [xf @ (c + V(side * dd, dy, dz)) for dy in (-.6, .6) for dz in (-.45, .45) for dd in (-.02, .04)])
+                    frame_tint = None
+                    for dy, dz, sy, sz in ((-.7, 0, .16, 1.1), (.7, 0, .16, 1.1), (0, -.55, 1.56, .16), (0, .55, 1.56, .16)):
+                        m.solid('trim', [xf @ (c + V(side * dd, dy + u * sy * .5, dz + w * sz * .5)) for u in (-1, 1) for w in (-1, 1) for dd in (-.02, .1)],
+                                tint=frame_tint)
+                        frame_tint = .6
         deck_y = deck_at(0) + top
         w_lo = beam_at(lo) * .92 - wall; w_hi = beam_at(hi) * .92 - wall
-        m.solid('deck', [xf @ V(x * w, deck_y - .15 + dy, (.5 - s_) * L_SHIP) for x in (-1, 1) for s_, w in ((lo, w_lo), (hi, w_hi)) for dy in (0, .15)])
+        m.solid('deck', [xf @ V(x * w, deck_y - .15 + dy, (.5 - s_) * L_SHIP) for x in (-1, 1) for s_, w in ((lo, w_lo), (hi, w_hi)) for dy in (0, .15)],
+                grain=xf.to_3x3() @ V(0, 0, 1), origin=xf @ V(0, 0, 0))
         # Forward bulkhead: vertical boards across the beam from the tier below
         # up to this deck, a doorway in the middle, a few boards split short.
         z = (.5 - hi) * L_SHIP
@@ -849,7 +893,8 @@ def wreck_stern():
                 m.box('wood', xf, (x1 - x0, .5, .2), ((x0 + x1) / 2, y_hi - .25, z))  # lintel over the door
                 continue
             cut = R.uniform(.55, .85) if R.random() < .2 else 1.0
-            m.solid('wood', [xf @ V(x, y, z + dz) for x in (x0, x1) for y in (y_lo, y_lo + (y_hi - y_lo) * cut) for dz in (-.1, .1)], tint=R.random())
+            m.solid('wood', [xf @ V(x, y, z + dz) for x in (x0, x1) for y in (y_lo, y_lo + (y_hi - y_lo) * cut) for dz in (-.1, .1)], tint=R.random(),
+                    grain=xf.to_3x3() @ V(0, 1, 0), origin=xf @ V(0, 0, 0))
             if cut < 1.0:  # the split board's jagged top
                 m.spike('wood', xf @ V((x0 + x1) / 2, y_lo + (y_hi - y_lo) * cut - .05, z), xf @ V((x0 + x1) / 2 + R.uniform(-.1, .1), y_lo + (y_hi - y_lo) * cut + R.uniform(.3, .7), z), .16, sides=4)
         m.beam('trim', xf @ V(-width, y_hi + .05, z), xf @ V(width, y_hi + .05, z), .14, sides=4)
