@@ -44,6 +44,9 @@ const FREE_CAMERA_SPEED_MAX := 200.0
 const FREE_CAMERA_SPEED_STEP := 1.25
 const FREE_CAMERA_BOOST := 3.0
 var free_camera_speed := FREE_CAMERA_SPEED
+## Alt+Z (toggle_hud, #103) hides the in-game HUD; here the turret crosshair
+## and mortar path, the rest in menu_game. Presentation only.
+var hud_hidden := false
 var turret_reticle := TurretReticle.new()
 var tank_sight := TankSightCamera.new()
 var mortar_aim := MORTAR_AIM_VISUAL.new()
@@ -417,7 +420,7 @@ func _camera_recoil(view: BotView) -> float:
 func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	var camera := aim_camera()
 	var show := controls_enabled and view != null and view.turret_kind != "" and not view.eliminated \
-		and is_instance_valid(camera) and camera.is_inside_tree() and not pause_menu.visible
+		and is_instance_valid(camera) and camera.is_inside_tree() and not pause_menu.visible and not hud_hidden
 	if not show or view.turret_kind != "mortar":
 		mortar_aim.hide()
 	if not show:

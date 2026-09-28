@@ -815,7 +815,9 @@ func _process(_delta: float) -> void:
 	preview.get_node("DiagnosticsLayer").visible = not menu_open and not game_menu_open and not preview.settings_panel.visible
 	preview.hud.hide()
 	preview.hint.hide()
-	match_hud.visible = bot != null and not menu_open and not game_menu_open and not preview.settings_panel.visible
+	# Alt+Z (#103) hides the HUD and world badges only; audio keeps this gate.
+	var hud_allowed: bool = bot != null and not menu_open and not game_menu_open and not preview.settings_panel.visible
+	match_hud.visible = hud_allowed and not preview.hud_hidden
 	var local_view: BotView
 	var published_views := session.bot_views()
 	duel_scoreboard.update_hold(Input.is_action_pressed("scoreboard"), scoreboard_allowed())
@@ -851,13 +853,13 @@ func _process(_delta: float) -> void:
 			break
 	gameplay_audio.observe_bot(local_view if not local_audio.is_empty() else null,
 		str(local_audio.get("weapon", "")))
-	continuous_audio.render(audio_records, combat_hud.visible
+	continuous_audio.render(audio_records, hud_allowed
 		and phase in ["active", "overtime"] and local_view != null
 		and (session.connection_state == "practice" or session.match_view.get("mode") == "1v1"))
 	# Weapon/gait voices share the existing gameplay visibility gate. Resetting
 	# their baselines prevents pending steps or old shots replaying on return.
 	get_tree().call_group(&"bot_action_audio", &"set_playback_enabled",
-		combat_hud.visible and phase in ["active", "overtime"] and local_view != null)
+		hud_allowed and phase in ["active", "overtime"] and local_view != null)
 	world_markers.visible = combat_hud.visible
 	# Read presentation poses after child bot smoothing has advanced this frame.
 	_update_world_markers.call_deferred()
@@ -1179,8 +1181,12 @@ func _input(event: InputEvent) -> void:
 ## opening one closes the other. Matched exactly, so a modifier held with the
 ## key does not count.
 ## Unhandled only, so typing in the panel's boxes never toggles it.
+## Alt+Z (toggle_hud, #103) is handled here too; see _toggle_hud.
 func _unhandled_input(event: InputEvent) -> void:
 	if _cli_handoff or event.is_echo():
+		return
+	if event.is_action_pressed(&"toggle_hud", false, true):
+		_toggle_hud()
 		return
 	var tuning_key := event.is_action_pressed(&"practice_panel", false, true)
 	var world_key := event.is_action_pressed(&"practice_world_panel", false, true)
@@ -1197,7 +1203,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_practice_tuning_open = false
 	_update_practice_tuning_overlay()
 
+## Alt+Z (toggle_hud, #103) hides or shows the in-game HUD, the world name and
+## health badges and the turret crosshair while a match shows; menus, the held
+## scoreboard and the F1/F2 practice panels are unaffected. Leaving the match
+## shows the HUD again.
+func _toggle_hud() -> void:
+	if menu_host.visible or session.local_source() == null:
+		return
+	get_viewport().set_input_as_handled()
+	preview.hud_hidden = not preview.hud_hidden
+
 func _session_event(kind: String, details: Dictionary) -> void:
+	if kind == "left":
+		preview.hud_hidden = false
 	if kind in ["left", "hosted", "joined"]:
 		pickup_feed.clear_toasts()
 		pickup_notice.clear()

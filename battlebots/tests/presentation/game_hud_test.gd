@@ -14,6 +14,13 @@ func frames(count := 6) -> void:
 	for index: int in range(count):
 		await process_frame
 
+func alt_z(alt: bool) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = KEY_Z
+	event.alt_pressed = alt
+	event.pressed = true
+	return event
+
 func run() -> void:
 	var original_audio := AudioPreferences.load_file(AudioPreferences.DEFAULT_PATH)
 	var game = load("res://scenes/dev/b_menu_game.tscn").instantiate()
@@ -33,6 +40,26 @@ func run() -> void:
 	game.spree_banner.enabled = false
 	check(not game.spree_banner.visible, "The Game settings toggle hides the kill-spree banner")
 	game.spree_banner.enabled = true
+	# Alt+Z (#103) hides the HUD, world name/health badges and crosshair; plain Z does not.
+	check(game.world_markers.visible, "World name and health badges show by default")
+	game._unhandled_input(alt_z(false))
+	await frames()
+	check(game.combat_hud.visible and game.world_markers.visible, "Plain Z leaves the HUD alone")
+	game._unhandled_input(alt_z(true))
+	await frames()
+	check(not game.combat_hud.visible and not game.match_hud.visible and not game.world_markers.visible
+		and not game.preview.turret_reticle.visible, "Alt+Z hides the HUD, world badges and crosshair")
+	check(game.gameplay_input_allowed(), "A hidden HUD keeps driving")
+	game._unhandled_input(alt_z(true))
+	await frames()
+	check(game.combat_hud.visible and game.match_hud.visible and game.world_markers.visible, "Alt+Z again shows the HUD")
+	game._unhandled_input(alt_z(true))
+	await frames()
+	game.return_to_main()
+	await frames()
+	game.start_practice()
+	await frames()
+	check(game.combat_hud.visible and game.world_markers.visible, "Leaving a match shows the HUD again")
 	if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("user://a-hud-redesign-practice.png")

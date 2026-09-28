@@ -1692,3 +1692,14 @@ change. The Maelstrom's frozen-wave crest lips were removed (visual only).
 - Presentation: the ice shader keeps drifted snow over the start pads
   (`pads`, `pad_count`, `pad_reach`, `pad_fade` uniforms from
   `maelstrom_ground.pads()`), and loose ice grit lies on them too.
+
+## HUD toggle input — presentation only (#103)
+
+New `project.godot` input action `toggle_hud` (Alt+Z, matched exactly). It is
+fixed, not part of `InputPreferences`, whose rebinding rejects key
+combinations. While a match shows, it hides or shows the match and combat HUD
+(with everything on the combat canvas), the `BotWorldMarkers` name and health
+badges, and the turret crosshair and mortar path (`BaselinePreview.hud_hidden`).
+Menus, the held scoreboard, the F1/F2 practice panels, gameplay audio and
+controls are unaffected; leaving the match shows the HUD again. No gameplay or
+wire change.
