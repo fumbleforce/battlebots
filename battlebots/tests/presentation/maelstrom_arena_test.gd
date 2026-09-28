@@ -70,8 +70,8 @@ func _run() -> void:
 		check(world.props.damage(target, 5000.0, "cannon", body.global_position, Vector3.FORWARD) >= 0.0 and body.collision_layer == 0,
 			"A %s breaks and stops colliding" % kind)
 	world.props.reset_round()
-	# An inverted cone, steepest into the eye (up to 34 degrees there) and at
-	# the banks of the start landings (40), all climbable with the drive grip. Slab ramps excepted.
+	# An inverted cone, steepest into the eye (up to 45 degrees there) and at
+	# the banks of the start landings; nothing past the 50 degrees tracks hold on. Slab ramps excepted.
 	var steep := 0
 	var samples := 0
 	for i: int in 6000:
@@ -84,12 +84,12 @@ func _run() -> void:
 		var gx := GROUND.height_at(p.x + 0.5, p.y) - h
 		var gz := GROUND.height_at(p.x, p.y + 0.5) - h
 		samples += 1
-		var limit := 34.0 if r < 45.0 else 40.0
+		var limit := 45.0 if r < 45.0 else 50.0
 		if Vector2(gx, gz).length() / 0.5 > tan(deg_to_rad(limit)):
 			steep += 1
 			if steep <= 5:
 				print("STEEP at ", p, " r=", p.length(), " slope=", Vector2(gx, gz).length() / 0.5)
-	check(samples > 4000 and steep == 0, "%d of %d ice samples are steeper than allowed (34 degrees by the eye, 40 elsewhere)" % [steep, samples])
+	check(samples > 4000 and steep == 0, "%d of %d ice samples are steeper than allowed (45 degrees by the eye, 50 elsewhere)" % [steep, samples])
 	var space := arena.get_world_3d().direct_space_state
 	# Starts, Practice Duel places, pickups and cooling points: on level ice, clear.
 	var clear_points: Array[Vector3] = []
@@ -186,7 +186,7 @@ func _capture(world: AuthorityWorld) -> void:
 		["stern", Vector3(-48, 6.0, -2), Vector3(-66, 6.0, -24)],
 		["deck", Vector3(-68, 5.0, -36), Vector3(-80, 3.0, -58)],
 		["keel", Vector3(-28, 4.0, 46), Vector3(-46, 4.0, 30)],
-		["rim", Vector3(-92, 16.0, -70), Vector3(-150, 6.0, -100)],
+		["rim", Vector3(-88, 8.0, -66), Vector3(-160, 2.0, -110)],
 		["spire", Vector3(-70, 6.0, 30), Vector3(-104, 14.0, 16)],
 		["banner", Vector3(-72, 6.0, 30), Vector3(-66, 14.0, 44)],
 		["wave", Vector3(-30, 5.0, 34), Vector3(-50, 1.5, 50)],
@@ -209,8 +209,8 @@ func _capture(world: AuthorityWorld) -> void:
 		# View heights are metres above the ice under each point (the ring is a cone).
 		var eye: Vector3 = view[1]
 		var aim: Vector3 = view[2]
-		camera.position = eye + Vector3(0, GROUND.height_at(eye.x, eye.z), 0)
-		camera.look_at(aim + Vector3(0, GROUND.height_at(aim.x, aim.z), 0))
+		camera.position = eye + Vector3(0, _view_ground(eye), 0)
+		camera.look_at(aim + Vector3(0, _view_ground(aim), 0))
 		if view[0] == "break":
 			for kind: String in ["serac", "mast", "icicle"]:
 				var nearest := ""
@@ -228,3 +228,7 @@ func _capture(world: AuthorityWorld) -> void:
 		if view[0] == "card":
 			check(image.save_jpg("res://ui/menus/art/arena_maelstrom.jpg", 0.88) == OK, "Card capture failed")
 		print("CAPTURE: ", ProjectSettings.globalize_path(path))
+
+# Camera heights follow the ice; over the chasm they follow the rim instead.
+func _view_ground(at: Vector3) -> float:
+	return maxf(GROUND.height_at(at.x, at.z), GROUND.bowl_at(Vector2(at.x, at.z).length()))

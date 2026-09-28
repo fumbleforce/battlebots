@@ -21,6 +21,8 @@ var track_hull_friction: float
 var stranded_hull_friction: float
 ## Fraction of the downhill gravity pull the grounded drive cancels.
 var slope_hold_fraction: float
+## Steepest slope (degrees) on which the whole downhill pull is cancelled.
+var slope_hold_max_degrees: float
 var bot_contact_friction: float
 # motor
 var acceleration_multiplier: float
@@ -83,7 +85,7 @@ var stagger_speed_bleed: float
 const SECTIONS := {
 	"heft": ["gravity_multiplier", "minimum_arena_gravity_scale", "rise_speed_cap_at_1g"],
 	"prediction": ["support_release_speed"],
-	"contact": ["track_hull_friction", "stranded_hull_friction", "slope_hold_fraction", "bot_contact_friction"],
+	"contact": ["track_hull_friction", "stranded_hull_friction", "slope_hold_fraction", "slope_hold_max_degrees", "bot_contact_friction"],
 	"motor": ["acceleration_multiplier", "top_speed_multiplier", "grip_multiplier", "yaw_acceleration_multiplier",
 		"yaw_torque_grip_fraction", "rolling_resistance_multiplier", "brake_multiplier", "steering_direction_threshold"],
 	"nitro": ["nitro_acceleration_multiplier", "nitro_top_speed_multiplier", "nitro_grip_multiplier"],

@@ -26,6 +26,8 @@ const PART_SPEED := 4.0
 ## Pieces of shatter props (#102) sink away after this many seconds.
 const SHATTER_DEBRIS_SECONDS := 4.0
 const SHATTER_SINK_SECONDS := 1.5
+## Gap (m) left under a new piece's lowest corner.
+const GROUND_CLEARANCE := 0.05
 ## Launch speeds (m/s) for barricade timber and rock chunks.
 const TIMBER_SPEED := 6.0
 const ROCK_SPEED := 4.5
@@ -178,6 +180,7 @@ func _part_debris(mesh: Mesh, world: Transform3D, blow: Dictionary, random: Rand
 	body.mass = maxf(box.size.x * box.size.y * box.size.z * scale.x * scale.y * scale.z * 600.0, 1.0)
 	add_child(body)
 	body.global_position = world * centre
+	_clear_ground(body, points)
 	var away: Vector3 = (body.global_position - blow.point).slide(Vector3.UP).normalized() + Vector3(blow.axis).normalized() * 0.5
 	body.linear_velocity = away.normalized() * PART_SPEED * random.randf_range(0.5, 1.2) + Vector3.UP * PART_SPEED * random.randf_range(0.2, 0.7)
 	body.angular_velocity = Vector3(random.randf_range(-2, 2), random.randf_range(-2, 2), random.randf_range(-2, 2))
@@ -204,6 +207,7 @@ func _debris(batch: MultiMeshInstance3D, pose: Transform3D, velocity: Vector3, r
 	body.mass = maxf(box.size.x * box.size.y * box.size.z * 600.0, 1.0)
 	add_child(body)
 	body.global_position = pose.origin
+	_clear_ground(body, points)
 	body.linear_velocity = velocity
 	body.angular_velocity = Vector3(random.randf_range(-3, 3), random.randf_range(-3, 3), random.randf_range(-3, 3))
 	return body
@@ -213,6 +217,19 @@ func _despawn_later(piece: Node) -> void:
 	get_tree().create_timer(SHATTER_DEBRIS_SECONDS).timeout.connect(func() -> void:
 		if is_instance_valid(piece) and piece.has_method("sink") and not piece.sinking:
 			piece.sink(SHATTER_SINK_SECONDS, piece.depth_hint()))
+
+## Lift a new piece so no corner starts below the ground under it: a piece born
+## inside the terrain (a rib's foot, a serac's buried base) would otherwise be
+## pushed out of it every step and shake in place.
+func _clear_ground(body: RigidBody3D, points: PackedVector3Array) -> void:
+	var lowest := INF
+	for point: Vector3 in points:
+		lowest = minf(lowest, (body.global_transform * point).y)
+	var from := body.global_position + Vector3.UP * 20.0
+	var ray := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 80.0, BaselineConfig.WORLD_LAYER)
+	var hit := get_world_3d().direct_space_state.intersect_ray(ray)
+	if not hit.is_empty() and lowest < hit.position.y + GROUND_CLEARANCE:
+		body.global_position.y += hit.position.y + GROUND_CLEARANCE - lowest
 
 func _visuals_with_instances() -> Node:
 	for child: Node in _arena.find_children("*", "Node3D", true, false):

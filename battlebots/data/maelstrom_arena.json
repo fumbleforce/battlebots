@@ -1,5 +1,5 @@
 {
-	"_comment": "Frozen Maelstrom arena (#102), read by scripts/arena/maelstrom_ground.gd. Game metres, Y up, arena centre at the origin. Gameplay values: changing any of them is a gameplay change (bump WireCodec.BUILD). The playable ice is a ring between the eye and the jagged rim, tilting down toward the bottomless eye (eye_depth) and ending at a low rim over the thin frozen sea. A bot whose origin drops below kill_y, or whose centre leaves the ring onto the sea, is eliminated (reason 'maelstrom') instead of being put back on its last floor; its wreck breaks through and sinks until sink_depth below kill_y. Obstacles are authored for one half and mirrored through the centre, with the fleets swapped, so both teams face identical ground. Model hulls come from data/maelstrom_hulls.json (art_source/maelstrom/build_kit.py).",
+	"_comment": "Frozen Maelstrom arena (#102), read by scripts/arena/maelstrom_ground.gd. Game metres, Y up, arena centre at the origin. Gameplay values: changing any of them is a gameplay change (bump WireCodec.BUILD). The playable ice is a ring between the eye and the jagged rim, tilting down toward the bottomless eye (eye_depth) and ending at a rim over a bottomless chasm. A bot whose origin drops below kill_y, or whose centre leaves the ring over the chasm, is eliminated (reason 'maelstrom') instead of being put back on its last floor; its wreck falls until sink_depth below kill_y. Obstacles are authored for one half and mirrored through the centre, with the fleets swapped, so both teams face identical ground. Model hulls come from data/maelstrom_hulls.json (art_source/maelstrom/build_kit.py).",
 	"half": 144.0,
 	"grid_step": 1.0,
 	"rim_radius": 125.0,
@@ -14,8 +14,8 @@
 	"pad_radius": 8.0,
 	"pad_blend": 10.0,
 	"bowl": {
-		"_comment": "The frozen whirlpool's profile is an inverted cone: the ice falls tilt metres in one straight slope from the rim to the eye lip, and a further funnel_depth metres (quadratically, steepest at the lip) over the last stretch inside funnel_outer metres from the centre. The frozen sea lies sea_below_rim metres under the rim all the way round; it is thin ice, so a bot whose centre leaves the ring by more than exit_margin metres is eliminated too.",
-		"tilt": 24.0, "funnel_depth": 4.0, "funnel_outer": 40.0, "sea_below_rim": 0.5, "exit_margin": 1.0
+		"_comment": "The frozen whirlpool's profile is an inverted cone: the ice falls tilt metres in one straight slope from the rim to the eye lip, and a further funnel_depth metres (quadratically, steepest at the lip) over the last stretch inside funnel_outer metres from the centre. A bottomless chasm rings the platform (the frozen sea's ice shelf lies beyond it, sea_below_rim metres under the rim): a bot whose centre leaves the ring by more than exit_margin metres is eliminated too.",
+		"tilt": 40.0, "funnel_depth": 5.0, "funnel_outer": 40.0, "sea_below_rim": 0.5, "exit_margin": 1.0
 	},
 	"swell": {
 		"_comment": "Broad frozen swells following the spin: sin(2 * spiral phase) times height metres, fading near the eye and the rim.",
@@ -51,6 +51,7 @@
 		"_comment": "Presentation only.",
 		"view_distance": 4000.0,
 		"sun_energy": 1.2,
+		"chasm_width": 16.0,
 		"ambient_energy": 0.9,
 		"fog_density": 0.0034
 	}

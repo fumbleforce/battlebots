@@ -25,6 +25,8 @@ const FLEET_SLOTS := ["paint", "trim", "sail", "banner", "cloth"]
 const SHEET_RINGS := 110
 const SHEET_SEGMENTS := 960
 const SECTORS := 16
+## Depth (m) the chasm's walls fall to before fading into the dark.
+const CHASM_FLOOR := -45.0
 @export var arena_path: NodePath = NodePath("..")
 var _kit: Dictionary = {}
 var _materials: Dictionary = {}
@@ -313,7 +315,7 @@ func _cliffs(parent: Node, sector: int, per: int, mat: Material) -> void:
 			for k: int in 2:
 				var column_id := sector * per + i + k
 				var angle := TAU * float(column_id) / SHEET_SEGMENTS
-				var bottom: float = GROUND.sea_level(angle) - 1.2
+				var bottom := CHASM_FLOOR
 				var dir := Vector2(cos(angle), sin(angle))
 				var edge: float = (GROUND.rim_at(angle) - 0.02) if side == 0 else (GROUND.eye_at(angle) + 0.02)
 				var top := _sheet_height(dir.x * edge, dir.y * edge, true)
@@ -381,10 +383,14 @@ func _eye() -> void:
 	var throat := MeshInstance3D.new()
 	throat.name = "EyeThroat"
 	throat.mesh = tool.commit()
-	var deep := _material("ice", 0).duplicate() as ShaderMaterial
-	deep.set_shader_parameter("snow_amount", 0.35)
+	# The same glacier ice as the sheet's scoured windows, darkening as it drops.
+	var deep := ShaderMaterial.new()
+	deep.shader = ICE
+	_set_ring(deep)
+	deep.set_shader_parameter("twist", float(GROUND.settings().ridge.twist))
+	deep.set_shader_parameter("bare_override", 1.0)
 	deep.set_shader_parameter("abyss_top", GROUND.bowl_at(GROUND.settings().eye_radius) - 1.0)
-	deep.set_shader_parameter("abyss_bottom", -24.0)
+	deep.set_shader_parameter("abyss_bottom", -30.0)
 	throat.material_override = deep
 	throat.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(throat)
@@ -439,10 +445,10 @@ func _sea() -> void:
 	var indices := PackedInt32Array()
 	for i: int in segments:
 		var angle := TAU * float(i) / segments
-		var rim: float = GROUND.rim_at(angle) - 0.3
+		var shelf: float = _shelf_edge(angle)
 		for ring: float in radii:
-			# Never inside the ring: inner rings fold onto the rim line.
-			var rr := maxf(ring, rim)
+			# The shelf starts across the chasm: inner rings fold onto its edge.
+			var rr := maxf(ring, shelf)
 			var x := cos(angle) * rr
 			var z := sin(angle) * rr
 			var y: float = GROUND.sea_level(angle, rr) + _sea_relief(x, z) - 0.5
@@ -459,17 +465,17 @@ func _sea() -> void:
 			indices.append_array([a, b, a + 1, a + 1, b, b + 1])
 	var sea := _add_mesh(self, "FrozenSea", verts, normals, indices, ice)
 	sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# Rubble heaped at the foot of the rim cliffs, and rafted plates beyond.
+	_shelf_cliff(ice)
+	# Rafted plates out on the shelf.
 	var plates := MultiMesh.new()
 	plates.transform_format = MultiMesh.TRANSFORM_3D
 	plates.mesh = _kit["ice_floe"]
-	plates.instance_count = 260
+	plates.instance_count = 110
 	for i: int in plates.instance_count:
 		var angle := _rng.randf() * TAU
-		var foot := i < 180
-		var radius: float = GROUND.rim_at(angle) + (_rng.randf_range(1.0, 14.0) if foot else _rng.randf_range(20.0, 420.0))
-		var s := _rng.randf_range(0.2, 0.55) if foot else _rng.randf_range(0.6, 2.4)
-		var tip := Basis(Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized(), _rng.randf_range(0.3, 1.2) if foot else _rng.randf_range(0.15, 0.7))
+		var radius: float = _shelf_edge(angle) + _rng.randf_range(4.0, 420.0)
+		var s := _rng.randf_range(0.6, 2.4)
+		var tip := Basis(Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized(), _rng.randf_range(0.15, 0.7))
 		var at := Vector3(cos(angle) * radius, 0, sin(angle) * radius)
 		at.y = GROUND.sea_level(angle, radius) + _sea_relief(at.x, at.z) - 0.9
 		plates.set_instance_transform(i, Transform3D((tip * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3(s, s, s)), at))
@@ -484,8 +490,8 @@ func _sea() -> void:
 	add_child(bergs)
 	for i: int in 22:
 		var angle := TAU * (float(i) + _rng.randf_range(-0.3, 0.3)) / 22.0
-		var radius := _rng.randf_range(190.0, 520.0)
-		var s := _rng.randf_range(3.0, 7.0)
+		var radius := _rng.randf_range(230.0, 760.0)
+		var s := _rng.randf_range(1.5, 3.5)
 		var tilt := Basis(Vector3(cos(angle), 0, sin(angle)).cross(Vector3.UP).normalized(), _rng.randf_range(-0.3, 0.15))
 		var visual := _kit_instance("ice_shards_a" if i % 2 == 0 else "ice_shards_b", Transform3D((tilt * Basis(Vector3.UP, _rng.randf() * TAU)).scaled(Vector3.ONE * s),
 			Vector3(cos(angle) * radius, GROUND.sea_level(angle, radius) - s * 0.8, sin(angle) * radius)), 0, bergs)
@@ -493,8 +499,8 @@ func _sea() -> void:
 	# Black crags breaking through the pack ice.
 	for i: int in 14:
 		var angle := TAU * (float(i) + _rng.randf_range(-0.3, 0.3)) / 14.0 + 0.2
-		var radius := _rng.randf_range(300.0, 900.0)
-		var s := _rng.randf_range(2.5, 5.5)
+		var radius := _rng.randf_range(600.0, 1600.0)
+		var s := _rng.randf_range(1.0, 2.2)
 		var model: String = ["rock_spire_a", "rock_spire_b", "rock_crag"][i % 3]
 		var visual := _kit_instance(model, Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * s),
 			Vector3(cos(angle) * radius, GROUND.sea_level(angle, radius) - 2.0, sin(angle) * radius)), 0, bergs)
@@ -503,6 +509,47 @@ func _sea() -> void:
 
 ## Colossal walls of glacier ice enclosing the frozen sea, fading into haze:
 ## bulging, striated faces hung with ice, their crests broken and jagged.
+## Inner edge of the frozen sea's shelf: across the chasm from the rim.
+func _shelf_edge(angle: float) -> float:
+	var jag := 2.5 * sin(angle * 14.0 + 1.3) + 1.5 * sin(angle * 38.0)
+	return GROUND.rim_at(angle) + float(GROUND.settings().art.chasm_width) + jag
+
+## The shelf's own broken face dropping into the chasm.
+func _shelf_cliff(mat: Material) -> void:
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	tool.set_smooth_group(-1)
+	var segments := 480
+	var steps := [0.0, 0.06, 0.18, 0.35, 0.6, 1.0]
+	var grid: Array = []
+	for i: int in segments + 1:
+		var angle := TAU * float(i % segments) / segments
+		var dir := Vector2(cos(angle), sin(angle))
+		var edge := _shelf_edge(angle)
+		var top := GROUND.sea_level(angle, edge) - 0.5
+		var column: Array = []
+		for row: int in steps.size():
+			var f: float = steps[row]
+			var jut := 0.0 if row == 0 else (float(hash(Vector2i(i % segments, row)) % 1000) / 1000.0 - 0.5) * 2.4
+			var r := edge + jut
+			column.append(Vector3(dir.x * r, lerpf(top, CHASM_FLOOR, f), dir.y * r))
+		grid.append(column)
+	for i: int in segments:
+		for row: int in steps.size() - 1:
+			var a: Vector3 = grid[i][row]
+			var b: Vector3 = grid[i + 1][row]
+			var c: Vector3 = grid[i + 1][row + 1]
+			var d: Vector3 = grid[i][row + 1]
+			tool.add_vertex(a); tool.add_vertex(c); tool.add_vertex(b)
+			tool.add_vertex(a); tool.add_vertex(d); tool.add_vertex(c)
+	tool.generate_normals()
+	var cliff := MeshInstance3D.new()
+	cliff.name = "ShelfCliff"
+	cliff.mesh = tool.commit()
+	cliff.material_override = mat
+	cliff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(cliff)
+
 func _ice_walls() -> void:
 	var cfg: RefCounted = GROUND.settings()
 	var segments := 360
@@ -514,14 +561,15 @@ func _ice_walls() -> void:
 	for i: int in segments + 1:
 		var angle := TAU * float(i % segments) / segments
 		var dir := Vector3(cos(angle), 0, sin(angle))
-		var base := 760.0 + 140.0 * sin(angle * 3.0 + 0.4) + 60.0 * sin(angle * 7.0)
-		var crest := 150.0 + 90.0 * absf(sin(angle * 5.0 + 1.1)) + 45.0 * absf(sin(angle * 13.0)) \
-			+ 18.0 * float(hash(i % segments) % 1000) / 1000.0
+		# Low and far: a broken line of ice cliffs on the horizon, not mountains.
+		var base := 1900.0 + 200.0 * sin(angle * 3.0 + 0.4) + 80.0 * sin(angle * 7.0)
+		var crest := 22.0 + 22.0 * absf(sin(angle * 5.0 + 1.1)) + 12.0 * absf(sin(angle * 13.0)) \
+			+ 6.0 * float(hash(i % segments) % 1000) / 1000.0
 		var column: Array = []
 		for row: int in rows + 1:
 			var f := float(row) / rows
-			var bulge := 22.0 * sin(f * PI * 1.6 + angle * 9.0) * (1.0 - f) + float(hash(Vector2i(i % segments, row)) % 1000) / 1000.0 * 9.0
-			column.append(dir * (base - bulge + f * 60.0) + Vector3(0, GROUND.sea_far() - 4.0 + crest * f, 0))
+			var bulge := 8.0 * sin(f * PI * 1.6 + angle * 9.0) * (1.0 - f) + float(hash(Vector2i(i % segments, row)) % 1000) / 1000.0 * 4.0
+			column.append(dir * (base - bulge + f * 15.0) + Vector3(0, GROUND.sea_far() - 4.0 + crest * f, 0))
 		grid.append(column)
 	for i: int in segments:
 		for row: int in rows:

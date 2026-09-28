@@ -153,7 +153,10 @@ func _update_hull_friction() -> void:
 func _hold_slope(state: PhysicsDirectBodyState3D, normal: Vector3) -> void:
 	var weight := state.total_gravity * heft()
 	var downhill := weight - normal * weight.dot(normal)
-	var hold := (-downhill * physics.slope_hold_fraction).limit_length(grip_acceleration * physics.grip_multiplier)
+	# Up to slope_hold_max_degrees the tracks cancel the whole downhill pull,
+	# whatever the grip; steeper, they hold only up to the grip limit.
+	var cap := maxf(grip_acceleration * physics.grip_multiplier, weight.length() * sin(deg_to_rad(physics.slope_hold_max_degrees)))
+	var hold := (-downhill * physics.slope_hold_fraction).limit_length(cap)
 	state.apply_central_force(hold * mass)
 
 func max_rise() -> float:

@@ -185,9 +185,9 @@ static func bowl_at(r: float, _angle: float = 0.0) -> float:
 	var near := 1.0 - clampf((r - cfg.eye_radius) / (float(cfg.bowl.funnel_outer) - cfg.eye_radius), 0.0, 1.0)
 	return float(cfg.bowl.tilt) * t - float(cfg.bowl.funnel_depth) * near * near
 
-## Height of the thin sea ice around the maelstrom: just under the rim at every
-## angle (the frozen sea keeps the whirlpool's warp), easing far out to the
-## level between the lanes' low rim and the flanks' high rim (sea_far).
+## Height of the frozen sea's ice shelf beyond the chasm round the platform:
+## just under the rim, easing far out to sea_far (presentation only; nothing
+## collides out there).
 static func sea_level(angle: float, r: float = 0.0) -> float:
 	var cfg := settings()
 	var under_rim := bowl_at(cfg.rim_radius, angle) - float(cfg.bowl.sea_below_rim)
@@ -196,7 +196,7 @@ static func sea_level(angle: float, r: float = 0.0) -> float:
 static func sea_far() -> float:
 	return bowl_at(settings().rim_radius, PI * 0.25) - float(settings().bowl.sea_below_rim)
 
-## True once a point has left the ring over the frozen sea (beyond the margin).
+## True once a point has left the ring over the chasm (beyond the margin).
 static func outside_ring(x: float, z: float) -> bool:
 	return Vector2(x, z).length() > rim_at(atan2(z, x)) + float(settings().bowl.exit_margin)
 
@@ -208,7 +208,8 @@ static func height_at(x: float, z: float) -> float:
 	var eye := eye_at(angle)
 	var rim := rim_at(angle)
 	if r > rim:
-		return sea_level(angle, r)
+		# A bottomless chasm rings the platform; the ice shelf beyond it is scenery.
+		return cfg.eye_depth
 	if r < eye:
 		return cfg.eye_depth
 	# Creased ice facets: absolute waves are even in p, so mirrors match.

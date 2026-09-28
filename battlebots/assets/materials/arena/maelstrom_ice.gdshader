@@ -10,6 +10,11 @@ uniform vec3 snow_color : source_color = vec3(0.6, 0.66, 0.72);
 uniform vec3 packed_color : source_color = vec3(0.5, 0.56, 0.63);
 uniform vec3 grey_ice : source_color = vec3(0.24, 0.32, 0.39);
 uniform vec3 dark_ice : source_color = vec3(0.1, 0.14, 0.18);
+// 1 shows bare glacier ice everywhere (the eye's throat).
+uniform float bare_override = 0.0;
+// Walls fade to black between these heights (the chasm and the eye).
+uniform float abyss_top = -6.0;
+uniform float abyss_bottom = -40.0;
 varying vec3 world;
 varying vec3 normal_world;
 
@@ -28,7 +33,7 @@ void fragment() {
 	// Wind-scoured windows onto the ice, their edges broken up by grain.
 	float grain = mael_soft(world.xz * 3.1) * 0.5 + mael_soft(world.xz * 9.7) * 0.3 + mael_soft(world.xz * 23.0) * 0.2;
 	float scour = mael_fbm(bent * 0.022 + 5.0) + sin(spiral * 2.0) * 0.08 + (grain - 0.5) * 0.08;
-	float bare = smoothstep(0.6, 0.66, scour);
+	float bare = max(smoothstep(0.6, 0.66, scour), bare_override);
 	// Glacier ice: slow tonal drift, darker streaks along the frozen flow and
 	// fine scratches; no hard-thresholded noise, which shows its lattice.
 	vec3 ice = mix(grey_ice, dark_ice, mael_fbm(world.xz * 0.04 + 3.0) * 0.8);
@@ -44,11 +49,21 @@ void fragment() {
 	float flatness = smoothstep(0.55, 0.9, normal_world.y);
 	float striae = 0.55 + 0.45 * mael_noise(vec2(world.x * 0.9, world.y * 0.08)) * mael_noise(vec2(world.z * 0.9, world.y * 0.08 + 5.0)) * 2.0;
 	vec3 wall = mix(dark_ice * 0.5, grey_ice, clamp((world.y + 8.0) / 16.0, 0.0, 1.0)) * striae;
-	albedo = mix(albedo, wall, 1.0 - flatness);
-	ALBEDO = albedo * mix(0.45, 1.0, mael_playable(world));
-	ROUGHNESS = mix(0.85, 0.35, bare);
-	SPECULAR = mix(0.35, 0.55, bare);
+	albedo = mix(albedo, wall, (1.0 - flatness) * (1.0 - bare_override * 0.7));
+	albedo *= 1.0 - smoothstep(abyss_top, abyss_bottom, world.y) * 0.97;
+	ALBEDO = albedo * mix(0.62, 1.0, mael_playable(world));
+	// Wind-packed crust is glossy where the drifts are thin; loose snow is matte.
+	float crust = smoothstep(0.55, 0.25, drift);
+	ROUGHNESS = mix(mix(0.62, 0.38, crust), 0.3, bare);
+	SPECULAR = mix(0.55, 0.6, bare);
+	// Glints: tiny ice crystals, each tilted its own way, flash in the light.
+	vec2 crystal = floor(world.xz * 24.0);
+	float glint = step(0.985, mael_hash(crystal + 17.0)) * (1.0 - bare) * flatness;
+	vec2 facet = (mael_hash2(crystal + 3.0) - 0.5) * 1.4;
+	ROUGHNESS = mix(ROUGHNESS, 0.04, glint);
+	SPECULAR = mix(SPECULAR, 1.0, glint);
 	// Snow grain and wind ribs in the normals; ice is smoother.
 	vec2 tilt = vec2((grain - 0.5) * 0.22 + ribs * 0.12, (mael_soft(world.zx * 5.3) - 0.5) * 0.2) * (1.0 - bare * 0.6);
+	tilt = mix(tilt, facet, glint);
 	NORMAL_MAP = normalize(vec3(0.5 + tilt.x, 0.5 + tilt.y, 1.0));
 }

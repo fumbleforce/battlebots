@@ -1648,3 +1648,15 @@ drive, jump and crouch keys (nitro boosts; the mouse wheel sets flight speed
 instead of zoom); the bot receives neutral braking commands meanwhile and the
 tank sight stands down. F again returns to the same bot. No gameplay or wire
 change. The Maelstrom's frozen-wave crest lips were removed (visual only).
+## Slope hold to 50°, Maelstrom chasm and deeper cone — build mvp-ab-60 (#102)
+
+- `bot_physics.json` `contact.slope_hold_max_degrees` (50, required by
+  `BotPhysics`): `DriveBody._hold_slope` cancels the whole downhill pull on any
+  slope up to that steepness, whatever the drive's grip; steeper slopes hold
+  only up to the grip limit as before. Applies to every arena.
+- Maelstrom (`ARENA_RULES` 8): the cone falls 40 m rim to eye
+  (`bowl.tilt`); outside the rim `height_at` returns `eye_depth`, a bottomless
+  chasm (`art.chasm_width` wide, presentation only) before the frozen sea
+  shelf. No open water remains; the eye throat uses the ice shader.
+- Presentation: shattered prop pieces are lifted clear of the ground on spawn;
+  the snow crust glints.
