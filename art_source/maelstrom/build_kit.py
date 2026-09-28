@@ -219,25 +219,28 @@ def hull_point(s, q, side, sheer=True, out=0.0):
     return V(side * (w + out), y, (.5 - s) * L_SHIP)
 
 
-def plank_point(s, q, side, sheer=True, out=0.0):
-    """hull_point offset along the section's outward normal rather than in x,
-    so a clinker lip stands proud of the planking even where the bilge runs
-    nearly flat (an x offset there opens a see-through slot instead)."""
-    e = .004
-    a = hull_point(s, max(q - e, 0.0), side, sheer); b = hull_point(s, q + e, side, sheer)
-    tx, ty = b.x - a.x, b.y - a.y
-    n = math.hypot(tx, ty) or 1.0
-    return hull_point(s, q, side, sheer) + V(side * abs(ty) / n * out, -side * tx / n * out, 0)
-
-
-PLANK_LAP = .35 / STRAKES  # How far each strake runs up under the next one.
-# Strake UVs (the wood scan's planks run along v): each strake shows the inside
-# of one of the scan's nine planks (seams at these pixels of its 1024 tile, the
-# game samples it at 0.45 per UV unit), so every strake is one broad plank with
-# its grain fore and aft and the only seams are the strakes' own laps.
+# Carvel planking: the strakes lie flush and share their edges, one continuous
+# skin. Strake UVs (the wood scan's planks run along v): each strake shows one of
+# the scan's nine planks seam to seam (seams at these pixels of its 1024 tile,
+# the game samples it at 0.45 per UV unit), so the scan's seams fall exactly on
+# the strakes' edges, and v is the same for every strake at a station, so the
+# scan's nail rows line up down the hull like the fastenings on a frame.
 SCAN_SEAMS = [62, 172, 286, 403, 516, 631, 746, 861, 973, 1086]
 PLANK_V = .6  # Stretches the grain along the plank.
-PLANK_STEP = .5  # Metres between samples along a strake (the bow curves fast).
+PLANK_STEP = .5  # Metres between stations along the hull (the bow curves fast).
+
+
+def scan_plank(j):
+    """UV u range of the scan's plank j, seam to seam."""
+    return SCAN_SEAMS[j % 9] / 1024 / .45, SCAN_SEAMS[j % 9 + 1] / 1024 / .45
+
+
+def stations(lo, hi, lo_u, hi_u):
+    """Shared stations along the hull: every strake samples the same s grid, so
+    neighbours meet vertex to vertex; only the ends (ragged at a break) differ."""
+    step = PLANK_STEP / L_SHIP
+    mid = [g * step for g in range(int(lo / step) + 1, int(math.ceil(hi / step))) if lo < g * step < hi]
+    return [lo] + mid + [hi], [lo_u] + mid + [hi_u]
 
 
 def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo=True, ribs_hi=True, hull_q=1.0):
@@ -260,32 +263,26 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
             if hi - lo < .02:
                 continue
             n = max(2, int((hi - lo) * L_SHIP / 1.3) + 1)  # collision outline samples
-            fine = max(n, int((hi - lo) * L_SHIP / PLANK_STEP) + 1)
             # Splintered ends: the upper edge runs a little past the lower edge.
             lo_u = lo - (R.uniform(0, .02) if broken_lo else 0); hi_u = hi + (R.uniform(0, .025) if broken_hi else 0)
+            # The collision outline keeps the old clinker lip (collision unchanged).
             clinker = .09 if wale else .05
-            # The upper edge laps under the next strake's lip so no light shows
-            # between them; the collision hull keeps the unlapped outline.
-            q1_lap = q1 if q1 >= top_q else min(q1 + PLANK_LAP, top_q)
             verts = []; outline = []; uv = []
-            j = (k * 4 + (side > 0) * 2) % 9
-            u0 = (SCAN_SEAMS[j] + 12) / 1024 / .45; u_top = (SCAN_SEAMS[j + 1] - 12) / 1024 / .45
-            u1 = u0 + (u_top - u0) * (q1_lap - q0) / (q1 - q0)
-            for i in range(fine + 1):
-                t = i / fine
-                s_lo = lo + (hi - lo) * t; s_hi = lo_u + (hi_u - lo_u) * t
-                verts.append(xf @ plank_point(s_lo, q0, side, sheer, clinker))
-                verts.append(xf @ plank_point(s_hi, q1_lap, side, sheer, .0))
-                uv += [(u0, (s_lo * L_SHIP + k * 7.3) * PLANK_V), (u1, (s_hi * L_SHIP + k * 7.3) * PLANK_V)]
+            u0, u1 = scan_plank(k * 4 + (side > 0) * 2)
+            lower, upper = stations(lo, hi, lo_u, hi_u)
+            for s_lo, s_hi in zip(lower, upper):
+                verts.append(xf @ hull_point(s_lo, q0, side, sheer))
+                verts.append(xf @ hull_point(s_hi, q1, side, sheer))
+                uv += [(u0, s_lo * L_SHIP * PLANK_V), (u1, s_hi * L_SHIP * PLANK_V)]
             for i in range(n + 1):
                 t = i / n
                 outline.append(xf @ hull_point(lo + (hi - lo) * t, q0, side, sheer, clinker))
                 outline.append(xf @ hull_point(lo_u + (hi_u - lo_u) * t, q1, side, sheer, .0))
             faces = []
-            for i in range(fine):
+            for i in range(len(lower) - 1):
                 a = i * 2
                 faces.append((a, a + 2, a + 3, a + 1) if side > 0 else (a, a + 1, a + 3, a + 2))
-            m.add(slot, verts, faces, [[uv[j] for j in f] for f in faces], tint=R.random() * .6 + (.4 if wale else 0))
+            m.add(slot, verts, faces, [[uv[i] for i in f] for f in faces], tint=R.random() * .6 + (.4 if wale else 0))
             if q1 <= hull_q + 1e-6:
                 hull_pts += outline[::2] + outline[1::2]
     # Keel, following the hull's rising forefoot, and at an unbroken bow the
@@ -298,6 +295,13 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
         stem = [top_q * i / 12 for i in range(13)]
         for a, b in zip(stem, stem[1:]):
             m.beam('wood', xf @ hull_point(1.0, a, 0), xf @ hull_point(1.0, b, 0), .35, sides=4, tint=tint)
+    # The wale: a heavy rubbing strake standing proud of the skin.
+    q_wale = 1 - 4.0 / STRAKES
+    for side in (-1, 1):
+        lo = s0 + (.04 if broken_lo else 0); hi = s1 - (.05 if broken_hi else 0)
+        run, _ = stations(lo, hi, lo, hi)
+        for a, b in zip(run, run[1:]):
+            m.beam('wood', xf @ hull_point(a, q_wale, side, sheer, .08), xf @ hull_point(b, q_wale, side, sheer, .08), .13, sides=4, tint=.9)
     # Gunwale caps.
     for side in (-1, 1):
         n = max(2, int((s1 - s0) * L_SHIP / 2.5))
@@ -834,12 +838,32 @@ def wreck_stern():
             return abs(hull_point(0, 1.0, 1).x)
         return abs(hull_point(0, max((y - k) / (d - k), .03), 1, True, .05).x)
     tw = transom_half(y1)
+    # One continuous plate, planked athwartships: each band is one scan plank
+    # seam to seam, and its end grain wraps round the edge into the hull side.
+    # Collision keeps the original per-strip boxes.
     strips = 14
+    back, front = transom_z - .3, transom_z + .12
     for i in range(strips):
         ya = y0 + (y1 - y0) * i / strips; yb = y0 + (y1 - y0) * (i + 1) / strips
         wa = transom_half(ya); wb = transom_half(yb)
-        pts += m.solid('paint', [xf @ V(x * w, y, transom_z + dz) for x in (-1, 1) for y, w in ((ya, wa), (yb, wb)) for dz in (-.3, .12)],
-                       tint=.3 + .08 * (i % 3))
+        pts += [Vector(v) for v in convex([xf @ V(x * w, y, transom_z + dz) for x in (-1, 1) for y, w in ((ya, wa), (yb, wb)) for dz in (-.3, .12)])[0]]
+        u0, u1 = scan_plank(i * 4 + 1)
+        P = lambda x, y, z: xf @ V(x, y, z)
+        quads = [  # (corners, their uvs): front, back, then each side edge
+            ([P(-wa, ya, front), P(wa, ya, front), P(wb, yb, front), P(-wb, yb, front)],
+             [(u0, -wa * PLANK_V), (u0, wa * PLANK_V), (u1, wb * PLANK_V), (u1, -wb * PLANK_V)]),
+            ([P(wa, ya, back), P(-wa, ya, back), P(-wb, yb, back), P(wb, yb, back)],
+             [(u0, wa * PLANK_V), (u0, -wa * PLANK_V), (u1, -wb * PLANK_V), (u1, wb * PLANK_V)])]
+        for x in (-1, 1):
+            corners = [P(x * wa, ya, back), P(x * wa, ya, front), P(x * wb, yb, front), P(x * wb, yb, back)]
+            uv = [(u0, back * PLANK_V), (u0, front * PLANK_V), (u1, front * PLANK_V), (u1, back * PLANK_V)]
+            quads.append((corners, uv) if x < 0 else (corners[::-1], uv[::-1]))  # outward winding
+        if i == 0:
+            quads.append(([P(-wa, ya, back), P(wa, ya, back), P(wa, ya, front), P(-wa, ya, front)], [(u0, 0)] * 4))
+        if i == strips - 1:
+            quads.append(([P(-wb, yb, front), P(wb, yb, front), P(wb, yb, back), P(-wb, yb, back)], [(u1, 0)] * 4))
+        for corners, uv in quads:
+            m.add('paint', corners, [(0, 1, 2, 3)], [uv], tint=.3 + .08 * (i % 3))
     face = transom_z + .12
     for row, y in enumerate((deck_at(0) + 1.4, deck_at(0) + 4.4)):
         for j in range(5):
