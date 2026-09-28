@@ -2,7 +2,7 @@ extends Node
 ## Practice target panel (#97): a red screen-space outline round the targeted
 ## NPC; the item card (#105) outlines the selected item pickup in yellow with
 ## a second one (ITEM_*). Each shown mesh of the outlined node gets a plain
-## white copy in a mask viewport of its own (its own World3D: no lights,
+## white copy, on black, in a mask viewport of its own (its own World3D: no lights,
 ## shadows or scenery, and the game's cameras never see the copies), filmed
 ## by a camera that follows the game's. A full-screen line then colours every
 ## pixel within WIDTH_PX of the mask and outside it. So the line is one even
@@ -35,12 +35,12 @@ const int DIRECTIONS = 16;
 void fragment() {
 	vec2 texel = 1.0 / vec2(textureSize(mask, 0));
 	float edge = 0.0;
-	if (texture(mask, SCREEN_UV).a < 0.5) {
+	if (texture(mask, SCREEN_UV).r < 0.5) {
 		for (int ring = 1; ring <= int(ceil(width)) && edge < 0.5; ring++) {
 			float radius = min(float(ring), width);
 			for (int turn = 0; turn < DIRECTIONS; turn++) {
 				float angle = TAU * float(turn) / float(DIRECTIONS);
-				if (texture(mask, SCREEN_UV + vec2(cos(angle), sin(angle)) * radius * texel).a > 0.5) {
+				if (texture(mask, SCREEN_UV + vec2(cos(angle), sin(angle)) * radius * texel).r > 0.5) {
 					edge = 1.0;
 					break;
 				}
@@ -73,12 +73,16 @@ func _init(color := COLOR, prefix := COPY_NAME) -> void:
 	_viewport.name = "Mask"
 	_viewport.own_world_3d = true
 	_viewport.world_3d = World3D.new()
-	_viewport.transparent_bg = true
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	_viewport.positional_shadow_atlas_size = 0
 	add_child(_viewport)
 	_camera = Camera3D.new()
-	_camera.environment = Environment.new()
+	# White copies on black: the line reads brightness, not alpha, which the
+	# mask's clear does not keep transparent past its first frame.
+	var black := Environment.new()
+	black.background_mode = Environment.BG_COLOR
+	black.background_color = Color.BLACK
+	_camera.environment = black
 	_viewport.add_child(_camera)
 	var layer := CanvasLayer.new()
 	# Over the arena, under every panel and HUD.
