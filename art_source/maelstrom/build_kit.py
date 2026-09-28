@@ -1139,15 +1139,16 @@ def wreck_stern():
                     wall_along = (hull_point(b, 1.0, side) - hull_point(a, 1.0, side)).normalized()
                     framed_window(m, xf @ c, (rot3 @ wall_along).normalized(), (rot3 @ V(0, 1, 0)).normalized(),
                                   (rot3 @ V(side, 0, 0)).normalized(), .55, .62, frame=.16)
-        deck_y = deck_at(0) + top
+        # Decks and bulkheads follow the sheer, as the walls do (level ones left
+        # the forward bulkhead and deck standing clear of the walls: holes).
         w_lo = beam_at(lo) * .92 - wall; w_hi = beam_at(hi) * .92 - wall
-        m.solid('deck', [xf @ V(x * w, deck_y - .15 + dy, (.5 - s_) * L_SHIP) for x in (-1, 1) for s_, w in ((lo, w_lo), (hi, w_hi)) for dy in (0, .15)],
+        m.solid('deck', [xf @ V(x * w, deck_at(s_) + top - .15 + dy, (.5 - s_) * L_SHIP) for x in (-1, 1) for s_, w in ((lo, w_lo), (hi, w_hi)) for dy in (0, .15)],
                 grain=xf.to_3x3() @ V(0, 0, 1), origin=xf @ V(0, 0, 0))
         # Forward bulkhead: vertical boards edge to edge across the beam from the
         # tier below up to this deck, a doorway in the middle. (Split-short
         # boards left holes; their draws are kept.)
         z = (.5 - hi) * L_SHIP
-        y_lo = deck_at(0) + base; y_hi = deck_y
+        y_lo = deck_at(hi) + base; y_hi = deck_at(hi) + top
         width = beam_at(hi) * .92
         boards = 12
         for k in range(boards):
@@ -1161,14 +1162,23 @@ def wreck_stern():
             if cut < 1.0:  # the split board's jagged top
                 m.spike('wood', xf @ V((x0 + x1) / 2, y_lo + (y_hi - y_lo) * cut - .05, z), xf @ V((x0 + x1) / 2 + R.uniform(-.1, .1), y_lo + (y_hi - y_lo) * cut + R.uniform(.3, .7), z), .16, sides=4, draw=False)
         m.beam('trim', xf @ V(-width, y_hi + .05, z), xf @ V(width, y_hi + .05, z), .14, sides=4)
-        # The tier's rail runs only where its deck is open: forward of the tier
-        # above (it ran through that tier's wall and windows).
+        m.solid('paint', [xf @ V(x * width, y_hi + h, z + dz) for x in (-1, 1) for h in (.05, 1.0) for dz in (-.08, .08)],
+                tint=.35, grain=xf.to_3x3() @ V(1, 0, 0), origin=xf @ V(0, 0, 0))
+        # Where the tier's deck is open (forward of the tier above, and its whole
+        # roof) it is closed by a solid planked breastwork along both sides and
+        # across its forward edge, capped by the rail: open railing showed
+        # through. (The old posts' draws are kept.)
         open_lo = .1 if base == 0.0 else lo
+        grain = xf.to_3x3() @ V(0, 0, 1); origin = xf @ V(0, 0, 0)
         for side in (-1, 1):
-            m.beam('trim', xf @ (hull_point(open_lo, 1, side) + V(-side * wall * .5, top + .9, 0)), xf @ (hull_point(hi, 1, side) + V(-side * wall * .5, top + .9, 0)), .1, sides=4)
+            run = [open_lo + (hi - open_lo) * i / 4 for i in range(5)]
+            for a, b in zip(run, run[1:]):
+                m.solid('paint', [xf @ (hull_point(s_, 1.0, side) + V(-side * inset, top + h, 0)) for s_ in (a, b) for inset in (0.0, wall * .6) for h in (0.0, .95)],
+                        tint=.35, grain=grain, origin=origin)
+            m.beam('trim', xf @ (hull_point(open_lo, 1, side) + V(-side * wall * .3, top + 1.0, 0)), xf @ (hull_point(hi, 1, side) + V(-side * wall * .3, top + 1.0, 0)), .1, sides=4)
             for s_ in (open_lo + (hi - open_lo) * t for t in (.1, .5, .9)):
                 p = hull_point(s_, 1, side) + V(-side * wall * .5, 0, 0)
-                m.beam('wood', xf @ (p + V(0, top, 0)), xf @ (p + V(0, top + .9, 0)), .08, sides=4)
+                m.beam('wood', xf @ (p + V(0, top, 0)), xf @ (p + V(0, top + .9, 0)), .08, sides=4, draw=False)
             icicles(m, xf @ (hull_point(open_lo, 1, side) + V(side * .2, top, 0)), xf @ (hull_point(hi, 1, side) + V(side * .2, top, 0)), 8, 1.8)
     # The transom closes the stern flush with the planking and the castle: a
     # solid plate stacked in strips, each as wide as the hull's own section at
