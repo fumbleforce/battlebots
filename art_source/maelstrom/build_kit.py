@@ -218,6 +218,20 @@ def hull_point(s, q, side, sheer=True, out=0.0):
     return V(side * (w + out), y, (.5 - s) * L_SHIP)
 
 
+def plank_point(s, q, side, sheer=True, out=0.0):
+    """hull_point offset along the section's outward normal rather than in x,
+    so a clinker lip stands proud of the planking even where the bilge runs
+    nearly flat (an x offset there opens a see-through slot instead)."""
+    e = .004
+    a = hull_point(s, max(q - e, 0.0), side, sheer); b = hull_point(s, q + e, side, sheer)
+    tx, ty = b.x - a.x, b.y - a.y
+    n = math.hypot(tx, ty) or 1.0
+    return hull_point(s, q, side, sheer) + V(side * abs(ty) / n * out, -side * tx / n * out, 0)
+
+
+PLANK_LAP = .35 / STRAKES  # How far each strake runs up under the next one.
+
+
 def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo=True, ribs_hi=True, hull_q=1.0):
     """Planked section between s0 (sternward) and s1 (bowward). Broken ends are
     ragged, plank by plank, with the frames standing out of the break.
@@ -241,18 +255,24 @@ def galleon(m, xf, s0, s1, broken_lo, broken_hi, sheer=True, ports=True, ribs_lo
             # Splintered ends: the upper edge runs a little past the lower edge.
             lo_u = lo - (R.uniform(0, .02) if broken_lo else 0); hi_u = hi + (R.uniform(0, .025) if broken_hi else 0)
             clinker = .09 if wale else .05
-            verts = []
+            # The upper edge laps under the next strake's lip so no light shows
+            # between them; the collision hull keeps the unlapped outline.
+            q1_lap = q1 if q1 >= top_q else min(q1 + PLANK_LAP, top_q)
+            verts = []; outline = []
             for i in range(n + 1):
                 t = i / n
-                verts.append(xf @ hull_point(lo + (hi - lo) * t, q0, side, sheer, clinker))
-                verts.append(xf @ hull_point(lo_u + (hi_u - lo_u) * t, q1, side, sheer, .0))
+                s_lo = lo + (hi - lo) * t; s_hi = lo_u + (hi_u - lo_u) * t
+                verts.append(xf @ plank_point(s_lo, q0, side, sheer, clinker))
+                verts.append(xf @ plank_point(s_hi, q1_lap, side, sheer, .0))
+                outline.append(xf @ hull_point(s_lo, q0, side, sheer, clinker))
+                outline.append(xf @ hull_point(s_hi, q1, side, sheer, .0))
             faces = []
             for i in range(n):
                 a = i * 2
                 faces.append((a, a + 2, a + 3, a + 1) if side > 0 else (a, a + 1, a + 3, a + 2))
             m.add(slot, verts, faces, tint=R.random() * .6 + (.4 if wale else 0))
             if q1 <= hull_q + 1e-6:
-                hull_pts += verts[::2] + verts[1::2]
+                hull_pts += outline[::2] + outline[1::2]
     # Keel and gunwale caps.
     m.beam('wood', xf @ hull_point(s0, 0, 0), xf @ hull_point(s1, 0, 0), .35, sides=4)
     for side in (-1, 1):
