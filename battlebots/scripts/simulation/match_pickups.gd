@@ -82,6 +82,56 @@ func clear() -> void:
 	_clear_contacts()
 	revision += 1
 
+## Practice world panel (#105): a new item at point, rolled like any other.
+## Returns its id.
+func add(point: Vector3) -> int:
+	var id := 0
+	for item: Dictionary in items:
+		id = maxi(id, int(item.id) + 1)
+	items.append(_roll({"id":id, "point":point}))
+	revision += 1
+	return id
+
+func find(id: int) -> Dictionary:
+	for item: Dictionary in items:
+		if item.id == id:
+			return item
+	return {}
+
+func remove(id: int) -> bool:
+	var item := find(id)
+	if item.is_empty():
+		return false
+	items.erase(item)
+	revision += 1
+	return true
+
+## Every choice the practice item card offers, each {kind, part, amount}:
+## coolant, each credit amount, then each part and perk in the pool.
+func choices() -> Array[Dictionary]:
+	var list: Array[Dictionary] = [{"kind":"coolant", "part":"", "amount":int(HEAT_RELIEF.settings().value("coolant", "heat"))}]
+	for amount: int in CREDIT_AMOUNTS:
+		list.append({"kind":"credits", "part":"", "amount":amount})
+	for part: String in pool:
+		list.append({"kind":"perk" if registry.parts[part].category in PERK_SLOTS else "part", "part":part, "amount":0})
+	return list
+
+## Makes the item hold choice (from choices()) from now on, through respawns;
+## a collected item is back at once.
+func set_contents(id: int, choice: Dictionary) -> bool:
+	var item := find(id)
+	var chosen: Dictionary = {}
+	for option: Dictionary in choices():
+		if option.kind == choice.get("kind") and option.part == choice.get("part", "") and option.amount == int(choice.get("amount", 0)):
+			chosen = option
+	if item.is_empty() or chosen.is_empty():
+		return false
+	item.fixed = "coolant" if chosen.kind == "coolant" else "chosen"
+	item.chosen = chosen
+	_roll(item)
+	revision += 1
+	return true
+
 func tick(delta: float) -> void:
 	events.clear()
 	refusals.clear()
@@ -102,6 +152,10 @@ func _roll(item: Dictionary) -> Dictionary:
 		item.kind = "coolant"
 		item.part = ""
 		item.amount = int(HEAT_RELIEF.settings().value("coolant", "heat"))
+	elif item.get("fixed") == "chosen":
+		item.kind = item.chosen.kind
+		item.part = item.chosen.part
+		item.amount = item.chosen.amount
 	elif pool.is_empty() or _rng.randf() < CREDIT_CHANCE:
 		item.kind = "credits"
 		item.part = ""

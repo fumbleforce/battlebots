@@ -66,7 +66,75 @@ func run() -> void:
 	await frames()
 	check(session.world.bots.size() == 1 and session.world.bots.has(session.local_entity),
 		"Clear leaves only the player (%d bots)" % session.world.bots.size())
-	check(world_panel.status.text == "0 NPCs", "The panel counts no NPCs (%s)" % world_panel.status.text)
+	check(world_panel.status.text.begins_with("0 NPCs, "), "The panel counts no NPCs (%s)" % world_panel.status.text)
+
+	# Items (#105): Clear items empties the arena, Spawn item places one where
+	# the camera looks, and clicking it opens the item card.
+	world_panel.item_clear_button.pressed.emit()
+	await frames()
+	check(session.world.pickups.items.is_empty() and world_panel.status.text == "0 NPCs, 0 items",
+		"Clear items removes every item pickup (%s)" % world_panel.status.text)
+	preview.rig.pitch = deg_to_rad(8.0)
+	await frames()
+	var item_camera: Camera3D = preview.aim_camera()
+	var item_look := (-item_camera.global_basis.z).slide(Vector3.UP).normalized()
+	world_panel.item_spawn_button.pressed.emit()
+	await frames()
+	check(session.world.pickups.items.size() == 1 and world_panel.status.text == "0 NPCs, 1 item", "Spawn item adds one item (%s)" % world_panel.status.text)
+	var item_panel: Control = game.practice_item_overlay
+	if session.world.pickups.items.size() == 1:
+		var spawned: Dictionary = session.world.pickups.items[0]
+		var item_id: int = spawned.id
+		var item_offset: Vector3 = (spawned.point - item_camera.global_position).slide(Vector3.UP)
+		check(item_offset.normalized().dot(item_look) > 0.9 and item_offset.length() > 2.0, "The item spawns where the camera looks")
+		await frames(10)
+		check(session.world.pickups.find(item_id).get("available", false), "The spawned item waits to be picked up")
+		check(not item_panel.visible, "No item card before a click")
+		var item_screen: Vector2 = preview.aim_camera().unproject_position(spawned.point + Vector3.UP * 2.6)
+		check(game._pick_practice_target(item_screen) and game._practice_item == item_id and game._practice_target == 0, "Clicking an item selects it")
+		await frames()
+		check(item_panel.visible and item_panel.item_id == item_id and not game.practice_target_overlay.visible, "The selected item shows its item card")
+		var item_card: Rect2 = item_panel.card.get_global_rect()
+		check(item_card.end.x <= world_panel.card.get_global_rect().position.x and preview._over_cursor_panel(item_card.get_center()),
+			"The item card sits left of the world card and keeps clicks off the weapons")
+		check(item_panel.remove_button.get_theme_stylebox("normal").bg_color == game.practice_target_overlay.REMOVE_COLOR, "Remove is red")
+		check(item_panel.picker.item_count == session.practice_pickup_choices().size() and item_panel.picker.item_count > 4,
+			"The dropdown lists every item (%d)" % item_panel.picker.item_count)
+		# Choose credits, then a part: the item changes and keeps it.
+		for choice_index: int in [1, item_panel.picker.item_count - 1]:
+			var choice: Dictionary = session.practice_pickup_choices()[choice_index]
+			item_panel.picker.item_selected.emit(choice_index)
+			await frames()
+			var now_item: Dictionary = session.world.pickups.find(item_id)
+			check(now_item.kind == choice.kind and now_item.part == choice.part and now_item.amount == choice.amount
+				and item_panel.picker.selected == choice_index, "Choosing %s makes the item one (%s)" % [choice, now_item])
+			check(session.pickup_view.items.any(func(view: Dictionary) -> bool: return view.id == item_id and view.kind == choice.kind and view.part == choice.part),
+				"The chosen item is published to the pickup visuals")
+		var chosen: Dictionary = session.world.pickups.find(item_id).duplicate()
+		session.world.pickups.find(item_id).available = false
+		session.world.pickups.find(item_id).respawn = 0.0
+		await frames()
+		var respawned: Dictionary = session.world.pickups.find(item_id)
+		check(respawned.available and respawned.kind == chosen.kind and respawned.part == chosen.part, "A chosen item respawns as the same item")
+		# Clicking it again clears the selection; clicking an NPC swaps to it.
+		item_screen = preview.aim_camera().unproject_position(spawned.point + Vector3.UP * 2.6)
+		game._practice_item = item_id
+		await frames()
+		check(game._pick_practice_target(item_screen) and game._practice_item == -1, "Clicking the item again clears it")
+		await frames()
+		check(not item_panel.visible, "Clearing the item hides its card")
+		game._practice_item = item_id
+		await frames()
+		item_panel.remove_button.pressed.emit()
+		await frames()
+		check(session.world.pickups.find(item_id).is_empty() and not item_panel.visible and game._practice_item == -1, "Remove takes the item out of the world")
+	session.practice_spawn_pickup(item_camera.global_position, -item_camera.global_basis.z)
+	session.practice_spawn_pickup(item_camera.global_position, -item_camera.global_basis.z)
+	await frames()
+	check(session.world.pickups.items.size() == 2 and session.world.pickups.items[0].id != session.world.pickups.items[1].id, "Each spawned item has its own id")
+	world_panel.item_clear_button.pressed.emit()
+	await frames()
+	check(session.world.pickups.items.is_empty(), "Clear items takes every spawned item")
 
 	# Spawn where the camera looks: ahead of the camera, passive. Near-level,
 	# so the ray meets the arena well away from the player.

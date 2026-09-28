@@ -18,11 +18,32 @@ func frames(count: int) -> void:
 
 func run() -> void:
 	rules()
+	placed_items()
 	await world_swaps("foundry")
 	await world_swaps("moon")
 	await world_swaps("woodland")
 	print("MATCH PICKUPS PASS" if failures == 0 else "MATCH PICKUPS FAIL")
 	quit(0 if failures == 0 else 1)
+
+## Practice item card (#105): added, re-chosen and removed items.
+func placed_items() -> void:
+	var pickups := MatchPickups.new()
+	pickups.begin([Vector3(1, 0, 0), Vector3(2, 0, 0)], 7)
+	var id := pickups.add(Vector3(5, 0, 5))
+	check(id == 2 and pickups.find(id).available and pickups.find(id).point == Vector3(5, 0, 5), "An added item gets a fresh id")
+	var choices := pickups.choices()
+	check(choices[0].kind == "coolant" and choices.any(func(c: Dictionary) -> bool: return c.kind == "credits")
+		and choices.any(func(c: Dictionary) -> bool: return c.kind == "perk") and choices.size() == pickups.pool.size() + 1 + MatchPickups.CREDIT_AMOUNTS.size(),
+		"Choices cover coolant, every credit amount and every pool part")
+	var part: Dictionary = choices.back()
+	var revision := pickups.revision
+	check(pickups.set_contents(id, part) and pickups.find(id).part == part.part and pickups.revision > revision, "Setting contents changes the item")
+	check(not pickups.set_contents(id, {"kind":"part", "part":"no_such_part", "amount":0}), "An unknown choice is refused")
+	pickups.find(id).available = false
+	pickups.tick(MatchPickups.RESPAWN_SECONDS + 1.0)
+	check(pickups.find(id).available and pickups.find(id).part == part.part, "A chosen item respawns the same")
+	check(pickups.set_contents(id, choices[0]) and pickups.find(id).kind == "coolant", "An item can become coolant")
+	check(pickups.remove(id) and pickups.find(id).is_empty() and pickups.items.size() == 2 and not pickups.remove(id), "Remove takes it out once")
 
 func rules() -> void:
 	var pickups := MatchPickups.new()

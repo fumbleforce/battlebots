@@ -36,6 +36,9 @@ var duel_shuttle_throttle := 0.0
 ## F1 world panel (#97, duel.spawn.reach): the furthest, in metres from
 ## the camera, it spawns an NPC.
 var duel_spawn_reach := 0.0
+## F1 item card (#105, duel.spawn.item_pick_radius): how near, in metres, a
+## click's ray must pass an item pickup's light column to select it.
+var duel_item_pick_radius := 0.0
 
 static func settings() -> ArenaSpawns:
 	if _loaded == null:
@@ -150,6 +153,10 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 		problems.append("duel.spawn needs a positive reach")
 		return null
 	result.duel_spawn_reach = float(spawn.reach)
+	if not _number(spawn.get("item_pick_radius")) or float(spawn.item_pick_radius) <= 0.0:
+		problems.append("duel.spawn needs a positive item_pick_radius")
+		return null
+	result.duel_item_pick_radius = float(spawn.item_pick_radius)
 	return result
 
 ## Practice Duel monowheel count on an arena.

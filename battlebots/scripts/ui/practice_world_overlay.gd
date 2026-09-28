@@ -21,6 +21,8 @@ const CAPTION_COLORS := [&"font_color", &"font_hover_color", &"font_pressed_colo
 	&"font_hover_pressed_color", &"font_focus_color", &"font_disabled_color"]
 ## Asks menu_game for the camera ray to spawn along.
 signal spawn_requested
+## Asks menu_game for the camera ray to place an item pickup along (#105).
+signal item_spawn_requested
 ## Player options pressed: menu_game opens the F2 tuning panel.
 signal player_options_requested
 ## The Hitboxes switch changed: it overrides every NPC's own (#97).
@@ -31,6 +33,9 @@ var drag: RefCounted
 var clear_button: Button
 var player_options_button: Button
 var spawn_button: Button
+## Item pickups (#105): spawn one where the camera looks, or clear them all.
+var item_spawn_button: Button
+var item_clear_button: Button
 var aggressive_toggle: CheckButton
 ## The other bots' debug hitboxes (#93), moved here from the F2 panel.
 var hitbox_toggle: CheckButton
@@ -81,6 +86,9 @@ func _init() -> void:
 	spawn_button = _button(column, "SpawnNpc", "Spawn NPC", spawn_requested.emit)
 	clear_button = _button(column, "ClearNpcs", "Clear NPCs", func() -> void:
 		if session != null: session.practice_clear_npcs())
+	item_spawn_button = _button(column, "SpawnItem", "Spawn item", item_spawn_requested.emit)
+	item_clear_button = _button(column, "ClearItems", "Clear items", func() -> void:
+		if session != null: session.practice_clear_pickups())
 	aggressive_toggle = CheckButton.new()
 	aggressive_toggle.name = "Aggressive"
 	aggressive_toggle.focus_mode = Control.FOCUS_NONE
@@ -151,7 +159,8 @@ func render(source: Node) -> void:
 	var count := 0
 	if source != null and source.practice_director != null:
 		count = source.practice_director.records.size() + source.practice_director.roamers.size()
-	status.text = "%d NPC%s" % [count, "" if count == 1 else "s"]
+	var items: int = source.world.pickups.items.size() if source != null and source.practice_tuning() != null else 0
+	status.text = "%d NPC%s, %d item%s" % [count, "" if count == 1 else "s", items, "" if items == 1 else "s"]
 	aggressive_toggle.set_pressed_no_signal(source != null and source.practice_npcs_aggressive())
 	caption_behaviour(aggressive_toggle)
 	var tuning: RefCounted = source.practice_tuning() if source != null else null

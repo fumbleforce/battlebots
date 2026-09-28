@@ -69,6 +69,10 @@ var _practice_world_open := false
 var practice_target_overlay: Control
 var _practice_target := 0
 var practice_target_outline: Node
+## In the target card's place, the item card (#105) for the selected item
+## pickup (its id, -1 for none); an NPC and an item are never both selected.
+var practice_item_overlay: Control
+var _practice_item := -1
 var combat_hud: CombatHud
 var pickup_visuals: PickupVisuals
 var pickup_feed: PickupFeed
@@ -135,11 +139,16 @@ func _ready() -> void:
 	tuning_layer.add_child(practice_world_overlay)
 	practice_world_overlay.hide()
 	practice_world_overlay.spawn_requested.connect(_spawn_practice_npc)
+	practice_world_overlay.item_spawn_requested.connect(_spawn_practice_item)
 	practice_world_overlay.player_options_requested.connect(_open_player_options)
 	practice_target_overlay = preload("res://scripts/ui/practice_target_overlay.gd").new()
 	tuning_layer.add_child(practice_target_overlay)
 	practice_target_overlay.hide()
 	preview.cursor_panels.append(practice_target_overlay.card)
+	practice_item_overlay = preload("res://scripts/ui/practice_item_overlay.gd").new()
+	tuning_layer.add_child(practice_item_overlay)
+	practice_item_overlay.hide()
+	preview.cursor_panels.append(practice_item_overlay.card)
 	preview.cursor_pick = _pick_practice_target
 	practice_target_overlay.hitboxes_toggled.connect(_single_out_hitboxes)
 	practice_target_overlay.possess_requested.connect(_possess_practice_target)
@@ -671,7 +680,7 @@ func _apply_hud_preferences(value: HudPreferences) -> void:
 	for entry: Button in [audio_settings_button, hud_settings_button]:
 		if is_instance_valid(entry):
 			MenuTextScale.apply(entry, _menu_text_scale)
-	for panel: Control in [screen, game_menu_page, practice_tuning_overlay, practice_world_overlay, practice_target_overlay, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
+	for panel: Control in [screen, game_menu_page, practice_tuning_overlay, practice_world_overlay, practice_target_overlay, practice_item_overlay, results_panel, reconnect_panel, audio_settings, hud_settings, game_settings, settings_hub, video_settings]:
 		if is_instance_valid(panel) and panel.has_method("apply_text_scale"):
 			panel.apply_text_scale(_menu_text_scale)
 	combat_hud.apply_accessibility(value.text_scale, value.palette, value.high_contrast)
@@ -929,24 +938,40 @@ func _spawn_practice_npc() -> void:
 	if is_instance_valid(camera) and camera.is_inside_tree():
 		session.practice_spawn_npc(camera.global_position, -camera.global_basis.z)
 
+## World panel Spawn item (#105): an item pickup where the crosshair points.
+func _spawn_practice_item() -> void:
+	var camera: Camera3D = preview.aim_camera()
+	if is_instance_valid(camera) and camera.is_inside_tree():
+		session.practice_spawn_pickup(camera.global_position, -camera.global_basis.z)
+
 ## Target panel (#97): while the world panel shows, the selected NPC gets the
 ## target card, a red outline and the camera turning toward it. Clicking an
 ## NPC selects it (_pick_practice_target) and clicking it again clears the
 ## selection; looking at one does nothing.
 ## Closing the world panel, removing the NPC or possessing it clears it too.
+## A selected item pickup (#105) gets the item card and the camera turn
+## instead; collecting, removing or clearing it clears the selection.
 func _update_practice_target() -> void:
 	if not practice_world_overlay.visible:
 		if not _practice_world_open:
 			_practice_target = 0
+			_practice_item = -1
 		_show_practice_target(false)
 		return
 	if session.practice_npc(_practice_target) == null:
 		_practice_target = 0
+	if _practice_target != 0 or not session.practice_pickup(_practice_item).get("available", false):
+		_practice_item = -1
 	_show_practice_target(_practice_target != 0)
 
-## The target's card, the camera turn and the red outline.
+## The target's card, the camera turn and the red outline; or the item's card
+## and the camera turn.
 func _show_practice_target(shown: bool) -> void:
 	practice_target_overlay.visible = shown
+	var item := session.practice_pickup(_practice_item) if practice_world_overlay.visible else {}
+	practice_item_overlay.visible = not item.is_empty()
+	if not item.is_empty():
+		practice_item_overlay.render(session, _practice_item)
 	var npc: MvpBot = session.practice_npc(_practice_target) if shown else null
 	if shown:
 		var tuning := session.practice_tuning()
@@ -957,7 +982,7 @@ func _show_practice_target(shown: bool) -> void:
 		if session.practice_npc(id) == null:
 			preview.practice_hitbox_overrides.erase(id)
 	var alive := npc != null and not npc.combat.eliminated
-	preview.rig.look_target = npc.body.global_position if alive else null
+	preview.rig.look_target = npc.body.global_position if alive else (item.point if not item.is_empty() else null)
 	# No outline on a wreck; it returns when the NPC respawns.
 	practice_target_outline.show_on(npc if alive else null)
 
@@ -976,23 +1001,34 @@ func _single_out_hitboxes(entity: int, on: bool) -> void:
 ## A free-cursor click on an NPC while the world panel shows selects it, or
 ## clears the selection when it is already the target. While the tuning panel
 ## shows instead, it closes that and opens the world panel with the NPC
-## selected. True takes the click.
+## selected. An item pickup (#105) is picked the same way, for the item card.
+## True takes the click.
 func _pick_practice_target(position: Vector2) -> bool:
 	if not practice_world_overlay.visible and not practice_tuning_overlay.visible:
 		return false
 	var camera: Camera3D = preview.aim_camera()
 	if not is_instance_valid(camera) or not camera.is_inside_tree():
 		return false
-	var picked: int = session.practice_npc_at(camera.project_ray_origin(position), camera.project_ray_normal(position))
-	if picked == 0:
+	var origin := camera.project_ray_origin(position)
+	var direction := camera.project_ray_normal(position)
+	# An item pickup (#105) counts only in front of any bot or wall.
+	var item: int = session.practice_pickup_at(origin, direction)
+	var picked: int = session.practice_npc_at(origin, direction) if item < 0 else 0
+	if picked == 0 and item < 0:
 		return false
 	if not practice_world_overlay.visible:
 		_practice_tuning_open = false
 		_practice_world_open = true
 		_practice_target = picked
+		_practice_item = item
 		_update_practice_tuning_overlay()
 		return true
-	_practice_target = 0 if picked == _practice_target else picked
+	if item >= 0:
+		_practice_target = 0
+		_practice_item = -1 if item == _practice_item else item
+	else:
+		_practice_item = -1
+		_practice_target = 0 if picked == _practice_target else picked
 	return true
 
 func _update_world_markers() -> void:

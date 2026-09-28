@@ -382,10 +382,10 @@ func practice_clear_npcs() -> int:
 
 ## The ray a world-panel action casts from origin along direction: at most
 ## duel.spawn.reach metres, never stopped by the player's own bot.
-func _practice_ray(origin: Vector3, direction: Vector3) -> PhysicsRayQueryParameters3D:
+func _practice_ray(origin: Vector3, direction: Vector3,
+		mask := BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER) -> PhysicsRayQueryParameters3D:
 	var ray := PhysicsRayQueryParameters3D.create(origin,
-		origin + direction.normalized() * ARENA_SPAWNS.settings().duel_spawn_reach,
-		BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER)
+		origin + direction.normalized() * ARENA_SPAWNS.settings().duel_spawn_reach, mask)
 	var player: MvpBot = world.bots.get(local_entity)
 	if player != null:
 		ray.exclude = [player.body.get_rid()]
@@ -403,6 +403,75 @@ func practice_spawn_npc(origin: Vector3, direction: Vector3) -> int:
 	_next_entity += 1
 	practice_director.spawn_npc(id, hit.position if not hit.is_empty() else ray.to, direction)
 	return id
+
+## World panel Spawn item (#105): an item pickup where the ray from origin
+## along direction first meets the arena, or on the floor below the ray's end
+## when it meets nothing. Returns the item's id, or -1 outside practice or with
+## no floor there.
+func practice_spawn_pickup(origin: Vector3, direction: Vector3) -> int:
+	if practice_tuning() == null or direction.is_zero_approx():
+		return -1
+	var space := world.get_world_3d().direct_space_state
+	var ray := _practice_ray(origin, direction, BaselineConfig.WORLD_LAYER)
+	var hit := space.intersect_ray(ray)
+	if hit.is_empty():
+		hit = space.intersect_ray(PhysicsRayQueryParameters3D.create(ray.to,
+			ray.to + Vector3.DOWN * ARENA_SPAWNS.settings().duel_spawn_reach, BaselineConfig.WORLD_LAYER))
+	if hit.is_empty():
+		return -1
+	return world.pickups.add(hit.position)
+
+## World panel Clear items (#105): removes every item pickup; returns how many.
+func practice_clear_pickups() -> int:
+	if practice_tuning() == null:
+		return 0
+	var count := world.pickups.items.size()
+	for item: Dictionary in world.pickups.items.duplicate():
+		world.pickups.remove(item.id)
+	return count
+
+## Item card (#105): the available item whose light column the ray from origin
+## along direction passes within duel.spawn.item_pick_radius of, before the
+## ray meets the arena or a bot; the nearest such. -1 when there is none.
+func practice_pickup_at(origin: Vector3, direction: Vector3) -> int:
+	if practice_tuning() == null or direction.is_zero_approx():
+		return -1
+	var ray := _practice_ray(origin, direction)
+	var hit := world.get_world_3d().direct_space_state.intersect_ray(ray)
+	var limit := origin.distance_to(ray.to if hit.is_empty() else hit.position)
+	var along := direction.normalized()
+	var radius := ARENA_SPAWNS.settings().duel_item_pick_radius
+	var best := -1
+	var best_distance := INF
+	for item: Dictionary in world.pickups.items:
+		if not item.available:
+			continue
+		var closest := Geometry3D.get_closest_points_between_segments(origin, origin + along * limit,
+			item.point, item.point + Vector3.UP * MatchPickups.REACH_UP)
+		var distance := origin.distance_to(closest[0])
+		if closest[0].distance_to(closest[1]) <= radius and distance < best_distance:
+			best = item.id
+			best_distance = distance
+	return best
+
+## Item card (#105): the item pickup with this id ({id, point, kind, part,
+## amount, available}), else {}.
+func practice_pickup(id: int) -> Dictionary:
+	if practice_tuning() == null:
+		return {}
+	return world.pickups.find(id)
+
+## Item card (#105): what an item can be, each {kind, part, amount}.
+func practice_pickup_choices() -> Array[Dictionary]:
+	if practice_tuning() == null:
+		return []
+	return world.pickups.choices()
+
+func practice_set_pickup(id: int, choice: Dictionary) -> bool:
+	return practice_tuning() != null and world.pickups.set_contents(id, choice)
+
+func practice_remove_pickup(id: int) -> bool:
+	return practice_tuning() != null and world.pickups.remove(id)
 
 ## Every NPC hunts the player (true) or keeps its idle behaviour.
 func practice_set_npcs_aggressive(aggressive: bool) -> void:

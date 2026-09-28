@@ -39,6 +39,11 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
   credit, timers, and its core, plate and battery fractions. The component in the *changed* slot arrives
   intact: a new weapon, new drive pods or new plates. A taller body is lifted clear of the floor.
 - Practice shows pickups and the feed says rewards are not banked. Practice never pays credits.
+- The Practice F1 world panel (#105) spawns an item where the crosshair meets the arena (`Spawn item`)
+  and removes every item (`Clear items`). Clicking an item opens the item card: its dropdown sets the
+  contents (`MatchPickups.set_contents`), which the item keeps through respawns, and a red Remove deletes
+  it. The click picks an item whose light column its ray passes within `duel.spawn.item_pick_radius`
+  (data/arena_spawns.json) of, in front of any bot or wall. Offline practice authority only.
 
 ## Presentation
 
