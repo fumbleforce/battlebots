@@ -861,6 +861,8 @@ func _process(_delta: float) -> void:
 	get_tree().call_group(&"bot_action_audio", &"set_playback_enabled",
 		hud_allowed and phase in ["active", "overtime"] and local_view != null)
 	world_markers.visible = combat_hud.visible
+	if impact_feedback.damage_numbers != null:
+		impact_feedback.damage_numbers.visible = not preview.hud_hidden
 	# Read presentation poses after child bot smoothing has advanced this frame.
 	_update_world_markers.call_deferred()
 	var opponent: BotView
@@ -1204,7 +1206,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	_update_practice_tuning_overlay()
 
 ## Alt+Z (toggle_hud, #103) hides or shows the in-game HUD, the world name and
-## health badges and the turret crosshair while a match shows; menus, the held
+## health badges, damage numbers and the turret crosshair while a match shows; menus, the held
 ## scoreboard and the F1/F2 practice panels are unaffected. Leaving the match
 ## shows the HUD again.
 func _toggle_hud() -> void:

@@ -34,6 +34,12 @@ func run() -> void:
 	rig.fly(Vector3(0, 0, -10), 1.0)
 	await process_frame
 	check(rig.camera.global_position.distance_to(eye + Vector3(0, 0, -10)) < 0.05, "Flies along its heading (%s)" % str(rig.camera.global_position))
+	# Q / E (#104): straight up in the world even while looking down.
+	rig.pitch = deg_to_rad(60.0)
+	var before := rig.free_position
+	rig.fly(Vector3.ZERO, 1.0, 5.0)
+	check(rig.free_position.distance_to(before + Vector3(0, 5, 0)) < 0.001, "Rise goes straight up")
+	check(InputMap.has_action(&"free_camera_up") and InputMap.has_action(&"free_camera_down"), "Project declares Q / E free camera actions")
 	rig.orbit(Vector2(0, 100000))
 	check(rig.pitch > deg_to_rad(80.0), "Looks straight down in free flight")
 	rig.set_free_flight(false)

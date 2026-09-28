@@ -1699,7 +1699,18 @@ New `project.godot` input action `toggle_hud` (Alt+Z, matched exactly). It is
 fixed, not part of `InputPreferences`, whose rebinding rejects key
 combinations. While a match shows, it hides or shows the match and combat HUD
 (with everything on the combat canvas), the `BotWorldMarkers` name and health
-badges, and the turret crosshair and mortar path (`BaselinePreview.hud_hidden`).
+badges, the floating damage numbers, and the turret crosshair and mortar path
+(`BaselinePreview.hud_hidden`).
 Menus, the held scoreboard, the F1/F2 practice panels, gameplay audio and
 controls are unaffected; leaving the match shows the HUD again. No gameplay or
+wire change.
+
+
+## Free camera straight up / down — presentation only (#104)
+
+New fixed `project.godot` input actions `free_camera_up` (Q) and
+`free_camera_down` (E), not part of `InputPreferences`. In free flight they move
+the camera straight up / down in world space (`BotOrbitCamera.fly` takes an
+optional `rise` in m/s); Space / Ctrl keep their view-relative up / down. Q is
+still the (unused) ping default, which is inactive while flying. No gameplay or
 wire change.

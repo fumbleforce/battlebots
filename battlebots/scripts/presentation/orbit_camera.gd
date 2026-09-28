@@ -136,9 +136,10 @@ func set_free_flight(on: bool) -> void:
 		recenter()
 
 ## Move the free camera by local velocity (x right, y up, -z ahead) for delta s.
-func fly(velocity: Vector3, delta: float) -> void:
+## velocity is along the view; rise (m/s) is straight up in the world (#104).
+func fly(velocity: Vector3, delta: float, rise := 0.0) -> void:
 	if free_flight:
-		free_position += Basis.from_euler(Vector3(-pitch, yaw, 0.0)) * velocity * delta
+		free_position += (Basis.from_euler(Vector3(-pitch, yaw, 0.0)) * velocity + Vector3.UP * rise) * delta
 
 func update_camera(delta: float) -> void:
 	if free_flight:

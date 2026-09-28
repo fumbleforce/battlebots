@@ -48,11 +48,13 @@ func run() -> void:
 	game._unhandled_input(alt_z(true))
 	await frames()
 	check(not game.combat_hud.visible and not game.match_hud.visible and not game.world_markers.visible
-		and not game.preview.turret_reticle.visible, "Alt+Z hides the HUD, world badges and crosshair")
+		and not game.preview.turret_reticle.visible and not game.impact_feedback.damage_numbers.visible,
+		"Alt+Z hides the HUD, world badges, damage numbers and crosshair")
 	check(game.gameplay_input_allowed(), "A hidden HUD keeps driving")
 	game._unhandled_input(alt_z(true))
 	await frames()
-	check(game.combat_hud.visible and game.match_hud.visible and game.world_markers.visible, "Alt+Z again shows the HUD")
+	check(game.combat_hud.visible and game.match_hud.visible and game.world_markers.visible
+		and game.impact_feedback.damage_numbers.visible, "Alt+Z again shows the HUD")
 	game._unhandled_input(alt_z(true))
 	await frames()
 	game.return_to_main()

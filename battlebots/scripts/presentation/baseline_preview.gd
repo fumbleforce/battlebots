@@ -538,7 +538,7 @@ func _process(delta: float) -> void:
 			input_preferences.label_for(&"primary"), input_preferences.label_for(&"secondary")]
 
 	if controls_enabled and rig.free_flight:
-		hint.text = ("FREE CAMERA  %d m/s  |  %s%s%s%s  Fly  |  %s / %s  Up / down  |  Wheel  Speed  |  %s  Boost  |  %s  Back to bot" % [
+		hint.text = ("FREE CAMERA  %d m/s  |  %s%s%s%s  Fly  |  %s / %s  Up / down  |  Q / E  Straight up / down  |  Wheel  Speed  |  %s  Boost  |  %s  Back to bot" % [
 			roundi(free_camera_speed),
 			input_preferences.label_for(&"drive_forward"), input_preferences.label_for(&"steer_left"),
 			input_preferences.label_for(&"drive_reverse"), input_preferences.label_for(&"steer_right"),
@@ -643,7 +643,9 @@ func _fly_free_camera(delta: float) -> void:
 		_action_strength(&"jump") - _action_strength(&"crouch"),
 		_action_strength(&"drive_reverse") - _action_strength(&"drive_forward"))
 	var speed := free_camera_speed * (FREE_CAMERA_BOOST if _action_strength(&"nitro") > 0.5 else 1.0)
-	rig.fly(move.limit_length(1.0) * speed, delta)
+	# Q / E (#104) rise and sink straight up and down, whatever the view pitch.
+	var rise := _action_strength(&"free_camera_up") - _action_strength(&"free_camera_down")
+	rig.fly(move.limit_length(1.0) * speed, delta, rise * speed)
 
 ## Whether position lies on a visible cursor panel (#94, #97).
 func _over_cursor_panel(position: Vector2) -> bool:
