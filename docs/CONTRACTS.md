@@ -1149,7 +1149,7 @@ shape and transform handed to the physics query, last sample of the tick), with
 `practice_tuning.gd` `debug_area`; `PracticeDebugDraw` draws it see-through,
 white, or red when the check struck (or, for a running weapon, touches) an
 enemy. A ram punch and spear thrust record every tick of the stroke; the lifter
-and ramp record their launch; the saw, grinder drum and spinners record every
+and ramp record their launch (the ramp as the one box around its flip); the saw, grinder drum and spinners record every
 tick they run as one mark that follows them. A tuned Area of effect grows a
 melee weapon's check volume by that many metres on every side
 (`CombatWorld._grow`), keeping its shape, and these weapons no longer splash
@@ -1913,13 +1913,16 @@ volumes. Guns and the Practice NPC models have none.
   47th field, `weapon_solid` (bool), hence protocol 18. Clients apply it and
   never judge clearance from their own delayed poses.
 
-## Ramp flip checks the plate's whole swing; the hammer is a 1 m sphere on every body — build mvp-ab-70 (#111)
+## Ramp dips, then flips; hammer is a 1 m sphere at its striking plate; vertical spinner checks its rotor — build mvp-ab-71 (#111)
 
 The Ramp (`ramp` part, kind `lifter`) stays a solid wedge a hull can ride up
 (#112). On the launch tick `CombatWorld._sweep` now samples the plate volume
 (`SawbladeGeometry.ramp_volume`) at every angle from where the charge held it
 (`ramp_angle(charge, false)`) up to `RAMP_LAUNCH_ANGLE`, instead of only at the
-launch angle. A hull riding the outer part of the plate, which the plate at its
+launch angle. Since build mvp-ab-71 charging dips the plate instead of raising
+it, as the Lifter lowers its fork: `RAMP_LOAD_ANGLE` is the small negative
+angle that puts the plate's leading edge on the floor (it rests 0.0645 source
+metres above it), and the release flips it up from there. A hull riding the outer part of the plate, which the plate at its
 launch angle never touched, is thrown with the lifter's launch hit (same
 damage, knock-back and flip). There is no separate volume ahead of the Ramp,
 and the Lifter and every other weapon are unchanged. No wire change; the build
@@ -1931,3 +1934,18 @@ body, along each body's existing swing path. Before, the plain hammer (standard
 bodies, Atlas) swept a 0.2 x bot scale sphere and the Sawblade and Scorpion
 hammers swept boxes of their own sizes. Damage, knock-back and timing are
 unchanged.
+
+Also in build mvp-ab-71:
+
+- **Ramp launch volume.** The launch checks one box, axis-aligned in the body
+  frame, around everything the plate passes through from the dip to the launch
+  angle (`SawbladeGeometry.ramp_swing_volume`), in place of the per-angle plate
+  samples of mvp-ab-68..70.
+- **Hammer impact point.** The hit sphere follows the middle of the head's
+  striking plate (its underside, `CombatWorld._hammer_face`) down the swing
+  instead of the head's centre, on every body. The shared hammer's head is
+  posed and sized as `scenes/bots/weapon_visual.gd` draws it (the Scorpion
+  fore arm and head laid along the arm).
+- **Vertical spinner.** It checks its own rotor, a disc of
+  `VERTICAL_SPINNER_RADIUS` and `VERTICAL_SPINNER_WIDTH` (times bot scale) on
+  its axle, in place of the lifter's front box (80% of the hull's width).

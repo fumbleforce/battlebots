@@ -699,7 +699,7 @@ func run() -> void:
 	# for 1.5 s, let go, and wait out its cooldown. Cases: part, Atlas body, mark
 	# shape, hit kind.
 	for case: Array in [["saw", false, "cylinder", "saw"], ["lifter", false, "box", "lifter"], ["ramp", false, "box", "lifter"],
-			["vertical_spinner", false, "box", "vertical_spinner"], ["horizontal_spinner", false, "cylinder", "horizontal_spinner"],
+			["vertical_spinner", false, "cylinder", "vertical_spinner"], ["horizontal_spinner", false, "cylinder", "horizontal_spinner"],
 			["battering_ram", true, "box", "ram_punch"], ["spear_fork", true, "box", "spear"], ["grinder_drum", true, "cylinder", "grinder"],
 			["battering_ram", false, "box", "ram_punch"], ["spear_fork", false, "box", "spear"], ["grinder_drum", false, "cylinder", "grinder"]]:
 		var melee_build := session.registry.atlas() if case[1] else session.registry.starter()
@@ -753,9 +753,10 @@ func run() -> void:
 			# the plate. Its flip checks the plate's whole swing from the loaded angle
 			# to the launch angle, so a hull over the far half of the loaded plate,
 			# which the launch pose alone never reaches, is thrown too.
-			check(miss_marks.size() > 2 and miss_marks.all(func(m: Dictionary) -> bool: return m.box.is_equal_approx(last.box))
-				and not (miss_marks[0].basis as Basis).is_equal_approx(last.basis), "A Ramp flip marks its plate at every angle it checked (%d)" % miss_marks.size())
-			var plate_size: Vector3 = last.box
+			var swing: Array = SawbladeGeometry.ramp_swing_volume(wielder.loadout, wielder.combat.stats.size, SawbladeGeometry.RAMP_LOAD_ANGLE, SawbladeGeometry.RAMP_LAUNCH_ANGLE)
+			check(miss_marks.size() == 1 and (last.box as Vector3).distance_to(swing[1]) < 0.1 and (last.basis as Basis).is_equal_approx(wielder.body.global_basis),
+				"A Ramp flip marks one box around its plate's swing (%d marks, %s vs %s)" % [miss_marks.size(), last.box, swing[1]])
+			var plate_size: Vector3 = SawbladeGeometry.ramp_volume(wielder.loadout, wielder.combat.stats.size, 0.0)[1]
 			var loaded: Transform3D = wielder.body.global_transform * (SawbladeGeometry.ramp_volume(wielder.loadout, wielder.combat.stats.size, SawbladeGeometry.RAMP_LOAD_ANGLE)[0] as Transform3D)
 			# Front face over the plate a little past its middle, underside just above its raised tip.
 			var tip: Vector3 = loaded * Vector3(0.0, plate_size.y * 0.5, -plate_size.z * 0.5)
@@ -765,12 +766,15 @@ func run() -> void:
 			var weapons: CombatWorld = session.world.weapons
 			wielder.combat.charge = 1.0
 			wielder.combat.launch = false
-			check(not weapons._sweep(wielder).has(dummy.body.get_instance_id()), "A hull held just over the loaded plate is clear of it (target at %s, tip %s)" % [dummy.body.global_position, tip])
+			check(not weapons._sweep(wielder).has(dummy.body.get_instance_id()), "A hull held just over the dipped plate is clear of it (target at %s, tip %s)" % [dummy.body.global_position, tip])
 			wielder.combat.launch = true
 			check(weapons._sweep(wielder).has(dummy.body.get_instance_id()), "The flip reaches a hull riding the plate")
 			var end_pose := PhysicsShapeQueryParameters3D.new()
-			end_pose.shape = weapons._sweep_volume[0]
-			end_pose.transform = wielder.body.global_transform * (weapons._sweep_volume[1] as Transform3D)
+			var flipped: Array = SawbladeGeometry.ramp_volume(wielder.loadout, wielder.combat.stats.size, SawbladeGeometry.RAMP_LAUNCH_ANGLE)
+			var flipped_plate := BoxShape3D.new()
+			flipped_plate.size = flipped[1]
+			end_pose.shape = flipped_plate
+			end_pose.transform = wielder.body.global_transform * (flipped[0] as Transform3D)
 			end_pose.collision_mask = BaselineConfig.BOT_LAYER
 			end_pose.exclude = [wielder.body.get_rid()]
 			check(wielder.body.get_world_3d().direct_space_state.intersect_shape(end_pose, 16).all(

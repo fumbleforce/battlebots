@@ -135,7 +135,7 @@ func run() -> void:
 		[Vector3(2, 10, -2) * BotScale.FACTOR, "Outside the narrow hammer arc"],
 		[Vector3(0, 10, -3.4) * BotScale.FACTOR, "Beyond forward reach"],
 		[Vector3(0, 12.5, -2) * BotScale.FACTOR, "Above maximum head height"],
-		[Vector3(0, 8.8, -2) * BotScale.FACTOR, "Below completed swing"],
+		[Vector3(0, 8.2, -2) * BotScale.FACTOR, "Below completed swing"],
 	]:
 		await reset_case(item[0])
 		expect_miss(item[1])

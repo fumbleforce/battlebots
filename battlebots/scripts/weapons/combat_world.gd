@@ -15,8 +15,6 @@ var _sweep_origins: Dictionary = {}
 ## The last query of the last _sweep(): [shape, transform in the bot's frame],
 ## for the Practice Duel impact marks (#111).
 var _sweep_volume: Array = []
-## Every plate transform (bot frame) a flipping Ramp's _sweep() sampled.
-var _sweep_swing: Array[Transform3D] = []
 var _hammer_hits: Dictionary = {}
 var _saw_contacts: Dictionary = {}
 var _saw_last_tick := -1
@@ -321,22 +319,27 @@ func _far_wall_contact(victim: MvpBot, direction: Vector3) -> Array:
 func _sweep(bot: MvpBot) -> Array:
 	_sweep_origins.clear()
 	_sweep_volume = []
-	_sweep_swing.clear()
 	if bot.combat.stats.weapon == "horizontal_spinner":
 		return _horizontal_sweep(bot)
 	if bot.combat.stats.weapon == "hammer":
 		return _hammer_sweep(bot)
 	if bot.combat.stats.weapon == "saw":
 		return _saw_sweep(bot)
+	if bot.combat.stats.weapon == "vertical_spinner":
+		return _vertical_sweep(bot)
 	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
 	if bot.loadout.parts.weapon == "ramp":
-		# The Ramp's own plate on whichever body carries it (#108).
-		var volume := SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size,
-			SawbladeGeometry.ramp_angle(bot.combat.charge, bot.combat.launch or bot.combat.cooldown > 2.7))
+		# The Ramp's own plate on whichever body carries it (#108). Its flip swings
+		# the plate up from where the charge dipped it, so the launch checks one
+		# box around that whole swing and throws whatever rides the plate (#111).
+		var plate := SawbladeGeometry.ramp_angle(bot.combat.charge, false)
+		var volume := SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size, plate)
+		if bot.combat.launch:
+			volume = SawbladeGeometry.ramp_swing_volume(bot.loadout, bot.combat.stats.size, plate, SawbladeGeometry.RAMP_LAUNCH_ANGLE)
 		local = volume[0]
 		shape.size = volume[1]
 	_grow(bot, shape)
@@ -344,25 +347,47 @@ func _sweep(bot: MvpBot) -> Array:
 	var start := bot.previous_pose * local
 	var finish := bot.body.global_transform * local
 	var distance := start.origin.distance_to(finish.origin)
-	# The Ramp's flip swings its plate up from where the charge held it. The
-	# launch checks that whole swing, not only where the plate ends, so it throws
-	# whatever rides the plate, as the Lifter throws what stands at its fork (#111).
-	var flipping: bool = bot.loadout.parts.weapon == "ramp" and bot.combat.launch
-	var loaded := SawbladeGeometry.ramp_angle(bot.combat.charge, false)
-	if flipping:
-		distance += (SawbladeGeometry.RAMP_LAUNCH_ANGLE - loaded) * shape.size.z
 	var steps := clampi(ceili(distance / 0.15) + 2, 2, 32)
 	var found: Array = []
 	for index: int in range(steps):
-		var fraction := float(index) / (steps - 1)
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
-		query.transform = start.interpolate_with(finish, fraction)
-		if flipping:
-			var plate: Transform3D = SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size,
-				lerpf(loaded, SawbladeGeometry.RAMP_LAUNCH_ANGLE, fraction))[0]
-			_sweep_swing.append(plate)
-			query.transform = bot.previous_pose.interpolate_with(bot.body.global_transform, fraction) * plate
+		query.transform = start.interpolate_with(finish, float(index) / (steps - 1))
+		query.collision_mask = BaselineConfig.BOT_LAYER
+		query.exclude = [bot.body.get_rid()]
+		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
+			if not found.has(hit.collider_id):
+				found.append(hit.collider_id)
+	return found
+
+## The vertical spinner's rotor as drawn (scenes/bots/weapon_visual.gd), before
+## bot scale: the disc its cross bars sweep, its width, and its axle above and
+## ahead of the hull's front face.
+const VERTICAL_SPINNER_RADIUS := 0.425
+const VERTICAL_SPINNER_WIDTH := 0.23
+const VERTICAL_SPINNER_AXLE := Vector2(0.14, 0.1)
+
+## The vertical spinner checks its own rotor, not the lifter's wide box (#111).
+func _vertical_sweep(bot: MvpBot) -> Array:
+	var linear_scale := BotScale.from_size(bot.combat.stats.size)
+	var shape := CylinderShape3D.new()
+	shape.radius = VERTICAL_SPINNER_RADIUS * linear_scale
+	shape.height = VERTICAL_SPINNER_WIDTH * linear_scale
+	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, VERTICAL_SPINNER_AXLE.x * linear_scale,
+		-bot.combat.stats.size.z * 0.5 - VERTICAL_SPINNER_AXLE.y * linear_scale))
+	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
+	_grow(bot, shape)
+	_sweep_volume = [shape, local]
+	var start := bot.previous_pose
+	var finish := bot.body.global_transform
+	var angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
+	var travel := start.origin.distance_to(finish.origin) + angle * (local.origin.length() + shape.radius)
+	var steps := clampi(ceili(travel / 0.1) + 2, 2, 64)
+	var found: Array = []
+	for index: int in range(steps):
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = shape
+		query.transform = start.interpolate_with(finish, float(index) / (steps - 1)) * local
 		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [bot.body.get_rid()]
 		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
@@ -449,8 +474,7 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 	for index: int in range(steps):
 		var fraction := float(index) / (steps - 1)
 		var pose := start.interpolate_with(finish, fraction)
-		var angle := lerpf(PI / 2.0, HAMMER_STRIKE_ANGLE, fraction)
-		var head := pivot + Basis(Vector3.RIGHT, angle) * arm
+		var head := _hammer_face(bot, fraction)
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
 		query.transform = Transform3D(Basis.IDENTITY, pose * head)
@@ -462,7 +486,9 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 				_sweep_origins[hit.collider_id] = query.transform.origin
 	return found
 
-## Arm length (before bot scale) and the swing end angle of the plain hammer.
+## Arm length (before bot scale) and the swing end angle of the plain hammer;
+## the Sawblade hammer head's box in its model's metres.
+const SAWBLADE_HAMMER_HEAD := Vector3(0.82, 0.405, 0.38)
 const HAMMER_ARM := 1.2
 const HAMMER_STRIKE_ANGLE := -PI / 6.0
 
@@ -473,16 +499,44 @@ func _hammer_pivot(bot: MvpBot) -> Vector3:
 	return Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15 * linear_scale) \
 		+ NimbleBots.hammer_socket(bot.loadout)
 
-## Where the hammer head lands at the strike, in world space.
-func _hammer_head(bot: MvpBot) -> Vector3:
+## The hammer head (its centre and axes, in the bot's frame) at a fraction 0..1
+## of its swing, on whichever body carries it. The shared hammer is the
+## Scorpion's fore arm and head laid along the arm (scenes/bots/weapon_visual.gd,
+## #109), so its head is tilted and sized as it is drawn there.
+func _hammer_pose(bot: MvpBot, fraction: float) -> Transform3D:
 	var size: Vector3 = bot.combat.stats.size
-	var pose := bot.body.global_transform
 	if ScorpionGeometry.enabled(bot.loadout):
-		return (pose * ScorpionGeometry.hammer_transform(size, 1.0)).origin
+		return ScorpionGeometry.hammer_transform(size, fraction)
 	if SawbladeConfig.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout):
-		return pose * SawbladeGeometry.hammer_center(size, SawbladeGeometry.HAMMER_SWING)
-	var arm := Vector3(0, 0, -HAMMER_ARM * BotScale.from_size(size))
-	return pose * (_hammer_pivot(bot) + Basis(Vector3.RIGHT, HAMMER_STRIKE_ANGLE) * arm)
+		var swing := SawbladeGeometry.HAMMER_SWING * fraction
+		return Transform3D(Basis(Vector3.RIGHT, swing - SawbladeGeometry.HAMMER_SWING), SawbladeGeometry.hammer_center(size, swing))
+	var arm := ScorpionGeometry.HEAD_CENTER - ScorpionGeometry.TAIL_FORE
+	var turn := Basis(Vector3.RIGHT, lerpf(PI / 2.0, HAMMER_STRIKE_ANGLE, fraction))
+	return Transform3D(turn * Basis(Vector3.RIGHT, atan(arm.y / arm.z)),
+		_hammer_pivot(bot) + turn * Vector3(0, 0, -HAMMER_ARM * BotScale.from_size(size)))
+
+## Half the height of the head, from its centre to its striking plate, at game
+## scale.
+func _hammer_drop(bot: MvpBot) -> float:
+	var size: Vector3 = bot.combat.stats.size
+	if ScorpionGeometry.enabled(bot.loadout):
+		return ScorpionGeometry.HEAD_SIZE.y * 0.5 * BotScale.from_size(size)
+	if SawbladeConfig.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout):
+		return SAWBLADE_HAMMER_HEAD.y * 0.5 * SawbladeGeometry.scale_for(size).y
+	return ScorpionGeometry.HEAD_SIZE.y * 0.5 * BotScale.from_size(size) \
+		* HAMMER_ARM / (ScorpionGeometry.HEAD_CENTER - ScorpionGeometry.TAIL_FORE).length()
+
+## Where the head strikes (#111): the middle of its striking plate, the
+## underside of the head, in the bot's frame. The hit sphere follows this point
+## down the swing, so the impact is where the hammer meets its target, not
+## inside the head.
+func _hammer_face(bot: MvpBot, fraction: float) -> Vector3:
+	var pose := _hammer_pose(bot, fraction)
+	return pose.origin - pose.basis.y * _hammer_drop(bot)
+
+## Where the hammer strikes at the end of its swing, in world space.
+func _hammer_head(bot: MvpBot) -> Vector3:
+	return bot.body.global_transform * _hammer_face(bot, 1.0)
 
 ## The radius the head sweeps with: HAMMER_RADIUS on every body. A Practice
 ## Duel area of effect smaller than that shrinks it; a larger one is struck
@@ -536,11 +590,9 @@ func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 	var found: Array = []
 	for index: int in steps:
 		var fraction := float(index) / (steps - 1)
-		var angle := SawbladeGeometry.HAMMER_SWING * fraction
-		var local := Transform3D(Basis(Vector3.RIGHT, angle - SawbladeGeometry.HAMMER_SWING), SawbladeGeometry.hammer_center(size, angle))
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
-		query.transform = start.interpolate_with(finish, fraction) * local
+		query.transform = Transform3D(Basis.IDENTITY, start.interpolate_with(finish, fraction) * _hammer_face(bot, fraction))
 		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [bot.body.get_rid()]
 		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
@@ -567,7 +619,7 @@ func _scorpion_hammer_sweep(bot: MvpBot) -> Array:
 		var fraction := float(index) / (steps - 1)
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
-		query.transform = start.interpolate_with(finish, fraction) * ScorpionGeometry.hammer_transform(size, fraction)
+		query.transform = Transform3D(Basis.IDENTITY, start.interpolate_with(finish, fraction) * _hammer_face(bot, fraction))
 		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [bot.body.get_rid()]
 		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
@@ -1414,11 +1466,8 @@ func _debug_sweep(attacker: MvpBot, reached: bool, damaged: bool) -> void:
 	var state := attacker.combat
 	match state.stats.weapon:
 		"lifter":
-			if state.launch and _sweep_swing.is_empty():
+			if state.launch:
 				_debug_volume(attacker, _sweep_volume[0], _sweep_volume[1], damaged)
-			# A flipping Ramp checked its plate at every one of these angles.
-			for plate: Transform3D in _sweep_swing:
-				_debug_volume(attacker, _sweep_volume[0], plate, damaged)
 		_:
 			_debug_volume(attacker, _sweep_volume[0], _sweep_volume[1], reached, state.stats.weapon)
 

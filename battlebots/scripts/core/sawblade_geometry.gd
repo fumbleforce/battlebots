@@ -31,8 +31,11 @@ const SAW_BRACKET_OFFSET := Vector3(0, -0.03, 0.18)
 const RAMP_HINGE := Vector3(0, 0.36, -0.30)
 const RAMP_PLATE_CENTER := Vector3(0, -0.06, -0.66)
 const RAMP_PLATE_SIZE := Vector3(1.50, 0.50, 1.36)
-## Plate angle (radians) at full charge and while it flips a target.
-const RAMP_LOAD_ANGLE := 0.6981317
+## Plate angle (radians) at full charge and while it flips a target. Charging
+## dips the plate, as the Lifter lowers its fork, before the release flips it
+## up (#111): the load angle is the dip that puts the plate's leading edge
+## (y 0.0645, z -1.63) on the floor, the plane of the hull's underside (y 0).
+const RAMP_LOAD_ANGLE := -0.0488
 const RAMP_LAUNCH_ANGLE := 1.3089969
 ## Gap between the hinge and another body's front face, authoring metres (#108).
 const RAMP_FRONT_GAP := 0.10
@@ -90,6 +93,26 @@ static func ramp_volume(loadout: Dictionary, size: Vector3, angle: float) -> Arr
 	var scale := ramp_scale(loadout, size)
 	var rotation := Basis(Vector3.RIGHT, angle)
 	return [Transform3D(rotation, ramp_hinge(loadout, size) + rotation * (RAMP_PLATE_CENTER * scale)), RAMP_PLATE_SIZE * scale]
+
+## Plate angles sampled for the box around a flip.
+const RAMP_SWING_SAMPLES := 8
+
+## One box around everything the plate passes through as it flips from one
+## angle to another: [transform, size], axis-aligned in the body frame at game
+## scale. The authority checks this box when the Ramp launches (#111).
+static func ramp_swing_volume(loadout: Dictionary, size: Vector3, from_angle: float, to_angle: float) -> Array:
+	var low := Vector3.INF
+	var high := -Vector3.INF
+	for index: int in RAMP_SWING_SAMPLES + 1:
+		var volume := ramp_volume(loadout, size, lerpf(from_angle, to_angle, float(index) / RAMP_SWING_SAMPLES))
+		var plate: Transform3D = volume[0]
+		var half: Vector3 = volume[1] * 0.5
+		for corner: Vector3 in [Vector3(-1, -1, -1), Vector3(-1, -1, 1), Vector3(-1, 1, -1), Vector3(-1, 1, 1),
+				Vector3(1, -1, -1), Vector3(1, -1, 1), Vector3(1, 1, -1), Vector3(1, 1, 1)]:
+			var point := plate * (half * corner)
+			low = low.min(point)
+			high = high.max(point)
+	return [Transform3D(Basis.IDENTITY, (low + high) * 0.5), high - low]
 
 static func hammer_center(size: Vector3, angle: float) -> Vector3:
 	return point(Vector3(0, 0.86, -0.29) + Basis(Vector3.RIGHT, angle) * Vector3(0, 0.63, -0.93), size)
