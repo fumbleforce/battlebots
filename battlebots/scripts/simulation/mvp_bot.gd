@@ -5,8 +5,11 @@ extends BotSource
 const TYRE_SEGMENTS := 24
 const BOT_PART_LOSS := preload("res://scripts/presentation/bot_part_loss.gd")
 const WEAPON_COLLIDERS := preload("res://scripts/core/weapon_colliders.gd")
+const WEAPON_BODY := preload("res://scripts/simulation/weapon_body.gd")
 ## Weapon phases in which a melee weapon is at rest and therefore solid (#112).
 const WEAPON_REST_PHASES := ["idle", "cooldown", "overheated"]
+## What a live hull collides with: the arena, other hulls and their resting weapons.
+const HULL_MASK := BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER | BaselineConfig.WEAPON_LAYER
 const MOUNTED_WEAPONS := preload("res://scripts/presentation/mounted_weapons.gd")
 var entity_id := 0
 var team := 0
@@ -49,10 +52,13 @@ var destruction_visual: BotDestructionVisual
 var part_loss: Node3D
 var nitro_visual: NitroFlameVisual
 var hammer_slam: HammerSlamDetector
-## The primary melee weapon's solid shape on the body (#112,
-## data/weapon_colliders.json); null for a weapon without one.
+## The primary melee weapon's solid shape (#112, data/weapon_colliders.json) and
+## the body that carries it (weapon_body.gd); null for a weapon without one.
 var weapon_collision: CollisionShape3D
+var weapon_body: WEAPON_BODY
 var _weapon_solid_when_active := false
+## Seconds the open weapon has been clear of every other hull.
+var _weapon_clear_seconds := 0.0
 
 static func create(id: int, side: int, build: Dictionary, registry: ContentRegistry) -> MvpBot:
 	var validation := registry.validate(build)
@@ -69,6 +75,7 @@ static func create(id: int, side: int, build: Dictionary, registry: ContentRegis
 func _ready() -> void:
 	body = $Body
 	body.reconciled.connect(_on_reconciled)
+	body.collision_mask = HULL_MASK
 	var stats := combat.stats
 	body.geometry_scale = BotScale.from_size(stats.size)
 	body.mass = stats.mass
@@ -158,7 +165,10 @@ func _ready() -> void:
 		# Open until the first check finds it clear: a spawn, a respawn or a
 		# weapon swap never drops a solid weapon into a neighbour.
 		weapon_collision.disabled = true
-		body.add_child(weapon_collision)
+		weapon_body = WEAPON_BODY.new()
+		weapon_body.name = "WeaponBody"
+		weapon_body.add_child(weapon_collision)
+		body.add_child(weapon_body)
 	# Keep ballast low and resist pitch/roll independently of the yaw motor.
 	# Explicit inertia prevents a tall cosmetic rear pack from making the hull
 	# behave like a top-heavy hollow box. Budget mass and motor power stay intact.
@@ -174,6 +184,8 @@ func _ready() -> void:
 	contact_material.friction = body.hull_friction()
 	contact_material.bounce = 0.0
 	body.physics_material_override = contact_material
+	if weapon_body != null:
+		weapon_body.configure(body)
 	var mesh := BoxMesh.new()
 	mesh.size = stats.size
 	var material := StandardMaterial3D.new()
@@ -281,31 +293,48 @@ func _on_reconciled(displacement: Vector3) -> void:
 	if visual_error.length() >= 2:
 		visual_error = Vector3.ZERO
 
+## True when this bot's resting weapon touches the other bot's hull.
+func weapon_touches(other: MvpBot) -> bool:
+	return weapon_body != null and weapon_body.contacts.has(other.body.get_instance_id())
+
 ## A melee weapon is solid while it rests and lets bodies through while it
 ## works (spinning, charging, striking, holding), so its hit volume can reach
 ## into a target; a destroyed weapon is gone. Only the Sawblade ramp stays solid
-## while active. The server reads its own combat state, clients the replicated
-## one. A weapon that stops (or is placed) inside a bot or the arena turns solid
-## once it is clear, instead of shoving the two apart.
-func _sync_weapon_collision() -> void:
+## while active. An open weapon (working, just spawned or just moved) turns
+## solid only after staying clear of every other hull for clear_seconds, so it
+## never shoves out a hull it stopped inside or closes under one falling past. The server
+## decides and replicates the result (snapshot weapon_solid); a client that
+## judged for itself would disagree whenever its delayed poses did, and its
+## predicted body would fight a weapon the server left open.
+func _sync_weapon_collision(delta := 0.0) -> void:
 	if weapon_collision == null:
 		return
-	var remote := not simulated and not remote_state.is_empty()
-	var phase := str(remote_state.weapon_state) if remote else combat.weapon_phase
-	var charge: float = remote_state.charge if remote else combat.charge
-	var tool_pose: float = remote_state.get("tool_pose", 0.0) if remote else combat.tool_pose
-	var working := charge > 0.0 or tool_pose > 0.0
-	var solid := phase != "disabled" and (_weapon_solid_when_active or (phase in WEAPON_REST_PHASES and not working))
-	if body.reset_pose is Transform3D:
-		# About to be moved: decide again where it lands.
+	weapon_body.follow_hull()
+	if not simulated:
+		_set_weapon_solid(remote_state.get("weapon_solid", false) == true)
+		return
+	var working := combat.charge > 0.0 or combat.tool_pose > 0.0
+	var solid := combat.weapon_phase != "disabled" and (_weapon_solid_when_active or (combat.weapon_phase in WEAPON_REST_PHASES and not working))
+	if body.reset_pose is Transform3D or body.reset_applied:
+		# About to be moved, or just moved (the body applies a reset before this
+		# tick's step): open now, decide again where it landed.
+		body.reset_applied = false
+		_weapon_clear_seconds = 0.0
 		solid = false
 	elif solid and weapon_collision.disabled:
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = weapon_collision.shape
 		query.transform = body.global_transform * weapon_collision.transform
-		query.collision_mask = BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER
+		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [body.get_rid()]
-		solid = body.get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+		var clear := body.get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+		_weapon_clear_seconds = _weapon_clear_seconds + delta if clear else 0.0
+		solid = clear and _weapon_clear_seconds >= WEAPON_COLLIDERS.settings().clear_seconds
+	if not solid and not weapon_collision.disabled:
+		_weapon_clear_seconds = 0.0
+	_set_weapon_solid(solid)
+
+func _set_weapon_solid(solid: bool) -> void:
 	if weapon_collision.disabled == solid:
 		weapon_collision.disabled = not solid
 
@@ -422,7 +451,7 @@ func step(delta: float, active: bool) -> void:
 		command.secondary_held = true # Timeout/disconnect lowers lifter; never synthesize a release attack.
 	combat.tick(delta, command, active)
 	combat.tick_perks(delta, command, active, body.grounded)
-	_sync_weapon_collision()
+	_sync_weapon_collision(delta)
 	command.primary_pressed = false
 	command.recovery_pressed = false
 	var pods := combat.drive_scale()
@@ -482,7 +511,7 @@ func reset_round() -> void:
 	command = BotCommand.new()
 	input_age = 1
 	body.collision_layer = BaselineConfig.BOT_LAYER
-	body.collision_mask = BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER
+	body.collision_mask = HULL_MASK
 	body.freeze = false
 	body.reset_pose = spawn_pose
 	body.sleeping = false

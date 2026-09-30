@@ -20,10 +20,6 @@ func fire(session: MvpSession, target: MvpBot, ticks: int) -> Array[Dictionary]:
 	# Fixture: a bottomless core, so the burst never kills the target.
 	target.combat.stats.core = 1000000.0
 	target.combat.core = 1000000.0
-	# Shots can land on the target's solid lifter fork (#112) and count against
-	# its weapon; the burst must not strip that either.
-	var weapon_hp: float = target.combat.zones.weapon
-	target.combat.zones.weapon = 1000000.0
 	events.clear()
 	for tick: int in ticks:
 		var command := BotCommand.new()
@@ -32,7 +28,6 @@ func fire(session: MvpSession, target: MvpBot, ticks: int) -> Array[Dictionary]:
 		command.primary_pressed = tick == 0
 		session.submit_local(command)
 		await frames(1)
-	target.combat.zones.weapon = weapon_hp
 	var hits: Array[Dictionary] = []
 	for event: Dictionary in events:
 		if event.attacker == session.local_entity and event.target == target.entity_id and event.kind == "minigun":

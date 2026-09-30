@@ -55,10 +55,7 @@ func grounded_case(weapon: String) -> void:
 	check(registry.validate(draft).valid, weapon + " is a legal interchangeable primary")
 	attacker = world.spawn(1, 0, 0, draft)
 	victim = world.spawn(2, 1, 0, registry.starter())
-	# Start at ride height with the target already inside the weapon's reach: a
-	# resting weapon is solid (#112) and one dropped from above would land on the
-	# target. Placed inside it, the weapon stays open, as after a strike.
-	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, WalkerDrive.RIDE_HEIGHT, 4))
+	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 4, 4))
 	victim.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 1, -2.8))
 	primary_held = false
 	primary_edge = false

@@ -1,8 +1,8 @@
 class_name WireCodec
 extends RefCounted
-const PROTOCOL := 17
-const BUILD := "mvp-ab-66"
-const SNAPSHOT_FIELDS := 46
+const PROTOCOL := 18
+const BUILD := "mvp-ab-67"
+const SNAPSHOT_FIELDS := 47
 ## Longest weapon kind name a death record may carry.
 const DEATH_KIND_MAX := 24
 ## Body-frame bound (m) on a death point; the scaled Woodland boss stays inside.
@@ -64,7 +64,9 @@ static func encode_bot(bot: MvpBot, epoch: String) -> PackedByteArray:
 		c.secondary_charge, c.secondary_active, c.shot_sequence,
 		c.last_shot_from, c.last_shot_to, c.last_shot_tick, c.gun_pitch,
 		c.nitro_active, c.jump_charge, c.jump_cooldown, c.turret_yaw, c.grip_target, c.grip_point, c.tool_pose, c.spree, c.in_cooling_zone or c.cooling_boost > 0.0,
-		death_to_array(c.death)])
+		death_to_array(c.death),
+		# Whether the melee weapon's collider is solid (#112): the server decides.
+		bot.weapon_collision != null and not bot.weapon_collision.disabled])
 
 ## The killing blow as [kind, point, axis, force], or [] (see CombatState.death).
 static func death_to_array(death: Dictionary) -> Array:
@@ -121,7 +123,7 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 	if not values[9] is bool or not (values[10] is float or values[10] is int) or not is_finite(float(values[10])) or values[10] < 0.0 or values[10] > CombatState.HEAT_LIMIT:
 		return {}
 	var death: Variant = death_from_array(values[45])
-	if death == null:
+	if death == null or not values[46] is bool:
 		return {}
 	var zones := {}
 	if not values[8] is Array or values[8].size() != ZONES.size():
@@ -140,7 +142,7 @@ static func decode_bot(packet: PackedByteArray, stats: Dictionary) -> Dictionary
 		"last_shot_from":values[32], "last_shot_to":values[33], "last_shot_tick":values[34], "gun_pitch":values[35],
 		"nitro_active":values[36], "jump_charge":values[37], "jump_cooldown":values[38], "turret_yaw":values[39],
 		"grip_target":values[40], "grip_point":values[41], "tool_pose":values[42],
-		"spree":values[43], "cooling":values[44], "death":death}
+		"spree":values[43], "cooling":values[44], "death":death, "weapon_solid":values[46]}
 
 static func read_json(packet: PackedByteArray, limit: int) -> Dictionary:
 	if packet.size() > limit:

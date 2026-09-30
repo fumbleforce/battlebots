@@ -1,7 +1,7 @@
 extends Node3D
 ## Melee weapons are solid at rest (#112): every primary melee weapon carries a
-## collision shape on the bot body, real Jolt bodies stop against it, and it
-## lets them through while the weapon works. Empty space and zero gravity
+## collision shape on the bot's weapon body, real Jolt hulls stop against it,
+## and it lets them through while the weapon works. Empty space and zero gravity
 ## isolate the bot-to-bot contact.
 const WEAPON_COLLIDERS := preload("res://scripts/core/weapon_colliders.gd")
 const ORIGIN := Vector3(0, 10, 0) * BotScale.FACTOR
@@ -43,8 +43,7 @@ func spawn(build: Dictionary, at: Vector3, team := 0, meta := "") -> MvpBot:
 	bot.body.freeze = true
 	bot.body.global_transform = Transform3D(Basis.IDENTITY, at)
 	bot.previous_pose = bot.body.global_transform
-	# The weapon turns solid on the first tick that finds it clear.
-	hold(bot, false)
+	settle(bot)
 	return bot
 
 func with_weapon(build: Dictionary, weapon: String) -> Dictionary:
@@ -66,7 +65,7 @@ func bounds(collider: CollisionShape3D) -> AABB:
 	return collider.transform * local
 
 ## Every melee weapon on every body it mounts on has a collider that adds to
-## the hull and stays off the floor.
+## the hull.
 func verify_catalogue() -> void:
 	var builds: Array[Dictionary] = []
 	for weapon: String in registry.MELEE_WEAPONS:
@@ -76,7 +75,8 @@ func verify_catalogue() -> void:
 		builds.append(with_weapon(registry.atlas(), weapon))
 	builds.append(registry.bracken())
 	builds.append_array(registry.nimble())
-	var at := ORIGIN + Vector3(0, 0, 60)
+	# Inside the arena bounds: a bot outside them is sent back to its last floor.
+	var at := ORIGIN + Vector3(0, 0, 18)
 	var covered := {}
 	for build: Dictionary in builds:
 		# Every body mounts every melee weapon (#108); a build the power budget
@@ -93,9 +93,12 @@ func verify_catalogue() -> void:
 			check(false, label + ": melee weapon has a collider")
 		else:
 			var solid := bounds(collider)
-			check(collider.get_parent() == bot.body and not collider.disabled, label + ": collider is on the body and solid at rest")
+			check(collider.get_parent() == bot.weapon_body and bot.weapon_body.get_parent() == bot.body
+				and bot.weapon_body.transform.is_equal_approx(Transform3D.IDENTITY) and not collider.disabled,
+				label + ": collider is on the weapon body, in the hull's frame, and solid at rest")
+			check(bot.weapon_body.collision_layer == BaselineConfig.WEAPON_LAYER and bot.weapon_body.collision_mask == BaselineConfig.BOT_LAYER,
+				label + ": the weapon body meets bot hulls only")
 			check(not bot.collision_bounds().grow(0.001).encloses(solid), label + ": collider reaches beyond the hull")
-			check(solid.position.y >= -bot.ground_clearance() - 0.001, label + ": collider stays off the floor")
 			check(bot._weapon_solid_when_active == (build.parts.weapon == "ramp"), label + ": only the Sawblade ramp stays solid while active")
 		bot.free()
 	for weapon: String in registry.MELEE_WEAPONS:
@@ -112,11 +115,18 @@ func verify_catalogue() -> void:
 	check(blocked.weapon_collision.disabled, "A weapon about to be moved waits for its new place")
 	blocked.body.reset_pose = null
 	hold(blocked, false)
-	check(not blocked.weapon_collision.disabled, "A clear weapon turns solid")
+	check(blocked.weapon_collision.disabled, "A clear weapon waits before it turns solid")
+	settle(blocked)
+	check(not blocked.weapon_collision.disabled, "A weapon that stayed clear turns solid")
 	blocked.free()
 	var npc := spawn(with_weapon(registry.starter(), "saw"), at, 1, "practice_variant")
 	check(npc.weapon_collision == null, "Practice NPC models keep their own collision")
 	npc.free()
+
+## Rests the weapon for longer than it must stay clear before turning solid.
+func settle(bot: MvpBot) -> void:
+	for index: int in ceili(WEAPON_COLLIDERS.settings().clear_seconds / STEP) + 2:
+		hold(bot, false)
 
 func hold(bot: MvpBot, primary: bool) -> void:
 	var command := BotCommand.new()
@@ -186,8 +196,8 @@ func verify_saw() -> void:
 	victim.body.global_position = ORIGIN + Vector3(0, 0, -lengths - reach - START_GAP)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	hold(attacker, false)
-	check(not attacker.weapon_collision.disabled, "The saw is solid again once it is clear")
+	settle(attacker)
+	check(not attacker.weapon_collision.disabled, "The saw is solid again once it has stayed clear")
 	attacker.combat.zones.weapon = 0.0
 	hold(attacker, false)
 	check(attacker.weapon_collision.disabled, "A destroyed weapon is no longer solid")
@@ -238,24 +248,33 @@ func verify_ramp() -> void:
 	check(lifter.weapon_collision.disabled, "A charging Atlas lifter is not solid")
 	lifter.free()
 
-## Clients follow the replicated weapon state.
+## Clients apply the solidity the server replicates; they never judge it.
 func verify_replica() -> void:
 	var replica := spawn(with_weapon(registry.starter(), "saw"), ORIGIN)
 	replica.simulated = false
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(replica.weapon_collision.disabled, "A replica's weapon is open before its first snapshot")
 	var state := replica.combat.snapshot()
-	state.weapon_state = "active"
-	state.charge = 1.0
+	state.weapon_solid = true
 	replica.remote_state = state
 	# process_frame fires before the bot's own _process in that frame.
 	await get_tree().process_frame
 	await get_tree().process_frame
-	check(replica.weapon_collision.disabled, "A replica's running saw is not solid")
+	check(not replica.weapon_collision.disabled, "A replica's weapon is solid when the server says so")
+	var packet := bytes_to_var(WireCodec.encode_bot(replica, "epoch")) as Array
+	check(packet.size() == WireCodec.SNAPSHOT_FIELDS and packet.back() == true
+		and WireCodec.decode_bot(var_to_bytes(packet), replica.combat.stats).get("weapon_solid") == true, "Snapshots carry the weapon's solidity")
+	packet[packet.size() - 1] = 1
+	check(WireCodec.decode_bot(var_to_bytes(packet), replica.combat.stats).is_empty(), "A snapshot with a malformed solidity is rejected")
 	state = replica.combat.snapshot()
+	state.weapon_solid = false
+	state.weapon_state = "idle"
 	replica.remote_state = state
 	# process_frame fires before the bot's own _process in that frame.
 	await get_tree().process_frame
 	await get_tree().process_frame
-	check(not replica.weapon_collision.disabled, "A replica's resting saw is solid")
+	check(replica.weapon_collision.disabled, "A replica's weapon is open when the server says so, whatever its phase")
 	replica.free()
 
 func run() -> void:

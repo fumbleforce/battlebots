@@ -13,3 +13,6 @@ const HIT_ZONE_LAYER := 4
 ## Destructible arena props (#71) carry this bit on top of WORLD_LAYER, so
 ## weapon queries can find them without sifting terrain contacts.
 const PROP_LAYER := 8
+## Resting melee weapons (#112, scripts/simulation/weapon_body.gd): their own
+## bodies, which meet bot hulls only and which no hit query looks for.
+const WEAPON_LAYER := 16

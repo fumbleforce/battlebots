@@ -81,6 +81,12 @@ var contact_bodies: Array = []
 ## CombatWorld reads them to tell when a rammed hull is pinned against a wall.
 var static_contacts: Array = []
 var reset_pose: Variant = null
+## Set when a reset_pose has just moved the body; MvpBot clears it (#112).
+var reset_applied := false
+## Velocity change that contacts gave this bot's weapon body (#112, weapon_body.gd)
+## since the last step; applied here as the hull's own.
+var weapon_reaction_linear := Vector3.ZERO
+var weapon_reaction_angular := Vector3.ZERO
 var correction: Dictionary = {}
 var _throttle: float = 0.0
 var _steering: float = 0.0
@@ -186,6 +192,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.linear_velocity = Vector3.ZERO
 		state.angular_velocity = Vector3.ZERO
 		reset_pose = null
+		reset_applied = true
 		_drive_input = 0
 		_turn_input = 0
 		_jump_queued = 0.0
@@ -197,11 +204,18 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		gait_crouch = 0.0
 		gait_previous_speed = 0.0
 		gait_floor = NAN
+	state.linear_velocity += weapon_reaction_linear
+	state.angular_velocity += weapon_reaction_angular
+	weapon_reaction_linear = Vector3.ZERO
+	weapon_reaction_angular = Vector3.ZERO
 	contact_bodies.clear()
 	static_contacts.clear()
 	for index: int in range(state.get_contact_count()):
-		contact_bodies.append(state.get_contact_collider_id(index))
-		if state.get_contact_collider_object(index) is StaticBody3D:
+		# Touching a bot's weapon body is touching that bot.
+		var collider := state.get_contact_collider_object(index)
+		var touched := state.get_contact_collider_id(index)
+		contact_bodies.append(collider.get_meta(&"hull_id", touched) if collider != null else touched)
+		if collider is StaticBody3D:
 			static_contacts.append([state.get_contact_local_position(index), state.get_contact_local_normal(index)])
 	_grip_bot_contacts(state)
 	# Extra weight on top of Jolt's arena gravity (total_gravity already
@@ -417,6 +431,9 @@ func _ground_normal(state: PhysicsDirectBodyState3D) -> Vector3:
 	# those real contacts as track contact so the tank keeps driving.
 	for index: int in range(state.get_contact_count()):
 		if state.get_contact_collider_object(index) is DriveBody:
+			continue
+		# Another bot's weapon is no more a floor than its hull is.
+		if state.get_contact_collider_object(index).has_meta(&"hull_id"):
 			continue
 		var normal := state.get_contact_local_normal(index)
 		var below := (state.get_contact_local_position(index) - state.transform.origin).dot(up) < 0.0

@@ -199,13 +199,21 @@ func weapon_case(label: String, attacker_index: int, victim_index: int) -> void:
 	check(settle <= 250, "%s correction settles after final attack" % label)
 	await frames(180)
 
+## How far a bot's resting weapon reaches ahead of its hull's front face (m).
+func weapon_reach(bot: MvpBot) -> float:
+	if bot.weapon_collision == null:
+		return 0.0
+	var outline: AABB = bot.weapon_collision.transform * bot.weapon_collision.shape.get_debug_mesh().get_aabb()
+	return maxf(0.0, -outline.position.z - bot.combat.stats.size.z * 0.5)
+
 func ram_case() -> void:
 	server.world.reset_round()
 	var a: MvpBot = server.world.bots[clients[0].local_entity]
 	var b: MvpBot = server.world.bots[clients[1].local_entity]
 	a.body.reset_pose = server.world.clear_spawn_pose(a, Transform3D(Basis.IDENTITY, Vector3.ZERO))
 	# Preserve the original 1.9m approach gap at the same 8m/s collision speed.
-	var separation: float = (a.combat.stats.size.z + b.combat.stats.size.z) * 0.5 + 1.9
+	# Resting weapons are solid (#112), so the gap is measured from the longer one.
+	var separation: float = (a.combat.stats.size.z + b.combat.stats.size.z) * 0.5 + maxf(weapon_reach(a), weapon_reach(b)) + 1.9
 	b.body.reset_pose = server.world.clear_spawn_pose(b, Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0, -separation)))
 	await frames(90)
 	a.body.linear_velocity = Vector3(0, 0, -8)

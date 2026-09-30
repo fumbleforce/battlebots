@@ -1436,7 +1436,7 @@ func _snapshot(packet: PackedByteArray) -> void:
 	if first:
 		bot.presentation.global_transform = state.pose
 	bot.body.collision_layer = 0 if state.eliminated else BaselineConfig.BOT_LAYER
-	bot.body.collision_mask = 0 if state.eliminated else 3
+	bot.body.collision_mask = 0 if state.eliminated else MvpBot.HULL_MASK
 	bot_updated.emit(bot.entity_id, bot.read_view())
 
 ## Effective match loadouts ride with every pickup update, so a client that

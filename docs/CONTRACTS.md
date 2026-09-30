@@ -1802,38 +1802,6 @@ builds keep a primary minigun, and it stays listed while fitted. No wire,
 catalogue-hash or loadout-schema change; the build bumps because the pickup
 pool changed.
 
-## Melee weapons are solid — build mvp-ab-65 (#112)
-
-Every primary melee weapon (`ContentRegistry.MELEE_WEAPONS`) adds one collision
-shape, `Body/WeaponCollision`, to the bot's rigid body on every peer, so a hull
-that drives into a resting saw, fork or hammer collides with it as with the
-hull: it stops there, and a fast contact is an ordinary ram. Shapes come from
-`data/weapon_colliders.json` through `WeaponColliders.collider(loadout, stats)`
-(box, disc or wedge per body mount and weapon part, canonical primitives as the
-fallback); the saw blade, the Atlas front tools and the Scorpion tail hammer use
-the `SawbladeGeometry`, `AtlasGeometry` and `ScorpionGeometry` rest volumes.
-Guns and the Practice NPC models have none.
-
-`MvpBot` keeps the shape solid only while the weapon rests: weapon phase
-`idle`, `cooldown` or `overheated` with zero charge and zero `tool_pose`. While
-it spins, charges, winds up, strikes, launches or holds (and once the weapon
-zone is destroyed) the shape is disabled, so the `CombatWorld` hit volumes
-reach into a target as before. The Sawblade `ramp` (`solid_when_active`) is the
-exception and stays solid until its weapon zone is destroyed. The server reads
-its own `CombatState`; clients read the replicated `weapon_state`, `charge` and
-`tool_pose`, so no wire field was added.
-
-A weapon never turns solid inside something: after a spawn, a respawn, a part
-swap or a stop it stays open until its shape overlaps no bot and no arena
-geometry, instead of shoving the two apart.
-
-Unchanged: `collision_bounds()` (spawn clearance, hit zones, gun aim), every
-`CombatWorld` hit query, damage rules and the client replay sweep, which still
-uses the hull alone. The shape shares the body's layers, so a resting weapon
-also meets walls and props, and hits on it count as hits on its bot (zone by
-the nearest point of the hull bounds). The build bumps because bot collision
-changed on both peers.
-
 ## Weapon mounts: every weapon on every offered body — build mvp-ab-66 (#108)
 
 Loadout validation and combat geometry change; the wire format, catalogue hash
@@ -1889,3 +1857,49 @@ and loadout schema do not.
 
 Details, measured clearance and limits:
 [docs/coordination/WEAPON_MOUNTS.md](coordination/WEAPON_MOUNTS.md).
+
+## Melee weapons are solid — build mvp-ab-67, protocol 18 (#112)
+
+Replaces the build mvp-ab-65 version, which put the shape on the hull's own
+body: it then also met the floor, propped a tipped hull on its fork and broke
+the 150 ms contact reconciliation budget.
+
+Every primary melee weapon (`ContentRegistry.MELEE_WEAPONS`) has one collision
+shape for its rest pose, so a hull that drives into a resting saw, fork or
+hammer stops there, and a fast contact is an ordinary ram. Shapes come from
+`data/weapon_colliders.json` through `WeaponColliders.collider(loadout, stats)`
+(box, disc or wedge per body mount and weapon part, canonical primitives as the
+fallback); the saw blade, the front tools and the Scorpion tail hammer use the
+`SawbladeGeometry`, `AtlasGeometry` / weapon mount and `ScorpionGeometry` rest
+volumes. Guns and the Practice NPC models have none.
+
+- **Weapon body.** The shape sits on `Body/WeaponBody`
+  (`scripts/simulation/weapon_body.gd`), a rigid body on
+  `BaselineConfig.WEAPON_LAYER` (16) whose mask is `BOT_LAYER`: it meets other
+  bots' hulls only. It never touches the floor, walls, props or another weapon,
+  and no hit query, ground probe or foot ray looks for that layer, so damage
+  zones, drive support, spawn clearance and the client replay still read the
+  hull alone. Live hulls collide with `MvpBot.HULL_MASK` (world, bots, weapons).
+- **Mirror.** Each tick the weapon body takes the hull's pose and velocity and
+  carries the hull's mass, centre of mass and inertia. The velocity change a
+  contact gives it is added to the hull on the hull's next step
+  (`DriveBody.weapon_reaction_linear` / `_angular`), so both bots react as in
+  a hull-to-hull collision, one tick later on the weapon's side. A frozen hull
+  (eliminated, or any bot on a client other than the predicted one) has a
+  frozen weapon body that follows it as its child.
+- **Contacts.** A hull touching a weapon body reports that weapon's hull in
+  `DriveBody.contact_bodies` (meta `hull_id`); `MvpBot.weapon_touches(other)`
+  is the weapon's side. The `CombatWorld` ram check accepts either.
+- **When it is solid.** Only while the weapon rests: phase `idle`, `cooldown`
+  or `overheated` with zero charge and zero `tool_pose`. While it spins,
+  charges, winds up, strikes, launches or holds, and once the weapon zone is
+  destroyed, the shape is disabled and the `CombatWorld` hit volumes reach into
+  a target as before. The Sawblade `ramp` (`solid_when_active`) stays solid
+  until its weapon zone is destroyed. An open weapon (after working, a spawn, a
+  respawn, a part swap or any `reset_pose`, flagged by
+  `DriveBody.reset_applied`) turns solid only after its shape has overlapped
+  no other hull for `clear_seconds` (0.5), so it never shoves out a hull it
+  stopped inside or closes under one falling past it.
+- **Wire.** The server decides and replicates the result: snapshots gain a
+  47th field, `weapon_solid` (bool), hence protocol 18. Clients apply it and
+  never judge clearance from their own delayed poses.

@@ -16,6 +16,8 @@ const OPTIONAL := ["pitch_degrees", "width_share", "radius", "radius_share"]
 static var _loaded: WeaponColliders
 
 var _mounts: Dictionary = {}
+## Seconds an open weapon must stay clear of every hull before it turns solid.
+var clear_seconds := 0.0
 
 static func settings() -> WeaponColliders:
 	if _loaded == null:
@@ -36,6 +38,10 @@ static func from_json(source: String, problems: Array[String] = []) -> WeaponCol
 	# By path, not class name: a checkout launched with a stale editor class
 	# cache does not know this class yet (#74).
 	var result: WeaponColliders = load(SCRIPT).new()
+	if not _number(data.get("clear_seconds")) or data.clear_seconds < 0.0:
+		problems.append("lacks a non-negative clear_seconds")
+		return null
+	result.clear_seconds = float(data.clear_seconds)
 	for mount: String in MOUNTS:
 		var entries: Variant = data.get(mount)
 		if not entries is Dictionary:

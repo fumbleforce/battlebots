@@ -215,7 +215,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 			if a.team == b.team or a.combat.eliminated or b.combat.eliminated:
 				continue
 			var key := "ram:%d:%d" % [a.entity_id, b.entity_id]
-			if cooldowns.has(key) or not a.body.contact_bodies.has(b.body.get_instance_id()):
+			# Hull against hull, or either hull against the other's resting weapon (#112).
+			if cooldowns.has(key) or not (a.body.contact_bodies.has(b.body.get_instance_id()) or a.weapon_touches(b)):
 				continue
 			var direction := (b.body.global_position - a.body.global_position).normalized()
 			var closing := (a.previous_velocity - b.previous_velocity).dot(direction)
