@@ -163,7 +163,7 @@ func _configure(bot: MvpBot, registry: ContentRegistry, ids: Array) -> void:
 		if not defaults.has("aoe"): defaults.aoe = 0.0
 		# The hammer's is the sphere its head strikes with.
 		if index == 0 and ids[index] == "hammer":
-			defaults.aoe = COMBAT_WORLD.hammer_radius(bot.loadout, stats.size)
+			defaults.aoe = COMBAT_WORLD.HAMMER_RADIUS
 		weapons[slot] = {"id":ids[index], "title":str(ids[index]).replace("_", " ").to_upper(),
 			"defaults":defaults, "values":{}}
 	_weapon_ids = ids.duplicate()

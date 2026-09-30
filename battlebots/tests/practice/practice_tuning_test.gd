@@ -644,8 +644,8 @@ func run() -> void:
 	# Let the bots settle on the floor first.
 	await frames(60)
 	var reach: float = session.world.weapons._hammer_head(hammerer).distance_to(atlas.body.global_position) + 5.0
-	var head_radius: float = CombatWorld.hammer_radius(hammerer.loadout, hammerer.combat.stats.size)
-	check(head_radius > 0.0 and is_equal_approx(lab.value("primary", "aoe"), head_radius), "The hammer's area of effect defaults to its head's sphere (%.2f m)" % head_radius)
+	var head_radius := CombatWorld.HAMMER_RADIUS
+	check(head_radius == 1.0 and is_equal_approx(lab.value("primary", "aoe"), head_radius), "The hammer area of effect defaults to its 1 m sphere on every body")
 	check(not blasted.call(), "An untuned hammer strikes nothing beyond its head")
 	lab.debug_impacts = true
 	lab.heat_enabled = false

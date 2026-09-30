@@ -53,6 +53,9 @@ const MINIGUN_DAMAGE := 6.0
 ## Primary weapon hits. Knockback values scale the victim's mass; recoil is the
 ## share of the delivered impulse pushed back into the attacker.
 const HAMMER_DAMAGE := 38.0
+## The hammer's area of effect (m): its head checks as a sphere of this radius
+## on every body, whatever the body's size (#111).
+const HAMMER_RADIUS := 1.0
 const SAW_DAMAGE := 6.0
 const SAW_CADENCE := 1.0 / 3.0
 const VERTICAL_SPINNER_DAMAGE := 45.0
@@ -459,10 +462,7 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 				_sweep_origins[hit.collider_id] = query.transform.origin
 	return found
 
-## Arm length and head radius (before bot scale) and the swing end angle of the
-## plain hammer; the Sawblade hammer head's width in its model's metres.
-const HAMMER_HEAD_RADIUS := 0.2
-const SAWBLADE_HAMMER_WIDTH := 0.82
+## Arm length (before bot scale) and the swing end angle of the plain hammer.
 const HAMMER_ARM := 1.2
 const HAMMER_STRIKE_ANGLE := -PI / 6.0
 
@@ -484,26 +484,16 @@ func _hammer_head(bot: MvpBot) -> Vector3:
 	var arm := Vector3(0, 0, -HAMMER_ARM * BotScale.from_size(size))
 	return pose * (_hammer_pivot(bot) + Basis(Vector3.RIGHT, HAMMER_STRIKE_ANGLE) * arm)
 
-## Every hammer head checks as a sphere (#111): this is its radius on the body
-## that carries it, the half of the head's longest side.
-static func hammer_radius(loadout: Dictionary, size: Vector3) -> float:
-	if ScorpionGeometry.enabled(loadout):
-		return ScorpionGeometry.HEAD_SIZE.y * 0.5 * BotScale.from_size(size)
-	if SawbladeConfig.enabled(loadout) and not AtlasGeometry.enabled(loadout):
-		return SAWBLADE_HAMMER_WIDTH * 0.5 * SawbladeGeometry.scale_for(size).x
-	return HAMMER_HEAD_RADIUS * BotScale.from_size(size)
-
-## The radius the head sweeps with. A Practice Duel area of effect smaller than
-## the head shrinks it; a larger one is struck where the head lands
-## (_hammer_strikes), so the swing itself never grows.
+## The radius the head sweeps with: HAMMER_RADIUS on every body. A Practice
+## Duel area of effect smaller than that shrinks it; a larger one is struck
+## where the head lands (_hammer_strikes), so the swing itself never grows.
 func _hammer_reach(bot: MvpBot) -> float:
-	var radius := hammer_radius(bot.loadout, bot.combat.stats.size)
 	var lab: RefCounted = bot.combat.practice_tuning
-	return radius if lab == null else minf(radius, lab.value("primary", "aoe"))
+	return HAMMER_RADIUS if lab == null else minf(HAMMER_RADIUS, lab.value("primary", "aoe"))
 
 ## Practice Duel (#84, #111): the hammer's area of effect is the sphere its head
 ## strikes where it lands, the head's own radius by default. A larger one also
-## hits everyone within it, hit or miss, at full damage; bots the head struck
+## (HAMMER_RADIUS) hits everyone within it, hit or miss, at full damage; bots the head struck
 ## directly this swing already took the blow and are not hit twice. The sphere
 ## is marked at any size, red when the strike damaged anyone.
 func _hammer_strikes(bots: Dictionary, tick: int, round_index: int) -> void:
@@ -519,7 +509,7 @@ func _hammer_strikes(bots: Dictionary, tick: int, round_index: int) -> void:
 		var head := _hammer_head(attacker)
 		var struck: Array = _hammer_hits.get(id, {}).get("targets", {}).keys()
 		var damaged := not struck.is_empty()
-		if radius > hammer_radius(attacker.loadout, state.stats.size):
+		if radius > HAMMER_RADIUS:
 			damaged = _splash(attacker, head, HAMMER_DAMAGE * lab.scale("primary", "damage"),
 				HAMMER_KNOCKBACK * lab.scale("primary", "knockback"), radius, tick, round_index, "hammer",
 				lab.armour_share("primary", 1.0), struck) or damaged
