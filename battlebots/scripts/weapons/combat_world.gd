@@ -328,20 +328,25 @@ func _sweep(bot: MvpBot) -> Array:
 	if bot.combat.stats.weapon == "vertical_spinner":
 		return _vertical_sweep(bot)
 	var linear_scale := BotScale.from_size(bot.combat.stats.size)
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
+	var box := BoxShape3D.new()
+	box.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
+	var shape: Shape3D = box
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
 	if bot.loadout.parts.weapon == "ramp":
 		# The Ramp's own plate on whichever body carries it (#108). Its flip swings
-		# the plate up from where the charge dipped it, so the launch checks one
-		# box around that whole swing and throws whatever rides the plate (#111).
+		# the wedge up from where the charge dipped it, so the launch checks
+		# everything the wedge passes through and throws whatever rides it (#111).
 		var plate := SawbladeGeometry.ramp_angle(bot.combat.charge, false)
-		var volume := SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size, plate)
 		if bot.combat.launch:
-			volume = SawbladeGeometry.ramp_swing_volume(bot.loadout, bot.combat.stats.size, plate, SawbladeGeometry.RAMP_LAUNCH_ANGLE)
-		local = volume[0]
-		shape.size = volume[1]
+			var swing := ConvexPolygonShape3D.new()
+			swing.points = SawbladeGeometry.ramp_swing_points(bot.loadout, bot.combat.stats.size, plate, SawbladeGeometry.RAMP_LAUNCH_ANGLE)
+			shape = swing
+			local = Transform3D.IDENTITY
+		else:
+			var volume := SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size, plate)
+			local = volume[0]
+			box.size = volume[1]
 	_grow(bot, shape)
 	_sweep_volume = [shape, local]
 	var start := bot.previous_pose * local
@@ -532,7 +537,10 @@ func _hammer_drop(bot: MvpBot) -> float:
 ## inside the head.
 func _hammer_face(bot: MvpBot, fraction: float) -> Vector3:
 	var pose := _hammer_pose(bot, fraction)
-	return pose.origin - pose.basis.y * _hammer_drop(bot)
+	var face := pose.origin - pose.basis.y * _hammer_drop(bot)
+	# The plate stops at the floor: a tall body's swing would end below it.
+	face.y = maxf(face.y, -SawbladeGeometry.ground(bot.loadout, bot.combat.stats.size))
+	return face
 
 ## Where the hammer strikes at the end of its swing, in world space.
 func _hammer_head(bot: MvpBot) -> Vector3:
@@ -1447,6 +1455,15 @@ func _grow(attacker: MvpBot, shape: Shape3D) -> void:
 	elif shape is CylinderShape3D:
 		(shape as CylinderShape3D).radius += reach
 		(shape as CylinderShape3D).height += reach * 2.0
+	elif shape is ConvexPolygonShape3D:
+		# Every point moves that far out from the middle of the volume.
+		var points := (shape as ConvexPolygonShape3D).points
+		var middle := Vector3.ZERO
+		for point: Vector3 in points:
+			middle += point / points.size()
+		for index: int in points.size():
+			points[index] += (points[index] - middle).normalized() * reach
+		(shape as ConvexPolygonShape3D).points = points
 
 ## Practice Duel debug view (#111): the volume a melee weapon checked this tick,
 ## exactly as queried (its last sample, at the current pose). local is in the

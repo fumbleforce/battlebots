@@ -56,8 +56,9 @@ var debug_player_hitboxes := false
 var debug_linger := DEFAULT_DEBUG_LINGER
 ## {type:"path", points:PackedVector3Array} or {type:"impact", position,
 ## radius}; radius 0 marks a weapon without an area of effect. A melee check
-## adds its volume: basis and box (size) or cylinder (radius, height), or the
-## radius of a sphere.
+## adds its volume: basis and box (size), cylinder (radius, height) or prism
+## ((left, right) pairs of points around its outline), or the radius of a
+## sphere.
 var debug_marks: Array[Dictionary] = []
 ## slot ("primary"/"secondary") -> {id, title, defaults:{field:value}, values:{field:value}}.
 var weapons: Dictionary = {}
@@ -374,7 +375,7 @@ func debug_impact(position: Vector3, radius := 0.0, layer := "") -> void:
 		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0), "layer":layer})
 
 ## The volume a melee weapon checked (#111), exactly as it was queried: a box,
-## cylinder or sphere at pose. layer is "damage" when the check struck (or,
+## cylinder, sphere or prism (the Ramp's flip) at pose. layer is "damage" when the check struck (or,
 ## for a weapon that runs, touches) an enemy. A weapon that checks every tick
 ## (saw, grinder, spinners) names itself in replace, so its mark follows it.
 func debug_area(pose: Transform3D, shape: Shape3D, layer := "", replace := "") -> void:
@@ -387,6 +388,8 @@ func debug_area(pose: Transform3D, shape: Shape3D, layer := "", replace := "") -
 		mark.cylinder = Vector2((shape as CylinderShape3D).radius, (shape as CylinderShape3D).height)
 	elif shape is SphereShape3D:
 		mark.radius = (shape as SphereShape3D).radius
+	elif shape is ConvexPolygonShape3D:
+		mark.prism = (shape as ConvexPolygonShape3D).points
 	_debug_mark(mark)
 
 ## What a hit on this zone of a bot lands on first: "armour" (a fitted plate

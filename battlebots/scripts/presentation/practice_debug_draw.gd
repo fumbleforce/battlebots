@@ -5,7 +5,7 @@ const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## while the Esc menu's Debug toggles are on. Shot paths are lines; impacts are
 ## see-through spheres the size of the area of effect (red when they did
 ## damage), or small solid cubes for weapons without one. A melee weapon (#111)
-## shows the box, cylinder or sphere it checked, exactly as queried, red when
+## shows the box, cylinder, sphere or prism it checked, exactly as queried, red when
 ## it struck or touches an enemy. Each mark stays for the tuning's debug_linger seconds
 ## of unpaused play; turning a toggle off clears its marks.
 ##
@@ -159,7 +159,7 @@ func _shape(item: MeshInstance3D, mark: Dictionary) -> void:
 	else:
 		var radius: float = mark.radius
 		# A melee check (#111) draws the volume it queried.
-		var checked: bool = mark.has("box") or mark.has("cylinder")
+		var checked: bool = mark.has("box") or mark.has("cylinder") or mark.has("prism")
 		if radius > 0.0:
 			var sphere := SphereMesh.new()
 			sphere.radius = radius
@@ -167,6 +167,8 @@ func _shape(item: MeshInstance3D, mark: Dictionary) -> void:
 			sphere.radial_segments = SPHERE_SEGMENTS
 			sphere.rings = SPHERE_RINGS
 			item.mesh = sphere
+		elif mark.has("prism"):
+			item.mesh = _prism(mark.prism)
 		elif mark.has("cylinder"):
 			var drum := CylinderMesh.new()
 			drum.top_radius = mark.cylinder.x
@@ -184,6 +186,25 @@ func _shape(item: MeshInstance3D, mark: Dictionary) -> void:
 		else:
 			item.material_override = _impact_hit_materials[layer]
 		item.transform = Transform3D(mark.get("basis", Basis.IDENTITY), mark.position)
+
+## A closed mesh over a prism given as (left, right) pairs of points around its
+## outline: a wall between each pair and the next, and the two end caps.
+func _prism(points: PackedVector3Array) -> ArrayMesh:
+	var vertices := PackedVector3Array()
+	var count := points.size() / 2
+	for index: int in count:
+		var next := (index + 1) % count
+		vertices.append_array([points[index * 2], points[index * 2 + 1], points[next * 2 + 1],
+			points[index * 2], points[next * 2 + 1], points[next * 2]])
+		if index > 0 and next != 0:
+			vertices.append_array([points[0], points[index * 2], points[next * 2],
+				points[1], points[next * 2 + 1], points[index * 2 + 1]])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 func _render_hitboxes(others: Array) -> void:
 	var seen: Dictionary = {}

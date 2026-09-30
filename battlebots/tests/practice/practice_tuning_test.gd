@@ -698,7 +698,7 @@ func run() -> void:
 	# area of effect grows that volume. Through the real session: hold the weapon
 	# for 1.5 s, let go, and wait out its cooldown. Cases: part, Atlas body, mark
 	# shape, hit kind.
-	for case: Array in [["saw", false, "cylinder", "saw"], ["lifter", false, "box", "lifter"], ["ramp", false, "box", "lifter"],
+	for case: Array in [["saw", false, "cylinder", "saw"], ["lifter", false, "box", "lifter"], ["ramp", false, "prism", "lifter"],
 			["vertical_spinner", false, "cylinder", "vertical_spinner"], ["horizontal_spinner", false, "cylinder", "horizontal_spinner"],
 			["battering_ram", true, "box", "ram_punch"], ["spear_fork", true, "box", "spear"], ["grinder_drum", true, "cylinder", "grinder"],
 			["battering_ram", false, "box", "ram_punch"], ["spear_fork", false, "box", "spear"], ["grinder_drum", false, "cylinder", "grinder"]]:
@@ -736,9 +736,23 @@ func run() -> void:
 		await use.call(90, true)
 		await use.call(30, false)
 		var wide_marks: Array[Dictionary] = lab.take_debug_marks()
-		var grown: Variant = miss_marks[0][case[2]] + (Vector3.ONE * 4.0 if case[2] == "box" else Vector2(2.0, 4.0))
-		check(not wide_marks.is_empty() and wide_marks.all(func(m: Dictionary) -> bool: return m.radius == 0.0 and m.has(case[2]) and m[case[2]].is_equal_approx(grown)),
-			"An area of effect grows the %s's %s, which stays a %s (%s -> %s)" % [label, case[2], case[2], miss_marks[0][case[2]], wide_marks.slice(0, 1)])
+		if case[2] == "prism":
+			# The Ramp's flip volume: every point 2 m further from its middle.
+			var span := func(points: PackedVector3Array) -> Vector3:
+				var low := Vector3.INF
+				var high := -Vector3.INF
+				for point: Vector3 in points:
+					low = low.min(point)
+					high = high.max(point)
+				return high - low
+			var before: Vector3 = span.call(miss_marks[0].prism)
+			check(wide_marks.size() == 1 and wide_marks[0].has("prism") and wide_marks[0].prism.size() == miss_marks[0].prism.size()
+				and (span.call(wide_marks[0].prism) as Vector3).x > before.x + 2.0 and (span.call(wide_marks[0].prism) as Vector3).z > before.z + 2.0,
+				"An area of effect grows the %s's flip volume, which keeps its shape" % label)
+		else:
+			var grown: Variant = miss_marks[0][case[2]] + (Vector3.ONE * 4.0 if case[2] == "box" else Vector2(2.0, 4.0))
+			check(not wide_marks.is_empty() and wide_marks.all(func(m: Dictionary) -> bool: return m.radius == 0.0 and m.has(case[2]) and m[case[2]].is_equal_approx(grown)),
+				"An area of effect grows the %s's %s, which stays a %s (%s -> %s)" % [label, case[2], case[2], miss_marks[0][case[2]], wide_marks.slice(0, 1)])
 		lab.clear_value("primary", "aoe")
 		await use.call(200, false)
 		var dummy := session.practice_target() as MvpBot
@@ -753,9 +767,11 @@ func run() -> void:
 			# the plate. Its flip checks the plate's whole swing from the loaded angle
 			# to the launch angle, so a hull over the far half of the loaded plate,
 			# which the launch pose alone never reaches, is thrown too.
-			var swing: Array = SawbladeGeometry.ramp_swing_volume(wielder.loadout, wielder.combat.stats.size, SawbladeGeometry.RAMP_LOAD_ANGLE, SawbladeGeometry.RAMP_LAUNCH_ANGLE)
-			check(miss_marks.size() == 1 and (last.box as Vector3).distance_to(swing[1]) < 0.1 and (last.basis as Basis).is_equal_approx(wielder.body.global_basis),
-				"A Ramp flip marks one box around its plate's swing (%d marks, %s vs %s)" % [miss_marks.size(), last.box, swing[1]])
+			# One volume, rounded at the front by the arc of the lip: its outline has
+			# more corners than a box.
+			var outline: PackedVector3Array = last.prism
+			check(miss_marks.size() == 1 and outline.size() >= 12 and (last.basis as Basis).is_equal_approx(wielder.body.global_basis),
+				"A Ramp flip marks one volume, rounded along the arc of its lip (%d marks, %d outline points)" % [miss_marks.size(), outline.size() / 2])
 			var plate_size: Vector3 = SawbladeGeometry.ramp_volume(wielder.loadout, wielder.combat.stats.size, 0.0)[1]
 			var loaded: Transform3D = wielder.body.global_transform * (SawbladeGeometry.ramp_volume(wielder.loadout, wielder.combat.stats.size, SawbladeGeometry.RAMP_LOAD_ANGLE)[0] as Transform3D)
 			# Front face over the plate a little past its middle, underside just above its raised tip.

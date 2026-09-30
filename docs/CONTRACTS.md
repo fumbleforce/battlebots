@@ -1149,7 +1149,8 @@ shape and transform handed to the physics query, last sample of the tick), with
 `practice_tuning.gd` `debug_area`; `PracticeDebugDraw` draws it see-through,
 white, or red when the check struck (or, for a running weapon, touches) an
 enemy. A ram punch and spear thrust record every tick of the stroke; the lifter
-and ramp record their launch (the ramp as the one box around its flip); the saw, grinder drum and spinners record every
+and ramp record their launch (the ramp as the one rounded volume around its
+flip); the saw, grinder drum and spinners record every
 tick they run as one mark that follows them. A tuned Area of effect grows a
 melee weapon's check volume by that many metres on every side
 (`CombatWorld._grow`), keeping its shape, and these weapons no longer splash
@@ -1937,13 +1938,15 @@ unchanged.
 
 Also in build mvp-ab-71:
 
-- **Ramp launch volume.** The launch checks one box, axis-aligned in the body
-  frame, around everything the plate passes through from the dip to the launch
-  angle (`SawbladeGeometry.ramp_swing_volume`), in place of the per-angle plate
+- **Ramp launch volume.** The launch checks one convex volume: everything the
+  Ramp's wedge (`SawbladeGeometry.RAMP_PROFILE`, `RAMP_WIDTH`) passes through
+  from the dip to the launch angle, rounded at the front by the arc of its lip
+  (`SawbladeGeometry.ramp_swing_points`), in place of the per-angle plate
   samples of mvp-ab-68..70.
 - **Hammer impact point.** The hit sphere follows the middle of the head's
   striking plate (its underside, `CombatWorld._hammer_face`) down the swing
-  instead of the head's centre, on every body. The shared hammer's head is
+  instead of the head's centre, on every body, and never goes below the floor
+  under the bot (`SawbladeGeometry.ground`): a tall body's swing ends lower. The shared hammer's head is
   posed and sized as `scenes/bots/weapon_visual.gd` draws it (the Scorpion
   fore arm and head laid along the arm).
 - **Vertical spinner.** It checks its own rotor, a disc of

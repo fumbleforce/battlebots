@@ -51,8 +51,9 @@ static func saw_scale(loadout: Dictionary, size: Vector3) -> Vector3:
 	if SawbladeConfig.body(loadout): return scale_for(size)
 	return scale_for(BODY_SIZE) * BotScale.from_size(size)
 
-## Hull centre height above the ground for a body other than the Sawblade, game metres.
-static func _ground(loadout: Dictionary, size: Vector3) -> float:
+## Hull centre height above the ground, game metres (the Sawblade body rests
+## on its underside).
+static func ground(loadout: Dictionary, size: Vector3) -> float:
 	var linear := BotScale.from_size(size)
 	if loadout.get("parts", {}).get("drive") == "walker": return WalkerDrive.RIDE_HEIGHT * linear / BotScale.FACTOR
 	return AtlasGeometry.GROUND_DEPTH * linear if AtlasGeometry.enabled(loadout) else size.y * 0.5
@@ -62,7 +63,7 @@ static func _ground(loadout: Dictionary, size: Vector3) -> float:
 static func saw_axle(loadout: Dictionary, size: Vector3) -> Vector3:
 	if SawbladeConfig.body(loadout): return point(SAW_AXLE, size)
 	var scale := saw_scale(loadout, size)
-	return Vector3(0, SAW_AXLE.y * scale.y - _ground(loadout, size),
+	return Vector3(0, SAW_AXLE.y * scale.y - ground(loadout, size),
 		-size.z * 0.5 - SAW_FRONT_GAP * BotScale.from_size(size) - SAW_RADIUS * scale.z)
 
 ## Ramp module scale in the body frame at game scale: like the saw, the Ramp
@@ -78,7 +79,7 @@ static func ramp_scale(loadout: Dictionary, size: Vector3) -> Vector3:
 static func ramp_hinge(loadout: Dictionary, size: Vector3) -> Vector3:
 	if SawbladeConfig.body(loadout): return point(RAMP_HINGE, size)
 	var linear := BotScale.from_size(size)
-	var ground := _ground(loadout, size)
+	var ground := ground(loadout, size)
 	if loadout.get("parts", {}).get("drive") == "walker" and not ScorpionGeometry.enabled(loadout):
 		ground = BotPhysics.settings().crouch_ride_height * linear / BotScale.FACTOR
 	return Vector3(0, RAMP_HINGE.y * ramp_scale(loadout, size).y - ground, -size.z * 0.5 - RAMP_FRONT_GAP * linear)
@@ -94,25 +95,34 @@ static func ramp_volume(loadout: Dictionary, size: Vector3, angle: float) -> Arr
 	var rotation := Basis(Vector3.RIGHT, angle)
 	return [Transform3D(rotation, ramp_hinge(loadout, size) + rotation * (RAMP_PLATE_CENTER * scale)), RAMP_PLATE_SIZE * scale]
 
-## Plate angles sampled for the box around a flip.
+## The Ramp's wedge in profile, (height from the hull's underside, z) in source
+## metres: its lip, the top and the foot of its back edge; and its width.
+const RAMP_PROFILE := [Vector2(0.0645, -1.63), Vector2(0.757, -0.36), Vector2(0.0, -0.36)]
+const RAMP_WIDTH := 1.49
+## Plate angles sampled for the volume around a flip.
 const RAMP_SWING_SAMPLES := 8
 
-## One box around everything the plate passes through as it flips from one
-## angle to another: [transform, size], axis-aligned in the body frame at game
-## scale. The authority checks this box when the Ramp launches (#111).
-static func ramp_swing_volume(loadout: Dictionary, size: Vector3, from_angle: float, to_angle: float) -> Array:
-	var low := Vector3.INF
-	var high := -Vector3.INF
+## Everything the Ramp's wedge passes through as it flips from one plate angle
+## to another, rounded at the front by the arc of its lip: a prism across the
+## wedge's width, as (left, right) pairs of points around its outline, body
+## frame at game scale. The authority checks this volume when the Ramp
+## launches (#111).
+static func ramp_swing_points(loadout: Dictionary, size: Vector3, from_angle: float, to_angle: float) -> PackedVector3Array:
+	var scale := ramp_scale(loadout, size)
+	var hinge := ramp_hinge(loadout, size)
+	var outline := PackedVector2Array()
 	for index: int in RAMP_SWING_SAMPLES + 1:
-		var volume := ramp_volume(loadout, size, lerpf(from_angle, to_angle, float(index) / RAMP_SWING_SAMPLES))
-		var plate: Transform3D = volume[0]
-		var half: Vector3 = volume[1] * 0.5
-		for corner: Vector3 in [Vector3(-1, -1, -1), Vector3(-1, -1, 1), Vector3(-1, 1, -1), Vector3(-1, 1, 1),
-				Vector3(1, -1, -1), Vector3(1, -1, 1), Vector3(1, 1, -1), Vector3(1, 1, 1)]:
-			var point := plate * (half * corner)
-			low = low.min(point)
-			high = high.max(point)
-	return [Transform3D(Basis.IDENTITY, (low + high) * 0.5), high - low]
+		var rotation := Basis(Vector3.RIGHT, lerpf(from_angle, to_angle, float(index) / RAMP_SWING_SAMPLES))
+		for corner: Vector2 in RAMP_PROFILE:
+			var point := hinge + rotation * (Vector3(0, corner.x - RAMP_HINGE.y, corner.y - RAMP_HINGE.z) * scale)
+			outline.append(Vector2(point.y, point.z))
+	var hull := Geometry2D.convex_hull(outline)
+	var points := PackedVector3Array()
+	# The hull repeats its first point at the end.
+	for index: int in hull.size() - 1:
+		for side: float in [-0.5, 0.5]:
+			points.append(Vector3(side * RAMP_WIDTH * scale.x, hull[index].x, hull[index].y))
+	return points
 
 static func hammer_center(size: Vector3, angle: float) -> Vector3:
 	return point(Vector3(0, 0.86, -0.29) + Basis(Vector3.RIGHT, angle) * Vector3(0, 0.63, -0.93), size)
