@@ -107,7 +107,7 @@ func check_reset(session: MvpSession, original_world: AuthorityWorld, originals:
 			and not bot.command.recovery_pressed and bot.command.throttle == 0,
 			"Restart discards the bot's accepted old actions")
 		check(not bot.body.freeze and bot.body.collision_layer == BaselineConfig.BOT_LAYER \
-			and bot.body.collision_mask == BaselineConfig.BOT_LAYER | BaselineConfig.WORLD_LAYER,
+			and bot.body.collision_mask == MvpBot.HULL_MASK,
 			"Restart restores collision participation and unfreezes bodies")
 	await frames(3)
 	for bot: MvpBot in session.world.bots.values():
