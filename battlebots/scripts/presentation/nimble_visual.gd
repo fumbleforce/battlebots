@@ -397,7 +397,8 @@ func _place_leg(leg: Dictionary, ankle_target: Vector3, foot_basis: Basis) -> vo
 ## the 0.35 s wind-up ends, then cools down for 1.4 s: the arm dips, cocks past
 ## vertical over the wind-up with the body leaning back, slams to the -30
 ## degree strike as the cooldown starts with the body lunging forward,
-## rebounds and swings back to its carry.
+## rebounds and swings back to its carry. A tuned fire rate (view.weapon_rate)
+## runs the whole swing faster or slower.
 func _pose_hammer(view: BotView) -> void:
 	var angle := HAMMER_REST + HAMMER_WALK_SWING * sin(PI * _phase)
 	var lean := 0.0
@@ -415,7 +416,7 @@ func _pose_hammer(view: BotView) -> void:
 		angle = HAMMER_STRUCK
 		lean = -HAMMER_LEAN_FORWARD
 	elif view.weapon_cooldown > 0.0:
-		var since := HAMMER_COOLDOWN_SECONDS - view.weapon_cooldown
+		var since := HAMMER_COOLDOWN_SECONDS - view.weapon_cooldown * view.weapon_rate
 		if since < HAMMER_SLAM_SECONDS:
 			var slam := since / HAMMER_SLAM_SECONDS
 			angle = lerpf(HAMMER_COCKED, HAMMER_STRUCK, slam * slam)

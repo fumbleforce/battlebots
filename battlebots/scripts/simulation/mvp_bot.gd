@@ -484,6 +484,7 @@ func read_view() -> BotView:
 			if float(fitted[face]) <= 0.0: view.zones.erase(face)
 			else: view.plate_max[face] = float(fitted[face])
 	view.weapon_cooldown = data.cooldown
+	view.weapon_rate = data.get("weapon_rate", 1.0)
 	view.recovery_cooldown = data.recovery_cooldown
 	view.immobilized_remaining = data.immobilized_remaining
 	view.recovery_available = data.recovery_available

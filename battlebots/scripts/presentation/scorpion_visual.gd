@@ -168,7 +168,7 @@ func show_state(view: BotView, delta: float) -> void:
 			_windup_pose(view.weapon_charge_fraction)
 			fraction = -1.0
 		elif view.weapon_state == "strike": fraction = 1.0
-		elif view.weapon_cooldown > 0.0: fraction = 1.0 - smoothstep(0.10, 1.0, 1.0 - view.weapon_cooldown / 1.4)
+		elif view.weapon_cooldown > 0.0: fraction = 1.0 - smoothstep(0.10, 1.0, 1.0 - view.weapon_cooldown * view.weapon_rate / 1.4)
 		if view.eliminated or view.weapon_state == "disabled": fraction = hammer_fraction
 		if fraction >= 0.0: set_hammer_fraction(fraction)
 	if fallback_weapon != null: fallback_weapon.show_state(view, delta)

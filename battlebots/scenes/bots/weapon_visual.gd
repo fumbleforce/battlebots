@@ -176,7 +176,7 @@ func show_state(view: BotView, delta: float) -> void:
 		elif view.weapon_state == "strike":
 			angle = -PI / 6.0
 		elif view.weapon_cooldown > 0:
-			angle = lerpf(-PI / 6.0, PI / 6.0, clampf(1.0 - view.weapon_cooldown / 1.4, 0, 1))
+			angle = lerpf(-PI / 6.0, PI / 6.0, clampf(1.0 - view.weapon_cooldown * view.weapon_rate / 1.4, 0, 1))
 		mechanism.rotation.x = 0.0 if disabled else angle
 	elif kind == "lifter":
 		_lifter_time += delta

@@ -28,6 +28,12 @@ func run() -> void:
 	view.weapon_cooldown = 0.7
 	visual.show_state(view, 1.0 / 60.0)
 	check(is_zero_approx(visual.mechanism.rotation.x), "Recovery steadily returns arm")
+	# A doubled Practice Duel fire rate halves the cooldown; the arm keeps pace (#106).
+	view.weapon_rate = 2.0
+	view.weapon_cooldown = 0.35
+	visual.show_state(view, 1.0 / 60.0)
+	check(is_zero_approx(visual.mechanism.rotation.x), "Recovery follows a tuned fire rate")
+	view.weapon_rate = 1.0
 	view.weapon_state = "disabled"
 	visual.show_state(view, 1.0 / 60.0)
 	check(is_zero_approx(visual.mechanism.rotation.x), "Destroyed hammer rests")

@@ -188,7 +188,8 @@ func _primary_defaults(id: String) -> Dictionary:
 			return {"rate":1.0 / COMBAT_WORLD.SPINNER_HIT_INTERVAL, "damage":COMBAT_WORLD.HORIZONTAL_SPINNER_DAMAGE,
 				"knockback":COMBAT_WORLD.HORIZONTAL_SPINNER_KNOCKBACK, "recoil":COMBAT_WORLD.HORIZONTAL_SPINNER_RECOIL, "pierce":0.0, "stagger":0.0}
 		"hammer":
-			return {"rate":1.0 / COMBAT_STATE.HAMMER_COOLDOWN, "damage":COMBAT_WORLD.HAMMER_DAMAGE,
+			# Swings per second over the whole cycle: the rate scales wind-up and cooldown alike (#106).
+			return {"rate":1.0 / (COMBAT_STATE.HAMMER_WINDUP + COMBAT_STATE.HAMMER_COOLDOWN), "damage":COMBAT_WORLD.HAMMER_DAMAGE,
 				"knockback":COMBAT_WORLD.HAMMER_KNOCKBACK, "recoil":COMBAT_WORLD.HIT_RECOIL, "pierce":0.0, "stagger":0.0}
 		"saw":
 			return {"rate":1.0 / COMBAT_WORLD.SAW_CADENCE, "damage":COMBAT_WORLD.SAW_DAMAGE, "pierce":0.0,

@@ -35,6 +35,7 @@ func run() -> void:
 	cancellation()
 	resources()
 	legacy_regression()
+	tuned_rate()
 	print("HAMMER STATE PASS" if failures == 0 else "HAMMER STATE FAIL")
 	quit(0 if failures == 0 else 1)
 
@@ -149,6 +150,27 @@ func resources() -> void:
 	ticks(state, 120, BotCommand.new())
 	near(state.recovery_remaining, 0, "Recovery completes after exactly two seconds")
 	near(state.heat, 32.5, "Bot cools while completing recovery")
+
+## Practice Duel fire rate (#106): swings per second over the whole cycle, so
+## the wind-up and the cooldown both scale with it.
+func tuned_rate() -> void:
+	var cycle := CombatState.HAMMER_WINDUP + CombatState.HAMMER_COOLDOWN
+	for factor: float in [2.0, 0.5]:
+		var tuning: RefCounted = preload("res://scripts/simulation/practice_tuning.gd").new()
+		tuning.weapons = {"primary":{"id":"hammer", "defaults":tuning._primary_defaults("hammer"), "values":{}}}
+		near(tuning.value("primary", "rate"), 1.0 / cycle, "Default fire rate is one full swing")
+		tuning.set_value("primary", "rate", factor / cycle)
+		var state := fresh()
+		state.practice_tuning = tuning
+		var windup_ticks := ceili(CombatState.HAMMER_WINDUP / factor / STEP - 0.001)
+		state.tick(STEP, press(), true)
+		ticks(state, windup_ticks - 2, BotCommand.new())
+		check(not state.strike and state.weapon_phase == "windup", "x%.1f rate: no strike before %d ticks" % [factor, windup_ticks])
+		state.tick(STEP, BotCommand.new(), true)
+		check(state.strike, "x%.1f rate: wind-up ends after %d ticks" % [factor, windup_ticks])
+		near(state.cooldown, CombatState.HAMMER_COOLDOWN / factor, "x%.1f rate scales the cooldown" % factor)
+		near(state.snapshot().weapon_rate, factor, "x%.1f rate reaches the snapshot" % factor)
+	near(fresh().snapshot().weapon_rate, 1.0, "An untuned hammer reports rate 1")
 
 func legacy_regression() -> void:
 	for weapon: String in ["vertical_spinner", "horizontal_spinner", "lifter"]:

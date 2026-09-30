@@ -19,6 +19,10 @@ var zones: Dictionary = {}
 ## Fitted HP of each armour area in `zones`; presentation only (HUD plate map).
 var plate_max: Dictionary = {}
 var weapon_cooldown: float = 0.0
+## Practice Duel fire-rate scale of the primary weapon (1 = untuned, as in all
+## online play). Presentation only: weapon_cooldown * weapon_rate is the
+## cooldown on the untuned clock, so timed animations keep pace (#106).
+var weapon_rate := 1.0
 var recovery_cooldown: float = 0.0
 var immobilized_remaining: float = 0.0
 var failure_reason: String = ""

@@ -158,7 +158,7 @@ func show_state(view: BotView, delta: float) -> void:
 			if view.weapon_state == "windup": frame = lerpf(1, 9, view.weapon_charge_fraction)
 			elif view.weapon_state == "strike": frame = 9
 			elif view.weapon_cooldown > 0:
-				frame = lerpf(9, 33, clampf(1.0 - view.weapon_cooldown / 1.4, 0, 1))
+				frame = lerpf(9, 33, clampf(1.0 - view.weapon_cooldown * view.weapon_rate / 1.4, 0, 1))
 		set_hammer_frame(frame)
 	elif kind == "saw" and not disabled and view.weapon_state == "active":
 		nodes.Saw_SPIN_X.rotate_x(-delta * 36)

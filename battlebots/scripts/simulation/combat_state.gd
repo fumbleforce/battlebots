@@ -541,6 +541,9 @@ func _tick_hammer(delta: float, command: BotCommand) -> void:
 	cooldown = maxf(0.0, cooldown - delta)
 	if cooldown < 0.000001:
 		cooldown = 0.0
+	# A tuned fire rate (#106) scales the whole swing: the wind-up runs at the
+	# rate (_hammer_windup stays in untuned seconds) and the cooldown shortens.
+	var rate := _rate("primary")
 	if zones.weapon <= 0:
 		_hammer_windup = 0.0
 		charge = 0.0
@@ -549,20 +552,20 @@ func _tick_hammer(delta: float, command: BotCommand) -> void:
 	# Allow auto fire (#84): a held button swings again as soon as the hammer is ready.
 	elif _hammer_windup <= 0.0 and not _secondary_brake(command) and (command.primary_pressed
 			or (_auto_fire("primary") and command.primary_held and not recovering and not overheated)):
-		if recovering or overheated:
+		if recovering or overheated or rate <= 0.0:
 			failure_reason = "overheated" if overheated else "cooldown"
 		else:
 			attack_id += 1
 			_hammer_windup = HAMMER_WINDUP
 	if _hammer_windup > 0.0:
-		_hammer_windup = maxf(0.0, _hammer_windup - delta)
+		_hammer_windup = maxf(0.0, _hammer_windup - delta * rate)
 		charge = clampf(1.0 - _hammer_windup / HAMMER_WINDUP, 0.0, 1.0)
 		_heat_active = true
 		if _hammer_windup < 0.000001:
 			_hammer_windup = 0.0
 			charge = 1.0
 			strike = true
-			cooldown = HAMMER_COOLDOWN / _rate("primary")
+			cooldown = HAMMER_COOLDOWN / rate
 			_add_heat(20.0)
 	else:
 		charge = 0.0
@@ -699,7 +702,7 @@ func snapshot() -> Dictionary:
 		"last_shot_to":last_shot_to, "last_shot_tick":last_shot_tick,
 		"gun_pitch":gun_pitch, "turret_yaw":turret_yaw, "grip_target":grip_target, "grip_point":grip_point, "tool_pose":tool_pose, "spree":spree, "cooling":in_cooling_zone or cooling_boost > 0.0,
 		"nitro_active":nitro_active, "jump_charge":jump_charge, "jump_cooldown":jump_cooldown,
-		"cooldown":cooldown, "recovery_available":can_recover(), "recovery_remaining":recovery_remaining,
+		"cooldown":cooldown, "weapon_rate":_rate("primary"), "recovery_available":can_recover(), "recovery_remaining":recovery_remaining,
 		"recovery_cooldown":recovery_cooldown, "immobilized_remaining":maxf(0, 10 - immobilized_seconds) if immobilized_seconds > 0 else 0.0,
 		"eliminated":eliminated, "elimination_reason":elimination_reason, "failure":failure_reason,
 		"damage":effective_damage, "eliminations":eliminations, "assists":assists,

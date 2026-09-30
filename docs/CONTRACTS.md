@@ -1087,6 +1087,16 @@ drive durability changes last only until the next respawn, which restores them.
 weapons. The player's own bot is never selectable; with a target selected the
 orbit camera turns toward it (`BotOrbitCamera.look_target`).
 
+Hammer fire rate (#106, 30 September 2026): the tuning panel's hammer Fire
+rate is swings per second over the whole cycle (default
+`1 / (HAMMER_WINDUP + HAMMER_COOLDOWN)`), and `CombatState._tick_hammer` scales
+the wind-up as well as the cooldown by it. `BotView.weapon_rate` (additive,
+presentation only, default 1) carries the primary weapon's rate scale from the
+local `CombatState.snapshot()`; hammer visuals and `HammerSlamDetector` read
+`weapon_cooldown * weapon_rate` as the cooldown on the untuned clock. It is not
+on the wire: remote views keep 1, and untuned (all online and LAN) play is
+unchanged. No wire, `BotCommand` or build change.
+
 Possess (`MvpSession.practice_possess`, offline Practice Duel only) moves
 `local_entity`, `peer_entities[1]`, the player's `players` entry and debug
 views to the NPC, and `PracticeBotDirector.possess` turns the old body into a

@@ -42,11 +42,13 @@ func observe(view: BotView, delta: float) -> void:
 	if view == null or not is_finite(delta): return
 	_since += maxf(delta, 0.0)
 	var state := str(view.weapon_state)
-	var edge := _primed and strike_edge(_last_state, _last_cooldown, state, view.weapon_cooldown)
+	# On the untuned clock, so a faster tuned hammer (#106) still reads as a fresh cooldown.
+	var cooldown := view.weapon_cooldown * view.weapon_rate
+	var edge := _primed and strike_edge(_last_state, _last_cooldown, state, cooldown)
 	_primed = true
 	_last_state = state
-	_last_cooldown = view.weapon_cooldown
-	if not edge or view.eliminated or _since < MIN_GAP or not is_inside_tree(): return
+	_last_cooldown = cooldown
+	if not edge or view.eliminated or _since * view.weapon_rate < MIN_GAP or not is_inside_tree(): return
 	_since = 0.0
 	var landing := find_landing(view.pose)
 	if not landing.is_empty():
