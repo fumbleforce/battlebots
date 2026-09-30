@@ -23,16 +23,18 @@ func run() -> void:
 	view.weapon_state = "strike"
 	view.weapon_cooldown = 1.4
 	visual.show_state(view, 1.0 / 60.0)
-	check(is_equal_approx(visual.mechanism.rotation.x, -PI / 6.0), "Strike reaches down-forward impact pose")
+	var struck := CombatWorld.hammer_strike_angle({}, Vector3(1.2, 0.5, 1.5))
+	check(struck < 0.0 and struck >= CombatWorld.HAMMER_STRIKE_ANGLE and is_equal_approx(visual.mechanism.rotation.x, struck),
+		"Strike reaches the authority's down-forward impact pose, on the floor")
 	view.weapon_state = "cooldown"
 	view.weapon_cooldown = 0.7
 	visual.show_state(view, 1.0 / 60.0)
-	check(is_zero_approx(visual.mechanism.rotation.x), "Recovery steadily returns arm")
+	check(is_equal_approx(visual.mechanism.rotation.x, lerpf(struck, PI / 6.0, 0.5)), "Recovery steadily returns arm")
 	# A doubled Practice Duel fire rate halves the cooldown; the arm keeps pace (#106).
 	view.weapon_rate = 2.0
 	view.weapon_cooldown = 0.35
 	visual.show_state(view, 1.0 / 60.0)
-	check(is_zero_approx(visual.mechanism.rotation.x), "Recovery follows a tuned fire rate")
+	check(is_equal_approx(visual.mechanism.rotation.x, lerpf(struck, PI / 6.0, 0.5)), "Recovery follows a tuned fire rate")
 	view.weapon_rate = 1.0
 	view.weapon_state = "disabled"
 	visual.show_state(view, 1.0 / 60.0)

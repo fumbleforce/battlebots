@@ -31,6 +31,8 @@ var _lifter_time := 0.0
 ## Charge at release of the flip in progress (0 when not flipping).
 var _lifter_launch_strength := 0.0
 var mechanism: Node3D
+## Arm angle at the hammer's strike (CombatWorld.hammer_strike_angle).
+var _hammer_strike := CombatWorld.HAMMER_STRIKE_ANGLE
 var gun_effects: MinigunEffects
 var metal := StandardMaterial3D.new()
 var accent := StandardMaterial3D.new()
@@ -127,6 +129,8 @@ func assemble(weapon: String, size: Vector3, loadout: Dictionary = {}) -> void:
 	elif kind == "hammer":
 		mechanism.position = Vector3(0, size.y * 0.5, -size.z * 0.5 + 0.15)
 		mechanism.rotation.x = PI / 6.0
+		# The swing ends where the authority's does: on the floor (#111).
+		_hammer_strike = CombatWorld.hammer_strike_angle(loadout, size * geometry_scale)
 		# Arm and head are the Scorpion's tail hammer (#109): its fore segment,
 		# telescopic rod and head, laid along the arm so the head rests where the
 		# authority strikes (CombatWorld.HAMMER_ARM ahead of the shoulder).
@@ -237,9 +241,9 @@ func show_state(view: BotView, delta: float) -> void:
 		if view.weapon_state == "windup":
 			angle = lerpf(PI / 6.0, PI / 2.0, view.weapon_charge_fraction)
 		elif view.weapon_state == "strike":
-			angle = -PI / 6.0
+			angle = _hammer_strike
 		elif view.weapon_cooldown > 0:
-			angle = lerpf(-PI / 6.0, PI / 6.0, clampf(1.0 - view.weapon_cooldown * view.weapon_rate / 1.4, 0, 1))
+			angle = lerpf(_hammer_strike, PI / 6.0, clampf(1.0 - view.weapon_cooldown * view.weapon_rate / 1.4, 0, 1))
 		mechanism.rotation.x = 0.0 if disabled else angle
 	elif kind == "lifter":
 		_lifter_time += delta

@@ -491,18 +491,56 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 				_sweep_origins[hit.collider_id] = query.transform.origin
 	return found
 
-## Arm length (before bot scale) and the swing end angle of the plain hammer;
-## the Sawblade hammer head's box in its model's metres.
+## Arm length (before bot scale) and the lowest swing end angle of the plain
+## hammer (hammer_strike_angle), with the halvings that find where it meets the
+## floor; the Sawblade hammer head's box in its model's metres.
+const HAMMER_ANGLE_STEPS := 24
 const SAWBLADE_HAMMER_HEAD := Vector3(0.82, 0.405, 0.38)
 const HAMMER_ARM := 1.2
 const HAMMER_STRIKE_ANGLE := -PI / 6.0
 
 ## The plain hammer's shoulder, in the bot's frame.
-func _hammer_pivot(bot: MvpBot) -> Vector3:
-	var linear_scale := BotScale.from_size(bot.combat.stats.size)
+static func hammer_pivot(loadout: Dictionary, size: Vector3) -> Vector3:
 	# The Strider (#61) swings its hammer from a low shoulder socket.
-	return Vector3(0, bot.combat.stats.size.y * 0.5, -bot.combat.stats.size.z * 0.5 + 0.15 * linear_scale) \
-		+ NimbleBots.hammer_socket(bot.loadout)
+	return Vector3(0, size.y * 0.5, -size.z * 0.5 + 0.15 * BotScale.from_size(size)) + NimbleBots.hammer_socket(loadout)
+
+func _hammer_pivot(bot: MvpBot) -> Vector3:
+	return hammer_pivot(bot.loadout, bot.combat.stats.size)
+
+## How the shared hammer's head sits on its arm (scenes/bots/weapon_visual.gd,
+## #109): the Scorpion's fore arm and head laid along the arm. Returns [the
+## head's tilt about the arm (radians), the model's scale on a unit bot].
+static func hammer_head_fit() -> Array:
+	var arm := ScorpionGeometry.HEAD_CENTER - ScorpionGeometry.TAIL_FORE
+	return [atan(arm.y / arm.z), HAMMER_ARM / arm.length()]
+
+## The plain hammer's arm angle at the strike (radians about X, 0 = level
+## forward). The swing ends where the head's striking plate meets the floor
+## under the bot, and never goes past HAMMER_STRIKE_ANGLE: a fixed angle drove
+## the head of a tall body (Atlas MX) into the ground (#111). Shared by the
+## authority and the drawn arm.
+static func hammer_strike_angle(loadout: Dictionary, size: Vector3) -> float:
+	# The Strider (#61) swings its own hammer on its own legs (NimbleVisual).
+	if not NimbleBots.spec(loadout).is_empty():
+		return HAMMER_STRIKE_ANGLE
+	var linear := BotScale.from_size(size)
+	var fit := hammer_head_fit()
+	var drop: float = ScorpionGeometry.HEAD_SIZE.y * 0.5 * linear * float(fit[1])
+	var shoulder := hammer_pivot(loadout, size).y + SawbladeGeometry.ground(loadout, size)
+	# Height of the middle of the plate above the floor; it rises with the angle.
+	var plate := func(angle: float) -> float:
+		return shoulder + HAMMER_ARM * linear * sin(angle) - drop * cos(angle + float(fit[0]))
+	var low := HAMMER_STRIKE_ANGLE
+	var high := PI / 2.0
+	if plate.call(low) >= 0.0:
+		return low
+	for step: int in HAMMER_ANGLE_STEPS:
+		var middle := (low + high) * 0.5
+		if plate.call(middle) < 0.0:
+			low = middle
+		else:
+			high = middle
+	return high
 
 ## The hammer head (its centre and axes, in the bot's frame) at a fraction 0..1
 ## of its swing, on whichever body carries it. The shared hammer is the
@@ -515,9 +553,8 @@ func _hammer_pose(bot: MvpBot, fraction: float) -> Transform3D:
 	if SawbladeConfig.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout):
 		var swing := SawbladeGeometry.HAMMER_SWING * fraction
 		return Transform3D(Basis(Vector3.RIGHT, swing - SawbladeGeometry.HAMMER_SWING), SawbladeGeometry.hammer_center(size, swing))
-	var arm := ScorpionGeometry.HEAD_CENTER - ScorpionGeometry.TAIL_FORE
-	var turn := Basis(Vector3.RIGHT, lerpf(PI / 2.0, HAMMER_STRIKE_ANGLE, fraction))
-	return Transform3D(turn * Basis(Vector3.RIGHT, atan(arm.y / arm.z)),
+	var turn := Basis(Vector3.RIGHT, lerpf(PI / 2.0, hammer_strike_angle(bot.loadout, size), fraction))
+	return Transform3D(turn * Basis(Vector3.RIGHT, hammer_head_fit()[0]),
 		_hammer_pivot(bot) + turn * Vector3(0, 0, -HAMMER_ARM * BotScale.from_size(size)))
 
 ## Half the height of the head, from its centre to its striking plate, at game
@@ -528,8 +565,7 @@ func _hammer_drop(bot: MvpBot) -> float:
 		return ScorpionGeometry.HEAD_SIZE.y * 0.5 * BotScale.from_size(size)
 	if SawbladeConfig.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout):
 		return SAWBLADE_HAMMER_HEAD.y * 0.5 * SawbladeGeometry.scale_for(size).y
-	return ScorpionGeometry.HEAD_SIZE.y * 0.5 * BotScale.from_size(size) \
-		* HAMMER_ARM / (ScorpionGeometry.HEAD_CENTER - ScorpionGeometry.TAIL_FORE).length()
+	return ScorpionGeometry.HEAD_SIZE.y * 0.5 * BotScale.from_size(size) * float(hammer_head_fit()[1])
 
 ## Where the head strikes (#111): the middle of its striking plate, the
 ## underside of the head, in the bot's frame. The hit sphere follows this point
@@ -537,10 +573,7 @@ func _hammer_drop(bot: MvpBot) -> float:
 ## inside the head.
 func _hammer_face(bot: MvpBot, fraction: float) -> Vector3:
 	var pose := _hammer_pose(bot, fraction)
-	var face := pose.origin - pose.basis.y * _hammer_drop(bot)
-	# The plate stops at the floor: a tall body's swing would end below it.
-	face.y = maxf(face.y, -SawbladeGeometry.ground(bot.loadout, bot.combat.stats.size))
-	return face
+	return pose.origin - pose.basis.y * _hammer_drop(bot)
 
 ## Where the hammer strikes at the end of its swing, in world space.
 func _hammer_head(bot: MvpBot) -> Vector3:

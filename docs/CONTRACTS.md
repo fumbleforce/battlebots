@@ -1945,8 +1945,17 @@ Also in build mvp-ab-71:
   samples of mvp-ab-68..70.
 - **Hammer impact point.** The hit sphere follows the middle of the head's
   striking plate (its underside, `CombatWorld._hammer_face`) down the swing
-  instead of the head's centre, on every body, and never goes below the floor
-  under the bot (`SawbladeGeometry.ground`): a tall body's swing ends lower. The shared hammer's head is
+  instead of the head's centre, on every body.
+- **Shared hammer swing ends on the floor.** The plain hammer (Atlas MX and
+  the classic hulls) swung to a fixed `HAMMER_STRIKE_ANGLE` (30 degrees below
+  level), which drove its head through the floor: 0.4 m on the Atlas MX, 1.2 m
+  on the classic hulls (measured in a windowed Practice Duel). The swing now
+  ends where the striking plate meets the floor under the bot
+  (`CombatWorld.hammer_strike_angle`, from `hammer_pivot` and
+  `SawbladeGeometry.ground`): about 24.5 degrees on the Atlas MX and 9.4 on the
+  classic hulls, never past `HAMMER_STRIKE_ANGLE`. `scenes/bots/weapon_visual.gd`
+  and `HammerSlamDetector` read the same angle. The Scorpion tail, the Sawblade
+  body's hammer and the Strider keep their swings. The shared hammer's head is
   posed and sized as `scenes/bots/weapon_visual.gd` draws it (the Scorpion
   fore arm and head laid along the arm).
 - **Vertical spinner.** It checks its own rotor, a disc of

@@ -34,8 +34,8 @@ static func head_end(bot_loadout: Dictionary, hull_size: Vector3) -> Dictionary:
 	if SawbladeConfig.enabled(bot_loadout) and not AtlasGeometry.enabled(bot_loadout):
 		return {"center":SawbladeGeometry.hammer_center(hull_size, SawbladeGeometry.HAMMER_SWING),
 			"half":0.405 * SawbladeGeometry.scale_for(hull_size).y * 0.5}
-	var pivot := Vector3(0, hull_size.y * 0.5, -hull_size.z * 0.5 + 0.15 * linear) + NimbleBots.hammer_socket(bot_loadout)
-	return {"center":pivot + Basis(Vector3.RIGHT, -PI / 6.0) * Vector3(0, 0, -1.2 * linear),
+	return {"center":CombatWorld.hammer_pivot(bot_loadout, hull_size)
+			+ Basis(Vector3.RIGHT, CombatWorld.hammer_strike_angle(bot_loadout, hull_size)) * Vector3(0, 0, -CombatWorld.HAMMER_ARM * linear),
 		"half":0.2 * linear}
 
 func observe(view: BotView, delta: float) -> void:
