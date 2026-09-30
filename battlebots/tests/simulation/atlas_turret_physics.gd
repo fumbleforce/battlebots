@@ -33,14 +33,15 @@ func catalogue_rules() -> void:
 		check(result.stats.get("secondary_weapon") == kind, "Turret publishes secondary weapon " + kind)
 		check(AtlasGeometry.turret_kind(turret_build(kind)) == kind, "Geometry resolves the fitted turret")
 		var minigun := registry.validate(turret_build(kind, "minigun"))
-		check(not minigun.valid and "The turret occupies the Atlas roof gun mount; select another primary weapon" in minigun.reasons,
+		check(not minigun.valid and "The turret occupies the roof gun mount; select another primary weapon" in minigun.reasons,
 			"Turret and primary minigun share the roof mount")
+		# Other bodies carry the turret on their own race (#108, weapon_mounts_physics).
 		for other: Dictionary in [registry.scorpion(), registry.starter()]:
 			other.parts.utility = "turret_" + kind
 			if other.parts.chassis == "scorpion_hex": other.parts.weapon = "hammer"
-			var rejected := registry.validate(other)
-			check(not rejected.valid and "Turret modules require the Atlas MX roof traverse race" in rejected.reasons,
-				"Turret is rejected off Atlas: " + str(other.parts.chassis))
+			var fitted := registry.validate(other)
+			check(fitted.valid and fitted.stats.secondary_weapon == kind,
+				"Turret also fits off the Atlas: %s %s" % [other.parts.chassis, fitted.reasons])
 	check(registry.validate(registry.atlas()).stats.secondary_weapon == "", "Plain Atlas has no auxiliary weapon")
 	for model: String in ["cannon_dual", "cannon_quad", "plasma_dual", "plasma_quad"]:
 		var upgrade := registry.validate(turret_build(model))

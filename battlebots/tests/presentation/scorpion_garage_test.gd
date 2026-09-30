@@ -155,15 +155,16 @@ func run() -> void:
 	equip_part("weapon", "hammer")
 	check(profile.loadouts[3] == original_scorpion, "Independent module changes restore the exact original Scorpion draft")
 	check_preview(customize.build_preview, true, true)
-	# A body change swaps only the parts the new body cannot use (here the
-	# auxiliary gun) and restores them on switching back.
+	# A body change keeps every weapon (each body mounts them all, #108): the
+	# Sawblade keeps the walking legs, the hammer and the auxiliary gun.
 	var before_body: Dictionary = profile.loadouts[3].duplicate(true)
 	equip_part("chassis", "balanced")
 	var expected_body := before_body.duplicate(true)
 	expected_body.parts.chassis = "balanced"
-	expected_body.parts.utility = profile.loadouts[3].parts.utility
-	check(profile.loadouts[3] == expected_body and expected_body.parts.utility != "minigun_pod", "Changing body keeps the primary and appearance and swaps only the auxiliary gun")
+	check(profile.loadouts[3] == expected_body and expected_body.parts.utility == "minigun_pod", "Changing body keeps the primary, the auxiliary gun and appearance")
 	check(profile.bots[3].valid and not customize.get_node("%Save").disabled, "Swapped build stays valid and saveable")
+	check(customize.build_preview.mounted_weapons != null and customize.build_preview.mounted_weapons.gun != null,
+		"The Sawblade preview draws the auxiliary gun on its own mount")
 	equip_part("chassis", "scorpion_hex")
 	check(profile.loadouts[3] == before_body and profile.bots[3].valid, "Switching back restores the full Scorpion")
 	var detached: Dictionary = profile.active_loadout()

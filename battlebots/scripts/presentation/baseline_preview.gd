@@ -332,7 +332,7 @@ func _apply_turret_aim(command: BotCommand, view: BotView) -> void:
 	if not is_instance_valid(camera) or not camera.is_inside_tree():
 		return
 	var size := Vector3(0.0, _turret_scale() * BotScale.AUTHORING_HEIGHT, 0.0)
-	var breech := view.pose * AtlasGeometry.turret_breech(size, view.turret_yaw)
+	var breech := view.pose * view.turret_mount * AtlasGeometry.turret_breech(size, view.turret_yaw)
 	var origin := camera.global_position
 	var forward := -camera.global_basis.z
 	var target := origin + forward * TURRET_AIM_DISTANCE
@@ -358,7 +358,7 @@ func _apply_turret_aim(command: BotCommand, view: BotView) -> void:
 ## steep-arc elevation that lands a shell there. Out of reach aims at maximum
 ## range (the lowest lobbing elevation); too close clamps to the 80 degree stop.
 func _apply_mortar_aim(command: BotCommand, view: BotView, size: Vector3, target: Vector3) -> void:
-	var muzzle := view.pose * AtlasGeometry.turret_muzzle(size, "mortar", view.turret_yaw, view.gun_pitch)
+	var muzzle := view.pose * view.turret_mount * AtlasGeometry.turret_muzzle(size, "mortar", view.turret_yaw, view.gun_pitch)
 	var offset := target - muzzle
 	var elevation := AtlasGeometry.mortar_elevation(Vector2(offset.x, offset.z).length(), offset.y)
 	if is_nan(elevation):
@@ -432,7 +432,7 @@ func _render_turret_reticle(view: BotView, delta := 0.0) -> void:
 	var size := Vector3(0.0, _turret_scale() * BotScale.AUTHORING_HEIGHT, 0.0)
 	# Follow the smoothed, drawn barrel so ring and turret move together.
 	var angles := view.turret_display
-	var muzzle := view.pose * AtlasGeometry.turret_muzzle(size, view.turret_kind, angles.x, angles.y)
+	var muzzle := view.pose * view.turret_mount * AtlasGeometry.turret_muzzle(size, view.turret_kind, angles.x, angles.y)
 	var direction := (view.pose.basis * AtlasGeometry.turret_direction(angles.x, angles.y)).normalized()
 	var end := muzzle + direction * TurretTuning.settings().value(view.turret_kind, "range")
 	var query := PhysicsRayQueryParameters3D.create(muzzle, end,

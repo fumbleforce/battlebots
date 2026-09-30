@@ -2,6 +2,7 @@ class_name AtlasGeometry
 extends RefCounted
 ## Atlas source meters. Canonical size.y remains the shared scale reference;
 ## its taller actual collision and support depth are explicit, never art-derived.
+const WEAPON_MOUNTS = preload("res://scripts/core/weapon_mounts.gd")
 const COLLISION_SIZE := Vector3(2.44, 1.11, 2.60)
 const COLLISION_CENTER_Y := 0.0
 const GROUND_DEPTH := 0.555
@@ -87,11 +88,14 @@ const GRINDER_REACH := 0.555
 const GRINDER_HALF_WIDTH := 1.08
 const GRINDER_RAISE := 0.5934119
 
-## Front tool ("ram", "spear", "grinder") or empty.
+## Front tool ("ram", "spear", "grinder") or empty. Other bodies carry the
+## same tools on their WeaponMounts coupler (#108).
 static func tool_kind(draft: Dictionary) -> String:
-	return TOOL_PARTS.get(draft.get("parts", {}).get("weapon", ""), "") if enabled(draft) else ""
+	var parts: Variant = draft.get("parts")
+	return TOOL_PARTS.get(parts.get("weapon", ""), "") if parts is Dictionary else ""
 
-## Ram strike volume in the chassis frame at game scale: [transform, size].
+## Ram strike volume in the Atlas frame at game scale: [transform, size]. On
+## other bodies the caller maps these volumes through WeaponMounts.tool().
 static func ram_volume(size: Vector3, punch: float) -> Array:
 	var linear := BotScale.from_size(size)
 	var depth := RAM_BACK_Z - RAM_NOSE_Z + 0.12
@@ -156,7 +160,7 @@ static func bracken_paint_defaults() -> Dictionary:
 
 static func gun_offset(draft: Dictionary, size: Vector3) -> Vector3:
 	if NimbleBots.enabled(draft): return NimbleBots.gun_offset(draft, size)
-	return GUN_OFFSET * BotScale.from_size(size) if enabled(draft) else Vector3.ZERO
+	return (GUN_OFFSET if enabled(draft) else WEAPON_MOUNTS.gun(draft)) * BotScale.from_size(size)
 
 static func paint_defaults() -> Dictionary:
 	var config := SawbladeConfig.defaults()
@@ -203,10 +207,12 @@ static func track_distance(at: Vector3) -> float:
 		return at.z + TRACK_HALF_LENGTH
 	return straight + arc + TRACK_HALF_LENGTH - at.z
 
-## Attachment model ("cannon", "plasma_quad", ...) or empty.
+## Attachment model ("cannon", "plasma_quad", ...) or empty. Other bodies
+## carry the same turret on their WeaponMounts race (#108).
 static func turret_model(draft: Dictionary) -> String:
 	if bracken_enabled(draft): return "cannon_bracken"
-	return TURRET_PARTS.get(draft.get("parts", {}).get("utility", ""), "") if enabled(draft) else ""
+	var parts: Variant = draft.get("parts")
+	return TURRET_PARTS.get(parts.get("utility", ""), "") if parts is Dictionary else ""
 
 ## Weapon family ("cannon" / "plasma") or empty.
 static func turret_kind(draft: Dictionary) -> String:
@@ -238,9 +244,10 @@ static func turret_muzzle(size: Vector3, kind: String, yaw: float, pitch: float,
 	return turret_breech(size, yaw, pitch, barrel) + turret_direction(yaw, pitch) * float(TURRET_MUZZLE.get(family(kind), 0.7)) * BotScale.from_size(size)
 
 ## Lowest clear elevation at a bearing: the stricter of the two surrounding
-## audit samples, matching the audit's own verification rule.
-static func turret_pitch_min(kind: String, yaw: float) -> float:
-	var table: Array = TURRET_DEPRESSION.get("cannon_quad" if kind == "cannon_bracken" else kind, TURRET_DEPRESSION.get(family(kind), TURRET_DEPRESSION.cannon))
+## audit samples, matching the audit's own verification rule. `measured` is
+## another body's own table (WeaponMounts.depression); empty uses the Atlas audit.
+static func turret_pitch_min(kind: String, yaw: float, measured: Array = []) -> float:
+	var table: Array = measured if not measured.is_empty() else TURRET_DEPRESSION.get("cannon_quad" if kind == "cannon_bracken" else kind, TURRET_DEPRESSION.get(family(kind), TURRET_DEPRESSION.cannon))
 	var index := int(fposmod(rad_to_deg(yaw), 360.0) / TURRET_DEPRESSION_STEP) % table.size()
 	return deg_to_rad(maxf(float(table[index]), float(table[(index + 1) % table.size()])))
 
@@ -250,28 +257,28 @@ static func turret_pitch_max(kind: String) -> float:
 
 ## Lowest elevation the servo will hold: the hull clearance, raised for the
 ## mortar to its lowest lobbing elevation (TurretTuning mortar.min_elevation).
-static func turret_pitch_floor(kind: String, yaw: float) -> float:
-	var lowest := turret_pitch_min(kind, yaw)
+static func turret_pitch_floor(kind: String, yaw: float, measured: Array = []) -> float:
+	var lowest := turret_pitch_min(kind, yaw, measured)
 	if family(kind) == "mortar":
 		lowest = maxf(lowest, TurretTuning.settings().value("mortar", "min_elevation"))
 	return lowest
 
 ## Chassis-frame yaw/pitch that point the barrel at a world direction, pitch
 ## clamped to the stops at that bearing. Yaw is unbounded (continuous traverse).
-static func turret_target(chassis: Basis, world_direction: Vector3, kind: String) -> Vector2:
+static func turret_target(chassis: Basis, world_direction: Vector3, kind: String, measured: Array = []) -> Vector2:
 	var local := chassis.orthonormalized().inverse() * world_direction
 	var yaw := atan2(-local.x, -local.z)
 	var pitch := atan2(local.y, Vector2(local.x, local.z).length())
-	return Vector2(yaw, clampf(pitch, turret_pitch_floor(kind, yaw), turret_pitch_max(kind)))
+	return Vector2(yaw, clampf(pitch, turret_pitch_floor(kind, yaw, measured), turret_pitch_max(kind)))
 
 ## Bounded servo step shared by authority and tests. A depressed barrel first
 ## elevates before traversing into a bearing whose hull clearance needs it.
-static func turret_slew(current: Vector2, target: Vector2, delta: float, kind: String) -> Vector2:
+static func turret_slew(current: Vector2, target: Vector2, delta: float, kind: String, measured: Array = []) -> Vector2:
 	var yaw_step := TurretTuning.settings().yaw_rate * maxf(0.0, delta)
 	var candidate := wrapf(current.x + clampf(wrapf(target.x - current.x, -PI, PI), -yaw_step, yaw_step), -PI, PI)
-	var candidate_floor := turret_pitch_min(kind, candidate)
+	var candidate_floor := turret_pitch_min(kind, candidate, measured)
 	var yaw := candidate if current.y >= candidate_floor - 0.0001 else current.x
-	var goal := clampf(maxf(target.y, candidate_floor), turret_pitch_floor(kind, yaw), turret_pitch_max(kind))
+	var goal := clampf(maxf(target.y, candidate_floor), turret_pitch_floor(kind, yaw, measured), turret_pitch_max(kind))
 	var pitch := move_toward(current.y, goal, TurretTuning.settings().pitch_rate * maxf(0.0, delta))
 	return Vector2(yaw, pitch)
 

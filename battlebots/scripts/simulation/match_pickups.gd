@@ -14,7 +14,6 @@ const OFFERED_CHASSIS := ["balanced", "scorpion_hex", "atlas_mx"]
 const EXCLUDED_PARTS := ["nitro_off", "jump_off"]
 const PERK_SLOTS := ["nitro", "suspension"]
 const REQUIRED_DRIVE := {"scorpion_hex":"walker", "atlas_mx":"traction"}
-const FALLBACK_UTILITY := "recovery_assist"
 ## Vertical pickup column in metres from the point; REACH_UP is also the height of
 ## the marker's light beam, so a bot collects anywhere it visibly overlaps.
 const REACH_UP := 9.0
@@ -26,7 +25,7 @@ const REWARD_PER_ASSIST := 20
 const REWARD_DAMAGE_DIVISOR := 10
 
 ## Budget-exempt catalogue: pickups are a bonus above the construction limits,
-## but physical compatibility (required drives, gun sockets) still applies.
+## but physical compatibility (required drives, one gun mechanism) still applies.
 var registry := ContentRegistry.new()
 var items: Array[Dictionary] = []
 ## Entity id -> credits collected from pickups during this match.
@@ -209,9 +208,9 @@ func _refuse(item: Dictionary, entity_id: int, loadout: Dictionary) -> void:
 		"reason":"equipped" if equipped else "incompatible"})
 
 ## The picked part replaces the one in its slot. A new body brings the drive it
-## requires and drops a utility it has no socket for; any other conflict
-## (for example a wheeled drive on a Scorpion, or any part for a sealed nimble
-## bot) leaves the pickup unused.
+## requires; every weapon and utility fits every offered body (#108). Any other
+## conflict (for example a wheeled drive on a Scorpion, a primary minigun under a
+## turret, or any part for a sealed nimble bot) leaves the pickup unused.
 func swapped(loadout: Dictionary, part: String) -> Dictionary:
 	if not registry.parts.has(part) or not loadout.get("parts") is Dictionary:
 		return {}
@@ -230,12 +229,6 @@ func swapped(loadout: Dictionary, part: String) -> Dictionary:
 		# modular appearance record, so keep or supply one.
 		if next.get("cosmetics") is Dictionary and not SawbladeConfig.enabled(next):
 			next.cosmetics["sawblade"] = SawbladeConfig.defaults()
-		# The lifting tool follows the body: Ramp on Sawblade, Lifter elsewhere (#109).
-		ContentRegistry.fit_lift(next)
-		# Socket-bound utilities (the auxiliary minigun, or any later body-only
-		# module) cannot move to a body without that socket: fit the fallback.
-		if not registry.validate(next).valid and next.parts.get("utility") != FALLBACK_UTILITY:
-			next.parts.utility = FALLBACK_UTILITY
 	return next if registry.validate(next).valid else {}
 
 ## Post-match account reward. `participant` is a results participant record.

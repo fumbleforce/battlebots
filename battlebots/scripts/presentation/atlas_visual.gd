@@ -1,7 +1,7 @@
 class_name AtlasVisual
 extends Node3D
 const ATLAS_TOOL_VISUAL = preload("res://scripts/presentation/atlas_tool_visual.gd")
-const TURRET_HARPOON_EFFECTS = preload("res://scripts/presentation/turret_harpoon_effects.gd")
+const TURRET_MODULE = preload("res://scripts/presentation/turret_module_visual.gd")
 ## Authored Atlas shell, socket-mounted existing weapons, observed track travel.
 ## No collision, authoritative damage, input or simulated weapon state lives here.
 const MODEL := "res://assets/models/atlas_runtime/atlas_mx.glb"
@@ -35,24 +35,18 @@ var _draft: Dictionary = {}
 var drive_gear := "tracks"
 var drives: Node3D
 var legs: AtlasLegs
+## The instanced turret scene inside turret_module, or null.
 var turret: Node3D
+var turret_module: TURRET_MODULE
 ## Front tool (ram, spear/forklift, grinder) from atlas_tools.glb, or null.
 var tool: ATLAS_TOOL_VISUAL
 var turret_kind := ""
 var turret_model := ""
-## TurretShotEffects (cannon, plasma, mortar), TurretSpecialEffects (flamer,
-## tesla, railgun) or TURRET_HARPOON_EFFECTS; all expose configure/show_state/clear_effects/muzzles/shot_count.
+## The module's effects node (see turret_module_visual.gd).
 var turret_effects: Node3D
 ## Smoothed yaw/pitch actually drawn this frame (also drives the reticle).
-var turret_display := Vector2.ZERO
-var _turret_yaw: Node3D
-var _turret_pitch: Node3D
-var _turret_rest := {}
-var _turret_shown := false
-var _sample := Vector2.ZERO
-var _sample_rate := Vector2.ZERO
-var _sample_tick := -1
-var _since_sample := 0.0
+var turret_display: Vector2:
+	get: return turret_module.display if turret_module != null else Vector2.ZERO
 
 func assemble(draft: Dictionary, size: Vector3) -> void:
 	_size = size
@@ -132,80 +126,14 @@ func _assemble_drives(size: Vector3) -> void:
 		legs.attach(size, found)
 
 func _assemble_turret() -> void:
-	turret = load(BRACKEN_TURRET if is_bracken else TURRET).instantiate()
-	turret.name = "AtlasTurretModule"
-	add_child(turret)
-	var found := {}
-	for node: Node in turret.find_children("*", "Node3D", true, false):
-		found[str(node.name)] = node
-	_turret_yaw = found.get("TurretYaw")
-	_turret_pitch = found.get("TurretPitch")
-	# Node names: Attachment<Family><Suffix>, CannonRecoil<Suffix>_i, Muzzle<Family><Suffix>_i.
-	var family := turret_kind.capitalize()
-	var suffix := turret_model.get_slice("_", 1).capitalize() if "_" in turret_model else ""
-	var chosen := "Attachment" + family + suffix
-	for label: String in found:
-		if label.begins_with("Attachment") and not label.ends_with("Surface"):
-			found[label].visible = label == chosen
-		elif label == "SponsonsQuad":
-			# Turret-integrated armored sponsons house the quad side guns.
-			found[label].visible = turret_model.ends_with("_quad")
-	for node: Node3D in [_turret_yaw, _turret_pitch]:
-		if node != null: _turret_rest[node] = node.transform
+	turret_module = TURRET_MODULE.new()
+	turret_module.name = "TurretModule"
+	add_child(turret_module)
+	turret_module.assemble(BRACKEN_TURRET if is_bracken else TURRET, turret_kind, turret_model, _size.y / BotScale.AUTHORING_HEIGHT)
+	turret = turret_module.root
+	turret_effects = turret_module.effects
 	for label: String in TURRET_HIDDEN:
 		if nodes.has(label): nodes[label].visible = false
-	var muzzles: Array[Node3D] = []
-	var recoils: Array[Node3D] = []
-	var barrels: int = AtlasGeometry.turret_barrels(turret_model).size()
-	for index: int in barrels:
-		var tag := "" if suffix.is_empty() else "%s_%d" % [suffix, index]
-		muzzles.append(found.get("Muzzle" + family + tag))
-		recoils.append(found.get("CannonRecoil" + tag) if turret_kind == "cannon" else null)
-	if turret_kind == "harpoon":
-		# The loaded head leaves the tube while the bolt is out.
-		recoils = [found.get("HarpoonHead")]
-		turret_effects = TURRET_HARPOON_EFFECTS.new()
-	elif turret_kind in ["flamer", "tesla", "railgun"]:
-		turret_effects = TurretSpecialEffects.new()
-	else:
-		turret_effects = TurretShotEffects.new()
-	turret_effects.name = "TurretShotEffects"
-	add_child(turret_effects)
-	turret_effects.configure(turret_kind, muzzles, recoils, _size.y / BotScale.AUTHORING_HEIGHT)
-
-## Presentation only. Authoritative angles arrive per physics tick (60 Hz
-## locally, 20 Hz snapshots remotely). Estimate their rate from each new
-## sample, predict between samples and ease toward the prediction, so the
-## turret moves smoothly at any frame rate without lagging the servo.
-func _show_turret(view: BotView, delta: float) -> void:
-	var target := Vector2(view.turret_yaw, view.gun_pitch)
-	var jump := absf(wrapf(target.x - _sample.x, -PI, PI)) > 1.2
-	if not _turret_shown or jump:
-		turret_display = target
-		_sample = target
-		_sample_rate = Vector2.ZERO
-		_sample_tick = view.server_tick
-		_since_sample = 0.0
-	elif view.server_tick != _sample_tick:
-		var elapsed := maxf(_since_sample, 1.0 / 240.0)
-		_sample_rate = Vector2(
-			clampf(wrapf(target.x - _sample.x, -PI, PI) / elapsed, -TurretTuning.settings().yaw_rate, TurretTuning.settings().yaw_rate),
-			clampf((target.y - _sample.y) / elapsed, -TurretTuning.settings().pitch_rate, TurretTuning.settings().pitch_rate))
-		_sample = target
-		_sample_tick = view.server_tick
-		_since_sample = 0.0
-	_turret_shown = true
-	_since_sample += maxf(delta, 0.0)
-	var ahead := minf(_since_sample, 0.1)
-	var predicted := Vector2(wrapf(_sample.x + _sample_rate.x * ahead, -PI, PI), _sample.y + _sample_rate.y * ahead)
-	var ease := 1.0 - exp(-maxf(delta, 0.0) * 30.0)
-	turret_display.x = wrapf(turret_display.x + wrapf(predicted.x - turret_display.x, -PI, PI) * ease, -PI, PI)
-	turret_display.y = lerpf(turret_display.y, predicted.y, ease)
-	if _turret_yaw != null:
-		_turret_yaw.transform = _turret_rest[_turret_yaw] * Transform3D(Basis(Vector3.UP, turret_display.x))
-	if _turret_pitch != null:
-		_turret_pitch.transform = _turret_rest[_turret_pitch] * Transform3D(Basis(Vector3.RIGHT, turret_display.y))
-	turret_effects.show_state(view, delta)
 
 func _track_part(node: Node3D, side: int) -> Dictionary:
 	var rest := _relative_transform(node)
@@ -250,10 +178,15 @@ func _apply_modules(config: Dictionary) -> void:
 		if nodes.has(label): nodes[label].visible = selection[label]
 
 func _apply_paint(config: Dictionary) -> void:
+	paint(self, config, AtlasGeometry.bracken_paint_defaults() if is_bracken else AtlasGeometry.paint_defaults())
+
+## Repaints every Atlas-family mesh under root whose channel differs from the
+## factory defaults it was baked with. Also paints Atlas weapon modules mounted
+## on other bodies (mounted_weapons.gd).
+static func paint(root: Node3D, config: Dictionary, defaults: Dictionary) -> void:
 	var shared := {}
-	var defaults := AtlasGeometry.bracken_paint_defaults() if is_bracken else AtlasGeometry.paint_defaults()
-	for mesh: MeshInstance3D in find_children("*", "MeshInstance3D", true, false):
-		var armor := _is_armor(mesh)
+	for mesh: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
+		var armor := _is_armor(mesh, root)
 		for index: int in mesh.mesh.get_surface_count():
 			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
 			if original == null: continue
@@ -289,14 +222,14 @@ func _apply_paint(config: Dictionary) -> void:
 					shared[key] = material
 			mesh.set_surface_override_material(index, shared[key])
 
-func _is_armor(mesh: Node) -> bool:
+static func _is_armor(mesh: Node, root: Node) -> bool:
 	var node := mesh
-	while node != null and node != self:
+	while node != null and node != root:
 		if str(node.name).begins_with("Armor"): return true
 		node = node.get_parent()
 	return false
 
-func _repaint_material(original: StandardMaterial3D, coverage: Texture2D, tint: Color, authored: Color) -> ShaderMaterial:
+static func _repaint_material(original: StandardMaterial3D, coverage: Texture2D, tint: Color, authored: Color) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = PAINT
 	material.set_shader_parameter("surface_albedo", original.albedo_texture)
@@ -350,8 +283,8 @@ func show_state(view: BotView, delta: float) -> void:
 	if tool != null: tool.show_state(view, delta)
 	if auxiliary != null:
 		auxiliary.gun_effects.show_state(view, delta, false)
-	if turret != null:
-		_show_turret(view, delta)
+	if turret_module != null:
+		turret_module.show_state(view, delta)
 	if is_bracken: _show_hydraulics()
 	if legs != null:
 		legs.observe_state(view)
@@ -372,7 +305,7 @@ func component_meshes() -> Dictionary:
 	_collect(primary, groups.weapon)
 	if tool != null: _collect(tool, groups.weapon)
 	if auxiliary != null: _collect(auxiliary, groups.weapon)
-	if _turret_yaw != null: _collect(_turret_yaw, groups.weapon)
+	if turret_module != null and turret_module.yaw_node != null: _collect(turret_module.yaw_node, groups.weapon)
 	if nodes.has("DriveLeft"): _collect(nodes.DriveLeft, groups.drive_left)
 	if nodes.has("DriveRight"): _collect(nodes.DriveRight, groups.drive_right)
 	if drives != null:
@@ -391,9 +324,8 @@ func reset_observation() -> void:
 	_have_pose = false
 	if primary.gun_effects != null: primary.gun_effects.clear_effects()
 	if auxiliary != null: auxiliary.gun_effects.clear_effects()
-	if turret_effects != null: turret_effects.clear_effects()
+	if turret_module != null: turret_module.clear_effects()
 	if tool != null: tool.clear_effects()
-	_turret_shown = false
 	if legs != null: legs.reset_feet()
 
 ## Each rigid cylinder and rod aims at the opposing eye. The rod slides into

@@ -514,8 +514,7 @@ func run() -> void:
 			draft.parts.chassis = chassis
 			draft.parts.drive = drive_id
 			draft.parts.weapon = "lifter"
-			ContentRegistry.fit_lift(draft)
-			draft.parts.utility = MatchPickups.FALLBACK_UTILITY
+			draft.parts.utility = "recovery_assist"
 			return session.registry.validate(draft).valid)
 		check(listed.has(drive_id) == mountable, "Drive %s is listed only if a dropdown body mounts it (listed %s)" % [drive_id, listed.has(drive_id)])
 	check(session.practice_set_part("chassis", "balanced").get("part") == "balanced", "A wheeled body can be chosen again")

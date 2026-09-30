@@ -14,6 +14,13 @@ correct roller clearance and centered corner sockets remain required. Fidelity
 was approved by the user on 22 September 2026. See [Atlas implementation](coordination/B_ATLAS_MX.md)
 for exported mounts, actual runtime validation and the hosted-release handoff.
 
+**User revision, 30 September 2026 — every weapon on every body (#108):** all
+Weapon 1 and Weapon 2 parts fit every body Customize offers (Sawblade, Scorpion,
+Atlas MX). Front tools, turrets and the auxiliary gun mount on each body's own
+coupler, race and socket, and both lifting tools (Ramp and Lifter) fit every body; drive rules, the power budget and the two shared-mechanism
+rules (one minigun; a turret excludes the primary minigun) remain. Factory-sealed
+builds are unchanged. See [weapon mounts](coordination/WEAPON_MOUNTS.md).
+
 **User revision, 30 September 2026 — melee Weapon 1 (#107):** the primary weapon
 slot offers melee weapons only (saw, horizontal and vertical spinner, hammer, ramp,
 battering ram, grinder drum, spear · forklift). Ranged weapons are Weapon 2

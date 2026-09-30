@@ -1,6 +1,7 @@
 class_name ContentRegistry
 extends RefCounted
 ## Only this server-owned catalogue supplies gameplay stats and assembly dimensions.
+const WEAPON_MOUNTS = preload("res://scripts/core/weapon_mounts.gd")
 const SLOTS := ["chassis", "drive", "weapon", "utility", "nitro", "suspension"]
 const SCHEMA := 3
 ## Weapon 1 is melee only (#107): the primaries Customize, the practice pickers,
@@ -57,22 +58,20 @@ func _armor_selection(draft: Dictionary) -> Array[Dictionary]:
 		if index >= 0 and index < choices.size(): selected.append(choices[index])
 	return selected
 
-## One lifting tool, two builds (#109): the Sawblade body carries its built-in
-## Ramp, every other body mounts the Lifter. Both follow the lifter rules.
+## Two lifting tools with the same rules (#109): the Ramp (the Sawblade body's
+## plate) and the Lifter (the forked arm). Every body mounts either (#108).
 const LIFT_PARTS := ["ramp", "lifter"]
 
-static func lift_part(draft: Dictionary) -> String:
-	return "ramp" if SawbladeConfig.body(draft) else "lifter"
-
-## Swaps a lifting tool for the one the draft's body carries, in place. Returns
-## [old id, new id], or [] when nothing changed.
-static func fit_lift(draft: Dictionary) -> Array:
+## A build from before the Ramp / Lifter split (#109) names its lifting tool
+## `lifter`; on the Sawblade body that drew the plate ramp. Such a build keeps
+## the tool it showed: its lifter becomes the Ramp, in place. Returns true when
+## it changed. Only for the built-in presets and saves of an older catalogue;
+## a current build's Lifter on the Sawblade body is the player's choice.
+static func keep_presplit_ramp(draft: Dictionary) -> bool:
 	var selected: Variant = draft.get("parts")
-	if not selected is Dictionary or selected.get("weapon") not in LIFT_PARTS: return []
-	var fitted := lift_part(draft)
-	if selected.weapon == fitted: return []
-	selected.weapon = fitted
-	return [LIFT_PARTS[1 - LIFT_PARTS.find(fitted)], fitted]
+	if not selected is Dictionary or selected.get("weapon") != "lifter" or not SawbladeConfig.body(draft): return false
+	selected.weapon = "ramp"
+	return true
 
 func starter(controller := false) -> Dictionary:
 	return {"schema_version": SCHEMA, "name": "Controller" if controller else "Striker",
@@ -211,20 +210,13 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 				if config[option] != factory[option]:
 					result.reasons.append("Bracken keeps its authored armor and exhaust")
 					break
-	if selected.get("weapon") in LIFT_PARTS and selected.get("weapon") != lift_part(draft):
-		result.reasons.append("The Sawblade body lifts with its built-in Ramp; other bodies mount the Lifter")
-	if selected.get("weapon") in AtlasGeometry.TOOL_PARTS and selected.get("chassis") != "atlas_mx":
-		result.reasons.append("Ram, spear and grinder tools mount on the Atlas MX front coupler")
-	if selected.get("utility") in AtlasGeometry.TURRET_PARTS:
-		if not AtlasGeometry.enabled(draft):
-			result.reasons.append("Turret modules require the Atlas MX roof traverse race")
-		elif selected.get("weapon") == "minigun":
-			result.reasons.append("The turret occupies the Atlas roof gun mount; select another primary weapon")
-	if selected.get("weapon") == "minigun" or selected.get("utility") == "minigun_pod":
-		if selected.get("utility") == "minigun_pod" and selected.get("chassis") not in ["scorpion_hex", "atlas_mx"]:
-			result.reasons.append("Auxiliary minigun requires a Scorpion or Atlas MX gun socket")
-		if selected.get("weapon") == "minigun" and selected.get("utility") == "minigun_pod":
-			result.reasons.append("One minigun fits the gun socket; select another auxiliary part")
+	# Every weapon fits every body (#108): front tools, turrets and the
+	# auxiliary gun mount through data/weapon_mounts.json. Only weapons that
+	# share one mechanism exclude each other.
+	if selected.get("utility") in AtlasGeometry.TURRET_PARTS and selected.get("weapon") == "minigun":
+		result.reasons.append("The turret occupies the roof gun mount; select another primary weapon")
+	if selected.get("weapon") == "minigun" and selected.get("utility") == "minigun_pod":
+		result.reasons.append("One minigun fits the gun socket; select another auxiliary part")
 	var cosmetics: Variant = draft.get("cosmetics")
 	if not cosmetics is Dictionary or cosmetics.size() not in [1, 2] or cosmetics.get("paint") not in ["cyan", "orange", "white", "red"]:
 		result.reasons.append("Unknown cosmetic selection")
@@ -249,6 +241,11 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 			"minigun" if selected.utility == "minigun_pod" else "")),
 		"turret_model": AtlasGeometry.turret_model(draft),
 		"turret_barrels": AtlasGeometry.turret_barrels(AtlasGeometry.turret_model(draft)).size(),
+		# Body frames of the turret race and front tool coupler (identity on the
+		# Atlas MX) and the body's measured barrel clearance ([] = Atlas audit).
+		"turret_mount": WEAPON_MOUNTS.turret(draft, Vector3(chassis.size[0], chassis.size[1], chassis.size[2])),
+		"turret_depression": WEAPON_MOUNTS.depression(draft, AtlasGeometry.turret_model(draft)),
+		"tool_mount": WEAPON_MOUNTS.tool(draft, Vector3(chassis.size[0], chassis.size[1], chassis.size[2])),
 		"cooling": 15.0 if selected.utility == "cooling_pack" else 12.0,
 		"recovery_seconds": 1.0 if selected.utility == "recovery_assist" else 2.0,
 		"nitro": selected.nitro == "nitro_boost", "charged_jump": selected.suspension == "charged_jump"}

@@ -30,7 +30,8 @@ barrel sweeps them (cosmetic only).
 ## Gameplay and contracts
 
 - Catalogue revision 11 (first turret release) and revision 13 (upgrades) and revision 14 (hash `243e5508261cbfc210967638b9466614665689bf85ed82bc0897ebc5f827cb73`, special turrets) adds utilities `turret_cannon`
-  (16 kg/25 power) and `turret_plasma` (14/25). They are Atlas-only and
+  (16 kg/25 power) and `turret_plasma` (14/25). They were Atlas-only (every
+  body mounts them since #108, see [WEAPON_MOUNTS.md](WEAPON_MOUNTS.md)) and
   exclude the primary minigun. Revision-10 to revision-13 saves migrate. Preset
   `ContentRegistry.atlas_turret()` is seeded as the sixth profile preset.
 - `BotCommand`: `aim_valid` (flag bit 9), `aim_yaw`, `aim_pitch`

@@ -7,6 +7,7 @@ const BOT_PART_LOSS := preload("res://scripts/presentation/bot_part_loss.gd")
 const WEAPON_COLLIDERS := preload("res://scripts/core/weapon_colliders.gd")
 ## Weapon phases in which a melee weapon is at rest and therefore solid (#112).
 const WEAPON_REST_PHASES := ["idle", "cooldown", "overheated"]
+const MOUNTED_WEAPONS := preload("res://scripts/presentation/mounted_weapons.gd")
 var entity_id := 0
 var team := 0
 var owner_id := 0
@@ -40,6 +41,8 @@ var scorpion_visual: ScorpionVisual
 var atlas_visual: AtlasVisual
 var practice_npc_visual: PracticeNpcVisual
 var nimble_visual: NimbleVisual
+## Turret, front tool and auxiliary gun on a body's weapon mounts (#108), or null.
+var mounted_weapons: MOUNTED_WEAPONS
 var damage_visual: BotDamageVisual
 var destruction_visual: BotDestructionVisual
 ## Progressive part loss (#72), scripts/presentation/bot_part_loss.gd.
@@ -230,12 +233,20 @@ func _ready() -> void:
 		weapon_visual = MvpWeaponVisual.new()
 		weapon_visual.name = "Weapon"
 		presentation.add_child(weapon_visual)
-		weapon_visual.assemble(stats.weapon, stats.size, loadout)
+		weapon_visual.assemble(loadout.parts.weapon, stats.size, loadout)
+		if stats.weapon == "minigun": weapon_visual.position = AtlasGeometry.gun_offset(loadout, stats.size)
 		if body.walker:
 			var legs := WalkerLegs.new()
 			presentation.add_child(legs)
 			legs.exclusions = [body.get_rid()]
 			legs.assemble(stats.size, material, SawbladeConfig.defaults())
+	if DisplayServer.get_name() != "headless" and practice_npc_visual == null and MOUNTED_WEAPONS.wanted(loadout):
+		mounted_weapons = MOUNTED_WEAPONS.new()
+		mounted_weapons.name = "MountedWeapons"
+		presentation.add_child(mounted_weapons)
+		mounted_weapons.assemble(loadout, stats.size)
+		if sawblade_visual != null and mounted_weapons.turret != null:
+			sawblade_visual.clear_turret_race()
 	if DisplayServer.get_name() != "headless":
 		var gun_offset := AtlasGeometry.gun_offset(loadout, stats.size)
 		for node: Node in presentation.find_children("*", "Node3D", true, false):
@@ -310,6 +321,8 @@ func _process(delta: float) -> void:
 	var view: BotView
 	if weapon_visual != null or sawblade_visual != null or scorpion_visual != null or atlas_visual != null or practice_npc_visual != null or nimble_visual != null or damage_visual != null:
 		view = read_view()
+	if mounted_weapons != null:
+		mounted_weapons.show_state(view, delta)
 	if weapon_visual != null:
 		weapon_visual.show_state(view, delta)
 	if sawblade_visual != null:
@@ -372,6 +385,12 @@ func _create_damage_visual(size: Vector3) -> Dictionary:
 				pod.material_override = material
 				presentation.add_child(pod)
 				groups["drive_left" if side < 0 else "drive_right"].append(pod)
+	if mounted_weapons != null:
+		# A fresh list: some visuals hand out their own typed mesh arrays.
+		var weapon: Array = []
+		weapon.append_array(groups.weapon)
+		weapon.append_array(mounted_weapons.weapon_meshes())
+		groups.weapon = weapon
 	damage_visual = BotDamageVisual.new()
 	damage_visual.set_geometry_scale(body.geometry_scale)
 	presentation.add_child(damage_visual)
@@ -458,6 +477,7 @@ func reset_round() -> void:
 	if scorpion_visual != null: scorpion_visual.reset_observation()
 	if nimble_visual != null: nimble_visual.reset_observation()
 	if atlas_visual != null: atlas_visual.reset_observation()
+	if mounted_weapons != null: mounted_weapons.reset_observation()
 	combat = CombatState.new(combat.stats)
 	command = BotCommand.new()
 	input_age = 1
@@ -545,8 +565,10 @@ func read_view() -> BotView:
 	view.turret_kind = combat.stats.secondary_weapon if combat.is_turret() else ""
 	view.turret_yaw = data.get("turret_yaw", 0.0)
 	view.turret_model = combat.stats.get("turret_model", "")
-	view.turret_display = atlas_visual.turret_display if atlas_visual != null and atlas_visual.turret != null \
-		else Vector2(view.turret_yaw, data.get("gun_pitch", 0.0))
+	view.turret_mount = combat.stats.get("turret_mount", Transform3D.IDENTITY)
+	view.turret_display = Vector2(view.turret_yaw, data.get("gun_pitch", 0.0))
+	if atlas_visual != null and atlas_visual.turret != null: view.turret_display = atlas_visual.turret_display
+	elif mounted_weapons != null: view.turret_display = mounted_weapons.turret_display(view.turret_display)
 	view.secondary_charge = data.get("secondary_charge", 0.0)
 	view.secondary_active = data.get("secondary_active", false)
 	view.shot_sequence = data.get("shot_sequence", 0)

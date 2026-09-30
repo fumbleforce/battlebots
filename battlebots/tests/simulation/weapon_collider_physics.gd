@@ -79,8 +79,8 @@ func verify_catalogue() -> void:
 	var at := ORIGIN + Vector3(0, 0, 60)
 	var covered := {}
 	for build: Dictionary in builds:
-		# A body that cannot mount the weapon (front tools off the Atlas, the
-		# other body's lifting tool) has no build to check.
+		# Every body mounts every melee weapon (#108); a build the power budget
+		# refuses has nothing to check.
 		if not registry.validate(build).valid:
 			continue
 		covered[build.parts.weapon] = true

@@ -38,13 +38,16 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	var config: Dictionary = draft.cosmetics.sawblade
 	for weapon: String in ["saw", "hammer", "ramp"]:
 		nodes["Module_weapon_" + weapon].visible = weapon == SawbladeConfig.WEAPONS.get(kind, "")
-	if not SawbladeConfig.WEAPONS.has(kind):
+	# Front tools are drawn on the body's tool coupler (mounted_weapons.gd).
+	if not SawbladeConfig.WEAPONS.has(kind) and kind not in AtlasGeometry.TOOL_PARTS:
 		fallback_weapon = MvpWeaponVisual.new()
 		add_child(fallback_weapon)
 		# Canonical weapon geometry uses body meters, outside the authored art scale.
 		fallback_weapon.scale = Vector3.ONE / scale
 		fallback_weapon.position.y = size.y * 0.5 / scale.y
 		fallback_weapon.assemble(kind, size, draft)
+		# The gun sits on the body's gun mount, where the authority fires from.
+		if kind == "minigun": fallback_weapon.position += AtlasGeometry.gun_offset(draft, size) / scale
 	nodes.Module_drive_tracks.visible = _tracks
 	nodes.Module_drive_wheels.visible = draft.parts.drive in ["standard_wheels", "agile"]
 	nodes.Module_armor_side_reference.visible = config.armor_side == 1
@@ -66,7 +69,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		if node is MeshInstance3D: paint(node, config, materials, armor_meshes.has(node))
 	_ramp_pivot = Node3D.new()
 	nodes.SawbladeTank_ROOT.add_child(_ramp_pivot)
-	_ramp_pivot.position = Vector3(0, 0.36, -0.30)
+	_ramp_pivot.position = SawbladeGeometry.RAMP_HINGE
 	nodes.Module_weapon_ramp.reparent(_ramp_pivot, true)
 	_ramp_rest = _ramp_pivot.transform
 	if draft.parts.drive == "walker":
@@ -105,6 +108,12 @@ static func paint(node: MeshInstance3D, config: Dictionary, materials: Dictionar
 			material.set_shader_parameter("rough", original.roughness)
 			materials[key] = material
 		node.set_surface_override_material(surface, materials[key])
+
+## A roof turret (mounted_weapons.gd) sits on the rear pack crown: the carry
+## handle it would stand in is removed.
+func clear_turret_race() -> void:
+	for key: String in nodes:
+		if key.begins_with("Carry handle"): nodes[key].visible = false
 
 ## Only equipped mechanisms; armor skirts, body panels and exhaust stay separate.
 func component_meshes() -> Dictionary:
@@ -166,8 +175,8 @@ func show_state(view: BotView, delta: float) -> void:
 	elif kind == "saw" and not disabled and view.weapon_state == "active":
 		nodes.Saw_SPIN_X.rotate_x(-delta * 36)
 	elif kind == "ramp":
-		var angle := 0.0 if disabled else view.weapon_charge_fraction * deg_to_rad(40)
-		if not disabled and (view.weapon_state == "launch" or view.weapon_cooldown > 2.7): angle = deg_to_rad(75)
+		var angle := 0.0 if disabled else SawbladeGeometry.ramp_angle(view.weapon_charge_fraction,
+			view.weapon_state == "launch" or view.weapon_cooldown > 2.7)
 		_ramp_pivot.transform = _ramp_rest * Transform3D(Basis(Vector3.RIGHT, angle), Vector3.ZERO)
 	if _have_pose and delta > 0:
 		var displacement := view.pose.origin - _previous_pose.origin

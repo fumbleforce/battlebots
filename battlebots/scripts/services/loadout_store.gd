@@ -23,6 +23,8 @@ const REVISION_FIFTEEN_HASHES := ["395b22e42b6263e2f7441c6889f798595533fc376b6a5
 const REVISION_SIXTEEN_HASHES := ["c151490afecb7fd4f60dea3cdcacf28005781cf9f272e1c59c5ccaa6ae1b6218"]
 const REVISION_SEVENTEEN_HASHES := ["0b28e47cbef30e1dea1708453ae6840147f40928f604fbdc757f72a5af438835"]
 const REVISION_EIGHTEEN_HASHES := ["c23a5d8197d7c5432839a547b551bf767549bc55149d0fe2cf5a35049d198921"]
+## Last catalogue before the Ramp / Lifter split (#109).
+const REVISION_NINETEEN_HASHES := ["bfd07697defc59a0de75d4b847c9b5bb3bc516c7c8fd8473de3c1441b5b40cc6"]
 const MAX_SAVE_BYTES := 65536
 var registry := ContentRegistry.new()
 var path: String
@@ -231,7 +233,7 @@ func migrate(data: Dictionary) -> Dictionary:
 	if copy.get("schema_version") == 1 and copy.get("loadouts") is Array:
 		for index: int in range(copy.loadouts.size()):
 			var draft: Variant = copy.loadouts[index]
-			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES + REVISION_ELEVEN_HASHES + REVISION_TWELVE_HASHES + REVISION_THIRTEEN_HASHES + REVISION_FOURTEEN_HASHES + REVISION_FIFTEEN_HASHES + REVISION_SIXTEEN_HASHES + REVISION_SEVENTEEN_HASHES + REVISION_EIGHTEEN_HASHES:
+			if not draft is Dictionary or draft.get("content_hash") not in REVISION_ONE_HASHES + REVISION_TWO_HASHES + REVISION_THREE_HASHES + REVISION_FOUR_HASHES + REVISION_FIVE_HASHES + REVISION_SIX_HASHES + REVISION_SEVEN_HASHES + REVISION_EIGHT_HASHES + REVISION_NINE_HASHES + REVISION_TEN_HASHES + REVISION_ELEVEN_HASHES + REVISION_TWELVE_HASHES + REVISION_THIRTEEN_HASHES + REVISION_FOURTEEN_HASHES + REVISION_FIFTEEN_HASHES + REVISION_SIXTEEN_HASHES + REVISION_SEVENTEEN_HASHES + REVISION_EIGHTEEN_HASHES + REVISION_NINETEEN_HASHES:
 				continue
 			# Known catalogues preserve part IDs, names and cosmetics while adopting
 			# current canonical dimensions/handling. No arbitrary old hash is trusted.
@@ -249,6 +251,12 @@ func migrate(data: Dictionary) -> Dictionary:
 			# The retired resource utility becomes the heat-only cooling utility.
 			if upgraded.get("parts") is Dictionary and upgraded.parts.get("utility") == "battery_pack":
 				upgraded.parts.utility = "cooling_pack"
+			# Before the Ramp / Lifter split (#109) the lifting tool was `lifter`
+			# on every body, and the Sawblade body (every hull without its own
+			# model) drew it as the plate ramp: those builds keep the Ramp.
+			var own_model := ScorpionGeometry.enabled(upgraded) or AtlasGeometry.enabled(upgraded) or NimbleBots.enabled(upgraded)
+			if upgraded.get("parts") is Dictionary and upgraded.parts.get("weapon") == "lifter" and not own_model:
+				upgraded.parts.weapon = "ramp"
 			upgraded.content_hash = registry.content_hash
 			if registry.validate(upgraded).valid:
 				copy.loadouts[index] = upgraded

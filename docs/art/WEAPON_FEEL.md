@@ -201,7 +201,30 @@ See [B_ATLAS_WEAPONS.md](../coordination/B_ATLAS_WEAPONS.md).
   minimum range and the harpoon's stop distance, so evidence runs must allow
   for it rather than tune gameplay to the dummy.
 
-## 6. When adding a new part — checklist
+## 6. Fitting a weapon to another body (#108)
+
+The turrets and front tools were modelled on the Atlas MX. Other bodies carry
+the same models on a mount: a uniform scale and an offset per body in
+`battlebots/data/weapon_mounts.json`, used by the server geometry and the drawn
+model alike ([WEAPON_MOUNTS.md](../coordination/WEAPON_MOUNTS.md)).
+
+- **Scale to the body, as for the original.** A full-size turret is as wide as
+  the whole Sawblade. 60–63% spans the pack crown or the Scorpion deck the way
+  the original spans the Atlas.
+- **Give it something to stand on.** Remove what it would stand in (the
+  Sawblade carry handle), add a pedestal where deck fittings are in the way
+  (Scorpion), and join a tool to the body with coupler rails. A module that
+  floats near the hull reads as a bug.
+- **Rerun the clearance audit for every body.**
+  `battlebots/tools/audit_turret_clearance.gd` measures each body's own
+  depression tables. Record what a body costs: the Scorpion's exhaust stacks
+  block two rear sectors.
+- **Check placement before anyone opens the game.**
+  `battlebots/tools/render_bot_review.gd` renders the assembled bot headless to
+  PNG (flat shaded, no textures). It is enough to catch floating, sunk or
+  oversized parts; effects and feel still need a native look.
+
+## 7. When adding a new part — checklist
 
 1. Brief: role, usage verb and range; which references it follows; how it
    mounts to the machine.

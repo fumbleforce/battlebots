@@ -14,6 +14,8 @@ A weapon name now means one model on every body.
   body change in Customize, on a chassis pickup and when saved builds load, so
   pre-split Sawblade builds keep their ramp. A Ramp or Lifter weapon pickup
   that does not match the body stays unused, like any other misfit.
+  **Changed by #108 (build mvp-ab-66):** every body now mounts both tools, and
+  only pre-split builds are converted; see the #108 entry.
 - **Saw.** `MvpWeaponVisual` mounts the Sawblade body's authored blade and
   axle fork (no hydraulic lift; two plain brackets tie the fork into the hull) on
   every other body, at the size it has on the Sawblade body
@@ -1831,3 +1833,59 @@ uses the hull alone. The shape shares the body's layers, so a resting weapon
 also meets walls and props, and hits on it count as hits on its bot (zone by
 the nearest point of the hull bounds). The build bumps because bot collision
 changed on both peers.
+
+## Weapon mounts: every weapon on every offered body — build mvp-ab-66 (#108)
+
+Loadout validation and combat geometry change; the wire format, catalogue hash
+and loadout schema do not.
+
+- **Validation.** `ContentRegistry.validate` no longer ties the front tools
+  (`battering_ram`, `spear_fork`, `grinder_drum`), the `turret_*` utilities
+  or `minigun_pod` to a chassis. It still rejects a turret with the primary
+  `minigun` ("The turret occupies the roof gun mount; select another primary
+  weapon") and two miniguns. A stale peer would reject builds this one accepts,
+  hence the build bump.
+- **Mount record.** `battlebots/data/weapon_mounts.json`, read through
+  `scripts/core/weapon_mounts.gd` (by `preload`; it has no class name). Per body
+  (`sawblade`, `scorpion`, `box`): `turret` and `tool` frames (offset in hull
+  source metres, uniform scale), a `gun` offset, and generated `depression`
+  tables (degrees per 5° of yaw, per turret model). Atlas MX, Bracken and the
+  nimble bots have no record (identity).
+- **Stats.** `validate().stats` gains `turret_mount` and `tool_mount`
+  (`Transform3D`, game metres, hull frame) and `turret_depression` (`Array`,
+  empty = the Atlas audit tables). Stats stay local; they are not on the wire.
+- **Geometry rule.** `AtlasGeometry` turret and tool functions keep returning
+  Atlas-frame values. Consumers map points through the mount
+  (`stats.turret_mount * AtlasGeometry.turret_muzzle(...)`) and scale lengths by
+  the mount's scale (`scale_of(mount)` in `weapon_mounts.gd`).
+  `turret_pitch_min`, `turret_pitch_floor`, `turret_target` and `turret_slew`
+  take an optional measured table. `AtlasGeometry.turret_model` and `tool_kind`
+  now answer for any chassis; `gun_offset` reads the body's `gun` mount.
+- **BotView.** New presentation-only field `turret_mount` (identity by default),
+  set by `MvpBot.read_view` from the stats. Turret aim, the barrel reticle and
+  the mortar marker apply it. It is not replicated.
+- **Ramp and Lifter (supersedes part of #109).** Both lifting tools validate on
+  every body; a body change or chassis pickup keeps the fitted one.
+  `ContentRegistry.lift_part()` and `fit_lift()` are gone.
+  `ContentRegistry.keep_presplit_ramp(draft)` turns a pre-split `lifter` on the
+  Sawblade body into the `ramp` it showed; it runs for the built-in presets, for
+  saves of another catalogue, and in `LoadoutStore.migrate` (which now also
+  migrates catalogue 19 saves, `REVISION_NINETEEN_HASHES`). A current save's
+  Lifter on the Sawblade body stays the Lifter.
+  `SawbladeGeometry.ramp_hinge()`, `ramp_scale()`, `ramp_angle()` and
+  `ramp_volume()` place the Ramp on any body: on the Sawblade body as before,
+  elsewhere hinged just ahead of the front face at the Sawblade's height above
+  the ground and at the Sawblade's size. `CombatWorld._sweep()` and
+  `MvpWeaponVisual` (kind `ramp`) use them. The Lifter on the Sawblade body is
+  the ordinary lifter arm and front sweep.
+- **Weapon colliders (#112).** `WeaponColliders.collider()` maps the front
+  tools through `stats.tool_mount` and builds the Ramp's wedge on any body from
+  `SawbladeGeometry.ramp_hinge()` / `ramp_scale()`. On a four-legged walker
+  other than the Sawblade body the Ramp hangs from the crouched ride height
+  (`BotPhysics.crouch_ride_height`), so its wedge never digs into the floor
+  when the walker crouches.
+- **Pickups.** `MatchPickups.swapped` no longer replaces a utility or a
+  lifting tool on a body change; `FALLBACK_UTILITY` is removed.
+
+Details, measured clearance and limits:
+[docs/coordination/WEAPON_MOUNTS.md](coordination/WEAPON_MOUNTS.md).

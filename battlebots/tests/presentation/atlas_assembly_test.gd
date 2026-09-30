@@ -202,7 +202,7 @@ func paint_case(registry: ContentRegistry) -> void:
 				check(mesh.get_surface_override_material(index) == null, "Primary repaint leaves the independently selected steel finish unchanged")
 				untouched_steel += 1
 			if not ("PaintPrimary" in original.resource_name or "PaintSecondary" in original.resource_name): continue
-			if cyan._is_armor(mesh):
+			if AtlasVisual._is_armor(mesh, cyan):
 				check(mesh.get_surface_override_material(index) == null, "Primary and secondary paint leave armour enamel unchanged")
 				continue
 			check(not "PaintPrimaryEdge" in original.resource_name, "Baked painted chamfers belong to the worn primary atlas")
@@ -255,7 +255,7 @@ func paint_case(registry: ContentRegistry) -> void:
 			var original := mesh.mesh.surface_get_material(index) as StandardMaterial3D
 			if original == null: continue
 			var override := mesh.get_surface_override_material(index)
-			if armored._is_armor(mesh) and original.resource_name == "Atlas_PaintPrimary":
+			if AtlasVisual._is_armor(mesh, armored) and original.resource_name == "Atlas_PaintPrimary":
 				check(override is ShaderMaterial, "Armour paint reaches the armour pieces' primary enamel")
 				armor_painted += 1
 			else:

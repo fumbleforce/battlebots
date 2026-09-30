@@ -5,6 +5,7 @@ extends RefCounted
 ## so driving into a saw or a fork is an ordinary collision. Pure geometry: no
 ## scene loading, rendering or camera dependency.
 const SCRIPT := "res://scripts/core/weapon_colliders.gd"
+const WEAPON_MOUNTS = preload("res://scripts/core/weapon_mounts.gd")
 const PATH := "res://data/weapon_colliders.json"
 const MOUNTS := ["canonical", "atlas", "bracken", "sawblade"]
 ## Numeric fields each shape needs; a disc also needs radius or radius_share.
@@ -81,19 +82,24 @@ static func _problem(entry: Variant) -> String:
 func collider(loadout: Dictionary, stats: Dictionary) -> Dictionary:
 	var size: Vector3 = stats.size
 	var linear := BotScale.from_size(size)
+	# Front tools sit on the body's tool coupler (#108): Atlas-frame points map
+	# through the mount frame and lengths scale with it (identity on the Atlas).
+	var coupler: Transform3D = stats.get("tool_mount", Transform3D.IDENTITY)
+	var tool_scale: float = WEAPON_MOUNTS.scale_of(coupler)
 	match AtlasGeometry.tool_kind(loadout):
 		"ram":
 			var volume := AtlasGeometry.ram_volume(size, 0.0)
-			return _solid(_box(volume[1]), volume[0])
+			return _solid(_box(volume[1] * tool_scale), Transform3D(Basis.IDENTITY, coupler * (volume[0] as Transform3D).origin))
 		"spear":
 			# The whole fork, from the hull's front face to the tine tips.
-			var back := -AtlasGeometry.collision_size(loadout).z * 0.5
+			var back := -size.z * 0.5
 			var height := AtlasGeometry.SPEAR_Y
-			return _solid(_box(Vector3(AtlasGeometry.SPEAR_HALF_WIDTH * 2.0, height.y - height.x, back - AtlasGeometry.SPEAR_TIP_Z) * linear),
-				Transform3D(Basis.IDENTITY, Vector3(0.0, (height.x + height.y) * 0.5, (back + AtlasGeometry.SPEAR_TIP_Z) * 0.5) * linear))
+			var tip := coupler * (Vector3(0.0, (height.x + height.y) * 0.5, AtlasGeometry.SPEAR_TIP_Z) * linear)
+			return _solid(_box(Vector3(AtlasGeometry.SPEAR_HALF_WIDTH * 2.0 * linear * tool_scale, (height.y - height.x) * linear * tool_scale, back - tip.z)),
+				Transform3D(Basis.IDENTITY, Vector3(tip.x, tip.y, (back + tip.z) * 0.5)))
 		"grinder":
-			return _solid(_disc(AtlasGeometry.GRINDER_REACH * linear, AtlasGeometry.GRINDER_HALF_WIDTH * 2.0 * linear),
-				Transform3D(Basis(Vector3.BACK, PI * 0.5), AtlasGeometry.grinder_drum(size, 0.0)))
+			return _solid(_disc(AtlasGeometry.GRINDER_REACH * linear * tool_scale, AtlasGeometry.GRINDER_HALF_WIDTH * 2.0 * linear * tool_scale),
+				Transform3D(Basis(Vector3.BACK, PI * 0.5), coupler * AtlasGeometry.grinder_drum(size, 0.0)))
 	# The part, not its kind: the Ramp follows the lifter rules with its own shape.
 	var weapon: String = loadout.parts.weapon
 	if weapon == "saw":
@@ -108,6 +114,9 @@ func collider(loadout: Dictionary, stats: Dictionary) -> Dictionary:
 	if AtlasGeometry.bracken_enabled(loadout): mount = "bracken"
 	elif AtlasGeometry.enabled(loadout): mount = "atlas"
 	elif SawbladeConfig.body(loadout): mount = "sawblade"
+	# The Ramp is the Sawblade's plate on every body (#108).
+	var ramp := weapon == "ramp"
+	if ramp: mount = "sawblade"
 	if not _mounts[mount].has(weapon): mount = "canonical"
 	var entry: Dictionary = _mounts[mount].get(weapon, {})
 	if entry.is_empty():
@@ -115,7 +124,12 @@ func collider(loadout: Dictionary, stats: Dictionary) -> Dictionary:
 	# Authored point -> body frame: point * scale + origin.
 	var scale := Vector3.ONE * linear
 	var origin := Vector3(0.0, 0.0, -size.z * 0.5)
-	if mount == "sawblade":
+	if ramp:
+		# Hinged where SawbladeGeometry places it: on the Sawblade body that is
+		# the authored spot (the hull's underside at y 0).
+		scale = SawbladeGeometry.ramp_scale(loadout, size)
+		origin = SawbladeGeometry.ramp_hinge(loadout, size) - SawbladeGeometry.RAMP_HINGE * scale
+	elif mount == "sawblade":
 		scale = SawbladeGeometry.scale_for(size)
 		origin = Vector3.DOWN * size.y * 0.5
 	else:

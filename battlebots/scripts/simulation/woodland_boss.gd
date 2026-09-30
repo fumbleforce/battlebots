@@ -247,7 +247,7 @@ func _hunt(prey: MvpBot, intent: BotCommand, delta: float) -> void:
 	# turret's own trunnion (not the hull top) at the prey's centre, and only
 	# fire once the servo has actually brought the bore onto it (#81).
 	var state := boss.combat
-	var breech := boss.body.global_transform * AtlasGeometry.turret_breech(state.stats.size, state.turret_yaw, state.gun_pitch)
+	var breech := boss.body.global_transform * (state.stats.turret_mount as Transform3D) * AtlasGeometry.turret_breech(state.stats.size, state.turret_yaw, state.gun_pitch)
 	var aim := prey.body.global_position - breech
 	intent.aim_valid = true
 	intent.aim_yaw = atan2(-aim.x, -aim.z)

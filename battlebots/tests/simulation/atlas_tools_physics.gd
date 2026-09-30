@@ -43,9 +43,10 @@ func catalogue() -> void:
 	for weapon: String in ["battering_ram", "spear_fork", "grinder_drum"]:
 		var result := world.registry.validate(atlas(weapon))
 		check(result.valid and result.stats.weapon == weapon, "Atlas fits the %s: %s" % [weapon, result.reasons])
+		# Other bodies carry the tools on their own coupler (#108, weapon_mounts_physics).
 		var other := world.registry.starter()
 		other.parts.weapon = weapon
-		check(not world.registry.validate(other).valid, "%s needs the Atlas front coupler" % weapon)
+		check(world.registry.validate(other).valid, "%s also fits a body other than the Atlas" % weapon)
 	for preset: Dictionary in world.registry.atlas_showcase():
 		check(world.registry.validate(preset).valid, "Preset %s is legal" % preset.name)
 	var bot := world.spawn(9, 0, 0, atlas("grinder_drum"))

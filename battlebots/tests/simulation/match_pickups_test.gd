@@ -67,20 +67,26 @@ func rules() -> void:
 	var scorpion := pickups.swapped(starter, "scorpion_hex")
 	check(scorpion.parts.chassis == "scorpion_hex" and scorpion.parts.drive == "walker", "A Scorpion body brings its walking drive")
 	check(SawbladeConfig.enabled(scorpion), "A body change keeps a modular appearance record")
-	# The lifting tool follows the body (#109); a misfit tool pickup stays unused.
+	# Every body carries either lifting tool (#108): a body pickup keeps it and
+	# the other tool is an ordinary weapon pickup.
 	var ramp := SawbladeConfig.starter(strict)
 	ramp.parts.weapon = "ramp"
-	check(pickups.swapped(ramp, "atlas_mx").parts.weapon == "lifter" and pickups.swapped(pickups.swapped(ramp, "atlas_mx"), "balanced").parts.weapon == "ramp",
-		"A body pickup swaps Ramp and Lifter")
-	check(pickups.swapped(ramp, "lifter").is_empty() and pickups.swapped(pickups.swapped(ramp, "atlas_mx"), "ramp").is_empty(),
-		"A lifting tool that does not match the body is not picked up")
+	check(pickups.swapped(ramp, "atlas_mx").parts.weapon == "ramp" and pickups.swapped(ramp, "scorpion_hex").parts.weapon == "ramp",
+		"A body pickup keeps the Ramp")
+	check(pickups.swapped(ramp, "lifter").parts.weapon == "lifter" and pickups.swapped(pickups.swapped(ramp, "atlas_mx"), "lifter").parts.weapon == "lifter",
+		"The Lifter is picked up on any body")
 	var atlas := pickups.swapped(starter, "atlas_mx")
 	check(atlas.parts.drive == "traction", "Atlas brings its tracks")
 	check(pickups.swapped(scorpion, "standard_wheels").is_empty(), "Wheels cannot replace a Scorpion's required legs")
 	var gunner := strict.scorpion()
 	var balanced := pickups.swapped(gunner, "balanced")
-	check(balanced.parts.utility == MatchPickups.FALLBACK_UTILITY and balanced.parts.drive == "walker",
-		"A body without a gun socket drops the auxiliary gun and keeps a compatible drive")
+	check(balanced.parts.utility == "minigun_pod" and balanced.parts.drive == "walker",
+		"A new body keeps the auxiliary gun (every body mounts it, #108) and a compatible drive")
+	for weapon: String in ["battering_ram", "turret_cannon", "minigun_pod"]:
+		for body: Dictionary in [starter, strict.scorpion() if weapon != "minigun_pod" else scorpion, strict.atlas()]:
+			var armed := pickups.swapped(body, weapon)
+			check(not armed.is_empty() and armed.parts[strict.parts[weapon].category] == weapon,
+				"%s is picked up on %s" % [weapon, body.parts.chassis])
 	check(pickups.swapped(gunner, "minigun").is_empty(), "A second minigun cannot share the gun socket")
 	# Power is the only construction budget; pickups may carry a build above it.
 	var overpowered := strict.atlas()

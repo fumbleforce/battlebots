@@ -97,6 +97,7 @@ $checks = @(
     @('menu_music_test.gd', 'MENU MUSIC PASS'),
     @('camera_contact_test.gd', 'CAMERA CONTACT PASS'),
     @('atlas_turret_input_test.gd', 'ATLAS TURRET INPUT PASS'),
+    @('weapon_mounts_visual_test.gd', 'WEAPON MOUNTS VISUAL PASS'),
     @('woodland_arena_test.gd', 'WOODLAND PASS'),
     @('sunreach_arena_test.gd', 'SUNREACH PASS'),
     @('maelstrom_arena_test.gd', 'MAELSTROM PASS'),

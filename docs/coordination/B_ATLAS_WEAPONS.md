@@ -14,8 +14,9 @@ feel follow [docs/art/WEAPON_FEEL.md](../art/WEAPON_FEEL.md).
 | Spear/forklift (#53) | `spear_fork` (weapon) | `ToolSpear` in `atlas_tools.glb` | press: thrust and impale; hold: lift and carry; release: throw off |
 | Grinder drum (#56) | `grinder_drum` (weapon) | `ToolGrinder` in `atlas_tools.glb` | hold primary: spin and shred; hold secondary: raise the arms |
 
-All five are Atlas MX only. The turret parts use the roof race (#36). The front
-tools bolt to the existing quick-release coupler.
+All five were Atlas MX only; since #108 every offered body mounts them
+([WEAPON_MOUNTS.md](WEAPON_MOUNTS.md)). The turret parts use the roof race (#36).
+The front tools bolt to the existing quick-release coupler.
 
 ## Contracts (protocol 12, catalogue 16)
 

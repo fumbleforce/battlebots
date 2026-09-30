@@ -52,6 +52,10 @@ var turret_yaw := 0.0
 ## smoothed yaw/pitch for reticles; authority never reads these.
 var turret_model := ""
 var turret_display := Vector2.ZERO
+## Body frame of the turret race at game scale (WeaponMounts.turret; identity
+## on the Atlas MX): maps AtlasGeometry turret points onto this bot's hull.
+## Presentation only (aim, reticle); derived locally from the loadout.
+var turret_mount := Transform3D.IDENTITY
 ## Replicated hold on another bot (harpoon tether, spear impalement): its
 ## entity id (0 = none) and the world anchor point on it.
 var grip_target := 0

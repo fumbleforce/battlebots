@@ -15,8 +15,8 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
   unlocks for the account.
 - **Not picked up** (the item stays in the world): the same part is already fitted, the perk is already
   equipped, or the result would be physically invalid (for example, wheels under a Scorpion).
-- **Body pickups** bring the drive that body requires (Scorpion: walker, Atlas: tracks). They replace any
-  utility the new body cannot carry (for example the socket-bound auxiliary minigun) with `recovery_assist`.
+- **Body pickups** bring the drive that body requires (Scorpion: walker, Atlas: tracks). Every weapon and
+  utility fits every offered body (#108), so the other parts stay, the Ramp or Lifter included.
 - **Budget.** Pickups are a bonus above the 120 kg / 100 power construction budget. Only the pickup path
   is exempt; lobby builds are validated strictly as before.
 - **Credits** add to the picker's match tally. After the match, the server computes each participant's

@@ -46,11 +46,14 @@ func run() -> void:
 	profile.reload()
 
 	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"recovery_assist"})
-	check(not profile.part_fits("utility", "minigun_pod"), "Sawblade body hides the auxiliary minigun")
+	check(profile.part_fits("utility", "minigun_pod"), "Sawblade body mounts the auxiliary minigun (#108)")
+	check(profile.part_fits("utility", "turret_cannon") and profile.part_fits("utility", "turret_harpoon"), "Sawblade body lists turrets within the power cap")
+	for tool: String in ["battering_ram", "spear_fork", "grinder_drum"]:
+		check(profile.part_fits("weapon", tool), "Sawblade body lists the %s" % tool)
 	check(profile.part_fits("drive", "walker") and profile.part_fits("drive", "traction"), "Sawblade keeps every drive it can mount")
 	check(not profile.part_fits("weapon", "minigun"), "Weapon 1 offers melee weapons only")
-	check(ContentRegistry.MELEE_WEAPONS.all(func(id: String) -> bool: return id in AtlasGeometry.TOOL_PARTS or (id in ContentRegistry.LIFT_PARTS and id != ContentRegistry.lift_part(profile.loadouts[0])) or profile.part_fits("weapon", id)),
-		"Every melee primary that mounts on this body is offered")
+	check(ContentRegistry.MELEE_WEAPONS.all(func(id: String) -> bool: return profile.part_fits("weapon", id)),
+		"Every melee primary is offered on the Sawblade body, the Lifter and the Ramp alike (#108)")
 	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"minigun", "utility":"recovery_assist"})
 	check(profile.part_fits("weapon", "minigun") and profile.part_fits("weapon", "saw"), "A saved primary minigun stays listed until it is swapped")
 
@@ -59,20 +62,23 @@ func run() -> void:
 	check(not profile.part_fits("drive", "traction") and not profile.part_fits("drive", "agile"), "Scorpion hides drives other than walking legs")
 	check(not profile.part_fits("weapon", "minigun"), "One minigun per gun socket")
 	check(profile.part_fits("weapon", "lifter"), "Scorpion keeps compatible primaries")
-	check(not profile.part_fits("weapon", "ramp"), "The Ramp is listed on the Sawblade body only")
+	check(profile.part_fits("weapon", "ramp"), "The Ramp is listed on every body (#108)")
 	check(profile.part_name("weapon", "ramp") == "Ramp" and profile.part_name("weapon", "lifter") == "Lifter", "Ramp and Lifter are separate named weapons")
+	check(profile.part_fits("weapon", "battering_ram") and profile.part_fits("weapon", "spear_fork"), "Scorpion lists front tools within the power cap (#108)")
+	check(profile.part_fits("utility", "turret_cannon"), "Scorpion lists turrets within the power cap")
 
 	use({"chassis":"balanced", "drive":"traction", "weapon":"ramp", "utility":"recovery_assist"}, {"armor_side":1})
 	check(profile.registry.validate(profile.loadouts[0]).valid, "Sawblade Ramp fixture is valid")
-	check(not profile.part_fits("weapon", "lifter") and profile.part_fits("weapon", "saw"), "The Sawblade body lists its Ramp, not the Lifter")
-	equip_part("weapon", "saw")
-	check(profile.part_fits("weapon", "ramp") and not profile.part_fits("weapon", "lifter"), "The Ramp stays offered on the Sawblade body")
+	check(profile.part_fits("weapon", "lifter") and profile.part_fits("weapon", "saw"), "The Sawblade body lists the Lifter beside its Ramp")
+	equip_part("weapon", "lifter")
+	check(profile.loadouts[0].parts.weapon == "lifter" and profile.registry.validate(profile.loadouts[0]).valid, "The Sawblade body mounts the Lifter")
 	equip_part("weapon", "ramp")
-	check(profile.fit_body("atlas_mx").swaps == {"weapon": ["ramp", "lifter"]}, "A body change swaps the Ramp for the Lifter")
+	check(profile.fit_body("atlas_mx").swaps.is_empty(), "A body change keeps the lifting tool")
 	equip_part("chassis", "atlas_mx")
-	check(profile.loadouts[0].parts.weapon == "lifter" and profile.registry.validate(profile.loadouts[0]).valid, "Atlas takes the Lifter")
+	check(profile.loadouts[0].parts.weapon == "ramp" and profile.registry.validate(profile.loadouts[0]).valid, "Atlas carries the Ramp")
+	check(profile.part_fits("weapon", "lifter"), "Atlas lists the Lifter too")
 	equip_part("chassis", "balanced")
-	check(profile.loadouts[0].parts.weapon == "ramp", "Switching back re-equips the Ramp")
+	check(profile.loadouts[0].parts.weapon == "ramp", "Switching back keeps the Ramp")
 
 	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "utility":"recovery_assist"},
 		{"armor_side":2, "armor_front":1, "armor_rear":1})
@@ -88,7 +94,8 @@ func run() -> void:
 	check(not profile.part_fits("utility", "turret_cannon_quad"), "Over-power turret is hidden")
 	check(profile.part_fits("utility", "turret_cannon"), "Turrets within the power cap remain")
 
-	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"minigun_pod"})
+	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"minigun", "utility":"minigun_pod"})
+	check(not profile.registry.validate(profile.loadouts[0]).valid, "Two miniguns are an invalid fixture")
 	check(profile.part_fits("utility", "minigun_pod"), "Equipped invalid part remains listed for repair")
 	check(profile.part_fits("utility", "cooling_pack"), "Repairing choices remain listed on an invalid build")
 
@@ -113,9 +120,13 @@ func run() -> void:
 	var screen: Control = load("res://ui/menus/screens/customize.tscn").instantiate()
 	root.add_child(screen)
 	for _frame in 5: await process_frame
-	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"recovery_assist"})
+	# Tracks and a spinner leave 30 power: the Sawblade lists every auxiliary
+	# weapon that fits (#108) and hides only what the power cap cannot carry.
+	use({"chassis":"balanced", "drive":"traction", "weapon":"vertical_spinner", "utility":"recovery_assist"})
 	var utilities := shown_ids(screen, "utility")
-	check("minigun_pod" not in utilities and "recovery_assist" in utilities, "Customize omits the auxiliary minigun on Sawblade")
+	check("minigun_pod" in utilities and "turret_cannon" in utilities and "recovery_assist" in utilities,
+		"Customize lists the auxiliary minigun and turrets on Sawblade")
+	check("turret_cannon_quad" not in utilities and "turret_railgun" not in utilities, "Customize hides turrets over the power cap")
 	check(screen.get_node("%Items").get_child_count() == utilities.size(), "One tile per listed choice")
 	check(screen.get_node("%Count").text == "%d / %d available" % [utilities.size(), category("utility").items.size()], "Count reflects filtered choices")
 	check(shown_ids(screen, "chassis").size() == category("chassis").items.size(), "Every body stays selectable")

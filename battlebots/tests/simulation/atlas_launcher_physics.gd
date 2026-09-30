@@ -33,7 +33,8 @@ func catalogue_and_wire() -> void:
 			"Atlas accepts the %s turret: %s" % [kind, result.reasons])
 		var scorpion := registry.scorpion()
 		scorpion.parts.utility = "turret_" + kind
-		check(not registry.validate(scorpion).valid, "The %s turret needs the Atlas roof race" % kind)
+		scorpion.parts.weapon = "lifter"
+		check(registry.validate(scorpion).valid, "The %s turret also fits the Scorpion (#108)" % kind)
 	var names := registry.atlas_showcase().map(func(draft: Dictionary) -> String: return draft.name)
 	check("ATLAS MX • WHALER" in names and "ATLAS MX • ARTILLERY" in names, "Harpoon and mortar showcase presets exist")
 	var old := registry.atlas()

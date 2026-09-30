@@ -86,6 +86,7 @@ if ($Part -ne 'net') {
     Invoke-MvpTest 'res://tests/simulation/heat_relief_test.gd' 'HEAT RELIEF PASS'
     Invoke-MvpTest 'res://tests/simulation/atlas_catalogue.gd' 'ATLAS CATALOGUE PASS'
     Invoke-MvpTest 'res://tests/simulation/atlas_tools_physics.gd' 'ATLAS TOOLS PHYSICS PASS'
+    Invoke-MvpTest 'res://tests/simulation/weapon_mounts_physics.gd' 'WEAPON MOUNTS PHYSICS PASS'
     Invoke-MvpTest 'res://tests/simulation/atlas_grounded_modules.tscn' 'ATLAS GROUNDED MODULES PASS' -Scene
     Invoke-MvpTest 'res://tests/simulation/atlas_launcher_physics.tscn' 'ATLAS LAUNCHER PHYSICS PASS' -Scene
     Invoke-MvpTest 'res://tests/simulation/atlas_turret_physics.tscn' 'ATLAS TURRET PHYSICS PASS' -Scene

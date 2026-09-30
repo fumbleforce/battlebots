@@ -140,6 +140,36 @@ func assemble(weapon: String, size: Vector3, loadout: Dictionary = {}) -> void:
 		fore.transform = Transform3D(Basis(Vector3.RIGHT, atan(reach.y / reach.z)).scaled(
 			Vector3.ONE * (CombatWorld.HAMMER_ARM / reach.length())), Vector3.ZERO)
 		_box(self, Vector3(0.4, 0.18, 0.22), mechanism.position, metal)
+	elif kind == "ramp":
+		# The Sawblade body's authored Ramp at the size it has there, hinged
+		# ahead of this body's nose (#108); the authority sweeps the same plate
+		# (SawbladeGeometry.ramp_volume). The Sawblade body draws its own.
+		var donor: Node3D = SawbladeVisual.MODEL.instantiate()
+		var module: Node3D
+		var tank: Node3D
+		for node: Node in donor.find_children("*", "Node3D", true, false):
+			node.owner = null
+			var source := str(node.get_meta("extras", {}).get("source_name", ""))
+			if source == "Module_weapon_ramp": module = node
+			elif source == "SawbladeTank_ROOT": tank = node
+			# The braces and hydraulic ports reach back into the Sawblade's own deck.
+			elif source.begins_with("Ramp rigid chassis brace") or source.begins_with("Ramp capped hydraulic port"): (node as Node3D).visible = false
+		var module_in_tank := module.transform
+		var parent := module.get_parent() as Node3D
+		while parent != tank:
+			module_in_tank = parent.transform * module_in_tank
+			parent = parent.get_parent() as Node3D
+		var hinge_in_module := module_in_tank.affine_inverse() * SawbladeGeometry.RAMP_HINGE
+		var materials := {}
+		var config: Dictionary = loadout.cosmetics.sawblade if SawbladeConfig.enabled(loadout) else SawbladeConfig.defaults()
+		for part: MeshInstance3D in module.find_children("*", "MeshInstance3D", true, false):
+			SawbladeVisual.paint(part, config, materials)
+		var body_size := size * geometry_scale
+		var module_scale := SawbladeGeometry.ramp_scale(loadout, body_size) / geometry_scale
+		mechanism.position = SawbladeGeometry.ramp_hinge(loadout, body_size) / geometry_scale - position
+		module.reparent(mechanism, false)
+		module.transform = Transform3D(Basis.from_scale(module_scale), -(module_scale * hinge_in_module))
+		donor.free()
 	elif kind == "lifter":
 		mechanism.position = Vector3(0, -0.12, -size.z * 0.5 + 0.2)
 		for side: int in [-1, 1]:
@@ -199,6 +229,9 @@ func show_state(view: BotView, delta: float) -> void:
 	elif kind == "saw":
 		if not disabled and view.weapon_state == "active":
 			mechanism.rotation.x = wrapf(mechanism.rotation.x - delta * 36, -PI, PI)
+	elif kind == "ramp":
+		mechanism.rotation.x = 0.0 if disabled else SawbladeGeometry.ramp_angle(view.weapon_charge_fraction,
+			view.weapon_state == "launch" or view.weapon_cooldown > LIFTER_EXTENDED_UNTIL_COOLDOWN)
 	elif kind == "hammer":
 		var angle := PI / 6.0
 		if view.weapon_state == "windup":

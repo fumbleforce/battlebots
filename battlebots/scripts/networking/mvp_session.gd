@@ -281,15 +281,10 @@ func _slot_parts(slot: String) -> Array[String]:
 			options.append(id)
 	return options
 
-## The local bot's loadout with part fitted, or {} when it cannot fit.
-func _fitted(bot: MvpBot, part: String, slot: String) -> Dictionary:
-	var next := world.pickups.swapped(bot.loadout, part)
-	if next.is_empty() and slot == "chassis":
-		# A body that cannot carry the fitted weapon takes its lifting tool.
-		var fallback: Dictionary = bot.loadout.duplicate(true)
-		fallback.parts.weapon = "lifter"
-		next = world.pickups.swapped(fallback, part)
-	return next
+## The local bot's loadout with part fitted, or {} when it cannot fit. Every
+## offered body carries every weapon (#108), so a body change needs no fallback.
+func _fitted(bot: MvpBot, part: String, _slot: String) -> Dictionary:
+	return world.pickups.swapped(bot.loadout, part)
 
 func _swap_local_part(loadout: Dictionary) -> void:
 	_swap_part(local_entity, loadout)

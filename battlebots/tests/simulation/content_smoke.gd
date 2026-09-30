@@ -53,27 +53,33 @@ func _initialize() -> void:
 			and result.stats.armor_total == 120.0, "Presets carry default side covers")
 	check(registry.validate(registry.scorpion()).stats.core == 300.0 and registry.validate(registry.atlas()).stats.core == 380.0,
 		"Preset core HP follows body size")
-	# One lifting tool, two builds (#109): Ramp on the Sawblade body, Lifter elsewhere.
+	# Two lifting tools with the lifter rules (#109); every body mounts either (#108).
 	var ramp := SawbladeConfig.starter(registry)
 	ramp.parts.weapon = "ramp"
 	result = registry.validate(ramp)
 	check(result.valid and result.stats.weapon == "lifter" and result.loadout.parts.weapon == "ramp"
 		and result.stats.mass == registry.validate(SawbladeConfig.starter(registry)).stats.mass + 2.0,
 		"The Sawblade Ramp is its own part and follows the lifter rules")
-	var misfit := ramp.duplicate(true)
-	misfit.parts.weapon = "lifter"
-	check(not registry.validate(misfit).valid, "The Sawblade body carries the Ramp, not the Lifter")
-	check(ContentRegistry.fit_lift(misfit) == ["lifter", "ramp"] and registry.validate(misfit).valid
-		and ContentRegistry.fit_lift(misfit).is_empty(), "A pre-split Sawblade lifter build becomes the Ramp it showed")
+	var forked := ramp.duplicate(true)
+	forked.parts.weapon = "lifter"
+	check(registry.validate(forked).valid and registry.validate(forked).loadout.parts.weapon == "lifter", "The Sawblade body also mounts the Lifter")
+	check(ContentRegistry.keep_presplit_ramp(forked) and forked.parts.weapon == "ramp"
+		and not ContentRegistry.keep_presplit_ramp(forked), "A pre-split Sawblade lifter build becomes the Ramp it showed")
 	for preset: Dictionary in [registry.scorpion(), registry.atlas(), registry.starter(true)]:
 		var other := preset.duplicate(true)
 		other.parts.weapon = "lifter"
 		check(registry.validate(other).valid and registry.validate(other).stats.weapon == "lifter", "Other bodies mount the Lifter")
+		check(not ContentRegistry.keep_presplit_ramp(other) and other.parts.weapon == "lifter", "A Lifter off the Sawblade body was always the Lifter")
 		other.parts.weapon = "ramp"
-		check(not registry.validate(other).valid, "The Ramp is built into the Sawblade body only")
-		check(ContentRegistry.fit_lift(other) == ["ramp", "lifter"] and registry.validate(other).valid, "A body change swaps the Ramp for the Lifter")
+		check(registry.validate(other).valid and registry.validate(other).stats.weapon == "lifter"
+			and registry.validate(other).loadout.parts.weapon == "ramp", "Other bodies mount the Ramp too")
 	var sawing := SawbladeConfig.starter(registry)
-	check(ContentRegistry.fit_lift(sawing).is_empty() and sawing.parts.weapon == "saw", "Other weapons are left alone")
+	check(not ContentRegistry.keep_presplit_ramp(sawing) and sawing.parts.weapon == "saw", "Other weapons are left alone")
+	var presplit := SawbladeConfig.starter(registry)
+	presplit.parts.weapon = "lifter"
+	presplit.content_hash = LoadoutStore.REVISION_NINETEEN_HASHES[0]
+	var migrated_lift: Dictionary = LoadoutStore.new("user://presplit_lift_unused.json").migrate({"schema_version":1, "loadouts":[presplit]}).loadouts[0]
+	check(migrated_lift.parts.weapon == "ramp" and registry.validate(migrated_lift).valid, "A revision-19 Sawblade lifter save migrates to the Ramp it showed")
 	var body: Array = registry.parts.balanced.size
 	check((Vector3(body[0], body[1], body[2]) / BotScale.FACTOR).is_equal_approx(SawbladeGeometry.BODY_SIZE),
 		"The shared saw keeps the size of the catalogue Sawblade body")

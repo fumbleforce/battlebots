@@ -16,7 +16,8 @@ slot would leave. Anything this slot could fix therefore counts against the
 part:
 
 - Scorpion lists only walking legs and Atlas MX only tracks.
-- The auxiliary minigun is listed only on a body with a gun socket.
+- The auxiliary minigun was listed only on a body with a gun socket. Since #108
+  every body mounts it, the turrets and the front tools.
 - Weapon 1 lists melee weapons only (#107); the primary minigun shows only while a saved build still carries it.
 - One minigun per socket.
 - Parts that would exceed 120 kg / 100 power are hidden.

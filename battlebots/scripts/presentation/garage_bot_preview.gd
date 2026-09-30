@@ -2,6 +2,7 @@ class_name GarageBotPreview
 extends Control
 ## Cosmetic workshop only. Never creates a bot, collision body or combat state.
 ## Garage caption for each Atlas running gear (AtlasGeometry.DRIVE_GEAR).
+const MOUNTED_WEAPONS := preload("res://scripts/presentation/mounted_weapons.gd")
 const ATLAS_GEAR_NAMES := {"tracks":"tracks", "wheels":"large off-road wheels", "legs":"hydraulic legs"}
 const PAINTS := {"cyan":Color(0.1, 0.65, 0.85), "orange":Color(0.95, 0.4, 0.1),
 	"white":Color(0.86, 0.89, 0.93), "red":Color(0.75, 0.1, 0.08)}
@@ -13,6 +14,8 @@ var sawblade_visual: SawbladeVisual
 var scorpion_visual: ScorpionVisual
 var atlas_visual: AtlasVisual
 var nimble_visual: NimbleVisual
+## Turret, front tool and auxiliary gun on the body's weapon mounts (#108), or null.
+var mounted_weapons: MOUNTED_WEAPONS
 var status: Label
 var yaw := 0.6
 var pitch := 0.45
@@ -244,6 +247,7 @@ func show_loadout(draft: Dictionary) -> void:
 	scorpion_visual = null
 	atlas_visual = null
 	nimble_visual = null
+	mounted_weapons = null
 	var validation := _registry.validate(draft)
 	if not validation.valid:
 		_invalid_status("; ".join(validation.reasons))
@@ -258,6 +262,11 @@ func show_loadout(draft: Dictionary) -> void:
 	_turntable.add_child(model)
 	# This isolated workshop keeps its original framing regardless of arena scale.
 	var size: Vector3 = validation.stats.size / BotScale.FACTOR
+	if MOUNTED_WEAPONS.wanted(draft):
+		mounted_weapons = MOUNTED_WEAPONS.new()
+		mounted_weapons.name = "MountedWeapons"
+		model.add_child(mounted_weapons)
+		mounted_weapons.assemble(draft, size)
 	if NimbleBots.enabled(draft):
 		model.position.y = float(NimbleBots.spec(draft).ride_height) / BotScale.FACTOR - 0.12
 		nimble_visual = NimbleVisual.new()
@@ -291,6 +300,7 @@ func show_loadout(draft: Dictionary) -> void:
 		sawblade_visual = SawbladeVisual.new()
 		model.add_child(sawblade_visual)
 		sawblade_visual.assemble(draft, size)
+		if mounted_weapons != null and mounted_weapons.turret != null: sawblade_visual.clear_turret_race()
 		if sawblade_visual.walker_legs != null:
 			sawblade_visual.walker_legs.terrain = false
 			sawblade_visual.walker_legs.reset_feet()
@@ -305,7 +315,8 @@ func show_loadout(draft: Dictionary) -> void:
 	weapon_visual = MvpWeaponVisual.new()
 	weapon_visual.name = "Weapon"
 	model.add_child(weapon_visual)
-	weapon_visual.assemble(validation.stats.weapon, size, draft)
+	weapon_visual.assemble(draft.parts.weapon, size, draft)
+	if validation.stats.weapon == "minigun": weapon_visual.position = AtlasGeometry.gun_offset(draft, size)
 	if draft.parts.drive == "walker":
 		model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
 		var legs := WalkerLegs.new()

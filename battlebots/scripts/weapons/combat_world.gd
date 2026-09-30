@@ -2,6 +2,7 @@ class_name CombatWorld
 extends RefCounted
 const FRONT_TOOL_TUNING = preload("res://scripts/core/front_tool_tuning.gd")
 const ARENA_PROPS = preload("res://scripts/simulation/arena_props.gd")
+const WEAPON_MOUNTS = preload("res://scripts/core/weapon_mounts.gd")
 ## Server-only hit queries. No client supplies a target, damage, zone or impulse.
 var time := 0.0
 var event_id := 0
@@ -325,15 +326,11 @@ func _sweep(bot: MvpBot) -> Array:
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
 	if bot.loadout.parts.weapon == "ramp":
-		var size: Vector3 = bot.combat.stats.size
-		var angle := bot.combat.charge * deg_to_rad(40)
-		if bot.combat.launch or bot.combat.cooldown > 2.7: angle = deg_to_rad(75)
-		var rotation := Basis(Vector3.RIGHT, angle)
-		# Include the low leading edge of the actual ramp (y=.0645,z=-1.63
-		# in source meters), so an enlarged blade cannot visibly pass under a
-		# target while the authored query floats above its contact surface.
-		shape.size = Vector3(1.50, 0.50, 1.36) * SawbladeGeometry.scale_for(size)
-		local = Transform3D(rotation, SawbladeGeometry.point(Vector3(0, 0.36, -0.30) + rotation * Vector3(0, -0.06, -0.66), size))
+		# The Ramp's own plate on whichever body carries it (#108).
+		var volume := SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size,
+			SawbladeGeometry.ramp_angle(bot.combat.charge, bot.combat.launch or bot.combat.cooldown > 2.7))
+		local = volume[0]
+		shape.size = volume[1]
 	_sweep_volume = [shape, local]
 	var start := bot.previous_pose * local
 	var finish := bot.body.global_transform * local
@@ -593,13 +590,26 @@ func _update_turret_aim(attacker: MvpBot, delta: float) -> void:
 	var command := attacker.command
 	if command.aim_valid and not state.eliminated and state.zones.weapon > 0.0:
 		var world := Basis(Vector3.UP, command.aim_yaw) * Basis(Vector3.RIGHT, command.aim_pitch) * Vector3.FORWARD
-		target = AtlasGeometry.turret_target(attacker.body.global_basis, world, state.stats.turret_model)
+		target = AtlasGeometry.turret_target(attacker.body.global_basis, world, state.stats.turret_model, _turret_clearance(state))
 	elif state.zones.weapon <= 0.0:
 		# A disabled turret loses traverse power and stays where it is.
 		target = Vector2(state.turret_yaw, state.gun_pitch)
-	var next := AtlasGeometry.turret_slew(Vector2(state.turret_yaw, state.gun_pitch), target, delta, state.stats.turret_model)
+	var next := AtlasGeometry.turret_slew(Vector2(state.turret_yaw, state.gun_pitch), target, delta, state.stats.turret_model, _turret_clearance(state))
 	state.turret_yaw = next.x
 	state.gun_pitch = next.y
+
+## Body frames of the turret race and the front tool coupler (data/weapon_mounts.json,
+## #108): identity on the Atlas MX the weapons were authored on. Atlas-frame
+## points map through them; lengths scale by WEAPON_MOUNTS.scale_of().
+func _turret_mount(state: CombatState) -> Transform3D:
+	return state.stats.get("turret_mount", Transform3D.IDENTITY)
+
+func _tool_mount(state: CombatState) -> Transform3D:
+	return state.stats.get("tool_mount", Transform3D.IDENTITY)
+
+## The body's measured barrel clearance, or [] for the Atlas audit tables.
+func _turret_clearance(state: CombatState) -> Array:
+	return state.stats.get("turret_depression", [])
 
 func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: int) -> void:
 	var tuning := TurretTuning.settings()
@@ -616,10 +626,11 @@ func _turret_shot(attacker: MvpBot, bots: Dictionary, tick: int, round_index: in
 	# point the centre bore line strikes (what the barrel reticle marks), so
 	# outboard and stacked barrels do not straddle a target the gunner is on.
 	var barrel := AtlasGeometry.turret_barrel(state.stats.turret_model, state.shot_sequence)
-	var origin := attacker.body.global_transform * AtlasGeometry.turret_breech(size, state.turret_yaw, state.gun_pitch, barrel)
-	var from := attacker.body.global_transform * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch, barrel)
+	var mount := attacker.body.global_transform * _turret_mount(state)
+	var origin := mount * AtlasGeometry.turret_breech(size, state.turret_yaw, state.gun_pitch, barrel)
+	var from := mount * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch, barrel)
 	if barrel != Vector2.ZERO:
-		var centre := attacker.body.global_transform * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch)
+		var centre := mount * AtlasGeometry.turret_muzzle(size, kind, state.turret_yaw, state.gun_pitch)
 		var sight := PhysicsRayQueryParameters3D.create(centre, centre + direction * reach,
 			BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER, [attacker.body.get_rid()])
 		var mark := space.intersect_ray(sight)
@@ -702,7 +713,7 @@ func _update_grip(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 		_hold_impaled(attacker, victim, anchor)
 		return
 	var tuning := TurretTuning.settings()
-	var muzzle := attacker.body.global_transform * AtlasGeometry.turret_muzzle(state.stats.size, "harpoon", state.turret_yaw, state.gun_pitch)
+	var muzzle := attacker.body.global_transform * _turret_mount(state) * AtlasGeometry.turret_muzzle(state.stats.size, "harpoon", state.turret_yaw, state.gun_pitch)
 	var line := muzzle - anchor
 	var length := line.length()
 	if length > tuning.value("harpoon", "max_length") or state.grip_seconds > tuning.value("harpoon", "max_seconds"):
@@ -737,7 +748,7 @@ func _update_grip(attacker: MvpBot, bots: Dictionary, delta: float) -> void:
 func _hold_impaled(attacker: MvpBot, victim: MvpBot, anchor: Vector3) -> void:
 	var tuning := FRONT_TOOL_TUNING.settings()
 	var state := attacker.combat
-	var hold := attacker.body.global_transform * AtlasGeometry.spear_hold(state.stats.size, state.tool_pose)
+	var hold := attacker.body.global_transform * _tool_mount(state) * AtlasGeometry.spear_hold(state.stats.size, state.tool_pose)
 	var error := hold - anchor
 	var forward := (-attacker.body.global_basis.z).slide(Vector3.UP).normalized()
 	if error.length() > tuning.value("spear", "strain_distance") or state.grip_seconds > tuning.value("spear", "max_hold_seconds") \
@@ -766,7 +777,8 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 	var state := attacker.combat
 	var tool: String = AtlasGeometry.TOOL_PARTS[state.stats.weapon]
 	var size: Vector3 = state.stats.size
-	var linear := BotScale.from_size(size)
+	var mount := _tool_mount(state)
+	var linear := BotScale.from_size(size) * WEAPON_MOUNTS.scale_of(mount)
 	var forward := (-attacker.body.global_basis.z).slide(Vector3.UP).normalized()
 	if tool == "grinder":
 		if state.charge < 0.3:
@@ -774,7 +786,7 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 		var shape := CylinderShape3D.new()
 		shape.radius = AtlasGeometry.GRINDER_REACH * linear
 		shape.height = AtlasGeometry.GRINDER_HALF_WIDTH * 2.0 * linear
-		var local := Transform3D(Basis(Vector3.BACK, PI * 0.5), AtlasGeometry.grinder_drum(size, state.tool_pose))
+		var local := Transform3D(Basis(Vector3.BACK, PI * 0.5), mount * AtlasGeometry.grinder_drum(size, state.tool_pose))
 		var cadence := tuning.value("grinder", "cadence") / _lab_scale(attacker, "primary", "rate")
 		var ground := _tool_contacts(attacker, bots, shape, local)
 		if ground.is_empty() and state.practice_tuning != null and _miss_due(attacker, tuning.value("grinder", "cadence"), delta, contacts):
@@ -804,9 +816,9 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 		_hammer_hits[attacker.entity_id] = activation
 	if tool == "ram":
 		var volume := AtlasGeometry.ram_volume(size, state.charge)
-		var local: Transform3D = volume[0]
+		var local := Transform3D(Basis.IDENTITY, mount * (volume[0] as Transform3D).origin)
 		var box := BoxShape3D.new()
-		box.size = volume[1]
+		box.size = volume[1] * WEAPON_MOUNTS.scale_of(mount)
 		for victim: MvpBot in _tool_contacts(attacker, bots, box, local):
 			if activation.targets.has(victim.entity_id):
 				continue
@@ -823,9 +835,9 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 	if state.grip_target != 0:
 		return
 	var volume := AtlasGeometry.spear_volume(size, state.charge, state.tool_pose)
-	var blade_local: Transform3D = volume[0]
+	var blade_local := Transform3D(Basis.IDENTITY, mount * (volume[0] as Transform3D).origin)
 	var blades := BoxShape3D.new()
-	blades.size = volume[1]
+	blades.size = volume[1] * WEAPON_MOUNTS.scale_of(mount)
 	var tip := attacker.body.global_transform * blade_local.origin
 	var best: MvpBot = null
 	for victim: MvpBot in _tool_contacts(attacker, bots, blades, blade_local):

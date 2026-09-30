@@ -57,10 +57,14 @@ func reload() -> void:
 		loadouts.append(_saved[index].duplicate(true) if _saved[index] is Dictionary else {})
 		_save_indices.append(index)
 	# Retained legacy part IDs remain readable; only the offered body appearance changes.
-	for draft: Dictionary in loadouts:
+	for index: int in loadouts.size():
+		var draft: Dictionary = loadouts[index]
 		if registry.validate(draft).valid and not NimbleBots.enabled(draft): _ensure_body(draft)
-		# Builds from before the Ramp / Lifter split (#109) keep the tool they showed.
-		ContentRegistry.fit_lift(draft)
+		# Builds from before the Ramp / Lifter split (#109) keep the tool they
+		# showed: the built-in presets and saves of an older catalogue. A current
+		# save's Lifter on the Sawblade body is the player's choice (#108).
+		if index < PRESET_COUNT or draft.get("content_hash") != registry.content_hash:
+			ContentRegistry.keep_presplit_ramp(draft)
 	if loaded.restored_backup: errors.append("Backup loaded for review. Open Saved File to restore it before saving.")
 	active_bot = clampi(active_bot,0,loadouts.size()-1)
 	_draft_baseline = loadouts.duplicate(true)
@@ -272,9 +276,6 @@ func fit_body(chassis: String) -> Dictionary:
 		if draft.parts.get(slot) == remembered[slot].replacement:
 			swaps[slot] = [draft.parts[slot], remembered[slot].original]
 			draft.parts[slot] = remembered[slot].original
-	# The lifting tool follows the body: Ramp on Sawblade, Lifter elsewhere (#109).
-	var lift := ContentRegistry.fit_lift(draft)
-	if not lift.is_empty(): swaps["weapon"] = [swaps["weapon"][0] if swaps.has("weapon") else lift[0], lift[1]]
 	var reasons := registry.validate(draft).reasons.size()
 	# Greedily replace whichever part most reduces the remaining problems.
 	while reasons > 0:
