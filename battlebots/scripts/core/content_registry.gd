@@ -6,7 +6,7 @@ const SCHEMA := 3
 ## Weapon 1 is melee only (#107): the primaries Customize, the practice pickers,
 ## the part shortcut and match pickups offer. The primary minigun stays valid on
 ## the factory builds and saved loadouts that carry it.
-const MELEE_WEAPONS := ["saw", "horizontal_spinner", "hammer", "vertical_spinner", "lifter",
+const MELEE_WEAPONS := ["saw", "horizontal_spinner", "hammer", "vertical_spinner", "lifter", "ramp",
 	"battering_ram", "grinder_drum", "spear_fork"]
 var parts: Dictionary = {}
 ## Body faces an armour piece can cover, and the pieces per armour section

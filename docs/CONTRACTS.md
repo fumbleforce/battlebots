@@ -1,6 +1,6 @@
 # Shared contracts — local records and current MVP session API
 
-## One model per weapon name — build mvp-ab-63, catalogue 20 (#109)
+## One model per weapon name — build mvp-ab-64, catalogue 20 (#109)
 
 A weapon name now means one model on every body.
 

@@ -49,7 +49,7 @@ func run() -> void:
 	check(not profile.part_fits("utility", "minigun_pod"), "Sawblade body hides the auxiliary minigun")
 	check(profile.part_fits("drive", "walker") and profile.part_fits("drive", "traction"), "Sawblade keeps every drive it can mount")
 	check(not profile.part_fits("weapon", "minigun"), "Weapon 1 offers melee weapons only")
-	check(ContentRegistry.MELEE_WEAPONS.all(func(id: String) -> bool: return id in AtlasGeometry.TOOL_PARTS or profile.part_fits("weapon", id)),
+	check(ContentRegistry.MELEE_WEAPONS.all(func(id: String) -> bool: return id in AtlasGeometry.TOOL_PARTS or (id in ContentRegistry.LIFT_PARTS and id != ContentRegistry.lift_part(profile.loadouts[0])) or profile.part_fits("weapon", id)),
 		"Every melee primary that mounts on this body is offered")
 	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"minigun", "utility":"recovery_assist"})
 	check(profile.part_fits("weapon", "minigun") and profile.part_fits("weapon", "saw"), "A saved primary minigun stays listed until it is swapped")
@@ -65,6 +65,9 @@ func run() -> void:
 	use({"chassis":"balanced", "drive":"traction", "weapon":"ramp", "utility":"recovery_assist"}, {"armor_side":1})
 	check(profile.registry.validate(profile.loadouts[0]).valid, "Sawblade Ramp fixture is valid")
 	check(not profile.part_fits("weapon", "lifter") and profile.part_fits("weapon", "saw"), "The Sawblade body lists its Ramp, not the Lifter")
+	equip_part("weapon", "saw")
+	check(profile.part_fits("weapon", "ramp") and not profile.part_fits("weapon", "lifter"), "The Ramp stays offered on the Sawblade body")
+	equip_part("weapon", "ramp")
 	check(profile.fit_body("atlas_mx").swaps == {"weapon": ["ramp", "lifter"]}, "A body change swaps the Ramp for the Lifter")
 	equip_part("chassis", "atlas_mx")
 	check(profile.loadouts[0].parts.weapon == "lifter" and profile.registry.validate(profile.loadouts[0]).valid, "Atlas takes the Lifter")
