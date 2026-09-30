@@ -8,7 +8,8 @@ approval for the A areas it touches (world, session/network, HUD, results). Cont
 ## Rules (user decisions)
 
 - **Kinds.** Parts from the Customize catalogue (every slot, including body and drive), the Nitro and
-  charged-jump perks, and credits. Legacy bodies (`compact`, `wide`) and the "no perk" entries never drop.
+  charged-jump perks, and credits. Legacy bodies (`compact`, `wide`), the "no perk" entries and the primary
+  minigun (Weapon 1 is melee only, #107) never drop.
 - **Parts** replace the picker's part in that slot. **Perks** are granted. Both last **until the match
   ends**: a new round keeps them, a rematch or new match starts from each player's own loadout. Nothing
   unlocks for the account.

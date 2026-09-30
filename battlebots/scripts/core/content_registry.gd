@@ -3,6 +3,11 @@ extends RefCounted
 ## Only this server-owned catalogue supplies gameplay stats and assembly dimensions.
 const SLOTS := ["chassis", "drive", "weapon", "utility", "nitro", "suspension"]
 const SCHEMA := 3
+## Weapon 1 is melee only (#107): the primaries Customize, the practice pickers,
+## the part shortcut and match pickups offer. The primary minigun stays valid on
+## the factory builds and saved loadouts that carry it.
+const MELEE_WEAPONS := ["saw", "horizontal_spinner", "hammer", "vertical_spinner", "lifter",
+	"battering_ram", "grinder_drum", "spear_fork"]
 var parts: Dictionary = {}
 ## Body faces an armour piece can cover, and the pieces per armour section
 ## (keyed like SawbladeConfig.OPTIONS; the index is the saved module choice).
@@ -22,6 +27,10 @@ func _init() -> void:
 		parts[part.id] = part
 	armor_faces = data.armor_faces
 	armor_pieces = data.armor_pieces
+
+## False for a primary weapon that no picker or pickup may offer.
+func offered(id: String) -> bool:
+	return parts.has(id) and (parts[id].category != "weapon" or id in MELEE_WEAPONS)
 
 ## Armour HP per face for a draft's selected pieces; 0 means the face is bare
 ## and hits there go straight to the core.

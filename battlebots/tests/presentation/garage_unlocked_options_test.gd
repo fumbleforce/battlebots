@@ -48,11 +48,11 @@ func _ready() -> void:
 	check(profile.loadouts[0] == before, "Undo restores exact previous body and selections")
 	profile.redo_edit()
 	for drive: String in ["agile", "standard_wheels", "traction", "walker"]:
-		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner", "minigun"]:
+		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
 			equip_part("drive", drive)
 			equip_part("weapon", weapon)
 			check(profile.loadouts[0].parts.drive == drive and profile.loadouts[0].parts.weapon == weapon, "All drive/weapon choices persist")
-			check(profile.registry.validate(profile.loadouts[0]).valid, "All twenty-four combinations legal with default side armour")
+			check(profile.registry.validate(profile.loadouts[0]).valid, "All twenty combinations legal with default side armour")
 	for tab: String in ["decals", "paint"]:
 		for cat: Dictionary in profile.catalogue[tab]:
 			for item: Dictionary in cat.items:

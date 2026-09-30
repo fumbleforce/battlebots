@@ -48,7 +48,11 @@ func run() -> void:
 	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"hammer", "utility":"recovery_assist"})
 	check(not profile.part_fits("utility", "minigun_pod"), "Sawblade body hides the auxiliary minigun")
 	check(profile.part_fits("drive", "walker") and profile.part_fits("drive", "traction"), "Sawblade keeps every drive it can mount")
-	check(profile.part_fits("weapon", "minigun"), "Primary minigun fits without an auxiliary gun")
+	check(not profile.part_fits("weapon", "minigun"), "Weapon 1 offers melee weapons only")
+	check(ContentRegistry.MELEE_WEAPONS.all(func(id: String) -> bool: return id in AtlasGeometry.TOOL_PARTS or profile.part_fits("weapon", id)),
+		"Every melee primary that mounts on this body is offered")
+	use({"chassis":"balanced", "drive":"standard_wheels", "weapon":"minigun", "utility":"recovery_assist"})
+	check(profile.part_fits("weapon", "minigun") and profile.part_fits("weapon", "saw"), "A saved primary minigun stays listed until it is swapped")
 
 	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "utility":"minigun_pod"})
 	check(profile.registry.validate(profile.loadouts[0]).valid, "Scorpion fixture is valid")

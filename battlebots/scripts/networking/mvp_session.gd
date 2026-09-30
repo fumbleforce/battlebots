@@ -261,6 +261,9 @@ func _cycle_part(slot: String, step: int) -> Dictionary:
 		return {"refused":"unavailable"}
 	var options := _slot_parts(slot)
 	var start := options.find(str(bot.loadout.parts.get(slot, "")))
+	# A fitted part nothing offers (a factory primary minigun) steps onto either end.
+	if start < 0 and step < 0:
+		start = 0
 	for offset: int in range(1, options.size()):
 		var part := options[posmod(start + offset * step, options.size())]
 		var next := _fitted(bot, part, slot)
@@ -273,7 +276,8 @@ func _cycle_part(slot: String, step: int) -> Dictionary:
 func _slot_parts(slot: String) -> Array[String]:
 	var options: Array[String] = []
 	for id: String in world.pickups.registry.parts:
-		if world.pickups.registry.parts[id].category == slot and (slot != "chassis" or id in MatchPickups.OFFERED_CHASSIS):
+		if world.pickups.registry.parts[id].category == slot and (slot != "chassis" or id in MatchPickups.OFFERED_CHASSIS) \
+				and world.pickups.registry.offered(id):
 			options.append(id)
 	return options
 
@@ -315,7 +319,11 @@ func practice_part_options(slot: String, entity := 0) -> Array[Dictionary]:
 	var bodies: Array[Dictionary] = []
 	if slot == "drive":
 		bodies = _offered_bodies(bot)
-	for part: String in _slot_parts(slot):
+	var listed := _slot_parts(slot)
+	# The fitted part stays listed even when nothing offers it (#107).
+	if current not in listed:
+		listed.append(current)
+	for part: String in listed:
 		# Drives list only when a body in the chassis dropdown can mount them (#94).
 		if slot == "drive" and part != current and not bodies.any(func(body: Dictionary) -> bool:
 				return body.parts.get("drive") == part or not world.pickups.swapped(body, part).is_empty()):

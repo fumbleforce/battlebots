@@ -48,7 +48,7 @@ func _init() -> void:
 	for id: String in registry.parts:
 		var slot: String = registry.parts[id].category
 		# Nimble drives are built into their sealed factory bodies (#61).
-		if id in EXCLUDED_PARTS or (slot == "chassis" and id not in OFFERED_CHASSIS) or NimbleBots.locked_part(id):
+		if id in EXCLUDED_PARTS or (slot == "chassis" and id not in OFFERED_CHASSIS) or NimbleBots.locked_part(id) or not registry.offered(id):
 			continue
 		pool.append(id)
 	pool.sort()

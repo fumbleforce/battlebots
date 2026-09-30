@@ -424,6 +424,8 @@ func run() -> void:
 	var fits := session.practice_part_options("weapon").filter(func(o: Dictionary) -> bool: return o.fits and not o.current)
 	check(not fits.is_empty(), "Other weapons fit this body")
 	check(session.practice_set_part("weapon", fits[0].part).get("part") == fits[0].part, "Choosing a weapon fits it")
+	check(session.practice_part_options("weapon").all(func(o: Dictionary) -> bool: return o.part in ContentRegistry.MELEE_WEAPONS)
+		and session.practice_set_part("weapon", "minigun").get("refused") == "unavailable", "Weapon 1 offers melee weapons only once the minigun is swapped out")
 	await frames(2)
 	player = session.local_source()
 	check(player.loadout.parts.weapon == fits[0].part and lab.weapons.primary.id == fits[0].part, "The bot and panel follow the chosen weapon")

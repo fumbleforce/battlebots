@@ -14,6 +14,11 @@ correct roller clearance and centered corner sockets remain required. Fidelity
 was approved by the user on 22 September 2026. See [Atlas implementation](coordination/B_ATLAS_MX.md)
 for exported mounts, actual runtime validation and the hosted-release handoff.
 
+**User revision, 30 September 2026 — melee Weapon 1 (#107):** the primary weapon
+slot offers melee weapons only (saw, horizontal and vertical spinner, hammer, ramp,
+battering ram, grinder drum, spear · forklift). Ranged weapons are Weapon 2
+(auxiliary / utility) parts. Factory builds that ship a primary minigun keep it.
+
 **User revision, 23 September 2026 — item pickups and credits:** matches stock
 server-authoritative item pickups: vehicle parts from the Customize catalogue
 (every slot, including body and drive), the Nitro/jump perks, or credits. A part

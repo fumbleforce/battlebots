@@ -1724,3 +1724,19 @@ the camera straight up / down in world space (`BotOrbitCamera.fly` takes an
 optional `rise` in m/s); Space / Ctrl keep their view-relative up / down. Q is
 still the (unused) ping default, which is inactive while flying. No gameplay or
 wire change.
+
+## Weapon 1 is melee only — build mvp-ab-63 (#107)
+
+`ContentRegistry.MELEE_WEAPONS` lists the primaries a player can choose: saw,
+horizontal spinner, hammer, vertical spinner, ramp (`lifter`), battering ram,
+grinder drum and spear · forklift. `ContentRegistry.offered(id)` is false for
+any other `weapon` part, today the primary `minigun`. Customize
+(`PlayerProfile.part_fits` / `fit_body`), the Practice part pickers and the part
+shortcut (`MvpSession` part lists) and the match pickup pool (`MatchPickups.pool`,
+so also the practice item card) use it. Ranged weapons stay in Weapon 2
+(`utility`).
+
+Validation is unchanged: the factory nimble bots, the practice sentry and saved
+builds keep a primary minigun, and it stays listed while fitted. No wire,
+catalogue-hash or loadout-schema change; the build bumps because the pickup
+pool changed.

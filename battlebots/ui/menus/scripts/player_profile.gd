@@ -228,6 +228,7 @@ func _ensure_body(draft: Dictionary) -> void:
 func part_fits(slot: String, id: String) -> bool:
 	var draft: Dictionary = loadouts[active_bot]
 	if draft.get("parts") is Dictionary and draft.parts.get(slot) == id: return true
+	if not registry.offered(id): return false
 	var trial := _with_part(draft, slot, id)
 	if trial.is_empty(): return false
 	var unavoidable: Variant = null
@@ -235,7 +236,7 @@ func part_fits(slot: String, id: String) -> bool:
 		if cat.slot != slot: continue
 		for item: Dictionary in cat.items:
 			var choice := _with_part(draft, slot, item.id)
-			if choice.is_empty(): continue
+			if choice.is_empty() or not registry.offered(item.id): continue
 			var reasons := registry.validate(choice).reasons
 			if unavoidable == null: unavoidable = reasons
 			else: unavoidable = Array(unavoidable).filter(func(reason: String) -> bool: return reasons.has(reason))
@@ -278,7 +279,7 @@ func fit_body(chassis: String) -> Dictionary:
 			for cat: Dictionary in catalogue.get("parts", []):
 				if cat.slot != slot: continue
 				for item: Dictionary in cat.items:
-					if item.id == draft.parts.get(slot): continue
+					if item.id == draft.parts.get(slot) or not registry.offered(item.id): continue
 					var trial := _with_part(draft, slot, item.id)
 					var remaining := registry.validate(trial).reasons.size()
 					if remaining < reasons and (best.is_empty() or remaining < best.remaining):

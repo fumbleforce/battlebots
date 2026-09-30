@@ -50,6 +50,8 @@ func rules() -> void:
 	var strict := ContentRegistry.new()
 	check(not pickups.pool.has("nitro_off") and not pickups.pool.has("jump_off"), "Removing a perk never drops")
 	check(not pickups.pool.has("compact") and not pickups.pool.has("wide"), "Only Customize bodies drop")
+	check(not pickups.pool.has("minigun") and ContentRegistry.MELEE_WEAPONS.all(func(id: String) -> bool: return pickups.pool.has(id))
+		and pickups.pool.has("minigun_pod"), "Weapon 1 pickups are melee only; ranged weapons drop for Weapon 2")
 	check(pickups.pool.has("atlas_mx") and pickups.pool.has("walker") and pickups.pool.has("nitro_boost"),
 		"Every Customize slot, including body, drive and perks, can drop")
 	var starter := strict.starter()
