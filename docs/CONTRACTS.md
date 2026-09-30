@@ -1150,11 +1150,17 @@ shape and transform handed to the physics query, last sample of the tick), with
 white, or red when the check struck (or, for a running weapon, touches) an
 enemy. A ram punch and spear thrust record every tick of the stroke; the lifter
 and ramp record their launch; the saw, grinder drum and spinners record every
-tick they run as one mark that follows them; an untuned hammer records its
-head's volume where it lands. A tuned Area of effect grows a melee weapon's
-check volume by that many metres on every side (`CombatWorld._grow`), keeping
-its shape, and these weapons no longer splash around a hit; the hammer alone
-blasts a sphere where its head lands (`_hammer_blasts`). `CombatWorld` reaches
+tick they run as one mark that follows them. A tuned Area of effect grows a
+melee weapon's check volume by that many metres on every side
+(`CombatWorld._grow`), keeping its shape, and these weapons no longer splash
+around a hit. The hammer's Area of effect is the radius of the sphere its head
+strikes where it lands (`_hammer_strikes`): it defaults to the head's own
+radius (`CombatWorld.hammer_radius`), is marked as that one sphere at any
+size (red when the blow damaged anyone, no separate hit cube), and a larger
+radius also hits everyone inside it. An area of effect never weakens a hit:
+`_splash` deals the full damage and knock at any distance inside the area
+(the mortar's own blast keeps its falloff), and judges cover toward the middle
+of the target's hull. `CombatWorld` reaches
 none of this without `practice_tuning`, so untuned, online and LAN play are
 unchanged. The tuning panel lists every weapon value for every weapon (a dash
 where the weapon has none) and its categories fold from their titles
@@ -1907,7 +1913,7 @@ volumes. Guns and the Practice NPC models have none.
   47th field, `weapon_solid` (bool), hence protocol 18. Clients apply it and
   never judge clearance from their own delayed poses.
 
-## Ramp flip checks the plate's whole swing — build mvp-ab-68 (#111)
+## Ramp flip checks the plate's whole swing; every hammer head is a sphere — build mvp-ab-69 (#111)
 
 The Ramp (`ramp` part, kind `lifter`) stays a solid wedge a hull can ride up
 (#112). On the launch tick `CombatWorld._sweep` now samples the plate volume
@@ -1918,3 +1924,9 @@ launch angle never touched, is thrown with the lifter's launch hit (same
 damage, knock-back and flip). There is no separate volume ahead of the Ramp,
 and the Lifter and every other weapon are unchanged. No wire change; the build
 moves because server and client must agree on who is thrown.
+
+Build mvp-ab-69: every hammer head checks as a sphere on every body. The
+Sawblade and Scorpion hammers swept a box; they now sweep a sphere of half the
+head's longest side (`CombatWorld.hammer_radius`) along the same path, as the
+plain hammer always did (`HAMMER_HEAD_RADIUS`). Damage, knock-back and timing
+are unchanged.

@@ -434,12 +434,13 @@ func run() -> void:
 	# Area of effect: a shot into the ground beside the Atlas splashes it.
 	var splashed := func() -> bool:
 		session.world.weapons.pending_hits.clear()
-		session.world.weapons._splash_miss(player, target.body.global_position + Vector3(2, 0, 0), CombatWorld.MINIGUN_DAMAGE,
+		session.world.weapons._splash_miss(player, target.body.global_position + atlas_front * 7.0, CombatWorld.MINIGUN_DAMAGE,
 			CombatWorld.MINIGUN_KNOCKBACK, "minigun", 0, 1)
-		return session.world.weapons.pending_hits.any(func(hit: Array) -> bool: return hit[1] == target and float(hit[3]) > 0.0)
+		# An area of effect never weakens a hit: full damage, whatever the distance inside it.
+		return session.world.weapons.pending_hits.any(func(hit: Array) -> bool: return hit[1] == target and is_equal_approx(float(hit[3]), CombatWorld.MINIGUN_DAMAGE * lab.scale("primary", "damage")))
 	check(lab.editable("primary", "aoe") and not splashed.call(), "No splash without an area of effect")
-	lab.set_value("primary", "aoe", 6.0)
-	check(splashed.call(), "A tuned area of effect splashes nearby enemies")
+	lab.set_value("primary", "aoe", 9.0)
+	check(splashed.call(), "A tuned area of effect splashes nearby enemies at full damage, whatever the distance inside it")
 	lab.clear_value("primary", "aoe")
 	lab.set_body("core", 500.0)
 	lab.set_body("weight", 400.0)
@@ -636,11 +637,16 @@ func run() -> void:
 	var blasted := func() -> bool:
 		hammerer.combat.strike = true
 		session.world.weapons.pending_hits.clear()
-		session.world.weapons._hammer_blasts(session.world.bots, 0, 1)
+		session.world.weapons._hammer_strikes(session.world.bots, 0, 1)
 		hammerer.combat.strike = false
-		return session.world.weapons.pending_hits.any(func(hit: Array) -> bool: return hit[1] == atlas and float(hit[3]) > 0.0)
+		# Full hammer damage, whatever the distance inside the area.
+		return session.world.weapons.pending_hits.any(func(hit: Array) -> bool: return hit[1] == atlas and is_equal_approx(float(hit[3]), CombatWorld.HAMMER_DAMAGE))
+	# Let the bots settle on the floor first.
+	await frames(60)
 	var reach: float = session.world.weapons._hammer_head(hammerer).distance_to(atlas.body.global_position) + 5.0
-	check(not blasted.call(), "An untuned hammer strike has no blast")
+	var head_radius: float = CombatWorld.hammer_radius(hammerer.loadout, hammerer.combat.stats.size)
+	check(head_radius > 0.0 and is_equal_approx(lab.value("primary", "aoe"), head_radius), "The hammer's area of effect defaults to its head's sphere (%.2f m)" % head_radius)
+	check(not blasted.call(), "An untuned hammer strikes nothing beyond its head")
 	lab.debug_impacts = true
 	lab.heat_enabled = false
 	# Holds or releases the weapon button for some ticks, through the real session.
@@ -667,9 +673,26 @@ func run() -> void:
 	await use.call(30, false)
 	var strike_marks: Array[Dictionary] = lab.take_debug_marks()
 	check(strike_marks.size() == 1 and not strike_marks[0].has("box") and strike_marks[0].layer == ""
-		and is_equal_approx(strike_marks[0].radius, 0.2 * BotScale.from_size(hammerer.combat.stats.size))
+		and is_equal_approx(strike_marks[0].radius, head_radius)
 		and strike_marks[0].position.distance_to(session.world.weapons._hammer_head(hammerer)) < 0.05,
 		"An untuned hammer swing marks its head's sphere where it lands (%s)" % [strike_marks])
+	# A blow that lands is the same sphere, red, with no separate cube.
+	atlas.combat.stats.core = 1000000.0
+	atlas.combat.core = 1000000.0
+	var toward := (-hammerer.body.global_basis.z).slide(Vector3.UP).normalized()
+	var landing: Vector3 = session.world.weapons._hammer_head(hammerer)
+	atlas.body.reset_pose = Transform3D(Basis.looking_at(-toward),
+		Vector3(landing.x, atlas.body.global_position.y, landing.z) - toward * atlas.collision_bounds().position.z)
+	await use.call(200, false)
+	events.clear()
+	lab.take_debug_marks()
+	await use.call(60, true)
+	await use.call(30, false)
+	var landed: Array[Dictionary] = lab.take_debug_marks()
+	check(events.any(func(e: Dictionary) -> bool: return e.kind == "hammer" and e.target == atlas.entity_id and is_equal_approx(float(e.damage), CombatWorld.HAMMER_DAMAGE)),
+		"The hammer strikes an enemy standing where its sphere is marked, for its full damage")
+	check(landed.size() == 1 and is_equal_approx(landed[0].radius, head_radius) and landed[0].layer == "damage",
+		"A hammer blow that lands marks the same sphere, red, and nothing else (%s)" % [landed])
 	session.leave()
 	# #111: a melee weapon marks the volume it queries, hit or miss, and a tuned
 	# area of effect grows that volume. Through the real session: hold the weapon

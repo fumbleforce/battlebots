@@ -161,6 +161,9 @@ func _configure(bot: MvpBot, registry: ContentRegistry, ids: Array) -> void:
 		defaults.weight = float(registry.parts.get(ids[index], {}).get("mass", 0.0))
 		# Every weapon can be given a splash (only the mortar has one by default).
 		if not defaults.has("aoe"): defaults.aoe = 0.0
+		# The hammer's is the sphere its head strikes with.
+		if index == 0 and ids[index] == "hammer":
+			defaults.aoe = COMBAT_WORLD.hammer_radius(bot.loadout, stats.size)
 		weapons[slot] = {"id":ids[index], "title":str(ids[index]).replace("_", " ").to_upper(),
 			"defaults":defaults, "values":{}}
 	_weapon_ids = ids.duplicate()
@@ -424,9 +427,10 @@ func jump_scale() -> float:
 func utility() -> String:
 	return _utility
 
-## Radius of a tuned splash for a hit of this kind, 0 for none. The mortar
+## Radius of a tuned splash for a hit of this kind, 0 for none; everyone in
+## it takes the hit's full damage. The mortar
 ## keeps its own blast, whose radius tunes through scale("aoe"); the hammer
-## blasts where its head lands (CombatWorld._hammer_blasts), hit or miss; the
+## blasts where its head lands (CombatWorld._hammer_strikes), hit or miss; the
 ## other melee weapons check a larger volume instead (CombatWorld._grow).
 func splash_radius(slot: String, kind: String) -> float:
 	if kind == "mortar" or kind in MELEE_KINDS or not has_field(slot, "aoe"):

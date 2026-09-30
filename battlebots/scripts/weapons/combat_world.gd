@@ -208,7 +208,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 	# Only eligible contacts this tick survive. Breaking contact or power cannot
 	# bank a nearly complete damage interval for a later touch.
 	_saw_contacts = saw_contacts
-	_hammer_blasts(bots, tick, round_index)
+	_hammer_strikes(bots, tick, round_index)
 	# One unordered ram pair per half-second; resolve both struck zones once.
 	var ids := bots.keys()
 	for i: int in range(ids.size()):
@@ -429,7 +429,9 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 	if SawbladeConfig.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout): return _sawblade_hammer_sweep(bot)
 	var linear_scale := BotScale.from_size(bot.combat.stats.size)
 	var shape := SphereShape3D.new()
-	shape.radius = 0.2 * linear_scale
+	shape.radius = _hammer_reach(bot)
+	if shape.radius <= 0.0:
+		return []
 	var pivot := _hammer_pivot(bot)
 	var arm := Vector3(0, 0, -HAMMER_ARM * linear_scale)
 	var start := bot.previous_pose
@@ -446,7 +448,6 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 		var pose := start.interpolate_with(finish, fraction)
 		var angle := lerpf(PI / 2.0, HAMMER_STRIKE_ANGLE, fraction)
 		var head := pivot + Basis(Vector3.RIGHT, angle) * arm
-		_sweep_volume = [shape, Transform3D(Basis.IDENTITY, head)]
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
 		query.transform = Transform3D(Basis.IDENTITY, pose * head)
@@ -458,7 +459,10 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 				_sweep_origins[hit.collider_id] = query.transform.origin
 	return found
 
-## Arm length (before bot scale) and the swing end angle of the plain hammer.
+## Arm length and head radius (before bot scale) and the swing end angle of the
+## plain hammer; the Sawblade hammer head's width in its model's metres.
+const HAMMER_HEAD_RADIUS := 0.2
+const SAWBLADE_HAMMER_WIDTH := 0.82
 const HAMMER_ARM := 1.2
 const HAMMER_STRIKE_ANGLE := -PI / 6.0
 
@@ -480,10 +484,29 @@ func _hammer_head(bot: MvpBot) -> Vector3:
 	var arm := Vector3(0, 0, -HAMMER_ARM * BotScale.from_size(size))
 	return pose * (_hammer_pivot(bot) + Basis(Vector3.RIGHT, HAMMER_STRIKE_ANGLE) * arm)
 
-## Practice Duel (#84): a hammer with a tuned area of effect blasts a sphere
-## around where its head lands, hit or miss. Bots the head struck directly
-## this swing already took the full blow and are not hit twice.
-func _hammer_blasts(bots: Dictionary, tick: int, round_index: int) -> void:
+## Every hammer head checks as a sphere (#111): this is its radius on the body
+## that carries it, the half of the head's longest side.
+static func hammer_radius(loadout: Dictionary, size: Vector3) -> float:
+	if ScorpionGeometry.enabled(loadout):
+		return ScorpionGeometry.HEAD_SIZE.y * 0.5 * BotScale.from_size(size)
+	if SawbladeConfig.enabled(loadout) and not AtlasGeometry.enabled(loadout):
+		return SAWBLADE_HAMMER_WIDTH * 0.5 * SawbladeGeometry.scale_for(size).x
+	return HAMMER_HEAD_RADIUS * BotScale.from_size(size)
+
+## The radius the head sweeps with. A Practice Duel area of effect smaller than
+## the head shrinks it; a larger one is struck where the head lands
+## (_hammer_strikes), so the swing itself never grows.
+func _hammer_reach(bot: MvpBot) -> float:
+	var radius := hammer_radius(bot.loadout, bot.combat.stats.size)
+	var lab: RefCounted = bot.combat.practice_tuning
+	return radius if lab == null else minf(radius, lab.value("primary", "aoe"))
+
+## Practice Duel (#84, #111): the hammer's area of effect is the sphere its head
+## strikes where it lands, the head's own radius by default. A larger one also
+## hits everyone within it, hit or miss, at full damage; bots the head struck
+## directly this swing already took the blow and are not hit twice. The sphere
+## is marked at any size, red when the strike damaged anyone.
+func _hammer_strikes(bots: Dictionary, tick: int, round_index: int) -> void:
 	for id: int in bots:
 		var attacker: MvpBot = bots[id]
 		var state := attacker.combat
@@ -491,21 +514,23 @@ func _hammer_blasts(bots: Dictionary, tick: int, round_index: int) -> void:
 		if lab == null or not state.strike or state.stats.weapon != "hammer" or state.eliminated or state.zones.weapon <= 0:
 			continue
 		var radius: float = lab.value("primary", "aoe")
-		var head := _hammer_head(attacker)
 		if radius <= 0.0:
-			# Untuned: the head itself is marked where it lands (_debug_sweep).
 			continue
+		var head := _hammer_head(attacker)
 		var struck: Array = _hammer_hits.get(id, {}).get("targets", {}).keys()
-		var splashed := _splash(attacker, head, HAMMER_DAMAGE * lab.scale("primary", "damage"),
-			HAMMER_KNOCKBACK * lab.scale("primary", "knockback"), radius, tick, round_index, "hammer",
-			lab.armour_share("primary", 1.0), struck)
-		# The blast's mark shows whether the strike damaged anyone, blast or head.
-		lab.debug_impact(head, radius, "damage" if splashed or not struck.is_empty() else "")
+		var damaged := not struck.is_empty()
+		if radius > hammer_radius(attacker.loadout, state.stats.size):
+			damaged = _splash(attacker, head, HAMMER_DAMAGE * lab.scale("primary", "damage"),
+				HAMMER_KNOCKBACK * lab.scale("primary", "knockback"), radius, tick, round_index, "hammer",
+				lab.armour_share("primary", 1.0), struck) or damaged
+		lab.debug_impact(head, radius, "damage" if damaged else "")
 
 func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 	var size: Vector3 = bot.combat.stats.size
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(0.82, 0.405, 0.38) * SawbladeGeometry.scale_for(size)
+	var shape := SphereShape3D.new()
+	shape.radius = _hammer_reach(bot)
+	if shape.radius <= 0.0:
+		return []
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
 	var body_angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
@@ -513,7 +538,7 @@ func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 	# A fixed old-model distance undersamples the enlarged hammer during turns.
 	var pivot := SawbladeGeometry.point(Vector3(0, 0.86, -0.29), size)
 	var arm := Vector3(0, 0.63, -0.93) * SawbladeGeometry.scale_for(size)
-	var head_radius := shape.size.length() * 0.5
+	var head_radius := shape.radius
 	var travel := start.origin.distance_to(finish.origin) \
 		+ body_angle * (pivot.length() + arm.length() + head_radius) \
 		+ absf(SawbladeGeometry.HAMMER_SWING) * (arm.length() + head_radius)
@@ -523,7 +548,6 @@ func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 		var fraction := float(index) / (steps - 1)
 		var angle := SawbladeGeometry.HAMMER_SWING * fraction
 		var local := Transform3D(Basis(Vector3.RIGHT, angle - SawbladeGeometry.HAMMER_SWING), SawbladeGeometry.hammer_center(size, angle))
-		_sweep_volume = [shape, local]
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
 		query.transform = start.interpolate_with(finish, fraction) * local
@@ -537,8 +561,10 @@ func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 
 func _scorpion_hammer_sweep(bot: MvpBot) -> Array:
 	var size: Vector3 = bot.combat.stats.size
-	var shape := BoxShape3D.new()
-	shape.size = ScorpionGeometry.HEAD_SIZE * BotScale.from_size(size)
+	var shape := SphereShape3D.new()
+	shape.radius = _hammer_reach(bot)
+	if shape.radius <= 0.0:
+		return []
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
 	var body_angle := start.basis.get_rotation_quaternion().angle_to(finish.basis.get_rotation_quaternion())
@@ -549,10 +575,9 @@ func _scorpion_hammer_sweep(bot: MvpBot) -> Array:
 	var found: Array = []
 	for index: int in steps:
 		var fraction := float(index) / (steps - 1)
-		_sweep_volume = [shape, ScorpionGeometry.hammer_transform(size, fraction)]
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
-		query.transform = start.interpolate_with(finish, fraction) * _sweep_volume[1]
+		query.transform = start.interpolate_with(finish, fraction) * ScorpionGeometry.hammer_transform(size, fraction)
 		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [bot.body.get_rid()]
 		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
@@ -1314,13 +1339,14 @@ func _hit(attacker: MvpBot, victim: MvpBot, point: Vector3, raw: float, impulse:
 			# The mortar's blast marks its own sphere where the shell lands. A point
 			# mark takes the colour of what the hit lands on (before this tick's
 			# damage); a splash here always damaged the bot struck.
-			if kind != "mortar":
+			# The mortar and the hammer mark their own sphere where they land.
+			if kind not in ["mortar", "hammer"]:
 				lab.debug_impact(point, radius, "damage" if radius > 0.0 else lab.hit_layer(victim.combat, zone if not zone.is_empty() else victim.zone_at(point)))
 	pending_hits.append([attacker, victim, point, raw, impulse, tick, round_index, recoil,
 		kind, zone, armour_share, axis])
 
 ## Practice Duel splash (#84) for a shot that struck the world at point: the
-## same falloff as a direct-hit splash, from the weapon's tuned base values.
+## same full hit as a direct-hit splash, from the weapon's tuned base values.
 func _splash_miss(attacker: MvpBot, point: Vector3, raw: float, knock: float, kind: String, tick: int, round_index: int) -> void:
 	var lab: RefCounted = attacker.combat.practice_tuning
 	if lab == null:
@@ -1335,14 +1361,13 @@ func _splash_miss(attacker: MvpBot, point: Vector3, raw: float, knock: float, ki
 		lab.debug_impact(point)
 
 ## Hits every visible hostile within radius of centre (except the one struck
-## directly, by entity id in exclude): full damage at the centre falling to the
-## mortar's edge share.
-## knock is the impulse per unit of victim mass at the centre. Returns whether
-## anyone was hit.
+## directly, by entity id in exclude) with the weapon's full damage and knock,
+## whatever the distance inside the area: an area of effect never weakens a hit.
+## knock is the impulse per unit of victim mass, away from centre. Returns
+## whether anyone was hit.
 func _splash(attacker: MvpBot, centre: Vector3, raw: float, knock: float, radius: float, tick: int, round_index: int,
 		kind: String, armour_share: float, exclude: Array) -> bool:
 	var hit := false
-	var edge := TurretTuning.settings().value("mortar", "blast_edge_share")
 	var space := attacker.body.get_world_3d().direct_space_state
 	for id: int in _bots:
 		var victim: MvpBot = _bots[id]
@@ -1354,21 +1379,22 @@ func _splash(attacker: MvpBot, centre: Vector3, raw: float, knock: float, radius
 		var distance := centre.distance_to(nearest)
 		if distance > radius:
 			continue
-		var sight := PhysicsRayQueryParameters3D.create(centre + Vector3.UP * 0.4, nearest, BaselineConfig.WORLD_LAYER)
-		var cover := space.intersect_ray(sight)
-		if not cover.is_empty() and cover.position.distance_to(nearest) > 0.3:
+		# Cover is judged toward the middle of the hull: a ray to the nearest point
+		# runs along the floor for a low centre (a hammer head) and a far target,
+		# and the floor then counted as cover.
+		var sight := PhysicsRayQueryParameters3D.create(centre + Vector3.UP * 0.4, victim.body.global_transform * bounds.get_center(), BaselineConfig.WORLD_LAYER)
+		if not space.intersect_ray(sight).is_empty():
 			continue
-		var share := lerpf(1.0, edge, distance / radius)
 		var away := (victim.body.global_position - centre).slide(Vector3.UP)
 		away = away.normalized() if away.length_squared() > 0.0001 else Vector3.ZERO
-		pending_hits.append([attacker, victim, nearest, raw * share, (away + Vector3.UP * 0.5) * victim.body.mass * knock * share,
+		pending_hits.append([attacker, victim, nearest, raw, (away + Vector3.UP * 0.5) * victim.body.mass * knock,
 			tick, round_index, 0.0, kind, "", armour_share, Vector3.ZERO])
 		hit = true
 	return hit
 
 ## Practice Duel (#111): a tuned Area of effect grows a melee weapon's check
-## volume by that many metres on every side. The hammer keeps its head and
-## blasts a sphere instead (_hammer_blasts). Untuned volumes are left alone.
+## volume by that many metres on every side. The hammer's is the radius of
+## its sphere instead (_hammer_strikes). Untuned volumes are left alone.
 func _grow(attacker: MvpBot, shape: Shape3D) -> void:
 	var lab: RefCounted = attacker.combat.practice_tuning
 	var reach: float = 0.0 if lab == null else lab.value("primary", "aoe")
@@ -1391,8 +1417,7 @@ func _debug_volume(attacker: MvpBot, shape: Shape3D, local: Transform3D, damaged
 
 ## The mark for this tick's _sweep(). The saw and spinners check every tick they
 ## run (marked as touching an enemy or not); the lifter's check counts on its
-## launch; the hammer's head is marked where it lands unless a tuned area of
-## effect marks its blast (_hammer_blasts).
+## launch. The hammer marks its own sphere (_hammer_strikes).
 func _debug_sweep(attacker: MvpBot, reached: bool, damaged: bool) -> void:
 	if _sweep_volume.is_empty():
 		return
@@ -1404,9 +1429,6 @@ func _debug_sweep(attacker: MvpBot, reached: bool, damaged: bool) -> void:
 			# A flipping Ramp checked its plate at every one of these angles.
 			for plate: Transform3D in _sweep_swing:
 				_debug_volume(attacker, _sweep_volume[0], plate, damaged)
-		"hammer":
-			if state.practice_tuning.value("primary", "aoe") <= 0.0:
-				_debug_volume(attacker, _sweep_volume[0], _sweep_volume[1], damaged)
 		_:
 			_debug_volume(attacker, _sweep_volume[0], _sweep_volume[1], reached, state.stats.weapon)
 
