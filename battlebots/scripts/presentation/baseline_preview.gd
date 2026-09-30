@@ -395,7 +395,8 @@ func _update_tank_sight(view: BotView, delta: float) -> void:
 var practice_hitbox_overrides: Dictionary = {}
 
 func _render_practice_debug(delta: float) -> void:
-	var session: MvpSession = source.session if source is SessionBotSource and is_instance_valid(source.session) else null
+	var session: MvpSession = source.session if is_instance_valid(source) and source is SessionBotSource \
+		and is_instance_valid(source.session) else null
 	var lab: RefCounted = session.practice_tuning() if session != null else null
 	var others: Array = []
 	if lab != null:
