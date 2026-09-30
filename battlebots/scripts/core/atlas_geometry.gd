@@ -65,6 +65,35 @@ const TURRET_MUZZLE := {"cannon":1.37025, "plasma":0.957, "flamer":1.102, "tesla
 ## Front tools (atlas_tools.glb, tools/build-atlas-tools.py; manifest
 ## atlas_tools_manifest.json), source metres. Primary weapon part -> tool.
 const TOOL_PARTS := {"battering_ram":"ram", "spear_fork":"spear", "grinder_drum":"grinder"}
+## Lifter arm (#111), shared by the drawn arm (scenes/bots/weapon_visual.gd) and
+## the authority's flip volume: its hinge from the hull's front face before bot
+## scale, the deepest it hangs, the gap its lip keeps over the floor (m) and its
+## flip angle at full charge.
+const LIFTER_HINGE := Vector3(0, -0.12, 0.2)
+const LIFTER_MAX_DROP_ANGLE := 0.6981317
+const LIFTER_GROUND_CLEARANCE := 0.03
+const LIFTER_LAUNCH_ANGLE := 1.7453293
+## Angles sampled for the volume around a swing.
+const SWING_SAMPLES := 8
+
+## Everything a hinged part sweeps as it turns about the hinge's X axis from one
+## angle to another: corners are the part's points at angle 0 (body frame). The
+## result is a prism across width, as (left, right) pairs of points around the
+## convex outline of the swept profile, rounded along the arcs its points trace.
+static func swing_prism(corners: Array, hinge: Vector3, width: float, from_angle: float, to_angle: float) -> PackedVector3Array:
+	var outline := PackedVector2Array()
+	for index: int in SWING_SAMPLES + 1:
+		var turn := Basis(Vector3.RIGHT, lerpf(from_angle, to_angle, float(index) / SWING_SAMPLES))
+		for corner: Vector3 in corners:
+			var point := hinge + turn * (corner - hinge)
+			outline.append(Vector2(point.y, point.z))
+	var hull := Geometry2D.convex_hull(outline)
+	var points := PackedVector3Array()
+	# The hull repeats its first point at the end.
+	for index: int in hull.size() - 1:
+		for side: float in [-0.5, 0.5]:
+			points.append(Vector3(hinge.x + side * width, hull[index].x, hull[index].y))
+	return points
 ## Ram prow between its back and nose planes, its half width and height span;
 ## RamPunch drives it RAM_PUNCH further forward.
 const RAM_BACK_Z := -1.70

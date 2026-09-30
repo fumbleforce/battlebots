@@ -1961,3 +1961,14 @@ Also in build mvp-ab-71:
 - **Vertical spinner.** It checks its own rotor, a disc of
   `VERTICAL_SPINNER_RADIUS` and `VERTICAL_SPINNER_WIDTH` (times bot scale) on
   its axle, in place of the lifter's front box (80% of the hull's width).
+
+Build mvp-ab-72 (#111): the Lifter's launch checks everything its fork sweeps,
+the same way the Ramp's flip does. The fork is its rest collider
+(`data/weapon_colliders.json`, per body mount) turned about
+`AtlasGeometry.LIFTER_HINGE` from where the charge lowered it (lip on the
+floor, at most `LIFTER_MAX_DROP_ANGLE`) up to `LIFTER_LAUNCH_ANGLE` times the
+released charge (`CombatWorld._lifter_swing`, `AtlasGeometry.swing_prism`,
+which `SawbladeGeometry.ramp_swing_points` now shares). It replaces the fixed
+front box, which still covers the Lifter while it charges (pins). The drawn
+arm (`scenes/bots/weapon_visual.gd`) reads its hinge and angles from the same
+`AtlasGeometry` constants; the Practice debug view marks the volume.

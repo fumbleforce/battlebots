@@ -8,11 +8,11 @@ extends Node3D
 ## loads, then flips up on release by an angle proportional to the charge,
 ## holds, and settles back to idle.
 const LIFTER_IDLE_ANGLE := 0.0
-const LIFTER_LAUNCH_ANGLE := deg_to_rad(100.0)
+const LIFTER_LAUNCH_ANGLE := AtlasGeometry.LIFTER_LAUNCH_ANGLE
 ## Deepest the arm may hang when no ground is found below its lip (airborne).
-const LIFTER_MAX_DROP_ANGLE := deg_to_rad(40.0)
+const LIFTER_MAX_DROP_ANGLE := AtlasGeometry.LIFTER_MAX_DROP_ANGLE
 ## Lip clearance above the ground so the arm does not z-fight the floor (m).
-const LIFTER_GROUND_CLEARANCE := 0.03
+const LIFTER_GROUND_CLEARANCE := AtlasGeometry.LIFTER_GROUND_CLEARANCE
 ## Loaded-spring tremble at full charge.
 const LIFTER_TREMBLE_AMPLITUDE := deg_to_rad(1.5)
 const LIFTER_TREMBLE_RATE := 70.0
@@ -175,7 +175,8 @@ func assemble(weapon: String, size: Vector3, loadout: Dictionary = {}) -> void:
 		module.transform = Transform3D(Basis.from_scale(module_scale), -(module_scale * hinge_in_module))
 		donor.free()
 	elif kind == "lifter":
-		mechanism.position = Vector3(0, -0.12, -size.z * 0.5 + 0.2)
+		# The hinge the authority's flip volume turns about (#111).
+		mechanism.position = AtlasGeometry.LIFTER_HINGE + Vector3(0, 0, -size.z * 0.5)
 		for side: int in [-1, 1]:
 			_box(mechanism, Vector3(0.16, 0.12, 1.0), Vector3(side * size.x * 0.3, 0, -0.45), accent)
 		_box(mechanism, Vector3(size.x * 0.7, 0.12, 0.14), Vector3(0, 0, -0.88), metal)

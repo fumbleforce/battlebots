@@ -99,8 +99,6 @@ static func ramp_volume(loadout: Dictionary, size: Vector3, angle: float) -> Arr
 ## metres: its lip, the top and the foot of its back edge; and its width.
 const RAMP_PROFILE := [Vector2(0.0645, -1.63), Vector2(0.757, -0.36), Vector2(0.0, -0.36)]
 const RAMP_WIDTH := 1.49
-## Plate angles sampled for the volume around a flip.
-const RAMP_SWING_SAMPLES := 8
 
 ## Everything the Ramp's wedge passes through as it flips from one plate angle
 ## to another, rounded at the front by the arc of its lip: a prism across the
@@ -110,19 +108,10 @@ const RAMP_SWING_SAMPLES := 8
 static func ramp_swing_points(loadout: Dictionary, size: Vector3, from_angle: float, to_angle: float) -> PackedVector3Array:
 	var scale := ramp_scale(loadout, size)
 	var hinge := ramp_hinge(loadout, size)
-	var outline := PackedVector2Array()
-	for index: int in RAMP_SWING_SAMPLES + 1:
-		var rotation := Basis(Vector3.RIGHT, lerpf(from_angle, to_angle, float(index) / RAMP_SWING_SAMPLES))
-		for corner: Vector2 in RAMP_PROFILE:
-			var point := hinge + rotation * (Vector3(0, corner.x - RAMP_HINGE.y, corner.y - RAMP_HINGE.z) * scale)
-			outline.append(Vector2(point.y, point.z))
-	var hull := Geometry2D.convex_hull(outline)
-	var points := PackedVector3Array()
-	# The hull repeats its first point at the end.
-	for index: int in hull.size() - 1:
-		for side: float in [-0.5, 0.5]:
-			points.append(Vector3(side * RAMP_WIDTH * scale.x, hull[index].x, hull[index].y))
-	return points
+	var corners: Array = []
+	for corner: Vector2 in RAMP_PROFILE:
+		corners.append(hinge + Vector3(0, corner.x - RAMP_HINGE.y, corner.y - RAMP_HINGE.z) * scale)
+	return AtlasGeometry.swing_prism(corners, hinge, RAMP_WIDTH * scale.x, from_angle, to_angle)
 
 static func hammer_center(size: Vector3, angle: float) -> Vector3:
 	return point(Vector3(0, 0.86, -0.29) + Basis(Vector3.RIGHT, angle) * Vector3(0, 0.63, -0.93), size)

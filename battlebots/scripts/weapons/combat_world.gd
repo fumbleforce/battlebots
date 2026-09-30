@@ -2,6 +2,7 @@ class_name CombatWorld
 extends RefCounted
 const FRONT_TOOL_TUNING = preload("res://scripts/core/front_tool_tuning.gd")
 const ARENA_PROPS = preload("res://scripts/simulation/arena_props.gd")
+const WEAPON_COLLIDERS = preload("res://scripts/core/weapon_colliders.gd")
 const WEAPON_MOUNTS = preload("res://scripts/core/weapon_mounts.gd")
 ## Server-only hit queries. No client supplies a target, damage, zone or impulse.
 var time := 0.0
@@ -347,6 +348,15 @@ func _sweep(bot: MvpBot) -> Array:
 			var volume := SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size, plate)
 			local = volume[0]
 			box.size = volume[1]
+	elif bot.combat.stats.weapon == "lifter" and bot.combat.launch:
+		# The Lifter's flip turns its fork up from where the charge lowered it
+		# onto the floor, so the launch checks everything the fork sweeps (#111).
+		var swing := _lifter_swing(bot)
+		if not swing.is_empty():
+			var fork := ConvexPolygonShape3D.new()
+			fork.points = swing
+			shape = fork
+			local = Transform3D.IDENTITY
 	_grow(bot, shape)
 	_sweep_volume = [shape, local]
 	var start := bot.previous_pose * local
@@ -364,6 +374,37 @@ func _sweep(bot: MvpBot) -> Array:
 			if not found.has(hit.collider_id):
 				found.append(hit.collider_id)
 	return found
+
+## Everything the Lifter's fork sweeps on its launch, body frame: the fork (its
+## rest shape, data/weapon_colliders.json) turned about its hinge
+## (AtlasGeometry.LIFTER_HINGE) from where the charge lowered it, lip on the
+## floor, up to the launch angle for the released charge, as the drawn arm
+## moves. Empty for a body without a lifter fork.
+func _lifter_swing(bot: MvpBot) -> PackedVector3Array:
+	var draft: Dictionary = bot.loadout.duplicate(true)
+	draft.parts.weapon = "lifter"
+	var rest: Dictionary = WEAPON_COLLIDERS.settings().collider(draft, bot.combat.stats)
+	if not rest.get("shape") is BoxShape3D:
+		return PackedVector3Array()
+	var size: Vector3 = bot.combat.stats.size
+	var linear := BotScale.from_size(size)
+	var hinge := AtlasGeometry.LIFTER_HINGE * linear + Vector3(0, 0, -size.z * 0.5)
+	if ScorpionGeometry.enabled(bot.loadout): hinge += ScorpionGeometry.fallback_socket(size)
+	var half: Vector3 = (rest.shape as BoxShape3D).size * 0.5
+	var frame: Transform3D = rest.transform
+	var corners: Array = []
+	var reach := 0.0
+	for corner: Vector3 in [Vector3(-1, -1, -1), Vector3(-1, -1, 1), Vector3(-1, 1, -1), Vector3(-1, 1, 1),
+			Vector3(1, -1, -1), Vector3(1, -1, 1), Vector3(1, 1, -1), Vector3(1, 1, 1)]:
+		var point := frame * (half * corner)
+		corners.append(point)
+		reach = maxf(reach, hinge.z - point.z)
+	# Lowered: the lip rests on the floor, as deep as the arm may hang.
+	var above := hinge.y + SawbladeGeometry.ground(bot.loadout, size) - AtlasGeometry.LIFTER_GROUND_CLEARANCE
+	var lowered := -asin(clampf(above / maxf(reach, 0.001), 0.0, sin(AtlasGeometry.LIFTER_MAX_DROP_ANGLE)))
+	var charge := bot.combat.charge
+	var strength := clampf(charge, physics.lifter_min_release_charge, 1.0)
+	return AtlasGeometry.swing_prism(corners, hinge, half.x * 2.0, lowered * charge, AtlasGeometry.LIFTER_LAUNCH_ANGLE * strength)
 
 ## The vertical spinner's rotor as drawn (scenes/bots/weapon_visual.gd), before
 ## bot scale: the disc its cross bars sweep, its width, and its axle above and

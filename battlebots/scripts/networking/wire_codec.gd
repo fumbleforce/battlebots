@@ -1,7 +1,7 @@
 class_name WireCodec
 extends RefCounted
 const PROTOCOL := 18
-const BUILD := "mvp-ab-71"
+const BUILD := "mvp-ab-72"
 const SNAPSHOT_FIELDS := 47
 ## Longest weapon kind name a death record may carry.
 const DEATH_KIND_MAX := 24

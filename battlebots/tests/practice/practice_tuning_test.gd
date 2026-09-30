@@ -698,7 +698,7 @@ func run() -> void:
 	# area of effect grows that volume. Through the real session: hold the weapon
 	# for 1.5 s, let go, and wait out its cooldown. Cases: part, Atlas body, mark
 	# shape, hit kind.
-	for case: Array in [["saw", false, "cylinder", "saw"], ["lifter", false, "box", "lifter"], ["ramp", false, "prism", "lifter"],
+	for case: Array in [["saw", false, "cylinder", "saw"], ["lifter", false, "prism", "lifter"], ["ramp", false, "prism", "lifter"],
 			["vertical_spinner", false, "cylinder", "vertical_spinner"], ["horizontal_spinner", false, "cylinder", "horizontal_spinner"],
 			["battering_ram", true, "box", "ram_punch"], ["spear_fork", true, "box", "spear"], ["grinder_drum", true, "cylinder", "grinder"],
 			["battering_ram", false, "box", "ram_punch"], ["spear_fork", false, "box", "spear"], ["grinder_drum", false, "cylinder", "grinder"]]:
@@ -800,7 +800,12 @@ func run() -> void:
 			continue
 		# The mark is the real check: an enemy standing in it is struck. The target's
 		# front face goes to the middle of the last marked volume.
-		var spot: Vector3 = last.position - ahead * hull.position.z
+		var middle: Vector3 = last.position
+		if last.has("prism"):
+			middle = Vector3.ZERO
+			for point: Vector3 in last.prism:
+				middle += Transform3D(last.basis, last.position) * point / (last.prism as PackedVector3Array).size()
+		var spot: Vector3 = middle - ahead * hull.position.z
 		dummy.body.reset_pose = Transform3D(Basis.looking_at(-ahead), Vector3(spot.x, dummy.body.global_position.y, spot.z))
 		await frames(2)
 		events.clear()
