@@ -57,6 +57,23 @@ func _armor_selection(draft: Dictionary) -> Array[Dictionary]:
 		if index >= 0 and index < choices.size(): selected.append(choices[index])
 	return selected
 
+## One lifting tool, two builds (#109): the Sawblade body carries its built-in
+## Ramp, every other body mounts the Lifter. Both follow the lifter rules.
+const LIFT_PARTS := ["ramp", "lifter"]
+
+static func lift_part(draft: Dictionary) -> String:
+	return "ramp" if SawbladeConfig.body(draft) else "lifter"
+
+## Swaps a lifting tool for the one the draft's body carries, in place. Returns
+## [old id, new id], or [] when nothing changed.
+static func fit_lift(draft: Dictionary) -> Array:
+	var selected: Variant = draft.get("parts")
+	if not selected is Dictionary or selected.get("weapon") not in LIFT_PARTS: return []
+	var fitted := lift_part(draft)
+	if selected.weapon == fitted: return []
+	selected.weapon = fitted
+	return [LIFT_PARTS[1 - LIFT_PARTS.find(fitted)], fitted]
+
 func starter(controller := false) -> Dictionary:
 	return {"schema_version": SCHEMA, "name": "Controller" if controller else "Striker",
 		"parts": {"chassis": "wide" if controller else "balanced",
@@ -183,7 +200,7 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 	result.reasons.append_array(NimbleBots.reasons(draft))
 	if AtlasGeometry.bracken_enabled(draft):
 		if selected.get("drive") != "traction" or selected.get("weapon") != "lifter" or selected.get("utility") != "turret_cannon_quad":
-			result.reasons.append("Bracken keeps its linked tracks, ramp and quad cannon")
+			result.reasons.append("Bracken keeps its linked tracks, lifter and quad cannon")
 		var appearance: Variant = draft.get("cosmetics")
 		var config: Variant = appearance.get("sawblade") if appearance is Dictionary else null
 		if not SawbladeConfig.valid(config):
@@ -194,6 +211,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 				if config[option] != factory[option]:
 					result.reasons.append("Bracken keeps its authored armor and exhaust")
 					break
+	if selected.get("weapon") in LIFT_PARTS and selected.get("weapon") != lift_part(draft):
+		result.reasons.append("The Sawblade body lifts with its built-in Ramp; other bodies mount the Lifter")
 	if selected.get("weapon") in AtlasGeometry.TOOL_PARTS and selected.get("chassis") != "atlas_mx":
 		result.reasons.append("Ram, spear and grinder tools mount on the Atlas MX front coupler")
 	if selected.get("utility") in AtlasGeometry.TURRET_PARTS:
@@ -225,7 +244,8 @@ func validate(draft: Dictionary) -> LoadoutValidation:
 		"speed": float(drive.speed) * BotPhysics.settings().top_speed_factor(mass), "drive_speed": float(drive.speed),
 		"grip": float(drive.grip),
 		"plates": plates, "armor_total": armor_total,
-		"weapon": selected.weapon, "secondary_weapon": AtlasGeometry.family(AtlasGeometry.TURRET_PARTS.get(selected.utility,
+		# Rules follow the part's kind: the Ramp is a lifter in another build (#109).
+		"weapon": str(parts[selected.weapon].get("kind", selected.weapon)), "secondary_weapon": AtlasGeometry.family(AtlasGeometry.TURRET_PARTS.get(selected.utility,
 			"minigun" if selected.utility == "minigun_pod" else "")),
 		"turret_model": AtlasGeometry.turret_model(draft),
 		"turret_barrels": AtlasGeometry.turret_barrels(AtlasGeometry.turret_model(draft)).size(),

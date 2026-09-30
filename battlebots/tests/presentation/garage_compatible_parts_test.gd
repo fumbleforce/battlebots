@@ -59,6 +59,17 @@ func run() -> void:
 	check(not profile.part_fits("drive", "traction") and not profile.part_fits("drive", "agile"), "Scorpion hides drives other than walking legs")
 	check(not profile.part_fits("weapon", "minigun"), "One minigun per gun socket")
 	check(profile.part_fits("weapon", "lifter"), "Scorpion keeps compatible primaries")
+	check(not profile.part_fits("weapon", "ramp"), "The Ramp is listed on the Sawblade body only")
+	check(profile.part_name("weapon", "ramp") == "Ramp" and profile.part_name("weapon", "lifter") == "Lifter", "Ramp and Lifter are separate named weapons")
+
+	use({"chassis":"balanced", "drive":"traction", "weapon":"ramp", "utility":"recovery_assist"}, {"armor_side":1})
+	check(profile.registry.validate(profile.loadouts[0]).valid, "Sawblade Ramp fixture is valid")
+	check(not profile.part_fits("weapon", "lifter") and profile.part_fits("weapon", "saw"), "The Sawblade body lists its Ramp, not the Lifter")
+	check(profile.fit_body("atlas_mx").swaps == {"weapon": ["ramp", "lifter"]}, "A body change swaps the Ramp for the Lifter")
+	equip_part("chassis", "atlas_mx")
+	check(profile.loadouts[0].parts.weapon == "lifter" and profile.registry.validate(profile.loadouts[0]).valid, "Atlas takes the Lifter")
+	equip_part("chassis", "balanced")
+	check(profile.loadouts[0].parts.weapon == "ramp", "Switching back re-equips the Ramp")
 
 	use({"chassis":"scorpion_hex", "drive":"walker", "weapon":"hammer", "utility":"recovery_assist"},
 		{"armor_side":2, "armor_front":1, "armor_rear":1})

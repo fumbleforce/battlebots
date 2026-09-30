@@ -129,7 +129,7 @@ func capture_variants() -> void:
 	heading.add_theme_font_size_override("font_size",24)
 	add_child(heading)
 	var registry := ContentRegistry.new()
-	for variant: Array in [["traction","saw"],["agile","hammer"],["walker","lifter"]]:
+	for variant: Array in [["traction","saw"],["agile","hammer"],["walker","ramp"]]:
 		var draft := registry.starter()
 		draft.cosmetics.sawblade = SawbladeConfig.defaults()
 		draft.parts.drive = variant[0]

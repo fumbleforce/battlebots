@@ -40,7 +40,7 @@ func run() -> void:
 	probe.add_child(collision)
 	add_child(probe)
 	for chassis: String in ["compact", "balanced", "wide"]:
-		for weapon: String in ["vertical_spinner", "horizontal_spinner", "saw", "hammer", "lifter"]:
+		for weapon: String in ["vertical_spinner", "horizontal_spinner", "saw", "hammer", "ramp"]:
 			var build := SawbladeConfig.starter(registry)
 			build.parts.chassis = chassis
 			build.parts.weapon = weapon
@@ -76,7 +76,7 @@ func run() -> void:
 			await settle()
 			var combat := CombatWorld.new()
 			check(combat._sweep(bot).has(probe.get_instance_id()), chassis + " " + weapon + " query reaches the actual equipped weapon surface")
-			if weapon == "lifter":
+			if weapon == "ramp":
 				for launching: bool in [false, true]:
 					bot.combat.charge = 1.0
 					bot.combat.launch = launching
@@ -86,7 +86,7 @@ func run() -> void:
 					art.show_state(lifted, 0.0)
 					probe.global_position = front_vertex(art.component_meshes().weapon, bot.body)
 					await settle()
-					check(combat._sweep(bot).has(probe.get_instance_id()), chassis + " lifter leading surface stays inside its raised/launch query")
+					check(combat._sweep(bot).has(probe.get_instance_id()), chassis + " ramp leading surface stays inside its raised/launch query")
 			probe.global_position = bot.body.to_global(Vector3(0, 0, -size.z * 3.0))
 			await settle()
 			check(not combat._sweep(bot).has(probe.get_instance_id()), chassis + " " + weapon + " query cannot hit beyond its physical reach")

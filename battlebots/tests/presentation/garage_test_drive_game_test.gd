@@ -22,7 +22,7 @@ func run() -> void:
 	for category: Dictionary in profile.catalogue.parts:
 		if category.slot == "weapon": weapon = category
 	for item: Dictionary in weapon.items:
-		if item.id == "lifter": profile.equip("parts", weapon, item)
+		if item.id == "ramp": profile.equip("parts", weapon, item)
 	var paint: Dictionary = profile.catalogue.paint[0]
 	for item: Dictionary in paint.items:
 		if item.id == "red": profile.equip("paint", paint, item)

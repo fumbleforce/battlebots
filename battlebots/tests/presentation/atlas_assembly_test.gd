@@ -31,6 +31,20 @@ func run() -> void:
 		check(visual._connectors.size() == 80, "Both tracked drives have independently moving straps between all neighboring shoes")
 		check(visual._wheels.size() >= 10, "Only wheel pivots animate, never their child meshes")
 		check(visual.primary.kind == weapon, "Equipped primary is the actual rendered mechanism")
+		if weapon == "saw":
+			# One saw model on every body (#109): the Sawblade's blade, where the authority sweeps.
+			var hull: Vector3 = registry.validate(draft).stats.size
+			check(visual.primary.mechanism.find_child("Carbide cutting tooth 00*", true, false) != null, "Atlas mounts the Sawblade body's authored saw")
+			check(visual.primary.mechanism.global_position.distance_to(SawbladeGeometry.saw_axle(draft, hull)) < 0.001, "Rendered blade and server sweep share the axle")
+			check(SawbladeGeometry.saw_axle(draft, hull).z + SawbladeGeometry.SAW_RADIUS * SawbladeGeometry.saw_scale(draft, hull).z < -hull.z * 0.5,
+				"The blade spins clear of the hull front")
+		if weapon == "hammer":
+			# Arm and head are the Scorpion's tail hammer (#109), head at the strike radius.
+			var head := visual.primary.mechanism.find_child("HammerHead", true, false) as Node3D
+			check(head != null and visual.primary.mechanism.find_child("TailForeSurface", true, false) != null, "Atlas hammer uses the Scorpion's arm and head")
+			var centre := ScorpionGeometry.HEAD_CENTER - ScorpionGeometry.HEAD_PIVOT
+			var reach: float = visual.primary.mechanism.to_local(head.to_global(centre)).length() if head != null else 0.0
+			check(absf(reach - CombatWorld.HAMMER_ARM) < 0.001, "Hammer head rests at the authoritative strike radius: %.3f" % reach)
 		if weapon == "lifter":
 			check(visual.primary.mechanism.get_node_or_null("AtlasLifterAttachment") != null,
 				"The default front lifter uses the high-quality authored attachment")

@@ -83,7 +83,12 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.name = "Four wheels · Standard"
 				item.desc = "Standard wheels · 22 kg · 25 power · 10 m/s. On Atlas MX: four large lugged off-road tyres on hub motors under the sponson hoods."
 			elif item.id == "agile": item.name = "Four wheels · Agile"
-			elif item.id == "lifter": item.name = "Ramp · Lifter"
+			elif item.id == "lifter":
+				item.name = "Lifter"
+				item.desc = "Forked lifting arm · 22 kg · 30 power. Hold primary to press the arm to the ground and load it, release to flip whatever stands on it; a longer hold throws harder. The Sawblade body carries its Ramp instead."
+			elif item.id == "ramp":
+				item.name = "Ramp"
+				item.desc = "Sawblade body front ramp · 22 kg · 30 power. Hold primary to load the plate, release to flip whatever drove onto it; a longer hold throws harder. Built into the Sawblade body; other bodies mount the Lifter."
 			elif item.id == "battering_ram":
 				item.name = "Battering ram"
 				item.desc = "Atlas MX front tool · 26 kg · 30 power. An armoured prow with hardened striker plates: rams landed on the prow deal 2.2× damage and 1.6× knock-back while you take only a third of the return blow. Press primary for a hydraulic punch (24 damage, big shove). Drive enemies into walls."

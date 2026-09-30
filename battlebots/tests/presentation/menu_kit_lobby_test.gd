@@ -68,14 +68,14 @@ func run() -> void:
 	check(client.session.connection_state == "offline", "Blank host address cannot open a connection")
 	host.lobby.host_button.pressed.emit()
 	check(host.session.player_capacity == 4 and host.session.connection_state == "hosting", "Team mode hosts actual four-player capacity")
-	check(local_slot(host).get("loadout", {}).get("parts", {}).get("weapon") == "lifter", "Selected Controller loadout reaches host authority")
+	check(local_slot(host).get("loadout", {}).get("parts", {}).get("weapon") == "ramp", "Selected Controller loadout reaches host authority")
 	client.lobby.address.text = " 127.0.0.1 "
 	client.lobby.join_button.pressed.emit()
 	check(client.lobby.address.text == "127.0.0.1", "Direct-IP join trims whitespace")
 	var joined := await until(func() -> bool: return client.session.local_entity > 0 and client.session.lobby_view.get("slots", []).size() == 2)
 	check(joined, "Kit lobby joins two real UDP peers")
 	if joined:
-		check(await until(func() -> bool: return local_slot(client).get("loadout", {}).get("parts", {}).get("weapon") == "lifter"), "Joined client submits selected canonical loadout")
+		check(await until(func() -> bool: return local_slot(client).get("loadout", {}).get("parts", {}).get("weapon") == "ramp"), "Joined client submits selected canonical loadout")
 		await ticks(3)
 		client.lobby.refresh()
 		if "--capture" in OS.get_cmdline_user_args() and DisplayServer.get_name() != "headless":
@@ -94,7 +94,7 @@ func run() -> void:
 		profile.active_bot = 0
 		# Preset 0 is the Sawblade Tank since 312cb3a; expect whatever weapon it carries.
 		var selected_weapon: String = profile.active_loadout().get("parts", {}).get("weapon", "")
-		check(not selected_weapon.is_empty() and selected_weapon != "lifter", "Selected build differs from the loadout already on the server")
+		check(not selected_weapon.is_empty() and selected_weapon != "ramp", "Selected build differs from the loadout already on the server")
 		client.lobby.build_button.pressed.emit()
 		check(await until(func() -> bool: return local_slot(client).get("loadout", {}).get("parts", {}).get("weapon") == selected_weapon), "Use selected build updates server-accepted loadout")
 		# Four-player setup must stay in lobby with two real players, even both ready.

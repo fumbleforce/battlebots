@@ -10,7 +10,8 @@ const OPTIONS := {
 ## Paint channels in Customize order. paint_armor is optional in saved records
 ## (older saves lack it) and falls back to paint_primary; see armor_color().
 const COLORS := ["paint_primary", "paint_secondary", "paint_armor", "paint_metal", "paint_rubber"]
-const WEAPONS := {"saw": "saw", "hammer": "hammer", "lifter": "ramp"}
+## Weapon part -> authored weapon module of the Sawblade body.
+const WEAPONS := {"saw": "saw", "hammer": "hammer", "ramp": "ramp"}
 
 static func defaults() -> Dictionary:
 	return {"armor_side": 1, "armor_top": 0, "armor_front": 0, "armor_rear": 0,
@@ -42,6 +43,11 @@ static func armor_color(config: Dictionary) -> Array:
 static func enabled(draft: Dictionary) -> bool:
 	var cosmetics: Variant = draft.get("cosmetics")
 	return cosmetics is Dictionary and valid(cosmetics.get("sawblade"))
+
+## True when the draft renders as the Sawblade body itself: the appearance
+## record on a chassis that has no authored body of its own.
+static func body(draft: Dictionary) -> bool:
+	return enabled(draft) and not ScorpionGeometry.enabled(draft) and not AtlasGeometry.enabled(draft)
 
 static func starter(registry: ContentRegistry) -> Dictionary:
 	var draft := registry.starter()

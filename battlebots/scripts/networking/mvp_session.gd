@@ -285,7 +285,7 @@ func _slot_parts(slot: String) -> Array[String]:
 func _fitted(bot: MvpBot, part: String, slot: String) -> Dictionary:
 	var next := world.pickups.swapped(bot.loadout, part)
 	if next.is_empty() and slot == "chassis":
-		# A body that cannot carry the fitted weapon takes the lifter.
+		# A body that cannot carry the fitted weapon takes its lifting tool.
 		var fallback: Dictionary = bot.loadout.duplicate(true)
 		fallback.parts.weapon = "lifter"
 		next = world.pickups.swapped(fallback, part)

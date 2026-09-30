@@ -1,6 +1,7 @@
 class_name MvpWeaponVisual
 extends Node3D
-## Primitive cosmetic placeholder. Never adds collision or awards hits.
+## Cosmetic weapon module: primitives, plus the authored saw, hammer and gun
+## borrowed from the bodies they were built for. Never adds collision or awards hits.
 ## Lifter/flipper arm: it idles level and raised, is driven down with the
 ## charge until its lip presses on the ground in front of the hull (found with a
 ## presentation-only ray, so it follows uneven terrain) and trembles as it
@@ -34,7 +35,8 @@ var gun_effects: MinigunEffects
 var metal := StandardMaterial3D.new()
 var accent := StandardMaterial3D.new()
 
-func assemble(weapon: String, size: Vector3) -> void:
+## loadout supplies the body the module mounts on and its paint; primitives ignore it.
+func assemble(weapon: String, size: Vector3, loadout: Dictionary = {}) -> void:
 	# Author in the original meter frame, including fixed blade/arm dimensions.
 	# Multiply existing scale so Sawblade's art-scale compensation is preserved.
 	var geometry_scale := BotScale.from_size(size)
@@ -88,27 +90,48 @@ func assemble(weapon: String, size: Vector3) -> void:
 		_box(mechanism, Vector3(0.12, 0.24, disc.top_radius * 2), Vector3.ZERO, accent)
 		_box(self, Vector3(0.24, 0.2, 0.55), Vector3(0, 0, -size.z * 0.5 + 0.05), metal)
 	elif kind == "saw":
-		mechanism.position = Vector3(0, 0.1, -size.z * 0.5 - 0.4)
-		var disc := CylinderMesh.new()
-		disc.top_radius = 0.28
-		disc.bottom_radius = 0.28
-		disc.height = 0.16
-		disc.radial_segments = 24
-		var blade := _mesh(mechanism, disc, Vector3.ZERO, metal)
-		blade.rotation.z = PI / 2.0
-		for tooth: int in range(12):
-			var angle := TAU * tooth / 12.0
-			var tooth_mesh := BoxMesh.new()
-			tooth_mesh.size = Vector3(0.16, 0.08, 0.08)
-			var tip := _mesh(mechanism, tooth_mesh, Vector3(0, cos(angle), sin(angle)) * 0.28, accent)
-			tip.rotation.x = angle
-		for side: int in [-1, 1]:
-			_box(self, Vector3(0.1, 0.14, 0.6), Vector3(side * 0.16, 0.1, -size.z * 0.5 - 0.15), metal)
+		# The Sawblade body's authored saw at the size it has there (#109); the
+		# authority sweeps the same blade (SawbladeGeometry.saw_axle).
+		var donor: Node3D = SawbladeVisual.MODEL.instantiate()
+		var module: Node3D
+		var blade: Node3D
+		for node: Node in donor.find_children("*", "Node3D", true, false):
+			node.owner = null
+			var source := str(node.get_meta("extras", {}).get("source_name", ""))
+			if source == "Module_weapon_saw": module = node
+			elif source == "Saw_SPIN_X": blade = node
+		var axle_in_module := blade.position
+		var parent := blade.get_parent() as Node3D
+		while parent != module:
+			axle_in_module = parent.transform * axle_in_module
+			parent = parent.get_parent() as Node3D
+		module.reparent(self, false)
+		donor.free()
+		var materials := {}
+		var config: Dictionary = loadout.cosmetics.sawblade if SawbladeConfig.enabled(loadout) else SawbladeConfig.defaults()
+		for part: MeshInstance3D in module.find_children("*", "MeshInstance3D", true, false):
+			SawbladeVisual.paint(part, config, materials)
+		var body_size := size * geometry_scale
+		var module_scale := SawbladeGeometry.saw_scale(loadout, body_size) / geometry_scale
+		var axle := SawbladeGeometry.saw_axle(loadout, body_size) / geometry_scale - position
+		module.transform = Transform3D(Basis.from_scale(module_scale), axle - module_scale * axle_in_module)
+		mechanism.free()
+		mechanism = blade
 	elif kind == "hammer":
 		mechanism.position = Vector3(0, size.y * 0.5, -size.z * 0.5 + 0.15)
 		mechanism.rotation.x = PI / 6.0
-		_box(mechanism, Vector3(0.1, 0.1, 1.2), Vector3(0, 0, -0.6), metal)
-		_box(mechanism, Vector3(0.34, 0.24, 0.24), Vector3(0, 0, -1.2), accent)
+		# Arm and head are the Scorpion's tail hammer (#109): its fore segment,
+		# telescopic rod and head, laid along the arm so the head rests where the
+		# authority strikes (CombatWorld.HAMMER_ARM ahead of the shoulder).
+		var donor: Node3D = load("res://assets/models/scorpion_runtime/scorpion.glb").instantiate()
+		var fore: Node3D = donor.find_child("TailFore", true, false)
+		fore.owner = null
+		for child: Node in fore.find_children("*", "", true, false): child.owner = null
+		fore.reparent(mechanism, false)
+		donor.free()
+		var reach := ScorpionGeometry.HEAD_CENTER - ScorpionGeometry.TAIL_FORE
+		fore.transform = Transform3D(Basis(Vector3.RIGHT, atan(reach.y / reach.z)).scaled(
+			Vector3.ONE * (CombatWorld.HAMMER_ARM / reach.length())), Vector3.ZERO)
 		_box(self, Vector3(0.4, 0.18, 0.22), mechanism.position, metal)
 	elif kind == "lifter":
 		mechanism.position = Vector3(0, -0.12, -size.z * 0.5 + 0.2)
@@ -168,7 +191,7 @@ func show_state(view: BotView, delta: float) -> void:
 			mechanism.rotation.y = wrapf(mechanism.rotation.y + view.weapon_charge_fraction * delta * 24, -PI, PI)
 	elif kind == "saw":
 		if not disabled and view.weapon_state == "active":
-			mechanism.rotation.x = wrapf(mechanism.rotation.x + delta * 36, -PI, PI)
+			mechanism.rotation.x = wrapf(mechanism.rotation.x - delta * 36, -PI, PI)
 	elif kind == "hammer":
 		var angle := PI / 6.0
 		if view.weapon_state == "windup":

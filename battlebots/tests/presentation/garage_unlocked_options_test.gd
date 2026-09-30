@@ -48,7 +48,7 @@ func _ready() -> void:
 	check(profile.loadouts[0] == before, "Undo restores exact previous body and selections")
 	profile.redo_edit()
 	for drive: String in ["agile", "standard_wheels", "traction", "walker"]:
-		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
+		for weapon: String in ["saw", "hammer", "ramp", "vertical_spinner", "horizontal_spinner"]:
 			equip_part("drive", drive)
 			equip_part("weapon", weapon)
 			check(profile.loadouts[0].parts.drive == drive and profile.loadouts[0].parts.weapon == weapon, "All drive/weapon choices persist")

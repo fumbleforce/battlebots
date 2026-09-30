@@ -324,7 +324,7 @@ func _sweep(bot: MvpBot) -> Array:
 	shape.size = Vector3(bot.combat.stats.size.x * 0.8, 0.45 * linear_scale, 0.65 * linear_scale)
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
-	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout) and bot.combat.stats.weapon == "lifter":
+	if bot.loadout.parts.weapon == "ramp":
 		var size: Vector3 = bot.combat.stats.size
 		var angle := bot.combat.charge * deg_to_rad(40)
 		if bot.combat.launch or bot.combat.cooldown > 2.7: angle = deg_to_rad(75)
@@ -380,18 +380,13 @@ func _horizontal_sweep(bot: MvpBot) -> Array:
 	return found
 
 func _saw_sweep(bot: MvpBot) -> Array:
-	var linear_scale := BotScale.from_size(bot.combat.stats.size)
+	# Every body carries the Sawblade's authored blade (#109).
+	var size: Vector3 = bot.combat.stats.size
+	var scale := SawbladeGeometry.saw_scale(bot.loadout, size)
 	var shape := CylinderShape3D.new()
-	shape.radius = 0.32 * linear_scale
-	shape.height = 0.16 * linear_scale
-	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(0, 0.1 * linear_scale, -bot.combat.stats.size.z * 0.5 - 0.4 * linear_scale))
-	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
-	if SawbladeConfig.enabled(bot.loadout) and not ScorpionGeometry.enabled(bot.loadout) and not AtlasGeometry.enabled(bot.loadout):
-		var size: Vector3 = bot.combat.stats.size
-		var scale := SawbladeGeometry.scale_for(size)
-		shape.radius = 0.678 * scale.z
-		shape.height = 0.08 * scale.x
-		local.origin = SawbladeGeometry.point(Vector3(0, 0.97, -1.16), size)
+	shape.radius = SawbladeGeometry.SAW_RADIUS * scale.z
+	shape.height = SawbladeGeometry.SAW_THICKNESS * scale.x
+	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), SawbladeGeometry.saw_axle(bot.loadout, size))
 	_sweep_volume = [shape, local]
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform

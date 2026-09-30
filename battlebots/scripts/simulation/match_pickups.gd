@@ -230,6 +230,8 @@ func swapped(loadout: Dictionary, part: String) -> Dictionary:
 		# modular appearance record, so keep or supply one.
 		if next.get("cosmetics") is Dictionary and not SawbladeConfig.enabled(next):
 			next.cosmetics["sawblade"] = SawbladeConfig.defaults()
+		# The lifting tool follows the body: Ramp on Sawblade, Lifter elsewhere (#109).
+		ContentRegistry.fit_lift(next)
 		# Socket-bound utilities (the auxiliary minigun, or any later body-only
 		# module) cannot move to a body without that socket: fit the fallback.
 		if not registry.validate(next).valid and next.parts.get("utility") != FALLBACK_UTILITY:

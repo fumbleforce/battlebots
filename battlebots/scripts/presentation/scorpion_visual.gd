@@ -40,8 +40,9 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		add_child(fallback_weapon)
 		fallback_weapon.scale = Vector3.ONE / scale
 		fallback_weapon.position = ScorpionGeometry.fallback_socket(size) / scale
-		fallback_weapon.assemble(kind, size)
-		_assemble_fallback_mount()
+		fallback_weapon.assemble(kind, size, draft)
+		# The saw hangs from its own hydraulic frame under the chin.
+		if kind != "saw": _assemble_fallback_mount()
 	walker_legs = ScorpionLegs.new()
 	add_child(walker_legs)
 	walker_legs.scale = Vector3.ONE / scale

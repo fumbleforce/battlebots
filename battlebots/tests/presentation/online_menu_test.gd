@@ -109,7 +109,7 @@ func run() -> void:
 			check(lobby.get_node("%StatusSub").text.contains("ABCD1234") and lobby.get_node("%StatusSub").text.contains("test-region"), "Online lobby preserves shareable friend code and region")
 			check(not lobby.host_button.is_visible_in_tree() and not lobby.join_button.is_visible_in_tree() and not lobby.address.is_visible_in_tree(), "Online lobby hides direct-IP hosting/joining controls")
 			check(not lobby.team_choice.is_visible_in_tree(), "Online lobby does not offer changes to server-assigned teams")
-			check(await until(func() -> bool: return server.players[game.session.local_entity].loadout.parts.weapon == "lifter"), "Selected saved build reaches actual server after welcome")
+			check(await until(func() -> bool: return server.players[game.session.local_entity].loadout.parts.weapon == "ramp"), "Selected saved build reaches actual server after welcome")
 			game.session.session_event.emit("error", {"operation":"ready", "message":"Fixture request rejected"})
 			await frames()
 			check(router.current == "lobby" and game.public_service.state == "connected" and lobby.get_node("%StatusSub").text.contains("Fixture request rejected"), "Rejected lobby action stays connected and shows the authority's reason")

@@ -43,7 +43,7 @@ func record_hit(event: Dictionary) -> void:
 	var recorded := event.duplicate(true)
 	if server.world.bots.has(victim_id):
 		recorded["core_after"] = server.world.bots[victim_id].combat.core
-		recorded["rear_after"] = server.world.bots[victim_id].combat.zones.rear
+		recorded["top_after"] = server.world.bots[victim_id].combat.zones.top
 	authority_effects.append(recorded)
 
 func run() -> void:
@@ -56,14 +56,15 @@ func run() -> void:
 	draft.parts.weapon = "saw"
 	if not await require(server.registry.validate(draft).valid, "Canonical saw build is legal"):
 		return
-	# The host victim fits the 80 HP rear pack armour so each cut is shielded by
-	# the rear plate and the replicated rear zone is present in BotView.
+	# The host victim fits the 70 HP machinery guard so each cut is shielded by
+	# the top plate and the replicated top zone is present in BotView. The shared
+	# blade (#109) stands taller than the hull, so it bites the top rear edge.
 	var armoured := server.registry.starter()
 	var pieces := SawbladeConfig.defaults()
-	pieces.armor_rear = 1
+	pieces.armor_top = 1
 	armoured.cosmetics = {"paint":"cyan", "sawblade":pieces}
 	server.set_loadout(armoured)
-	if not await require(server.players[server.local_entity].loadout.cosmetics.has("sawblade"), "Host victim fits rear armour"):
+	if not await require(server.players[server.local_entity].loadout.cosmetics.has("sawblade"), "Host victim fits top armour"):
 		return
 	var client := make_session("SawClient")
 	clients.append(client)
@@ -101,7 +102,7 @@ func run() -> void:
 	victim.body.reset_pose = server.world.clear_spawn_pose(victim, Transform3D(Basis.IDENTITY, Vector3(0, 0, -2.6 * BotScale.FACTOR)))
 	await frames(45)
 	var initial_core := victim.combat.core
-	var initial_rear: float = victim.combat.zones.rear
+	var initial_top: float = victim.combat.zones.top
 	var attacker_start := attacker.body.global_position
 	var victim_start := victim.body.global_position
 	check(client.world.bots[attacker_id].remote_state.weapon == "saw", "Saw identity reaches active baseline")
@@ -148,16 +149,16 @@ func run() -> void:
 	secondary = false
 	for index: int in range(authority_effects.size()):
 		var event: Dictionary = authority_effects[index]
-		check(event.attacker == attacker_id and event.target == victim_id and event.zone == "rear", "Every cut strikes the intended rear armor")
-		check(is_equal_approx(initial_rear, 80.0) and is_equal_approx(event.core_after, initial_core)
-			and is_equal_approx(event.rear_after, initial_rear - 6.0 * (index + 1)), "Each cut applies exactly 6 raw to the rear plate, which fully shields the core")
+		check(event.attacker == attacker_id and event.target == victim_id and event.zone == "top", "Every cut strikes the intended top armor")
+		check(is_equal_approx(initial_top, 70.0) and is_equal_approx(event.core_after, initial_core)
+			and is_equal_approx(event.top_after, initial_top - 6.0 * (index + 1)), "Each cut applies exactly 6 raw to the top plate, which fully shields the core")
 		if index > 0:
 			check(event.event_id > authority_effects[index - 1].event_id and event.attack_id > authority_effects[index - 1].attack_id,
 				"Each actual saw cut advances authoritative effect and attack identity")
 	check(await until(func() -> bool:
 		return is_equal_approx(client.world.bots[victim_id].remote_state.core, victim.combat.core) \
-			and is_equal_approx(client.world.bots[victim_id].remote_state.zones.rear, victim.combat.zones.rear), 180),
-		"Observer core and rear integrity converge exactly")
+			and is_equal_approx(client.world.bots[victim_id].remote_state.zones.top, victim.combat.zones.top), 180),
+		"Observer core and top integrity converge exactly")
 	var delivered_ids: Array[int] = []
 	for delivered: Dictionary in received_effects:
 		check(not delivered_ids.has(int(delivered.event_id)), "Observer emits each delivered effect once")
@@ -168,7 +169,7 @@ func run() -> void:
 	if profile not in ["80", "150"]:
 		check(received_effects.size() == authority_effects.size(), "Unimpaired observer receives every cut effect")
 	var retained_core := victim.combat.core
-	var retained_rear: float = victim.combat.zones.rear
+	var retained_top: float = victim.combat.zones.top
 	var token := client.reconnect_token
 	client.leave()
 	if not await require(await until(func() -> bool: return server.players[attacker_id].peer == 0, 600), "Saw disconnect reserves entity"):
@@ -179,7 +180,7 @@ func run() -> void:
 		return
 	check(server.world.bots[attacker_id] == attacker and client.world.bots[attacker_id].remote_state.weapon == "saw", "Reconnect keeps original saw entity/loadout")
 	check(is_equal_approx(client.world.bots[victim_id].remote_state.core, retained_core)
-		and is_equal_approx(client.world.bots[victim_id].remote_state.zones.rear, retained_rear), "Reconnect baseline preserves core and armor damage")
+		and is_equal_approx(client.world.bots[victim_id].remote_state.zones.top, retained_top), "Reconnect baseline preserves core and armor damage")
 	server.vote_forfeit()
 	if not await require(await until(func() -> bool: return client.match_view.get("phase") == "intermission", 300), "Saw first round finishes"):
 		return
@@ -191,11 +192,11 @@ func run() -> void:
 		return client.world.bots[attacker_id].remote_state.weapon == "saw" \
 			and client.world.bots[attacker_id].remote_state.weapon_state == "idle" \
 			and is_equal_approx(client.world.bots[victim_id].remote_state.core, initial_core) \
-			and is_equal_approx(client.world.bots[victim_id].remote_state.zones.rear, initial_rear), 180),
+			and is_equal_approx(client.world.bots[victim_id].remote_state.zones.top, initial_top), 180),
 		"Round reset retains saw, stops cutting and restores armor/core")
-	print("Saw profile %s: cuts=%d ticks=%s core=%.2f rear=%.2f effects=%d" %
+	print("Saw profile %s: cuts=%d ticks=%s core=%.2f top=%.2f effects=%d" %
 		[profile, authority_effects.size(), authority_effects.map(func(event: Dictionary) -> int: return event.tick),
-		retained_core, retained_rear, received_effects.size()])
+		retained_core, retained_top, received_effects.size()])
 	print("Saw profile %s active presentation: samples=%d peak=%.3f m/%.1f deg" %
 		[profile, cut_sample_ticks.size(), peak_cut_position, peak_cut_angle])
 	await finish()

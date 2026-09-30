@@ -12,7 +12,7 @@ func run() -> void:
 	var registry := ContentRegistry.new()
 	var draft := SawbladeConfig.starter(registry)
 	for size: Vector3 in [Vector3(1.4, 0.5, 1.8), Vector3(1.8, 0.6, 2.4), Vector3(4.8, 1.5, 6.0), Vector3(5.4, 1.5, 7.2)]:
-		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
+		for weapon: String in ["saw", "hammer", "ramp", "vertical_spinner", "horizontal_spinner"]:
 			draft.parts.weapon = weapon
 			var visual := SawbladeVisual.new()
 			add_child(visual)
@@ -49,7 +49,7 @@ func run() -> void:
 	add_child(preview)
 	draft.parts.chassis = "balanced"
 	for drive: String in ["agile", "standard_wheels", "traction", "walker"]:
-		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
+		for weapon: String in ["saw", "hammer", "ramp", "vertical_spinner", "horizontal_spinner"]:
 			draft.parts.drive = drive
 			draft.parts.weapon = weapon
 			check(registry.validate(draft).valid, drive + "/" + weapon + " is legal")

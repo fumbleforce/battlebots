@@ -44,7 +44,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 		# Canonical weapon geometry uses body meters, outside the authored art scale.
 		fallback_weapon.scale = Vector3.ONE / scale
 		fallback_weapon.position.y = size.y * 0.5 / scale.y
-		fallback_weapon.assemble(kind, size)
+		fallback_weapon.assemble(kind, size, draft)
 	nodes.Module_drive_tracks.visible = _tracks
 	nodes.Module_drive_wheels.visible = draft.parts.drive in ["standard_wheels", "agile"]
 	nodes.Module_armor_side_reference.visible = config.armor_side == 1
@@ -63,30 +63,7 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 	for node: Node3D in nodes.values():
 		if str(node.get_meta("extras", {}).get("source_name", "")).begins_with("Wheel_SPIN_X") or str(node.get_meta("extras", {}).get("source_name", "")).begins_with("Drive wheel"):
 			_wheel_rest[node] = node.basis
-		if not node is MeshInstance3D: continue
-		for surface: int in node.mesh.get_surface_count():
-			var original: StandardMaterial3D = node.mesh.surface_get_material(surface)
-			if original == null: continue
-			var label := original.resource_name
-			var armor := armor_meshes.has(node)
-			var key := ("armor|" if armor else "") + label
-			if not materials.has(key):
-				var channel := "paint_secondary"
-				if label.begins_with("01") or label.begins_with("08"): channel = "paint_primary"
-				elif label.begins_with("03"): channel = "paint_rubber"
-				elif label.left(2) in ["04", "05", "06", "09"]: channel = "paint_metal"
-				var rgba: Array = config[channel]
-				if armor and channel == "paint_primary": rgba = SawbladeConfig.armor_color(config)
-				elif armor and channel == "paint_secondary": rgba = SawbladeConfig.defaults().paint_secondary
-				var material := ShaderMaterial.new()
-				material.shader = PAINT
-				material.set_shader_parameter("surface_atlas", original.albedo_texture)
-				# Root colors are linear Blender values; source_color converts sRGB input.
-				material.set_shader_parameter("paint", Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb())
-				material.set_shader_parameter("metal", original.metallic)
-				material.set_shader_parameter("rough", original.roughness)
-				materials[key] = material
-			node.set_surface_override_material(surface, materials[key])
+		if node is MeshInstance3D: paint(node, config, materials, armor_meshes.has(node))
 	_ramp_pivot = Node3D.new()
 	nodes.SawbladeTank_ROOT.add_child(_ramp_pivot)
 	_ramp_pivot.position = Vector3(0, 0.36, -0.30)
@@ -102,6 +79,32 @@ func assemble(draft: Dictionary, size: Vector3) -> void:
 			if label.begins_with("01"): primary = materials[label]
 		walker_legs.assemble(size, primary, config)
 	set_hammer_frame(1)
+
+## Repaints one authored Sawblade mesh with the build's paint layers. materials
+## caches the shared shader materials by surface label across calls.
+static func paint(node: MeshInstance3D, config: Dictionary, materials: Dictionary, armor := false) -> void:
+	for surface: int in node.mesh.get_surface_count():
+		var original: StandardMaterial3D = node.mesh.surface_get_material(surface)
+		if original == null: continue
+		var label := original.resource_name
+		var key := ("armor|" if armor else "") + label
+		if not materials.has(key):
+			var channel := "paint_secondary"
+			if label.begins_with("01") or label.begins_with("08"): channel = "paint_primary"
+			elif label.begins_with("03"): channel = "paint_rubber"
+			elif label.left(2) in ["04", "05", "06", "09"]: channel = "paint_metal"
+			var rgba: Array = config[channel]
+			if armor and channel == "paint_primary": rgba = SawbladeConfig.armor_color(config)
+			elif armor and channel == "paint_secondary": rgba = SawbladeConfig.defaults().paint_secondary
+			var material := ShaderMaterial.new()
+			material.shader = PAINT
+			material.set_shader_parameter("surface_atlas", original.albedo_texture)
+			# Root colors are linear Blender values; source_color converts sRGB input.
+			material.set_shader_parameter("paint", Color(rgba[0], rgba[1], rgba[2], 1).linear_to_srgb())
+			material.set_shader_parameter("metal", original.metallic)
+			material.set_shader_parameter("rough", original.roughness)
+			materials[key] = material
+		node.set_surface_override_material(surface, materials[key])
 
 ## Only equipped mechanisms; armor skirts, body panels and exhaust stay separate.
 func component_meshes() -> Dictionary:
@@ -162,7 +165,7 @@ func show_state(view: BotView, delta: float) -> void:
 		set_hammer_frame(frame)
 	elif kind == "saw" and not disabled and view.weapon_state == "active":
 		nodes.Saw_SPIN_X.rotate_x(-delta * 36)
-	elif kind == "lifter":
+	elif kind == "ramp":
 		var angle := 0.0 if disabled else view.weapon_charge_fraction * deg_to_rad(40)
 		if not disabled and (view.weapon_state == "launch" or view.weapon_cooldown > 2.7): angle = deg_to_rad(75)
 		_ramp_pivot.transform = _ramp_rest * Transform3D(Basis(Vector3.RIGHT, angle), Vector3.ZERO)

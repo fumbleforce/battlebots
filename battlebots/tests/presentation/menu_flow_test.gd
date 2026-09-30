@@ -110,7 +110,7 @@ func host_flow() -> void:
 	await frames()
 	check(game.session.connection_state == "hosting" and game.session.player_capacity == 2, "Selected duel hosts a real two-player lobby")
 	var slot: Dictionary = lobby._local_slot()
-	check(slot.get("loadout", {}).get("parts", {}).get("weapon") == "lifter", "Host uses the selected bot without a mandatory garage visit")
+	check(slot.get("loadout", {}).get("parts", {}).get("weapon") == "ramp", "Host uses the selected bot without a mandatory garage visit")
 	check(not lobby.build_button.is_visible_in_tree(), "Matching selected build does not offer a redundant Apply action")
 	var peer: MultiplayerPeer = game.session.multiplayer.multiplayer_peer
 	game.session.set_ready(true)

@@ -30,6 +30,7 @@ var _travel := [0.0, 0.0]
 var _previous_pose := Transform3D.IDENTITY
 var _have_pose := false
 var _size := Vector3.ZERO
+var _draft: Dictionary = {}
 ## "tracks", "wheels" or "legs" (AtlasGeometry.DRIVE_GEAR).
 var drive_gear := "tracks"
 var drives: Node3D
@@ -55,6 +56,7 @@ var _since_sample := 0.0
 
 func assemble(draft: Dictionary, size: Vector3) -> void:
 	_size = size
+	_draft = draft
 	is_bracken = AtlasGeometry.bracken_enabled(draft)
 	scale = Vector3.ONE * BotScale.from_size(size)
 	model = load(BRACKEN_MODEL if is_bracken else MODEL).instantiate()
@@ -217,7 +219,7 @@ func _weapon(kind: String) -> MvpWeaponVisual:
 	visual.name = "PrimaryModule" if primary == null else "AuxiliaryModule"
 	add_child(visual)
 	visual.scale = Vector3.ONE / scale
-	visual.assemble(kind, _size)
+	visual.assemble(kind, _size, _draft)
 	return visual
 
 func _assemble_tool_adapter() -> void:

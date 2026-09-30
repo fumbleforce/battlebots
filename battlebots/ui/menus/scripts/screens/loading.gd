@@ -89,8 +89,8 @@ func _refresh() -> void:
 				names[pos].text = str(slot.get("loadout", {}).get("name", "Unknown build"))
 				subs[pos].text = "PLAYER %d%s" % [id, " · YOU" if id == session.local_entity else ""]
 				var weapon := str(slot.get("loadout", {}).get("parts", {}).get("weapon", ""))
-				if weapon in ["vertical_spinner", "lifter"]:
-					images[pos].texture = LIFTER_ART if weapon == "lifter" else SPINNER_ART
+				if weapon == "vertical_spinner" or weapon in ContentRegistry.LIFT_PARTS:
+					images[pos].texture = LIFTER_ART if weapon in ContentRegistry.LIFT_PARTS else SPINNER_ART
 					images[pos].show()
 					subs[pos].text += " · CONCEPT ART"
 	$BlueTeam/Row2.visible = int(session.lobby_view.get("capacity", 4)) == 4

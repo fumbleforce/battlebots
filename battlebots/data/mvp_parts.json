@@ -1,5 +1,5 @@
 {
-  "revision": 19,
+  "revision": 20,
   "parts": [
     {"id":"compact","category":"chassis","mass":25,"power":0,"core":220,"size":[3.6,1.5,4.5]},
     {"id":"balanced","category":"chassis","mass":30,"power":0,"core":240,"size":[4.8,1.5,6.0]},
@@ -24,6 +24,7 @@
     {"id":"hammer","category":"weapon","mass":24,"power":35},
     {"id":"saw","category":"weapon","mass":20,"power":30},
     {"id":"lifter","category":"weapon","mass":22,"power":30},
+    {"id":"ramp","category":"weapon","mass":22,"power":30,"kind":"lifter"},
     {"id":"minigun","category":"weapon","mass":24,"power":35},
     {"id":"battering_ram","category":"weapon","mass":26,"power":30},
     {"id":"spear_fork","category":"weapon","mass":22,"power":30},

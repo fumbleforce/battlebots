@@ -184,13 +184,21 @@ func run() -> void:
 	get_tree().quit(0 if failures == 0 else 1)
 
 func scorpion_swapped_geometry() -> void:
-	# Scorpion retains the shared appearance record, but its interchangeable
-	# non-tail weapons are primitive socket modules rather than Sawblade meshes.
-	await reset_case(Vector3(2.58, 20.3, -4.2))
+	# Scorpion retains the shared appearance record. Its saw is the Sawblade
+	# body's authored blade at that body's size (#109); its other non-tail
+	# weapons are primitive socket modules.
 	attacker.combat.stats.weapon = "saw"
 	attacker.loadout.parts.weapon = "saw"
+	var hull: Vector3 = attacker.combat.stats.size
+	var axle := SawbladeGeometry.saw_axle(attacker.loadout, hull)
+	var rim := SawbladeGeometry.SAW_RADIUS * SawbladeGeometry.saw_scale(attacker.loadout, hull).z
+	var half_length: float = victim.combat.stats.size.z * 0.5
+	await reset_case(ORIGIN + axle + Vector3.FORWARD * (rim + half_length - 0.2))
 	check(weapons._saw_sweep(attacker).has(victim.body.get_instance_id()),
-		"Scorpion saw uses the displayed primitive blade width, not Sawblade authored mesh")
+		"Scorpion saw sweeps the shared authored blade out to its rim")
+	await reset_case(ORIGIN + axle + Vector3.FORWARD * (rim + half_length + 0.2))
+	check(not weapons._saw_sweep(attacker).has(victim.body.get_instance_id()),
+		"Scorpion saw cannot reach past the blade rim")
 	await reset_case(Vector3(0, 19.2, -6.5))
 	attacker.combat.stats.weapon = "lifter"
 	attacker.loadout.parts.weapon = "lifter"

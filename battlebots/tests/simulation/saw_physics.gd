@@ -8,7 +8,16 @@ var weapons: CombatWorld
 var bots: Dictionary
 var tick := 0
 const ORIGIN := Vector3(0, 10, 0) * BotScale.FACTOR
-const TARGET := Vector3(0, 10, -2.6) * BotScale.FACTOR
+## Blade axle and radius of the attacker's saw, game metres in its body frame.
+var axle := Vector3.ZERO
+var radius := 0.0
+## Hull half height and half length of the victim, game metres.
+const HALF_HEIGHT := 0.25 * BotScale.FACTOR
+const HALF_LENGTH := 1.0 * BotScale.FACTOR
+
+## Victim centre at an offset (authoring metres) from the blade axle.
+func at_axle(offset: Vector3) -> Vector3:
+	return ORIGIN + axle + offset * BotScale.FACTOR
 
 func _ready() -> void:
 	run.call_deferred()
@@ -28,7 +37,7 @@ func place(bot: MvpBot, position: Vector3, yaw := 0.0) -> void:
 	await flush_physics()
 	bot.previous_pose = bot.body.global_transform
 
-func reset_case(target := TARGET, source := ORIGIN, yaw := 0.0) -> void:
+func reset_case(target := at_axle(Vector3(0, -0.1, -1.2)), source := ORIGIN, yaw := 0.0) -> void:
 	weapons = CombatWorld.new()
 	for bot: MvpBot in [attacker, victim]:
 		bot.body.freeze = true
@@ -60,6 +69,11 @@ func run() -> void:
 	var build := registry.starter()
 	build.parts.weapon = "saw"
 	attacker = MvpBot.create(1, 0, build, registry)
+	var hull: Vector3 = registry.validate(build).stats.size
+	axle = SawbladeGeometry.saw_axle(build, hull)
+	radius = SawbladeGeometry.SAW_RADIUS * SawbladeGeometry.saw_scale(build, hull).z
+	# Under the blade, the victim's top 0.07 m (authoring) inside the rim.
+	var below := ORIGIN + axle + Vector3.DOWN * (radius + HALF_HEIGHT - 0.07 * BotScale.FACTOR)
 	# Victim carries the 80 HP rear pack armour so cadence hits exercise plate
 	# shielding; its top stays bare so top contact reaches the core directly.
 	var armoured := registry.starter()
@@ -102,18 +116,18 @@ func run() -> void:
 	if first.size() == 1 and next.size() == 2:
 		check(first[0].attack_id != next[0].attack_id and next[0].attack_id != next[1].attack_id,
 			"Separate cadence impacts receive distinct deduplication identifiers")
-	await reset_case(Vector3(0.8, 10.1, -1.4) * BotScale.FACTOR)
+	await reset_case(at_axle(Vector3(0.8, 0, 0)))
 	check(resolve(20).size() == 1 and is_equal_approx(victim.combat.zones.drive_left, 95.5)
 		and is_equal_approx(victim.combat.core, 238.5),
 		"Drive-pod contact routes 6 raw into 4.5 component and 1.5 core damage once")
-	await reset_case(Vector3(0, 9.6, -1.4) * BotScale.FACTOR)
+	await reset_case(below)
 	var top := resolve(20)
 	check(top.size() == 1 and top[0].zone == "top" and is_equal_approx(victim.combat.core, 234.0)
 		and victim.combat.zones.rear == 80.0 and victim.combat.zones.weapon == 140.0,
 		"Blade contacting the bare top sends all 6 raw to the core without damaging unrelated zones")
 
 	# #72: a saw kill records the blade plane so the wreck is sawn in half.
-	await reset_case(Vector3(0, 9.6, -1.4) * BotScale.FACTOR, ORIGIN, 0.4)
+	await reset_case(below, ORIGIN, 0.4)
 	victim.combat.core = 5.0
 	var kill := resolve(20)
 	var blade_axle := victim.body.global_basis.inverse() * attacker.body.global_basis.x
@@ -129,12 +143,12 @@ func run() -> void:
 	resolve(19)
 	await place(victim, Vector3(0, 10, -5) * BotScale.FACTOR)
 	check(resolve().is_empty(), "Separation prevents a pending damage pulse")
-	await place(victim, TARGET)
+	await place(victim, at_axle(Vector3(0, -0.1, -1.2)))
 	verify_restart("Separation clears accrued contact")
 	await reset_case()
 	var passing_hits := 0
 	for pass_index: int in range(6):
-		await place(victim, TARGET)
+		await place(victim, at_axle(Vector3(0, -0.1, -1.2)))
 		passing_hits += resolve(10).size()
 		await place(victim, Vector3(0, 10, -5) * BotScale.FACTOR)
 		passing_hits += resolve().size()
@@ -171,13 +185,13 @@ func run() -> void:
 
 	# Stagger arrival by half a cadence: one victim must not borrow the other's
 	# progress or share a single attacker-wide cooldown.
-	await reset_case(Vector3(-0.7, 10, -2.6) * BotScale.FACTOR)
+	await reset_case(at_axle(Vector3(-0.7, -0.1, -1.2)))
 	check(resolve(10).is_empty(), "First target starts its own contact timer")
 	var other := MvpBot.create(3, 1, registry.starter(), registry)
 	add_child(other)
 	other.body.freeze = true
 	other.body.collision_mask = 0
-	await place(other, Vector3(0.7, 10, -2.6) * BotScale.FACTOR)
+	await place(other, at_axle(Vector3(0.7, -0.1, -1.2)))
 	bots[3] = other
 	var a := resolve(10)
 	var b := resolve(10)
@@ -187,7 +201,9 @@ func run() -> void:
 	other.queue_free()
 	await flush_physics()
 
-	for point: Vector3 in [Vector3(1.1, 10, -2.6) * BotScale.FACTOR, Vector3(0, 10, -3) * BotScale.FACTOR, Vector3(0, 11, -2.6) * BotScale.FACTOR, Vector3(0, 10, 2) * BotScale.FACTOR]:
+	var clear := 0.28 * BotScale.FACTOR
+	for point: Vector3 in [at_axle(Vector3(1.1, -0.1, -1.2)), ORIGIN + axle + Vector3.FORWARD * (radius + HALF_LENGTH + clear),
+			ORIGIN + axle + Vector3(0, radius + HALF_HEIGHT + clear, -1.2 * BotScale.FACTOR), Vector3(0, 10, 2) * BotScale.FACTOR]:
 		await reset_case(point)
 		check(resolve(60).is_empty(), "Side/height/range/rear miss cannot accrue contact damage: " + str(point))
 	await reset_case()
@@ -204,7 +220,7 @@ func run() -> void:
 	await place(attacker, Vector3(3, 10, 0) * BotScale.FACTOR)
 	attacker.previous_pose = Transform3D(Basis.IDENTITY, Vector3(-3, 10, 0) * BotScale.FACTOR)
 	check(resolve().size() == 1, "Fast translation preserves a real swept contact on the cadence tick")
-	var arc_target := Vector3(-1.4, 10, 0) * BotScale.FACTOR
+	var arc_target := ORIGIN + Vector3(axle.z, axle.y - 0.1 * BotScale.FACTOR, 0)
 	await reset_case(arc_target, ORIGIN, PI * 0.5)
 	resolve(19)
 	await place(attacker, ORIGIN, PI - 0.001)

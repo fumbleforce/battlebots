@@ -33,6 +33,10 @@ static func build(part: String, registry: ContentRegistry, holder: Node3D) -> No
 		art = MvpWeaponVisual.new()
 		root.add_child(art)
 		art.assemble("minigun", size)
+	elif part == "lifter" and ResourceLoader.exists(AtlasVisual.LIFTER):
+		# The Lifter is the forged Atlas arm; the Sawblade's own tool is the Ramp (#109).
+		art = load(AtlasVisual.LIFTER).instantiate()
+		root.add_child(art)
 	else:
 		var draft := SawbladeConfig.starter(registry)
 		draft.parts[slot] = part

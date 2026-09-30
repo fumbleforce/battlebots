@@ -53,6 +53,30 @@ func _initialize() -> void:
 			and result.stats.armor_total == 120.0, "Presets carry default side covers")
 	check(registry.validate(registry.scorpion()).stats.core == 300.0 and registry.validate(registry.atlas()).stats.core == 380.0,
 		"Preset core HP follows body size")
+	# One lifting tool, two builds (#109): Ramp on the Sawblade body, Lifter elsewhere.
+	var ramp := SawbladeConfig.starter(registry)
+	ramp.parts.weapon = "ramp"
+	result = registry.validate(ramp)
+	check(result.valid and result.stats.weapon == "lifter" and result.loadout.parts.weapon == "ramp"
+		and result.stats.mass == registry.validate(SawbladeConfig.starter(registry)).stats.mass + 2.0,
+		"The Sawblade Ramp is its own part and follows the lifter rules")
+	var misfit := ramp.duplicate(true)
+	misfit.parts.weapon = "lifter"
+	check(not registry.validate(misfit).valid, "The Sawblade body carries the Ramp, not the Lifter")
+	check(ContentRegistry.fit_lift(misfit) == ["lifter", "ramp"] and registry.validate(misfit).valid
+		and ContentRegistry.fit_lift(misfit).is_empty(), "A pre-split Sawblade lifter build becomes the Ramp it showed")
+	for preset: Dictionary in [registry.scorpion(), registry.atlas(), registry.starter(true)]:
+		var other := preset.duplicate(true)
+		other.parts.weapon = "lifter"
+		check(registry.validate(other).valid and registry.validate(other).stats.weapon == "lifter", "Other bodies mount the Lifter")
+		other.parts.weapon = "ramp"
+		check(not registry.validate(other).valid, "The Ramp is built into the Sawblade body only")
+		check(ContentRegistry.fit_lift(other) == ["ramp", "lifter"] and registry.validate(other).valid, "A body change swaps the Ramp for the Lifter")
+	var sawing := SawbladeConfig.starter(registry)
+	check(ContentRegistry.fit_lift(sawing).is_empty() and sawing.parts.weapon == "saw", "Other weapons are left alone")
+	var body: Array = registry.parts.balanced.size
+	check((Vector3(body[0], body[1], body[2]) / BotScale.FACTOR).is_equal_approx(SawbladeGeometry.BODY_SIZE),
+		"The shared saw keeps the size of the catalogue Sawblade body")
 	var bad := striker.duplicate(true)
 	bad.parts.weapon = "res://arbitrary.tscn"
 	check(not registry.validate(bad).valid, "Reject arbitrary/unknown parts")

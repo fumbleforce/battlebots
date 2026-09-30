@@ -8,7 +8,7 @@ func _ready() -> void:
 	var registry := ContentRegistry.new()
 	var draft := SawbladeConfig.starter(registry)
 	for drive: String in ["agile", "standard_wheels", "traction", "walker"]:
-		for weapon: String in ["saw", "hammer", "lifter", "vertical_spinner", "horizontal_spinner"]:
+		for weapon: String in ["saw", "hammer", "ramp", "vertical_spinner", "horizontal_spinner"]:
 			draft.parts.drive = drive
 			draft.parts.weapon = weapon
 			var visual := SawbladeVisual.new()

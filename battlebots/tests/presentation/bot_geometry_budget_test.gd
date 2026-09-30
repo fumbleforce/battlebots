@@ -1,7 +1,7 @@
 extends Node3D
 ## Highest-detail geometry inventory, not a GPU frame-time or LOD-selection test.
 const DRIVES := ["standard_wheels","agile","traction","walker"]
-const WEAPONS := ["vertical_spinner","horizontal_spinner","saw","hammer","lifter"]
+const WEAPONS := ["vertical_spinner","horizontal_spinner","saw","hammer","ramp"]
 var failures: Array[String] = []
 var mesh_cache: Dictionary = {}
 func _ready() -> void: run.call_deferred()

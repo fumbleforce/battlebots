@@ -1,5 +1,34 @@
 # Shared contracts — local records and current MVP session API
 
+## One model per weapon name — build mvp-ab-63, catalogue 20 (#109)
+
+A weapon name now means one model on every body.
+
+- **Ramp / Lifter.** New weapon part `ramp` (22 kg, 30 power, `"kind":"lifter"`).
+  A part's optional `kind` names the rules it follows: `stats.weapon`, BotView
+  and events carry the kind (`lifter`), `loadout.parts.weapon` the part. The
+  Sawblade body (`SawbladeConfig.body()`: the appearance record on a chassis
+  without an authored body) carries `ramp`; every other body mounts `lifter`.
+  `ContentRegistry.validate()` rejects the other combination, and
+  `ContentRegistry.fit_lift()` swaps the tool to match the body. It runs on a
+  body change in Customize, on a chassis pickup and when saved builds load, so
+  pre-split Sawblade builds keep their ramp. A Ramp or Lifter weapon pickup
+  that does not match the body stays unused, like any other misfit.
+- **Saw.** `MvpWeaponVisual` mounts the Sawblade body's authored saw module on
+  every other body, at the size it has on the Sawblade body
+  (`SawbladeGeometry.BODY_SIZE`), painted with the build's layers
+  (`SawbladeVisual.paint()`). `SawbladeGeometry.saw_axle()` / `saw_scale()`
+  place the blade ahead of the hull front at the Sawblade's height above the
+  ground, and `CombatWorld._saw_sweep()` sweeps the same disc. The saw on
+  Atlas, Scorpion and the classic hulls is therefore larger than before:
+  radius 1.56 m instead of 0.96 m at standard scale, with its axle higher.
+  Damage and cadence are unchanged.
+- **Hammer.** The shared hammer (Atlas MX and classic hulls) uses the
+  Scorpion's tail fore segment, telescopic rod and head on the existing
+  shoulder; the head centre stays `CombatWorld.HAMMER_ARM` from the pivot, so
+  the authority swing is unchanged. `MvpWeaponVisual.assemble()` takes the
+  loadout as an optional third argument.
+
 ## Bracken reference tank — build mvp-ab-54, catalogue 19 (#100)
 
 `ContentRegistry.bracken()` adds a separate `bracken` chassis preset with the

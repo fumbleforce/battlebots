@@ -111,7 +111,7 @@ func _valid_status() -> void:
 	_update_camera()
 	var assembly := "Sawblade Tank · equipped modules" if sawblade_visual != null else "Equipped draft · primitive geometry"
 	if atlas_visual != null: assembly = "ATLAS MX · modular platform on " + ATLAS_GEAR_NAMES.get(atlas_visual.drive_gear, "tracks")
-	if atlas_visual != null and atlas_visual.is_bracken: assembly = "BRACKEN · quad cannon and lifter ramp"
+	if atlas_visual != null and atlas_visual.is_bracken: assembly = "BRACKEN · quad cannon and lifter"
 	if scorpion_visual != null: assembly = "SCORPION HX-6 · equipped modules"
 	status.text = "Drag to inspect" if _auto_rotate else assembly + "\nDrag to rotate · Wheel to zoom"
 	status.visible = not _compact
@@ -305,7 +305,7 @@ func show_loadout(draft: Dictionary) -> void:
 	weapon_visual = MvpWeaponVisual.new()
 	weapon_visual.name = "Weapon"
 	model.add_child(weapon_visual)
-	weapon_visual.assemble(validation.stats.weapon, size)
+	weapon_visual.assemble(validation.stats.weapon, size, draft)
 	if draft.parts.drive == "walker":
 		model.position.y = WalkerDrive.RIDE_HEIGHT / BotScale.FACTOR - 0.12
 		var legs := WalkerLegs.new()

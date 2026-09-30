@@ -59,6 +59,8 @@ func reload() -> void:
 	# Retained legacy part IDs remain readable; only the offered body appearance changes.
 	for draft: Dictionary in loadouts:
 		if registry.validate(draft).valid and not NimbleBots.enabled(draft): _ensure_body(draft)
+		# Builds from before the Ramp / Lifter split (#109) keep the tool they showed.
+		ContentRegistry.fit_lift(draft)
 	if loaded.restored_backup: errors.append("Backup loaded for review. Open Saved File to restore it before saving.")
 	active_bot = clampi(active_bot,0,loadouts.size()-1)
 	_draft_baseline = loadouts.duplicate(true)
@@ -270,6 +272,9 @@ func fit_body(chassis: String) -> Dictionary:
 		if draft.parts.get(slot) == remembered[slot].replacement:
 			swaps[slot] = [draft.parts[slot], remembered[slot].original]
 			draft.parts[slot] = remembered[slot].original
+	# The lifting tool follows the body: Ramp on Sawblade, Lifter elsewhere (#109).
+	var lift := ContentRegistry.fit_lift(draft)
+	if not lift.is_empty(): swaps["weapon"] = [swaps["weapon"][0] if swaps.has("weapon") else lift[0], lift[1]]
 	var reasons := registry.validate(draft).reasons.size()
 	# Greedily replace whichever part most reduces the remaining problems.
 	while reasons > 0:
@@ -422,7 +427,7 @@ func _refresh_bots() -> void:
 		var perk_labels: PackedStringArray = []
 		if parts.get("nitro") == "nitro_boost": perk_labels.append("Nitro · Shift")
 		if parts.get("suspension") == "charged_jump": perk_labels.append("Jump · Space")
-		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") != "lifter" else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":" / ".join(perk_labels) if not perk_labels.is_empty() else "No perks equipped","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":snappedf(float(stats.get("speed",0)), 0.1),"ARMOR HP":int(stats.get("armor_total",0))}})
+		bots.append({"id":str(index),"name":str(draft.get("name","Invalid saved build")).left(48),"cls":"VALID BUILD" if validation.valid else "INVALID · REPAIR REQUIRED","image":preload("res://ui/menus/art/bot_scorpion.png") if parts.get("chassis") == "scorpion_hex" else (preload("res://ui/menus/art/bot_chevron.jpg") if parts.get("weapon") not in ContentRegistry.LIFT_PARTS else preload("res://ui/menus/art/bot_rivetrex.jpg")),"hp":int(stats.get("core",0)),"shields":0,"weapon":str(parts.get("weapon","Unavailable")).capitalize(),"ability":str(parts.get("utility","Unavailable")).capitalize(),"boost":" / ".join(perk_labels) if not perk_labels.is_empty() else "No perks equipped","valid":validation.valid,"reasons":validation.reasons,"stats":{"MASS kg":int(stats.get("mass",0)),"POWER":int(stats.get("power",0)),"SPEED m/s":snappedf(float(stats.get("speed",0)), 0.1),"ARMOR HP":int(stats.get("armor_total",0))}})
 		bots[-1]["retained"] = _retained_drafts.has(index)
 		bots[-1]["sealed"] = sealed(index)
 		if bots[-1].sealed and validation.valid: bots[-1].cls = "FACTORY BUILD · LOCKED"

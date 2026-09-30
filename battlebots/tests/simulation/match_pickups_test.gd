@@ -67,6 +67,13 @@ func rules() -> void:
 	var scorpion := pickups.swapped(starter, "scorpion_hex")
 	check(scorpion.parts.chassis == "scorpion_hex" and scorpion.parts.drive == "walker", "A Scorpion body brings its walking drive")
 	check(SawbladeConfig.enabled(scorpion), "A body change keeps a modular appearance record")
+	# The lifting tool follows the body (#109); a misfit tool pickup stays unused.
+	var ramp := SawbladeConfig.starter(strict)
+	ramp.parts.weapon = "ramp"
+	check(pickups.swapped(ramp, "atlas_mx").parts.weapon == "lifter" and pickups.swapped(pickups.swapped(ramp, "atlas_mx"), "balanced").parts.weapon == "ramp",
+		"A body pickup swaps Ramp and Lifter")
+	check(pickups.swapped(ramp, "lifter").is_empty() and pickups.swapped(pickups.swapped(ramp, "atlas_mx"), "ramp").is_empty(),
+		"A lifting tool that does not match the body is not picked up")
 	var atlas := pickups.swapped(starter, "atlas_mx")
 	check(atlas.parts.drive == "traction", "Atlas brings its tracks")
 	check(pickups.swapped(scorpion, "standard_wheels").is_empty(), "Wheels cannot replace a Scorpion's required legs")

@@ -49,6 +49,7 @@ func run() -> void:
 				# Widest hull and tall rear pack stress both peer and wall clearance.
 				var build := world.registry.starter(true)
 				build.cosmetics.sawblade = SawbladeConfig.defaults()
+				ContentRegistry.fit_lift(build)
 				if index % 3 == 0: build.parts.drive = "walker"
 				var slot: int = index if ffa else index % (count / 2)
 				var team: int = index + 1 if ffa else index / (count / 2)
