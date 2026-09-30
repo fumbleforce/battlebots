@@ -42,6 +42,8 @@ var auto_fire := {"primary":false, "secondary":false}
 const DEFAULT_DEBUG_LINGER := 5.0
 ## Marks kept while nothing drains them (no preview, e.g. headless tests).
 const MAX_DEBUG_MARKS := 512
+## Hit kinds of the melee weapons, whose area of effect is not a splash.
+const MELEE_KINDS := ["hammer", "saw", "lifter", "vertical_spinner", "horizontal_spinner", "ram_punch", "spear", "grinder"]
 ## Zones struck through a component rather than armour.
 const COMPONENT_ZONES := ["weapon", "drive_left", "drive_right"]
 var debug_trajectories := false
@@ -54,8 +56,8 @@ var debug_player_hitboxes := false
 var debug_linger := DEFAULT_DEBUG_LINGER
 ## {type:"path", points:PackedVector3Array} or {type:"impact", position,
 ## radius}; radius 0 marks a weapon without an area of effect. A melee check
-## that reached no one adds its volume: basis and box (size) or cylinder
-## (radius, height).
+## adds its volume: basis and box (size) or cylinder (radius, height), or the
+## radius of a sphere.
 var debug_marks: Array[Dictionary] = []
 ## slot ("primary"/"secondary") -> {id, title, defaults:{field:value}, values:{field:value}}.
 var weapons: Dictionary = {}
@@ -363,23 +365,25 @@ func debug_path(points: PackedVector3Array) -> void:
 
 ## What an impact reached: a sphere of radius, or the point itself for 0.
 ## layer is what a bot hit there took it on (hit_layer), "" for none; for an
-## area (radius > 0), "damage" when it damaged something. A named replace
-## takes the place of the last mark of that name (debug_area).
-func debug_impact(position: Vector3, radius := 0.0, layer := "", replace := "") -> void:
+## area (radius > 0), "damage" when it damaged something.
+func debug_impact(position: Vector3, radius := 0.0, layer := "") -> void:
 	if debug_impacts:
-		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0), "layer":layer, "replace":replace})
+		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0), "layer":layer})
 
-## The volume a melee weapon checked without reaching anyone (#111): its box or
-## cylinder at pose. A weapon that checks on a cadence (saw, grinder, spinners)
-## names itself in replace, so each check takes the place of its last mark.
-func debug_area(pose: Transform3D, shape: Shape3D, replace := "") -> void:
+## The volume a melee weapon checked (#111), exactly as it was queried: a box,
+## cylinder or sphere at pose. layer is "damage" when the check struck (or,
+## for a weapon that runs, touches) an enemy. A weapon that checks every tick
+## (saw, grinder, spinners) names itself in replace, so its mark follows it.
+func debug_area(pose: Transform3D, shape: Shape3D, layer := "", replace := "") -> void:
 	if not debug_impacts:
 		return
-	var mark := {"type":"impact", "position":pose.origin, "basis":pose.basis, "radius":0.0, "layer":"", "replace":replace}
+	var mark := {"type":"impact", "position":pose.origin, "basis":pose.basis, "radius":0.0, "layer":layer, "replace":replace}
 	if shape is BoxShape3D:
 		mark.box = (shape as BoxShape3D).size
 	elif shape is CylinderShape3D:
 		mark.cylinder = Vector2((shape as CylinderShape3D).radius, (shape as CylinderShape3D).height)
+	elif shape is SphereShape3D:
+		mark.radius = (shape as SphereShape3D).radius
 	_debug_mark(mark)
 
 ## What a hit on this zone of a bot lands on first: "armour" (a fitted plate
@@ -422,10 +426,9 @@ func utility() -> String:
 
 ## Radius of a tuned splash for a hit of this kind, 0 for none. The mortar
 ## keeps its own blast, whose radius tunes through scale("aoe"); the hammer
-## blasts where its head lands (CombatWorld._hammer_blasts), hit or miss. The
-## other melee weapons blast around their tool when they reach no one
-## (CombatWorld._melee_miss).
+## blasts where its head lands (CombatWorld._hammer_blasts), hit or miss; the
+## other melee weapons check a larger volume instead (CombatWorld._grow).
 func splash_radius(slot: String, kind: String) -> float:
-	if kind in ["mortar", "hammer"] or not has_field(slot, "aoe"):
+	if kind == "mortar" or kind in MELEE_KINDS or not has_field(slot, "aoe"):
 		return 0.0
 	return value(slot, "aoe")

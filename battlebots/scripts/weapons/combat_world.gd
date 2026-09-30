@@ -12,9 +12,11 @@ var blocked: Dictionary = {}
 var events: Array = []
 var pending_hits: Array = []
 var _sweep_origins: Dictionary = {}
-## The volume the last _sweep() checked, [shape, transform in the bot's frame],
-## for the Practice Duel miss marks (#111); empty for the hammers.
+## The last query of the last _sweep(): [shape, transform in the bot's frame],
+## for the Practice Duel impact marks (#111).
 var _sweep_volume: Array = []
+## Every plate transform (bot frame) a flipping Ramp's _sweep() sampled.
+var _sweep_swing: Array[Transform3D] = []
 var _hammer_hits: Dictionary = {}
 var _saw_contacts: Dictionary = {}
 var _saw_last_tick := -1
@@ -143,6 +145,7 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 			continue
 		var targets := _sweep(attacker)
 		var reached := false
+		var queued := pending_hits.size()
 		for target_id: int in bots:
 			var victim: MvpBot = bots[target_id]
 			var key := "%d:%d" % [id, target_id]
@@ -200,8 +203,8 @@ func step(delta: float, bots: Dictionary, tick: int, round_index: int) -> void:
 						victim.body.apply_force(Vector3.UP * victim.body.mass * hold_acceleration * state.charge, point - victim.body.global_position)
 				else:
 					pins.erase(key)
-		if not reached and state.practice_tuning != null:
-			_sweep_miss(attacker, delta, tick, round_index, saw_contacts)
+		if state.practice_tuning != null:
+			_debug_sweep(attacker, reached, pending_hits.size() > queued)
 	# Only eligible contacts this tick survive. Breaking contact or power cannot
 	# bank a nearly complete damage interval for a later touch.
 	_saw_contacts = saw_contacts
@@ -315,6 +318,7 @@ func _far_wall_contact(victim: MvpBot, direction: Vector3) -> Array:
 func _sweep(bot: MvpBot) -> Array:
 	_sweep_origins.clear()
 	_sweep_volume = []
+	_sweep_swing.clear()
 	if bot.combat.stats.weapon == "horizontal_spinner":
 		return _horizontal_sweep(bot)
 	if bot.combat.stats.weapon == "hammer":
@@ -332,16 +336,30 @@ func _sweep(bot: MvpBot) -> Array:
 			SawbladeGeometry.ramp_angle(bot.combat.charge, bot.combat.launch or bot.combat.cooldown > 2.7))
 		local = volume[0]
 		shape.size = volume[1]
+	_grow(bot, shape)
 	_sweep_volume = [shape, local]
 	var start := bot.previous_pose * local
 	var finish := bot.body.global_transform * local
 	var distance := start.origin.distance_to(finish.origin)
+	# The Ramp's flip swings its plate up from where the charge held it. The
+	# launch checks that whole swing, not only where the plate ends, so it throws
+	# whatever rides the plate, as the Lifter throws what stands at its fork (#111).
+	var flipping: bool = bot.loadout.parts.weapon == "ramp" and bot.combat.launch
+	var loaded := SawbladeGeometry.ramp_angle(bot.combat.charge, false)
+	if flipping:
+		distance += (SawbladeGeometry.RAMP_LAUNCH_ANGLE - loaded) * shape.size.z
 	var steps := clampi(ceili(distance / 0.15) + 2, 2, 32)
 	var found: Array = []
 	for index: int in range(steps):
+		var fraction := float(index) / (steps - 1)
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
-		query.transform = start.interpolate_with(finish, float(index) / (steps - 1))
+		query.transform = start.interpolate_with(finish, fraction)
+		if flipping:
+			var plate: Transform3D = SawbladeGeometry.ramp_volume(bot.loadout, bot.combat.stats.size,
+				lerpf(loaded, SawbladeGeometry.RAMP_LAUNCH_ANGLE, fraction))[0]
+			_sweep_swing.append(plate)
+			query.transform = bot.previous_pose.interpolate_with(bot.body.global_transform, fraction) * plate
 		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [bot.body.get_rid()]
 		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
@@ -356,6 +374,7 @@ func _horizontal_sweep(bot: MvpBot) -> Array:
 	shape.height = 0.24 * linear_scale
 	var local := Transform3D(Basis.IDENTITY, Vector3(0, 0, -bot.combat.stats.size.z * 0.5 - 0.2 * linear_scale))
 	if ScorpionGeometry.enabled(bot.loadout): local.origin += ScorpionGeometry.fallback_socket(bot.combat.stats.size)
+	_grow(bot, shape)
 	_sweep_volume = [shape, local]
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
@@ -385,6 +404,7 @@ func _saw_sweep(bot: MvpBot) -> Array:
 	shape.radius = SawbladeGeometry.SAW_RADIUS * scale.z
 	shape.height = SawbladeGeometry.SAW_THICKNESS * scale.x
 	var local := Transform3D(Basis(Vector3.BACK, PI / 2.0), SawbladeGeometry.saw_axle(bot.loadout, size))
+	_grow(bot, shape)
 	_sweep_volume = [shape, local]
 	var start := bot.previous_pose
 	var finish := bot.body.global_transform
@@ -426,6 +446,7 @@ func _hammer_sweep(bot: MvpBot) -> Array:
 		var pose := start.interpolate_with(finish, fraction)
 		var angle := lerpf(PI / 2.0, HAMMER_STRIKE_ANGLE, fraction)
 		var head := pivot + Basis(Vector3.RIGHT, angle) * arm
+		_sweep_volume = [shape, Transform3D(Basis.IDENTITY, head)]
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
 		query.transform = Transform3D(Basis.IDENTITY, pose * head)
@@ -472,7 +493,7 @@ func _hammer_blasts(bots: Dictionary, tick: int, round_index: int) -> void:
 		var radius: float = lab.value("primary", "aoe")
 		var head := _hammer_head(attacker)
 		if radius <= 0.0:
-			lab.debug_impact(head)
+			# Untuned: the head itself is marked where it lands (_debug_sweep).
 			continue
 		var struck: Array = _hammer_hits.get(id, {}).get("targets", {}).keys()
 		var splashed := _splash(attacker, head, HAMMER_DAMAGE * lab.scale("primary", "damage"),
@@ -502,6 +523,7 @@ func _sawblade_hammer_sweep(bot: MvpBot) -> Array:
 		var fraction := float(index) / (steps - 1)
 		var angle := SawbladeGeometry.HAMMER_SWING * fraction
 		var local := Transform3D(Basis(Vector3.RIGHT, angle - SawbladeGeometry.HAMMER_SWING), SawbladeGeometry.hammer_center(size, angle))
+		_sweep_volume = [shape, local]
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
 		query.transform = start.interpolate_with(finish, fraction) * local
@@ -527,9 +549,10 @@ func _scorpion_hammer_sweep(bot: MvpBot) -> Array:
 	var found: Array = []
 	for index: int in steps:
 		var fraction := float(index) / (steps - 1)
+		_sweep_volume = [shape, ScorpionGeometry.hammer_transform(size, fraction)]
 		var query := PhysicsShapeQueryParameters3D.new()
 		query.shape = shape
-		query.transform = start.interpolate_with(finish, fraction) * ScorpionGeometry.hammer_transform(size, fraction)
+		query.transform = start.interpolate_with(finish, fraction) * _sweep_volume[1]
 		query.collision_mask = BaselineConfig.BOT_LAYER
 		query.exclude = [bot.body.get_rid()]
 		for hit: Dictionary in bot.body.get_world_3d().direct_space_state.intersect_shape(query, 16):
@@ -789,10 +812,9 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 		shape.height = AtlasGeometry.GRINDER_HALF_WIDTH * 2.0 * linear
 		var local := Transform3D(Basis(Vector3.BACK, PI * 0.5), mount * AtlasGeometry.grinder_drum(size, state.tool_pose))
 		var cadence := tuning.value("grinder", "cadence") / _lab_scale(attacker, "primary", "rate")
+		_grow(attacker, shape)
 		var ground := _tool_contacts(attacker, bots, shape, local)
-		if ground.is_empty() and state.practice_tuning != null and _miss_due(attacker, tuning.value("grinder", "cadence"), delta, contacts):
-			_melee_miss(attacker, shape, local, tuning.value("grinder", "damage") * state.charge, tuning.value("grinder", "pull"),
-				"grinder", tick, round_index, true)
+		_debug_volume(attacker, shape, local, not ground.is_empty(), "grinder")
 		for victim: MvpBot in ground:
 			var key := "grind:%d:%d" % [attacker.entity_id, victim.entity_id]
 			var seconds := float(_saw_contacts.get(key, 0.0)) + delta
@@ -820,6 +842,8 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 		var local := Transform3D(Basis.IDENTITY, mount * (volume[0] as Transform3D).origin)
 		var box := BoxShape3D.new()
 		box.size = volume[1] * WEAPON_MOUNTS.scale_of(mount)
+		_grow(attacker, box)
+		var queued := pending_hits.size()
 		for victim: MvpBot in _tool_contacts(attacker, bots, box, local):
 			if activation.targets.has(victim.entity_id):
 				continue
@@ -827,10 +851,7 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 			var impulse := (forward + Vector3.UP * tuning.value("ram", "punch_lift")) * victim.body.mass * tuning.value("ram", "punch_speed")
 			_hit(attacker, victim, _nearest_on(victim, attacker.body.global_transform * local.origin),
 				tuning.value("ram", "punch_damage"), impulse, tick, round_index, RAM_PUNCH_RECOIL, "ram_punch")
-		if _stroke_missed(state, activation):
-			var swept := _stroke_volume(AtlasGeometry.ram_volume(size, 0.0), AtlasGeometry.ram_volume(size, 1.0))
-			_melee_miss(attacker, swept[0], swept[1], tuning.value("ram", "punch_damage"), tuning.value("ram", "punch_speed"),
-				"ram_punch", tick, round_index)
+		_debug_volume(attacker, box, local, pending_hits.size() > queued)
 		return
 	# Spear: the first enemy the blades reach is pierced and impaled.
 	if state.grip_target != 0:
@@ -839,6 +860,7 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 	var blade_local := Transform3D(Basis.IDENTITY, mount * (volume[0] as Transform3D).origin)
 	var blades := BoxShape3D.new()
 	blades.size = volume[1] * WEAPON_MOUNTS.scale_of(mount)
+	_grow(attacker, blades)
 	var tip := attacker.body.global_transform * blade_local.origin
 	var best: MvpBot = null
 	for victim: MvpBot in _tool_contacts(attacker, bots, blades, blade_local):
@@ -846,11 +868,8 @@ func _front_tool(attacker: MvpBot, bots: Dictionary, delta: float, tick: int, ro
 			continue
 		if best == null or victim.body.global_position.distance_to(tip) < best.body.global_position.distance_to(tip):
 			best = victim
+	_debug_volume(attacker, blades, blade_local, best != null)
 	if best == null:
-		if _stroke_missed(state, activation):
-			var swept := _stroke_volume(AtlasGeometry.spear_volume(size, 0.0, state.tool_pose), AtlasGeometry.spear_volume(size, 1.0, state.tool_pose))
-			_melee_miss(attacker, swept[0], swept[1], tuning.value("spear", "thrust_damage"), SPEAR_KNOCKBACK,
-				"spear", tick, round_index, false, tuning.value("spear", "armour_share"))
 		return
 	activation.targets[best.entity_id] = true
 	var point := _nearest_on(best, tip)
@@ -1347,77 +1366,49 @@ func _splash(attacker: MvpBot, centre: Vector3, raw: float, knock: float, radius
 		hit = true
 	return hit
 
-## Practice Duel (#111): a swept weapon that reached no one this tick marks the
-## volume it checked. The lifter does so on its launch; the saw and spinners on
-## their hit cadence while they run.
-func _sweep_miss(attacker: MvpBot, delta: float, tick: int, round_index: int, contacts: Dictionary) -> void:
+## Practice Duel (#111): a tuned Area of effect grows a melee weapon's check
+## volume by that many metres on every side. The hammer keeps its head and
+## blasts a sphere instead (_hammer_blasts). Untuned volumes are left alone.
+func _grow(attacker: MvpBot, shape: Shape3D) -> void:
+	var lab: RefCounted = attacker.combat.practice_tuning
+	var reach: float = 0.0 if lab == null else lab.value("primary", "aoe")
+	if reach <= 0.0:
+		return
+	if shape is BoxShape3D:
+		(shape as BoxShape3D).size += Vector3.ONE * reach * 2.0
+	elif shape is CylinderShape3D:
+		(shape as CylinderShape3D).radius += reach
+		(shape as CylinderShape3D).height += reach * 2.0
+
+## Practice Duel debug view (#111): the volume a melee weapon checked this tick,
+## exactly as queried (its last sample, at the current pose). local is in the
+## bot's frame. replace names a weapon that checks every tick while it runs,
+## whose mark follows it instead of piling up.
+func _debug_volume(attacker: MvpBot, shape: Shape3D, local: Transform3D, damaged: bool, replace := "") -> void:
+	var lab: RefCounted = attacker.combat.practice_tuning
+	if lab != null:
+		lab.debug_area(attacker.body.global_transform * local, shape, "damage" if damaged else "", replace)
+
+## The mark for this tick's _sweep(). The saw and spinners check every tick they
+## run (marked as touching an enemy or not); the lifter's check counts on its
+## launch; the hammer's head is marked where it lands unless a tuned area of
+## effect marks its blast (_hammer_blasts).
+func _debug_sweep(attacker: MvpBot, reached: bool, damaged: bool) -> void:
 	if _sweep_volume.is_empty():
 		return
 	var state := attacker.combat
-	var shape: Shape3D = _sweep_volume[0]
-	var local: Transform3D = _sweep_volume[1]
 	match state.stats.weapon:
 		"lifter":
-			if state.launch:
-				var strength := clampf(state.charge, physics.lifter_min_release_charge, 1.0)
-				_melee_miss(attacker, shape, local, LIFTER_DAMAGE * strength, LIFTER_KNOCKBACK * strength, "lifter", tick, round_index)
-		"saw":
-			if _miss_due(attacker, SAW_CADENCE, delta, contacts):
-				_melee_miss(attacker, shape, local, SAW_DAMAGE, 0.0, "saw", tick, round_index, true)
-		"vertical_spinner":
-			if _miss_due(attacker, SPINNER_HIT_INTERVAL, delta, contacts):
-				_melee_miss(attacker, shape, local, VERTICAL_SPINNER_DAMAGE * state.charge, VERTICAL_SPINNER_KNOCKBACK,
-					"vertical_spinner", tick, round_index, true)
-		"horizontal_spinner":
-			if _miss_due(attacker, SPINNER_HIT_INTERVAL, delta, contacts):
-				_melee_miss(attacker, shape, local, HORIZONTAL_SPINNER_DAMAGE * state.charge, HORIZONTAL_SPINNER_KNOCKBACK,
-					"horizontal_spinner", tick, round_index, true)
-
-## Counts a running weapon's time without contact among this tick's maintained
-## contacts ("miss:attacker", dropped as soon as it touches someone or stops);
-## true once per interval at the tuned fire rate.
-func _miss_due(attacker: MvpBot, interval: float, delta: float, contacts: Dictionary) -> bool:
-	var key := "miss:%d" % attacker.entity_id
-	var cadence := interval / _lab_scale(attacker, "primary", "rate")
-	var seconds := float(_saw_contacts.get(key, 0.0)) + delta
-	var due := seconds + 0.000001 >= cadence
-	contacts[key] = maxf(0.0, seconds - cadence) if due else seconds
-	return due
-
-## A ram punch or spear thrust of a tuned bot that ends (strike with the tool
-## drawn back in, CombatState._tick_tool) having reached no one.
-func _stroke_missed(state: CombatState, activation: Dictionary) -> bool:
-	return state.practice_tuning != null and state.charge <= 0.0 and activation.targets.is_empty()
-
-## The box a punch or thrust swept from rest to full extension, as [shape,
-## transform in the bot's frame], from two AtlasGeometry volumes.
-func _stroke_volume(rest: Array, extended: Array) -> Array:
-	var from: Vector3 = (rest[0] as Transform3D).origin
-	var to: Vector3 = (extended[0] as Transform3D).origin
-	var box := BoxShape3D.new()
-	box.size = (rest[1] as Vector3) + (to - from).abs()
-	return [box, Transform3D(Basis.IDENTITY, (from + to) * 0.5)]
-
-## Practice Duel (#111): a melee check that reached no one marks its volume, as
-## the hammer marks where its head lands. With a tuned area of effect it blasts
-## that radius around the volume instead, as a shot into the world does
-## (_splash_miss). raw and knock are the weapon's untuned values; repeats names
-## a weapon that checks on a cadence, whose marks replace each other.
-func _melee_miss(attacker: MvpBot, shape: Shape3D, local: Transform3D, raw: float, knock: float, kind: String,
-		tick: int, round_index: int, repeats := false, armour_share := 1.0) -> void:
-	var lab: RefCounted = attacker.combat.practice_tuning
-	if lab == null:
-		return
-	var pose := attacker.body.global_transform * local
-	var slot: String = lab.slot_of(attacker.combat.stats, kind)
-	var radius: float = lab.splash_radius(slot, kind) if not slot.is_empty() else 0.0
-	var replace := kind if repeats else ""
-	if radius > 0.0:
-		var splashed := _splash(attacker, pose.origin, raw * lab.scale(slot, "damage"), knock * lab.scale(slot, "knockback"), radius,
-			tick, round_index, kind, lab.armour_share(slot, armour_share), [])
-		lab.debug_impact(pose.origin, radius, "damage" if splashed else "", replace)
-	else:
-		lab.debug_area(pose, shape, replace)
+			if state.launch and _sweep_swing.is_empty():
+				_debug_volume(attacker, _sweep_volume[0], _sweep_volume[1], damaged)
+			# A flipping Ramp checked its plate at every one of these angles.
+			for plate: Transform3D in _sweep_swing:
+				_debug_volume(attacker, _sweep_volume[0], plate, damaged)
+		"hammer":
+			if state.practice_tuning.value("primary", "aoe") <= 0.0:
+				_debug_volume(attacker, _sweep_volume[0], _sweep_volume[1], damaged)
+		_:
+			_debug_volume(attacker, _sweep_volume[0], _sweep_volume[1], reached, state.stats.weapon)
 
 ## Practice Duel debug view (#93): the path of the shot this tick, straight
 ## from muzzle to where it stopped. The mortar records its arc when it fires.

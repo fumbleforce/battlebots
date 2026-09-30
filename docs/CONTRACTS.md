@@ -1143,20 +1143,23 @@ local `CombatState.snapshot()`; hammer visuals and `HammerSlamDetector` read
 on the wire: remote views keep 1, and untuned (all online and LAN) play is
 unchanged. No wire, `BotCommand` or build change.
 
-Melee miss areas (#111, 30 September 2026): for a bot with Practice tuning, a
-melee check that reaches no one records the volume it checked
-(`practice_tuning.gd` `debug_area`: box or cylinder, drawn see-through white by
-`PracticeDebugDraw`). The lifter records on its launch, a ram punch or spear
-thrust when the stroke ends, and the saw, grinder drum and spinners on their
-hit cadence while running (each new mark replaces that weapon's last). With a
-tuned Area of effect the miss instead blasts that radius around the volume
-(`CombatWorld._melee_miss`, the same falloff as `_splash_miss`), as the hammer
-does where its head lands. `CombatWorld` reaches none of this without
-`practice_tuning`, so untuned, online and LAN play are unchanged. The tuning
-panel lists every weapon value for every weapon (a dash where the weapon has
-none) and its categories fold from their titles (`practice_tuning_panel.gd`
-`collapsed`, shared by the Esc-menu card and the HUD copy, not saved). No wire,
-`BotCommand` or build change.
+Melee check volumes (#111, 30 September 2026): for a bot with Practice tuning,
+`CombatWorld` records the volume each melee check queried, as queried (the
+shape and transform handed to the physics query, last sample of the tick), with
+`practice_tuning.gd` `debug_area`; `PracticeDebugDraw` draws it see-through,
+white, or red when the check struck (or, for a running weapon, touches) an
+enemy. A ram punch and spear thrust record every tick of the stroke; the lifter
+and ramp record their launch; the saw, grinder drum and spinners record every
+tick they run as one mark that follows them; an untuned hammer records its
+head's volume where it lands. A tuned Area of effect grows a melee weapon's
+check volume by that many metres on every side (`CombatWorld._grow`), keeping
+its shape, and these weapons no longer splash around a hit; the hammer alone
+blasts a sphere where its head lands (`_hammer_blasts`). `CombatWorld` reaches
+none of this without `practice_tuning`, so untuned, online and LAN play are
+unchanged. The tuning panel lists every weapon value for every weapon (a dash
+where the weapon has none) and its categories fold from their titles
+(`practice_tuning_panel.gd` `collapsed`, shared by the Esc-menu card and the
+HUD copy, not saved). No wire, `BotCommand` or build change.
 
 Possess (`MvpSession.practice_possess`, offline Practice Duel only) moves
 `local_entity`, `peer_entities[1]`, the player's `players` entry and debug
@@ -1903,3 +1906,15 @@ volumes. Guns and the Practice NPC models have none.
 - **Wire.** The server decides and replicates the result: snapshots gain a
   47th field, `weapon_solid` (bool), hence protocol 18. Clients apply it and
   never judge clearance from their own delayed poses.
+
+## Ramp flip checks the plate's whole swing — build mvp-ab-68 (#111)
+
+The Ramp (`ramp` part, kind `lifter`) stays a solid wedge a hull can ride up
+(#112). On the launch tick `CombatWorld._sweep` now samples the plate volume
+(`SawbladeGeometry.ramp_volume`) at every angle from where the charge held it
+(`ramp_angle(charge, false)`) up to `RAMP_LAUNCH_ANGLE`, instead of only at the
+launch angle. A hull riding the outer part of the plate, which the plate at its
+launch angle never touched, is thrown with the lifter's launch hit (same
+damage, knock-back and flip). There is no separate volume ahead of the Ramp,
+and the Lifter and every other weapon are unchanged. No wire change; the build
+moves because server and client must agree on who is thrown.

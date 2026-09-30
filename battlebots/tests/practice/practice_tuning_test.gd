@@ -263,18 +263,25 @@ func run() -> void:
 	checked_drum.radius = 0.4
 	checked_drum.height = 0.2
 	var tilted := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(1, 2, 3))
+	var checked_ball := SphereShape3D.new()
+	checked_ball.radius = 0.3
 	lab.debug_area(Transform3D.IDENTITY, checked_box)
-	lab.debug_area(Transform3D.IDENTITY, checked_drum, "saw")
-	lab.debug_area(tilted, checked_drum, "saw")
+	lab.debug_area(Transform3D.IDENTITY, checked_drum, "", "saw")
+	lab.debug_area(tilted, checked_drum, "damage", "saw")
+	lab.debug_area(tilted, checked_ball)
 	draw.render(lab, 0.0)
-	check(draw._shown.size() == 2, "A repeating check replaces its last mark (%d shown)" % draw._shown.size())
+	check(draw._shown.size() == 3, "A weapon that checks every tick keeps one mark (%d shown)" % draw._shown.size())
 	var box_mark: MeshInstance3D = draw._shown[0][0]
 	var drum_mark: MeshInstance3D = draw._shown[1][0]
+	var ball_mark: MeshInstance3D = draw._shown[2][0]
 	check(box_mark.mesh is BoxMesh and (box_mark.mesh as BoxMesh).size.is_equal_approx(checked_box.size)
 		and drum_mark.mesh is CylinderMesh and is_equal_approx((drum_mark.mesh as CylinderMesh).top_radius, 0.4)
-		and is_equal_approx((drum_mark.mesh as CylinderMesh).height, 0.2) and drum_mark.transform.is_equal_approx(tilted),
-		"A checked volume draws as its own box or cylinder, where it was")
-	check((box_mark.material_override as StandardMaterial3D).albedo_color.is_equal_approx(draw.AREA_COLOR), "Checked volumes are see-through white")
+		and is_equal_approx((drum_mark.mesh as CylinderMesh).height, 0.2) and drum_mark.transform.is_equal_approx(tilted)
+		and ball_mark.mesh is SphereMesh and is_equal_approx((ball_mark.mesh as SphereMesh).radius, 0.3) and ball_mark.position.is_equal_approx(tilted.origin),
+		"A checked volume draws as the box, cylinder or sphere that was queried, where it was")
+	check((box_mark.material_override as StandardMaterial3D).albedo_color.is_equal_approx(draw.AREA_COLOR)
+		and (drum_mark.material_override as StandardMaterial3D).albedo_color.is_equal_approx(draw.AREA_DAMAGE_COLOR),
+		"Checked volumes are see-through: white, or red when they struck")
 	draw.render(lab, lab.debug_linger + 1.0)
 	lab.debug_impact(Vector3.ZERO)
 	draw.render(lab, 0.0)
@@ -635,11 +642,16 @@ func run() -> void:
 	var reach: float = session.world.weapons._hammer_head(hammerer).distance_to(atlas.body.global_position) + 5.0
 	check(not blasted.call(), "An untuned hammer strike has no blast")
 	lab.debug_impacts = true
-	lab.take_debug_marks()
-	blasted.call()
-	var strike_marks: Array[Dictionary] = lab.take_debug_marks()
-	check(strike_marks.size() == 1 and strike_marks[0].radius == 0.0
-		and strike_marks[0].position.distance_to(session.world.weapons._hammer_head(hammerer)) < 0.001, "An untuned hammer strike marks a point where its head lands")
+	lab.heat_enabled = false
+	# Holds or releases the weapon button for some ticks, through the real session.
+	var use := func(ticks: int, held: bool) -> void:
+		for tick: int in ticks:
+			var command := BotCommand.new()
+			command.brake = true
+			command.primary_held = held
+			command.primary_pressed = held and tick == 0
+			session.submit_local(command)
+			await frames(1)
 	lab.set_value("primary", "aoe", reach)
 	check(blasted.call(), "A tuned hammer blasts the Atlas %.0f m from the head without touching it" % (reach - 5.0))
 	var blast_marks: Array[Dictionary] = lab.take_debug_marks()
@@ -649,23 +661,28 @@ func run() -> void:
 	check(not blasted.call(), "A small blast does not reach it")
 	blast_marks = lab.take_debug_marks()
 	check(blast_marks.size() == 1 and blast_marks[0].layer == "", "A blast that reaches no one is marked harmless")
+	lab.clear_value("primary", "aoe")
+	# #111: untuned, a swing marks the head's own check where it lands: a sphere.
+	await use.call(60, true)
+	await use.call(30, false)
+	var strike_marks: Array[Dictionary] = lab.take_debug_marks()
+	check(strike_marks.size() == 1 and not strike_marks[0].has("box") and strike_marks[0].layer == ""
+		and is_equal_approx(strike_marks[0].radius, 0.2 * BotScale.from_size(hammerer.combat.stats.size))
+		and strike_marks[0].position.distance_to(session.world.weapons._hammer_head(hammerer)) < 0.05,
+		"An untuned hammer swing marks its head's sphere where it lands (%s)" % [strike_marks])
 	session.leave()
-	# #111: a melee weapon that reaches no one marks the volume it checked; with
-	# an area of effect it blasts and marks that radius instead. Through the real
-	# session: hold the weapon for 1.5 s, let go, and wait out its cooldown.
-	var use := func(ticks: int, held: bool) -> void:
-		for tick: int in ticks:
-			var command := BotCommand.new()
-			command.brake = true
-			command.primary_held = held
-			command.primary_pressed = held and tick == 0
-			session.submit_local(command)
-			await frames(1)
-	for case: Array in [["saw", false, "cylinder"], ["lifter", false, "box"], ["vertical_spinner", false, "box"], ["horizontal_spinner", false, "cylinder"],
-			["battering_ram", true, "box"], ["spear_fork", true, "box"], ["grinder_drum", true, "cylinder"]]:
+	# #111: a melee weapon marks the volume it queries, hit or miss, and a tuned
+	# area of effect grows that volume. Through the real session: hold the weapon
+	# for 1.5 s, let go, and wait out its cooldown. Cases: part, Atlas body, mark
+	# shape, hit kind.
+	for case: Array in [["saw", false, "cylinder", "saw"], ["lifter", false, "box", "lifter"], ["ramp", false, "box", "lifter"],
+			["vertical_spinner", false, "box", "vertical_spinner"], ["horizontal_spinner", false, "cylinder", "horizontal_spinner"],
+			["battering_ram", true, "box", "ram_punch"], ["spear_fork", true, "box", "spear"], ["grinder_drum", true, "cylinder", "grinder"],
+			["battering_ram", false, "box", "ram_punch"], ["spear_fork", false, "box", "spear"], ["grinder_drum", false, "cylinder", "grinder"]]:
 		var melee_build := session.registry.atlas() if case[1] else session.registry.starter()
 		melee_build.parts.weapon = case[0]
-		check(session.practice(melee_build, "foundry", "duel") == OK, "%s duel starts" % case[0])
+		var label := "%s on %s" % [case[0], melee_build.parts.chassis]
+		check(session.practice(melee_build, "foundry", "duel") == OK, "%s duel starts" % label)
 		await frames(3)
 		lab = session.practice_tuning()
 		lab.heat_enabled = false
@@ -676,7 +693,10 @@ func run() -> void:
 		var miss_marks: Array[Dictionary] = lab.take_debug_marks()
 		check(not miss_marks.is_empty() and miss_marks.all(func(m: Dictionary) -> bool:
 			return m.has(case[2]) and m.radius == 0.0 and m.layer == "" and m.position.distance_to(wielder.body.global_position) < 12.0),
-			"A %s that reaches no one marks the %s it checked (%s, bot at %s)" % [case[0], case[2], miss_marks, wielder.body.global_position])
+			"A %s that reaches no one marks the %s it checked (%s, bot at %s)" % [label, case[2], miss_marks.slice(-1), wielder.body.global_position])
+		if miss_marks.is_empty():
+			session.leave()
+			continue
 		# The panel hides no value: every row is listed, with a dash where the weapon has none.
 		panel = preload("res://scripts/ui/practice_tuning_panel.gd").new()
 		root.add_child(panel)
@@ -684,16 +704,70 @@ func run() -> void:
 		var row_labels: Array = panel.section("weapon1").find_children("*", "Label", true, false).map(func(l: Node) -> String: return (l as Label).text)
 		check(lab.WEAPON_FIELDS.all(func(field: Array) -> bool:
 			return row_labels.has(field[1] + (" (%s)" % field[2] if not str(field[2]).is_empty() else ""))),
-			"The %s lists every weapon value (%s)" % [case[0], row_labels])
+			"The %s lists every weapon value (%s)" % [label, row_labels])
 		panel.queue_free()
+		# An area of effect grows the checked volume by that much on every side; it stays its own shape.
 		await use.call(200, false)
 		lab.set_value("primary", "aoe", 2.0)
 		lab.take_debug_marks()
 		await use.call(90, true)
 		await use.call(30, false)
-		miss_marks = lab.take_debug_marks()
-		check(not miss_marks.is_empty() and miss_marks.all(func(m: Dictionary) -> bool: return is_equal_approx(m.radius, 2.0) and not m.has(case[2])),
-			"With an area of effect a missing %s marks that radius (%d marks)" % [case[0], miss_marks.size()])
+		var wide_marks: Array[Dictionary] = lab.take_debug_marks()
+		var grown: Variant = miss_marks[0][case[2]] + (Vector3.ONE * 4.0 if case[2] == "box" else Vector2(2.0, 4.0))
+		check(not wide_marks.is_empty() and wide_marks.all(func(m: Dictionary) -> bool: return m.radius == 0.0 and m.has(case[2]) and m[case[2]].is_equal_approx(grown)),
+			"An area of effect grows the %s's %s, which stays a %s (%s -> %s)" % [label, case[2], case[2], miss_marks[0][case[2]], wide_marks.slice(0, 1)])
+		lab.clear_value("primary", "aoe")
+		await use.call(200, false)
+		var dummy := session.practice_target() as MvpBot
+		dummy.combat.stats.core = 1000000.0
+		dummy.combat.core = 1000000.0
+		var last: Dictionary = miss_marks[-1]
+		var ahead: Vector3 = (-wielder.body.global_basis.z).slide(Vector3.UP).normalized()
+		# The target faces the wielder: its front face is its low-z bound.
+		var hull := dummy.collision_bounds()
+		if case[0] == "ramp":
+			# The Ramp is a solid wedge, so nobody stands inside it: a hull rides up
+			# the plate. Its flip checks the plate's whole swing from the loaded angle
+			# to the launch angle, so a hull over the far half of the loaded plate,
+			# which the launch pose alone never reaches, is thrown too.
+			check(miss_marks.size() > 2 and miss_marks.all(func(m: Dictionary) -> bool: return m.box.is_equal_approx(last.box))
+				and not (miss_marks[0].basis as Basis).is_equal_approx(last.basis), "A Ramp flip marks its plate at every angle it checked (%d)" % miss_marks.size())
+			var plate_size: Vector3 = last.box
+			var loaded: Transform3D = wielder.body.global_transform * (SawbladeGeometry.ramp_volume(wielder.loadout, wielder.combat.stats.size, SawbladeGeometry.RAMP_LOAD_ANGLE)[0] as Transform3D)
+			# Front face over the plate a little past its middle, underside just above its raised tip.
+			var tip: Vector3 = loaded * Vector3(0.0, plate_size.y * 0.5, -plate_size.z * 0.5)
+			var past_middle: Vector3 = loaded * Vector3(0.0, 0.0, -plate_size.z * 0.2)
+			dummy.body.reset_pose = Transform3D(Basis.looking_at(-ahead), Vector3(past_middle.x, tip.y + 0.15, past_middle.z) - ahead * hull.position.z - Vector3.UP * hull.position.y)
+			await frames(2)
+			var weapons: CombatWorld = session.world.weapons
+			wielder.combat.charge = 1.0
+			wielder.combat.launch = false
+			check(not weapons._sweep(wielder).has(dummy.body.get_instance_id()), "A hull held just over the loaded plate is clear of it (target at %s, tip %s)" % [dummy.body.global_position, tip])
+			wielder.combat.launch = true
+			check(weapons._sweep(wielder).has(dummy.body.get_instance_id()), "The flip reaches a hull riding the plate")
+			var end_pose := PhysicsShapeQueryParameters3D.new()
+			end_pose.shape = weapons._sweep_volume[0]
+			end_pose.transform = wielder.body.global_transform * (weapons._sweep_volume[1] as Transform3D)
+			end_pose.collision_mask = BaselineConfig.BOT_LAYER
+			end_pose.exclude = [wielder.body.get_rid()]
+			check(wielder.body.get_world_3d().direct_space_state.intersect_shape(end_pose, 16).all(
+				func(hit: Dictionary) -> bool: return hit.collider_id != dummy.body.get_instance_id()), "which the plate at its launch angle alone does not touch")
+			wielder.combat.launch = false
+			session.leave()
+			continue
+		# The mark is the real check: an enemy standing in it is struck. The target's
+		# front face goes to the middle of the last marked volume.
+		var spot: Vector3 = last.position - ahead * hull.position.z
+		dummy.body.reset_pose = Transform3D(Basis.looking_at(-ahead), Vector3(spot.x, dummy.body.global_position.y, spot.z))
+		await frames(2)
+		events.clear()
+		lab.take_debug_marks()
+		await use.call(90, true)
+		await use.call(30, false)
+		var struck := events.filter(func(e: Dictionary) -> bool: return e.attacker == session.local_entity and e.target == dummy.entity_id and e.kind == case[3])
+		var hit_marks: Array[Dictionary] = lab.take_debug_marks()
+		check(not struck.is_empty() and hit_marks.any(func(m: Dictionary) -> bool: return m.has(case[2]) and m.layer == "damage"),
+			"An enemy standing in the %s's marked %s is struck, and the mark shows it (%d hits; mark %s, target at %s)" % [label, case[2], struck.size(), last, dummy.body.global_position])
 		session.leave()
 	# Allow auto fire, through the real weapon rules: hold the button for 8 s
 	# (the lifter reloads for 3 s after each launch).

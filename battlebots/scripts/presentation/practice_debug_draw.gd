@@ -4,9 +4,9 @@ const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## records on the player's PracticeTuning (scripts/simulation/practice_tuning.gd)
 ## while the Esc menu's Debug toggles are on. Shot paths are lines; impacts are
 ## see-through spheres the size of the area of effect (red when they did
-## damage), or small solid cubes for weapons without one. A melee weapon that
-## reached no one (#111) shows the box or cylinder it checked, see-through
-## white. Each mark stays for the tuning's debug_linger seconds
+## damage), or small solid cubes for weapons without one. A melee weapon (#111)
+## shows the box, cylinder or sphere it checked, exactly as queried, red when
+## it struck or touches an enemy. Each mark stays for the tuning's debug_linger seconds
 ## of unpaused play; turning a toggle off clears its marks.
 ##
 ## With hitboxes on, every other bot (and, with Player hitboxes on, the
@@ -63,7 +63,7 @@ const ARMOUR_FACES := {"top":Vector3.UP, "underside":Vector3.DOWN, "front":Vecto
 ## Component zone -> its outward direction.
 const COMPONENT_FACES := {"weapon":Vector3.FORWARD, "drive_left":Vector3.LEFT, "drive_right":Vector3.RIGHT}
 ## [MeshInstance3D, type, age, replace] per mark on screen; a new mark with the
-## same non-empty replace name takes the place of the old one.
+## same non-empty replace name reshapes the old one and restarts its time.
 var _shown: Array = []
 var _path_material := StandardMaterial3D.new()
 var _area_material := StandardMaterial3D.new()
@@ -134,8 +134,21 @@ func clear() -> void:
 	_render_hitboxes([])
 
 func _add(mark: Dictionary) -> void:
+	# A weapon that checks every tick keeps one mark, which follows it.
+	var replace: String = mark.get("replace", "")
+	if not replace.is_empty():
+		for entry: Array in _shown:
+			if entry[3] == replace:
+				_shape(entry[0], mark)
+				entry[2] = 0.0
+				return
 	var item := MeshInstance3D.new()
 	item.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_shape(item, mark)
+	add_child(item)
+	_shown.append([item, mark.type, 0.0, replace])
+
+func _shape(item: MeshInstance3D, mark: Dictionary) -> void:
 	if mark.type == "path":
 		var line := ImmediateMesh.new()
 		line.surface_begin(Mesh.PRIMITIVE_LINE_STRIP, _path_material)
@@ -145,7 +158,7 @@ func _add(mark: Dictionary) -> void:
 		item.mesh = line
 	else:
 		var radius: float = mark.radius
-		# A melee check that reached no one (#111) draws the volume it checked.
+		# A melee check (#111) draws the volume it queried.
 		var checked: bool = mark.has("box") or mark.has("cylinder")
 		if radius > 0.0:
 			var sphere := SphereMesh.new()
@@ -171,14 +184,6 @@ func _add(mark: Dictionary) -> void:
 		else:
 			item.material_override = _impact_hit_materials[layer]
 		item.transform = Transform3D(mark.get("basis", Basis.IDENTITY), mark.position)
-	var replace: String = mark.get("replace", "")
-	if not replace.is_empty():
-		for entry: Array in _shown:
-			if entry[3] == replace:
-				entry[0].queue_free()
-		_shown = _shown.filter(func(entry: Array) -> bool: return entry[3] != replace)
-	add_child(item)
-	_shown.append([item, mark.type, 0.0, replace])
 
 func _render_hitboxes(others: Array) -> void:
 	var seen: Dictionary = {}
