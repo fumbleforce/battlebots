@@ -1,0 +1,23 @@
+{
+	"_comment": "Solid shape of each primary melee weapon at rest (#112). MvpBot adds it to the bot body on every peer and disables it while the weapon is active, unless solid_when_active. Changing any value is a gameplay change: bump WireCodec.BUILD and ship a matching hosted server release. Shapes: box (centre, size, optional pitch_degrees about the X axis, nose up; width_share replaces size x by that share of the hull width), disc (centre, axis x or y, thickness, radius or radius_share of the hull width) and wedge (width, profile of [y, z] points extruded across it). The saw blade (SawbladeGeometry), the Atlas front tools (AtlasGeometry) and the Scorpion tail hammer (ScorpionGeometry) take their shapes from those classes instead. Entries are keyed by weapon part; a part missing from a body's own mount uses the canonical one.",
+	"canonical": {
+		"_comment": "Primitive weapons (MvpWeaponVisual), authoring metres (x BotScale): x and y from the hull centre, z from the hull's front edge, negative ahead of it.",
+		"vertical_spinner": {"shape": "disc", "axis": "x", "centre": [0.0, 0.14, -0.1], "radius": 0.36, "thickness": 0.18},
+		"horizontal_spinner": {"shape": "disc", "axis": "y", "centre": [0.0, 0.0, -0.2], "radius_share": 0.65, "thickness": 0.18},
+		"hammer": {"shape": "box", "centre": [0.0, 0.61, -0.48], "size": [0.5, 0.4, 1.45], "pitch_degrees": 30.0},
+		"lifter": {"shape": "box", "centre": [0.0, -0.12, -0.23], "size": [1.22, 0.16, 1.04], "width_share": 0.76}
+	},
+	"atlas": {
+		"_comment": "Forged fork lifter (atlas_lifter.glb) in the canonical frame.",
+		"lifter": {"shape": "box", "centre": [0.0, -0.097, -0.22], "size": [1.65, 0.206, 1.043]}
+	},
+	"bracken": {
+		"_comment": "Bracken's lifter (bracken_lifter.glb) in the canonical frame.",
+		"lifter": {"shape": "box", "centre": [0.0, -0.08, -0.274], "size": [1.66, 0.247, 1.116]}
+	},
+	"sawblade": {
+		"_comment": "Authored Sawblade modules, source metres (SawbladeGeometry.point): y from the hull's underside. The hammer head matches its CombatWorld hit volume at rest; the ramp is its plate from the leading edge up to the hinge, with the edge lowered from the drawn 0.057 to the hull's underside so it gets under a hull at the same ride height instead of butting against it, and it stays solid while it works.",
+		"hammer": {"shape": "box", "centre": [0.0, 1.49, -1.22], "size": [0.82, 0.405, 0.38], "pitch_degrees": 69.0},
+		"ramp": {"shape": "wedge", "width": 1.49, "profile": [[0.0, -1.63], [0.757, -0.36], [0.0, -0.36]], "solid_when_active": true}
+	}
+}

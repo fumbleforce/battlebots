@@ -1799,3 +1799,35 @@ Validation is unchanged: the factory nimble bots, the practice sentry and saved
 builds keep a primary minigun, and it stays listed while fitted. No wire,
 catalogue-hash or loadout-schema change; the build bumps because the pickup
 pool changed.
+
+## Melee weapons are solid — build mvp-ab-65 (#112)
+
+Every primary melee weapon (`ContentRegistry.MELEE_WEAPONS`) adds one collision
+shape, `Body/WeaponCollision`, to the bot's rigid body on every peer, so a hull
+that drives into a resting saw, fork or hammer collides with it as with the
+hull: it stops there, and a fast contact is an ordinary ram. Shapes come from
+`data/weapon_colliders.json` through `WeaponColliders.collider(loadout, stats)`
+(box, disc or wedge per body mount and weapon part, canonical primitives as the
+fallback); the saw blade, the Atlas front tools and the Scorpion tail hammer use
+the `SawbladeGeometry`, `AtlasGeometry` and `ScorpionGeometry` rest volumes.
+Guns and the Practice NPC models have none.
+
+`MvpBot` keeps the shape solid only while the weapon rests: weapon phase
+`idle`, `cooldown` or `overheated` with zero charge and zero `tool_pose`. While
+it spins, charges, winds up, strikes, launches or holds (and once the weapon
+zone is destroyed) the shape is disabled, so the `CombatWorld` hit volumes
+reach into a target as before. The Sawblade `ramp` (`solid_when_active`) is the
+exception and stays solid until its weapon zone is destroyed. The server reads
+its own `CombatState`; clients read the replicated `weapon_state`, `charge` and
+`tool_pose`, so no wire field was added.
+
+A weapon never turns solid inside something: after a spawn, a respawn, a part
+swap or a stop it stays open until its shape overlaps no bot and no arena
+geometry, instead of shoving the two apart.
+
+Unchanged: `collision_bounds()` (spawn clearance, hit zones, gun aim), every
+`CombatWorld` hit query, damage rules and the client replay sweep, which still
+uses the hull alone. The shape shares the body's layers, so a resting weapon
+also meets walls and props, and hits on it count as hits on its bot (zone by
+the nearest point of the hull bounds). The build bumps because bot collision
+changed on both peers.

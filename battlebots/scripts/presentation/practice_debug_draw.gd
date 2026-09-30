@@ -191,7 +191,9 @@ func _render_hitboxes(others: Array) -> void:
 		seen[key] = true
 		var bounds := bot.collision_bounds()
 		var zones := _hit_zones(bot)
-		var signature := "%s|%d|%s|%s" % [bounds, bot.body.get_child_count(), bot.loadout.parts, zones]
+		# A melee weapon's collider (#112) is drawn only while it is solid.
+		var weapon_solid := bot.weapon_collision != null and not bot.weapon_collision.disabled
+		var signature := "%s|%d|%s|%s|%s" % [bounds, bot.body.get_child_count(), bot.loadout.parts, zones, weapon_solid]
 		var entry: Dictionary = _hitboxes.get(key, {})
 		if entry.get("signature") != signature:
 			if entry.has("rig"): entry.rig.queue_free()
@@ -255,7 +257,8 @@ func _build_hitbox(bot: MvpBot, bounds: AABB, zones: Array[String]) -> Dictionar
 		core.transform = collider.transform
 		core.material_override = _core_material
 		core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		rig.add_child(core)
+		# Readable names: a bot with several shapes gets CoreShape, CoreShape2, ...
+		rig.add_child(core, true)
 	var c := bounds.get_center()
 	var h := bounds.size * 0.5
 	var slab := h.y * MvpBot.ZONE_SLAB

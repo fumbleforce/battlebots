@@ -4,6 +4,9 @@ extends BotSource
 ## Steps around the axle of the monowheel's revolved tyre collider.
 const TYRE_SEGMENTS := 24
 const BOT_PART_LOSS := preload("res://scripts/presentation/bot_part_loss.gd")
+const WEAPON_COLLIDERS := preload("res://scripts/core/weapon_colliders.gd")
+## Weapon phases in which a melee weapon is at rest and therefore solid (#112).
+const WEAPON_REST_PHASES := ["idle", "cooldown", "overheated"]
 var entity_id := 0
 var team := 0
 var owner_id := 0
@@ -43,6 +46,10 @@ var destruction_visual: BotDestructionVisual
 var part_loss: Node3D
 var nitro_visual: NitroFlameVisual
 var hammer_slam: HammerSlamDetector
+## The primary melee weapon's solid shape on the body (#112,
+## data/weapon_colliders.json); null for a weapon without one.
+var weapon_collision: CollisionShape3D
+var _weapon_solid_when_active := false
 
 static func create(id: int, side: int, build: Dictionary, registry: ContentRegistry) -> MvpBot:
 	var validation := registry.validate(build)
@@ -136,6 +143,19 @@ func _ready() -> void:
 		rear.shape = rear_shape
 		rear.position = Vector3(0, 1.05 * art_scale - stats.size.y * 0.5, 0.83 * art_scale)
 		body.add_child(rear)
+	# Practice NPC models carry their own weapons; like the rear pack, the
+	# authored weapon shapes do not apply to them.
+	var solid: Dictionary = {} if has_meta("practice_variant") else WEAPON_COLLIDERS.settings().collider(loadout, stats)
+	if not solid.is_empty():
+		weapon_collision = CollisionShape3D.new()
+		weapon_collision.name = "WeaponCollision"
+		weapon_collision.shape = solid.shape
+		weapon_collision.transform = solid.transform
+		_weapon_solid_when_active = solid.solid_when_active
+		# Open until the first check finds it clear: a spawn, a respawn or a
+		# weapon swap never drops a solid weapon into a neighbour.
+		weapon_collision.disabled = true
+		body.add_child(weapon_collision)
 	# Keep ballast low and resist pitch/roll independently of the yaw motor.
 	# Explicit inertia prevents a tall cosmetic rear pack from making the hull
 	# behave like a top-heavy hollow box. Budget mass and motor power stay intact.
@@ -250,9 +270,39 @@ func _on_reconciled(displacement: Vector3) -> void:
 	if visual_error.length() >= 2:
 		visual_error = Vector3.ZERO
 
+## A melee weapon is solid while it rests and lets bodies through while it
+## works (spinning, charging, striking, holding), so its hit volume can reach
+## into a target; a destroyed weapon is gone. Only the Sawblade ramp stays solid
+## while active. The server reads its own combat state, clients the replicated
+## one. A weapon that stops (or is placed) inside a bot or the arena turns solid
+## once it is clear, instead of shoving the two apart.
+func _sync_weapon_collision() -> void:
+	if weapon_collision == null:
+		return
+	var remote := not simulated and not remote_state.is_empty()
+	var phase := str(remote_state.weapon_state) if remote else combat.weapon_phase
+	var charge: float = remote_state.charge if remote else combat.charge
+	var tool_pose: float = remote_state.get("tool_pose", 0.0) if remote else combat.tool_pose
+	var working := charge > 0.0 or tool_pose > 0.0
+	var solid := phase != "disabled" and (_weapon_solid_when_active or (phase in WEAPON_REST_PHASES and not working))
+	if body.reset_pose is Transform3D:
+		# About to be moved: decide again where it lands.
+		solid = false
+	elif solid and weapon_collision.disabled:
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = weapon_collision.shape
+		query.transform = body.global_transform * weapon_collision.transform
+		query.collision_mask = BaselineConfig.WORLD_LAYER | BaselineConfig.BOT_LAYER
+		query.exclude = [body.get_rid()]
+		solid = body.get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+	if weapon_collision.disabled == solid:
+		weapon_collision.disabled = not solid
+
 func _process(delta: float) -> void:
 	if simulated:
 		presentation.global_transform = body.interpolated_transform()
+	else:
+		_sync_weapon_collision()
 	# Catch up sizeable contact offsets within the settling budget while keeping
 	# small driving corrections gentle. Large divergences still snap on receipt.
 	var decay := 30.0 if visual_error.length_squared() > 0.25 * 0.25 else 20.0
@@ -353,6 +403,7 @@ func step(delta: float, active: bool) -> void:
 		command.secondary_held = true # Timeout/disconnect lowers lifter; never synthesize a release attack.
 	combat.tick(delta, command, active)
 	combat.tick_perks(delta, command, active, body.grounded)
+	_sync_weapon_collision()
 	command.primary_pressed = false
 	command.recovery_pressed = false
 	var pods := combat.drive_scale()

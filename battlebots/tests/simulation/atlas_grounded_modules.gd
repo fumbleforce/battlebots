@@ -108,7 +108,10 @@ func grounded_case(weapon: String, auxiliary := false) -> void:
 	draft.parts.utility = "minigun_pod" if auxiliary else "cooling_pack"
 	attacker = world.spawn(1, 0, 0, draft)
 	victim = world.spawn(2, 1, 0, world.registry.starter())
-	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 3, 4))
+	# Start at track height with the target already inside the weapon's reach: a
+	# resting weapon is solid (#112) and one dropped from above would land on the
+	# target. Placed inside it, the weapon stays open, as after a strike.
+	attacker.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, attacker.ground_clearance(), 4))
 	victim.body.reset_pose = Transform3D(Basis.IDENTITY, Vector3(0, 1, -7 if auxiliary or weapon == "minigun" else -2.95))
 	primary_held = false
 	primary_edge = false
