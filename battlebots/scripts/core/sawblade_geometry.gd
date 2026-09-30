@@ -14,6 +14,16 @@ const SAW_THICKNESS := 0.08
 const BODY_SIZE := Vector3(1.6, 0.5, 2.0)
 ## Gap between the blade's teeth and another body's front face, authoring metres.
 const SAW_FRONT_GAP := 0.05
+## Other bodies carry only the blade on its axle fork (#109): the module parts
+## kept (export source names), the fork's rear pivot in source metres (mirrored
+## in x), and the bracket that ties each pivot back into the hull: its size in
+## authoring metres and its centre's offset from the pivot.
+const SAW_FORK_PARTS := ["Saw_SPIN_X", "Axle fork", "Axle fork.001",
+	"Pivot bushing.002", "Pivot bushing.003", "Pivot bushing.007", "Pivot bushing.008",
+	"Pivot hex bolt.002", "Pivot hex bolt.003", "Pivot hex bolt.007", "Pivot hex bolt.008"]
+const SAW_FORK_ROOT := Vector3(0.23, 0.77, -0.48)
+const SAW_BRACKET_SIZE := Vector3(0.12, 0.16, 0.45)
+const SAW_BRACKET_OFFSET := Vector3(0, -0.03, 0.18)
 
 static func scale_for(size: Vector3) -> Vector3:
 	return Vector3(size.x / 1.68, size.z / 2.60, size.z / 2.60)

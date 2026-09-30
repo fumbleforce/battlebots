@@ -35,6 +35,8 @@ func run() -> void:
 			# One saw model on every body (#109): the Sawblade's blade, where the authority sweeps.
 			var hull: Vector3 = registry.validate(draft).stats.size
 			check(visual.primary.mechanism.find_child("Carbide cutting tooth 00*", true, false) != null, "Atlas mounts the Sawblade body's authored saw")
+			check(visual.primary.find_child("Axle fork*", true, false) != null and visual.primary.find_child("*piston*", true, false) == null
+				and visual.primary.find_child("*lift cheek*", true, false) == null, "Only the blade and its axle fork mount; the Sawblade's hydraulic lift stays behind")
 			check(visual.primary.mechanism.global_position.distance_to(SawbladeGeometry.saw_axle(draft, hull)) < 0.001, "Rendered blade and server sweep share the axle")
 			check(SawbladeGeometry.saw_axle(draft, hull).z + SawbladeGeometry.SAW_RADIUS * SawbladeGeometry.saw_scale(draft, hull).z < -hull.z * 0.5,
 				"The blade spins clear of the hull front")

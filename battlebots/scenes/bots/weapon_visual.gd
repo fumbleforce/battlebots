@@ -90,8 +90,9 @@ func assemble(weapon: String, size: Vector3, loadout: Dictionary = {}) -> void:
 		_box(mechanism, Vector3(0.12, 0.24, disc.top_radius * 2), Vector3.ZERO, accent)
 		_box(self, Vector3(0.24, 0.2, 0.55), Vector3(0, 0, -size.z * 0.5 + 0.05), metal)
 	elif kind == "saw":
-		# The Sawblade body's authored saw at the size it has there (#109); the
-		# authority sweeps the same blade (SawbladeGeometry.saw_axle).
+		# The Sawblade body's authored blade on its axle fork, at the size it has
+		# there (#109), bracketed to this hull instead of the Sawblade's hydraulic
+		# lift. The authority sweeps the same blade (SawbladeGeometry.saw_axle).
 		var donor: Node3D = SawbladeVisual.MODEL.instantiate()
 		var module: Node3D
 		var blade: Node3D
@@ -107,6 +108,8 @@ func assemble(weapon: String, size: Vector3, loadout: Dictionary = {}) -> void:
 			parent = parent.get_parent() as Node3D
 		module.reparent(self, false)
 		donor.free()
+		for part: Node in module.get_children():
+			if str(part.get_meta("extras", {}).get("source_name", "")) not in SawbladeGeometry.SAW_FORK_PARTS: part.free()
 		var materials := {}
 		var config: Dictionary = loadout.cosmetics.sawblade if SawbladeConfig.enabled(loadout) else SawbladeConfig.defaults()
 		for part: MeshInstance3D in module.find_children("*", "MeshInstance3D", true, false):
@@ -117,6 +120,10 @@ func assemble(weapon: String, size: Vector3, loadout: Dictionary = {}) -> void:
 		module.transform = Transform3D(Basis.from_scale(module_scale), axle - module_scale * axle_in_module)
 		mechanism.free()
 		mechanism = blade
+		var steel: Material = (module.find_child("Axle fork*", false, false) as MeshInstance3D).get_surface_override_material(0)
+		for side: int in [-1, 1]:
+			var pivot := axle + module_scale * ((SawbladeGeometry.SAW_FORK_ROOT - SawbladeGeometry.SAW_AXLE) * Vector3(side, 1, 1))
+			_box(self, SawbladeGeometry.SAW_BRACKET_SIZE, pivot + SawbladeGeometry.SAW_BRACKET_OFFSET, steel)
 	elif kind == "hammer":
 		mechanism.position = Vector3(0, size.y * 0.5, -size.z * 0.5 + 0.15)
 		mechanism.rotation.x = PI / 6.0

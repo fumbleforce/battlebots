@@ -14,7 +14,8 @@ A weapon name now means one model on every body.
   body change in Customize, on a chassis pickup and when saved builds load, so
   pre-split Sawblade builds keep their ramp. A Ramp or Lifter weapon pickup
   that does not match the body stays unused, like any other misfit.
-- **Saw.** `MvpWeaponVisual` mounts the Sawblade body's authored saw module on
+- **Saw.** `MvpWeaponVisual` mounts the Sawblade body's authored blade and
+  axle fork (no hydraulic lift; two plain brackets tie the fork into the hull) on
   every other body, at the size it has on the Sawblade body
   (`SawbladeGeometry.BODY_SIZE`), painted with the build's layers
   (`SawbladeVisual.paint()`). `SawbladeGeometry.saw_axle()` / `saw_scale()`
