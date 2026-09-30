@@ -42,6 +42,11 @@ var duel_item_pick_radius := 0.0
 ## F1 panels (#105, duel.spawn.pick_reach): how far, in metres from the camera,
 ## a click selects an NPC or an item.
 var duel_pick_reach := 0.0
+## Seconds a wrecked practice NPC waits before it returns (#113,
+## practice.npc_respawn_seconds), and the Practice Duel default
+## (duel.npc_respawn_seconds). The F1 panels change it for the session.
+var practice_npc_respawn := 0.0
+var duel_npc_respawn := 0.0
 
 static func settings() -> ArenaSpawns:
 	if _loaded == null:
@@ -103,6 +108,10 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 	result.practice_player_lane = player[0]
 	result.practice_target_gap = float(gap)
 	result.practice_pilot_starts = pilots
+	if not _number(practice.get("npc_respawn_seconds")) or float(practice.npc_respawn_seconds) < 0.0:
+		problems.append("practice needs a non-negative npc_respawn_seconds")
+		return null
+	result.practice_npc_respawn = float(practice.npc_respawn_seconds)
 	var duel: Variant = data.get("duel")
 	var row: Variant = duel.get("monowheels") if duel is Dictionary else null
 	if not row is Dictionary or not _number(row.get("count")) or int(row.count) < 0 or not _number(row.get("gap")) \
@@ -164,6 +173,10 @@ static func from_json(source: String, problems: Array[String] = []) -> ArenaSpaw
 		problems.append("duel.spawn needs a positive pick_reach")
 		return null
 	result.duel_pick_reach = float(spawn.pick_reach)
+	if not _number(duel.get("npc_respawn_seconds")) or float(duel.npc_respawn_seconds) < 0.0:
+		problems.append("duel needs a non-negative npc_respawn_seconds")
+		return null
+	result.duel_npc_respawn = float(duel.npc_respawn_seconds)
 	return result
 
 ## Practice Duel monowheel count on an arena.

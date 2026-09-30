@@ -360,6 +360,44 @@ func run() -> void:
 		world_panel.aggressive_toggle.button_pressed = false
 		await frames()
 		check(not session.practice_npc_aggressive(id) and not world_panel.aggressive_toggle.button_pressed, "World Friendly makes every NPC friendly")
+		# Respawn time (#113): the world card's is every NPC's default, the target
+		# card's this NPC's alone.
+		var duel_respawn: float = preload("res://scripts/core/arena_spawns.gd").settings().duel_npc_respawn
+		check(is_equal_approx(world_panel.respawn_spin.value, duel_respawn) and is_equal_approx(target_panel.respawn_spin.value, duel_respawn)
+			and target_panel.respawn_row.visible, "Both cards show the Practice Duel respawn time (%s, %s)" % [world_panel.respawn_spin.value, target_panel.respawn_spin.value])
+		check(absf(target_panel.card.get_global_rect().size.x - world_panel.card.get_global_rect().size.x) < 1.0
+			and world_panel.card.get_global_rect().size.x < 420, "The respawn rows fit the narrow cards (%s, %s)" % [world_panel.card.get_global_rect(), target_panel.card.get_global_rect()])
+		world_panel.respawn_spin.value = duel_respawn + 4.0
+		await frames()
+		check(is_equal_approx(session.practice_npc_respawn(), duel_respawn + 4.0) and is_equal_approx(target_panel.respawn_spin.value, duel_respawn + 4.0),
+			"The world card's respawn time is every NPC's default")
+		var own_respawn := 1.0
+		target_panel.respawn_spin.get_line_edit().text_changed.emit(str(own_respawn))
+		await frames()
+		check(is_equal_approx(session.practice_npc_respawn(id), own_respawn) and is_equal_approx(session.practice_npc_respawn(), duel_respawn + 4.0),
+			"The target card's respawn time is that NPC's alone, applied as typed")
+		world_panel.respawn_spin.value = duel_respawn + 6.0
+		await frames()
+		check(is_equal_approx(session.practice_npc_respawn(id), own_respawn) and is_equal_approx(target_panel.respawn_spin.value, own_respawn),
+			"An NPC with its own respawn time keeps it when the default changes")
+		# Its wreck returns after its own time, well before the default.
+		session.world.bots[id].combat.damage("top", 100000)
+		await frames(2)
+		check(session.world.bots[id].combat.eliminated and target_panel.respawn_spin.editable,
+			"A wrecked target's respawn time can still be set")
+		var wrecked_at: float = session.practice_director.elapsed
+		var waited := 0
+		while session.world.bots[id].combat.eliminated and waited < 600:
+			await frames(1)
+			waited += 1
+		var waited_seconds: float = session.practice_director.elapsed - wrecked_at
+		check(not session.world.bots[id].combat.eliminated and waited_seconds >= own_respawn - 0.2 and waited_seconds < duel_respawn + 6.0 - 1.0,
+			"The wreck returns after its own respawn time (%.2f s)" % waited_seconds)
+		target_panel.respawn_default.pressed.emit()
+		await frames()
+		check(is_equal_approx(session.practice_npc_respawn(id), duel_respawn + 6.0) and is_equal_approx(target_panel.respawn_spin.value, duel_respawn + 6.0),
+			"DEFAULT follows the world card's respawn time again")
+		check(target_panel.respawn_default.focus_mode == Control.FOCUS_NONE, "The respawn DEFAULT link takes no keyboard focus")
 		# Health -/+ and armour.
 		var health: float = session.world.bots[id].combat.core
 		target_panel.health_up.pressed.emit()

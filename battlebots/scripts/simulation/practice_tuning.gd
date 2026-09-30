@@ -254,6 +254,10 @@ func value(slot: String, field: String) -> float:
 		return 0.0
 	return float(weapons[slot].values.get(field, weapons[slot].defaults[field]))
 
+## Damage per second as tuned (#113): damage per hit times hits per second.
+func dps(slot: String) -> float:
+	return value(slot, "damage") * value(slot, "rate")
+
 func set_value(slot: String, field: String, amount: float) -> void:
 	if not has_field(slot, field) or not is_finite(amount) or amount < 0.0:
 		return

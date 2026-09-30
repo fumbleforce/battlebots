@@ -4,7 +4,6 @@ extends RefCounted
 ## as a human. Appearance metadata never enters a loadout or a network baseline.
 const ARENA_SPAWNS = preload("res://scripts/core/arena_spawns.gd")
 const VARIANTS := ["wedge", "bruiser", "sentry"]
-const WRECK_SECONDS := 6.0
 ## The player's wreck returns to its spawn after this delay instead of a menu.
 const PLAYER_RESPAWN_SECONDS := 3.0
 const RESET_GRACE := 1.0
@@ -29,6 +28,11 @@ var player_home := Transform3D.IDENTITY
 ## Practice Duel world panel (#97): its behaviour switch as last set, which it
 ## also gave every NPC; a target card's switch changes one NPC, not this.
 var world_aggressive := false
+## Seconds an NPC's wreck waits before it returns to its home (#113): the
+## layout's default (data/arena_spawns.json practice / duel
+## npc_respawn_seconds) until the world panel changes it. A record's own
+## "respawn" (the target card) takes its place for that NPC.
+var npc_respawn_seconds := 0.0
 
 func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> int:
 	world = authority
@@ -36,6 +40,7 @@ func configure(authority: AuthorityWorld, controlled_id: int, first_id: int) -> 
 	target_id = first_id
 	var player: MvpBot = world.bots[player_id]
 	var spawns := ARENA_SPAWNS.settings()
+	npc_respawn_seconds = spawns.practice_npc_respawn
 	for index: int in VARIANTS.size():
 		var build := world.registry.starter(index == 0)
 		build.name = ["BULWARK / calibration", "RAMMER / mobile drone", "WATCHDOG / sentry"][index]
@@ -80,6 +85,7 @@ func configure_duel(authority: AuthorityWorld, controlled_id: int, first_id: int
 	target_id = first_id
 	var player: MvpBot = world.bots[player_id]
 	var spawns := ARENA_SPAWNS.settings()
+	npc_respawn_seconds = spawns.duel_npc_respawn
 	var lane := spawns.team_start(world.arena_id, 0, spawns.practice_player_lane)
 	# The middle of the room, or the arena's own duel centre (#102: the Frozen
 	# Maelstrom's middle is its bottomless eye).
@@ -240,6 +246,20 @@ func set_all_aggressive(on: bool) -> void:
 	for record: Dictionary in records + roamers:
 		record.aggressive = on
 
+## Seconds NPC id's wreck waits before it returns: its own time when the
+## target card set one, else the world default.
+func respawn_seconds(id: int) -> float:
+	return float(npc_record(id).get("respawn", npc_respawn_seconds))
+
+func set_respawn_seconds(id: int, seconds: float) -> void:
+	var record := npc_record(id)
+	if not record.is_empty() and is_finite(seconds) and seconds >= 0.0:
+		record.respawn = seconds
+
+## Back to the world default.
+func clear_respawn_seconds(id: int) -> void:
+	npc_record(id).erase("respawn")
+
 ## Practice Duel target card Possess (#97): the player takes over NPC id. The
 ## body the player drove stays where it is as a friendly, stationary NPC
 ## (its record takes over the NPC's place, homed on the player's spawn), and
@@ -354,7 +374,7 @@ func step(delta: float) -> void:
 		var bot: MvpBot = world.bots[record.id]
 		if bot.combat.eliminated:
 			record.wreck_age += delta
-			if record.wreck_age >= WRECK_SECONDS:
+			if record.wreck_age >= float(record.get("respawn", npc_respawn_seconds)):
 				_try_respawn(bot, record)
 			continue
 		record.wreck_age = 0.0

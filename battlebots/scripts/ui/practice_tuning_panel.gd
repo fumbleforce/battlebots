@@ -13,6 +13,8 @@ const HINT_FONT := 15
 const HEADING_FONT := 26
 const SPIN_SIZE := Vector2(110, 30)
 const ROW_GAP := 2
+## The DPS readout (#113).
+const DPS_FORMAT := "%.1f"
 ## Armour faces in reading order; unknown faces follow.
 const FACE_ORDER := ["front", "back", "left", "right", "top", "bottom"]
 var tuning: RefCounted
@@ -27,6 +29,8 @@ var player_hitbox_toggle: CheckButton
 var linger_spin: SpinBox
 ## Weapon slot ("primary"/"secondary") -> its "Allow auto fire" toggle.
 var auto_toggles: Dictionary = {}
+## Weapon slot -> its DPS readout (#113): damage times fire rate as tuned.
+var dps_labels: Dictionary = {}
 var reset_button: Button
 var content: HBoxContainer
 ## The column the section being built goes into.
@@ -155,6 +159,8 @@ func render(value: RefCounted, parts: Node = null) -> void:
 		linger_spin.set_value_no_signal(tuning.debug_linger)
 	for slot: String in auto_toggles:
 		auto_toggles[slot].set_pressed_no_signal(tuning.auto_fire.get(slot, false))
+	for slot: String in dps_labels:
+		dps_labels[slot].text = DPS_FORMAT % tuning.dps(slot)
 	for pair: Array in _spins:
 		var spin: SpinBox = pair[0]
 		if not spin.get_line_edit().has_focus():
@@ -175,6 +181,7 @@ func _rebuild() -> void:
 	_spins.clear()
 	pickers.clear()
 	auto_toggles.clear()
+	dps_labels.clear()
 	# Body on the left, weapon on the right; one scroll moves both.
 	var body_column := _new_column()
 	content.add_child(VSeparator.new())
@@ -237,10 +244,19 @@ func _weapon_rows(slot: String) -> void:
 			continue
 		if not tuning.editable(slot, key):
 			_row(grid, field[1], null, Callable(), "")
-			continue
-		var spin := _spin(func() -> float: return tuning.value(slot, key),
-			func(amount: float) -> void: tuning.set_value(slot, key, amount), 100.0 if key in ["pierce", "stagger"] else SPIN_MAX)
-		_row(grid, field[1], spin, func() -> void: tuning.clear_value(slot, key), field[2])
+		else:
+			var spin := _spin(func() -> float: return tuning.value(slot, key),
+				func(amount: float) -> void: tuning.set_value(slot, key, amount), 100.0 if key in ["pierce", "stagger"] else SPIN_MAX)
+			_row(grid, field[1], spin, func() -> void: tuning.clear_value(slot, key), field[2])
+		if key == "damage":
+			# DPS under Damage, then a line (#113); the other values follow in a
+			# grid of their own, as a line cannot span a grid's columns.
+			_label(grid, "DPS", &"Body", ROW_FONT)
+			dps_labels[slot] = _label(grid, "", &"Body", ROW_FONT)
+			dps_labels[slot].name = "Dps_" + slot
+			grid.add_child(Control.new())
+			_column.add_child(HSeparator.new())
+			grid = _grid()
 
 ## Dropdown of every part for the slot (unfit ones greyed) between previous
 ## and next buttons that step to the nearest part that fits.

@@ -17,6 +17,12 @@ const AGGRESSIVE_COLOR := Color("ff5a4f")
 const FRIENDLY_COLOR := Color("62d26f")
 ## The Player options button, green like the target card's Possess.
 const PLAYER_OPTIONS_COLOR := Color("2e8b45")
+## Respawn time boxes (#113), here and on the target card: their size, the
+## longest wait they take (s) and the steps of a typed value and of the arrows.
+const RESPAWN_SPIN_SIZE := Vector2(96, 30)
+const RESPAWN_MAX := 3600.0
+const RESPAWN_STEP := 0.1
+const RESPAWN_ARROW_STEP := 1.0
 const CAPTION_COLORS := [&"font_color", &"font_hover_color", &"font_pressed_color",
 	&"font_hover_pressed_color", &"font_focus_color", &"font_disabled_color"]
 ## Asks menu_game for the camera ray to spawn along.
@@ -39,6 +45,9 @@ var item_clear_button: Button
 var aggressive_toggle: CheckButton
 ## The other bots' debug hitboxes (#93), moved here from the F2 panel.
 var hitbox_toggle: CheckButton
+## Seconds a wrecked NPC waits before it returns (#113): the default for every
+## NPC the target card has not given its own.
+var respawn_spin: SpinBox
 var status: Label
 ## The session (MvpSession) the controls act on; null leaves them inert.
 var session: Node
@@ -108,6 +117,15 @@ func _init() -> void:
 		if tuning != null: tuning.debug_hitboxes = on
 		hitboxes_toggled.emit(on))
 	column.add_child(hitbox_toggle)
+	var respawn_row := HBoxContainer.new()
+	respawn_row.add_theme_constant_override("separation", 8)
+	column.add_child(respawn_row)
+	respawn_caption(respawn_row, "NPC respawn (s)")
+	respawn_spin = respawn_box("NpcRespawn", func(seconds: float) -> void:
+		if session != null: session.practice_set_npc_respawn(seconds))
+	respawn_row.add_child(respawn_spin)
+	visibility_changed.connect(func() -> void:
+		if not visible: respawn_spin.get_line_edit().release_focus())
 
 ## A behaviour switch names the current behaviour, in red or green; the
 ## target card's switch (#97) uses it too.
@@ -126,6 +144,44 @@ static func tint(button: Button, color: Color) -> void:
 		var filled: StyleBoxFlat = box.duplicate() if box is StyleBoxFlat else StyleBoxFlat.new()
 		filled.bg_color = state[1]
 		button.add_theme_stylebox_override(state[0], filled)
+
+## The caption left of a respawn time box; it gives way to the box on a
+## narrow card.
+static func respawn_caption(row: Control, text: String) -> Label:
+	var caption := Label.new()
+	caption.text = text
+	caption.theme_type_variation = &"Body"
+	caption.add_theme_font_size_override("font_size", BUTTON_FONT)
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	caption.clip_text = true
+	row.add_child(caption)
+	return caption
+
+## A respawn time box (#113). Like the tuning card's boxes (#94) it applies a
+## number as it is typed and lets go of the keyboard once it is submitted, so
+## the bot drives on.
+static func respawn_box(id: String, changed: Callable) -> SpinBox:
+	var spin := SpinBox.new()
+	spin.name = id
+	spin.max_value = RESPAWN_MAX
+	spin.step = RESPAWN_STEP
+	spin.custom_arrow_step = RESPAWN_ARROW_STEP
+	spin.select_all_on_focus = true
+	spin.custom_minimum_size = RESPAWN_SPIN_SIZE
+	var line := spin.get_line_edit()
+	line.add_theme_font_size_override("font_size", BUTTON_FONT)
+	spin.value_changed.connect(changed)
+	line.text_changed.connect(func(text: String) -> void:
+		var typed := text.strip_edges()
+		if typed.is_valid_float():
+			changed.call(clampf(typed.to_float(), spin.min_value, spin.max_value)))
+	line.text_submitted.connect(func(_text: String) -> void: line.release_focus())
+	return spin
+
+## Shows seconds in a respawn time box, unless it is being typed in.
+static func show_respawn(spin: SpinBox, seconds: float) -> void:
+	if not spin.get_line_edit().has_focus():
+		spin.set_value_no_signal(seconds)
 
 ## Mouse-only, like the tuning card (#94): Space must not press them again.
 func _button(parent: Control, id: String, text: String, action: Callable) -> Button:
@@ -165,3 +221,5 @@ func render(source: Node) -> void:
 	caption_behaviour(aggressive_toggle)
 	var tuning: RefCounted = source.practice_tuning() if source != null else null
 	hitbox_toggle.set_pressed_no_signal(tuning != null and tuning.debug_hitboxes)
+	if tuning != null:
+		show_respawn(respawn_spin, source.practice_npc_respawn())

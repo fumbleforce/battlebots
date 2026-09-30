@@ -495,6 +495,33 @@ func practice_set_npcs_aggressive(aggressive: bool) -> void:
 func practice_npcs_aggressive() -> bool:
 	return practice_tuning() != null and practice_director != null and practice_director.world_aggressive
 
+## Seconds a wrecked NPC waits before it returns to its home (#113): the world
+## panel's default for every NPC (id 0), or NPC id's own time as the target
+## card shows it. NAN outside practice and for an NPC that never returns (the
+## Woodland giant).
+func practice_npc_respawn(id := 0) -> float:
+	if practice_tuning() == null or practice_director == null:
+		return NAN
+	if id == 0:
+		return practice_director.npc_respawn_seconds
+	if practice_npc(id) == null or _is_practice_boss(id):
+		return NAN
+	return practice_director.respawn_seconds(id)
+
+## Sets the default (id 0; NPCs given their own time keep it) or NPC id's own.
+func practice_set_npc_respawn(seconds: float, id := 0) -> void:
+	if is_nan(practice_npc_respawn(id)) or not is_finite(seconds) or seconds < 0.0:
+		return
+	if id == 0:
+		practice_director.npc_respawn_seconds = seconds
+	else:
+		practice_director.set_respawn_seconds(id, seconds)
+
+## NPC id follows the world panel's default again.
+func practice_clear_npc_respawn(id: int) -> void:
+	if not is_nan(practice_npc_respawn(id)):
+		practice_director.clear_respawn_seconds(id)
+
 ## Target panel (#97): the NPC the ray from origin along direction meets,
 ## within duel.spawn.pick_reach, first; 0 when it meets the arena, nothing,
 ## or a bot that is no NPC.

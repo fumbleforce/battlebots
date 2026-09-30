@@ -88,8 +88,23 @@ func run() -> void:
 	var damage_spin: SpinBox = damage_label.get_parent().get_child(damage_label.get_index() + 1)
 	var damage_default: Button = damage_label.get_parent().get_child(damage_label.get_index() + 2)
 	check(spins.size() >= 10, "Panel has an editor per value (%d)" % spins.size())
+	# #113: DPS (damage times fire rate) under Damage, above a line; the other
+	# values follow below it.
+	var dps: Label = panel.dps_labels.get("primary")
+	var damage_grid: Node = damage_label.get_parent()
+	check(panel.dps_labels.size() == lab.weapons.size() and dps != null and dps.get_parent() == damage_grid
+		and (damage_grid.get_child(dps.get_index() - 1) as Label).text == "DPS" and dps.get_index() == damage_default.get_index() + 2,
+		"Each weapon category reads its DPS under Damage")
+	check(weapon_column.get_child(damage_grid.get_index() + 1) is HSeparator
+		and heading.call("Range (m)").get_parent().get_index() == damage_grid.get_index() + 2
+		and heading.call("Fire rate (/s)").get_parent() == damage_grid, "A line under DPS parts fire rate and damage from the other values")
+	check(is_equal_approx(lab.dps("primary"), CombatWorld.MINIGUN_DAMAGE / CombatState.MINIGUN_CADENCE)
+		and dps.text == panel.DPS_FORMAT % lab.dps("primary"), "DPS is damage times fire rate (%s)" % dps.text)
 	damage_spin.value = 9.0
 	check(lab.value("primary", "damage") == 9.0, "Editing the damage box tunes the weapon")
+	panel.render(lab, session)
+	check(is_equal_approx(lab.dps("primary"), 9.0 * lab.value("primary", "rate")) and dps.text == panel.DPS_FORMAT % lab.dps("primary"),
+		"DPS follows the tuned damage (%s)" % dps.text)
 	# #94: typed numbers apply at once, without Enter; junk text changes nothing.
 	damage_spin.get_line_edit().text_changed.emit("12.5")
 	check(lab.value("primary", "damage") == 12.5, "Typing in the damage box tunes the weapon before Enter")
@@ -518,6 +533,11 @@ func run() -> void:
 	var boss_id: int = session.woodland_boss.boss_id
 	var boss: MvpBot = session.practice_npc(boss_id)
 	check(boss != null and session.practice_npc_aggressive(boss_id), "The giant is a practice NPC that hunts")
+	# #113: it never returns once wrecked, so it has no respawn time to set.
+	session.practice_set_npc_respawn(1.0, boss_id)
+	check(is_nan(session.practice_npc_respawn(boss_id))
+		and is_equal_approx(session.practice_npc_respawn(), preload("res://scripts/core/arena_spawns.gd").settings().practice_npc_respawn),
+		"The giant has no respawn time; full practice NPCs keep their default")
 	check(session.practice_part_options("weapon", boss_id).is_empty(), "The giant's parts cannot be swapped")
 	var boss_speed: float = boss.body.top_speed
 	var boss_accel: float = boss.body.drive_acceleration

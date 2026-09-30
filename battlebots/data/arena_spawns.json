@@ -35,7 +35,9 @@
 		"_comment": "Offline practice starts at the edges, not in a central huddle: the player takes team-1 lane player_lane, the stationary calibration target waits target_gap metres (hull to hull) ahead of it, and the two mobile pilots start at the free-for-all starts in pilot_starts (1..8), on the arena's flanks.",
 		"player_lane": 3,
 		"target_gap": 6.0,
-		"pilot_starts": [3, 7]
+		"pilot_starts": [3, 7],
+		"_respawn_comment": "#113: seconds a wrecked NPC waits before it returns to its home. The F1 world panel changes it for the session, the target card for one NPC.",
+		"npc_respawn_seconds": 6.0
 	},
 	"duel": {
 		"_comment": "Practice Duel (#83, #84, #88): besides the stationary Atlas (see shuttle), `count` stationary monowheels stand on the player's left, seen from its start, in `rows` tight rows one behind the other. Each row runs along the player's forward axis; the block is centred side_fraction of the arena half-extent to the left of the centre, facing into the room, with gap metres between neighbouring hulls (side by side and front to back). count_by_arena overrides the count per arena (the Frozen Maelstrom has none: its duel lies on the cone's slope, #102). side_fraction_by_arena overrides the side per arena: on Woodland the block stands on the left of the raised central plateau (flat out to about 0.22), clear of the slopes and jump ramps below.",
@@ -51,6 +53,8 @@
 			"_item_comment": "#105: Spawn item places an item pickup where the same ray meets the arena (dropped to the floor below the ray's end when it meets nothing). A free-cursor click selects an item for the item card when its ray passes within item_pick_radius metres of the item's light column (MatchPickups.REACH_UP tall) before it meets the arena or a bot.",
 			"item_pick_radius": 1.5,
 			"_pick_comment": "Clicks select an NPC or an item up to pick_reach metres from the camera: across any arena.",
-			"pick_reach": 1000.0}
+			"pick_reach": 1000.0},
+		"_respawn_comment": "#113: the Practice Duel default for practice.npc_respawn_seconds.",
+		"npc_respawn_seconds": 3.0
 	}
 }

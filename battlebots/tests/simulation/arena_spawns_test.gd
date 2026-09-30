@@ -119,7 +119,9 @@ func check_config() -> void:
 		func(d: Dictionary) -> void: d.arenas.moon.team.pop_back(),
 		func(d: Dictionary) -> void: d.arenas.woodland.ffa_radius = 0,
 		func(d: Dictionary) -> void: d.arenas.erase("foundry"),
-		func(d: Dictionary) -> void: d.practice.pilot_starts = [9]]:
+		func(d: Dictionary) -> void: d.practice.pilot_starts = [9],
+		func(d: Dictionary) -> void: d.practice.erase("npc_respawn_seconds"),
+		func(d: Dictionary) -> void: d.duel.npc_respawn_seconds = -1.0]:
 		var copy: Dictionary = data.duplicate(true)
 		mutate.call(copy)
 		var problems: Array[String] = []

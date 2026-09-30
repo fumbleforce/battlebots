@@ -89,7 +89,7 @@ func run() -> void:
 	target.combat.damage("top", 100000)
 	await frames(2)
 	var rec: Dictionary = session.practice_director.records[0]
-	rec.wreck_age = PracticeBotDirector.WRECK_SECONDS
+	rec.wreck_age = session.practice_director.npc_respawn_seconds
 	session.practice_director.step(1.0/60.0)
 	check(target.combat.eliminated, "Occupied home defers regeneration")
 	check(session.restart_practice() == OK, "Full practice restart remains available")

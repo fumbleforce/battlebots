@@ -26,6 +26,9 @@ func run() -> void:
 		var wheels_count := ArenaSpawns.settings().duel_monowheel_count_for(arena)
 		check(session.world.bots.size() == 3 + wheels_count, "%s duel has the player, two Atlases and %d monowheels" % [arena, wheels_count])
 		check(session.woodland_boss == null, "%s duel has no roaming giant" % arena)
+		var spawn_settings: RefCounted = preload("res://scripts/core/arena_spawns.gd").settings()
+		check(is_equal_approx(session.practice_npc_respawn(), spawn_settings.duel_npc_respawn)
+			and spawn_settings.duel_npc_respawn < spawn_settings.practice_npc_respawn, "%s duel NPCs return sooner than full practice's" % arena)
 		check(session.world.cooling_zones().is_empty(), "%s duel has no cooling zones" % arena)
 		check(session.world.pickups.items.size() > 0 and not session.world.pickups.items.any(func(item: Dictionary) -> bool:
 			return item.kind == "coolant"), "%s duel keeps part pickups but has no coolant canisters" % arena)
@@ -135,6 +138,7 @@ func run() -> void:
 		check(session.world.pickups.items.any(func(item: Dictionary) -> bool: return item.kind == "coolant"),
 			"%s full practice keeps its coolant canisters" % arena)
 		check(session.world.bots.size() > 2, "%s full practice keeps its NPCs" % arena)
+		check(is_equal_approx(session.practice_npc_respawn(), spawn_settings.practice_npc_respawn), "%s full practice keeps its NPC respawn time" % arena)
 		session.leave()
 		session.queue_free()
 		await frames(2)

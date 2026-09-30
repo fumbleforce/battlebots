@@ -2,8 +2,8 @@ extends Control
 ## Practice Duel HUD target panel (#97): while the F1 world panel shows,
 ## the NPC clicked on gets this card to its left, a
 ## one-column cut of the F2 tuning card for that NPC: remove it, its behaviour,
-## its hitboxes, its health, armour and weapon and drive durability, and its
-## chassis, drive and weapons.
+## its hitboxes, its respawn time (#113), its health, armour and weapon and
+## drive durability, and its chassis, drive and weapons.
 ## Presentation only: the controls call the offline authority through
 ## MvpSession's practice_* helpers.
 const TUNING_OVERLAY = preload("res://scripts/ui/practice_tuning_overlay.gd")
@@ -14,6 +14,8 @@ const HEADING_FONT := 24
 ## The same size as the dropdown rows (ROW_FONT).
 const BUTTON_FONT := 18
 const ROW_FONT := 18
+## The respawn row's DEFAULT link, as the tuning card's (HINT_FONT).
+const DEFAULT_FONT := 15
 ## Width of the captions left of the dropdowns.
 const CAPTION_WIDTH := 92
 ## Health, armour on every face, weapon and drive durability: what each -/+
@@ -37,6 +39,12 @@ var hitbox_toggle: CheckButton
 ## Emitted when the switch changes; menu_game keeps the set of singled-out
 ## NPCs, whose hitboxes stay on after the panels close.
 signal hitboxes_toggled(entity: int, on: bool)
+## Seconds this NPC's wreck waits before it returns (#113): the world panel's
+## default until changed here; DEFAULT follows the world panel again. The row
+## hides for an NPC that never returns (the Woodland giant).
+var respawn_row: HBoxContainer
+var respawn_spin: SpinBox
+var respawn_default: Button
 ## Possess pressed: menu_game hands the player this NPC.
 signal possess_requested(entity: int)
 var health_down: Button
@@ -54,6 +62,8 @@ var _picker_column: VBoxContainer
 var session: Node
 var target := 0
 var _layout := ""
+## The NPC whose respawn time the box last showed.
+var _respawn_shown := 0
 ## Part names as Customize shows them (MenuData), read once.
 var _names: Dictionary = {}
 
@@ -99,6 +109,25 @@ func _init() -> void:
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
 	hitbox_toggle = _switch(column, "TargetHitboxes", func(on: bool) -> void: hitboxes_toggled.emit(target, on))
 	hitbox_toggle.text = "Hitbox"
+	respawn_row = _row(column)
+	WORLD_OVERLAY.respawn_caption(respawn_row, "Respawn (s)")
+	respawn_spin = WORLD_OVERLAY.respawn_box("TargetRespawn", func(seconds: float) -> void:
+		if session != null: session.practice_set_npc_respawn(seconds, target))
+	respawn_row.add_child(respawn_spin)
+	respawn_default = Button.new()
+	respawn_default.name = "TargetRespawnDefault"
+	respawn_default.text = "DEFAULT"
+	respawn_default.theme_type_variation = &"TextLink"
+	respawn_default.focus_mode = Control.FOCUS_NONE
+	respawn_default.add_theme_font_size_override("font_size", DEFAULT_FONT)
+	respawn_default.pressed.connect(func() -> void:
+		if session == null: return
+		session.practice_clear_npc_respawn(target)
+		# Show the restored value at once, even if the box still has focus.
+		respawn_spin.set_value_no_signal(session.practice_npc_respawn(target)))
+	respawn_row.add_child(respawn_default)
+	visibility_changed.connect(func() -> void:
+		if not visible: respawn_spin.get_line_edit().release_focus())
 	# Health, armour, weapon and drive, each taken or given STEP at a time.
 	column.add_child(HSeparator.new())
 	_label(column, "+/- %d Durability" % STEP, &"Body", ROW_FONT)
@@ -193,6 +222,14 @@ func render(source: Node, entity: int, hitboxes := false) -> void:
 	title.text = "Name: %s  #%d" % [_part_name(str(parts.get("chassis", ""))), entity]
 	aggressive_toggle.set_pressed_no_signal(source.practice_npc_aggressive(entity))
 	WORLD_OVERLAY.caption_behaviour(aggressive_toggle)
+	var respawn: float = source.practice_npc_respawn(entity)
+	respawn_row.visible = not is_nan(respawn)
+	if respawn_row.visible:
+		# Another NPC selected: the box shows its time, whatever was being typed.
+		if entity != _respawn_shown:
+			respawn_spin.get_line_edit().release_focus()
+		WORLD_OVERLAY.show_respawn(respawn_spin, respawn)
+	_respawn_shown = entity
 	var wrecked := bot.combat.eliminated
 	hitbox_toggle.set_pressed_no_signal(hitboxes)
 	for control: BaseButton in [possess_button, aggressive_toggle, health_down, health_up, armour_down, armour_up,

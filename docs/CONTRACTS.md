@@ -1087,6 +1087,20 @@ drive durability changes last only until the next respawn, which restores them.
 weapons. The player's own bot is never selectable; with a target selected the
 orbit camera turns toward it (`BotOrbitCamera.look_target`).
 
+NPC respawn time (#113, 30 September 2026): a wrecked practice NPC returns to
+its home after `PracticeBotDirector.npc_respawn_seconds`, which starts from
+`data/arena_spawns.json` `practice.npc_respawn_seconds` (6 s) or, in Practice
+Duel, `duel.npc_respawn_seconds` (3 s). The world panel's "NPC respawn (s)" box
+changes that default for the session; the target card's "Respawn (s)" box gives
+one NPC its own time (its record's `respawn`), which the default no longer
+changes until the card's DEFAULT clears it. `MvpSession.practice_npc_respawn`,
+`practice_set_npc_respawn` and `practice_clear_npc_respawn` take an NPC entity
+id (0, the default, is the world default). The Woodland giant never returns,
+so it has no time (NAN; the card hides the row). The player's own 3 s respawn
+is unchanged. The tuning panel's weapon categories show a read-only DPS
+(`practice_tuning.gd` `dps()`: damage times fire rate as tuned) under Damage,
+above a line. Offline practice only: no wire, `BotCommand` or build change.
+
 Hammer fire rate (#106, 30 September 2026): the tuning panel's hammer Fire
 rate is swings per second over the whole cycle (default
 `1 / (HAMMER_WINDUP + HAMMER_COOLDOWN)`), and `CombatState._tick_hammer` scales
