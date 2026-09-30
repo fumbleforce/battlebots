@@ -2,7 +2,8 @@ extends VBoxContainer
 ## Practice Duel Esc-menu tuning (#84): live, session-only values for the
 ## player's weapons and body (scripts/simulation/practice_tuning.gd), plus
 ## weapon, chassis and drive (#94) pickers, under the debug views (#93). Nothing here is
-## saved; leaving practice discards it. Presentation only: the offline
+## saved; leaving practice discards it. Each category folds away from its title
+## (#111). Presentation only: the offline
 ## authority applies the values on its next tick and swaps parts through
 ## MvpSession.practice_set_part().
 const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
@@ -15,6 +16,9 @@ const SPIN_SIZE := Vector2(110, 30)
 const ROW_GAP := 2
 ## The DPS readout (#113).
 const DPS_FORMAT := "%.1f"
+## The fold arrow right of a category title: its box and the gap to the title.
+const ARROW_SIZE := Vector2(12, 8)
+const ARROW_GAP := 8
 ## Armour faces in reading order; unknown faces follow.
 const FACE_ORDER := ["front", "back", "left", "right", "top", "bottom"]
 var tuning: RefCounted
@@ -39,6 +43,12 @@ var mass_label: Label
 ## Slot ("weapon"/"utility"/"chassis") -> OptionButton.
 var pickers: Dictionary = {}
 var _layout := ""
+## Category id ("debug", "tuning", "body", "armour", "weapon1", "weapon2") ->
+## folded. Shared by the Esc-menu card and the HUD copy (#94), and kept for the
+## rest of the run.
+static var collapsed: Dictionary = {}
+## Category id -> [its title's arrow, the Control holding its rows].
+var _sections: Dictionary = {}
 ## [SpinBox, getter Callable] pairs refreshed while their box is not focused.
 var _spins: Array = []
 ## The HUD copy (#94) is used with the mouse while the bot drives: its buttons
@@ -65,8 +75,10 @@ func _init() -> void:
 	add_child(HSeparator.new())
 	var header := HBoxContainer.new()
 	add_child(header)
-	var title := _label(header, "TUNING", &"HeadingWide", 24)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var title := _heading(header, "tuning", "TUNING", &"HeadingWide", 24)
+	var gap := Control.new()
+	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(gap)
 	reset_button = Button.new()
 	reset_button.name = "ResetTuning"
 	reset_button.text = "RESET ALL"
@@ -85,16 +97,18 @@ func _init() -> void:
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 18)
 	scroll.add_child(content)
+	_sections["tuning"] = [title.get_child(1), scroll]
 
 ## Debug views (#93): shot paths, impact areas and the player's own armour
 ## hitboxes, drawn in the arena by the preview's PracticeDebugDraw, and how
 ## long each mark stays.
 func _debug_section() -> void:
-	_label(self, "DEBUG", &"HeadingWide", 24)
+	var rows := _section(self, "debug", "DEBUG", &"HeadingWide", 24)
+	rows.add_theme_constant_override("separation", 8)
 	# Wraps when the toggles do not fit one line.
 	var toggles := HFlowContainer.new()
 	toggles.add_theme_constant_override("h_separation", 18)
-	add_child(toggles)
+	rows.add_child(toggles)
 	trajectory_toggle = _toggle(toggles, "TrajectoryToggle", "Projectile trajectories",
 		func(on: bool) -> void: tuning.debug_trajectories = on)
 	impact_toggle = _toggle(toggles, "ImpactToggle", "Impact areas",
@@ -105,7 +119,7 @@ func _debug_section() -> void:
 		func(on: bool) -> void: tuning.debug_player_hitboxes = on)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
-	add_child(row)
+	rows.add_child(row)
 	_label(row, "Marks linger (s)", &"Body", ROW_FONT)
 	linger_spin = SpinBox.new()
 	linger_spin.name = "DebugLinger"
@@ -139,6 +153,61 @@ func _label(parent: Node, text: String, variation: StringName, font_size: int) -
 	parent.add_child(item)
 	return item
 
+## A category title that folds its rows when clicked, with an arrow to its
+## right: down while the rows show, up while they are folded. Returns the
+## clickable title; its second child is the arrow.
+func _heading(parent: Node, id: String, text: String, variation: StringName, font_size: int) -> HBoxContainer:
+	var title := HBoxContainer.new()
+	title.name = "Heading_" + id
+	title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	title.mouse_filter = Control.MOUSE_FILTER_STOP
+	title.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	title.add_theme_constant_override("separation", ARROW_GAP)
+	parent.add_child(title)
+	var label := _label(title, text, variation, font_size)
+	var arrow := Control.new()
+	arrow.name = "Arrow"
+	arrow.custom_minimum_size = ARROW_SIZE
+	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow.draw.connect(func() -> void:
+		var tip := 0.0 if collapsed.get(id, false) else ARROW_SIZE.y
+		arrow.draw_colored_polygon(PackedVector2Array([Vector2(0.0, ARROW_SIZE.y - tip), Vector2(ARROW_SIZE.x, ARROW_SIZE.y - tip),
+			Vector2(ARROW_SIZE.x * 0.5, tip)]), label.get_theme_color(&"font_color")))
+	title.add_child(arrow)
+	title.gui_input.connect(func(event: InputEvent) -> void:
+		var click := event as InputEventMouseButton
+		if click != null and click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
+			set_collapsed(id, not collapsed.get(id, false)))
+	return title
+
+## A category: its folding title, then the container its rows go into.
+func _section(parent: Node, id: String, text: String, variation: StringName, font_size: int) -> VBoxContainer:
+	var title := _heading(parent, id, text, variation, font_size)
+	var rows := VBoxContainer.new()
+	rows.name = "Section_" + id
+	rows.add_theme_constant_override("separation", 6)
+	parent.add_child(rows)
+	_sections[id] = [title.get_child(1), rows]
+	return rows
+
+## The container holding a category's rows.
+func section(id: String) -> Control:
+	return _sections[id][1]
+
+## Folds or unfolds a category, here and in the other copy of the panel.
+func set_collapsed(id: String, folded: bool) -> void:
+	collapsed[id] = folded
+	_fold_sections()
+
+func _fold_sections() -> void:
+	for id: String in _sections:
+		var rows: Control = _sections[id][1]
+		var folded: bool = collapsed.get(id, false)
+		if rows.visible == folded:
+			rows.visible = not folded
+			(_sections[id][0] as Control).queue_redraw()
+
 ## Called every frame while the menu shows; rebuilds only when the fitted
 ## parts change, otherwise refreshes the displayed values.
 func render(value: RefCounted, parts: Node = null) -> void:
@@ -150,6 +219,8 @@ func render(value: RefCounted, parts: Node = null) -> void:
 	if layout != _layout:
 		_layout = layout
 		_rebuild()
+	# The other copy of the panel may have folded a category.
+	_fold_sections()
 	heat_toggle.set_pressed_no_signal(tuning.heat_enabled)
 	jump_toggle.set_pressed_no_signal(tuning.jump_cooldown_enabled)
 	trajectory_toggle.set_pressed_no_signal(tuning.debug_trajectories)
@@ -186,24 +257,22 @@ func _rebuild() -> void:
 	var body_column := _new_column()
 	content.add_child(VSeparator.new())
 	var weapon_column := _new_column()
-	_column = weapon_column
-	_label(_column, "WEAPON 1", &"HeadingItalic", HEADING_FONT)
+	_column = _section(weapon_column, "weapon1", "WEAPON 1", &"HeadingItalic", HEADING_FONT)
 	_auto_toggle("primary")
 	_picker("weapon")
 	if tuning.weapons.has("primary"):
 		_weapon_rows("primary")
 	# Weapon 2 is the Customize "Auxiliary / Utility" slot: mostly turrets and
 	# the auxiliary minigun, whose values tune here like Weapon 1's.
-	_column.add_child(HSeparator.new())
-	_label(_column, "WEAPON 2", &"HeadingItalic", HEADING_FONT)
+	weapon_column.add_child(HSeparator.new())
+	_column = _section(weapon_column, "weapon2", "WEAPON 2", &"HeadingItalic", HEADING_FONT)
 	_auto_toggle("secondary")
 	_picker("utility")
 	if tuning.weapons.has("secondary"):
 		_weapon_rows("secondary")
 	else:
 		_label(_column, "This utility is not a weapon: nothing to tune.", &"Muted", HINT_FONT)
-	_column = body_column
-	_label(_column, "BODY", &"HeadingItalic", HEADING_FONT)
+	_column = _section(body_column, "body", "BODY", &"HeadingItalic", HEADING_FONT)
 	_picker("chassis")
 	_picker("drive")
 	heat_toggle = _toggle(_column, "HeatToggle", "Heat", func(on: bool) -> void: tuning.heat_enabled = on)
@@ -213,7 +282,7 @@ func _rebuild() -> void:
 		["turn", "Turn speed", "rad/s"], ["jump", "Jump force", "m/s"], ["nitro", "Nitro boost", "×"],
 		["core", "Health", ""], ["weight", "Weight", "kg"]])
 	mass_label = _label(_column, "", &"Muted", HINT_FONT)
-	_label(_column, "ARMOUR", &"Eyebrow", HINT_FONT)
+	_column = _section(_column, "armour", "ARMOUR", &"Eyebrow", HINT_FONT)
 	var armour := _grid()
 	var faces: Array = tuning.body_defaults.get("plates", {}).keys()
 	faces.sort_custom(func(a: String, b: String) -> bool:
@@ -224,6 +293,7 @@ func _rebuild() -> void:
 		var spin := _spin(func() -> float: return tuning.body_value("plates", face),
 			func(amount: float) -> void: tuning.set_body("plates", amount, face), SPIN_MAX)
 		_row(armour, face.capitalize(), spin, func() -> void: tuning.clear_body("plates", face), "")
+	_fold_sections()
 	_unfocus_buttons(content)
 
 ## Body values: [key, label, unit, optional display scale] rows editing tuning.body.
@@ -240,10 +310,9 @@ func _weapon_rows(slot: String) -> void:
 	var grid := _grid()
 	for field: Array in TUNING.WEAPON_FIELDS:
 		var key: String = field[0]
-		if not tuning.has_field(slot, key):
-			continue
+		# No value is hidden (#111): one this weapon does not have shows a dash.
 		if not tuning.editable(slot, key):
-			_row(grid, field[1], null, Callable(), "")
+			_row(grid, field[1], null, Callable(), field[2])
 		else:
 			var spin := _spin(func() -> float: return tuning.value(slot, key),
 				func(amount: float) -> void: tuning.set_value(slot, key, amount), 100.0 if key in ["pierce", "stagger"] else SPIN_MAX)

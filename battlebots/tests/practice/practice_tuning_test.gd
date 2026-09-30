@@ -76,9 +76,10 @@ func run() -> void:
 	check("TUNING" in texts and "BODY" in texts and "ARMOUR" in texts, "Panel shows the Tuning title and the Weapon, Body and Armour sections")
 	var heading := func(text: String) -> Node:
 		return panel.find_children("*", "Label", true, false).filter(func(l: Node) -> bool: return (l as Label).text == text)[0]
-	var body_column: Node = heading.call("BODY").get_parent()
-	var weapon_column: Node = heading.call("WEAPON 1").get_parent()
-	check(body_column != weapon_column and body_column.get_parent() == weapon_column.get_parent()
+	var body_column: Node = panel.section("body").get_parent()
+	var weapon_column: Node = panel.section("weapon1").get_parent()
+	check(heading.call("BODY").get_parent().get_parent() == body_column and heading.call("WEAPON 1").get_parent().get_parent() == weapon_column
+		and body_column != weapon_column and body_column.get_parent() == weapon_column.get_parent()
 		and body_column.get_index() < weapon_column.get_index(), "Body is the left column and Weapon the right")
 	check(texts.has("Fire rate (/s)") and texts.has("Max speed (km/h)") and texts.has("Health"), "Panel lists weapon and body values")
 	check(texts.has("Stagger (%)") and texts.has("Camera recoil"), "Panel lists stagger strength and camera recoil")
@@ -95,7 +96,7 @@ func run() -> void:
 	check(panel.dps_labels.size() == lab.weapons.size() and dps != null and dps.get_parent() == damage_grid
 		and (damage_grid.get_child(dps.get_index() - 1) as Label).text == "DPS" and dps.get_index() == damage_default.get_index() + 2,
 		"Each weapon category reads its DPS under Damage")
-	check(weapon_column.get_child(damage_grid.get_index() + 1) is HSeparator
+	check(damage_grid.get_parent().get_child(damage_grid.get_index() + 1) is HSeparator
 		and heading.call("Range (m)").get_parent().get_index() == damage_grid.get_index() + 2
 		and heading.call("Fire rate (/s)").get_parent() == damage_grid, "A line under DPS parts fire rate and damage from the other values")
 	check(is_equal_approx(lab.dps("primary"), CombatWorld.MINIGUN_DAMAGE / CombatState.MINIGUN_CADENCE)
@@ -123,13 +124,36 @@ func run() -> void:
 	check(not lab.heat_enabled, "The heat toggle switches heat off")
 	# #93: the movement rows follow Heat directly, with no Movement label.
 	var speed_grid: Node = heading.call("Max speed (km/h)").get_parent()
-	check(panel.heat_toggle.text == "Heat" and panel.jump_toggle.get_parent() == body_column
+	check(panel.heat_toggle.text == "Heat" and panel.jump_toggle.get_parent() == panel.section("body")
 		and panel.jump_toggle.get_index() == panel.heat_toggle.get_index() + 1 and speed_grid.get_index() == panel.jump_toggle.get_index() + 1
-		and speed_grid.get_index() < heading.call("ARMOUR").get_index() and not texts.has("MOVEMENT"),
+		and speed_grid.get_index() < heading.call("ARMOUR").get_parent().get_index() and not texts.has("MOVEMENT"),
 		"Heat sits under Body, followed by the jump cooldown toggle and the movement values; no Movement label")
 	# #93: the Debug section sits above Tuning and writes into the tuning.
-	check(texts.has("DEBUG") and heading.call("DEBUG").get_index() < heading.call("TUNING").get_parent().get_index()
-		and heading.call("DEBUG").get_parent() == panel, "Debug sits above Tuning")
+	var debug_title: Node = heading.call("DEBUG").get_parent()
+	check(texts.has("DEBUG") and debug_title.get_index() < heading.call("TUNING").get_parent().get_parent().get_index()
+		and debug_title.get_parent() == panel, "Debug sits above Tuning")
+	# #111: every category folds from its title, whose arrow sits right of the text.
+	for id: String in ["debug", "tuning", "body", "armour", "weapon1", "weapon2"]:
+		var title: Control = panel.find_child("Heading_" + id, true, false)
+		var rows: Control = panel.section(id)
+		check(title != null and title.get_child(0) is Label and title.get_child(1).name == "Arrow" and rows.visible, "Category %s has a title with an arrow and starts unfolded" % id)
+		var click := InputEventMouseButton.new()
+		click.button_index = MOUSE_BUTTON_LEFT
+		click.pressed = true
+		title.gui_input.emit(click)
+		check(not rows.visible and panel.collapsed[id], "Clicking the %s title folds it" % id)
+		title.gui_input.emit(click)
+		check(rows.visible and not panel.collapsed[id], "Clicking it again unfolds it")
+	check(panel.section("armour").get_parent() == panel.section("body"), "Armour folds away with Body")
+	# Both copies of the panel (Esc menu, HUD) fold together.
+	var twin: VBoxContainer = preload("res://scripts/ui/practice_tuning_panel.gd").new()
+	root.add_child(twin)
+	twin.render(lab, session)
+	panel.set_collapsed("weapon1", true)
+	twin.render(lab, session)
+	check(not twin.section("weapon1").visible and twin.section("weapon2").visible, "The other copy of the panel folds with it")
+	panel.set_collapsed("weapon1", false)
+	twin.queue_free()
 	check(not lab.debug_trajectories and not lab.debug_impacts and lab.debug_linger == 5.0
 		and panel.linger_spin.value == 5.0, "Debug views start off and marks linger 5 s")
 	panel.trajectory_toggle.button_pressed = true
@@ -231,6 +255,27 @@ func run() -> void:
 	check(draw._shown.size() == 3, "Marks stay until the linger time")
 	draw.render(lab, 1.5)
 	check(draw._shown.is_empty(), "Marks go after the linger time")
+	# #111: a melee check that reached no one draws the volume it checked; a
+	# repeating weapon's next check takes the place of its last mark.
+	var checked_box := BoxShape3D.new()
+	checked_box.size = Vector3(2.0, 0.5, 1.0)
+	var checked_drum := CylinderShape3D.new()
+	checked_drum.radius = 0.4
+	checked_drum.height = 0.2
+	var tilted := Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(1, 2, 3))
+	lab.debug_area(Transform3D.IDENTITY, checked_box)
+	lab.debug_area(Transform3D.IDENTITY, checked_drum, "saw")
+	lab.debug_area(tilted, checked_drum, "saw")
+	draw.render(lab, 0.0)
+	check(draw._shown.size() == 2, "A repeating check replaces its last mark (%d shown)" % draw._shown.size())
+	var box_mark: MeshInstance3D = draw._shown[0][0]
+	var drum_mark: MeshInstance3D = draw._shown[1][0]
+	check(box_mark.mesh is BoxMesh and (box_mark.mesh as BoxMesh).size.is_equal_approx(checked_box.size)
+		and drum_mark.mesh is CylinderMesh and is_equal_approx((drum_mark.mesh as CylinderMesh).top_radius, 0.4)
+		and is_equal_approx((drum_mark.mesh as CylinderMesh).height, 0.2) and drum_mark.transform.is_equal_approx(tilted),
+		"A checked volume draws as its own box or cylinder, where it was")
+	check((box_mark.material_override as StandardMaterial3D).albedo_color.is_equal_approx(draw.AREA_COLOR), "Checked volumes are see-through white")
+	draw.render(lab, lab.debug_linger + 1.0)
 	lab.debug_impact(Vector3.ZERO)
 	draw.render(lab, 0.0)
 	lab.debug_impacts = false
@@ -605,6 +650,51 @@ func run() -> void:
 	blast_marks = lab.take_debug_marks()
 	check(blast_marks.size() == 1 and blast_marks[0].layer == "", "A blast that reaches no one is marked harmless")
 	session.leave()
+	# #111: a melee weapon that reaches no one marks the volume it checked; with
+	# an area of effect it blasts and marks that radius instead. Through the real
+	# session: hold the weapon for 1.5 s, let go, and wait out its cooldown.
+	var use := func(ticks: int, held: bool) -> void:
+		for tick: int in ticks:
+			var command := BotCommand.new()
+			command.brake = true
+			command.primary_held = held
+			command.primary_pressed = held and tick == 0
+			session.submit_local(command)
+			await frames(1)
+	for case: Array in [["saw", false, "cylinder"], ["lifter", false, "box"], ["vertical_spinner", false, "box"], ["horizontal_spinner", false, "cylinder"],
+			["battering_ram", true, "box"], ["spear_fork", true, "box"], ["grinder_drum", true, "cylinder"]]:
+		var melee_build := session.registry.atlas() if case[1] else session.registry.starter()
+		melee_build.parts.weapon = case[0]
+		check(session.practice(melee_build, "foundry", "duel") == OK, "%s duel starts" % case[0])
+		await frames(3)
+		lab = session.practice_tuning()
+		lab.heat_enabled = false
+		lab.debug_impacts = true
+		var wielder: MvpBot = session.local_source()
+		await use.call(90, true)
+		await use.call(30, false)
+		var miss_marks: Array[Dictionary] = lab.take_debug_marks()
+		check(not miss_marks.is_empty() and miss_marks.all(func(m: Dictionary) -> bool:
+			return m.has(case[2]) and m.radius == 0.0 and m.layer == "" and m.position.distance_to(wielder.body.global_position) < 12.0),
+			"A %s that reaches no one marks the %s it checked (%s, bot at %s)" % [case[0], case[2], miss_marks, wielder.body.global_position])
+		# The panel hides no value: every row is listed, with a dash where the weapon has none.
+		panel = preload("res://scripts/ui/practice_tuning_panel.gd").new()
+		root.add_child(panel)
+		panel.render(lab, session)
+		var row_labels: Array = panel.section("weapon1").find_children("*", "Label", true, false).map(func(l: Node) -> String: return (l as Label).text)
+		check(lab.WEAPON_FIELDS.all(func(field: Array) -> bool:
+			return row_labels.has(field[1] + (" (%s)" % field[2] if not str(field[2]).is_empty() else ""))),
+			"The %s lists every weapon value (%s)" % [case[0], row_labels])
+		panel.queue_free()
+		await use.call(200, false)
+		lab.set_value("primary", "aoe", 2.0)
+		lab.take_debug_marks()
+		await use.call(90, true)
+		await use.call(30, false)
+		miss_marks = lab.take_debug_marks()
+		check(not miss_marks.is_empty() and miss_marks.all(func(m: Dictionary) -> bool: return is_equal_approx(m.radius, 2.0) and not m.has(case[2])),
+			"With an area of effect a missing %s marks that radius (%d marks)" % [case[0], miss_marks.size()])
+		session.leave()
 	# Allow auto fire, through the real weapon rules: hold the button for 8 s
 	# (the lifter reloads for 3 s after each launch).
 	var registry := ContentRegistry.new()

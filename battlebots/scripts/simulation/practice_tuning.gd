@@ -53,7 +53,9 @@ var debug_hitboxes := false
 var debug_player_hitboxes := false
 var debug_linger := DEFAULT_DEBUG_LINGER
 ## {type:"path", points:PackedVector3Array} or {type:"impact", position,
-## radius}; radius 0 marks a weapon without an area of effect.
+## radius}; radius 0 marks a weapon without an area of effect. A melee check
+## that reached no one adds its volume: basis and box (size) or cylinder
+## (radius, height).
 var debug_marks: Array[Dictionary] = []
 ## slot ("primary"/"secondary") -> {id, title, defaults:{field:value}, values:{field:value}}.
 var weapons: Dictionary = {}
@@ -361,10 +363,24 @@ func debug_path(points: PackedVector3Array) -> void:
 
 ## What an impact reached: a sphere of radius, or the point itself for 0.
 ## layer is what a bot hit there took it on (hit_layer), "" for none; for an
-## area (radius > 0), "damage" when it damaged something.
-func debug_impact(position: Vector3, radius := 0.0, layer := "") -> void:
+## area (radius > 0), "damage" when it damaged something. A named replace
+## takes the place of the last mark of that name (debug_area).
+func debug_impact(position: Vector3, radius := 0.0, layer := "", replace := "") -> void:
 	if debug_impacts:
-		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0), "layer":layer})
+		_debug_mark({"type":"impact", "position":position, "radius":maxf(radius, 0.0), "layer":layer, "replace":replace})
+
+## The volume a melee weapon checked without reaching anyone (#111): its box or
+## cylinder at pose. A weapon that checks on a cadence (saw, grinder, spinners)
+## names itself in replace, so each check takes the place of its last mark.
+func debug_area(pose: Transform3D, shape: Shape3D, replace := "") -> void:
+	if not debug_impacts:
+		return
+	var mark := {"type":"impact", "position":pose.origin, "basis":pose.basis, "radius":0.0, "layer":"", "replace":replace}
+	if shape is BoxShape3D:
+		mark.box = (shape as BoxShape3D).size
+	elif shape is CylinderShape3D:
+		mark.cylinder = Vector2((shape as CylinderShape3D).radius, (shape as CylinderShape3D).height)
+	_debug_mark(mark)
 
 ## What a hit on this zone of a bot lands on first: "armour" (a fitted plate
 ## not yet broken), "component" (the weapon or a drive pod still working) or
@@ -406,7 +422,9 @@ func utility() -> String:
 
 ## Radius of a tuned splash for a hit of this kind, 0 for none. The mortar
 ## keeps its own blast, whose radius tunes through scale("aoe"); the hammer
-## blasts where its head lands (CombatWorld._hammer_blasts), hit or miss.
+## blasts where its head lands (CombatWorld._hammer_blasts), hit or miss. The
+## other melee weapons blast around their tool when they reach no one
+## (CombatWorld._melee_miss).
 func splash_radius(slot: String, kind: String) -> float:
 	if kind in ["mortar", "hammer"] or not has_field(slot, "aoe"):
 		return 0.0

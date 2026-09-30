@@ -1111,6 +1111,21 @@ local `CombatState.snapshot()`; hammer visuals and `HammerSlamDetector` read
 on the wire: remote views keep 1, and untuned (all online and LAN) play is
 unchanged. No wire, `BotCommand` or build change.
 
+Melee miss areas (#111, 30 September 2026): for a bot with Practice tuning, a
+melee check that reaches no one records the volume it checked
+(`practice_tuning.gd` `debug_area`: box or cylinder, drawn see-through white by
+`PracticeDebugDraw`). The lifter records on its launch, a ram punch or spear
+thrust when the stroke ends, and the saw, grinder drum and spinners on their
+hit cadence while running (each new mark replaces that weapon's last). With a
+tuned Area of effect the miss instead blasts that radius around the volume
+(`CombatWorld._melee_miss`, the same falloff as `_splash_miss`), as the hammer
+does where its head lands. `CombatWorld` reaches none of this without
+`practice_tuning`, so untuned, online and LAN play are unchanged. The tuning
+panel lists every weapon value for every weapon (a dash where the weapon has
+none) and its categories fold from their titles (`practice_tuning_panel.gd`
+`collapsed`, shared by the Esc-menu card and the HUD copy, not saved). No wire,
+`BotCommand` or build change.
+
 Possess (`MvpSession.practice_possess`, offline Practice Duel only) moves
 `local_entity`, `peer_entities[1]`, the player's `players` entry and debug
 views to the NPC, and `PracticeBotDirector.possess` turns the old body into a

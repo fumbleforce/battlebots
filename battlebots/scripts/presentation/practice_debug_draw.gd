@@ -4,7 +4,9 @@ const TUNING = preload("res://scripts/simulation/practice_tuning.gd")
 ## records on the player's PracticeTuning (scripts/simulation/practice_tuning.gd)
 ## while the Esc menu's Debug toggles are on. Shot paths are lines; impacts are
 ## see-through spheres the size of the area of effect (red when they did
-## damage), or small solid cubes for weapons without one. Each mark stays for the tuning's debug_linger seconds
+## damage), or small solid cubes for weapons without one. A melee weapon that
+## reached no one (#111) shows the box or cylinder it checked, see-through
+## white. Each mark stays for the tuning's debug_linger seconds
 ## of unpaused play; turning a toggle off clears its marks.
 ##
 ## With hitboxes on, every other bot (and, with Player hitboxes on, the
@@ -60,7 +62,8 @@ const ARMOUR_FACES := {"top":Vector3.UP, "underside":Vector3.DOWN, "front":Vecto
 	"rear":Vector3.BACK, "left":Vector3.LEFT, "right":Vector3.RIGHT}
 ## Component zone -> its outward direction.
 const COMPONENT_FACES := {"weapon":Vector3.FORWARD, "drive_left":Vector3.LEFT, "drive_right":Vector3.RIGHT}
-## [MeshInstance3D, type, age] per mark on screen.
+## [MeshInstance3D, type, age, replace] per mark on screen; a new mark with the
+## same non-empty replace name takes the place of the old one.
 var _shown: Array = []
 var _path_material := StandardMaterial3D.new()
 var _area_material := StandardMaterial3D.new()
@@ -142,6 +145,8 @@ func _add(mark: Dictionary) -> void:
 		item.mesh = line
 	else:
 		var radius: float = mark.radius
+		# A melee check that reached no one (#111) draws the volume it checked.
+		var checked: bool = mark.has("box") or mark.has("cylinder")
 		if radius > 0.0:
 			var sphere := SphereMesh.new()
 			sphere.radius = radius
@@ -149,18 +154,31 @@ func _add(mark: Dictionary) -> void:
 			sphere.radial_segments = SPHERE_SEGMENTS
 			sphere.rings = SPHERE_RINGS
 			item.mesh = sphere
+		elif mark.has("cylinder"):
+			var drum := CylinderMesh.new()
+			drum.top_radius = mark.cylinder.x
+			drum.bottom_radius = mark.cylinder.x
+			drum.height = mark.cylinder.y
+			drum.radial_segments = SPHERE_SEGMENTS
+			item.mesh = drum
 		else:
 			var cube := BoxMesh.new()
-			cube.size = Vector3.ONE * IMPACT_CUBE_SIZE
+			cube.size = mark.box if checked else Vector3.ONE * IMPACT_CUBE_SIZE
 			item.mesh = cube
 		var layer: String = mark.get("layer", "")
-		if radius > 0.0:
+		if radius > 0.0 or checked:
 			item.material_override = _area_material if layer.is_empty() else _area_damage_material
 		else:
 			item.material_override = _impact_hit_materials[layer]
-		item.position = mark.position
+		item.transform = Transform3D(mark.get("basis", Basis.IDENTITY), mark.position)
+	var replace: String = mark.get("replace", "")
+	if not replace.is_empty():
+		for entry: Array in _shown:
+			if entry[3] == replace:
+				entry[0].queue_free()
+		_shown = _shown.filter(func(entry: Array) -> bool: return entry[3] != replace)
 	add_child(item)
-	_shown.append([item, mark.type, 0.0])
+	_shown.append([item, mark.type, 0.0, replace])
 
 func _render_hitboxes(others: Array) -> void:
 	var seen: Dictionary = {}
