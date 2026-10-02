@@ -1,6 +1,7 @@
 extends SceneTree
 ## Elysium lethal edges (#115): the islands hold a bot that stays on them, a
-## bridge carries it across the chasm, while driving off the Halo's rim, falling
+## bridge carries it across the chasm, a balustrade gives way to a bot that
+## rams it, while driving off the Halo's rim, falling
 ## into the chasm or a cloud well is fatal (the wreck keeps falling, out of
 ## collision, into the clouds), and Practice returns the player afterwards.
 ## godot --headless --path battlebots --script res://tests/simulation/elysium_fall_test.gd
@@ -58,6 +59,21 @@ func run() -> void:
 	var at := bot.body.global_position
 	check(not bot.combat.eliminated and at.z < GROUND.sanctum_radius(PI * 0.5) - 2.0 and at.y > float(cfg.sanctum.height) - 0.5,
 		"A bridge carries a bot over the chasm onto the Sanctum (at %s)" % str(at))
+	# Ramming a balustrade on the Sanctum's edge breaks it (#115): the bot
+	# carries on through and over the edge.
+	world.reset_round()
+	await tick(world, 5)
+	var rail_bearing := 0.49
+	var outward := Vector2(cos(rail_bearing), sin(rail_bearing))
+	var rail: String = world.props.props.keys().filter(func(n: String) -> bool:
+		var spot: Vector3 = world.props.props[n].at
+		return world.props.props[n].kind == "balustrade" and Vector2(spot.x, spot.z).normalized().dot(outward) > 0.999)[0]
+	place(bot, outward * 25.0, facing(outward))
+	await tick(world, 20)
+	await tick(world, 480, bot)
+	check(world.props.destroyed.has(rail), "Ramming the balustrade breaks it (%s)" % rail)
+	check(bot.combat.eliminated and bot.combat.elimination_reason == MvpBot.FALL_REASON,
+		"A bot that rams through a balustrade goes over the edge (at %s)" % str(bot.body.global_position))
 	# Off the Halo's outer rim.
 	world.reset_round()
 	await tick(world, 5)

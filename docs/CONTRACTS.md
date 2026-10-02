@@ -1999,3 +1999,18 @@ unchanged; the build bump rejects stale peers.
   this file was refreshed; its Sunreach inputs are unchanged.
 - The centre pickup stands on the Sanctum at its height (5.2 m);
   `tests/simulation/arena_spawns_test.gd` now finds the centre pickup by x/z.
+- Destructible architecture: every Elysium column (with its stretch of
+  entablature), arch pier and attic, obelisk shaft, broken column, balustrade
+  run and the rotunda dome is an `ArenaProps` prop (kinds `column`, `pier`,
+  `attic`, `obelisk`, `stump`, `balustrade`, `dome` in `data/arena_props.json`).
+  Each body stands in its own frame (shapes authored in the arena frame).
+- `ArenaProps` (all arenas): a prop's `arena_prop` meta may carry `supports`
+  (prop names) and `collapse_after` (count). When that many supports are
+  broken the prop breaks too, recorded with blow kind `"collapse"`, point = its
+  `at`, axis down; it replicates like any break. Elysium: an attic falls with
+  either pier, the dome once four rotunda columns are gone.
+- `ArenaPropVisual` (presentation): `prop_instances` entries may be a whole
+  `[MeshInstance3D]` (hidden on break, its `prop_parts` thrown from the node's
+  transform) besides `[MultiMeshInstance3D, index]`; an arena visual with
+  `prop_broken(name, prop, blow, moving)` adds its own break effects; rubble of
+  `column`, `pier`, `obelisk` and `stump` stays instead of sinking after 4 s.

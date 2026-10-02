@@ -280,11 +280,24 @@ static func surface_at(x: float, z: float) -> float:
 	return a + (b - a) * tx + (c - a) * tz if tx + tz < 1.0 else d + (c - d) * (1.0 - tx) + (b - d) * (1.0 - tz)
 
 # --- Architecture ------------------------------------------------------------
+# Every structure is a set of bodies. Breakable ones (#115) register with
+# ArenaProps through PROP_META: each column carries its stretch of entablature,
+# arch piers hold up their attic and the rotunda's columns its dome, which
+# collapse (ArenaProps supports) once enough of what holds them up is gone.
+
+## Breakable bodies register with ArenaProps under this meta: {kind, name, at,
+## radius[, supports, collapse_after]}.
+const PROP_META := &"arena_prop"
+## The dome caves in once this many rotunda columns are gone.
+const DOME_COLLAPSE := 4
 
 ## Every structure, the rotunda and the authored ones with their mirrors:
-## {name, type, base: Transform3D on the ground, parts: Array of collision
-## primitives {shape: "box"|"cylinder"|"hull", xform (shape centre, arena
-## frame), size | radius + height | points}} plus type parameters for the art.
+## {name, type, base: Transform3D on the ground, height, bodies}, each body
+## {name, kind (ArenaProps kind, "" when it never breaks), at (ground point),
+## radius, frame (the body's own frame: the art builds each breakable piece in
+## it), parts: collision primitives {shape: "box"|"cylinder"|"hull", xform
+## (shape centre, arena frame), size | radius + height | points}} plus type
+## parameters for the art.
 static func structures() -> Array[Dictionary]:
 	if not _structures.is_empty():
 		return _structures
@@ -295,7 +308,7 @@ static func structures() -> Array[Dictionary]:
 	for entry: Dictionary in cfg.structures:
 		for sign: float in [1.0, -1.0]:
 			var item := {"name":"%s%d" % [String(entry.type).to_pascal_case(), index], "type":String(entry.type),
-				"height":float(entry.height), "parts":[]}
+				"height":float(entry.height), "bodies":[], "tag":str(index)}
 			index += 1
 			match String(entry.type):
 				"colonnade":
@@ -312,33 +325,49 @@ static func structures() -> Array[Dictionary]:
 	_structures = out
 	return out
 
+## Every body of every structure.
+static func bodies() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for item: Dictionary in structures():
+		for body: Dictionary in item.bodies:
+			out.append(body)
+	return out
+
 static func _ground(p: Vector2) -> Vector3:
 	return Vector3(p.x, height_at(p.x, p.y), p.y)
 
-static func _box(item: Dictionary, size: Vector3, centre: Vector3, yaw := 0.0) -> void:
-	item.parts.append({"shape":"box", "size":size, "xform":Transform3D(Basis(Vector3.UP, yaw), centre)})
+static func _body(item: Dictionary, name: String, kind: String, frame: Transform3D, radius: float) -> Dictionary:
+	var body := {"name":name, "kind":kind, "at":frame.origin, "radius":radius, "frame":frame, "parts":[]}
+	item.bodies.append(body)
+	return body
 
-static func _cylinder(item: Dictionary, radius: float, height: float, base: Vector3) -> void:
-	item.parts.append({"shape":"cylinder", "radius":radius, "height":height, "xform":Transform3D(Basis.IDENTITY, base + Vector3.UP * height * 0.5)})
+static func _box(body: Dictionary, size: Vector3, centre: Vector3, yaw := 0.0) -> void:
+	body.parts.append({"shape":"box", "size":size, "xform":Transform3D(Basis(Vector3.UP, yaw), centre)})
+
+static func _cylinder(body: Dictionary, radius: float, height: float, base: Vector3) -> void:
+	body.parts.append({"shape":"cylinder", "radius":radius, "height":height, "xform":Transform3D(Basis.IDENTITY, base + Vector3.UP * height * 0.5)})
 
 static func _rotunda() -> Dictionary:
 	var cfg := settings().rotunda
 	var floor_y := sanctum_height(0.0)
-	var item := {"name":"Rotunda", "type":"rotunda", "base":Transform3D(Basis.IDENTITY, Vector3(0, floor_y, 0)), "parts":[],
+	var item := {"name":"Rotunda", "type":"rotunda", "base":Transform3D(Basis.IDENTITY, Vector3(0, floor_y, 0)), "bodies":[],
 		"columns":int(cfg.columns), "radius":float(cfg.radius), "column_radius":float(cfg.column_radius), "height":float(cfg.height),
 		"entablature":float(cfg.entablature), "dome_rise":float(cfg.dome_rise)}
 	var count := int(cfg.columns)
 	var radius := float(cfg.radius)
 	var height := float(cfg.height)
+	var top := floor_y + height
+	# Each column carries the bay of the ring entablature centred over it.
+	var chord := 2.0 * (radius + 1.5) * sin(PI / count) + 0.6
+	var columns: Array[String] = []
 	for i: int in count:
 		var a := TAU * (float(i) + 0.5) / count
-		_cylinder(item, float(cfg.column_radius), height, Vector3(cos(a) * radius, floor_y, sin(a) * radius))
-	# The ring entablature: one chord per bay, over the column tops.
-	var top := floor_y + height
-	var chord := 2.0 * (radius + 1.5) * sin(PI / count) + 0.6
-	for i: int in count:
-		var a := TAU * float(i) / count
-		_box(item, Vector3(chord, float(cfg.entablature), 3.4), Vector3(cos(a) * radius, top + float(cfg.entablature) * 0.5, sin(a) * radius), PI * 0.5 - a)
+		var at := Vector3(cos(a) * radius, floor_y, sin(a) * radius)
+		var body := _body(item, "ColumnRotunda%d" % i, "column", Transform3D(Basis(Vector3.UP, -a), at), float(cfg.column_radius) + 0.5)
+		body.angle = a
+		_cylinder(body, float(cfg.column_radius), height, at)
+		_box(body, Vector3(chord, float(cfg.entablature), 3.4), Vector3(at.x, top + float(cfg.entablature) * 0.5, at.z), PI * 0.5 - a)
+		columns.append(body.name)
 	# The dome, a hull over the entablature.
 	var points := PackedVector3Array()
 	var dome_r := radius + 1.5
@@ -351,7 +380,10 @@ static func _rotunda() -> Dictionary:
 			var a := TAU * float(s) / 16.0
 			points.append(Vector3(cos(a) * rr, base_y + rise * sin(t * PI * 0.5), sin(a) * rr))
 	points.append(Vector3(0, base_y + rise, 0))
-	item.parts.append({"shape":"hull", "points":points, "xform":Transform3D.IDENTITY})
+	var dome := _body(item, "DomeRotunda", "dome", Transform3D(Basis.IDENTITY, Vector3(0, floor_y, 0)), dome_r)
+	dome.parts.append({"shape":"hull", "points":points, "xform":Transform3D.IDENTITY})
+	dome.supports = columns
+	dome.collapse_after = DOME_COLLAPSE
 	return item
 
 static func _colonnade(item: Dictionary, from: Vector2, to: Vector2, count: int) -> void:
@@ -359,20 +391,27 @@ static func _colonnade(item: Dictionary, from: Vector2, to: Vector2, count: int)
 	var dir := (to - from).normalized()
 	var yaw := atan2(-dir.y, dir.x)
 	var low := INF
+	var top := INF
 	var columns: Array[Vector3] = []
 	for i: int in count:
-		var p := from.lerp(to, float(i) / float(maxi(count - 1, 1)))
-		var base := _ground(p)
+		var base := _ground(from.lerp(to, float(i) / float(maxi(count - 1, 1))))
 		columns.append(base)
 		low = minf(low, base.y)
-	var top := INF
-	for base: Vector3 in columns:
-		_box(item, PLINTH, base + Vector3.UP * (PLINTH.y * 0.5 - 0.3))
-		_cylinder(item, COLUMN_RADIUS, height, base)
 		top = minf(top, base.y + height)
-	var mid := (from + to) * 0.5
-	_box(item, Vector3(from.distance_to(to) + PLINTH.x, BEAM.y, BEAM.x), Vector3(mid.x, top + BEAM.y * 0.5, mid.y), yaw)
-	item.base = Transform3D(Basis(Vector3.UP, yaw), Vector3(mid.x, low, mid.y))
+	var spacing := from.distance_to(to) / float(maxi(count - 1, 1))
+	for i: int in count:
+		var base := columns[i]
+		var body := _body(item, "ColumnC%s_%d" % [item.tag, i], "column", Transform3D(Basis(Vector3.UP, yaw), base), PLINTH.x * 0.5)
+		_box(body, PLINTH, base + Vector3.UP * (PLINTH.y * 0.5 - 0.3))
+		_cylinder(body, COLUMN_RADIUS, height, base)
+		# Its stretch of the entablature: halfway to each neighbour, past the ends.
+		var back := spacing * 0.5 if i > 0 else PLINTH.x * 0.5
+		var ahead := spacing * 0.5 if i < count - 1 else PLINTH.x * 0.5
+		var mid := Vector2(base.x, base.z) + dir * (ahead - back) * 0.5
+		_box(body, Vector3(back + ahead, BEAM.y, BEAM.x), Vector3(mid.x, top + BEAM.y * 0.5, mid.y), yaw)
+		body.beam = Vector2(back, ahead)
+		body.top = top
+	item.base = Transform3D(Basis(Vector3.UP, yaw), Vector3((from.x + to.x) * 0.5, low, (from.y + to.y) * 0.5))
 	item.columns = columns
 	item.top = top
 
@@ -380,32 +419,41 @@ static func _arch(item: Dictionary, at: Vector2, yaw: float, span: float) -> voi
 	var height := float(item.height)
 	var basis := Basis(Vector3.UP, yaw)
 	var base := _ground(at)
+	var piers: Array[String] = []
 	for side: float in [-1.0, 1.0]:
 		var offset := basis * Vector3(side * (span + PIER.x) * 0.5, 0, 0)
 		var foot := _ground(at + Vector2(offset.x, offset.z))
 		var bottom := minf(foot.y, base.y) - 0.5
-		_box(item, Vector3(PIER.x, height - ATTIC - bottom + base.y, PIER.y), Vector3(foot.x, (bottom + base.y + height - ATTIC) * 0.5, foot.z), yaw)
-	_box(item, Vector3(span + PIER.x * 2.0, ATTIC, PIER.y), base + Vector3.UP * (height - ATTIC * 0.5), yaw)
+		var body := _body(item, "PierA%s_%s" % [item.tag, "l" if side < 0.0 else "r"], "pier", Transform3D(basis, Vector3(foot.x, base.y, foot.z)), PIER.y * 0.6)
+		_box(body, Vector3(PIER.x, height - ATTIC - bottom + base.y, PIER.y), Vector3(foot.x, (bottom + base.y + height - ATTIC) * 0.5, foot.z), yaw)
+		piers.append(body.name)
+	var attic := _body(item, "AtticA%s" % item.tag, "attic", Transform3D(basis, base + Vector3.UP * (height - ATTIC)), (span + PIER.x * 2.0) * 0.5)
+	_box(attic, Vector3(span + PIER.x * 2.0, ATTIC, PIER.y), base + Vector3.UP * (height - ATTIC * 0.5), yaw)
+	attic.supports = piers
+	attic.collapse_after = 1
 	item.base = Transform3D(basis, base)
 	item.span = span
 
 static func _obelisk(item: Dictionary, at: Vector2) -> void:
 	var height := float(item.height)
 	var base := _ground(at)
-	_box(item, PEDESTAL, base + Vector3.UP * (PEDESTAL.y * 0.5 - 0.4))
+	var pedestal := _body(item, "PedestalO%s" % item.tag, "", Transform3D(Basis.IDENTITY, base), PEDESTAL.x * 0.5)
+	_box(pedestal, PEDESTAL, base + Vector3.UP * (PEDESTAL.y * 0.5 - 0.4))
+	var shaft := _body(item, "ObeliskO%s" % item.tag, "obelisk", Transform3D(Basis.IDENTITY, base), OBELISK.x * 1.4)
 	var points := PackedVector3Array()
-	var shaft := height - 2.0
+	var top := height - 2.0
 	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
 		points.append(base + Vector3(corner.x * OBELISK.x, PEDESTAL.y - 0.4, corner.y * OBELISK.x))
-		points.append(base + Vector3(corner.x * OBELISK.y, shaft, corner.y * OBELISK.y))
+		points.append(base + Vector3(corner.x * OBELISK.y, top, corner.y * OBELISK.y))
 	points.append(base + Vector3(0, height, 0))
-	item.parts.append({"shape":"hull", "points":points, "xform":Transform3D.IDENTITY})
+	shaft.parts.append({"shape":"hull", "points":points, "xform":Transform3D.IDENTITY})
 	item.base = Transform3D(Basis.IDENTITY, base)
 
 static func _stump(item: Dictionary, at: Vector2) -> void:
 	var base := _ground(at)
-	_box(item, PLINTH, base + Vector3.UP * (PLINTH.y * 0.5 - 0.3))
-	_cylinder(item, STUMP_RADIUS, float(item.height), base)
+	var body := _body(item, "StumpS%s" % item.tag, "stump", Transform3D(Basis.IDENTITY, base), STUMP_RADIUS + 0.4)
+	_box(body, PLINTH, base + Vector3.UP * (PLINTH.y * 0.5 - 0.3))
+	_cylinder(body, STUMP_RADIUS, float(item.height), base)
 	item.base = Transform3D(Basis.IDENTITY, base)
 
 static func _balustrade(item: Dictionary, from: float, to: float, radius: float) -> void:
@@ -420,7 +468,11 @@ static func _balustrade(item: Dictionary, from: float, to: float, radius: float)
 		var b: Vector3 = posts[i + 1]
 		var mid := (a + b) * 0.5
 		var along := Vector2(b.x - a.x, b.z - a.z)
-		_box(item, Vector3(along.length() + RAIL_DEPTH, height, RAIL_DEPTH), Vector3(mid.x, mid.y + height * 0.5, mid.z), atan2(-along.y, along.x))
+		var yaw := atan2(-along.y, along.x)
+		# Each run between two posts breaks on its own.
+		var body := _body(item, "RailB%s_%d" % [item.tag, i], "balustrade", Transform3D(Basis(Vector3.UP, yaw), mid), along.length() * 0.5)
+		_box(body, Vector3(along.length() + RAIL_DEPTH, height, RAIL_DEPTH), Vector3(mid.x, mid.y + height * 0.5, mid.z), yaw)
+		body.length = along.length()
 	item.base = Transform3D(Basis.IDENTITY, posts[0])
 	item.posts = posts
 
@@ -454,11 +506,15 @@ func _ready() -> void:
 	var root := Node3D.new()
 	root.name = "ElysiumStructures"
 	add_child(root)
-	for item: Dictionary in structures():
+	for item: Dictionary in bodies():
 		var body := StaticBody3D.new()
 		body.name = item.name
 		body.collision_layer = 1
 		body.collision_mask = 2
+		# The body stands in its own frame (ArenaProps measures rams toward it);
+		# its shapes are authored in the arena frame.
+		body.transform = item.frame
+		var into: Transform3D = item.frame.affine_inverse()
 		for part: Dictionary in item.parts:
 			var collision := CollisionShape3D.new()
 			match String(part.shape):
@@ -475,7 +531,13 @@ func _ready() -> void:
 					var hull := ConvexPolygonShape3D.new()
 					hull.points = part.points
 					collision.shape = hull
-			collision.transform = part.xform
+			collision.transform = into * part.xform
 			body.add_child(collision)
 		body.set_meta(&"elysium_structure", item.name)
+		if not String(item.kind).is_empty():
+			var meta := {"kind":item.kind, "name":item.name, "at":item.at, "radius":item.radius}
+			if item.has("supports"):
+				meta.supports = item.supports
+				meta.collapse_after = item.collapse_after
+			body.set_meta(PROP_META, meta)
 		root.add_child(body)

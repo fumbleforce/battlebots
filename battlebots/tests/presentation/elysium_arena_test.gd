@@ -45,15 +45,43 @@ func _run() -> void:
 		var at: Vector3 = item.base.origin
 		var mirrored := items.any(func(other: Dictionary) -> bool: return other.type == item.type and other.base.origin.distance_to(Vector3(-at.x, at.y, -at.z)) < 0.01)
 		check(mirrored or item.type == "rotunda", "Structure lacks its mirrored partner: %s" % item.name)
-		for part: Dictionary in item.parts:
-			var centre: Vector3 = part.xform.origin
-			if part.shape == "hull":
-				continue
-			check(GROUND.on_land(centre.x, centre.z), "%s stands over the sky at %s" % [item.name, str(centre)])
+		for body: Dictionary in item.bodies:
+			for part: Dictionary in body.parts:
+				var centre: Vector3 = part.xform.origin
+				if part.shape == "hull":
+					continue
+				check(GROUND.on_land(centre.x, centre.z), "%s stands over the sky at %s" % [body.name, str(centre)])
 	var bodies := arena.get_node("ElysiumStructures")
-	check(bodies.get_child_count() == items.size(), "Structure bodies differ from the list")
+	var listed := GROUND.bodies()
+	check(bodies.get_child_count() == listed.size(), "Structure bodies differ from the list")
 	for body: StaticBody3D in bodies.get_children():
-		check(body.collision_layer == 1 and body.collision_mask == 2 and body.get_child_count() > 0, "Structure %s does not collide like the arena shell" % body.name)
+		check(body.collision_mask == 2 and body.collision_layer & 1 and body.get_child_count() > 0, "Structure %s does not collide like the arena shell" % body.name)
+	# Destructible architecture (#115): every piece but the obelisk pedestals is
+	# an ArenaProps prop on the prop layer.
+	var breakable := listed.filter(func(body: Dictionary) -> bool: return not String(body.kind).is_empty())
+	check(breakable.size() >= 90 and world.props.props.size() == breakable.size(), "Every breakable piece registers as a prop (%d of %d)" % [world.props.props.size(), breakable.size()])
+	for body: Dictionary in breakable:
+		var node: StaticBody3D = bodies.get_node(String(body.name))
+		check(node.collision_layer & BaselineConfig.PROP_LAYER, "%s is not on the prop layer" % body.name)
+		check(world.props.props.has(body.name) and world.props.props[body.name].kind == body.kind, "%s is not registered as %s" % [body.name, body.kind])
+	var column: String = "ColumnC0_1"
+	check(world.props.damage(column, 1.0e6, "cannon", world.props.props[column].at, Vector3.LEFT) >= 0.0 and bodies.get_node(column).collision_layer == 0,
+		"A colonnade column breaks and stops colliding")
+	# The arch's attic falls with either pier.
+	world.props.damage("PierA6_l", 1.0e6, "hammer", world.props.props["PierA6_l"].at, Vector3.LEFT)
+	check(world.props.destroyed.has("AtticA6") and world.props.destroyed["AtticA6"].kind == "collapse" and bodies.get_node("AtticA6").collision_layer == 0,
+		"Breaking a pier brings its attic down")
+	# The dome caves in once four rotunda columns are gone, not before.
+	for i: int in 3:
+		world.props.damage("ColumnRotunda%d" % i, 1.0e6, "cannon", world.props.props["ColumnRotunda%d" % i].at, Vector3.LEFT)
+	check(not world.props.destroyed.has("DomeRotunda"), "The dome stands on nine columns")
+	world.props.damage("ColumnRotunda6", 1.0e6, "cannon", world.props.props["ColumnRotunda6"].at, Vector3.LEFT)
+	check(world.props.destroyed.has("DomeRotunda") and bodies.get_node("DomeRotunda").collision_layer == 0, "The dome caves in on eight columns")
+	# Flames do not burn marble; a new round restores everything.
+	var rail: String = world.props.props.keys().filter(func(n: String) -> bool: return world.props.props[n].kind == "balustrade")[0]
+	check(world.props.damage(rail, 1.0e6, "flamer", world.props.props[rail].at, Vector3.LEFT) < 0.0, "Fire does not break marble")
+	world.props.reset_round()
+	check(world.props.destroyed.is_empty() and bodies.get_node("DomeRotunda").collision_layer != 0 and bodies.get_node(column).collision_layer != 0, "A new round restores the architecture")
 	# The chasm round the Sanctum and the wells are open sky; the bridges cross it.
 	for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
 		var gap := (GROUND.sanctum_radius(angle) + GROUND.halo_inner(angle)) * 0.5
@@ -149,15 +177,13 @@ func _capture(world: AuthorityWorld) -> void:
 	camera.current = true
 	camera.fov = 68
 	camera.far = 6000
+	# Two bots on real team-1 starts (lanes 2 and 4), as a match places them.
 	var registry := ContentRegistry.new()
 	for index: int in range(2):
-		var bot := MvpBot.create(index + 1, index, registry.starter(index == 1), registry)
-		world.add_child(bot)
+		var bot := world.spawn(index + 1, 0, index, registry.starter(index == 1), 2)
 		bot.body.freeze = true
-		var at := Vector3(-8 + index * 16, 0, 84 - index * 12)
-		bot.body.position = at + Vector3(0, GROUND.height_at(at.x, at.z) + bot.ground_clearance() + 0.05, 0)
-		bot.body.rotation.y = index * PI + 0.3
-		bot.previous_pose = bot.body.global_transform
+		bot.body.global_transform = bot.spawn_pose
+		bot.previous_pose = bot.spawn_pose
 	var views := [
 		["overview", Vector3(0, 80, 210), Vector3(0, -6, 10)],
 		["high", Vector3(-190, 230, -190), Vector3(0, -20, 0)],
@@ -171,20 +197,40 @@ func _capture(world: AuthorityWorld) -> void:
 		["colonnade", Vector3(60, 5.0, 10), Vector3(84, 9.0, -4)],
 		["glare", Vector3(0, 8.0, -110), Vector3(30, 20.0, -400)],
 		["below", Vector3(-160, -50, 40), Vector3(-60, -10, 0)],
+		# Smashes two colonnade columns and an arch pier (its attic follows) in
+		# front of the camera.
+		["ruins", Vector3(-30, 10.0, 92), Vector3(-6, 6.0, 50), ["ColumnC3_2", "ColumnC3_1", "PierA6_l"]],
+		# Four rotunda columns: the dome caves in.
+		["collapse", Vector3(34, 14.0, 34), Vector3(0, 12.0, 0), ["ColumnRotunda0", "ColumnRotunda1", "ColumnRotunda2", "ColumnRotunda3"]],
+		# Arena-select card (ui/menus/art/arena_elysium.jpg).
 		["card", Vector3(70, 34, 150), Vector3(0, 6, 0)],
 	]
 	var only := ""
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--view="):
 			only = arg.substr(7)
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://../exports/arena-review"))
+	var output := "res://exports/elysium-review"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(output))
+	var ignore := FileAccess.open(output + "/.gdignore", FileAccess.WRITE)
+	ignore.close()
 	for view: Array in views:
 		if only != "" and view[0] != only:
 			continue
+		world.props.reset_round()
 		camera.look_at_from_position(view[1], view[2])
-		for frame: int in 24:
+		var breaks: Array = view[3] if view.size() > 3 else []
+		if not breaks.is_empty():
+			# Let the art settle, then break the props and catch them falling.
+			for frame: int in 6:
+				await process_frame
+			for name: String in breaks:
+				world.props.damage(name, 1.0e6, "cannon", world.props.props[name].at + Vector3(3, 4, 3), Vector3(-1, 0, -1))
+		for frame: int in (14 if not breaks.is_empty() else 24):
 			await process_frame
 		await RenderingServer.frame_post_draw
-		var path := ProjectSettings.globalize_path("res://../exports/arena-review/elysium-%s.png" % view[0])
-		root.get_texture().get_image().save_png(path)
-		print("CAPTURE ", path)
+		var path := output + "/elysium-%s.png" % view[0]
+		var image := root.get_texture().get_image()
+		check(image.save_png(path) == OK, "Capture failed")
+		if view[0] == "card" and root.size == Vector2i(1600, 900):
+			check(image.save_jpg("res://ui/menus/art/arena_elysium.jpg", 0.88) == OK, "Card capture failed")
+		print("CAPTURE ", ProjectSettings.globalize_path(path))

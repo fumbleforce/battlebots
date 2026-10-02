@@ -438,15 +438,18 @@ static func _value_noise(p: Vector2) -> float:
 
 # --- Classical architecture ---------------------------------------------------
 
-## A lathe surface from a profile of (radius, height) points, optionally fluted.
-func _lathe(profile: Array, segments: int, material: Material, flutes := 0, flute_depth := 0.0, mesh: ArrayMesh = null) -> ArrayMesh:
+## A lathe surface from a profile of (radius, height) points, optionally fluted,
+## over the full turn or from from_angle to to_angle (a closed profile then
+## gets end caps when cap is set, so a broken piece is solid at its faces).
+func _lathe(profile: Array, segments: int, material: Material, flutes := 0, flute_depth := 0.0, mesh: ArrayMesh = null,
+		from_angle := 0.0, to_angle := TAU, cap := false) -> ArrayMesh:
 	var verts := PackedVector3Array()
 	var colors := PackedColorArray()
 	var uvs := PackedVector2Array()
 	var indices := PackedInt32Array()
 	var rings := profile.size()
 	for s: int in segments + 1:
-		var a := TAU * float(s) / segments
+		var a := lerpf(from_angle, to_angle, float(s) / segments)
 		var groove := 0.0
 		if flutes > 0:
 			groove = pow(absf(sin(a * flutes * 0.5)), 0.6)
@@ -471,8 +474,26 @@ func _lathe(profile: Array, segments: int, material: Material, flutes := 0, flut
 			var want := (out * dy - Vector3.UP * dr).normalized() if absf(dy) + absf(dr) > 1e-5 else out
 			_tri(indices, verts, a, b, c, want)
 			_tri(indices, verts, b, d, c, want)
-	var normals := _smooth_normals(verts, indices) if segments > 8 else _flat_normals(verts, indices)
-	if segments <= 8:
+	var faceted := segments <= 8
+	if cap and to_angle - from_angle < TAU - 1e-3:
+		faceted = true
+		var centroid := Vector2.ZERO
+		for point: Vector2 in profile:
+			centroid += point / float(rings)
+		for end: float in [from_angle, to_angle]:
+			var facing := Vector3(sin(end), 0, -cos(end)) * (1.0 if end == from_angle else -1.0)
+			var middle := verts.size()
+			verts.append(Vector3(cos(end) * centroid.x, centroid.y, sin(end) * centroid.x))
+			colors.append(Color(1, 0, 0))
+			uvs.append(centroid)
+			var first := verts.size()
+			for point: Vector2 in profile:
+				verts.append(Vector3(cos(end) * point.x, point.y, sin(end) * point.x))
+				colors.append(Color(1, 0, 0))
+				uvs.append(point)
+			for k: int in rings - 1:
+				_tri(indices, verts, middle, first + k, first + k + 1, facing)
+	if faceted:
 		# Faceted: split every triangle so its corners keep the face normal.
 		var flat_v := PackedVector3Array()
 		var flat_c := PackedColorArray()
@@ -484,7 +505,7 @@ func _lathe(profile: Array, segments: int, material: Material, flutes := 0, flut
 			flat_uv.append(uvs[indices[i]])
 			flat_i.append(i)
 		return _commit(flat_v, _flat_normals(flat_v, flat_i), flat_c, flat_uv, flat_i, material, mesh)
-	return _commit(verts, normals, colors, uvs, indices, material, mesh)
+	return _commit(verts, _smooth_normals(verts, indices), colors, uvs, indices, material, mesh)
 
 static func _flat_normals(verts: PackedVector3Array, indices: PackedInt32Array) -> PackedVector3Array:
 	var normals := PackedVector3Array()
@@ -501,30 +522,28 @@ func _extrude(profile: Array, length: float, material: Material, mesh: ArrayMesh
 	var colors := PackedColorArray()
 	var uvs := PackedVector2Array()
 	var indices := PackedInt32Array()
+	var outline: Array = []
+	for p: Vector2 in profile:
+		outline.append(Vector2(p.x, p.y))
+	for k: int in range(profile.size() - 1, -1, -1):
+		var p: Vector2 = profile[k]
+		outline.append(Vector2(-p.x, p.y))
+	# Faces along the length.
+	for k: int in outline.size():
+		var p: Vector2 = outline[k]
+		var q: Vector2 = outline[(k + 1) % outline.size()]
+		var base := verts.size()
+		for x: float in [-length * 0.5, length * 0.5]:
+			verts.append(Vector3(x, p.y, p.x))
+			verts.append(Vector3(x, q.y, q.x))
+			colors.append_array([Color(1, 0, 0), Color(1, 0, 0)])
+			uvs.append_array([Vector2(x, p.y), Vector2(x, q.y)])
+		var edge := q - p
+		var want := Vector3(0, -edge.x, edge.y).normalized()
+		_tri(indices, verts, base, base + 1, base + 2, want)
+		_tri(indices, verts, base + 1, base + 3, base + 2, want)
+	# End caps as fans from the centre.
 	for side: float in [-1.0, 1.0]:
-		var closed: Array = profile.duplicate()
-		var outline: Array = []
-		for p: Vector2 in closed:
-			outline.append(Vector2(p.x, p.y))
-		for k: int in range(closed.size() - 1, -1, -1):
-			var p: Vector2 = closed[k]
-			outline.append(Vector2(-p.x, p.y))
-		# Faces along the length, both sides of the beam.
-		if side > 0.0:
-			for k: int in outline.size():
-				var p: Vector2 = outline[k]
-				var q: Vector2 = outline[(k + 1) % outline.size()]
-				var base := verts.size()
-				for x: float in [-length * 0.5, length * 0.5]:
-					verts.append(Vector3(x, p.y, p.x))
-					verts.append(Vector3(x, q.y, q.x))
-					colors.append_array([Color(1, 0, 0), Color(1, 0, 0)])
-					uvs.append_array([Vector2(x, p.y), Vector2(x, q.y)])
-				var edge := q - p
-				var want := Vector3(0, -edge.x, edge.y).normalized()
-				_tri(indices, verts, base, base + 1, base + 2, want)
-				_tri(indices, verts, base + 1, base + 3, base + 2, want)
-		# End caps as fans from the centre.
 		var centre := verts.size()
 		verts.append(Vector3(side * length * 0.5, _profile_mid(profile), 0))
 		colors.append(Color(1, 0, 0))
@@ -546,46 +565,86 @@ static func _profile_mid(profile: Array) -> float:
 		high = maxf(high, p.y)
 	return (low + high) * 0.5
 
-static func _box_mesh(size: Vector3, material: Material) -> BoxMesh:
-	var box := BoxMesh.new()
-	box.size = size
-	box.material = material
-	return box
+## A block of size centred on centre (rotated by yaw), with vertex colour so it
+## merges cleanly with the lathed and extruded pieces.
+func _cuboid(size: Vector3, material: Material, centre := Vector3.ZERO, yaw := 0.0) -> ArrayMesh:
+	var mesh := _extrude([Vector2(size.z * 0.5, -size.y * 0.5), Vector2(size.z * 0.5, size.y * 0.5), Vector2(0, size.y * 0.5)], size.x, material)
+	return _merge([[mesh, Transform3D(Basis(Vector3.UP, yaw), centre)]])
 
-## A fluted marble column of height h and radius r standing at the origin:
-## Attic base, entasis, gilded necking and an Ionic-flavoured capital.
-func _column(height: float, radius: float, broken := false) -> Array[Mesh]:
-	var key := "column_%.2f_%.2f_%s" % [height, radius, broken]
+## Merges [Mesh, Transform3D] pieces into one mesh, one surface per material.
+func _merge(pieces: Array) -> ArrayMesh:
+	var tools: Dictionary = {}
+	for piece: Array in pieces:
+		var mesh: Mesh = piece[0]
+		var xform: Transform3D = piece[1] if piece.size() > 1 else Transform3D.IDENTITY
+		for surface: int in mesh.get_surface_count():
+			var material := mesh.surface_get_material(surface)
+			if not tools.has(material):
+				var tool := SurfaceTool.new()
+				tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+				tools[material] = tool
+			tools[material].append_from(mesh, surface, xform)
+	var out := ArrayMesh.new()
+	for material: Material in tools:
+		tools[material].set_material(material)
+		tools[material].commit(out)
+	return out
+
+## A fluted marble column of height h and radius r standing at the origin,
+## split the way it breaks: its Attic base (which stays standing), drums of
+## shaft with entasis, and a gilded necking under an Ionic-flavoured capital.
+func _column_set(height: float, radius: float, broken := false, drums := 3) -> Dictionary:
+	var key := "set_%.2f_%.2f_%s_%d" % [height, radius, broken, drums]
 	if _meshes.has(key):
 		return _meshes[key]
 	var base_h := radius * 0.9
 	var cap_h := radius * 1.3
 	var shaft_top := height - cap_h if not broken else height
-	var profile: Array = [Vector2(0, base_h)]
-	for k: int in 9:
-		var t := float(k) / 8.0
-		var swell := 1.0 + 0.05 * sin(t * PI) - 0.12 * t
-		profile.append(Vector2(radius * swell, lerpf(base_h, shaft_top, t)))
-	profile.append(Vector2(0, shaft_top))
-	var shaft := _lathe(profile, LATHE_SEGMENTS, _marble, FLUTES, 0.07)
-	var base := _lathe([Vector2(0, 0), Vector2(radius * 1.55, 0), Vector2(radius * 1.55, base_h * 0.3), Vector2(radius * 1.35, base_h * 0.42),
+	var set := {"drums":[], "capital":null}
+	set.base = _lathe([Vector2(0, 0), Vector2(radius * 1.55, 0), Vector2(radius * 1.55, base_h * 0.3), Vector2(radius * 1.35, base_h * 0.42),
 		Vector2(radius * 1.42, base_h * 0.55), Vector2(radius * 1.22, base_h * 0.72), Vector2(radius * 1.25, base_h * 0.85), Vector2(radius * 1.0, base_h), Vector2(0, base_h)], 28, _marble)
-	var out: Array[Mesh] = [shaft, base]
+	for d: int in drums:
+		var profile: Array = []
+		var y0 := lerpf(base_h, shaft_top, float(d) / drums)
+		var y1 := lerpf(base_h, shaft_top, float(d + 1) / drums)
+		profile.append(Vector2(0, y0))
+		for k: int in 5:
+			var y := lerpf(y0, y1, float(k) / 4.0)
+			var t := (y - base_h) / maxf(shaft_top - base_h, 0.01)
+			profile.append(Vector2(radius * (1.0 + 0.05 * sin(t * PI) - 0.12 * t), y))
+		profile.append(Vector2(0, y1))
+		set.drums.append(_lathe(profile, LATHE_SEGMENTS, _marble, FLUTES, 0.07))
 	if not broken:
 		var y := shaft_top
 		var top_r := radius * 0.88
-		out.append(_lathe([Vector2(0, y), Vector2(top_r * 1.05, y), Vector2(top_r * 1.08, y + cap_h * 0.12), Vector2(top_r * 1.02, y + cap_h * 0.2), Vector2(0, y + cap_h * 0.2)], 28, _gold))
-		out.append(_lathe([Vector2(0, y + cap_h * 0.2), Vector2(top_r * 1.02, y + cap_h * 0.2), Vector2(top_r * 1.35, y + cap_h * 0.5),
-			Vector2(top_r * 1.5, y + cap_h * 0.68), Vector2(0, y + cap_h * 0.68)], 28, _marble))
-		var abacus := _box_mesh(Vector3(radius * 3.3, cap_h * 0.32, radius * 3.3), _marble)
-		var holder := ArrayMesh.new()
-		var tool := SurfaceTool.new()
-		tool.append_from(abacus, 0, Transform3D(Basis.IDENTITY, Vector3(0, y + cap_h * 0.84, 0)))
-		tool.set_material(_marble)
-		tool.commit(holder)
-		out.append(holder)
-	_meshes[key] = out
-	return out
+		var necking := _lathe([Vector2(0, y), Vector2(top_r * 1.05, y), Vector2(top_r * 1.08, y + cap_h * 0.12), Vector2(top_r * 1.02, y + cap_h * 0.2), Vector2(0, y + cap_h * 0.2)], 28, _gold)
+		var echinus := _lathe([Vector2(0, y + cap_h * 0.2), Vector2(top_r * 1.02, y + cap_h * 0.2), Vector2(top_r * 1.35, y + cap_h * 0.5),
+			Vector2(top_r * 1.5, y + cap_h * 0.68), Vector2(0, y + cap_h * 0.68)], 28, _marble)
+		var abacus := _cuboid(Vector3(radius * 3.3, cap_h * 0.32, radius * 3.3), _marble, Vector3(0, y + cap_h * 0.84, 0))
+		set.capital = _merge([[necking], [echinus], [abacus]])
+	_meshes[key] = set
+	return set
+
+## The whole column above its base as one mesh, and the pieces it breaks into.
+func _column_pieces(set: Dictionary) -> Array[Mesh]:
+	var pieces: Array[Mesh] = []
+	for drum: Mesh in set.drums:
+		pieces.append(drum)
+	if set.capital != null:
+		pieces.append(set.capital)
+	return pieces
+
+## Distant temples and colossal pillars: unbreakable whole columns.
+func _column(height: float, radius: float, broken := false) -> Array[Mesh]:
+	var key := "column_%.2f_%.2f_%s" % [height, radius, broken]
+	if not _meshes.has(key):
+		var set := _column_set(height, radius, broken, 1)
+		var whole: Array = []
+		for piece: Mesh in _column_pieces(set):
+			whole.append([piece])
+		var out: Array[Mesh] = [_merge(whole), set.base]
+		_meshes[key] = out
+	return _meshes[key]
 
 func _place_column(parent: Node, at: Vector3, height: float, radius: float, broken := false, yaw := 0.0) -> void:
 	for mesh: Mesh in _column(height, radius, broken):
@@ -596,6 +655,32 @@ func _entablature_profile(depth: float, height: float) -> Array:
 	var d := depth * 0.5
 	return [Vector2(d, 0), Vector2(d, height * 0.38), Vector2(d * 1.04, height * 0.4), Vector2(d * 1.04, height * 0.62),
 		Vector2(d * 1.12, height * 0.7), Vector2(d * 1.22, height * 0.86), Vector2(d * 1.3, height * 0.9), Vector2(d * 1.3, height), Vector2(0, height)]
+
+# --- Breakable architecture (ArenaProps, #115) ---------------------------------
+# Each breakable body is drawn by one MeshInstance3D in the body's frame and
+# owns the pieces it bursts into. ArenaPropVisual hides the whole and throws
+# the pieces (prop_instances, prop_parts); prop_broken adds dust, glints and
+# the crash of falling marble.
+
+## Prop name -> MeshInstance3D / Array[Mesh] pieces / [centre height, size] for effects.
+var _units: Dictionary = {}
+var _pieces: Dictionary = {}
+var _bursts: Dictionary = {}
+const CRASH := "res://assets/audio/combat/hammer_crash.wav"
+
+func prop_instances(name: String) -> Array:
+	return [[_units[name]]] if _units.has(name) else []
+
+func prop_parts(name: String) -> Array:
+	return _pieces.get(name, [])
+
+## A breakable body's art: whole (pieces in its frame) and what it breaks into.
+func _unit(root: Node3D, body: Dictionary, whole: Array, pieces: Array[Mesh], burst_height: float) -> void:
+	var node := _instance(_merge(whole), body.frame, root)
+	node.name = body.name
+	_units[body.name] = node
+	_pieces[body.name] = pieces
+	_bursts[body.name] = Vector2(burst_height, float(body.radius))
 
 func _architecture() -> void:
 	var root := Node3D.new()
@@ -611,56 +696,78 @@ func _architecture() -> void:
 			"balustrade": _balustrade(root, item)
 
 func _rotunda(root: Node3D, item: Dictionary) -> void:
-	var node := Node3D.new()
-	node.name = "Rotunda"
-	root.add_child(node)
 	var floor_y: float = item.base.origin.y
 	var count: int = item.columns
 	var radius: float = item.radius
 	var height: float = item.height
-	for i: int in count:
-		var a := TAU * (float(i) + 0.5) / count
-		_place_column(node, Vector3(cos(a) * radius, floor_y, sin(a) * radius), height, item.column_radius, false, -a)
-	# A stepped stylobate ring under the columns.
-	_instance(_lathe([Vector2(radius - 3.0, floor_y - 0.4), Vector2(radius + 3.0, floor_y - 0.4), Vector2(radius + 3.0, floor_y + 0.1),
-		Vector2(radius + 2.2, floor_y + 0.1), Vector2(radius + 2.2, floor_y + 0.35), Vector2(radius - 2.2, floor_y + 0.35), Vector2(radius - 2.2, floor_y + 0.1),
-		Vector2(radius - 3.0, floor_y + 0.1), Vector2(radius - 3.0, floor_y - 0.4)], 72, _marble), Transform3D.IDENTITY, node)
-	# Ring entablature, drum and the gilded dome with its lantern.
-	var top := floor_y + height
 	var ent: float = item.entablature
+	var top := floor_y + height
 	var r_in := radius - 1.7
 	var r_out := radius + 1.7
-	_instance(_lathe([Vector2(r_in, top), Vector2(r_out, top), Vector2(r_out, top + ent * 0.4), Vector2(r_out + 0.1, top + ent * 0.42),
-		Vector2(r_out + 0.1, top + ent * 0.62), Vector2(r_out + 0.5, top + ent * 0.85), Vector2(r_out + 0.6, top + ent), Vector2(r_in, top + ent),
-		Vector2(r_in, top)], 96, _marble), Transform3D.IDENTITY, node)
-	_instance(_lathe([Vector2(r_out + 0.12, top + ent * 0.42), Vector2(r_out + 0.16, top + ent * 0.52), Vector2(r_out + 0.12, top + ent * 0.62)], 96, _gold), Transform3D.IDENTITY, node)
+	# The stepped stylobate ring stays whatever falls on it.
+	_instance(_lathe([Vector2(radius - 3.0, floor_y - 0.4), Vector2(radius + 3.0, floor_y - 0.4), Vector2(radius + 3.0, floor_y + 0.1),
+		Vector2(radius + 2.2, floor_y + 0.1), Vector2(radius + 2.2, floor_y + 0.35), Vector2(radius - 2.2, floor_y + 0.35), Vector2(radius - 2.2, floor_y + 0.1),
+		Vector2(radius - 3.0, floor_y + 0.1), Vector2(radius - 3.0, floor_y - 0.4)], 72, _marble), Transform3D.IDENTITY, root)
+	var ring: Array = [Vector2(r_in, top), Vector2(r_out, top), Vector2(r_out, top + ent * 0.4), Vector2(r_out + 0.1, top + ent * 0.42),
+		Vector2(r_out + 0.1, top + ent * 0.62), Vector2(r_out + 0.5, top + ent * 0.85), Vector2(r_out + 0.6, top + ent), Vector2(r_in, top + ent), Vector2(r_in, top)]
+	var band: Array = [Vector2(r_out + 0.12, top + ent * 0.42), Vector2(r_out + 0.16, top + ent * 0.52), Vector2(r_out + 0.12, top + ent * 0.62)]
+	var bay := PI / count
+	var columns: Array = item.bodies.filter(func(b: Dictionary) -> bool: return b.kind == "column")
+	for body: Dictionary in columns:
+		var a: float = body.angle
+		var set := _column_set(height, float(item.column_radius))
+		_instance(set.base, body.frame, root)
+		# The column and the bay of the ring entablature it carries (built in
+		# the arena frame, then taken into the column's).
+		var into: Transform3D = body.frame.affine_inverse()
+		var whole: Array = []
+		var pieces := _column_pieces(set)
+		for piece: Mesh in pieces:
+			whole.append([piece])
+		for half: Array in [[a - bay, a], [a, a + bay]]:
+			var stone := _lathe(ring, 8, _marble, 0, 0.0, null, half[0], half[1], true)
+			var gilt := _lathe(band, 8, _gold, 0, 0.0, null, half[0], half[1])
+			whole.append([stone, into])
+			whole.append([gilt, into])
+			pieces.append(_merge([[stone, into], [gilt, into]]))
+		_unit(root, body, whole, pieces, height * 0.6)
+	# The gilded dome with marble ribs and its lantern: one piece that caves in
+	# as eight gold wedges and the lantern when the columns give way.
+	var dome_body: Dictionary = item.bodies.filter(func(b: Dictionary) -> bool: return b.kind == "dome")[0]
+	var local: Transform3D = dome_body.frame.affine_inverse()
 	var rise: float = item.dome_rise
 	var dome_base := top + ent
-	var dome: Array = [Vector2(0, dome_base)]
+	var outer: Array = []
+	var shell: Array = []
 	for k: int in 13:
 		var t := float(k) / 12.0
-		dome.append(Vector2((radius + 1.5) * cos(t * PI * 0.5), dome_base + rise * sin(t * PI * 0.5)))
-	_instance(_lathe(dome, 96, _gold), Transform3D.IDENTITY, node)
-	# Marble ribs over the gold.
+		outer.append(Vector2((radius + 1.5) * cos(t * PI * 0.5), dome_base + rise * sin(t * PI * 0.5)))
+	shell.append_array(outer)
+	for k: int in range(12, -1, -1):
+		var t := float(k) / 12.0
+		shell.append(Vector2((radius + 0.9) * cos(t * PI * 0.5), dome_base + (rise - 0.6) * sin(t * PI * 0.5)))
+	shell.append(outer[0])
+	var dome: Array = [[_lathe([Vector2(0, dome_base)] + outer, 96, _gold), local]]
 	for i: int in count:
-		var a := TAU * float(i) / count
 		var rib: Array = []
 		for k: int in 13:
 			var t := float(k) / 12.0
 			rib.append(Vector2((radius + 1.65) * cos(t * PI * 0.5), dome_base + (rise + 0.15) * sin(t * PI * 0.5)))
-		var mesh := _rib_mesh(rib, 0.35)
-		_instance(mesh, Transform3D(Basis(Vector3.UP, a), Vector3.ZERO), node, false)
+		dome.append([_rib_mesh(rib, 0.35), local * Transform3D(Basis(Vector3.UP, TAU * float(i) / count), Vector3.ZERO)])
 	var lantern_y := dome_base + rise - 0.3
 	for i: int in 8:
 		var a := TAU * float(i) / 8.0
-		_place_column(node, Vector3(cos(a) * 2.4, lantern_y, sin(a) * 2.4), 4.2, 0.28, false)
-	_instance(_lathe([Vector2(0, lantern_y + 4.2), Vector2(3.2, lantern_y + 4.2), Vector2(3.2, lantern_y + 4.6), Vector2(2.6, lantern_y + 5.4),
-		Vector2(1.2, lantern_y + 6.3), Vector2(0.3, lantern_y + 6.8), Vector2(0.18, lantern_y + 8.6), Vector2(0, lantern_y + 8.6)], 32, _gold), Transform3D.IDENTITY, node)
-	var orb := SphereMesh.new()
-	orb.radius = 0.55
-	orb.height = 1.1
-	orb.material = _gold
-	_instance(orb, Transform3D(Basis.IDENTITY, Vector3(0, lantern_y + 9.0, 0)), node)
+		for piece: Mesh in _column(4.2, 0.28):
+			dome.append([piece, local * Transform3D(Basis.IDENTITY, Vector3(cos(a) * 2.4, lantern_y, sin(a) * 2.4))])
+	var lantern := _merge([[_lathe([Vector2(0, lantern_y + 4.2), Vector2(3.2, lantern_y + 4.2), Vector2(3.2, lantern_y + 4.6), Vector2(2.6, lantern_y + 5.4),
+		Vector2(1.2, lantern_y + 6.3), Vector2(0.3, lantern_y + 6.8), Vector2(0.18, lantern_y + 8.6), Vector2(0, lantern_y + 8.6)], 32, _gold), local],
+		[_orb(0.55, _gold), local * Transform3D(Basis.IDENTITY, Vector3(0, lantern_y + 9.0, 0))]])
+	dome.append([lantern])
+	var wedges: Array[Mesh] = []
+	for k: int in 8:
+		wedges.append(_merge([[_lathe(shell, 6, _gold, 0, 0.0, null, TAU * k / 8.0, TAU * (k + 1) / 8.0, true), local]]))
+	wedges.append(lantern)
+	_unit(root, dome_body, dome, wedges, dome_base + rise * 0.5 - floor_y)
 	# A warm glow inside the rotunda, as if the relic in the centre shines.
 	var glow := OmniLight3D.new()
 	glow.position = Vector3(0, floor_y + 6.0, 0)
@@ -668,7 +775,14 @@ func _rotunda(root: Node3D, item: Dictionary) -> void:
 	glow.light_energy = 2.5
 	glow.omni_range = 26.0
 	glow.shadow_enabled = false
-	node.add_child(glow)
+	root.add_child(glow)
+
+func _orb(radius: float, material: Material) -> ArrayMesh:
+	var profile: Array = []
+	for k: int in 9:
+		var t := float(k) / 8.0
+		profile.append(Vector2(radius * sin(t * PI), -radius * cos(t * PI)))
+	return _lathe(profile, 20, material)
 
 ## A thin gilded rib following a profile in the x-y plane.
 func _rib_mesh(profile: Array, width: float) -> ArrayMesh:
@@ -691,119 +805,265 @@ func _rib_mesh(profile: Array, width: float) -> ArrayMesh:
 	return _commit(verts, _smooth_normals(verts, indices), colors, uvs, indices, _marble)
 
 func _colonnade(root: Node3D, item: Dictionary) -> void:
-	var node := Node3D.new()
-	node.name = item.name
-	root.add_child(node)
 	var height: float = item.height
-	var yaw: float = item.base.basis.get_euler().y
-	for at: Vector3 in item.columns:
-		_instance(_box_mesh(GROUND.PLINTH, _marble), Transform3D(Basis(Vector3.UP, yaw), at + Vector3.UP * (GROUND.PLINTH.y * 0.5 - 0.3)), node)
-		_place_column(node, at + Vector3.UP * (GROUND.PLINTH.y - 0.3), height - (GROUND.PLINTH.y - 0.3), GROUND.COLUMN_RADIUS, false, yaw)
-	var first: Vector3 = item.columns[0]
-	var last: Vector3 = item.columns[item.columns.size() - 1]
-	var mid := (first + last) * 0.5
-	var length := Vector2(last.x - first.x, last.z - first.z).length() + GROUND.PLINTH.x
-	var beam := _extrude(_entablature_profile(GROUND.BEAM.x, GROUND.BEAM.y), length, _marble)
-	_instance(beam, Transform3D(Basis(Vector3.UP, yaw), Vector3(mid.x, item.top, mid.z)), node)
-	var band := _box_mesh(Vector3(length + 0.02, GROUND.BEAM.y * 0.2, GROUND.BEAM.x * 1.05), _gold)
-	_instance(band, Transform3D(Basis(Vector3.UP, yaw), Vector3(mid.x, item.top + GROUND.BEAM.y * 0.51, mid.z)), node)
+	for body: Dictionary in item.bodies:
+		var base: Vector3 = body.frame.origin
+		# The plinth and the column's base stay as a stub when it falls.
+		_instance(_cuboid(GROUND.PLINTH, _marble, Vector3.UP * (GROUND.PLINTH.y * 0.5 - 0.3)), body.frame, root)
+		var lift := GROUND.PLINTH.y - 0.3
+		var set := _column_set(height - lift, GROUND.COLUMN_RADIUS)
+		_instance(set.base, body.frame * Transform3D(Basis.IDENTITY, Vector3.UP * lift), root)
+		var whole: Array = []
+		var pieces: Array[Mesh] = []
+		for piece: Mesh in _column_pieces(set):
+			whole.append([piece, Transform3D(Basis.IDENTITY, Vector3.UP * lift)])
+			pieces.append(_merge([[piece, Transform3D(Basis.IDENTITY, Vector3.UP * lift)]]))
+		# Its stretch of the entablature, in two blocks, with the gilded frieze.
+		var beam: Vector2 = body.beam
+		var top: float = float(body.top) - base.y
+		for half: Array in [[-beam.x, 0.0], [0.0, beam.y]]:
+			var length: float = half[1] - half[0]
+			var centre := Vector3((half[0] + half[1]) * 0.5, 0, 0)
+			var stone := _extrude(_entablature_profile(GROUND.BEAM.x, GROUND.BEAM.y), length, _marble)
+			var gilt := _cuboid(Vector3(length + 0.02, GROUND.BEAM.y * 0.2, GROUND.BEAM.x * 1.05), _gold, Vector3(0, GROUND.BEAM.y * 0.51, 0))
+			var block := _merge([[stone, Transform3D(Basis.IDENTITY, centre + Vector3.UP * top)], [gilt, Transform3D(Basis.IDENTITY, centre + Vector3.UP * top)]])
+			whole.append([block])
+			pieces.append(block)
+		_unit(root, body, whole, pieces, height * 0.6)
 
 func _arch(root: Node3D, item: Dictionary) -> void:
-	var node := Node3D.new()
-	node.name = item.name
-	root.add_child(node)
 	var height: float = item.height
-	var span: float = item.span
-	var basis: Basis = item.base.basis
-	var base: Vector3 = item.base.origin
 	var lintel := height - GROUND.ATTIC
-	for side: float in [-1.0, 1.0]:
-		var centre := base + basis * Vector3(side * (span + GROUND.PIER.x) * 0.5, 0, 0)
-		var pier_h := lintel + 0.6
-		_instance(_box_mesh(Vector3(GROUND.PIER.x, pier_h, GROUND.PIER.y), _marble), Transform3D(basis, centre + Vector3.UP * (pier_h * 0.5 - 0.6)), node)
-		# Plinth and impost mouldings, and engaged columns on both faces.
-		_instance(_box_mesh(Vector3(GROUND.PIER.x + 0.6, 1.2, GROUND.PIER.y + 0.6), _marble), Transform3D(basis, centre + Vector3.UP * 0.0), node)
-		_instance(_box_mesh(Vector3(GROUND.PIER.x + 0.5, 0.5, GROUND.PIER.y + 0.5), _gold), Transform3D(basis, centre + Vector3.UP * (lintel - 0.25)), node)
-		for face: float in [-1.0, 1.0]:
-			_place_column(node, centre + basis * Vector3(0, 0, face * (GROUND.PIER.y * 0.5 + 0.1)) + Vector3.UP * 0.6, lintel - 0.6, 0.75, false)
-	var attic := _extrude(_entablature_profile(GROUND.PIER.y, GROUND.ATTIC), span + GROUND.PIER.x * 2.0, _marble)
-	_instance(attic, Transform3D(basis, base + Vector3.UP * lintel), node)
-	# A gilded sunburst crowning the gate.
-	var disc := CylinderMesh.new()
-	disc.top_radius = 2.6
-	disc.bottom_radius = 2.6
-	disc.height = 0.5
-	disc.radial_segments = 48
-	disc.material = _gold
-	_instance(disc, Transform3D(basis * Basis(Vector3.RIGHT, PI * 0.5), base + Vector3.UP * (height + 2.4)), node)
-	for k: int in 16:
-		var a := TAU * float(k) / 16.0
-		var ray := _box_mesh(Vector3(0.3, 2.2 if k % 2 == 0 else 1.4, 0.3), _gold)
-		var dir := Vector3(cos(a), sin(a), 0)
-		_instance(ray, Transform3D(basis * Basis(Vector3.BACK, a - PI * 0.5), base + Vector3.UP * (height + 2.4) + basis * (dir * (3.2 if k % 2 == 0 else 2.9))), node)
-	_instance(_box_mesh(Vector3(1.2, 1.8, 1.2), _marble), Transform3D(basis, base + Vector3.UP * (height + 0.0)), node)
+	for body: Dictionary in item.bodies:
+		if body.kind == "pier":
+			# The plinth stays; the pier comes down in three blocks and its two
+			# engaged columns in drums.
+			_instance(_cuboid(Vector3(GROUND.PIER.x + 0.6, 1.2, GROUND.PIER.y + 0.6), _marble), body.frame, root)
+			var whole: Array = []
+			var pieces: Array[Mesh] = []
+			var block_h := (lintel + 0.6) / 3.0
+			for k: int in 3:
+				var block := _cuboid(Vector3(GROUND.PIER.x, block_h, GROUND.PIER.y), _marble, Vector3(0, -0.6 + block_h * (k + 0.5), 0))
+				whole.append([block])
+				pieces.append(block)
+			var impost := _cuboid(Vector3(GROUND.PIER.x + 0.5, 0.5, GROUND.PIER.y + 0.5), _gold, Vector3(0, lintel - 0.25, 0))
+			whole.append([impost])
+			for face: float in [-1.0, 1.0]:
+				var foot := Transform3D(Basis.IDENTITY, Vector3(0, 0.6, face * (GROUND.PIER.y * 0.5 + 0.1)))
+				var set := _column_set(lintel - 0.6, 0.75, false, 2)
+				whole.append([set.base, foot])
+				for piece: Mesh in _column_pieces(set):
+					whole.append([piece, foot])
+					pieces.append(_merge([[piece, foot]]))
+			_unit(root, body, whole, pieces, lintel * 0.5)
+		else:
+			# The attic and its gilded sunburst fall as three blocks and the sun.
+			var span: float = item.span
+			var length := span + GROUND.PIER.x * 2.0
+			var whole: Array = []
+			var pieces: Array[Mesh] = []
+			for k: int in 3:
+				var block := _extrude(_entablature_profile(GROUND.PIER.y, GROUND.ATTIC), length / 3.0, _marble)
+				var at := Transform3D(Basis.IDENTITY, Vector3(-length / 3.0 + k * length / 3.0, 0, 0))
+				whole.append([block, at])
+				pieces.append(_merge([[block, at]]))
+			var sun: Array = []
+			var up := GROUND.ATTIC + 2.4
+			sun.append([_lathe([Vector2(0, -0.25), Vector2(2.6, -0.25), Vector2(2.6, 0.25), Vector2(0, 0.25)], 48, _gold), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.UP * up)])
+			for k: int in 16:
+				var a := TAU * float(k) / 16.0
+				var reach := 3.2 if k % 2 == 0 else 2.9
+				sun.append([_cuboid(Vector3(0.3, 2.2 if k % 2 == 0 else 1.4, 0.3), _gold), Transform3D(Basis(Vector3.BACK, a - PI * 0.5), Vector3.UP * up + Vector3(cos(a), sin(a), 0) * reach)])
+			sun.append([_cuboid(Vector3(1.2, 1.8, 1.2), _marble, Vector3.UP * GROUND.ATTIC)])
+			var sunburst := _merge(sun)
+			whole.append([sunburst])
+			pieces.append(sunburst)
+			_unit(root, body, whole, pieces, GROUND.ATTIC * 0.5)
 
 func _obelisk(root: Node3D, item: Dictionary) -> void:
-	var node := Node3D.new()
-	node.name = item.name
-	root.add_child(node)
-	var base: Vector3 = item.base.origin
 	var height: float = item.height
 	var p := GROUND.PEDESTAL
-	for k: int in 3:
-		var grow := 1.0 + (2 - k) * 0.12
-		_instance(_box_mesh(Vector3(p.x * grow, p.y / 3.0, p.z * grow), _marble), Transform3D(Basis.IDENTITY, base + Vector3.UP * (-0.4 + p.y / 6.0 + k * p.y / 3.0)), node)
-	_instance(_box_mesh(Vector3(p.x * 0.8, 0.25, p.z * 0.8), _gold), Transform3D(Basis.IDENTITY, base + Vector3.UP * (p.y - 0.35)), node)
-	var shaft := height - 2.0
-	var bottom := p.y - 0.4
-	var profile: Array = [Vector2(0, bottom), Vector2(GROUND.OBELISK.x * sqrt(2.0), bottom), Vector2(GROUND.OBELISK.y * sqrt(2.0), shaft), Vector2(0, shaft)]
-	_instance(_lathe(profile, 4, _marble), Transform3D(Basis(Vector3.UP, PI * 0.25), base), node)
-	_instance(_lathe([Vector2(0, shaft), Vector2(GROUND.OBELISK.y * sqrt(2.0), shaft), Vector2(0, height)], 4, _gold), Transform3D(Basis(Vector3.UP, PI * 0.25), base), node)
+	for body: Dictionary in item.bodies:
+		if body.kind != "obelisk":
+			# The stepped pedestal never breaks.
+			for k: int in 3:
+				var grow := 1.0 + (2 - k) * 0.12
+				_instance(_cuboid(Vector3(p.x * grow, p.y / 3.0, p.z * grow), _marble, Vector3.UP * (-0.4 + p.y / 6.0 + k * p.y / 3.0)), body.frame, root)
+			_instance(_cuboid(Vector3(p.x * 0.8, 0.25, p.z * 0.8), _gold, Vector3.UP * (p.y - 0.35)), body.frame, root)
+			continue
+		var shaft := height - 2.0
+		var bottom := p.y - 0.4
+		var turn := Transform3D(Basis(Vector3.UP, PI * 0.25), Vector3.ZERO)
+		var whole: Array = []
+		var pieces: Array[Mesh] = []
+		for k: int in 3:
+			var y0 := lerpf(bottom, shaft, k / 3.0)
+			var y1 := lerpf(bottom, shaft, (k + 1) / 3.0)
+			var w0 := lerpf(GROUND.OBELISK.x, GROUND.OBELISK.y, k / 3.0) * sqrt(2.0)
+			var w1 := lerpf(GROUND.OBELISK.x, GROUND.OBELISK.y, (k + 1) / 3.0) * sqrt(2.0)
+			var segment := _merge([[_lathe([Vector2(0, y0), Vector2(w0, y0), Vector2(w1, y1), Vector2(0, y1)], 4, _marble), turn]])
+			whole.append([segment])
+			pieces.append(segment)
+		var tip := _merge([[_lathe([Vector2(0, shaft), Vector2(GROUND.OBELISK.y * sqrt(2.0), shaft), Vector2(0, height)], 4, _gold), turn]])
+		whole.append([tip])
+		pieces.append(tip)
+		_unit(root, body, whole, pieces, height * 0.5)
 
 func _stump(root: Node3D, item: Dictionary) -> void:
-	var node := Node3D.new()
-	node.name = item.name
-	root.add_child(node)
-	var base: Vector3 = item.base.origin
-	_instance(_box_mesh(GROUND.PLINTH, _marble), Transform3D(Basis.IDENTITY, base + Vector3.UP * (GROUND.PLINTH.y * 0.5 - 0.3)), node)
-	var yaw := _rng.randf() * TAU
-	_place_column(node, base + Vector3.UP * (GROUND.PLINTH.y - 0.3), float(item.height) - GROUND.PLINTH.y + 0.3, GROUND.STUMP_RADIUS * 0.9, true, yaw)
+	for body: Dictionary in item.bodies:
+		_instance(_cuboid(GROUND.PLINTH, _marble, Vector3.UP * (GROUND.PLINTH.y * 0.5 - 0.3)), body.frame, root)
+		var lift := GROUND.PLINTH.y - 0.3
+		var set := _column_set(float(item.height) - lift, GROUND.STUMP_RADIUS * 0.9, true, 2)
+		var foot := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU), Vector3.UP * lift)
+		_instance(set.base, body.frame * foot, root)
+		var whole: Array = []
+		var pieces: Array[Mesh] = []
+		for piece: Mesh in _column_pieces(set):
+			whole.append([piece, foot])
+			pieces.append(_merge([[piece, foot]]))
+		_unit(root, body, whole, pieces, float(item.height) * 0.5)
 
 func _balustrade(root: Node3D, item: Dictionary) -> void:
-	var node := Node3D.new()
-	node.name = item.name
-	root.add_child(node)
 	var height: float = item.height
 	var posts: Array = item.posts
 	var baluster := _lathe([Vector2(0, 0), Vector2(0.17, 0), Vector2(0.17, 0.12), Vector2(0.1, 0.22), Vector2(0.21, 0.5), Vector2(0.09, 0.85),
 		Vector2(0.13, 0.95), Vector2(0.13, 1.0), Vector2(0, 1.0)], 12, _marble)
-	var multimesh := MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = baluster
-	var xforms: Array[Transform3D] = []
-	for i: int in posts.size() - 1:
-		var a: Vector3 = posts[i]
-		var b: Vector3 = posts[i + 1]
-		var mid := (a + b) * 0.5
-		var along := Vector2(b.x - a.x, b.z - a.z)
-		var yaw := atan2(-along.y, along.x)
-		var length := along.length()
-		_instance(_box_mesh(Vector3(length + 0.2, 0.3, GROUND.RAIL_DEPTH), _marble), Transform3D(Basis(Vector3.UP, yaw), mid + Vector3.UP * 0.15), node)
-		_instance(_box_mesh(Vector3(length + 0.2, 0.22, GROUND.RAIL_DEPTH * 1.1), _marble), Transform3D(Basis(Vector3.UP, yaw), mid + Vector3.UP * (height - 0.11)), node)
-		_instance(_box_mesh(Vector3(0.9, height + 0.15, 0.9), _marble), Transform3D(Basis(Vector3.UP, yaw), a + Vector3.UP * (height * 0.5)), node)
+	var depth: float = GROUND.RAIL_DEPTH
+	for body: Dictionary in item.bodies:
+		var length: float = body.length
+		var mid: Vector3 = body.frame.origin
+		var whole: Array = []
+		var pieces: Array[Mesh] = []
+		var low := _cuboid(Vector3(length + 0.2, 0.3, depth), _marble, Vector3.UP * 0.15)
+		var post := _cuboid(Vector3(0.9, height + 0.15, 0.9), _marble, Vector3(-length * 0.5, height * 0.5, 0))
+		whole.append_array([[low], [post]])
+		pieces.append_array([low, post])
+		for half: float in [-1.0, 1.0]:
+			var rail := _cuboid(Vector3(length * 0.5 + 0.1, 0.22, depth * 1.1), _marble, Vector3(half * length * 0.25, height - 0.11, 0))
+			whole.append([rail])
+			pieces.append(rail)
 		var count := maxi(1, int(length / 0.55))
 		for k: int in count:
-			var t := (float(k) + 0.5) / count
-			var at := a.lerp(b, t) + Vector3.UP * 0.3
-			xforms.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(1, height - 0.52, 1)), at))
+			var at := Transform3D(Basis().scaled(Vector3(1, height - 0.52, 1)), Vector3(-length * 0.5 + (float(k) + 0.5) * length / count, 0.3, 0))
+			whole.append([baluster, at])
+			# A few of them fly loose; the rest burst into dust.
+			if k % 3 == 1:
+				pieces.append(_merge([[baluster, at]]))
+		_unit(root, body, whole, pieces, height * 0.5)
 	var last: Vector3 = posts[posts.size() - 1]
-	_instance(_box_mesh(Vector3(0.9, height + 0.15, 0.9), _marble), Transform3D(Basis.IDENTITY, last + Vector3.UP * (height * 0.5)), node)
-	multimesh.instance_count = xforms.size()
-	for k: int in xforms.size():
-		multimesh.set_instance_transform(k, xforms[k])
-	var balusters := MultiMeshInstance3D.new()
-	balusters.multimesh = multimesh
-	node.add_child(balusters)
+	_instance(_cuboid(Vector3(0.9, height + 0.15, 0.9), _marble, last + Vector3.UP * (height * 0.5)), Transform3D.IDENTITY, root)
+
+## Witnessed breaks: a burst of marble dust and golden glints, and the crash.
+func prop_broken(name: String, prop: Dictionary, blow: Dictionary, moving: bool) -> void:
+	if not moving or not _bursts.has(name):
+		return
+	var burst: Vector2 = _bursts[name]
+	var centre: Vector3 = (_units[name] as Node3D).global_position + Vector3.UP * burst.x
+	var size := clampf(burst.y, 1.0, 20.0)
+	var big := String(prop.kind) in ["dome", "attic", "pier"]
+	_dust(centre, size, 90 if big else 40)
+	_glints(centre, size)
+	AudioPreferences.ensure_buses()
+	var crash := AudioStreamPlayer3D.new()
+	crash.stream = load(CRASH)
+	crash.bus = &"BBEffects"
+	crash.pitch_scale = 0.42 if prop.kind == "dome" else (0.6 if big else _rng.randf_range(0.7, 0.9))
+	crash.volume_db = 4.0 if big else 0.0
+	crash.unit_size = 18.0
+	crash.max_distance = 500.0
+	add_child(crash)
+	crash.global_position = centre
+	crash.play()
+	crash.finished.connect(crash.queue_free)
+
+var _dust_material: StandardMaterial3D
+func _dust(centre: Vector3, size: float, amount: int) -> void:
+	if _dust_material == null:
+		_dust_material = StandardMaterial3D.new()
+		_dust_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_dust_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_dust_material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		_dust_material.vertex_color_use_as_albedo = true
+		_dust_material.albedo_texture = _soft_dot()
+		_dust_material.proximity_fade_enabled = true
+		_dust_material.proximity_fade_distance = 2.0
+	var particles := _burst_particles(centre, amount, 2.6, _dust_material, Vector2(3.0, 5.5))
+	var process: ParticleProcessMaterial = particles.process_material
+	process.emission_sphere_radius = size * 0.6
+	process.initial_velocity_min = 2.0
+	process.initial_velocity_max = 7.0
+	process.gravity = Vector3(0, -0.6, 0)
+	process.damping_min = 2.5
+	process.damping_max = 4.0
+	var grow := Curve.new()
+	grow.add_point(Vector2(0, 0.4))
+	grow.add_point(Vector2(1, 1.6))
+	var scale := CurveTexture.new()
+	scale.curve = grow
+	process.scale_curve = scale
+	process.color_ramp = _fade(Color(0.98, 0.95, 0.9, 0.75))
+
+var _glint_material: StandardMaterial3D
+func _glints(centre: Vector3, size: float) -> void:
+	if _glint_material == null:
+		_glint_material = StandardMaterial3D.new()
+		_glint_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_glint_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_glint_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_glint_material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		_glint_material.vertex_color_use_as_albedo = true
+		_glint_material.albedo_texture = _soft_dot()
+	var particles := _burst_particles(centre, 36, 1.4, _glint_material, Vector2(0.25, 0.25))
+	var process: ParticleProcessMaterial = particles.process_material
+	process.emission_sphere_radius = size * 0.4
+	process.initial_velocity_min = 5.0
+	process.initial_velocity_max = 11.0
+	process.gravity = Vector3(0, -9.8, 0)
+	process.color_ramp = _fade(Color(2.4, 1.8, 0.8, 1.0))
+
+func _burst_particles(centre: Vector3, amount: int, lifetime: float, material: Material, quad_size: Vector2) -> GPUParticles3D:
+	var particles := GPUParticles3D.new()
+	particles.one_shot = true
+	particles.explosiveness = 0.92
+	particles.amount = amount
+	particles.lifetime = lifetime
+	particles.visibility_aabb = AABB(Vector3(-30, -30, -30), Vector3(60, 60, 60))
+	var process := ParticleProcessMaterial.new()
+	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	process.direction = Vector3.UP
+	process.spread = 180.0
+	particles.process_material = process
+	var quad := QuadMesh.new()
+	quad.size = quad_size
+	quad.material = material
+	particles.draw_pass_1 = quad
+	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(particles)
+	particles.global_position = centre
+	particles.emitting = true
+	particles.finished.connect(particles.queue_free)
+	return particles
+
+func _fade(colour: Color) -> GradientTexture1D:
+	var gradient := Gradient.new()
+	gradient.set_color(0, colour)
+	gradient.set_color(1, Color(colour.r, colour.g, colour.b, 0.0))
+	var ramp := GradientTexture1D.new()
+	ramp.gradient = gradient
+	return ramp
+
+var _dot: GradientTexture2D
+func _soft_dot() -> GradientTexture2D:
+	if _dot == null:
+		_dot = GradientTexture2D.new()
+		_dot.fill = GradientTexture2D.FILL_RADIAL
+		_dot.fill_from = Vector2(0.5, 0.5)
+		_dot.fill_to = Vector2(1.0, 0.5)
+		var glow := Gradient.new()
+		glow.set_color(0, Color(1, 1, 1, 1))
+		glow.set_color(1, Color(1, 1, 1, 0))
+		_dot.gradient = glow
+	return _dot
 
 # --- Gardens -----------------------------------------------------------------
 

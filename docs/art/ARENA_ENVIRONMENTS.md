@@ -186,6 +186,13 @@ the Woodland recipe in places; treat these as known debts, not precedent.
 - **Architecture is procedural** (lathed fluted columns with bases and gilded
   capitals, extruded entablatures, a lathed dome and lantern) and matches its
   primitive collision. A Blender kit with baked AO would be the next step up.
+- **Destruction.** Every piece of architecture is its own `ArenaProps` body
+  and is drawn as one mesh in that body's frame, built from the same parts it
+  breaks into (column drums, the gilded capital, entablature blocks, attic
+  blocks and the sunburst, eight gold dome wedges and the lantern, rail
+  sections and loose balusters). Bases, plinths, pedestals and the stylobate
+  stay as stubs. Breaks throw marble dust and gold glints and play a
+  pitched-down crash; the dome and attics collapse when their supports go.
 - **Sky and clouds.** A custom sky shader (no HDRI), a billowing polar cloud
   sea far below, sphere-puff cloud banks lit by hand from the sun direction
   (silver lining, forward scattering), distant floating isles, colossal pillars

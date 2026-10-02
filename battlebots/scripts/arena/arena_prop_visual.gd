@@ -23,8 +23,11 @@ const CHUNKS := {"boulder":[ROCK_CHUNKS, ROCK_SCALE]}
 ## Props whose presentation ships their real parts (prop_parts) come apart into
 ## those instead: a serac into its shards, an icicle clump into its spikes.
 const PART_SPEED := 4.0
-## Pieces of shatter props (#102) sink away after this many seconds.
+## Pieces of shatter props (#102) sink away after this many seconds, except
+## masonry (Elysium, #115), whose rubble stays until the debris budget or the
+## next round clears it.
 const SHATTER_DEBRIS_SECONDS := 4.0
+const RUBBLE_KINDS := ["column", "pier", "obelisk", "stump"]
 const SHATTER_SINK_SECONDS := 1.5
 ## A new piece whose centre lies under the ground is dropped at once; one whose
 ## lowest corner dips more than this (m) into it stays put as a stub (frozen)
@@ -78,9 +81,13 @@ func _break(name: String, blow: Dictionary, moving: bool) -> void:
 	match prop.kind:
 		"tree": _fell(name, prop, blow, moving, record)
 		_: _scatter(name, prop, blow, moving, record)
-	if bool(_props.settings().kinds.get(prop.kind, {}).get("shatter", false)):
+	if bool(_props.settings().kinds.get(prop.kind, {}).get("shatter", false)) and prop.kind not in RUBBLE_KINDS:
 		for piece: Node in record.pieces:
 			_despawn_later(piece)
+	# The arena's own break effects (dust, glints, the crash), if it has any.
+	var owner := _visuals_with_instances()
+	if owner != null and owner.has_method("prop_broken"):
+		owner.prop_broken(name, prop, blow, moving)
 	var tuning: RefCounted = TUNING.settings()
 	PIECE.enforce_budget(get_tree(), int(tuning.value("debris", "max_pieces")), tuning.value("debris", "sink_seconds"))
 
@@ -144,6 +151,15 @@ func _scatter(name: String, prop: Dictionary, blow: Dictionary, moving: bool, re
 	var centre: Vector3 = prop.at
 	var parts: Array = owner.prop_parts(name) if owner.has_method("prop_parts") else []
 	for piece: Array in owner.prop_instances(name):
+		# A whole mesh node ([MeshInstance3D], Elysium) or one batched instance.
+		if piece[0] is MeshInstance3D:
+			var node: MeshInstance3D = piece[0]
+			node.hide()
+			record.hidden.append(node)
+			if moving:
+				for part: Mesh in parts:
+					_keep(record, _part_debris(part, node.global_transform, blow, random))
+			continue
 		var batch: MultiMeshInstance3D = piece[0]
 		var index: int = piece[1]
 		var pose := batch.multimesh.get_instance_transform(index)

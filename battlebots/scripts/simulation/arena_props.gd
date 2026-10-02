@@ -11,7 +11,12 @@ const GROUND := preload("res://scripts/arena/woodland_ground.gd")
 const OBSTACLE_META := &"woodland_obstacle"
 ## Any other arena marks a breakable body with this meta: {kind, name, at,
 ## radius} (the Frozen Maelstrom's seracs, icicles, barrels and crates, #102).
+## Optional supports (prop names) and collapse_after (count): the prop
+## collapses on its own once that many of its supports are broken (Elysium's
+## dome on its columns, an arch's attic on its piers, #115).
 const PROP_META := &"arena_prop"
+## Blow kind recorded for a prop that fell when its supports broke.
+const COLLAPSE := "collapse"
 ## Body-frame bounds on a replicated break record (m).
 const RECORD_POINT_MAX := 400.0
 const RECORD_KIND_MAX := 24
@@ -19,7 +24,7 @@ const MAX_PROPS := 512
 
 static var _settings: Dictionary = {}
 
-## name -> {body, kind, hp, max, at, radius, layer, mask}
+## name -> {body, kind, hp, max, at, radius, layer, mask, supports, collapse_after}
 var props: Dictionary = {}
 ## name -> {kind (the breaking blow), point, axis}
 var destroyed: Dictionary = {}
@@ -153,7 +158,8 @@ func configure(arena: Node) -> void:
 			# break_speed stays solid for bots that hit it too gently.
 			body.collision_layer = BaselineConfig.PROP_LAYER
 		props[item.name] = {"body":body, "kind":item.kind, "hp":rule.hp, "max":rule.hp, "at":item.at,
-			"radius":GROUND.footprint(item) if woodland else float(item.radius), "layer":body.collision_layer, "mask":body.collision_mask}
+			"radius":GROUND.footprint(item) if woodland else float(item.radius), "layer":body.collision_layer, "mask":body.collision_mask,
+			"supports":item.get("supports", []), "collapse_after":int(item.get("collapse_after", 0))}
 		_names[body.get_instance_id()] = item.name
 
 ## Prop name for a physics collider id, or "" when it is not a live prop.
@@ -182,8 +188,22 @@ func damage(name: String, raw: float, weapon: String, point: Vector3, axis: Vect
 	var direction := axis.normalized() if axis.length_squared() > 0.000001 else Vector3.UP
 	destroyed[name] = {"kind":weapon, "point":point, "axis":direction}
 	_set_solid(name, false)
+	_collapse_onto(name)
 	revision += 1
 	return leftover
+
+## Brings down every prop that has lost enough of its supports with name.
+func _collapse_onto(name: String) -> void:
+	for other: String in props:
+		var prop: Dictionary = props[other]
+		if destroyed.has(other) or prop.collapse_after <= 0 or not prop.supports.has(name):
+			continue
+		var gone: int = prop.supports.filter(func(support: String) -> bool: return destroyed.has(support)).size()
+		if gone >= prop.collapse_after:
+			prop.hp = 0.0
+			destroyed[other] = {"kind":COLLAPSE, "point":prop.at, "axis":Vector3.DOWN}
+			_set_solid(other, false)
+			_collapse_onto(other)
 
 ## Live props whose footprint lies within radius of a point, with distances.
 func within(point: Vector3, radius: float) -> Array[Dictionary]:
