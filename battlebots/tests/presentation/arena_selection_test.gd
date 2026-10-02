@@ -11,6 +11,7 @@ func run() -> void:
 	var path := "user://test-arena-choice.cfg"
 	check(CHOICE.save_choice("sunreach",path)==OK and CHOICE.load_choice(path)=="sunreach","Sunreach persists")
 	check(CHOICE.save_choice("maelstrom",path)==OK and CHOICE.load_choice(path)=="maelstrom","Maelstrom persists")
+	check(CHOICE.save_choice("elysium",path)==OK and CHOICE.load_choice(path)=="elysium","Elysium persists")
 	check(CHOICE.save_choice("moon",path)==OK and CHOICE.load_choice(path)=="moon","Moon persists")
 	check(CHOICE.save_choice("woodland",path)==OK and CHOICE.load_choice(path)=="woodland","Woodland persists")
 	check(CHOICE.save_choice("foundry",path)==OK and CHOICE.load_choice(path)=="foundry","Foundry persists")
@@ -54,6 +55,9 @@ func run() -> void:
 	screen.get_node("%Tiles").get_child(4).pressed.emit()
 	check(screen.get_node("%DetailName").text=="FROZEN MAELSTROM", "Frozen Maelstrom selectable")
 	check(screen.get_node("%DetailImage").texture!=null, "Frozen Maelstrom actual arena preview available")
+	screen.get_node("%Tiles").get_child(5).pressed.emit()
+	check(screen.get_node("%DetailName").text=="ELYSIUM", "Elysium selectable")
+	check(screen.get_node("%DetailImage").texture!=null, "Elysium actual arena preview available")
 	for resolution: Vector2i in [Vector2i(1280,720),Vector2i(1920,1080)]:
 		root.size = resolution
 		for factor: float in [1.0,1.5]:

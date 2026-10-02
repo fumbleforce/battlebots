@@ -36,6 +36,8 @@ if ($Part -ne 'net') {
     Invoke-MvpTest 'res://tests/simulation/woodland_ramp_jump.gd' 'WOODLAND RAMP JUMP PASS'
     Invoke-MvpTest 'res://tests/simulation/sunreach_bridges.gd' 'SUNREACH BRIDGES PASS'
     Invoke-MvpTest 'res://tests/simulation/maelstrom_fall_test.gd' 'MAELSTROM FALL PASS'
+    Invoke-MvpTest 'res://tests/simulation/elysium_fall_test.gd' 'ELYSIUM FALL PASS'
+    Invoke-MvpTest 'res://tests/presentation/elysium_arena_test.gd' 'ELYSIUM PASS'
     Invoke-MvpTest 'res://tests/simulation/match_pickups_test.gd' 'MATCH PICKUPS PASS'
     Invoke-MvpTest 'res://tests/network/pickup_session.tscn' 'PICKUP SESSION PASS' -Scene -RealTime
     Invoke-MvpTest 'res://tests/simulation/scaled_combat.tscn' 'SCALED COMBAT PASS' -Scene
@@ -118,6 +120,7 @@ if ($Part -ne 'sim') {
             if ($profile -eq '0') {
                 Invoke-MvpTest 'res://tests/network/sunreach_session_test.gd' 'NETWORK PASS' -RealTime
                 Invoke-MvpTest 'res://tests/network/maelstrom_session_test.gd' 'NETWORK PASS' -RealTime
+                Invoke-MvpTest 'res://tests/network/elysium_session_test.gd' 'NETWORK PASS' -RealTime
                 Invoke-MvpTest 'res://tests/network/woodland_boss_session_test.gd' 'NETWORK PASS' -RealTime
             }
         }

@@ -72,7 +72,7 @@ func check_practice(arena_id: String) -> void:
 	for round_start: int in 2:
 		# Bots are created at the origin and teleported on their first physics
 		# step; the centre pickup must not go to a bot still waiting there (#80).
-		var centres := session.world.pickups.items.filter(func(item: Dictionary) -> bool: return item.point.is_zero_approx())
+		var centres := session.world.pickups.items.filter(func(item: Dictionary) -> bool: return Vector2(item.point.x, item.point.z).is_zero_approx())
 		# Woodland's giant starts on the centre, so that point is never stocked there;
 		# the Frozen Maelstrom's centre is its bottomless eye (#102).
 		if centres.is_empty():

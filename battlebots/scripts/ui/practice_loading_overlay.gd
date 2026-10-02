@@ -4,7 +4,7 @@ extends CanvasLayer
 ## lets it draw, builds the arena and bots behind it, and lifts it only after
 ## the first gameplay frames have drawn, so the build and the first-use shader
 ## setup never show as a frozen menu. Presentation only.
-const ARENA_IDS := ["foundry", "moon", "woodland", "sunreach", "maelstrom"]
+const ARENA_IDS := ["foundry", "moon", "woodland", "sunreach", "maelstrom", "elysium"]
 const TIP := "[color=#F5B82E][b]TIP[/b][/color]  Hold SPACE to charge a jump, release to launch. Hold SHIFT for Nitro. Practice bots respawn; so do you."
 ## Seconds the card takes to fade once the arena has drawn.
 const FADE_SECONDS := 0.25

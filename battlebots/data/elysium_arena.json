@@ -1,0 +1,62 @@
+{
+	"_comment": "Elysium arena (#115), read by scripts/arena/elysium_ground.gd. Game metres, Y up, arena centre at the origin, team 1 on +Z. Gameplay values: changing any of them is a gameplay change (bump WireCodec.BUILD). Marble islands float above a sea of clouds: the raised Sanctum in the middle, the broad Halo ring around it holding every start, joined by bridges over the chasm, with cloud wells punched through the Halo. There are no walls: a bot whose origin drops below kill_y falls to its death (MvpBot.FALL_REASON); its wreck keeps falling until sink_depth below kill_y, hidden in the clouds. Off the islands the collision height map drops to void_depth. Everything except the self-symmetric rotunda is authored for one half and mirrored through the centre, so both teams face identical ground. Angles are radians in the x-z plane (x = r cos a, z = r sin a).",
+	"half": 150.0,
+	"grid_step": 1.0,
+	"kill_y": -10.0,
+	"sink_depth": 200.0,
+	"void_depth": -140.0,
+	"sanctum": {
+		"_comment": "Central plateau: radius metres (edge wobble jag metres, even harmonics only) at height metres above the Halo, with a round dais (dais_radius, dais_height, easing over dais_blend metres) for the rotunda.",
+		"radius": 46.0, "jag": 1.6, "height": 4.0, "dais_radius": 19.5, "dais_height": 1.2, "dais_blend": 3.5
+	},
+	"halo": {
+		"_comment": "The ring island between inner and outer metres from the centre (edges wobble by jag metres). Its lawns roll by roll metres.",
+		"inner": 62.0, "outer": 123.0, "jag": 2.6, "roll": 0.45
+	},
+	"bridges": {
+		"_comment": "Railless marble bridges along these bearings (and their mirrors), width metres wide, ramping from the Halo up to the Sanctum. overlap: metres each end runs into the islands.",
+		"angles": [0.0, 1.5707963], "width": 20.0, "overlap": 5.0
+	},
+	"wells": [
+		{"_comment": "Cloud wells: round holes through the Halo straight down to the clouds, radius metres. Mirrored.", "at": [68.2, 45.6], "radius": 6.5},
+		{"at": [-68.2, 45.6], "radius": 6.5}
+	],
+	"mounds": [
+		{"_comment": "Raised cloud gardens on the Halo: smooth hills height metres tall over radius metres. Mirrored.", "at": [108.0, 46.0], "radius": 15.0, "height": 3.2},
+		{"at": [-108.0, 46.0], "radius": 15.0, "height": 3.2},
+		{"at": [86.0, -78.0], "radius": 13.0, "height": 2.4}
+	],
+	"pad_radius": 9.0,
+	"pad_blend": 8.0,
+	"_pad_comment": "Every start and Practice Duel place is solid level ground within pad_radius (land is guaranteed there, the lawns and mounds ease flat over pad_blend metres).",
+	"rotunda": {
+		"_comment": "The Sanctum's rotunda at the centre: columns (even) evenly round radius metres, column_radius thick and height metres tall, under a ring entablature and a gilded dome.",
+		"columns": 12, "radius": 17.0, "column_radius": 1.25, "height": 15.0, "entablature": 2.2, "dome_rise": 9.0
+	},
+	"structures": [
+		{"_comment": "Collision-bearing architecture, authored for one half and mirrored. colonnade: count columns from 'from' to 'to' under an entablature, height metres tall. arch: a triumphal arch centred at 'at' facing yaw, span metres between its piers, height metres tall. obelisk: a tapered spire height metres tall. stump: a broken column height metres tall. balustrade: a low rail along an arc of the Sanctum (radius metres) or a straight run, height metres tall.", "type": "colonnade", "from": [82.0, -22.0], "to": [82.0, 22.0], "count": 5, "height": 13.0},
+		{"type": "colonnade", "from": [-27.0, -74.0], "to": [27.0, -74.0], "count": 4, "height": 13.0},
+		{"type": "arch", "at": [41.0, 0.0], "yaw": 1.5707963, "span": 20.0, "height": 15.0},
+		{"type": "arch", "at": [0.0, 41.0], "yaw": 0.0, "span": 20.0, "height": 15.0},
+		{"type": "obelisk", "at": [114.0, 16.0], "height": 22.0},
+		{"type": "obelisk", "at": [58.0, -96.0], "height": 22.0},
+		{"type": "obelisk", "at": [-34.0, -108.0], "height": 18.0},
+		{"type": "stump", "at": [96.0, 64.0], "height": 4.5},
+		{"type": "stump", "at": [60.0, 84.0], "height": 3.0},
+		{"type": "stump", "at": [103.0, -42.0], "height": 5.5},
+		{"type": "stump", "at": [70.0, -82.0], "height": 3.5},
+		{"type": "stump", "at": [-82.0, -54.0], "height": 4.0},
+		{"type": "balustrade", "arc": [0.3, 0.68], "radius": 44.0, "height": 1.6},
+		{"type": "balustrade", "arc": [0.9, 1.27], "radius": 44.0, "height": 1.6},
+		{"type": "balustrade", "arc": [1.87, 2.25], "radius": 44.0, "height": 1.6},
+		{"type": "balustrade", "arc": [2.46, 2.84], "radius": 44.0, "height": 1.6}
+	],
+	"art": {
+		"_comment": "Presentation only.",
+		"view_distance": 6000.0,
+		"cloud_sea_y": -150.0,
+		"sun_energy": 1.65,
+		"ambient_energy": 0.7,
+		"waterfalls": 10
+	}
+}

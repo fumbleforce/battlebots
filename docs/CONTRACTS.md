@@ -1972,3 +1972,30 @@ which `SawbladeGeometry.ramp_swing_points` now shares). It replaces the fixed
 front box, which still covers the Lifter while it charges (pins). The drawn
 arm (`scenes/bots/weapon_visual.gd`) reads its hinge and angles from the same
 `AtlasGeometry` constants; the Practice debug view marks the volume.
+
+## Elysium arena and shared lethal falls — build mvp-ab-73 (#115)
+
+`elysium` joins the arena ID list (`ArenaBounds.IDS`, `ArenaScenery.IDS`, the
+arena picker, Practice, Practice Duel and private LAN sessions); clients need
+`arena_rules >= 11` (`ARENA_RULES` 11). Protocol 18 and the catalogue are
+unchanged; the build bump rejects stale peers.
+
+- Ground: `scripts/arena/elysium_ground.gd` builds a 1 m height map and
+  primitive structure collision (boxes, cylinders, hulls) from
+  `data/elysium_arena.json`: the raised Sanctum, the Halo ring holding every
+  start, four railless bridges over the chasm and cloud wells through the Halo.
+  Land is a signed distance field (`land_sdf`, `on_land`); off the islands the
+  height map drops to `void_depth`. Everything except the self-symmetric
+  rotunda is point-mirrored. Headless servers load no art.
+- Lethal falls are now per arena: `AuthorityWorld.step` arms
+  `MvpBot.lethal_fall_y` / `sink_floor_y` from the terrain script's
+  `settings().kill_y` / `sink_depth` on `maelstrom` and `elysium` (`-INF`
+  elsewhere). The elimination reason stays `MvpBot.FALL_REASON`
+  (`"maelstrom"`), so the wire and the Frozen Maelstrom are unchanged. Elysium
+  has no ring-exit rule: every edge, the chasm and the wells drop below `kill_y`.
+- `data/arena_spawns.json`: `arenas.elysium` (team lanes on the Halo at
+  z = ±96, free-for-all ring 96 m) and `duel.monowheels.side_fraction_by_arena.elysium`
+  0.2 (the Practice Duel lies on the Sanctum). The Sunreach bake fingerprint of
+  this file was refreshed; its Sunreach inputs are unchanged.
+- The centre pickup stands on the Sanctum at its height (5.2 m);
+  `tests/simulation/arena_spawns_test.gd` now finds the centre pickup by x/z.

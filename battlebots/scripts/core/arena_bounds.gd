@@ -11,7 +11,7 @@ const WOODLAND_HALF := 120.0
 const FOUNDRY_CEILING := 16.5
 
 ## Every server-selectable arena.
-const IDS := ["foundry", "moon", "woodland", "sunreach", "maelstrom"]
+const IDS := ["foundry", "moon", "woodland", "sunreach", "maelstrom", "elysium"]
 
 static func half_extent(arena_id: String) -> float:
 	match arena_id:
@@ -19,6 +19,7 @@ static func half_extent(arena_id: String) -> float:
 		"woodland": return WOODLAND_HALF
 		"sunreach": return float(load("res://scripts/arena/sunreach_ground.gd").settings().half)
 		"maelstrom": return float(load("res://scripts/arena/maelstrom_ground.gd").settings().half)
+		"elysium": return float(load("res://scripts/arena/elysium_ground.gd").settings().half)
 	return FOUNDRY_HALF
 
 static func ceiling(arena_id: String) -> float:

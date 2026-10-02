@@ -165,6 +165,43 @@ All textures and scans are CC0 from Poly Haven, credited in
     a clean pinned import, credits; run the Woodland/baseline/spawn tests. Arena
     geometry changes are client-side, but `ARENA_RULES` gates older clients.
 
+## Elysium (#115): heaven above the clouds
+
+Built in one session without Blender or Poly Haven access, so it departs from
+the Woodland recipe in places; treat these as known debts, not precedent.
+
+- **Gameplay first.** `scripts/arena/elysium_ground.gd` reads
+  `data/elysium_arena.json`: a signed distance field of the islands (Sanctum
+  disc, Halo ring minus its wells, bridges, guaranteed start pads) and a height
+  map that drops to `void_depth` off them. A fall below `kill_y` is fatal.
+- **Edges that tell the truth.** `elysium_visuals.gd` builds the island tops
+  on the collision grid itself and cuts their edges with marching squares on
+  the same distance field, so what looks like ground is ground and what looks
+  like sky is a fall. Keep cloud banks well below the lip (and out of the
+  chasm, which must read as a drop, not a pool of mist).
+- **Materials.** Existing CC0 scans regraded (sparse grass for lawns, concrete
+  for marble detail, rock face for the hanging roots); marble veins, gold inlay
+  and polar paving are shader patterns on top. Paths whose edges are not cliff
+  edges are drawn analytically in the shader: vertex paint at 1 m stair-steps.
+- **Architecture is procedural** (lathed fluted columns with bases and gilded
+  capitals, extruded entablatures, a lathed dome and lantern) and matches its
+  primitive collision. A Blender kit with baked AO would be the next step up.
+- **Sky and clouds.** A custom sky shader (no HDRI), a billowing polar cloud
+  sea far below, sphere-puff cloud banks lit by hand from the sun direction
+  (silver lining, forward scattering), distant floating isles, colossal pillars
+  and cumulus towers. Keep cloud tints near-white: warm sunlit tints read as
+  dirty tan patches once fog and stacking multiply them.
+- **Failures seen:** volumetric fog and soft-light glow bleached everything
+  (density 0.0035 → 0.0009, screen glow); green lawns reflected in metallic
+  gold made the dome olive (metallic 0.82, rougher leaf); crossed grass cards
+  read as stars from above (smaller cards); an undeclared shader variable
+  silently fell back to the default white material (grep logs for `SHADER ERROR`).
+- Test and captures: `tests/presentation/elysium_arena_test.gd`
+  (`-- --capture [--view=name]`, 13 views incl. `chase`, `glare`, `card`),
+  `tests/simulation/elysium_fall_test.gd`, `tests/network/elysium_session_test.gd`.
+  Captures render headlessly on a CPU with Xvfb and Mesa lavapipe
+  (`VK_ICD_FILENAMES=.../lvp_icd.json xvfb-run godot --rendering-driver vulkan`).
+
 ## Where things live
 
 - Gameplay: `scripts/arena/woodland_ground.gd`, `scenes/arenas/woodland_arena.tscn`,

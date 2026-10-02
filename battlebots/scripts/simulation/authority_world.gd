@@ -56,6 +56,8 @@ func _build_arena() -> void:
 		scene = preload("res://scenes/arenas/sunreach_arena.tscn")
 	elif arena_id == "maelstrom":
 		scene = preload("res://scenes/arenas/maelstrom_arena.tscn")
+	elif arena_id == "elysium":
+		scene = preload("res://scenes/arenas/elysium_arena.tscn")
 	arena = scene.instantiate()
 	arena.name = "Arena"
 	ARENA_SPAWNS.settings().place_markers(arena, arena_id)
@@ -173,8 +175,9 @@ func step(delta: float, active: bool, round_index: int) -> void:
 	_mark_cooling_zones()
 	var lethal := -INF
 	var sink := -INF
-	if arena_id == "maelstrom":
-		var layout: RefCounted = preload("res://scripts/arena/maelstrom_ground.gd").settings()
+	# Open-edged arenas (Frozen Maelstrom #102, Elysium #115): a fall is fatal.
+	if arena_id in ["maelstrom", "elysium"]:
+		var layout: RefCounted = _surface().settings()
 		lethal = layout.kill_y
 		sink = layout.kill_y - layout.sink_depth
 	for id: int in bots:
@@ -310,6 +313,7 @@ func _surface() -> Script:
 		"woodland": return preload("res://scripts/arena/woodland_ground.gd")
 		"sunreach": return preload("res://scripts/arena/sunreach_ground.gd")
 		"maelstrom": return preload("res://scripts/arena/maelstrom_ground.gd")
+		"elysium": return preload("res://scripts/arena/elysium_ground.gd")
 	return null
 
 ## Standing height at a floor point (Sunreach includes its bridge decks).

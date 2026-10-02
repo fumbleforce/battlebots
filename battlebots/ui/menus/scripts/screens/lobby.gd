@@ -396,7 +396,7 @@ func refresh() -> void:
 	var arena_id: String = session.lobby_view.get("arena", "foundry") if connected else (preload("res://scripts/arena/arena_scenery.gd").load_choice() if MenuRouter.lobby_intent == "host" else "foundry")
 	var arena_index := maxi(preload("res://scripts/arena/arena_scenery.gd").IDS.find(arena_id), 0)
 	var arena_data: Dictionary = MenuData.ARENAS[arena_index]
-	$Layout/Body/Row/Match/Rules/Hazards/Col/Value.text = {"moon":"Uneven", "woodland":"Terrain", "sunreach":"Ruins / bridges", "maelstrom":"Lethal eye / edge"}.get(arena_id, "None")
+	$Layout/Body/Row/Match/Rules/Hazards/Col/Value.text = {"moon":"Uneven", "woodland":"Terrain", "sunreach":"Ruins / bridges", "maelstrom":"Lethal eye / edge", "elysium":"Lethal edges / wells"}.get(arena_id, "None")
 	var known := connected and session.lobby_view.has("mode")
 	var per_team := ceili(capacity / 2.0)
 	var teams: Array = [[], []]
