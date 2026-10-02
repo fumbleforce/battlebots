@@ -73,36 +73,36 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 	for category: Dictionary in categories:
 		for item: Dictionary in category.items:
 			if item.id == "balanced":
-				item.name = "Sawblade body"
+				item.name = "Sawblade Body"
 				item.desc = "Authored chassis body. Mounts every weapon: front tools between the tracks, a turret on the rear pack and the auxiliary gun on the pack's side. Changing the body preserves all other selected parts and appearance options."
 			elif item.id == "atlas_mx":
-				item.name = "Atlas MX modular chassis"
-				item.desc = "Wide tracked platform with an open equipment deck, front tool coupler, roof rails, auxiliary gun socket and a turret race for a cannon or plasma turret. Runs on Tracks · Traction, large off-road wheels (Four wheels · Standard) or four hydraulic legs (Articulated walking legs). All primary weapons and utilities fit within normal build budgets."
+				item.name = "Atlas MX Modular Chassis"
+				item.desc = "Wide tracked platform with an open equipment deck, front tool coupler, roof rails, auxiliary gun socket and a turret race for a cannon or plasma turret. Runs on Tracks · Traction, large off-road wheels (Four Wheels · Standard) or four hydraulic legs (Articulated Walking Legs). All primary weapons and utilities fit within normal build budgets."
 			elif item.id == "traction": item.name = "Tracks · Traction"
 			elif item.id == "standard_wheels":
-				item.name = "Four wheels · Standard"
+				item.name = "Four Wheels · Standard"
 				item.desc = "Standard wheels · 22 kg · 25 power · 10 m/s. On Atlas MX: four large lugged off-road tyres on hub motors under the sponson hoods."
-			elif item.id == "agile": item.name = "Four wheels · Agile"
+			elif item.id == "agile": item.name = "Four Wheels · Agile"
 			elif item.id == "lifter":
 				item.name = "Lifter"
 				item.desc = "Forked lifting arm · 22 kg · 30 power. Hold primary to press the arm to the ground and load it, release to flip whatever stands on it; a longer hold throws harder. Fits every body."
 			elif item.id == "ramp":
 				item.name = "Ramp"
-				item.desc = "Plate ramp · 22 kg · 30 power. Hold primary to load the plate, release to flip whatever drove onto it; a longer hold throws harder. The Sawblade body's own tool; other bodies carry it ahead of the nose."
+				item.desc = "Plate ramp · 22 kg · 30 power. Hold primary to load the plate, release to flip whatever drove onto it; a longer hold throws harder. The Sawblade Body's own tool; other bodies carry it ahead of the nose."
 			elif item.id == "battering_ram":
-				item.name = "Battering ram"
+				item.name = "Battering Ram"
 				item.desc = "Front tool · 26 kg · 30 power. An armoured prow with hardened striker plates: rams landed on the prow deal 2.2× damage and 1.6× knock-back while you take only a third of the return blow. Press primary for a hydraulic punch (24 damage, big shove). Drive enemies into walls."
 			elif item.id == "spear_fork":
 				item.name = "Spear · Forklift"
 				item.desc = "Front tool · 22 kg · 30 power. Press primary to thrust a barbed lance and fork tines: 30 piercing damage that armour only partly stops, and the target is impaled. Keep holding to lift and carry it helplessly; release to throw it off. Tears free after 5 s or under heavy strain."
 			elif item.id == "grinder_drum":
-				item.name = "Grinder drum"
+				item.name = "Grinder Drum"
 				item.desc = "Front tool · 30 kg · 40 power. A huge spiked drum on thick hydraulic arms. Hold primary to spin it up and shred whatever it touches; armour plates take 2.4× damage. Hold secondary to raise the arms onto a target's top. Pulls victims into the drum; builds heat fast."
 			elif item.id == "walker":
-				item.name = "Articulated walking legs"
+				item.name = "Articulated Walking Legs"
 				item.desc = "Six legs on Scorpion, four hydraulic legs on Atlas MX, four on Sawblade · 32 kg · 35 power · 4 m/s. Planted feet adapt to terrain and smooth alternating steps."
 			elif item.id == "scorpion_hex":
-				item.name = "Scorpion hex body"
+				item.name = "Scorpion Hex Body"
 				item.desc = "Orange diesel-powered six-legged combat machine. Tapered hexagonal armor, interchangeable dorsal weapon and minigun socket. Turrets mount on the dorsal deck (the exhaust stacks block their aim to the rear quarters) and front tools under the nose. Requires walking drive; preserves your other selected parts."
 			elif item.id == "minigun_pod":
 				item.name = "Minigun • Auxiliary"
@@ -111,22 +111,22 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.name = "Turret · Cannon"
 				item.desc = "Roof turret · 16 kg · 25 power. Tank controls: aim with the mouse over the turret sight and fire the main gun with primary fire; secondary fire operates the hull weapon. A heavy shell every 2.4 s knocks targets back. Builds shared heat. Replaces the roof gun mount, so it excludes the minigun."
 			elif item.id == "turret_cannon_dual":
-				item.name = "Turret · Twin cannon ▲"
+				item.name = "Turret · Twin Cannon ▲"
 				item.desc = "Upgrade · Roof turret · 22 kg · 35 power. Two barrels ripple a volley of heavy shells every 2.6 s. Tank controls: mouse to aim, primary fire to shoot. Replaces the roof gun mount."
 			elif item.id == "turret_cannon_quad":
-				item.name = "Turret · Quad cannon ▲▲"
+				item.name = "Turret · Quad Cannon ▲▲"
 				item.desc = "Upgrade · Roof turret · 30 kg · 40 power. Four barrels unload a devastating rippling volley every 3 s. Heavy: slows the tank. Tank controls; replaces the roof gun mount."
 			elif item.id == "turret_plasma_dual":
-				item.name = "Turret · Twin plasma ▲"
+				item.name = "Turret · Twin Plasma ▲"
 				item.desc = "Upgrade · Roof turret · 20 kg · 35 power. Alternating emitters pour searing plasma bolts at almost twice the rate. Watch heat. Tank controls; replaces the roof gun mount."
 			elif item.id == "turret_plasma_quad":
-				item.name = "Turret · Quad plasma ▲▲"
+				item.name = "Turret · Quad Plasma ▲▲"
 				item.desc = "Upgrade · Roof turret · 28 kg · 40 power. Four emitters hose a torrent of plasma until heat runs out. Heavy: slows the tank. Tank controls; replaces the roof gun mount."
 			elif item.id == "turret_flamer":
 				item.name = "Turret · Flamethrower 🔥"
 				item.desc = "Roof turret · 15 kg · 25 power. Close quarters: hold primary fire to hose a 17 m cone of fire that burns every enemy inside it. Walls cut the jet short. Builds shared heat."
 			elif item.id == "turret_tesla":
-				item.name = "Turret · Tesla arc ⚡"
+				item.name = "Turret · Tesla Arc ⚡"
 				item.desc = "Roof turret · 16 kg · 30 power. Close quarters: each discharge arcs lightning to the nearest enemy within 15 m of your aim and chains to a second enemy nearby. No aiming precision needed."
 			elif item.id == "turret_railgun":
 				item.name = "Turret · Railgun"
@@ -138,22 +138,22 @@ static func catalogue(registry: ContentRegistry) -> Dictionary:
 				item.name = "Turret · Mortar"
 				item.desc = "Roof turret · 22 kg · 35 power. Artillery: the camera rises over the battlefield and the mouse places a ground target (about 20–60 m). Primary fire lobs a shell over walls that blasts everything within 7.5 m. Heavy 3.2 s reload; useless up close."
 			elif item.id == "turret_plasma":
-				item.name = "Turret · Plasma gun"
+				item.name = "Turret · Plasma Gun"
 				item.desc = "Roof turret · 14 kg · 25 power. Tank controls: aim with the mouse over the turret sight and hold primary fire for rapid plasma bolts; secondary fire operates the hull weapon. Light hits that build heat quickly. Replaces the roof gun mount, so it excludes the minigun."
 			elif item.id == "minigun":
 				item.name = "Minigun • Primary"
 				item.desc = "Primary weapon module · 24 kg · 35 power. Hold primary fire for sustained ranged fire. On Scorpion it replaces the dorsal hammer; choose a separate utility."
 			elif item.id == "nitro_boost":
-				item.name = "Nitro boost"
+				item.name = "Nitro Boost"
 				item.desc = "Hold Shift to accelerate and drive faster. Generates 14 heat/s while active; release to cool."
 			elif item.id == "nitro_off":
 				item.name = "No Nitro"
 				item.desc = "Leave the Nitro perk unequipped."
 			elif item.id == "charged_jump":
-				item.name = "Charged suspension jump"
+				item.name = "Charged Suspension Jump"
 				item.desc = "Hold Space while grounded to charge, then release to jump. Longer holds launch harder. Generates 20 heat on release and has a short cooldown."
 			elif item.id == "jump_off":
-				item.name = "No jump"
+				item.name = "No Jump"
 				item.desc = "Leave the suspension perk unequipped."
 
 	return {"parts":categories,"paint":paint_categories,"decals":vehicle}

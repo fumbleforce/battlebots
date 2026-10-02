@@ -55,7 +55,7 @@ Release held controls before resuming."
 [node name="Resume" type="Button" parent="Margin/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
-text = "Resume"
+text = "RESUME"
 focus_neighbor_top = NodePath("../Return")
 focus_neighbor_bottom = NodePath("../Settings")
 focus_next = NodePath("../Settings")
@@ -65,7 +65,7 @@ theme_override_styles/focus = SubResource("Focus")
 [node name="Settings" type="Button" parent="Margin/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
-text = "Camera settings"
+text = "CAMERA SETTINGS"
 focus_neighbor_top = NodePath("../Resume")
 focus_neighbor_bottom = NodePath("../Return")
 focus_next = NodePath("../Return")
@@ -75,7 +75,7 @@ theme_override_styles/focus = SubResource("Focus")
 [node name="Return" type="Button" parent="Margin/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
-text = "Return to launcher"
+text = "RETURN TO LAUNCHER"
 focus_neighbor_top = NodePath("../Settings")
 focus_neighbor_bottom = NodePath("../Resume")
 focus_next = NodePath("../Resume")

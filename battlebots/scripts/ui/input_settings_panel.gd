@@ -23,7 +23,7 @@ func _ready() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 6)
 	var title := Label.new()
-	title.text = "Controls"
+	title.text = "CONTROLS"
 	title.add_theme_font_size_override("font_size", 26)
 	add_child(title)
 	var help := Label.new()
@@ -36,7 +36,7 @@ func _ready() -> void:
 	add_child(pages)
 	for title_text: String in ["Driving", "Perks", "Weapons", "Camera & HUD", "Local dev", "Controller"]:
 		var page := Button.new()
-		page.text = title_text
+		page.text = title_text.to_upper()
 		page.toggle_mode = true
 		page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page.pressed.connect(show_page.bind(page_buttons.size()))
@@ -87,13 +87,13 @@ func _ready() -> void:
 	var buttons := HBoxContainer.new()
 	add_child(buttons)
 	var defaults := Button.new()
-	defaults.text = "Reset defaults"
+	defaults.text = "RESET DEFAULTS"
 	defaults.pressed.connect(reset_defaults)
 	var cancel_button := Button.new()
-	cancel_button.text = "Cancel & back"
+	cancel_button.text = "CANCEL & BACK"
 	cancel_button.pressed.connect(cancel)
 	save_button = Button.new()
-	save_button.text = "Save & back"
+	save_button.text = "SAVE & BACK"
 	save_button.pressed.connect(save)
 	for button: Button in [defaults, cancel_button, save_button]:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL

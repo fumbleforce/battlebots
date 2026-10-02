@@ -23,7 +23,7 @@ func _ready() -> void:
 
 func _refresh_expanded() -> void:
 	details_label.visible = expanded
-	details_button.text = "Hide details" if expanded else "Details"
+	details_button.text = "HIDE DETAILS" if expanded else "DETAILS"
 
 func show_diagnostics(state: String, diagnostics: Dictionary, context: Dictionary = {}) -> void:
 	var phase := _safe_text(context.get("phase"))

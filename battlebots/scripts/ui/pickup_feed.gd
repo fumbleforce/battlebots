@@ -49,7 +49,7 @@ func _ready() -> void:
 	var row := _row(credits_panel)
 	credits_caption = _label(row, "CR", 10, MUTED)
 	credits_value = _label(row, "+0", 13, CREDITS)
-	practice_note = _label(row, "practice · not banked", 10, MUTED)
+	practice_note = _label(row, "PRACTICE · NOT BANKED", 10, MUTED)
 	toasts = VBoxContainer.new()
 	toasts.add_theme_constant_override("separation", 3)
 	add_child(toasts)

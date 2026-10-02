@@ -14,6 +14,17 @@ const SUMMARY_BOTTOM := 220
 const TUNING_BOTTOM := 84
 const SUMMARY_SIDES := Vector2i(1000, 112)
 const TUNING_SIDES := Vector2i(890, 60)
+const DETAILS_TOP := 244
+## Action column margins on the design page.
+const ACTIONS_LEFT := 112
+const ACTIONS_RIGHT := 1060
+const ACTIONS_TOP := 92
+const ACTIONS_BOTTOM := 84
+const DESIGN_SIZE := Vector2(1920, 1080)
+var actions_margin: MarginContainer
+## Extra design-space around the 1920x1080 layout on non-16:9 screens.
+var _pad := Vector2.ZERO
+var _tuned := false
 
 func configure(existing_panel: PanelContainer) -> void:
 	panel = existing_panel
@@ -37,10 +48,7 @@ func configure(existing_panel: PanelContainer) -> void:
 	panel.add_child(shade)
 	panel.move_child(shade, 1)
 	var margin := panel.get_node("Margin") as MarginContainer
-	margin.add_theme_constant_override("margin_left", 112)
-	margin.add_theme_constant_override("margin_right", 1060)
-	margin.add_theme_constant_override("margin_top", 92)
-	margin.add_theme_constant_override("margin_bottom", 84)
+	actions_margin = margin
 	var actions := margin.get_node("Content") as VBoxContainer
 	var scroll := ScrollContainer.new()
 	scroll.follow_focus = true
@@ -71,10 +79,6 @@ func configure(existing_panel: PanelContainer) -> void:
 	details_margin = MarginContainer.new()
 	details_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(details_margin)
-	details_margin.add_theme_constant_override("margin_left", SUMMARY_SIDES.x)
-	details_margin.add_theme_constant_override("margin_right", SUMMARY_SIDES.y)
-	details_margin.add_theme_constant_override("margin_top", 244)
-	details_margin.add_theme_constant_override("margin_bottom", SUMMARY_BOTTOM)
 	var card := PanelContainer.new()
 	card.theme_type_variation = &"PanelGlass"
 	details_margin.add_child(card)
@@ -123,12 +127,32 @@ func _label(parent: Node, text: String, variation: StringName, font_size: int) -
 	parent.add_child(item)
 	return item
 
+## Keeps the 1920x1080 design scale but covers the whole screen at any aspect:
+## the page grows in design units, the actions hold the left edge, the details
+## card holds the right edge (like the HUD tuning overlay) and both stay
+## vertically centred.
 func _resize() -> void:
 	var extent := get_viewport_rect().size
-	var ratio := minf(extent.x / 1920.0, extent.y / 1080.0)
-	size = Vector2(1920, 1080)
+	var ratio := maxf(minf(extent.x / DESIGN_SIZE.x, extent.y / DESIGN_SIZE.y), 0.001)
 	scale = Vector2.ONE * ratio
-	position = (extent - size * ratio) * 0.5
+	size = extent / ratio
+	position = Vector2.ZERO
+	_pad = (size - DESIGN_SIZE).max(Vector2.ZERO)
+	_place()
+
+func _place() -> void:
+	var half_y := int(_pad.y * 0.5)
+	actions_margin.add_theme_constant_override("margin_left", ACTIONS_LEFT)
+	actions_margin.add_theme_constant_override("margin_right", ACTIONS_RIGHT + int(_pad.x))
+	actions_margin.add_theme_constant_override("margin_top", ACTIONS_TOP + half_y)
+	actions_margin.add_theme_constant_override("margin_bottom", ACTIONS_BOTTOM + half_y)
+	# The margin spans the whole page, so it must keep ignoring the mouse or
+	# it would swallow the menu buttons on the left.
+	var sides := TUNING_SIDES if _tuned else SUMMARY_SIDES
+	details_margin.add_theme_constant_override("margin_left", sides.x + int(_pad.x))
+	details_margin.add_theme_constant_override("margin_right", sides.y)
+	details_margin.add_theme_constant_override("margin_top", DETAILS_TOP + half_y)
+	details_margin.add_theme_constant_override("margin_bottom", (TUNING_BOTTOM if _tuned else SUMMARY_BOTTOM) + half_y)
 
 ## tuning is the Practice Duel's live tuning (MvpSession.practice_tuning()) and parts
 ## the session that swaps its weapon and chassis; both null otherwise.
@@ -138,12 +162,8 @@ func render(view: Dictionary, practice: bool, tuning: RefCounted = null, parts: 
 		tuning_panel.visible = tuned
 		summary.visible = not tuned
 		# The card sits below the network diagnostics; the tuning list uses the full height.
-		# The margin spans the whole page, so it must keep ignoring the mouse or
-		# it would swallow the menu buttons on the left.
-		details_margin.add_theme_constant_override("margin_bottom", TUNING_BOTTOM if tuned else SUMMARY_BOTTOM)
-		var sides := TUNING_SIDES if tuned else SUMMARY_SIDES
-		details_margin.add_theme_constant_override("margin_left", sides.x)
-		details_margin.add_theme_constant_override("margin_right", sides.y)
+		_tuned = tuned
+		_place()
 	if tuned:
 		tuning_panel.render(tuning, parts)
 	context.text = "PRACTICE" if practice else str(view.get("mode", "1v1")).to_upper() + " / MATCH IN PROGRESS"

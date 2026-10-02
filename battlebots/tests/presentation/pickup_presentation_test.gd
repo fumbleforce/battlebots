@@ -98,7 +98,7 @@ func results() -> void:
 	panel.accept_record({"match":view.duplicate(true), "participants":participants}, "fixture")
 	panel.render(view, 1, 0)
 	check(panel.credits_label.visible and panel.credits_label.text.begins_with("+340 CREDITS EARNED")
-		and panel.credits_label.text.contains("pickups 50"), "Results show the local reward breakdown")
+		and panel.credits_label.text.contains("PICKUPS 50"), "Results show the local reward breakdown")
 	panel.render(view, 2, 1)
 	check(not panel.credits_label.visible, "A record without credits shows no invented reward")
 	panel.queue_free()

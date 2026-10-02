@@ -32,7 +32,7 @@ func _ready() -> void:
 	form.get_node("Buttons/Cancel").pressed.connect(cancel)
 	form.get_node("Buttons/Save").pressed.connect(save_and_close)
 	controls_button = Button.new()
-	controls_button.text = "Controls…"
+	controls_button.text = "CONTROLS…"
 	controls_button.custom_minimum_size.y = 36
 	controls_button.pressed.connect(open_controls)
 	form.add_child(controls_button)

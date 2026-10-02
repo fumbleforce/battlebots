@@ -120,7 +120,7 @@ func _ready() -> void:
 	preview.return_button.pressed.connect(return_to_main)
 	preview.resume_button.pressed.disconnect(preview.capture_controls)
 	preview.resume_button.pressed.connect(resume_gameplay)
-	preview.settings_button.text = "Settings"
+	preview.settings_button.text = "SETTINGS"
 	preview.settings_button.pressed.disconnect(preview.open_settings)
 	preview.settings_button.pressed.connect(open_settings)
 	preview.settings_panel.closed.connect(_settings_closed)
@@ -547,7 +547,7 @@ func _add_settings_hub() -> void:
 	preview.settings_panel.form.get_node("Title").text = "CAMERA SETTINGS"
 	preview.settings_panel.form.get_node("Title").remove_theme_color_override("font_color")
 	preview.settings_panel.form.get_node("Title").theme_type_variation = &"Heading"
-	preview.settings_panel.form.get_node("Buttons/Save").text = "Save"
+	preview.settings_panel.form.get_node("Buttons/Save").text = "SAVE"
 	for overlay: Control in [_audio_overlay, _hud_overlay, _game_overlay, _video_overlay, preview.settings_panel]:
 		var background := TextureRect.new()
 		background.texture = preload("res://ui/menus/art/bg_arena_blur.jpg")
@@ -899,10 +899,10 @@ func _process(_delta: float) -> void:
 	if menu_open:
 		preview.pause_menu.hide()
 	_forfeit.visible = session.connection_state in ["hosting", "connected"] and phase in ["active", "overtime"]
-	_forfeit.text = "Forfeit" if session.match_view.get("mode") == "ffa" else "Vote to forfeit round"
+	_forfeit.text = "FORFEIT" if session.match_view.get("mode") == "ffa" else "VOTE TO FORFEIT ROUND"
 	_rematch.visible = session.connection_state in ["hosting", "connected"] and phase == "results"
 	_rematch.disabled = _vote_match == str(session.match_view.get("match_id", ""))
-	_rematch.text = "Rematch requested" if _rematch.disabled else "Request rematch"
+	_rematch.text = "REMATCH REQUESTED" if _rematch.disabled else "REQUEST REMATCH"
 	_sync_pause_focus()
 	_sync_music()
 
@@ -1342,14 +1342,14 @@ func _add_match_actions() -> void:
 	var actions: Node = preview.return_button.get_parent()
 	_restart_practice = Button.new()
 	_restart_practice.name = "RestartPractice"
-	_restart_practice.text = "Restart practice"
+	_restart_practice.text = "RESTART PRACTICE"
 	_restart_practice.custom_minimum_size.y = 40
 	_restart_practice.hide()
 	actions.add_child(_restart_practice)
 	actions.move_child(_restart_practice, preview.resume_button.get_index() + 1)
 	_restart_practice.pressed.connect(restart_practice)
 	_forfeit = Button.new()
-	_forfeit.text = "Vote to forfeit round"
+	_forfeit.text = "VOTE TO FORFEIT ROUND"
 	actions.add_child(_forfeit)
 	_forfeit.pressed.connect(func() -> void:
 		if session.match_view.get("phase") in ["active", "overtime"]:

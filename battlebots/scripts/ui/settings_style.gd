@@ -82,7 +82,8 @@ static func row(parent: Node, caption: String, description: String) -> HBoxConta
 
 static func button(parent: Node, caption: String, callback: Callable, primary := false) -> Button:
 	var item := Button.new()
-	item.text = caption
+	# Actions and tabs read in capitals like the rest of the menus.
+	item.text = caption.to_upper()
 	item.custom_minimum_size = Vector2(160,52)
 	if primary:
 		item.add_theme_stylebox_override("normal",box(ACCENT,ACCENT,12))

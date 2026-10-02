@@ -108,7 +108,7 @@ func _run() -> void:
 		actions.add_child(button)
 	var page = load("res://scripts/ui/game_menu_page.gd").new()
 	page.configure(panel)
-	for action: String in ["Restart practice", "Audio settings", "HUD and menu settings"]:
+	for action: String in ["RESTART PRACTICE", "AUDIO SETTINGS", "HUD AND MENU SETTINGS"]:
 		var button := Button.new()
 		button.text = action
 		button.add_theme_font_size_override("font_size", 34)

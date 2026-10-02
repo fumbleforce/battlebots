@@ -2,11 +2,11 @@ class_name SawbladeConfig
 extends RefCounted
 ## Optional appearance record. Weapon/drive choices remain canonical gameplay parts.
 const OPTIONS := {
-	"armor_side": ["None", "Reference covers", "Heavy skirts & fenders"],
-	"armor_top": ["None", "Machinery guard"],
-	"armor_front": ["None", "Chin plate"],
-	"armor_rear": ["None", "Rear pack armor"],
-	"exhaust": ["None", "Small", "Medium dual", "Large dual"]}
+	"armor_side": ["None", "Reference Covers", "Heavy Skirts & Fenders"],
+	"armor_top": ["None", "Machinery Guard"],
+	"armor_front": ["None", "Chin Plate"],
+	"armor_rear": ["None", "Rear Pack Armor"],
+	"exhaust": ["None", "Small", "Medium Dual", "Large Dual"]}
 ## Paint channels in Customize order. paint_armor is optional in saved records
 ## (older saves lack it) and falls back to paint_primary; see armor_color().
 const COLORS := ["paint_primary", "paint_secondary", "paint_armor", "paint_metal", "paint_rubber"]

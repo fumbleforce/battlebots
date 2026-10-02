@@ -127,9 +127,9 @@ func _ready() -> void:
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 16)
 	column.add_child(actions)
-	rematch = _button("Request rematch", actions, &"PrimaryButton")
+	rematch = _button("REQUEST REMATCH", actions, &"PrimaryButton")
 	rematch.pressed.connect(func() -> void: rematch_requested.emit())
-	leave = _button("Leave to main menu", actions, &"GhostButton")
+	leave = _button("LEAVE TO MAIN MENU", actions, &"GhostButton")
 	leave.pressed.connect(func() -> void: leave_requested.emit())
 	show_scores(false)
 	hide()
@@ -210,7 +210,7 @@ func render(view: Dictionary, local_id: int, local_team: int = -1) -> void:
 		_render_table()
 	var active: bool = view.get("phase") == "results"
 	rematch.disabled = not active or _requested
-	rematch.text = "Rematch requested" if _requested else "Request rematch"
+	rematch.text = "REMATCH REQUESTED" if _requested else "REQUEST REMATCH"
 	_render_overview(view)
 	heading.text = "MATCH COMPLETE — " + _outcome(view)
 	var remaining: Variant = view.get("remaining")
@@ -265,7 +265,7 @@ func _render_credits() -> void:
 	credits_label.visible = credits is Dictionary and _integer(credits.get("total"), 0, 2000000000) \
 		and _integer(credits.get("performance"), 0, 2000000000) and _integer(credits.get("pickups"), 0, 2000000000)
 	if credits_label.visible:
-		credits_label.text = "+%s CREDITS EARNED  ·  performance %s  ·  pickups %s" % [MenuData.fmt_int(int(credits.total)),
+		credits_label.text = "+%s CREDITS EARNED  ·  PERFORMANCE %s  ·  PICKUPS %s" % [MenuData.fmt_int(int(credits.total)),
 			MenuData.fmt_int(int(credits.performance)), MenuData.fmt_int(int(credits.pickups))]
 
 func _outcome(view: Dictionary) -> String:
